@@ -3,8 +3,10 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -12,8 +14,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.event import SqlFormatEventSerializer
+from sentry.api.serializers.models.event import (
+    SqlFormatEventSerializer,
+    SqlFormatEventSerializerResponse,
+)
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -22,9 +31,12 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import BaseEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.sdk import set_span_attribute
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
+
+
+class OrganizationEventDetailsResponse(SqlFormatEventSerializerResponse):
+    projectSlug: str
 
 
 def add_comparison_to_event(event: BaseEvent, average_columns: list[str]):
@@ -39,7 +51,9 @@ def add_comparison_to_event(event: BaseEvent, average_columns: list[str]):
             group_to_span_map[group].append(span)
 
     # Nothing to add comparisons to
-    set_span_attribute("query.groups", len(group_to_span_map))
+    current_span = traces.get_current_span()
+    if current_span:
+        current_span.set_attribute("query.groups", len(group_to_span_map))
     if len(group_to_span_map) == 0:
         return
 
@@ -63,7 +77,8 @@ def add_comparison_to_event(event: BaseEvent, average_columns: list[str]):
             config=SearchResolverConfig(),
             sampling_mode="NORMAL",
         )
-        set_span_attribute("query.groups_found", len(result["data"]))
+        if current_span:
+            current_span.set_attribute("query.groups_found", len(result["data"]))
         for row in result["data"]:
             group = row["span.group"]
             for span in group_to_span_map[group]:
@@ -75,6 +90,7 @@ def add_comparison_to_event(event: BaseEvent, average_columns: list[str]):
                     span["span.averageResults"] = average_results
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -107,8 +123,41 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return args, kwargs
 
-    def get(self, request: Request, organization, project: Project, event_id) -> Response:
-        """event_id is validated by a regex in the URL"""
+    @extend_schema(
+        operation_id="getOrganizationEvent",
+        summary="Retrieve an Event",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            EventParams.EVENT_ID,
+            OpenApiParameter(
+                name="averageColumn",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                enum=sorted(VALID_AVERAGE_COLUMNS),
+                description="Annotate each span with its average value of these columns over the last 24 hours, under `span.averageResults`.",
+            ),
+            GlobalParams.REFERRER,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventDetailsResponse", OrganizationEventDetailsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization, project: Project, event_id
+    ) -> Response[OrganizationEventDetailsResponse] | Response[DetailResponse] | Response[None]:
+        """
+        Return details on an individual event, looked up by project and event ID. The
+        event is returned even if it falls outside of the requested time range.
+        """
+        # event_id is validated by a regex in the URL
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -145,9 +194,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
-        data = serialize(
+        event_data: SqlFormatEventSerializerResponse = serialize(
             event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
         )
-        data["projectSlug"] = project.slug
+        data: OrganizationEventDetailsResponse = {**event_data, "projectSlug": project.slug}
 
         return Response(data)

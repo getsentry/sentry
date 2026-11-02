@@ -4,6 +4,7 @@ import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -27,7 +28,6 @@ from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.sentry_apps.components")
 
@@ -89,22 +89,38 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response[list[SentryAppComponentSerializerResponse]]:
-        """Retrieve prepared UI components for installed custom integrations, including issue-link forms."""
+        """
+        Retrieve prepared UI components for installed custom integrations, including issue-link forms.
+
+        API clients can use `filter=issue-link` to create or link an external issue through
+        an app such as Linear. The `uri` values in `schema` are paths on the app's own server.
+        Clients never call them directly; Sentry calls the app on their behalf:
+
+        - To load a select field's choices, pass the field's `uri` to
+          `GET /sentry-app-installations/{installationUuid}/external-requests/`.
+        - To create or link the issue, send the form values with the `uri` from
+          `schema.create` or `schema.link` to
+          `POST /sentry-app-installations/{installationUuid}/external-issue-actions/`.
+        """
         components = []
         errors = {}
+        installation_uuids: dict[int, str] = {}
 
-        with start_span(name="sentry.api.sentry_app_components.get", transaction=True):
-            with start_span(
-                op="sentry-app-components.get_installs", name="sentry-app-components.get_installs"
+        traces.new_trace()
+        with traces.start_span(name="sentry.api.sentry_app_components.get", parent_span=None):
+            with traces.start_span(
+                name="sentry-app-components.get_installs",
+                attributes={"sentry.op": "sentry-app-components.get_installs"},
             ):
                 installs = SentryAppInstallation.objects.get_installed_for_organization(
                     organization.id
                 ).order_by("pk")
 
             for install in installs:
-                with start_span(
-                    op="sentry-app-components.filter_components",
+                installation_uuids[install.sentry_app_id] = str(install.uuid)
+                with traces.start_span(
                     name="sentry-app-components.filter_components",
+                    attributes={"sentry.op": "sentry-app-components.filter_components"},
                 ):
                     _components = SentryAppComponent.objects.filter(
                         sentry_app_id=install.sentry_app_id
@@ -114,9 +130,9 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                         _components = _components.filter(type=request.GET["filter"])
 
                 for component in _components:
-                    with start_span(
-                        op="sentry-app-components.prepare_components",
+                    with traces.start_span(
                         name="sentry-app-components.prepare_components",
+                        attributes={"sentry.op": "sentry-app-components.prepare_components"},
                     ):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
@@ -145,6 +161,10 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
             queryset=components,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, serializer=SentryAppComponentSerializer(), errors=errors
+                x,
+                request.user,
+                serializer=SentryAppComponentSerializer(),
+                errors=errors,
+                installation_uuids=installation_uuids,
             ),
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, NotRequired, TypedDict
 
-from sentry_sdk.types import Event, Hint, Log
+from sentry_sdk.types import DataCollectionUserOptions, Event, Hint, Log
 
 
 class SdkConfig(TypedDict):
@@ -12,9 +12,10 @@ class SdkConfig(TypedDict):
     project_root: str
     in_app_include: list[str]
     debug: bool
-    send_default_pii: bool
+    data_collection: DataCollectionUserOptions
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
+    attach_stacktrace: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
     add_full_stack: NotRequired[bool]
     max_value_length: NotRequired[int]
@@ -38,7 +39,4 @@ class SdkConfig(TypedDict):
 
 class ServerSdkConfig(SdkConfig):
     # these get popped before sending along to the sdk
-    dsn: NotRequired[str]
-    relay_dsn: NotRequired[str]
-    sentry_mirror_dsn: NotRequired[str]
     backend_dsn: NotRequired[str]

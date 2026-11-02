@@ -16,11 +16,11 @@ import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGrid';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -55,9 +55,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 320},
-  {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created', width: 200},
+  {key: 'release', name: t('Release'), width: 320},
+  {key: 'error_count', name: t('New issues'), width: 110},
+  {key: 'date', name: t('Created'), width: 200},
 ];
 
 /**
@@ -201,7 +201,7 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}
@@ -209,7 +209,6 @@ export function ReleasesDrawerTable({
         emptyMessage={tableEmptyMessage}
         fit="max-content"
         stickyHeader
-        scrollable
         grid={{
           renderHeadCell: column => <span>{column.name}</span>,
           renderBodyCell,

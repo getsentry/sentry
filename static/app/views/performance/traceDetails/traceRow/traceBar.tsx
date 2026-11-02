@@ -18,7 +18,8 @@ export function InvisibleTraceBar(props: InvisibleTraceBarProps) {
       props.manager.registerInvisibleBarRef(
         ref,
         props.node_space!,
-        props.virtualizedIndex
+        props.virtualizedIndex,
+        'error'
       );
     },
     [props.manager, props.node_space, props.virtualizedIndex]
@@ -189,7 +190,8 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
       props.manager.registerInvisibleBarRef(
         ref,
         props.entire_space!,
-        props.virtualized_index
+        props.virtualized_index,
+        'autogroup'
       );
     },
     [props.manager, props.entire_space, props.virtualized_index]

@@ -28,8 +28,11 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.permissions import can_edit_workflows
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.utils import (
+    can_edit_workflows,
+    enforce_workflow_edit_permissions,
+)
 from sentry.workflow_engine.models import Workflow
 
 
@@ -95,8 +98,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         """
         Updates an alert.
         """
-        if not can_edit_workflows([workflow], request):
-            raise PermissionDenied
+        enforce_workflow_edit_permissions(request=request, workflows=[workflow])
 
         validator = WorkflowValidator(
             data=request.data,

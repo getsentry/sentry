@@ -32,6 +32,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
@@ -2133,6 +2134,56 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert issues_by_group[events[0].group.id][0]["title"] == issues[0].title
         assert issues_by_group[events[1].group.id][0]["title"] == issues[1].title
         assert issues_by_group[events[2].group.id] == []
+        assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
+        assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
+
+    def test_integration_annotations_batch_queries_across_integrations(self) -> None:
+        events = [
+            self.store_event(
+                data={
+                    "timestamp": before_now(seconds=500 - index).isoformat(),
+                    "fingerprint": [f"group-{index}"],
+                },
+                project_id=self.project.id,
+            )
+            for index in range(3)
+        ]
+        jira_a = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira_a",
+            metadata={"base_url": "https://a.example.com"},
+        )
+        jira_b = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira_b",
+            metadata={"base_url": "https://b.example.com"},
+        )
+        shared_issue = self.create_integration_external_issue(
+            group=events[0].group, integration=jira_a, key="A-1"
+        )
+        self.create_integration_external_issue(group=events[0].group, integration=jira_b, key="B-1")
+        self.create_group_link(
+            group=events[1].group,
+            linked_id=shared_issue.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
+        self.login_as(user=self.user)
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.get_response(sort_by="date", limit=10, query="status:unresolved")
+
+        assert response.status_code == 200
+        annotations_by_group = {int(group["id"]): group["annotations"] for group in response.data}
+        assert sorted(annotations_by_group[events[0].group.id], key=lambda a: a["url"]) == [
+            {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
+            {"url": "https://b.example.com/browse/B-1", "displayName": "B-1"},
+        ]
+        assert annotations_by_group[events[1].group.id] == [
+            {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
+        ]
+        assert annotations_by_group[events[2].group.id] == []
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
 
@@ -4309,6 +4360,42 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
         assert not bookmark4.exists()
+
+    def test_bookmark_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isBookmarked": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupBookmark.objects.filter(group=group).exists()
+
+    def test_subscribe_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isSubscribed": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupSubscription.objects.filter(group=group).exists()
 
     def test_subscription(self) -> None:
         group1 = self.create_group()

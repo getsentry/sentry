@@ -7,7 +7,6 @@ from django.db import models, router, transaction
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
@@ -133,29 +132,6 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
 
 class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
-    def has_migrate_feature(self, organization: Organization, actor: User) -> bool:
-        """
-        Whether to combine Discover queries with Explore queries
-        """
-        return features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=actor
-        )
-
-    def get_last_position(self, organization: Organization, user_id: int) -> int:
-        """
-        Returns the last position of a user's starred queries in an organization.
-        """
-        last_starred_query = (
-            self.filter(
-                organization=organization, user_id=user_id, position__isnull=False, starred=True
-            )
-            .order_by("-position")
-            .first()
-        )
-        if last_starred_query:
-            return last_starred_query.position  # type: ignore[return-value]
-        return 0
-
     def get_starred_query(
         self, organization: Organization, user_id: int, query: ExploreSavedQuery
     ) -> ExploreSavedQueryStarred | None:
@@ -165,44 +141,6 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
         return self.filter(
             organization=organization, user_id=user_id, explore_saved_query=query
         ).first()
-
-    def reorder_starred_queries(
-        self, organization: Organization, user_id: int, new_query_positions: list[int]
-    ):
-        """
-        Reorders the positions of starred queries for a user in an organization.
-        Does NOT add or remove starred queries.
-
-        Args:
-            organization: The organization the queries belong to
-            user_id: The ID of the user whose starred queries are being reordered
-            new_query_positions: List of query IDs in their new order
-
-        Raises:
-            ValueError: If there's a mismatch between existing starred queries and the provided list
-        """
-        existing_starred_queries = self.filter(
-            organization=organization,
-            user_id=user_id,
-            position__isnull=False,
-            starred=True,
-        )
-
-        existing_query_ids = {query.explore_saved_query.id for query in existing_starred_queries}
-        new_query_ids = set(new_query_positions)
-
-        if existing_query_ids != new_query_ids:
-            raise ValueError("Mismatch between existing and provided starred queries.")
-
-        position_map = {query_id: idx for idx, query_id in enumerate(new_query_positions)}
-
-        queries_to_update = list(existing_starred_queries)
-
-        for query in queries_to_update:
-            query.position = position_map[query.explore_saved_query.id]
-
-        if queries_to_update:
-            self.bulk_update(queries_to_update, ["position"])
 
     def insert_starred_query(
         self,
@@ -229,10 +167,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
                 return False
 
             position: int
-            if self.has_migrate_feature(organization, user):
-                position = next_starred_position(organization, user.id)
-            else:
-                position = self.get_last_position(organization, user.id) + 1
+            position = next_starred_position(organization, user.id)
             self.create(
                 organization=organization,
                 user_id=user.id,
@@ -274,22 +209,12 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
             position: int
             if next_prebuilt is None or next_prebuilt.position is None:
-                if self.has_migrate_feature(organization, user):
-                    position = next_starred_position(organization, user.id)
-                else:
-                    position = self.get_last_position(organization, user.id) + 1
+                position = next_starred_position(organization, user.id)
             else:
                 position = next_prebuilt.position
-                if self.has_migrate_feature(organization, user):
-                    shift_starred_positions(
-                        organization, user.id, from_position=position, delta=1, inclusive=True
-                    )
-                else:
-                    self.filter(
-                        organization=organization,
-                        user_id=user.id,
-                        position__gte=position,
-                    ).update(position=models.F("position") + 1)
+                shift_starred_positions(
+                    organization, user.id, from_position=position, delta=1, inclusive=True
+                )
 
             self.create(
                 organization=organization,
@@ -324,16 +249,10 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
             deleted_position = starred_query.position
             starred_query.delete()
 
-            if self.has_migrate_feature(organization, user):
-                if deleted_position is not None:
-                    shift_starred_positions(
-                        organization, user.id, from_position=deleted_position, delta=-1
-                    )
-                return True
-
-            self.filter(
-                organization=organization, user_id=user.id, position__gt=deleted_position
-            ).update(position=models.F("position") - 1)
+            if deleted_position is not None:
+                shift_starred_positions(
+                    organization, user.id, from_position=deleted_position, delta=-1
+                )
             return True
 
     def updated_starred_query(
@@ -354,10 +273,7 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
 
             starred_query.starred = starred
             if starred:
-                if self.has_migrate_feature(organization, user):
-                    starred_query.position = next_starred_position(organization, user.id)
-                else:
-                    starred_query.position = self.get_last_position(organization, user.id) + 1
+                starred_query.position = next_starred_position(organization, user.id)
             else:
                 starred_query.position = None
 
@@ -590,6 +506,16 @@ class ExploreSavedFormula(DefaultFieldsModel):
     # which means 11 terms, assuming we eventually allow attributes, 200 characters each
     # for a total of 2230, rounding to 2500 for now
     formula = models.CharField(max_length=2500)
+    # Formulas need to have a dataset since functions differ dataset to dataset
+    dataset = BoundedPositiveIntegerField(
+        choices=ExploreSavedQueryDataset.as_choices(), db_default=ExploreSavedQueryDataset.SPANS
+    )
+    # The corresponding prebuilt_id found in hardcoded prebuilt formulas from
+    # src/sentry/explore/endpoints/organization_explore_formulas.py
+    # If the saved query is not a prebuilt query, this will be None
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # Tombstone for prebuilts so we don't recreate them if a user decides to delete it
+    prebuilt_deleted = models.BooleanField(db_default=False)
 
     class Meta:
         app_label = "explore"
@@ -598,6 +524,10 @@ class ExploreSavedFormula(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["organization_id", "name"],
                 name="explore_exploresavedformula_unique_name_per_organization",
+            ),
+            CheckConstraint(
+                condition=Q(prebuilt_id__isnull=False) | Q(prebuilt_deleted=False),
+                name="explore_exploresavedformula_prebuilt_deleted_requires_prebuilt",
             ),
         ]
 
@@ -609,6 +539,15 @@ class ExploreSavedFormula(DefaultFieldsModel):
             return "size"
         else:
             return "number"
+
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
+        if self.prebuilt_id is not None:
+            self.prebuilt_deleted = True
+            self.save(using=using)
+            return (1, {self._meta.label: 1})
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
 class ParamItemTypes(TypesClass):

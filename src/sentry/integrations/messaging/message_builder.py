@@ -9,12 +9,11 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
+from sentry.notifications.types import NotificationOrigin
+from sentry.notifications.utils.rules import get_workflow_url
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
@@ -106,66 +105,7 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_rule_environment_param_from_rule(rule_environment_id: int | None) -> dict[str, str]:
-    params = {}
-    if (
-        rule_environment_id is not None
-        and (environment_name := fetch_environment_name(rule_environment_id)) is not None
-    ):
-        params["environment"] = environment_name
-    return params
-
-
 def get_title_link(
-    group: Group,
-    event: Event | GroupEvent | None,
-    link_to_event: bool,
-    issue_details: bool,
-    notification: BaseNotification | None,
-    provider: ExternalProviders,
-    rule_id: int | None = None,
-    rule_environment_id: int | None = None,
-    notification_uuid: str | None = None,
-) -> str:
-    other_params = {}
-    # add in rule id if we have it
-    if rule_id:
-        other_params.update(get_rule_environment_param_from_rule(rule_environment_id))
-        # hard code for issue alerts
-        other_params["alert_rule_id"] = str(rule_id)
-        other_params["alert_type"] = "issue"
-
-    if event and link_to_event:
-        url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params},
-            event_id=event.event_id,
-        )
-
-    elif issue_details and notification:
-        referrer = notification.get_referrer(provider)
-        notification_uuid = notification.notification_uuid
-        event_id = getattr(notification, "regression_event_id", None)
-        url = group.get_absolute_url(
-            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params},
-            event_id=event_id,
-        )
-    elif notification_uuid:
-        url = group.get_absolute_url(
-            params={
-                "referrer": EXTERNAL_PROVIDERS[provider],
-                "notification_uuid": notification_uuid,
-                **other_params,
-            }
-        )
-    else:
-        url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
-        )
-
-    return url
-
-
-def get_title_link_workflow_engine_ui(
     group: Group,
     event: Event | GroupEvent | None,
     link_to_event: bool,
@@ -250,34 +190,21 @@ def build_attachment_replay_link(
     return None
 
 
-def build_rule_url(rule: Any, group: Group, project: Project) -> str:
-    org_slug = group.organization.slug
-    project_slug = project.slug
-    rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-    rule_url = f"/organizations/{org_slug}/issues/alerts/rules/{project_slug}/{rule_id}/details/"
-
-    return absolute_uri(rule_url)
-
-
 def build_footer(
     group: Group,
     project: Project,
     url_format: str,
-    rules: Sequence[Rule] | None = None,
+    rules: Sequence[NotificationOrigin] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        key, value = get_rule_or_workflow_id(rules[0])
-        match key:
-            case "workflow_id":
-                rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))
-            case "legacy_rule_id":
-                rule_url = build_rule_url(rules[0], group, project)
-
+        origin = rules[0]
         # If this notification is triggered via the "Send Test Notification"
-        # button then the label is not defined, but the url works.
-        text = rules[0].label if rules[0].label else "Test Alert"
-        footer += f" via {url_format.format(text=text, url=rule_url)}"
+        # button then the label is not defined.
+        text = origin.label if origin.label else "Test Alert"
+        workflow_url = get_workflow_url(origin, group.organization.slug)
+        linked_text = url_format.format(text=text, url=workflow_url) if workflow_url else text
+        footer += f" via {linked_text}"
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"

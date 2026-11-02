@@ -21,7 +21,7 @@ import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issues
 import {useIssuesTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {
   getInitialTracePreferences,
   type TracePreferencesState,

@@ -54,7 +54,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailed", "foo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
@@ -84,19 +84,19 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
             },
             {
-                "text": 'app:"true" -> "{{ default }}stuff"',
+                "text": 'app:"true" -> "{{ default }}", "stuff"',
                 "matchers": [["app", "true"]],
                 "fingerprint": ["{{ default }}", "stuff"],
                 "attributes": {},
@@ -120,7 +120,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
@@ -132,13 +132,13 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "attributes": {},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
             },
             {
-                "text": 'logger:"sentry.*" -> "logger-{{ logger }}" title="Message from {{ logger }}"',
+                "text": 'logger:"sentry.*" -> "logger-", "{{ logger }}" title="Message from {{ logger }}"',
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {"title": "Message from {{ logger }}"},
@@ -165,13 +165,63 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
         "attributes": {"title": "Message from {{ logger }}"},
         "fingerprint": ["logger", "{{ logger }}"],
         "matchers": [["logger", "sentry.*"]],
-        "text": 'logger:"sentry.*" -> "logger{{ logger }}" title="Message from {{ logger }}"',
+        "text": 'logger:"sentry.*" -> "logger", "{{ logger }}" title="Message from {{ logger }}"',
     }
+
+
+def test_rule_text_round_trips() -> None:
+    rules = FingerprintingConfig.from_config_string(
+        'logger:sentry.* -> logger-{{ logger }}, "two words", {{ default }} title="From {{ logger }}"'
+    )
+    [rule] = rules.rules
+    assert (
+        rule.text
+        == 'logger:"sentry.*" -> "logger-", "{{ logger }}", "two words", "{{ default }}" title="From {{ logger }}"'
+    )
+    [reparsed] = FingerprintingConfig.from_config_string(rule.text).rules
+    assert reparsed.fingerprint == rule.fingerprint
+    assert reparsed.attributes == rule.attributes
 
 
 def test_parsing_errors() -> None:
     with pytest.raises(InvalidFingerprintingConfig):
         FingerprintingConfig.from_config_string("invalid.message:foo -> bar")
+
+
+@pytest.mark.parametrize(
+    ("config", "message"),
+    [
+        (
+            "error.type:A -> a\n# comment\nerror.type:B → b",
+            'Invalid syntax near "→ b" (line 3, column 14): use "->" instead of "→"',
+        ),
+        (
+            "error.type:B => b",
+            'Invalid syntax near "=> b" (line 1, column 14): use "->" instead of "=>"',
+        ),
+        (
+            'message:"a -> b" → b',
+            'Invalid syntax near "→ b" (line 1, column 18): use "->" instead of "→"',
+        ),
+        (
+            "error.type:B b",
+            'Invalid syntax near "error.type:B b" (line 1, column 1): expected "->" between the matchers and the fingerprint',
+        ),
+        (
+            "error.type:B-> b",
+            'Invalid syntax near "-> b" (line 1, column 13): add a space before "->"',
+        ),
+        # The arrow is fine, so the error points at `{d`, not at the `->` and `→` in the values
+        (
+            'error.type:B -> b->c "x → y" {d',
+            'Invalid syntax near "{d" (line 1, column 30)',
+        ),
+    ],
+)
+def test_parsing_error_messages(config: str, message: str) -> None:
+    with pytest.raises(InvalidFingerprintingConfig) as e:
+        FingerprintingConfig.from_config_string(config)
+    assert str(e.value) == message
 
 
 def test_automatic_argument_splitting() -> None:
@@ -186,25 +236,25 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     assert rules._to_config_structure() == {
         "rules": [
             {
-                "text": 'logger:"test" -> "logger-{{ logger }}"',
+                "text": 'logger:"test" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test" -> "logger-{{ logger }}"',
+                "text": 'logger:"test" -> "logger-", "{{ logger }}"',
                 "matchers": [["logger", "test"]],
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
+                "text": 'logger:"test2" -> "logger-", "{{ logger }}", "-", "{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
             },
             {
-                "text": 'logger:"test2" -> "logger-{{ logger }}-{{ level }}"',
+                "text": 'logger:"test2" -> "logger-", "{{ logger }}", "-", "{{ level }}"',
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
                 "attributes": {},
@@ -234,7 +284,7 @@ release:foo                                     -> release-foo
                 "attributes": {},
             },
             {
-                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailedfoo"',
+                "text": 'function:"assertion_failed" module:"foo" -> "AssertionFailed", "foo"',
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
                 "attributes": {},
@@ -300,6 +350,61 @@ def test_variable_resolution() -> None:
         ("{{ raw_message }}", "That's ball number 6 that Charlie hasn't brought back!"),
         ("{{ raw_value }}", "That's ball number 6 that Charlie hasn't brought back!"),
         ("{{ error.raw_value }}", "That's ball number 6 that Charlie hasn't brought back!"),
+    ]:
+        assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
+            expected_resolved_value
+        ], f"Entry {fingerprint_entry} resolved incorrectly"
+
+
+@django_db_all
+def test_variable_resolution_with_stacktrace_in_threads() -> None:
+    event = Event(
+        project_id=908415,
+        event_id="11211231",
+        data={
+            "platform": "cocoa",
+            "exception": {
+                "values": [
+                    {
+                        "type": "MyApp.SampleError",
+                        "value": "Code=0",
+                        "mechanism": {"type": "NSError"},
+                    }
+                ]
+            },
+            "threads": {
+                "values": [
+                    {"id": 0, "crashed": False, "current": False},
+                    {
+                        "id": 1,
+                        "crashed": False,
+                        "current": True,
+                        "stacktrace": {
+                            "frames": [
+                                {"function": "main", "in_app": False, "package": "/usr/lib/dyld"},
+                                {
+                                    "function": "ViewController.captureError",
+                                    "module": "MyApp.ViewController",
+                                    "abs_path": "/Users/me/MyApp/ViewController.swift",
+                                    "filename": "ViewController.swift",
+                                    "package": "/var/containers/MyApp.app/MyApp",
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    },
+                ]
+            },
+        },
+    )
+    context = GroupingContext(StrategyConfiguration(), event)
+
+    for fingerprint_entry, expected_resolved_value in [
+        ("{{ stack.function }}", "ViewController.captureError"),
+        ("{{ stack.module }}", "MyApp.ViewController"),
+        ("{{ stack.abs_path }}", "/Users/me/MyApp/ViewController.swift"),
+        ("{{ stack.filename }}", "ViewController.swift"),
+        ("{{ stack.package }}", "MyApp"),
     ]:
         assert resolve_fingerprint_values([fingerprint_entry], event, context) == [
             expected_resolved_value

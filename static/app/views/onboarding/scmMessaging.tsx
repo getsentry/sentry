@@ -30,13 +30,13 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  buildIntegrationAction,
-  providerDetails,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   getRequestDataFragment,
   type RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  buildIntegrationAction,
+  providerDetails,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from './animations';
 import type {StepProps} from './types';
@@ -191,6 +191,7 @@ export function ScmMessaging({
     }
 
     setSubmissionMode('continue');
+    // oxlint-disable-next-line react/todo
     try {
       await submitProject({includeMessagingRule: true});
     } finally {
@@ -201,6 +202,7 @@ export function ScmMessaging({
   const handleSetupLater = async () => {
     setContinueRequested(false);
     setSubmissionMode('setup-later');
+    // oxlint-disable-next-line react/todo
     try {
       await submitProject({includeMessagingRule: false});
     } finally {
@@ -269,10 +271,7 @@ export function ScmMessaging({
   ]);
 
   return (
-    // The onboarding flow has no page-level query container (project creation
-    // resolves against `#main`), and the flow's fixed footers preclude one
-    // higher up, so each SCM step declares its own.
-    <Stack containerType="inline-size">
+    <Stack>
       <ScmStepLayout>
         <ScmStepHeader
           heading={SCM_MESSAGING_TITLE}

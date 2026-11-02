@@ -1,5 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -10,7 +13,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -225,7 +227,7 @@ export function IntegrationExternalMappings(props: Props) {
             <SimpleTable.HeaderCell>
               {tct('Sentry [type]', {type})}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">
               <Button
                 data-test-id="add-mapping-button"
                 onClick={() => onCreate()}
@@ -281,15 +283,6 @@ export function IntegrationExternalMappings(props: Props) {
 
 const MappingTable = styled(SimpleTable)`
   overflow: visible;
-
-  [role='columnheader'] {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  [role='columnheader']:nth-child(4),
-  [role='cell']:nth-child(4) {
-    padding-right: ${p => p.theme.space.md};
-  }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`

@@ -1,14 +1,14 @@
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 export interface BreadcrumbMenuActionProps {
   /** Menu entries rendered inside the dropdown. */
   items: MenuItemProps[];
+  /** Icon rendered inside the icon-only trigger button. */
+  triggerIcon: NonNullable<React.ReactNode>;
   /** Accessible name for the trigger button. */
   triggerLabel: string;
-  /** Icon rendered inside the icon-only trigger button. */
-  triggerIcon?: React.ReactNode;
 }
 
 /**
@@ -25,7 +25,7 @@ export function BreadcrumbMenuAction({
     <DropdownMenu
       items={items}
       trigger={(triggerProps, isOpen) => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size="zero"
           variant="transparent"

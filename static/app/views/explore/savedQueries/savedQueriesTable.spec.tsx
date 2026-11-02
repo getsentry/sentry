@@ -20,7 +20,7 @@ describe('SavedQueriesTable', () => {
 
   beforeEach(() => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -64,6 +64,7 @@ describe('SavedQueriesTable', () => {
   it('should render', async () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Project')).toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(screen.getByText('Creator')).toBeInTheDocument();
@@ -75,7 +76,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/explore/saved/`,
+        `/organizations/${organization.slug}/explore/all-queries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -91,7 +92,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="shared" title="title" />);
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/explore/saved/`,
+        `/organizations/${organization.slug}/explore/all-queries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -130,13 +131,13 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/?caseInsensitive=0&environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 
   it('should link to a multi query view', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -163,13 +164,13 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3Afalse%7D&title=Query%20Name'
     );
   });
 
   it('should link to a single query view for logs dataset', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -191,6 +192,7 @@ describe('SavedQueriesTable', () => {
             },
           ],
           range: '1h',
+          statsPeriod: '1h',
           interval: '5m',
           dataset: 'logs',
         },
@@ -205,7 +207,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for logs dataset with aggregate', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -226,6 +228,7 @@ describe('SavedQueriesTable', () => {
             },
           ],
           range: '1h',
+          statsPeriod: '1h',
           interval: '5m',
           dataset: 'logs',
         },
@@ -234,13 +237,13 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByRole('link', {name: 'ABC'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&caseInsensitive=0&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
     );
   });
 
   it('should link to a single query view for replays dataset', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -271,7 +274,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for replays dataset with statsPeriod', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 2,
@@ -288,6 +291,7 @@ describe('SavedQueriesTable', () => {
             },
           ],
           range: '24h',
+          statsPeriod: '24h',
           dataset: 'replays',
         },
       ],
@@ -301,7 +305,7 @@ describe('SavedQueriesTable', () => {
 
   it('should display starred status', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -372,7 +376,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" sort="mostPopular" title="title" />);
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({sortBy: ['starred', 'mostPopular']}),
       })
@@ -383,7 +387,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" searchQuery="Query Name" title="title" />);
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({query: 'Query Name'}),
       })
@@ -392,7 +396,7 @@ describe('SavedQueriesTable', () => {
 
   it('should not crash when a saved query has no query field', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -418,7 +422,7 @@ describe('SavedQueriesTable', () => {
 
   it('should not crash when a saved query has an empty query array', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -462,10 +466,8 @@ describe('SavedQueriesTable', () => {
   });
 });
 
-describe('SavedQueriesTable with discover-queries-in-all-queries', () => {
-  const {organization} = initializeOrg({
-    organization: {features: ['discover-queries-in-all-queries']},
-  });
+describe('SavedQueriesTable with discover queries', () => {
+  const {organization} = initializeOrg();
   let getQueriesMock: jest.Mock;
   let updateDiscoverQueryMock: jest.Mock;
 

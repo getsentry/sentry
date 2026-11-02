@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -7,6 +9,7 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
   mailFrom: string;
@@ -21,6 +24,15 @@ type Data = {
 };
 
 export default function AdminMail() {
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Mail')} />
+      <AdminMailContent />
+    </Fragment>
+  );
+}
+
+function AdminMailContent() {
   const {data, isPending, isError, refetch} = useApiQuery<Data>(
     [getApiUrl('/internal/mail/')],
     {

@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconPlay} from 'sentry/icons';
+import {AnsiText} from 'sentry/components/ansiText';
 import {t} from 'sentry/locale';
 import {ReplayContextKey} from 'sentry/types/event';
 import {FieldKey} from 'sentry/utils/fields';
@@ -103,12 +104,12 @@ export function Title({isLoading, representativeEvent, rootEventResults}: TitleP
     return (
       <Stack align="start" width="100%">
         <Text size="xl" bold ellipsis>
-          {traceTitle.title}
+          <AnsiText>{traceTitle.title}</AnsiText>
         </Text>
         {traceTitle.subtitle && (
           <Flex align="center" gap="sm" width="100%">
             <Text size="md" ellipsis variant="muted">
-              {traceTitle.subtitle}
+              <AnsiText>{traceTitle.subtitle}</AnsiText>
             </Text>
             <ContextBadges rootEventResults={rootEventResults} />
           </Flex>

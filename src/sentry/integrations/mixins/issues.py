@@ -3,13 +3,13 @@ from __future__ import annotations
 import enum
 import logging
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
+from sentry.auth.principal import has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -23,7 +23,6 @@ from sentry.integrations.utils.external_issues import maybe_generate_external_is
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
-from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
@@ -248,7 +247,8 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
-        if user_persisted_fields:
+        # Per-user defaults need a person, which a service account isn't.
+        if user_persisted_fields and has_user(user):
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.get_many(
@@ -353,28 +353,6 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return ""
 
-    def get_annotations_for_group_list(self, group_list):
-        group_links = GroupLink.objects.filter(
-            group_id__in=[group.id for group in group_list],
-            project_id__in=list({group.project.id for group in group_list}),
-            linked_type=GroupLink.LinkedType.issue,
-            relationship=GroupLink.Relationship.references,
-        )
-
-        external_issues = ExternalIssue.objects.filter(
-            id__in=[group_link.linked_id for group_link in group_links],
-            integration_id=self.model.id,
-        )
-
-        # group annotations by group id
-        annotations_by_group_id = defaultdict(list)
-        for group_link in group_links:
-            issues_for_group = filter(lambda x: x.id == group_link.linked_id, external_issues)
-            annotations = self.map_external_issues_to_annotations(issues_for_group)
-            annotations_by_group_id[group_link.group_id].extend(annotations)
-
-        return annotations_by_group_id
-
     def map_external_issues_to_annotations(self, external_issues):
         annotations = []
         for ei in external_issues:
@@ -414,11 +392,14 @@ def where_should_sync(
     else:
         ois = integration_service.get_organization_integrations(integration_id=integration.id)
 
-    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+    ois_by_org_id = {oi.organization_id: oi for oi in ois}
+    organizations = Organization.objects.filter(id__in=ois_by_org_id)
     ret = []
     for organization in organizations.filter(**kwargs):
         if features.has("organizations:integrations-issue-sync", organization):
             installation = integration.get_installation(organization_id=organization.id)
+            # Reuse the org integration fetched above instead of another RPC per org.
+            installation.org_integration = ois_by_org_id[organization.id]
             if isinstance(installation, IssueBasicIntegration) and installation.should_sync(key):
                 ret.append(organization)
     return ret

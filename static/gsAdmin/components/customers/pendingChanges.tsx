@@ -1,21 +1,24 @@
 import {Fragment} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {IconArrow} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
-import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  displayPriceWithCents,
+  formatReservedWithUnits,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {
   formatOnDemandBudget,
   isOnDemandBudgetsEqual,

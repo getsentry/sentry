@@ -5,6 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -14,6 +15,7 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   MetricDetectorTriggeredSection,
   MetricIssueSeerInvestigationSection,
@@ -109,7 +111,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: 'Errors rose across releases',
@@ -124,13 +126,231 @@ describe('MetricDetectorTriggeredSection', () => {
     await screen.findByRole('region', {
       name: 'Seer Investigation',
     });
-    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(await screen.findByText('Seer investigation completed')).toBeInTheDocument();
+    expect(screen.getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       screen.getByText('All active releases increased together.')
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/4567/');
+    ).toHaveAttribute('href', '/seer/investigations/4567/');
+    expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+      'data-variant',
+      'complete'
+    );
+  });
+
+  it('shows the run status while an investigation is in progress', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'broad_scan',
+          status: 'processing',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'broad_scan',
+        status: 'processing',
+        hypotheses: [],
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+      'data-variant',
+      'running'
+    );
+    expect(screen.getByRole('button', {name: 'View Investigation'})).toBeInTheDocument();
+  });
+
+  it('shows when an investigation run needs more information', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'planning',
+          status: 'awaiting_input',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'planning',
+        status: 'awaiting_input',
+        pendingInput: {
+          prompt: 'Which service owns the checkout endpoint?',
+          missingFields: ['prompt'],
+        },
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('Seer needs more information to continue')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Which service owns the checkout endpoint?')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
+      'data-variant',
+      'awaitingInput'
+    );
+  });
+
+  it("shows the run's summary when the investigation has not caught up", async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'completed',
+          status: 'completed',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    const projection = InvestigationOrchestrationFixture({
+      investigationId: '4567',
+      phase: 'completed',
+      status: 'completed',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: {
+        ...projection,
+        report: {
+          ...projection.report,
+          metadata: {
+            ...projection.report.metadata,
+            status: 'completed',
+            summary: 'Errors rose across releases',
+            summaryDescription: 'All active releases increased together.',
+          },
+        },
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(screen.getByText('Seer investigation completed')).toBeInTheDocument();
+    expect(
+      screen.getByText('All active releases increased together.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows why an investigation run failed', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'failed',
+          status: 'failed',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/orchestration/',
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'failed',
+        status: 'failed',
+        errors: [
+          {
+            code: 'query_timeout',
+            message: 'The metric query timed out.',
+            retryable: false,
+          },
+        ],
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText("Seer couldn't finish this investigation")
+    ).toBeInTheDocument();
+    expect(screen.getByText('The metric query timed out.')).toBeInTheDocument();
   });
 
   it('hides an existing investigation summary until all summary fields are ready', async () => {
@@ -145,7 +365,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: 'Errors rose across releases',
@@ -161,7 +381,81 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
+  });
+
+  it('polls the run status until the run stops', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+      openMembership: true,
+    });
+    const orchestrationUrl = '/organizations/org-slug/investigations/4567/orchestration/';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/notebooks/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: 'completed'},
+        orchestration: {
+          phase: 'broad_scan',
+          status: 'processing',
+          heartbeatAt: '2026-08-27T11:06:30Z',
+          notebookRevision: 1,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'broad_scan',
+        status: 'processing',
+        hypotheses: [],
+      }),
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'planning',
+        status: 'processing',
+        hypotheses: [],
+      }),
+    });
+    act(() => jest.advanceTimersByTime(2000));
+    expect(
+      await screen.findByText('Seer is looking for likely causes')
+    ).toBeInTheDocument();
+
+    const stoppedRequest = MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        investigationId: '4567',
+        phase: 'cancelled',
+        status: 'cancelled',
+      }),
+    });
+    act(() => jest.advanceTimersByTime(2000));
+    expect(await screen.findByText('This investigation was stopped')).toBeInTheDocument();
+
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(stoppedRequest).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it('keeps polling briefly while metadata generation is starting', async () => {
@@ -177,7 +471,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -220,7 +514,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -274,7 +568,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'investigate'}]},
     });
     const launchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/',
+      url: '/organizations/org-slug/notebooks/',
       method: 'POST',
       body: {id: '4567'},
     });
@@ -291,7 +585,7 @@ describe('MetricDetectorTriggeredSection', () => {
         'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
       )
     ).toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
 
     const launchButton = await screen.findByRole('button', {
       name: 'Launch Investigation',
@@ -303,8 +597,6 @@ describe('MetricDetectorTriggeredSection', () => {
       expect(launchMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          // No templateKey: the server builds an agentic run from the metric
-          // snapshot rather than a fixed notebook.
           data: {
             source: {
               type: 'metric_open_period',
@@ -314,7 +606,7 @@ describe('MetricDetectorTriggeredSection', () => {
         })
       );
     });
-    expect(router.location.pathname).toBe('/explore/investigations/4567/');
+    expect(router.location.pathname).toBe('/seer/investigations/4567/');
   });
 
   it('hides the investigation section for a closed-membership organization', () => {
@@ -400,7 +692,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       statusCode: 404,
     });
 
@@ -635,17 +927,17 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(screen.getByText('Subtitle')).toBeInTheDocument();
 
     // Check key-value pairs
-    expect(screen.getByRole('cell', {name: 'Dataset'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Errors'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Aggregate'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'count()'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Query'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'is:unresolved'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Interval'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '1 minute'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Above 100'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '150'})).toBeInTheDocument();
+    expect(screen.getByText('Dataset')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    expect(screen.getByText('count()')).toBeInTheDocument();
+    expect(screen.getByText('Query')).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('is unresolved'))).toBeInTheDocument();
+    expect(screen.getByText('Interval')).toBeInTheDocument();
+    expect(screen.getByText('1 minute')).toBeInTheDocument();
+    expect(screen.getByText('Above 100')).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
+    expect(screen.getByText('150')).toBeInTheDocument();
   });
 
   it('renders evaluated value correctly when value is an object (anomaly detector)', async () => {
@@ -673,8 +965,8 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('region', {name: 'Triggered Condition'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
+    expect(screen.getByText('Evaluated Value')).toBeInTheDocument();
+    expect(screen.getByText('250')).toBeInTheDocument();
   });
 
   it('omits the evaluated value when the value is null', async () => {
@@ -702,7 +994,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('region', {name: 'Triggered Condition'})
     ).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Evaluated Value')).not.toBeInTheDocument();
   });
 
   it('omits the evaluated value when the anomaly detector value is null', async () => {
@@ -730,7 +1022,7 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(
       await screen.findByRole('region', {name: 'Triggered Condition'})
     ).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Evaluated Value')).not.toBeInTheDocument();
   });
 
   it('renders contributing issues section for errors dataset', async () => {
@@ -850,8 +1142,8 @@ describe('MetricDetectorTriggeredSection', () => {
       );
     });
 
-    expect(screen.getByRole('cell', {name: 'Environment'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'production'})).toBeInTheDocument();
+    expect(screen.getByText('Environment')).toBeInTheDocument();
+    expect(screen.getByText('production')).toBeInTheDocument();
   });
 
   it('renders contributing issues section for crash free rate (releases) dataset', async () => {
@@ -958,8 +1250,8 @@ describe('MetricDetectorTriggeredSection', () => {
     render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
 
     // Should show the HIGH condition (Above 200), not LOW (Above 50)
-    expect(await screen.findByRole('cell', {name: 'Above 200'})).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Above 50'})).not.toBeInTheDocument();
+    expect(await screen.findByText('Above 200')).toBeInTheDocument();
+    expect(screen.queryByText('Above 50')).not.toBeInTheDocument();
   });
 
   it('renders boolean logic error when query contains OR', async () => {

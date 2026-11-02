@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -20,14 +22,12 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -36,14 +36,13 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-export const MAX_QUERIES_ALLOWED = 5;
 
 interface ContentProps {
   datePageFilterProps: DatePageFilterProps;
@@ -92,7 +91,7 @@ function Content({datePageFilterProps}: ContentProps) {
           (pageFilters.selection.datetime.end
             ? new Date(pageFilters.selection.datetime.end).getTime()
             : null),
-        (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
+        (savedQuery.statsPeriod ?? null) !== pageFilters.selection.datetime.period,
       ];
       return hasChangesArray.some(Boolean);
     });
@@ -161,19 +160,14 @@ function Content({datePageFilterProps}: ContentProps) {
               },
             ]}
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.Button
+                showChevron={false}
                 {...triggerProps}
                 variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
                 aria-label={t('Save')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-
-                  triggerProps.onClick?.(e);
-                }}
               >
                 {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
-              </Button>
+              </OverlayTrigger.Button>
             )}
           />
         </Flex>

@@ -13,16 +13,25 @@ resources:
     WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
 ---
 
-import {Button} from '@sentry/scraps/button';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {useState} from 'react';
 
-import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
+import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEdit} from '@sentry/icons/edit';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
 
 Use `DropdownMenu` for an action menu or a short list of links. It renders an accessible trigger and menu together.
+
+Provide either `triggerLabel` for the default button or `trigger` for a custom trigger. One is required, and they cannot be used together.
 
 Use `CompactSelect` when the user chooses a value that stays selected. Use `DropdownMenu` when the items perform actions or navigate somewhere.
 
@@ -81,6 +90,44 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
     {key: 'copy', label: 'Copy', onAction: () => {}},
     {key: 'download', label: 'Download', onAction: () => {}},
     {key: 'delete', label: 'Delete', disabled: true, onAction: () => {}},
+  ]}
+/>
+```
+
+### Icons on some items
+
+Only add icons where they help. When any item in a menu has `leadingItems`, items without them are indented to match, so every label lines up.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Actions"
+    items={[
+      {key: 'rename', label: 'Rename', onAction: () => {}},
+      {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+      {
+        key: 'download',
+        label: 'Download',
+        leadingItems: <IconDownload size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        leadingItems: <IconDelete size="sm" />,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'rename', label: 'Rename', onAction: () => {}},
+    {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+    {key: 'download', label: 'Download', leadingItems: <IconDownload size="sm" />},
+    {key: 'delete', label: 'Delete', leadingItems: <IconDelete size="sm" />},
   ]}
 />
 ```
@@ -154,6 +201,102 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
 
 Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title or change the submenu position.
 
+### Moving into a submenu
+
+Choose Left or Right to change the submenu direction. Move the pointer diagonally from Export toward a format near the bottom of its submenu. The submenu stays open while crossing neighboring items. Moving away or pausing over a neighboring item activates that item.
+
+export function SubmenuNavigationDemo() {
+  const [position, setPosition] = useState('right-start');
+  return (
+    <Flex direction="column" align="center" gap="xl">
+      <SegmentedControl
+        aria-label="Submenu direction"
+        value={position}
+        onChange={setPosition}
+      >
+        <SegmentedControl.Item key="left-start">Left</SegmentedControl.Item>
+        <SegmentedControl.Item key="right-start">Right</SegmentedControl.Item>
+      </SegmentedControl>
+      <DropdownMenu
+        triggerLabel="Submenu navigation"
+        items={[
+          {
+            key: 'export',
+            label: 'Export',
+            submenu: {position},
+            children: [
+              {key: 'csv', label: 'CSV'},
+              {key: 'json', label: 'JSON'},
+              {key: 'xlsx', label: 'Excel'},
+              {key: 'pdf', label: 'PDF'},
+              {key: 'html', label: 'HTML'},
+            ],
+          },
+          {
+            key: 'share',
+            label: 'Share',
+            submenu: {position},
+            children: [
+              {key: 'copy-link', label: 'Copy link'},
+              {key: 'embed', label: 'Embed'},
+            ],
+          },
+          {key: 'archive', label: 'Archive'},
+        ]}
+      />
+    </Flex>
+  );
+}
+
+<Storybook.Demo>
+  <SubmenuNavigationDemo />
+</Storybook.Demo>
+
+```jsx
+function SubmenuNavigationDemo() {
+  const [position, setPosition] = useState('right-start');
+  return (
+    <Flex direction="column" align="center" gap="xl">
+      <SegmentedControl
+        aria-label="Submenu direction"
+        value={position}
+        onChange={setPosition}
+      >
+        <SegmentedControl.Item key="left-start">Left</SegmentedControl.Item>
+        <SegmentedControl.Item key="right-start">Right</SegmentedControl.Item>
+      </SegmentedControl>
+      <DropdownMenu
+        triggerLabel="Submenu navigation"
+        items={[
+          {
+            key: 'export',
+            label: 'Export',
+            submenu: {position},
+            children: [
+              {key: 'csv', label: 'CSV'},
+              {key: 'json', label: 'JSON'},
+              {key: 'xlsx', label: 'Excel'},
+              {key: 'pdf', label: 'PDF'},
+              {key: 'html', label: 'HTML'},
+            ],
+          },
+          {
+            key: 'share',
+            label: 'Share',
+            submenu: {position},
+            children: [
+              {key: 'copy-link', label: 'Copy link'},
+              {key: 'embed', label: 'Embed'},
+            ],
+          },
+          {key: 'archive', label: 'Archive'},
+        ]}
+      />
+    </Flex>
+  );
+}
+```
+
 ## Sizes, Custom Triggers, and Footers
 
 The `size` prop controls the trigger and menu item size. The available values are `md` (default), `sm`, and `xs`. Set `isDisabled` to disable the trigger and menu.
@@ -179,7 +322,7 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
         </Button>
       )}
       items={[{key: 'item', label: 'Menu item', onAction: () => {}}]}
-      menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+      menuFooter={<Footer>Footer content</Footer>}
     />
   </Flex>
 </Storybook.Demo>
@@ -194,7 +337,7 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
     </Button>
   )}
   items={items}
-  menuFooter={<DropdownMenuFooter>Footer content</DropdownMenuFooter>}
+  menuFooter={<Footer>Footer content</Footer>}
 />
 ```
 
@@ -206,6 +349,9 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 - Menu items support keyboard focus and selection.
 - Links retain their destination and close the menu after selection.
 - Submenus support hover and left/right arrow navigation.
+- Escape closes one submenu level and returns focus to its parent item. At the root menu, Escape closes the menu.
+- In a searchable menu, Down Arrow moves from search to the items; Up Arrow on the first item returns to search.
+- When an item has a trailing action, Right Arrow moves focus to it and Left Arrow returns to the item.
 
 ### Developer responsibilities
 
@@ -217,4 +363,3 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 ## See Also
 
 - [CompactSelect](/stories/core/compactselect/) — use for choosing and keeping a value.
-- [MenuListItem](/stories/core/menulistitem/) — use for building a custom menu or list item.

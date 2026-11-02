@@ -8,6 +8,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -94,7 +95,7 @@ export function RawContent({
             })
           ) : (
             <div>
-              {exceptionType}: {exceptionValue}
+              {exceptionType}: {exceptionValue && stripAnsi(exceptionValue)}
             </div>
           );
           return (

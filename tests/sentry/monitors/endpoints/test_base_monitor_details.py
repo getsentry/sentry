@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 
 import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.models.environment import Environment
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -134,17 +133,48 @@ class BaseMonitorDetailsTest(MonitorTestCase):
             }
         ]
 
-    def test_expand_issue_alert_rule(self) -> None:
+    def test_expand_issue_alert_rule_disabled(self) -> None:
+        monitor = self._create_monitor()
+        self._create_issue_alert_rule(monitor)
+
+        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+
+        assert "alertRule" not in resp.data
+
+    @patch("sentry.monitors.endpoints.base_monitor_details.logger")
+    @patch("sentry.utils.metrics.incr")
+    def test_expand_issue_alert_rule_metric(
+        self, mock_incr: MagicMock, mock_logger: MagicMock
+    ) -> None:
         monitor = self._create_monitor()
 
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
-        assert resp.data["alertRule"] is None
+        def expand_alert_rule_calls() -> list:
+            return [
+                c
+                for c in mock_incr.call_args_list
+                if c.args and c.args[0] == "monitors.serializer.expand_alert_rule"
+            ]
 
-        self._create_issue_alert_rule(monitor)
-        resp = self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
-        issue_alert_rule = resp.data["alertRule"]
-        assert issue_alert_rule is not None
-        assert issue_alert_rule["environment"] is not None
+        self.get_success_response(self.organization.slug, monitor.slug)
+        assert expand_alert_rule_calls() == []
+        mock_logger.info.assert_not_called()
+
+        self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert expand_alert_rule_calls() == [
+            call(
+                "monitors.serializer.expand_alert_rule",
+                tags={"endpoint": self.endpoint, "ui_request": True},
+                sample_rate=1.0,
+            )
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.serializer.expand_alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
 
     def test_with_active_incident_and_detection(self) -> None:
         monitor = self._create_monitor()
@@ -344,6 +374,24 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
         )
 
+    def test_config_edit_resets_is_upserting(self) -> None:
+        monitor = self._create_monitor(is_upserting=True)
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"name": "Monitor Name"}
+        )
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"config": {"checkin_margin": 10}},
+        )
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+
     def test_can_mute(self) -> None:
         monitor = self._create_monitor()
         # Create an environment so the monitor has an environment to mute
@@ -389,9 +437,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor=monitor)
 
         check_in = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
@@ -454,9 +500,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         status = getattr(CheckInStatus, "IN_PROGRESS")
 
         check_in = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=status,
             timeout_at=get_timeout_at(monitor.get_validated_config(), status, monitor.date_added),
@@ -502,112 +546,36 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             second=0, microsecond=0
         ) + timedelta(minutes=TIMEOUT)
 
-    def test_existing_issue_alert_rule(self) -> None:
+    @patch("sentry.monitors.validators.logger")
+    def test_issue_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
         monitor = self._create_monitor()
-        rule = self._create_issue_alert_rule(monitor)
-        new_environment = self.create_environment(name="jungle")
-        new_user = self.create_user()
-        self.create_team_membership(user=new_user, team=self.team)
 
-        resp = self.get_success_response(
+        resp = self.get_error_response(
             self.organization.slug,
             monitor.slug,
             method="PUT",
+            status_code=400,
             **{
-                "name": "new-name",
-                "slug": "new-slug",
-                "alert_rule": {
-                    "targets": [{"targetIdentifier": new_user.id, "targetType": "Member"}],
-                    "environment": new_environment.name,
-                },
-            },
-        )
-        assert resp.data["slug"] == "new-slug"
-
-        monitor = Monitor.objects.get(id=monitor.id)
-        monitor_rule = monitor.get_issue_alert_rule()
-        assert monitor_rule.id == rule.id
-        assert monitor_rule.label == "Monitor Alert: new-name"
-
-        monitor_rule_actions = monitor_rule.data["actions"].copy()
-        assert len(monitor_rule_actions) == 1
-        monitor_rule_actions[0].pop("uuid")
-
-        assert monitor_rule_actions == [
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": new_user.id,
-                "targetType": "Member",
-            }
-        ]
-        # Verify the conditions haven't changed
-        assert monitor_rule.data["conditions"] == [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": "new-slug",
-            },
-        ]
-        rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
-        assert rule_environment.name == new_environment.name
-
-    def test_existing_issue_alert_rule_add_slug_condition(self) -> None:
-        monitor = self._create_monitor()
-        rule = self._create_issue_alert_rule(monitor, exclude_slug_filter=True)
-        new_environment = self.create_environment(name="jungle")
-        new_user = self.create_user()
-        self.create_team_membership(user=new_user, team=self.team)
-
-        resp = self.get_success_response(
-            self.organization.slug,
-            monitor.slug,
-            method="PUT",
-            **{
-                "name": "new-name",
-                "slug": "new-slug",
-                "alert_rule": {
-                    "targets": [{"targetIdentifier": new_user.id, "targetType": "Member"}],
-                    "environment": new_environment.name,
-                },
-            },
-        )
-        assert resp.data["slug"] == "new-slug"
-        monitor = Monitor.objects.get(id=monitor.id)
-        monitor_rule = monitor.get_issue_alert_rule()
-        assert monitor_rule.id == rule.id
-
-        # Verify we added the slug filter
-        assert monitor_rule.data["conditions"] == [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": "new-slug",
-            },
-        ]
-
-    def test_without_existing_issue_alert_rule(self) -> None:
-        monitor = self._create_monitor()
-        resp = self.get_success_response(
-            self.organization.slug,
-            monitor.slug,
-            method="PUT",
-            **{
-                "alert_rule": {
+                "alertRule": {
                     "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}]
                 }
             },
         )
-        assert resp.data["slug"] == monitor.slug
 
-        monitor = Monitor.objects.get(id=monitor.id)
-        rule = monitor.get_issue_alert_rule()
-        assert rule is not None
+        assert resp.data["alertRule"] == [
+            "Cron monitor alert rules are disabled for this organization."
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule_rejected",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "update",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
+        monitor.refresh_from_db()
+        assert "alert_rule_id" not in monitor.config
 
     def test_invalid_config_param(self) -> None:
         monitor = self._create_monitor()
@@ -1003,7 +971,9 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
         assert rule.status == ObjectStatus.PENDING_DELETION
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
+        assert CellScheduledDeletion.objects.filter(
+            object_id=rule.id, model_name="Rule", actor_id=self.user.id
+        ).exists()
 
     def test_simple_with_issue_alert_rule_deleted(self) -> None:
         monitor = self._create_monitor()

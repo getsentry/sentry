@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconSettings} from '@sentry/icons/settings';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -19,7 +21,6 @@ import {
   Title,
   Trend,
 } from 'sentry/components/scoreCard';
-import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -166,7 +167,7 @@ export function ProjectCard({
           <Placeholder height="150px" />
         )}
       </ChartContainer>
-      <CardFooter>
+      <Grid gap="md" columns="1fr 1fr">
         <ScoreCardWrapper>
           {stats ? (
             hasHealthData ? (
@@ -200,7 +201,7 @@ export function ProjectCard({
             <FooterPlaceholder />
           )}
         </div>
-      </CardFooter>
+      </Grid>
     </CardPanel>
   );
 }
@@ -212,12 +213,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardFooter = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`

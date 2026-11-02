@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
 from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
 from django.http.response import HttpResponseBase
@@ -26,6 +27,7 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
+from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -652,6 +654,44 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")
+    def test_automatic_migration_sends_link_to_verified_email(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """A passwordless user asserting their own email gets the link at that address."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
+        with self.tasks():
+            self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert sent.to == [self.email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_link_sent_to_verified_email_when_asserted_differs(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """An asserted email that resolves case-insensitively still sends the link
+        to the account's address, not the asserted string."""
+        account_email = "person@example.com"
+        asserted = "PERSON@example.com"
+
+        user = self.create_user(email=account_email)
+        user.update(password="")
+
+        handler = self._handler_with({**self.identity, "email": asserted})
+        with self.tasks():
+            handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [account_email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
     def test_does_not_migrate_user_with_password(
         self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
@@ -737,18 +777,20 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         mock_auth.get_login_redirect.return_value = "/organizations/test-org/issues/"
 
         # Simulate the is_account_verified flow: session has verification key
-        # that resolves to a value matching this user + email
+        # that resolves to a value matching this user + email + org
         verification_value = {
             "user_id": existing_user.id,
             "email": self.email,
             "member_id": member.id,
             "identity_id": self.identity["id"],
+            "organization_id": self.organization.id,
         }
         with (
             mock.patch(
                 "sentry.auth.helper.get_verification_value_from_key",
                 return_value=verification_value,
             ),
+            mock.patch("sentry.auth.helper.delete_verification_key") as mock_delete_key,
         ):
             self.request.session[SSO_VERIFICATION_KEY] = "test-verification-key"
             self.handler.handle_unknown_identity(self.state)
@@ -757,6 +799,47 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
             auth_provider=self.auth_provider_inst, ident=self.identity["id"]
         )
         assert auth_identity.user_id == existing_user.id
+        mock_delete_key.assert_called_once_with("test-verification-key")
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_account_confirmation_from_other_organization_does_not_link(
+        self,
+        mock_send_link: mock.MagicMock,
+        mock_render: mock.MagicMock,
+        mock_messages: mock.MagicMock,
+    ) -> None:
+        """An account confirmation issued for another organization should not
+        link an identity through this organization's provider."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.set_unusable_password()
+        existing_user.save()
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = self.create_member(user=existing_user, organization=other_org, role="member")
+
+        verification_value = {
+            "user_id": existing_user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "organization_id": other_org.id,
+            "identity_id": self.identity["id"],
+        }
+        with (
+            mock.patch(
+                "sentry.auth.helper.get_verification_value_from_key",
+                return_value=verification_value,
+            ),
+            mock.patch("sentry.auth.helper.delete_verification_key") as mock_delete_key,
+        ):
+            self.request.session[SSO_VERIFICATION_KEY] = "test-verification-key"
+            self.handler.handle_unknown_identity(self.state)
+
+        assert not AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, user_id=existing_user.id
+        ).exists()
+        mock_delete_key.assert_not_called()
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
@@ -1115,6 +1198,7 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
             "email": self.email,
             "member_id": member.id,
             "identity_id": self.identity_id,
+            "organization_id": self.organization.id,
         }
 
     def test_has_verified_account_success(self) -> None:
@@ -1135,6 +1219,41 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         wrong_user = self.create_user()
         self.create_useremail(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False
+
+    def test_has_verified_account_fail_organization_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        verification_value = {**self.verification_value, "organization_id": 99999}
+        assert self.handler.has_verified_account(verification_value) is False
+
+    def test_has_verified_account_fail_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        value = {**self.verification_value, "identity_id": "someone-else"}
+        assert self.handler.has_verified_account(value) is False
+
+    def test_has_verified_account_migrating_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "id": MigratingIdentityId(id="sub-1", legacy_id=self.email)}
+        handler = self._handler_with(identity)
+        assert handler.has_verified_account({**self.verification_value, "identity_id": "sub-1"})
+        # the legacy (email) half of the migrating id must not verify
+        assert not handler.has_verified_account(
+            {**self.verification_value, "identity_id": self.email}
+        )
+
+    def test_has_verified_account_ascii_case_insensitive(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "email": self.email.upper()}
+        assert self._handler_with(identity).has_verified_account(self.verification_value) is True
+
+    def test_has_verified_account_fail_missing_organization_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": 1,
+            "identity_id": self.identity_id,
+        }
+        assert self.handler.has_verified_account(verification_value) is False
 
 
 @control_silo_test
@@ -1599,6 +1718,19 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
         self.create_member(organization=self.organization, user=user)
 
         assert self.handler._email_verified_via_pending_invite() is False
+
+    def test_unicode_lookalike_email_does_not_match_invite(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = OrganizationMember.objects.create(
+                organization=self.organization, email="kate@example.com", token="abc"
+            )
+        self.request.session["invite_member_id"] = member.id
+        self.request.session["invite_token"] = member.token
+        self.save_session()
+
+        # U+212A lower-cases to ASCII "k"
+        identity: _Identity = {**self.identity, "email": "\u212aate@example.com"}
+        assert self._handler_with(identity)._email_verified_via_pending_invite() is False
 
     def test_unapproved_invite_does_not_grant_verification_exemption(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):

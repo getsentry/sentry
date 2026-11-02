@@ -27,13 +27,13 @@ async function findNextPort(
 }
 
 function startServer(port: number): void {
-  const child = spawn('rspack', ['serve'], {
+  const child = spawn('rsbuild', ['dev'], {
     env: {...process.env, SENTRY_WEBPACK_PROXY_PORT: String(port)},
     stdio: 'inherit',
   });
 
-  // SIGINT is delivered to both this wrapper and rspack because they share a
-  // foreground process group. Keep the wrapper alive while rspack performs its
+  // SIGINT is delivered to both this wrapper and rsbuild because they share a
+  // foreground process group. Keep the wrapper alive while rsbuild performs its
   // graceful shutdown so the shell does not reclaim the terminal too early.
   process.on('SIGINT', () => {});
 

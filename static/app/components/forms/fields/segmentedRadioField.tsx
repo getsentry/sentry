@@ -1,9 +1,8 @@
-import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
+import {useId} from 'react';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Grid} from '@sentry/scraps/layout';
-import {Radio} from '@sentry/scraps/radio';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
@@ -58,123 +57,57 @@ function RadioControlGroup<C extends string>({
   tooltipPosition,
   ...props
 }: RadioGroupProps<C>) {
+  const groupId = useId();
+
   return (
     <Grid
       {...props}
       flow={{zero: 'row', xl: 'column'}}
       autoColumns="minmax(0, 1fr)"
       autoRows="minmax(0, 1fr)"
-      overflow="hidden"
-      radius="md"
+      gap="md"
       role="radiogroup"
       aria-label={label}
     >
-      {choices.map(([id, name, description], index) => {
+      {choices.map(([id, name, description]) => {
         const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
         const disabledChoiceReason = disabledChoice?.[1];
         const disabled = !!disabledChoice || groupDisabled;
+        const labelId = `${groupId}-${id}-label`;
+        const descriptionId = `${groupId}-${id}-description`;
 
         return (
           <Tooltip
-            key={index}
+            key={id}
             disabled={!disabledChoiceReason}
             title={disabledChoiceReason}
             position={tooltipPosition}
           >
-            <RadioItem index={index} aria-checked={value === id} disabled={disabled}>
-              <InteractionStateLayer />
-              <Radio
-                name={groupName}
-                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
-                disabled={disabled}
-                checked={value === id}
-                onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                  !disabled && onChange(id, e)
-                }
-              />
-              <RadioLineText disabled={disabled}>{name}</RadioLineText>
-              {description && <Description>{description}</Description>}
-            </RadioItem>
+            <ToggleCard
+              variant="radio"
+              padding="md lg"
+              name={groupName ?? groupId}
+              value={id}
+              aria-labelledby={labelId}
+              aria-describedby={description ? descriptionId : undefined}
+              disabled={disabled}
+              checked={value === id}
+              onChange={e => onChange(id, e)}
+            >
+              <Stack gap="2xs">
+                <Text id={labelId} bold>
+                  {name}
+                </Text>
+                {description && (
+                  <Text id={descriptionId} variant="secondary" size="sm">
+                    {description}
+                  </Text>
+                )}
+              </Stack>
+            </ToggleCard>
           </Tooltip>
         );
       })}
     </Grid>
   );
 }
-
-const shouldForwardProp = (p: PropertyKey) =>
-  typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
-
-const RadioItem = styled('label', {shouldForwardProp})<{
-  index: number;
-  disabled?: boolean;
-}>`
-  position: relative;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xs']};
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  outline: none;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0;
-
-  &[aria-checked='true'] {
-    border-color: ${p => p.theme.tokens.border.accent.vibrant} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
-    z-index: ${p => p.theme.zIndex.initial};
-  }
-
-  &:first-child {
-    border-top-left-radius: ${p => p.theme.radius.md};
-    border-top-right-radius: ${p => p.theme.radius.md};
-  }
-  &:last-child {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-    border-bottom-right-radius: ${p => p.theme.radius.md};
-  }
-
-  &:nth-child(n + 2) {
-    border-top-color: transparent;
-  }
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    &:nth-child(n + 2) {
-      border-top-color: ${p => p.theme.colors.gray200};
-      border-left-color: transparent;
-    }
-    &:first-child {
-      border-top-right-radius: 0;
-      border-bottom-left-radius: ${p => p.theme.radius.md};
-    }
-    &:last-child {
-      border-bottom-left-radius: 0;
-      border-top-right-radius: ${p => p.theme.radius.md};
-    }
-  }
-
-  input {
-    /* visually hidden */
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
-  }
-`;
-
-const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
-  opacity: ${p => (p.disabled ? 0.4 : null)};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray800};
-`;
-
-const Description = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.4em;
-`;

@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timezone
 from typing import Any, Protocol
 
@@ -33,9 +33,11 @@ from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
+from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -44,7 +46,6 @@ from sentry.pr_metrics.lifecycle_mapping import (
     map_gitlab_state_to_pullrequest_lifecycle,
     update_pull_request_from_scm_snapshot,
 )
-from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
     handle_merge_request_note_event,
@@ -174,6 +175,36 @@ class GitlabWebhook(SCMWebhook, ABC):
                 )
                 continue
 
+    def get_interested_organization_ids(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization_ids: Sequence[int],
+    ) -> set[int]:
+        """
+        Of `organization_ids`, the organizations this event concerns: by default, those that
+        added the event's repository. One query, so an event costs no per-organization work
+        for the installs it doesn't concern.
+        """
+        return set(
+            Repository.objects.filter(
+                organization_id__in=organization_ids,
+                provider=PROVIDER_NAME,
+                external_id=self._get_repo_external_id(integration, event),
+            ).values_list("organization_id", flat=True)
+        )
+
+    def _get_repo_external_id(self, integration: RpcIntegration, event: Mapping[str, Any]) -> str:
+        try:
+            project_id = event["project"]["id"]
+        except KeyError:
+            logger.warning(
+                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
+            )
+            raise Http404()
+
+        return "{}:{}".format(integration.metadata["instance"], project_id)
+
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
@@ -183,17 +214,10 @@ class GitlabWebhook(SCMWebhook, ABC):
         Assumes a 'project' key in event payload.
         """
         try:
-            project_id = event["project"]["id"]
-        except KeyError:
-            logger.warning(
-                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
-            )
-            raise Http404()
-
-        external_id = "{}:{}".format(integration.metadata["instance"], project_id)
-        try:
             repo = Repository.objects.get(
-                organization_id=organization.id, provider=PROVIDER_NAME, external_id=external_id
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=self._get_repo_external_id(integration, event),
             )
         except Repository.DoesNotExist:
             return None
@@ -245,16 +269,6 @@ class IssuesEventWebhook(GitlabWebhook):
             )
             return
 
-        # This runs once for every organization sharing the integration, and most of them
-        # never linked this issue. Skipping them before any sync-settings lookup keeps the
-        # cost of an event linear in the number of organizations.
-        if not ExternalIssue.objects.filter(
-            organization_id=organization.id,
-            integration_id=integration.id,
-            key=external_issue_key,
-        ).exists():
-            return
-
         # Extract action from object_attributes
         object_attributes = event.get("object_attributes", {})
         action = object_attributes.get("action")
@@ -272,6 +286,25 @@ class IssuesEventWebhook(GitlabWebhook):
                 organization.id,
                 object_attributes.get("updated_at"),
             )
+
+    def get_interested_organization_ids(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization_ids: Sequence[int],
+    ) -> set[int]:
+        """The organizations that linked the event's issue."""
+        external_issue_key = self._extract_issue_key(event, integration)
+        if not external_issue_key:
+            return set()
+
+        return set(
+            ExternalIssue.objects.filter(
+                organization_id__in=organization_ids,
+                integration_id=integration.id,
+                key=external_issue_key,
+            ).values_list("organization_id", flat=True)
+        )
 
     def _handle_assignment(
         self,
@@ -441,11 +474,9 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -453,11 +484,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         object_attributes = event.get("object_attributes") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.merge_request.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -504,11 +533,9 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.merge_request.missing_author_email",
-                {
+                extra={
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
@@ -595,11 +622,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
-            debug_log(
-                logger,
-                organization,
+            logger.info(
                 "gitlab.note.repo_not_found",
-                {
+                extra={
                     "integration_id": integration.id,
                     "project_id": (event.get("project") or {}).get("id"),
                 },
@@ -608,11 +633,9 @@ class NoteEventWebhook(GitlabWebhook):
 
         object_attributes = event.get("object_attributes") or {}
         merge_request = event.get("merge_request") or {}
-        debug_log(
-            logger,
-            organization,
+        logger.info(
             "gitlab.note.received",
-            {
+            extra={
                 "organization_slug": organization.slug,
                 "integration_id": integration.id,
                 "repo_id": repo.id,
@@ -678,13 +701,13 @@ class PushEventWebhook(GitlabWebhook):
                     email=author_email,
                     defaults={"name": commit["author"]["name"]},
                 )[0]
+                # Only look up users once per unique author, not once per commit.
+                author.preload_users()
             else:
                 author = authors[author_email]
             try:
-                if author is not None:
-                    author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
-                    Commit.objects.create(
+                    commit_row = Commit.objects.create(
                         repository_id=repo.id,
                         organization_id=organization.id,
                         key=commit["id"],
@@ -692,6 +715,26 @@ class PushEventWebhook(GitlabWebhook):
                         author=author,
                         date_added=parse_date(commit["timestamp"]).astimezone(timezone.utc),
                     )
+                    file_changes_by_filename: dict[str, CommitFileChange] = {}
+                    for filenames, change_type in (
+                        (commit.get("added", []), "A"),
+                        (commit.get("removed", []), "D"),
+                        (commit.get("modified", []), "M"),
+                    ):
+                        for filename in filenames:
+                            file_changes_by_filename.setdefault(
+                                filename,
+                                CommitFileChange(
+                                    organization_id=organization.id,
+                                    commit_id=commit_row.id,
+                                    filename=filename,
+                                    type=change_type,
+                                ),
+                            )
+                    file_changes = list(file_changes_by_filename.values())
+                    if file_changes:
+                        CommitFileChange.objects.bulk_create(file_changes)
+                        post_bulk_create(file_changes)
             except IntegrityError:
                 pass
 
@@ -804,14 +847,21 @@ class GitlabWebhookEndpoint(Endpoint):
             # Control rejects these deliveries before forwarding; monolith and
             # self-hosted installations reach this endpoint directly.
             logger.info("gitlab.webhook.no-organization-integration", extra=extra)
+            return HttpResponse(status=204)
 
+        event_handler = handler()
+        interested_organization_ids = event_handler.get_interested_organization_ids(
+            integration, event, [install.organization_id for install in installs]
+        )
         for install in installs:
+            if install.organization_id not in interested_organization_ids:
+                continue
+
             org_context = organization_service.get_organization_by_id(
                 id=install.organization_id, include_teams=False, include_projects=False
             )
             if org_context:
                 organization = org_context.organization
-                event_handler = handler()
 
                 with (
                     webhook_viewer_context(install.organization_id),

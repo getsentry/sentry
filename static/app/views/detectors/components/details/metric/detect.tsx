@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -96,7 +96,9 @@ export function getConditionDescription({
         <Stack>
           <div>{t('Trend: %(direction)s', {direction: directionLabel})}</div>
           <div>
-            {t('Responsiveness: %(sensitivity)s', {sensitivity: sensitivityLabel})}
+            {t('Responsiveness: %(sensitivity)s', {
+              sensitivity: sensitivityLabel,
+            })}
           </div>
         </Stack>
       );
@@ -197,14 +199,12 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
       <Stack gap="md">
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Dataset:')}</Heading>
-          <Value>{datasetConfig.name}</Value>
+          <Text wordBreak="break-all">{datasetConfig.name}</Text>
         </Flex>
         <Heading as="h4">{t('Query:')}</Heading>
-        <Query>
-          <Label>
-            <Text variant="muted">{t('Visualize')}</Text>
-          </Label>
-          <Value>
+        <DescriptionList gap="sm xs">
+          <DescriptionList.Term>{t('Visualize')}</DescriptionList.Term>
+          <DescriptionList.Details>
             <Flex>
               {aggregateSummary ? (
                 <Tooltip
@@ -217,13 +217,11 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
                 <FilterWrapper>{aggregateText}</FilterWrapper>
               )}
             </Flex>
-          </Value>
+          </DescriptionList.Details>
           {query && (
             <Fragment>
-              <Label>
-                <Text variant="muted">{t('Where')}</Text>
-              </Label>
-              <Value>
+              <DescriptionList.Term>{t('Where')}</DescriptionList.Term>
+              <DescriptionList.Details>
                 <Tooltip
                   showOnlyOnOverflow
                   title={<ProvidedFormattedQuery query={query} />}
@@ -231,40 +229,22 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
                 >
                   <ProvidedFormattedQuery query={query} />
                 </Tooltip>
-              </Value>
+              </DescriptionList.Details>
             </Fragment>
           )}
-        </Query>
+        </DescriptionList>
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Interval:')}</Heading>
-          <Value>{getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}</Value>
+          <Text wordBreak="break-all">
+            {getExactDuration(dataSource.queryObj.snubaQuery.timeWindow)}
+          </Text>
         </Flex>
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Threshold:')}</Heading>
-          <Value>{getDetectorTypeLabel(detector)}</Value>
+          <Text wordBreak="break-all">{getDetectorTypeLabel(detector)}</Text>
         </Flex>
         <DetectorPriorities detector={detector} />
       </Stack>
     </Container>
   );
 }
-
-const Query = styled('dl')`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.xs};
-  margin: 0;
-  align-items: baseline;
-`;
-
-const Label = styled('dt')`
-  color: ${p => p.theme.tokens.content.secondary};
-  justify-self: flex-end;
-  margin: 0;
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const Value = styled('dl')`
-  word-break: break-all;
-  margin: 0;
-`;

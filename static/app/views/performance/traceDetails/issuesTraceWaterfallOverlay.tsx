@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/traceDetails/traceGuards';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';

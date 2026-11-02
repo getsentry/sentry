@@ -248,6 +248,9 @@ class DashboardWidgetQuery(Model):
     # from sentry/db/model/fields.py adds a default value to the
     # database migration.
     aggregates = ArrayField(models.TextField(), null=True)
+    transformations: models.Field[dict[str, list[str]] | None, dict[str, list[str]] | None] = (
+        JSONField(null=True)
+    )
     columns = ArrayField(models.TextField(), null=True)
     # Currently only used for tabular widgets.
     # If an alias is defined it will be shown in place of the field description in the table header

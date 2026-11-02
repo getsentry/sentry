@@ -25,10 +25,7 @@ describe('useReorderStarredSavedQueries', () => {
     });
 
     const {result} = renderHookWithProviders(() => useReorderStarredSavedQueries(), {
-      organization: OrganizationFixture({
-        slug: 'org-slug',
-        features: ['discover-queries-in-all-queries'],
-      }),
+      organization: OrganizationFixture({slug: 'org-slug'}),
     });
 
     act(() => {

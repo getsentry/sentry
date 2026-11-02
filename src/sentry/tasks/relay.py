@@ -3,9 +3,11 @@ import time
 
 import sentry_sdk
 from django.db import connections, router, transaction
+from sentry_sdk import traces
 
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -14,7 +16,6 @@ from sentry.taskworker.namespaces import relay_invalidation_tasks, relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -202,8 +203,10 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        # Clear the local options cache; if any of them changed, we may need to get the latest values,
+        # Refresh the local option caches from the shared cache: a long-running worker
+        # would otherwise build the config from options it read before they changed.
         OrganizationOption.objects.reload_task_local_cache(key.project.organization_id)
+        ProjectOption.objects.reload_task_local_cache(key.project_id)
 
         return get_project_config(key.project, project_keys=[key]).to_dict()
 
@@ -271,7 +274,7 @@ def invalidate_project_config(
         projectconfig_cache.backend.set_many({updated_public_key: config})
 
 
-@trace
+@traces.trace
 def schedule_invalidate_project_config(
     *,
     trigger,
@@ -347,11 +350,13 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with start_span(
-        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    with traces.start_span(
         name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
-    ) as span:
-        set_span_tag(span, "transaction_db", transaction_db)
+        attributes={
+            "sentry.op": "relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+            "transaction_db": transaction_db,
+        },
+    ):
         connection = connections[transaction_db]
         # Outside an atomic block, on_commit() runs the callback immediately under
         # autocommit, but raises TransactionManagementError under manual transaction

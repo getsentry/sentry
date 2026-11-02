@@ -13,6 +13,7 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.module_loading import import_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -21,7 +22,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 
 # I don't know why, but unless we declare these loggers earlier, we run into
 # circular import errors.
@@ -29,20 +30,21 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, features, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
     StaffRequired,
     SuperuserRequired,
+    UserRequired,
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.principal import RequestPrincipal, has_user, set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -54,6 +56,7 @@ from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -64,7 +67,6 @@ from sentry.utils.http import (
     origin_from_request,
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
-from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from rest_framework.views import AsView, GenericView
@@ -113,6 +115,7 @@ CURSOR_LINK_HEADER = (
 )
 
 DEFAULT_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
@@ -268,9 +271,17 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
+    # Non-safe methods that a client may resend after a timeout or 5xx without
+    # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] = frozenset()
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+    # For endpoints people may call with any credential, API tokens included, but a caller
+    # with no user (e.g. a service account) may not: it gets a 403 user-required, counted
+    # in api.user_required. Browser-only endpoints use SessionNoAuthTokenAuthentication,
+    # which refuses every token; for one user-only path, call require_user(request).
+    requires_user: bool = False
 
     @classmethod
     def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
@@ -305,6 +316,12 @@ class Endpoint(APIView):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        principal: RequestPrincipal = request.user
+        if self.requires_user and principal.is_authenticated and not has_user(principal):
+            raise UserRequired()
 
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
@@ -397,6 +414,9 @@ class Endpoint(APIView):
 
         :returns: A 500 response including the event id of the captured Sentry event.
         """
+        if isinstance(exc, UserRequired):
+            # Shows which endpoints callers with no user behind them still can't use.
+            metrics.incr("api.user_required", tags={"endpoint": type(self).__name__})
         try:
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
@@ -436,10 +456,9 @@ class Endpoint(APIView):
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
-            if rv.auth is None:
-                rv.auth = orig_auth
-            if rv.user is None:
-                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
+            auth = orig_auth if rv.auth is None else rv.auth
+            user = orig_user if rv.user is None else rv.user
+            set_request_principal(rv, user, auth)
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -454,7 +473,9 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "base.dispatch.setup"}
+        ):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -480,7 +501,9 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with start_span(op="base.dispatch.request", name=type(self).__name__):
+            with traces.start_span(
+                name=type(self).__name__, attributes={"sentry.op": "base.dispatch.request"}
+            ):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -511,25 +534,23 @@ class Endpoint(APIView):
                     self.args = args
                     self.kwargs = kwargs
 
-                    # Resolved solely to check the opt-in; everything else is
-                    # derived from the request. Both sources are conventions rather
-                    # than contracts, so the result is type-checked before use.
+                    # Attribution is scoped to endpoints that resolve an organization;
+                    # everything else is derived from the request. Both sources are
+                    # conventions rather than contracts, so the result is type-checked.
                     organization = kwargs.get("organization") or getattr(
                         request, "organization", None
                     )
-                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
-                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
-                    ):
+                    if isinstance(organization, (Organization, RpcOrganization)):
                         set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed
 
-            with start_span(
-                op="base.dispatch.execute",
+            with traces.start_span(
                 name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
-            ) as span:
+                attributes={"sentry.op": "base.dispatch.execute"},
+            ):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
@@ -544,13 +565,13 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with start_span(
-                    op="base.dispatch.sleep",
+                with traces.start_span(
                     name=type(self).__name__,
-                ) as span:
-                    set_span_data(
-                        span, "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
-                    )
+                    attributes={
+                        "sentry.op": "base.dispatch.sleep",
+                        "SENTRY_API_RESPONSE_DELAY": settings.SENTRY_API_RESPONSE_DELAY,
+                    },
+                ):
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -634,9 +655,9 @@ class Endpoint(APIView):
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with start_span(
-                op="base.paginate.get_result",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.get_result"},
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -654,11 +675,15 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with start_span(
-                op="base.paginate.on_results",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
+            # Skip None items as that generally isn't comformant with API
+            # specs, and None often points to serialization failures.
+            if isinstance(results, list):
+                results = [item for item in results if item is not None]
         else:
             results = cursor_result.results
 
@@ -699,6 +724,8 @@ class StatsMixin:
             resolution_s = request.GET.get("resolution")
             if resolution_s:
                 resolution = self._parse_resolution(resolution_s)
+                if resolution < 0:
+                    raise ValueError
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
             else:

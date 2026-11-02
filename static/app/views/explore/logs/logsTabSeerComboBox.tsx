@@ -20,7 +20,10 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  mergeSeerExtraFields,
+  resolveSeerProjectSelection,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
@@ -33,17 +36,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  LOGS_AGGREGATE_CURSOR_KEY,
-  LOGS_CURSOR_KEY,
-  LOGS_QUERY_KEY,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LOGS_AGGREGATE_SORT_BYS_KEY,
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   defaultVisualizes,
+  getTargetWithReadableQueryParams,
   LOGS_AGGREGATE_FIELD_KEY,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
@@ -61,6 +61,7 @@ interface LogsSeerLocationQueryResult {
 
 export function getLogsSeerLocationQuery({
   currentAggregateFields,
+  currentFields = [],
   currentLocation,
   pageDatetime,
   projects = [],
@@ -70,6 +71,7 @@ export function getLogsSeerLocationQuery({
   currentLocation: Location;
   pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
+  currentFields?: readonly string[];
   projects?: Project[];
 }): LogsSeerLocationQueryResult {
   const seerQuery = getSeerExploreQuery({pageDatetime, result});
@@ -78,7 +80,7 @@ export function getLogsSeerLocationQuery({
     projects,
     result.expandedProjectIds
   );
-  const targetLocation: Location = {
+  let targetLocation: Location = {
     ...currentLocation,
     query: omit(currentLocation.query, ALL_DATE_TIME_QUERY_KEYS),
   };
@@ -87,8 +89,12 @@ export function getLogsSeerLocationQuery({
     targetLocation.query.project = projectIds.map(String);
   }
 
-  updateNullableLocation(targetLocation, LOGS_QUERY_KEY, cleanedQuery);
-  updateNullableLocation(targetLocation, 'mode', seerQuery.mode);
+  targetLocation = getTargetWithReadableQueryParams(targetLocation, {
+    query: cleanedQuery,
+    mode: seerQuery.mode,
+    cursor: null,
+    aggregateCursor: null,
+  });
   updateNullableLocation(
     targetLocation,
     'start',
@@ -110,8 +116,16 @@ export function getLogsSeerLocationQuery({
   if (seerQuery.interval) {
     targetLocation.query.interval = seerQuery.interval;
   }
-  delete targetLocation.query[LOGS_CURSOR_KEY];
-  delete targetLocation.query[LOGS_AGGREGATE_CURSOR_KEY];
+
+  // Only touch the samples columns when Seer asked for extra fields, otherwise
+  // leave the user's current columns alone.
+  const newFields =
+    (result.extraFields ?? []).length > 0
+      ? mergeSeerExtraFields(currentFields, result.extraFields)
+      : [];
+  if (newFields.length > 0) {
+    targetLocation.query[LOGS_FIELDS_KEY] = newFields;
+  }
 
   if (seerQuery.mode === Mode.AGGREGATE) {
     const aggregateFields = getSeerWritableAggregateFields({
@@ -191,6 +205,7 @@ export function LogsTabSeerComboBox() {
         result,
         currentLocation: location,
         currentAggregateFields: queryParams.aggregateFields,
+        currentFields: queryParams.fields,
         projects,
         pageDatetime: {
           start: pageFilters.selection.datetime.start,
@@ -242,6 +257,7 @@ export function LogsTabSeerComboBox() {
       pageFilters.selection,
       projects,
       queryParams.aggregateFields,
+      queryParams.fields,
       setRunId,
     ]
   );

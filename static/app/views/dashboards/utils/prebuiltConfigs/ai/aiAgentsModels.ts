@@ -11,15 +11,17 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {getAiClientSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AI_GENERATIONS_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+const AI_GENERATIONS_FILTER = getAiClientSpansFilter();
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'ai-agents-model-cost',
       title: t('Model Cost'),
+      description: t('Estimated cost of LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -43,6 +45,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-usage',
       title: t('Tokens Used'),
+      description: t('Total tokens used by LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -66,6 +69,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-types',
       title: t('Token Types'),
+      description: t('Input, cached input, output, and reasoning tokens used over time.'),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -96,7 +100,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: '',
         },
       ],
-      limit: 3,
     },
   ],
   0,
@@ -106,6 +109,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const MODELS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-models-table',
   title: t('Models'),
+  description: t(
+    'LLM requests, errors, duration, cost, and token usage by response model.'
+  ),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -116,7 +122,7 @@ const MODELS_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.GEN_AI_RESPONSE_MODEL,
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -127,7 +133,7 @@ const MODELS_TABLE: PrebuiltWidget = {
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -145,7 +151,7 @@ const MODELS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.p95,
         t('Cost'),
         t('Input Tokens'),
-        t('Cached Tokens'),
+        t('Cached Input Tokens'),
         t('Output Tokens'),
         t('Reasoning Tokens'),
       ],

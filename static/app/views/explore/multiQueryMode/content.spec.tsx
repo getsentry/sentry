@@ -1136,7 +1136,7 @@ describe('MultiQueryModeContent', () => {
 
   it('clears the save highlight and refreshes saved queries after updating', async () => {
     const listRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -1159,6 +1159,7 @@ describe('MultiQueryModeContent', () => {
           },
         ],
         range: '14d',
+        statsPeriod: '14d',
         projects: [],
         environment: [],
       },
@@ -1210,6 +1211,7 @@ describe('MultiQueryModeContent', () => {
         },
       ],
       range: '7d',
+      statsPeriod: '7d',
       projects: [Number(project.id)],
       environment: [],
     };

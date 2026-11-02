@@ -14,8 +14,10 @@ import {
   type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -35,6 +37,8 @@ import {
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+const mockScrollToIndex = jest.fn();
 
 jest.mock('@tanstack/react-virtual', () => {
   return {
@@ -66,6 +70,7 @@ jest.mock('@tanstack/react-virtual', () => {
       },
       scrollDirection: 'forward',
       scrollOffset: 0,
+      scrollToIndex: (...args: unknown[]) => mockScrollToIndex(...args),
       isScrolling: false,
     }),
   };
@@ -757,6 +762,118 @@ describe('LogsInfiniteTable', () => {
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
   });
 
+  describe('scroll to log', () => {
+    const unloadedPinnedLog = LogFixture({
+      [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+      [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+      [OurLogKnownFieldKey.ID]: '99',
+      [OurLogKnownFieldKey.MESSAGE]: 'unloaded pinned log body',
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/99/`,
+        method: 'GET',
+        body: {
+          itemId: '99',
+          links: null,
+          meta: {},
+          timestamp: unloadedPinnedLog[OurLogKnownFieldKey.TIMESTAMP],
+          attributes: [],
+        },
+      });
+    });
+
+    const pinnedRouterConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'severity:error',
+          logsPinned: '99',
+        },
+      },
+    };
+
+    function mockEvents(matchQuery: (query: string) => boolean, data: unknown[]) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data, meta: {fields: {}, units: {}}},
+        match: [(_, options) => matchQuery(String(options?.query?.query ?? ''))],
+      });
+    }
+
+    async function clickScrollToLog() {
+      const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+      const pinnedRow = await within(pinnedTableBody).findByTestId('log-table-row');
+      await userEvent.hover(pinnedRow);
+      await userEvent.click(
+        within(pinnedRow).getAllByRole('button', {name: 'Actions'})[0]!
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Scroll to log'})
+      );
+    }
+
+    it('shows the pinned log in the table when it was not loaded', async () => {
+      mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
+      const anchoredMock = mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=`),
+        [unloadedPinnedLog]
+      );
+      mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=`),
+        []
+      );
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: pinnedRouterConfig}
+      );
+
+      await clickScrollToLog();
+
+      const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
+      await waitFor(() => {
+        expect(
+          screen
+            .getAllByText('unloaded pinned log body')
+            .filter(element => !pinnedTableBody.contains(element))
+        ).toHaveLength(1);
+      });
+      expect(anchoredMock).toHaveBeenCalled();
+      expect(mockScrollToIndex).toHaveBeenCalledWith(0, {align: 'center'});
+    });
+
+    it('shows an error when the pinned log is not in the current results', async () => {
+      const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
+      mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
+      mockEvents(
+        query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:`),
+        []
+      );
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: pinnedRouterConfig}
+      );
+
+      await clickScrollToLog();
+
+      await waitFor(() => {
+        expect(addErrorMessage).toHaveBeenCalledWith(
+          'This log is not in the current results'
+        );
+      });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'logs.table.pinned_row_not_in_results',
+        {log_id: '99', organization: expect.anything()}
+      );
+      expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+    });
+  });
+
   it('interleaves injected error rows and links them to the issue when clicked', async () => {
     const traceError: TraceTree.TraceError = {
       event_id: 'abc123def456',
@@ -788,6 +905,35 @@ describe('LogsInfiniteTable', () => {
 
     expect(router.location.pathname).toBe(
       `/organizations/${organization.slug}/issues/42/events/abc123def456/`
+    );
+  });
+
+  it('renders colored text without escape codes when an injected error row has an ANSI title', async () => {
+    const traceError: TraceTree.TraceError = {
+      event_id: 'abc123def456',
+      issue: 'JAVASCRIPT-1',
+      issue_id: 42,
+      level: 'error',
+      message: 'Boom happened',
+      project_id: Number(project.id),
+      project_slug: project.slug,
+      span: 'span1',
+      title: 'TypeError: \x1B[31mBoom\x1B[0m happened',
+      timestamp: new Date('2100-01-01T00:00:00Z').getTime() / 1000,
+    };
+
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        injectedErrorRows={[createErrorLogRow(traceError)]}
+      />
+    );
+
+    const colored = await screen.findByText('Boom');
+
+    expect(colored.style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByTestId('log-table-cell-error')).toHaveTextContent(
+      /^TypeError: Boom happened$/
     );
   });
 

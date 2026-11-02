@@ -2,8 +2,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import TypedDict
 
-from sentry import features
 from sentry.api.serializers import Serializer, register
+from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import (
     DatasetSourcesTypes,
@@ -61,7 +61,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         query_keys = [
             "environment",
             "query",
-            "range",
+            "statsPeriod",
             "start",
             "end",
             "interval",
@@ -79,6 +79,10 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         for key in query_keys:
             if query.query.get(key) is not None:
                 data[key] = query.query[key]
+
+        # Older rows stored the relative period as `range`.
+        if data.get("statsPeriod") is None and query.query.get("range") is not None:
+            data["statsPeriod"] = query.query["range"]
 
         # expire queries that are beyond the retention period
         if "start" in query.query:
@@ -101,16 +105,10 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
         )
 
         organization = item_list[0].organization if item_list else None
-        has_migrate_feature = (
-            organization is not None
-            and user.id is not None
-            and features.has(
-                "organizations:discover-queries-in-all-queries", organization, actor=user
-            )
-        )
 
+        starred_queries: dict[int, int | None] = {}
         user_last_visited: dict[int, datetime] = {}
-        if has_migrate_feature:
+        if has_user(user):
             starred_queries = dict(
                 DiscoverSavedQueryStarred.objects.filter(
                     discover_saved_query__in=item_list,
@@ -135,7 +133,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                     if discover_saved_query.created_by_id
                 ]
             },
-            as_user=user if user.id else None,
+            as_user=user if has_user(user) else None,
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 
@@ -164,18 +162,15 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                 result[discover_saved_query]["explore_query"] = serialized_explore_queries.get(
                     discover_saved_query.explore_query_id
                 )
-            if has_migrate_feature:
-                if discover_saved_query.id in starred_queries:
-                    result[discover_saved_query]["starred"] = True
-                    result[discover_saved_query]["position"] = starred_queries[
-                        discover_saved_query.id
-                    ]
-                else:
-                    result[discover_saved_query]["starred"] = False
-                    result[discover_saved_query]["position"] = None
-                result[discover_saved_query]["user_last_visited"] = user_last_visited.get(
-                    discover_saved_query.id
-                )
+            if discover_saved_query.id in starred_queries:
+                result[discover_saved_query]["starred"] = True
+                result[discover_saved_query]["position"] = starred_queries[discover_saved_query.id]
+            else:
+                result[discover_saved_query]["starred"] = False
+                result[discover_saved_query]["position"] = None
+            result[discover_saved_query]["user_last_visited"] = user_last_visited.get(
+                discover_saved_query.id
+            )
 
         return result
 

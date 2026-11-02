@@ -10,8 +10,11 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.explore.translation.discover_translation import (
     translate_discover_query_to_explore_query,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
@@ -42,7 +45,6 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
-    migrate_feature_name = "organizations:discover-queries-in-all-queries"
 
     def setUp(self) -> None:
         super().setUp()
@@ -212,12 +214,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=5),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
         assert response.status_code == 200
         assert [row["name"] for row in response.data] == ["My query", "Test query"]
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
         assert response.status_code == 200
         assert [row["name"] for row in response.data] == ["Test query", "My query"]
@@ -255,7 +257,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=1),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
 
         assert response.status_code == 200
@@ -285,7 +287,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         )
 
         for sorting in ["recentlyViewed", "-recentlyViewed"]:
-            with self.feature([self.feature_name, self.migrate_feature_name]):
+            with self.feature([self.feature_name]):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
@@ -304,14 +306,14 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=last_visited,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
         assert response.data[0]["lastVisited"] == last_visited
 
         self.login_as(user=other_user)
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -328,7 +330,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             last_visited=before_now(minutes=5),
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -345,7 +347,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             starred=True,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -353,7 +355,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[0]["position"] == 3
 
     def test_get_unstarred_query_serializes_false_and_null_position(self) -> None:
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -370,7 +372,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             starred=True,
         )
 
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
@@ -581,7 +583,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     def test_post_duplicated_query_keeps_starred_status(self) -> None:
         """Duplicating a starred query re-posts the serialized row, starred flag and all,
         so the copy has to come back starred for the user who duplicated it."""
-        with self.feature([self.feature_name, self.migrate_feature_name]):
+        with self.feature([self.feature_name]):
             response = self.client.post(
                 self.url,
                 {
@@ -793,7 +795,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert translated_query.dataset == ExploreSavedQueryDataset.SEGMENT_SPANS
         explore_query = translated_query.query
         assert explore_query["query"][0]["fields"] == ["id", "transaction"]
-        assert explore_query["range"] == "7d"
+        assert explore_query["statsPeriod"] == "7d"
         assert (
             explore_query["query"][0]["query"]
             == "(is_transaction:1 browser.name:Firefox) AND is_transaction:1"
@@ -1140,3 +1142,76 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
             f"The Transactions dataset is being deprecated. Please append the `is_transaction:true` filter in the Trace Explorer product in Sentry or use the `/organizations/{self.org.slug}/explore/saved/` endpoint with the filter to save new transaction queries."
             in response_data["queryDataset"][0]
         )
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:discover-query"])
+class DiscoverSavedQueryScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        self.saved_query = self.create_discover_saved_query(
+            organization=self.org,
+            projects=[self.project],
+            created_by_id=self.user.id,
+            name="Test query",
+            version=2,
+        )
+        self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
+        self.details_url = reverse(
+            "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.saved_query.id]
+        )
+        self.query_data = {
+            "projects": [self.project.id],
+            "fields": ["count()"],
+            "range": "24h",
+            "version": 2,
+            "queryDataset": "error-events",
+        }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 403
+        assert not DiscoverSavedQuery.objects.filter(name="Created").exists()
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.delete(self.details_url).status_code == 403
+        assert DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
+        assert response.status_code == 201, response.content
+
+        response = self.client.put(
+            self.details_url, {"name": "Renamed", **self.query_data}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        self.saved_query.refresh_from_db()
+        assert self.saved_query.name == "Renamed"
+
+        assert self.client.delete(self.details_url).status_code == 204
+        assert not DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["saved_query:read", "saved_query:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204

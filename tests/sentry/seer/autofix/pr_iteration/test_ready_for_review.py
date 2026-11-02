@@ -10,6 +10,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     confirm_green_check_suite,
+    green_review_side_effects_enabled,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
@@ -82,7 +83,7 @@ def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
 
 def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     resolved = resolve_green_check_suite(event or _green_event())
-    if resolved is None:
+    if resolved is None or not green_review_side_effects_enabled(resolved):
         return
     if (
         get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
@@ -142,6 +143,34 @@ class EmitPrReadyForReviewTest(TestCase):
         payload = format_pull_requests_payload(state)
 
         assert {pr["repo_name"] for pr in payload} == {"owner/repo", "owner/other-repo"}
+
+    def test_format_pull_requests_payload_excludes_failed_creations(self) -> None:
+        state = self._run_state()
+        state.repo_pr_states["owner/failed-repo"] = RepoPRState(
+            repo_name="owner/failed-repo",
+            pr_creation_status="error",
+        )
+
+        payload = format_pull_requests_payload(state)
+
+        assert [pr["repo_name"] for pr in payload] == ["owner/repo"]
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_emit_skips_when_pr_creation_fails(self, mock_broadcast: MagicMock) -> None:
+        state = self._run_state()
+        state.repo_pr_states[REPO_NAME] = RepoPRState(
+            repo_name=REPO_NAME,
+            pr_creation_status="error",
+        )
+
+        emit_pr_ready_for_review(
+            organization=self.organization,
+            group=self.group,
+            sentry_run_id=None,
+            state=state,
+        )
+
+        mock_broadcast.assert_not_called()
 
     def test_format_pull_requests_payload_keeps_numeric_pr_id_an_int(self) -> None:
         payload = format_pull_requests_payload(self._run_state())
@@ -228,8 +257,9 @@ class MarkReadyForReviewTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = self._resolved()
         _mark_ready(_green_event())
-        mock_resolve.assert_not_called()
+        mock_resolve.assert_called_once()
         assert self._marker() is None
 
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")

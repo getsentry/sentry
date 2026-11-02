@@ -1,14 +1,13 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {darkTheme} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {IconCopy} from 'sentry/icons';
-import {darkTheme} from 'sentry/utils/theme/theme';
 
 import {getPrismLanguage, loadPrismLanguage} from './prism';
 
@@ -110,6 +109,7 @@ export function CodeBlock({
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
     async function loadLineHighlight() {
+      // oxlint-disable-next-line react/todo
       await import('prismjs/plugins/line-highlight/prism-line-highlight');
       setLineHighlightLoaded(true);
     }

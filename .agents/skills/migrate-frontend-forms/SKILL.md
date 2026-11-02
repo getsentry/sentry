@@ -9,23 +9,24 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System            | Notes                                                |
-| -------------------- | --------------------- | ---------------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveForm`        | Default behavior                                     |
-| `confirm`            | `confirm` prop        | `string \| ((value) => string \| undefined)`         |
-| `showHelpInTooltip`  | `variant="compact"`   | On layout components                                 |
-| `disabledReason`     | `disabled="reason"`   | String shows tooltip                                 |
-| `extraHelp`          | JSX in layout         | Render `<Text>` below field                          |
-| `getData`            | `mutationFn`          | Transform data in mutation function                  |
-| `mapFormErrors`      | Request error adapter | Explicit for regular forms; provided for auto-save   |
-| `saveMessage`        | `onSuccess`           | Show toast in mutation onSuccess callback            |
-| `formatMessageValue` | `onSuccess`           | Control toast content in onSuccess callback          |
-| `resetOnError`       | `onError`             | Call form.reset() in mutation onError                |
-| `saveOnBlur: false`  | `useScrapsForm`       | Use regular form with explicit Save button           |
-| (automatic)          | `form.reset()`        | Call after successful mutation if form stays on page |
-| `help`               | `hintText`            | On layout components                                 |
-| `label`              | `label`               | On layout components                                 |
-| `required`           | `required`            | On layout + Zod schema                               |
+| Old System           | New System                                | Notes                                                |
+| -------------------- | ----------------------------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`                            | Default behavior                                     |
+| `confirm`            | `confirm` prop                            | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"`                       | On layout components                                 |
+| `disabledReason`     | `disabled="reason"`                       | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout                             | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`                              | Transform data in mutation function                  |
+| `mapFormErrors`      | Request error adapter                     | Explicit for regular forms; provided for auto-save   |
+| `saveMessage`        | `onSuccess`                               | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`                               | Control toast content in onSuccess callback          |
+| `resetOnError`       | `onError`                                 | Call form.reset() in mutation onError                |
+| `saveOnBlur: false`  | `useScrapsForm`                           | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`                            | Call after successful mutation if form stays on page |
+| `help`               | `hintText`                                | On layout components                                 |
+| `label`              | `label`                                   | On layout components                                 |
+| `required`           | `required`                                | On layout + Zod schema                               |
+| Display-only content | `DisplayField.Row` / `DisplayField.Stack` | No registered input or form state                    |
 
 ## Feature Details
 
@@ -591,6 +592,24 @@ return (
 
 A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
 
+## Display-Only Information
+
+For dates, status text, or other content without an input, use `DisplayField.Row` or `DisplayField.Stack` from `@sentry/scraps/form`. Do not create an `AppField` or `AutoSaveForm` just to get a layout:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+Remove schema entries and default values that existed only to display this content. Preserve text styling with `<Text>` where needed. Use an existing `form.Subscribe` to calculate derived display values during render; do not copy them into form state with `form.setFieldValue`.
+
+`Row` matches the responsive field layout; `Stack` always stacks. These components use description-list semantics without a `<label>`, field context, or error-focus registration. Keep actual read-only inputs on `field.Input readOnly` inside `AppField` and `field.Layout.*` so they retain input association. Custom controls that handle form state still need `field.Base`.
+
+See the [form generation guide](../generate-frontend-forms/SKILL.md#display-only-information) for layout props and a subscription example.
+
 ## Preserving Form Search Functionality
 
 Sentry's SettingsSearch allows users to search for individual settings fields. When migrating forms, you must preserve this searchability by wrapping migrated forms with `FormSearch`.
@@ -646,7 +665,7 @@ If the legacy `JsonForm` being migrated was already indexed by SettingsSearch (i
 
 ## Handling Nullable Initial Values
 
-Legacy select fields often started with an empty/undefined value and required a selection. In the new system, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
+Legacy select fields often started with an empty/undefined value and required a selection. When the field is always required, use `.nullable().refine()` in the schema, type `defaultValues` with `z.input<typeof schema>`, and call `schema.parse(value)` in `onSubmit`.
 
 **Old:**
 
@@ -687,6 +706,36 @@ const form = useScrapsForm({
 
 This pattern is necessary whenever a required field has no meaningful initial value. The `z.input` / `z.output` distinction ensures the form accepts `null` as default while the mutation receives the validated, non-null type.
 
+## Conditionally Required Fields
+
+When migrating a legacy field that is required only while another value makes it visible, keep its form-level schema permissive and validate it on the rendered `AppField`. **Do not use form-level `.superRefine()` for this conditional requirement:** form-level validation still runs when the field is hidden, so a required-field error can block submission even though the user cannot see or fix that field.
+
+```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
+<form.Subscribe selector={state => state.values.plan === 'enterprise'}>
+  {showBilling =>
+    showBilling ? (
+      <form.AppField
+        name="billingEmail"
+        validators={{onDynamic: z.string().trim().email('Enter a valid billing email')}}
+      >
+        {field => (
+          <field.Layout.Stack label="Billing Email" required>
+            <field.Input value={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Stack>
+        )}
+      </form.AppField>
+    ) : null
+  }
+</form.Subscribe>;
+```
+
+For a nullable number field, use `z.number().nullable()` in the form schema and a field validator such as `z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`. The field validator rejects the `null` emitted when the visible input is empty.
+
 ## Intentionally Not Migrated
 
 | Feature     | Usage   | Reason                                                                                |
@@ -698,7 +747,9 @@ This pattern is necessary whenever a required field has no meaningful initial va
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
 - [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
-- [ ] Convert field config objects to JSX AppField components
+- [ ] Convert input field config objects to JSX AppField components
+- [ ] Convert display-only content to `DisplayField.Row` or `DisplayField.Stack`, without schema or form-state entries
+- [ ] Validate conditionally required fields on the rendered `AppField`, with a permissive form schema
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
 - [ ] Replace `disabledReason` → `disabled="reason string"`

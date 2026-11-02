@@ -12,6 +12,7 @@ function savedQueryResponse(overrides: Record<string, unknown> = {}) {
     projects: [1],
     environment: ['prod'],
     range: '7d',
+    statsPeriod: '7d',
     interval: '1h',
     starred: true,
     position: null,
@@ -95,7 +96,10 @@ describe('saved query embed', () => {
     // The model said spans; the saved query is actually a logs query.
     renderEmbed({name: 'savedQuery', data: {id: '312', dataset: 'spans'}});
 
-    expect(await screen.findByText('Logs')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'View Query'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/organizations/org-slug/explore/logs/')
+    );
   });
 
   // The saved query API reports `segment_spans` and `ai_conversations` for a

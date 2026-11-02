@@ -15,6 +15,7 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.demo_mode.utils import is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
@@ -69,7 +70,7 @@ class AcceptOrganizationInvite(Endpoint):
             user_id = None
 
         invite_context = get_invite_state(
-            member_id=int(member_id),
+            member_id=to_valid_int_id("member_id", member_id),
             organization_id_or_slug=organization_id_or_slug,
             user_id=user_id,
         )

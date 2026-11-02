@@ -12,10 +12,10 @@ from sentry_relay.processing import (
     validate_pii_config,
     validate_pii_selector,
 )
+from sentry_sdk import traces
 
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -88,7 +88,7 @@ def get_all_pii_configs(project):
     yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
 
 
-@trace
+@traces.trace
 def scrub_data(project: Project, event: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for config in get_all_pii_configs(project):
         metrics.distribution(

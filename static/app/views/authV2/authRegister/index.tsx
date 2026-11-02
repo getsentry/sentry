@@ -9,8 +9,9 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {AuthCritter} from 'sentry/views/authV2/authCritter';
 import {useAuthConfig} from 'sentry/views/authV2/authLogin/hooks/useAuthConfig';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {RegistrationForm} from './registrationForm';
 
@@ -21,7 +22,7 @@ export default function AuthRegister() {
     isPending: isAuthConfigPending,
     error: authConfigError,
   } = useAuthConfig();
-  useBrandedAuthLoading(isAuthConfigPending);
+  useAuthPageLoading(isAuthConfigPending);
 
   const loginConfig = authConfig && !('nextUri' in authConfig) ? authConfig : null;
   const nextUri = authConfig && 'nextUri' in authConfig ? authConfig.nextUri : null;
@@ -42,7 +43,7 @@ export default function AuthRegister() {
 
   return (
     <Fragment>
-      <Stack width="100%" maxWidth="360px" gap="2xl">
+      <Stack position="relative" width="100%" maxWidth="360px" gap="2xl">
         <Heading as="h1" size="3xl" align="center">
           {t('Create your Account')}
         </Heading>
@@ -74,6 +75,7 @@ export default function AuthRegister() {
             )}
           </Flex>
         )}
+        <AuthCritter />
       </Stack>
     </Fragment>
   );

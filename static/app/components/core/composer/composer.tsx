@@ -6,11 +6,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
+import {useOverlay} from '@sentry/scraps/useOverlay';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 import {
   type EditorSelection,
@@ -72,7 +71,7 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
 }
 
 /**
- * Positions the Popper anchor over the active trigger as the editor moves or resizes.
+ * Positions the overlay anchor over the active trigger as the editor moves or resizes.
  */
 function useCaretAnchorPosition({
   activeTrigger,
@@ -84,7 +83,7 @@ function useCaretAnchorPosition({
   activeTrigger: ActiveTrigger | null;
   inputRef: React.RefObject<HTMLDivElement | null>;
   trigger: string | undefined;
-  updateOverlayPosition: (() => void) | null | undefined;
+  updateOverlayPosition: () => void;
   value: string;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -98,7 +97,7 @@ function useCaretAnchorPosition({
 
     const start = getDOMPoint(input, activeTrigger.start);
     const end = getDOMPoint(input, activeTrigger.start + trigger.length);
-    const range = document.createRange();
+    const range = input.ownerDocument.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     if (typeof range.getBoundingClientRect !== 'function') {
@@ -111,7 +110,7 @@ function useCaretAnchorPosition({
     anchor.style.top = `${rangeRect.top - containerRect.top}px`;
     anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
     anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
-    updateOverlayPosition?.();
+    updateOverlayPosition();
   }, [activeTrigger, inputRef, trigger, updateOverlayPosition]);
 
   useLayoutEffect(() => {
@@ -165,7 +164,11 @@ export function Composer({
   const activeSources = useMemo(
     () =>
       activeTrigger
-        ? sources.filter(source => source.trigger === activeTrigger.trigger)
+        ? sources.filter(
+            source =>
+              source.trigger === activeTrigger.trigger &&
+              (!source.restrictToStart || activeTrigger.start === 0)
+          )
         : [],
     [sources, activeTrigger]
   );
@@ -262,6 +265,28 @@ export function Composer({
       return;
     }
     const {source, suggestion} = item;
+
+    if (source.onSelect) {
+      const {start, end} = activeTrigger;
+      dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
+      setActiveTrigger(null);
+      source.onSelect(suggestion, {
+        clear: () => {
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: 0, end: 0};
+          onChange({text: '', mentions: []});
+        },
+        insertText: text => {
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          const retainedMentions = reconcileMentions(value, nextValue, mentions);
+          const nextCaret = start + text.length;
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
+          onChange({text: nextValue, mentions: retainedMentions});
+        },
+      });
+      return;
+    }
 
     const replacement = source.getText(suggestion);
     const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
@@ -372,7 +397,8 @@ export function Composer({
           !event.ctrlKey &&
           !event.metaKey &&
           !event.altKey &&
-          (focusedKey !== null || (event.key === 'Enter' && queryStatus === 'pending'))
+          (focusedKey !== null ||
+            (event.key === 'Enter' && (hasSuggestions || queryStatus === 'pending')))
         ) {
           event.preventDefault();
           if (focusedKey !== null) {

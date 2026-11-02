@@ -35,6 +35,7 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
     get_integration_services,
+    is_action_permitted,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
@@ -139,6 +140,9 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
+            # Seer provisions bindings separately; the alert editor cannot configure this action.
+            if action_type == Action.Type.SEER_WORKFLOW:
+                continue
             if requested_action_types and str(action_type) not in requested_action_types:
                 continue
 
@@ -161,6 +165,11 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                             ActionHandlerSerializer(),
                             action_type=action_type,
                             integrations=integrations,
+                            disabled_reason=(
+                                None
+                                if is_action_permitted(Action.Type(action_type), organization)
+                                else "plan"
+                            ),
                         )
                     )
 

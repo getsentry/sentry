@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.utils.functional import classproperty
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
@@ -20,7 +21,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_detector_type_filters
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 
@@ -134,8 +135,9 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
-        with start_span(
-            op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
+        with traces.start_span(
+            name="GroupTypeRegistry.get_visible",
+            attributes={"sentry.op": "GroupTypeRegistry.get_visible"},
         ) as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype: dict[str, type[GroupType]] = {}
@@ -156,11 +158,11 @@ class GroupTypeRegistry:
                         if gt.type_id not in seen:
                             seen.add(gt.type_id)
                             enabled.append(gt)
-            set_span_tag(span, "organization_id", organization.id)
-            set_span_tag(span, "has_batch_features", batch_features is not None)
-            set_span_tag(span, "released", released)
-            set_span_tag(span, "enabled", enabled)
-            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
+            span.set_attribute("organization_id", organization.id)
+            span.set_attribute("has_batch_features", batch_features is not None)
+            span.set_attribute("released", repr(released))
+            span.set_attribute("enabled", repr(enabled))
+            span.set_attribute("feature_to_grouptype", repr(feature_to_grouptype))
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -180,26 +182,8 @@ class GroupTypeRegistry:
         return self._registry[id_]
 
     def get_detector_type_filters(self) -> Q:
-        """
-        Build a Q object that combines all detector type-specific filters.
-
-        For detector types without filters, they're included by default via a NOT IN clause.
-        For detector types with filters, we apply the specific filter condition.
-
-        This optimizes the query since most detector types won't have filters.
-        """
-        types_with_filters = []
-        filtered_type_conditions = Q()
-
-        for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
-                types_with_filters.append(group_type.slug)
-                filtered_type_conditions |= Q(type=group_type.slug) & filter
-
-        # Include all types that don't have filters (type NOT IN types_with_filters)
-        # OR match the specific filter conditions for types that do have filters
-        return ~Q(type__in=types_with_filters) | filtered_type_conditions
+        """Compatibility wrapper for detector filters registered independently of issue types."""
+        return get_detector_type_filters()
 
 
 registry = GroupTypeRegistry()
@@ -405,7 +389,7 @@ class PerformanceNPlusOneExperimentalGroupType(GroupType):
     category = GroupCategory.DB_QUERY.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -460,7 +444,7 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     category = GroupCategory.HTTP_CLIENT.value
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
 
 
 @dataclass(frozen=True)
@@ -579,6 +563,7 @@ class QueryInjectionVulnerabilityGroupType(GroupType):
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
     category = GroupCategory.DB_QUERY.value
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     noise_config = NoiseConfig(ignore_limit=10)
@@ -668,7 +653,7 @@ class LLMDetectedExperimentalGroupTypeV2(GroupType):
     description = "LLM Detected Issue"
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
-    released = False
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
 

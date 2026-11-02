@@ -27,7 +27,6 @@ describe('getMetricMonitorUrl', () => {
         aggregate: 'count()',
         environment: undefined,
         query: 'is:unresolved',
-        name: undefined,
         referrer: undefined,
       },
     });

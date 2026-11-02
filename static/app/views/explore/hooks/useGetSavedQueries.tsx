@@ -143,9 +143,10 @@ export type ReadableSavedQuery = {
   crossEvents?: CrossEvent[];
   end?: string;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  range?: string;
   start?: string;
+  statsPeriod?: string;
 };
 
 export class SavedQuery {
@@ -167,9 +168,10 @@ export class SavedQuery {
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  range?: string;
   start?: string | DateString;
+  statsPeriod?: string;
 
   constructor(savedQuery: ReadableSavedQuery) {
     this.agent = savedQuery.agent;
@@ -191,8 +193,9 @@ export class SavedQuery {
     this.createdBy = savedQuery.createdBy;
     this.end = savedQuery.end;
     this.environment = savedQuery.environment;
+    this.errorsOnly = savedQuery.errorsOnly;
     this.isPrebuilt = savedQuery.isPrebuilt;
-    this.range = savedQuery.range;
+    this.statsPeriod = savedQuery.statsPeriod;
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
   }
@@ -278,9 +281,6 @@ export function useGetSavedQueries({
   query,
 }: Props) {
   const organization = useOrganization();
-  const migrateDiscoverQueries = organization.features.includes(
-    'discover-queries-in-all-queries'
-  );
 
   const requestQuery = {
     sortBy,
@@ -291,9 +291,7 @@ export function useGetSavedQueries({
     query,
   };
 
-  const queryOptions = migrateDiscoverQueries
-    ? combinedSavedQueriesApiOptions(organization, requestQuery)
-    : savedQueriesApiOptions<CombinedSavedQueryResponse[]>(organization, requestQuery);
+  const queryOptions = combinedSavedQueriesApiOptions(organization, requestQuery);
 
   const {data, isLoading, isFetched, isError} = useQuery({
     ...queryOptions,
@@ -307,7 +305,7 @@ export function useGetSavedQueries({
       data?.json
         ?.filter(savedQuery =>
           savedQuery.queryType === SavedQueryType.DISCOVER
-            ? migrateDiscoverQueries
+            ? true
             : Array.isArray(savedQuery.query) && savedQuery.query.length > 0
         )
         .map(savedQuery =>
@@ -315,7 +313,7 @@ export function useGetSavedQueries({
             ? savedQuery
             : new SavedQuery(savedQuery)
         ),
-    [data?.json, migrateDiscoverQueries]
+    [data?.json]
   );
 
   return {

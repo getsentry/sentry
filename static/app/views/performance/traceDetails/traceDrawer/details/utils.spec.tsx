@@ -9,7 +9,6 @@ import {
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
   TraceDrawerActionKind,
-  TraceDrawerActionValueKind,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
@@ -134,9 +133,9 @@ describe('getTraceAttributesTreeActions', () => {
       location: LocationFixture(),
       organization: OrganizationFixture({features: []}),
     })({
-      subtree: {},
+      subtree: new Map(),
       value: 'GET /api/users',
-      originalAttribute: {
+      original: {
         attribute_key: 'description',
         attribute_value: 'GET /api/users',
         original_attribute_key: 'span.description',
@@ -162,7 +161,6 @@ describe('getTraceKeyValueActions', () => {
       organization: OrganizationFixture({features: []}),
       rowKey: 'span.description',
       rowValue: 'GET /api/users',
-      kind: TraceDrawerActionValueKind.ATTRIBUTE,
     });
 
     expect(actions).toHaveLength(1);

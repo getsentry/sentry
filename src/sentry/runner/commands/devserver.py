@@ -8,10 +8,10 @@ from typing import NoReturn
 
 import click
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
-from sentry.utils.tracing import start_span
 
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
@@ -37,6 +37,13 @@ def add_daemon(name: str, command: list[str]) -> None:
 
 def _get_daemon(name: str) -> tuple[str, list[str]]:
     return name, _DEFAULT_DAEMONS[name]
+
+
+def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
+    name, command = _get_daemon("taskworker")
+    if reload:
+        command = [*command, "--autoreload"]
+    return name, command
 
 
 @click.command()
@@ -165,7 +172,10 @@ def devserver(
         traces_sample_rate=1.0,
         trace_lifecycle="stream",
     )
-    with start_span(op="command", name="sentry.devserver", transaction=True):
+    traces.new_trace()
+    with traces.start_span(
+        name="sentry.devserver", attributes={"sentry.op": "command"}, parent_span=None
+    ):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params
@@ -300,7 +310,7 @@ def devserver(
                     "Disable TASKWORKER_ALWAYS_EAGER in your settings file to spawn workers."
                 )
 
-            daemons.append(_get_daemon("taskworker"))
+            daemons.append(_get_taskworker_daemon(reload))
 
             from sentry import eventstream
 
@@ -501,7 +511,10 @@ def devserver(
                 control_services.append("taskworker-scheduler")
 
             for service in control_services:
-                name, cmd = _get_daemon(service)
+                if service == "taskworker":
+                    name, cmd = _get_taskworker_daemon(reload)
+                else:
+                    name, cmd = _get_daemon(service)
                 name = f"control.{name}"
                 quiet = bool(
                     name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())

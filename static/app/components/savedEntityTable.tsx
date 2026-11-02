@@ -1,11 +1,14 @@
 import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -16,7 +19,6 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
@@ -139,7 +141,7 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   display: block;
   width: 100%;
@@ -208,7 +210,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
   return (
     <DropdownMenu
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
@@ -306,7 +308,6 @@ const LoadingCell = styled(SavedEntityTable.Cell)`
 const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
   flex-wrap: nowrap;
   overflow: hidden;
-
   > * {
     min-width: min-content;
   }

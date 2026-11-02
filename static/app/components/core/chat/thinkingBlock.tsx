@@ -1,14 +1,13 @@
 import {useEffect, useRef, useState} from 'react';
 import {Global} from '@emotion/react';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconSeer} from 'sentry/icons';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {SECOND} from 'sentry/utils/formatters';
+import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
 
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 
@@ -70,9 +69,21 @@ interface ThinkingBlockProps {
   title: string;
   children?: React.ReactNode;
   endTime?: Date;
+  /**
+   * Whether to lead the title with the Seer icon. Turn it off when the block
+   * sits beside a spinning Seer of its own, so one loading state isn't shown
+   * twice; the disclosure's chevron leads instead.
+   */
+  showIcon?: boolean;
 }
 
-export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
+export function ThinkingBlock({
+  title,
+  startTime,
+  endTime,
+  children,
+  showIcon = true,
+}: ThinkingBlockProps) {
   const {t} = useTranslation();
   const elapsed = useElapsedTime(startTime, endTime);
   const isActive = !endTime;
@@ -104,10 +115,14 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
-        leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
+        leadingItems={
+          showIcon ? (
+            <IconSeer size="xs" animation={isActive ? 'loading' : undefined} />
+          ) : undefined
+        }
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
-            {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
+            {formatElapsedDuration(elapsed)}
           </Text>
         }
       >

@@ -36,10 +36,10 @@ export function metricHeatMapApiOptions({
   traceMetric,
   query,
   interval,
+  sampling,
   yBuckets,
   yMin,
   yMax,
-  sampling,
 }: MetricHeatMapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;

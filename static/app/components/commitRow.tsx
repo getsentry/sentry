@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconQuestion} from '@sentry/icons/question';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -13,7 +14,6 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -102,7 +102,7 @@ function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitR
               }
             )}
             disabled={!commit.author || commit.author.id !== undefined}
-            overlayStyle={{maxWidth: '350px'}}
+            maxWidth={350}
             skipWrapper
           >
             <AuthorWrapper>

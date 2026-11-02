@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconReleases} from '@sentry/icons/releases';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
-import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -61,9 +63,9 @@ interface ResolveDropdownMenuProps {
   latestRelease?: Project['latestRelease'];
   latestSemverRelease?: {version: string};
   multipleProjectsSelected?: boolean;
-  priority?: 'primary';
   project?: Project;
   shouldConfirm?: boolean;
+  variant?: 'primary' | 'secondary';
 }
 
 function ResolveDropdownMenu({
@@ -75,7 +77,7 @@ function ResolveDropdownMenu({
   shouldConfirm,
   disabled,
   disableDropdown,
-  priority,
+  variant,
   project,
   multipleProjectsSelected,
   hasSemverReleaseFeature,
@@ -265,10 +267,10 @@ function ResolveDropdownMenu({
       itemsHidden={shouldDisplayCta}
       items={items}
       trigger={(triggerProps, isOpen) => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           size={size}
-          variant={priority}
+          variant={variant}
           aria-label={t('More resolve options')}
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
           disabled={isDisabled}
@@ -306,10 +308,10 @@ interface ResolveActionsProps {
   disabled?: boolean;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
-  priority?: 'primary';
   projectFetchError?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
+  variant?: 'primary' | 'secondary';
 }
 
 export function ResolveActions({
@@ -323,7 +325,7 @@ export function ResolveActions({
   disabled,
   disableDropdown,
   disableResolveInRelease,
-  priority,
+  variant = 'secondary',
   projectFetchError,
   multipleProjectsSelected,
   hasSemverReleaseFeature,
@@ -343,7 +345,7 @@ export function ResolveActions({
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
       <ButtonBar>
         <Button
-          variant={priority}
+          variant={variant}
           size={size}
           tooltipProps={{
             delay: 1000,
@@ -378,7 +380,7 @@ export function ResolveActions({
             shouldConfirm={shouldConfirm}
             disabled={disabled}
             disableDropdown={disableDropdown}
-            priority={priority}
+            variant={variant}
             multipleProjectsSelected={multipleProjectsSelected}
             hasSemverReleaseFeature={hasSemverReleaseFeature}
             latestSemverRelease={latestSemverRelease}

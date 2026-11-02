@@ -6,6 +6,8 @@ from collections import defaultdict
 from collections.abc import Generator, Sequence
 from typing import Any, Literal, Protocol, overload
 
+from rest_framework.exceptions import ParseError
+
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
@@ -117,8 +119,11 @@ def _get_replay_id_mappings(
         # just return a mapping of replay_id:replay_id instead of hitting the dataset.
         identity_map = {}
         for replay_id in column_value:
-            # raises ValueError if invalid. Strips '-'
-            replay_id = uuid.UUID(hex=replay_id, version=4).hex
+            try:
+                # Strips '-'.
+                replay_id = uuid.UUID(hex=replay_id, version=4).hex
+            except ValueError:
+                raise ParseError("Invalid replay_id value") from None
             identity_map[replay_id] = [replay_id]
         return identity_map
 
@@ -147,7 +152,7 @@ def _get_replay_id_mappings(
 
     if data_source == Dataset.EventsAnalyticsPlatform:
         if len(column_value) != 1:
-            raise ValueError("The spans data source only supports a single value")
+            raise ParseError("The spans data source only supports a single value")
         return _query_eap_spans_for_replay_ids(
             query + FILTER_HAS_A_REPLAY, snuba_params, column_value[0]
         )
@@ -245,19 +250,19 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
 
     select_column_conditions = list(extract_columns_recursive(parsed_query))
     if len(select_column_conditions) > 1:
-        raise ValueError("Must provide only one of: issue.id, transaction, replay_id")
+        raise ParseError("Must provide only one of: issue.id, transaction, replay_id")
     elif len(select_column_conditions) == 0:
-        raise ValueError("Must provide at least one issue.id, transaction, or replay_id")
+        raise ParseError("Must provide at least one issue.id, transaction, or replay_id")
 
     condition = select_column_conditions[0]
 
     if not isinstance(condition.value.raw_value, Sequence) or isinstance(
         condition.value.raw_value, str
     ):
-        raise ValueError("Condition value must be a list of strings")
+        raise ParseError("Condition value must be a list of strings")
 
     if len(condition.value.raw_value) > MAX_VALS_PROVIDED[condition.key.name]:
-        raise ValueError("Too many values provided")
+        raise ParseError("Too many values provided")
 
     return condition.key.name, condition.value.raw_value
 

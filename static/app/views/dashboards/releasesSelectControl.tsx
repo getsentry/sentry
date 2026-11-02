@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconReleases} from '@sentry/icons/releases';
 import {useDebouncer} from '@tanstack/react-pacer';
 import isEqual from 'lodash/isEqual';
 
@@ -12,7 +13,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
-import {IconReleases} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
@@ -179,18 +179,17 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: 300px;
-  }
+  max-width: 300px;
 `;
 
 const ButtonLabelWrapper = styled('span')`
   gap: ${p => p.theme.space.xs};
   width: 100%;
+  min-width: 0;
   text-align: left;
   align-items: center;
   display: inline-grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 `;
 
 const MenuTitleWrapper = styled('span')`

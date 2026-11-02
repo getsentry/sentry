@@ -166,6 +166,26 @@ describe('RawStacktraceContent', () => {
         })
       ).toBe('IllegalStateException: Oops!');
     });
+
+    it('strips ANSI codes when the exception value contains them', () => {
+      const exception = ExceptionValueFixture({
+        type: 'ValueError',
+        value: '\x1B[31mfailed\x1B[0m to connect',
+      });
+
+      expect(
+        displayRawContent({
+          data: {
+            hasSystemFrames: false,
+            framesOmitted: null,
+            registers: {},
+            frames: [],
+          },
+          platform: 'javascript',
+          exception,
+        })
+      ).toBe('ValueError: failed to connect');
+    });
   });
 
   describe('render()', () => {

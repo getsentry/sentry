@@ -1,3 +1,5 @@
+import {IconLock} from '@sentry/icons/lock';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
@@ -6,7 +8,6 @@ import {
   StepType,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {

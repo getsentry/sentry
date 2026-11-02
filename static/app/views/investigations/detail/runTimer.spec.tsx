@@ -27,12 +27,12 @@ describe('InvestigationRunTimer', () => {
     );
     expect(
       screen.getByRole('timer', {name: 'Investigation active time'})
-    ).toHaveTextContent('34.5 s');
+    ).toHaveTextContent('34.5s');
     act(() => jest.advanceTimersByTime(700));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.2 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.2s');
     jest.setSystemTime(new Date('2020-01-01T00:00:00Z'));
     act(() => jest.advanceTimersByTime(300));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
   });
 
   it('reanchors to fresh API data and preserves the duration after remounting', () => {
@@ -45,12 +45,12 @@ describe('InvestigationRunTimer', () => {
       serverTime: '2025-01-01T00:05:12Z',
     });
     rerender(<InvestigationRunTimer orchestration={refreshed} />);
-    expect(screen.getByRole('timer')).toHaveTextContent('36.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.5s');
     unmount();
     render(<InvestigationRunTimer orchestration={refreshed} />);
-    expect(screen.getByRole('timer')).toHaveTextContent('36.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.5s');
     act(() => jest.advanceTimersByTime(500));
-    expect(screen.getByRole('timer')).toHaveTextContent('37.0 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('37.0s');
   });
 
   it('freezes throughout input waits and resumes without counting the wait', () => {
@@ -67,7 +67,7 @@ describe('InvestigationRunTimer', () => {
     });
     rerender(<InvestigationRunTimer orchestration={paused} />);
     act(() => jest.advanceTimersByTime(60_000));
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
     rerender(
       <InvestigationRunTimer
         orchestration={InvestigationOrchestrationFixture({
@@ -78,9 +78,9 @@ describe('InvestigationRunTimer', () => {
         })}
       />
     );
-    expect(screen.getByRole('timer')).toHaveTextContent('35.5 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('35.5s');
     act(() => jest.advanceTimersByTime(500));
-    expect(screen.getByRole('timer')).toHaveTextContent('36.0 s');
+    expect(screen.getByRole('timer')).toHaveTextContent('36.0s');
   });
 
   it.each(['completed', 'failed', 'cancelled'] as const)(
@@ -111,6 +111,80 @@ describe('InvestigationRunTimer', () => {
       expect(screen.getByRole('timer')).toHaveTextContent('1m 13s');
     }
   );
+
+  it('stays frozen while Seer only refreshes the next step', () => {
+    const completed = InvestigationOrchestrationFixture();
+    render(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'processing',
+          phase: 'metadata',
+          activeSince: null,
+          activeTimeElapsedSeconds: 72,
+          finishedAt: '2025-01-01T00:06:00Z',
+          report: {...completed.report, status: 'completed'},
+        })}
+      />
+    );
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(screen.getByRole('timer')).toHaveTextContent('1m 12s');
+  });
+
+  it('stops while Seer writes the first next step', () => {
+    const completed = InvestigationOrchestrationFixture();
+    render(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'processing',
+          phase: 'metadata',
+          report: {...completed.report, status: 'completed'},
+        })}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+  });
+
+  it('keeps the settled time while the next step polls', () => {
+    const completed = InvestigationOrchestrationFixture();
+    const writingNextStep = (serverTime: string) =>
+      InvestigationOrchestrationFixture({
+        ...timing,
+        serverTime,
+        status: 'processing',
+        phase: 'metadata',
+        report: {...completed.report, status: 'completed'},
+      });
+    const {rerender} = render(
+      <InvestigationRunTimer orchestration={writingNextStep(timing.serverTime)} />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+
+    rerender(
+      <InvestigationRunTimer
+        orchestration={writingNextStep(
+          new Date(Date.parse(timing.serverTime) + 4_000).toISOString()
+        )}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+
+    rerender(
+      <InvestigationRunTimer
+        orchestration={InvestigationOrchestrationFixture({
+          ...timing,
+          status: 'completed',
+          finishedAt: '2025-01-01T00:05:20Z',
+          activeSince: null,
+          activeTimeElapsedSeconds: 44.5,
+        })}
+      />
+    );
+    expect(screen.getByRole('timer')).toHaveTextContent('34.5s');
+  });
 
   it.each([
     {},

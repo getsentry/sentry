@@ -7,6 +7,7 @@ import {
   type FormattedQueryProps,
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
 
 const FILTER_KEYS: TagCollection = {
   lastSeen: {
@@ -15,8 +16,12 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
+let mockAllowRegexOperators = false;
+
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilderConfig: () => ({
+    allowRegexOperators: mockAllowRegexOperators,
+    filterKeys: {},
     getFieldDefinition: () => null,
   }),
   useSearchQueryBuilderLayout: () => ({
@@ -29,10 +34,27 @@ describe('FormattedQuery', () => {
     filterKeys: FILTER_KEYS,
   };
 
+  beforeEach(() => {
+    mockAllowRegexOperators = false;
+  });
+
   it('renders aggregate filters correctly', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);
 
     expect(screen.getByText(textWithMarkupMatcher('count() > 1'))).toBeInTheDocument();
+  });
+
+  it('renders aggregate size filters when only the argument has a size definition', () => {
+    render(
+      <FormattedQuery
+        query="avg(http.response_content_length):>1kb"
+        fieldDefinitionGetter={key => getFieldDefinition(key, 'span')}
+      />
+    );
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('avg(http.response_content_length) > 1kb'))
+    ).toBeInTheDocument();
   });
 
   it('renders filters with multiple values correctly', () => {
@@ -48,6 +70,34 @@ describe('FormattedQuery', () => {
 
     expect(
       screen.getByText(textWithMarkupMatcher('browser.name is not Firefox and Chrome'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders "matches regex" when regex operators are allowed', () => {
+    mockAllowRegexOperators = true;
+
+    render(<FormattedQuery {...defaultProps} query="message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message matches regex /foo/'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders "does not match regex" when a negated regex is allowed', () => {
+    mockAllowRegexOperators = true;
+
+    render(<FormattedQuery {...defaultProps} query="!message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message does not match regex /foo/'))
+    ).toBeInTheDocument();
+  });
+
+  it('renders a regex as a plain value when regex operators are not allowed', () => {
+    render(<FormattedQuery {...defaultProps} query="message://foo//" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('message is //foo//'))
     ).toBeInTheDocument();
   });
 

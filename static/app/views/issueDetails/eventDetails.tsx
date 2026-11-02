@@ -39,7 +39,7 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
   );
 }
 
-function StickyEventNav({event, group}: {event: Event; group: Group}) {
+export function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const navRef = useRef<HTMLDivElement>(null);
   const {dispatch, eventNavigationHeight} = useIssueDetails();
   const {pageContentTop} = useTopOffset();

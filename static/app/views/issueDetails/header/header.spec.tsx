@@ -119,6 +119,39 @@ describe('GroupHeader', () => {
       expect(screen.getByText(group.shortId)).toBeInTheDocument();
     });
 
+    it('renders colored title and message without escape codes when given ANSI metadata', async () => {
+      const ansiGroup = GroupFixture({
+        ...group,
+        metadata: {
+          type: '\x1B[31mRequestError\x1B[0m',
+          value: '\x1B[33mGET\x1B[0m /api failed',
+        },
+      });
+
+      render(
+        <GroupDataContextProvider group={ansiGroup} project={ansiGroup.project}>
+          <GroupHeader
+            {...defaultProps}
+            group={ansiGroup}
+            project={project}
+            event={null}
+          />
+        </GroupDataContextProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(await screen.findByRole('link', {name: 'View events'})).toBeInTheDocument();
+      expect(screen.getByText('RequestError').style.color).toContain(
+        'color-mix(in srgb,'
+      );
+      expect(screen.getByText('GET').style.color).toContain('color-mix(in srgb,');
+      expect(screen.getByText('GET').parentElement).toHaveTextContent(
+        /^GET \/api failed$/
+      );
+    });
+
     it('displays share icon if issue has been shared', async () => {
       render(
         <GroupDataContextProvider

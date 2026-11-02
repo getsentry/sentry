@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sqlite3
@@ -155,6 +156,8 @@ ALWAYS_RUN_TESTS: set[str] = {
     #     to assign comparators — __relocation_scope__ changes on any model are invisible
     "tests/sentry/silo/test_base.py",
     "tests/sentry/backup/test_validate.py",
+    # Freezes option registrations, which happen at import time anywhere in src/.
+    "tests/sentry/options/test_legacy_options.py",
 }
 
 # Seer public-API matrix discovers published mutations at collection time, so
@@ -388,14 +391,19 @@ def main() -> int:
                 print(
                     f"Warning: could not count tests from coverage database: {e}", file=sys.stderr
                 )
-        test_item_count = 0
+        item_counts: dict[str, int] = {}
         for test_file in output_tests:
             ast_count = count_tests_in_file(Path(test_file))
             coverage_count = coverage_counts.get(test_file, 0)
             if coverage_count > ast_count:
                 print(f"  {test_file}: {coverage_count} tests in coverage DB, {ast_count} via AST")
-            test_item_count += max(ast_count, coverage_count)
+            item_counts[test_file] = max(ast_count, coverage_count)
+        test_item_count = sum(item_counts.values())
         print(f"Estimated {test_item_count} test items")
+
+        if args.output:
+            # pytest-selected.py balances shards with these.
+            Path(args.output).with_suffix(".counts.json").write_text(json.dumps(item_counts))
 
     if args.github_output:
         github_output = os.environ.get("GITHUB_OUTPUT")

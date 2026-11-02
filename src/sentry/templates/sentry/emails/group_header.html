@@ -19,7 +19,7 @@
     </thead>
     <tr>
       <td class="group-message">
-        {% include "sentry/emails/_group.html" %}
+        {% include "sentry/emails/_group.html" with rule_id=rule.id %}
         <p class="meta">
           <small>
             <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>

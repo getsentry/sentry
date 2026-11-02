@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pytest
 
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.seer.assisted_query.issues_tools import (
     _EVENT_CONTEXT_FIELDS,
     DEVICE_CLASS_VALUES,
@@ -115,16 +116,23 @@ class TestGetIssueFilterKeys(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert result is None
 
     def test_get_issue_filter_keys_empty_projects(self) -> None:
-        """Test with empty project list"""
+        """An empty project list queries all accessible projects"""
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "tags": {"fruit": "apple"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
         result = get_issue_filter_keys(
             org_id=self.organization.id,
             project_ids=[],
             stats_period="7d",
         )
         assert isinstance(result, IssueFilterKeysResponse)
-        # Should return empty or minimal results
-        assert isinstance(result.tags, list)
-        assert isinstance(result.feature_flags, list)
+        assert "fruit" in {tag.get("key") for tag in result.tags}
 
     def test_get_issue_filter_keys_multiple_projects(self) -> None:
         """Test with multiple projects"""
@@ -228,6 +236,27 @@ class TestGetFilterKeyValues(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         value_counts = {item["value"]: item["count"] for item in items}
         assert value_counts["production"] == 2
         assert value_counts["staging"] == 1
+
+    def test_get_filter_key_values_empty_projects(self) -> None:
+        """An empty project list queries all accessible projects"""
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "tags": {"environment": "production"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[],
+            attribute_key="environment",
+            stats_period="7d",
+        )
+
+        assert isinstance(result, FilterKeyValuesResponse)
+        assert "production" in {item["value"] for item in result.dict()}
 
     def test_get_filter_key_values_search_issues_dataset(self) -> None:
         """Test getting values for a filter key in the search_issues dataset (automatically detected)"""
@@ -556,6 +585,29 @@ class TestExecuteIssuesQuery(APITestCase, SnubaTestCase):
             assert "status" in issue
             assert "project" in issue
 
+    def test_execute_issues_query_empty_projects(self) -> None:
+        """An empty project list queries all accessible projects"""
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Error message 1",
+                "level": "error",
+                "fingerprint": ["group-1"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = execute_issues_query(
+            org_id=self.organization.id,
+            project_ids=[],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert isinstance(result, ExecuteIssuesQuerySuccessResponse)
+        assert len(result) >= 1
+
     def test_execute_issues_query_with_filter(self) -> None:
         """Test issues query with specific filter"""
         # Create an error event
@@ -766,6 +818,28 @@ class TestGetIssuesStats(APITestCase, SnubaTestCase):
             assert stat["lifetime"]["lastSeen"] is None or isinstance(
                 stat["lifetime"]["lastSeen"], datetime
             )
+
+    def test_get_issues_stats_empty_projects(self) -> None:
+        """An empty project list queries all accessible projects"""
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "First error",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issues_stats(
+            org_id=self.organization.id,
+            issue_ids=[str(event.group_id)],
+            project_ids=[],
+            query="is:unresolved",
+            stats_period="24h",
+        )
+
+        assert isinstance(result, IssuesStatsResponse)
+        assert [stat["id"] for stat in result] == [str(event.group_id)]
 
     def test_get_issues_stats_with_multiple_projects(self) -> None:
         """Test that get_issues_stats works with multiple project IDs"""
@@ -1591,6 +1665,105 @@ class TestReleaseFieldValues(APITestCase, SnubaTestCase):
         assert isinstance(result, (list, FilterKeyValuesResponse))
         values = [item["value"] for item in result]
         assert release1.version in values
+
+    def test_get_filter_key_values_release_field_empty_projects(self) -> None:
+        """An empty project list returns releases across all accessible projects"""
+        release1 = self.create_release(
+            project=self.project, version="myapp@1.0.0", date_added=before_now(days=1)
+        )
+        release2 = self.create_release(
+            project=self.project, version="myapp@2.0.0", date_added=before_now(hours=1)
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[],
+            attribute_key="release",
+            stats_period="7d",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+        assert release1.version in values
+        assert release2.version in values
+
+    def test_get_filter_key_values_release_field_all_access_sentinel(self) -> None:
+        """The all-access sentinel returns releases across all accessible projects"""
+        release1 = self.create_release(
+            project=self.project, version="myapp@1.0.0", date_added=before_now(days=1)
+        )
+        release2 = self.create_release(
+            project=self.project, version="myapp@2.0.0", date_added=before_now(hours=1)
+        )
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[ALL_ACCESS_PROJECT_ID],
+            attribute_key="release",
+            stats_period="7d",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+        assert release1.version in values
+        assert release2.version in values
+
+    def test_get_filter_key_values_first_release_field_all_access_sentinel(self) -> None:
+        """firstRelease routes through the same helper, so the sentinel applies there too"""
+        release1 = self.create_release(project=self.project, version="myapp@1.0.0")
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[ALL_ACCESS_PROJECT_ID],
+            attribute_key="firstRelease",
+            stats_period="7d",
+        )
+
+        assert result is not None
+        values = [item["value"] for item in result]
+        assert release1.version in values
+
+    def test_get_filter_key_values_release_field_excludes_inactive_projects(self) -> None:
+        """Releases attached only to a non-active project are not suggested"""
+        active_release = self.create_release(project=self.project, version="myapp@1.0.0")
+        inactive_project = self.create_project(organization=self.organization)
+        inactive_release = self.create_release(
+            project=inactive_project, version="myapp@2.0.0-doomed"
+        )
+        inactive_project.update(status=ObjectStatus.PENDING_DELETION)
+
+        for project_ids in ([], [ALL_ACCESS_PROJECT_ID]):
+            result = get_filter_key_values(
+                org_id=self.organization.id,
+                project_ids=project_ids,
+                attribute_key="release",
+                stats_period="7d",
+            )
+
+            assert result is not None
+            values = [item["value"] for item in result]
+            assert active_release.version in values
+            assert inactive_release.version not in values
+
+    def test_get_filter_key_values_release_field_scopes_status_to_same_project(self) -> None:
+        """An explicitly requested non-active project does not borrow another project's active status"""
+        inactive_project = self.create_project(organization=self.organization)
+        shared_release = self.create_release(
+            project=self.project,
+            additional_projects=[inactive_project],
+            version="myapp@1.0.0",
+        )
+        inactive_project.update(status=ObjectStatus.PENDING_DELETION)
+
+        result = get_filter_key_values(
+            org_id=self.organization.id,
+            project_ids=[inactive_project.id],
+            attribute_key="release",
+            stats_period="7d",
+        )
+
+        assert result is not None
+        assert shared_release.version not in [item["value"] for item in result]
 
     def test_get_filter_key_values_release_stage_field(self) -> None:
         """Test that release.stage field returns static enum values"""

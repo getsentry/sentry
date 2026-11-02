@@ -12,13 +12,14 @@ WORKFLOW_CONFIG_HELP_TEXT = """
 
         ```json
             {
-                "frequency":3600
+                "frequency": 60
             }
         ```
         """
 
 WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
         ```json
+        {
             "triggers": {
                 "organizationId": "1",
                 "logicType": "any-short",
@@ -53,9 +54,9 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                         ],
                         "conditionResult": true
                     }
-                ],
-                "actions": []
+                ]
             }
+        }
         ```
         """
 
@@ -197,10 +198,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         - `value`: A positive integer representing the number of users that must be affected before the alert will fire.
         - `filters`: A list of additional sub-filters to evaluate before the alert will fire.
         - `interval`: The time period in which to evaluate the value. e.g. Number of users affected by an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
@@ -219,10 +220,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         **Number of Events**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
         - `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
@@ -239,15 +240,21 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Percent of Events**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
-        - `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is `comparisonInterval` percent higher `value` compared to `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+        - `interval`: The time period in which to evaluate the value.
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
-        - `comparisonInterval`: The time period to compare against. See `interval` for options.
+        - `comparisonInterval`: The time period to compare against.
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
         ```json
             {
                 "type": "event_frequency_percent",
@@ -264,13 +271,11 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         **Percentage of Sessions Affected Count**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
         - `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
-            - `1d`: 1 day
-            - `1w`: 1 week
-            - `30d`: 30 days
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `10m`: 10 minutes
+            - `30m`: 30 minutes
+            - `1h`: 1 hour
         ```json
             {
                 "type": "percent_sessions_count",
@@ -284,21 +289,26 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Percentage of Sessions Affected Percent**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
-        - `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is `comparisonInterval` percent higher `value` compared to `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+        - `interval`: The time period in which to evaluate the value.
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `10m`: 10 minutes
+            - `30m`: 30 minutes
+            - `1h`: 1 hour
+        - `comparisonInterval`: The time period to compare against.
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
-        - `comparisonInterval`: The time period to compare against. See `interval` for options.
         ```json
             {
                 "type": "percent_sessions_percent",
                 "comparison": {
                     "value": 10,
-                    "interval": "1h"
+                    "interval": "1h",
+                    "comparisonInterval": "1w"
                 },
                 "conditionResult": true
             }
@@ -317,7 +327,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -343,7 +353,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -500,7 +510,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
                 "config":{
                     "targetType":"specific",
                     "targetIdentifier":"12345",
-                    "targetDisplay":"",
+                    "targetDisplay":""
                     },
                 "integrationId":"1234",
                 "data":{
@@ -643,7 +653,12 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         """
 
 DATA_SOURCES_HELP_TEXT = """
-            The data sources for the monitor to use based on what you want to measure.
+            The data sources for the metric monitor to use based on what you want to measure.
+
+            `timeWindow` is measured in seconds. Cron Monitors use schedules instead of this field.
+            Legacy metric alert rules expressed this value in minutes, so multiply a legacy value
+            by 60 when migrating it to a monitor. For example, a legacy 5-minute window becomes
+            `"timeWindow": 300`.
 
             **Number of Errors Metric Monitor**
             - `eventTypes`: Any of `error` or `default`.
@@ -656,9 +671,9 @@ DATA_SOURCES_HELP_TEXT = """
                         "eventTypes": ["default", "error"],
                         "query": "is:unresolved",
                         "queryType": 0,
-                        "timeWindow": 3600,
-                    },
-                ],
+                        "timeWindow": 3600
+                    }
+                ]
             ```
 
             **Users Experiencing Errors Metric Monitor**
@@ -672,9 +687,9 @@ DATA_SOURCES_HELP_TEXT = """
                         "eventTypes": ["default", "error"],
                         "query": "is:unresolved",
                         "queryType": 0,
-                        "timeWindow": 3600,
-                    },
-                ],
+                        "timeWindow": 3600
+                    }
+                ]
             ```
 
 
@@ -685,13 +700,13 @@ DATA_SOURCES_HELP_TEXT = """
                         "aggregate":"count(span.duration)",
                         "dataset":"events_analytics_platform",
                         "environment":"prod",
-                        "eventTypes":["trace_item_span"]
+                        "eventTypes":["trace_item_span"],
                         "query":"",
                         "queryType":1,
                         "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
+                        "extrapolationMode":"unknown"
+                    }
+                ]
             ```
 
             **Duration Metric Monitor**
@@ -701,13 +716,13 @@ DATA_SOURCES_HELP_TEXT = """
                         "aggregate":"p95(span.duration)",
                         "dataset":"events_analytics_platform",
                         "environment":"prod",
-                        "eventTypes":["trace_item_span"]
+                        "eventTypes":["trace_item_span"],
                         "query":"",
                         "queryType":1,
                         "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
+                        "extrapolationMode":"unknown"
+                    }
+                ]
             ```
 
             **Failure Rate Metric Monitor**
@@ -717,17 +732,17 @@ DATA_SOURCES_HELP_TEXT = """
                         "aggregate":"failure_rate()",
                         "dataset":"events_analytics_platform",
                         "environment":"prod",
-                        "eventTypes":["trace_item_span"]
+                        "eventTypes":["trace_item_span"],
                         "query":"",
                         "queryType":1,
                         "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
+                        "extrapolationMode":"unknown"
+                    }
+                ]
             ```
 
             **Largest Contentful Paint Metric Monitor**
-            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `dataset`: Use `events_analytics_platform`. To query transaction spans, add `is_transaction:true` to `query`.
             - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
 
             ```json
@@ -736,17 +751,17 @@ DATA_SOURCES_HELP_TEXT = """
                         "aggregate":"p95(measurements.lcp)",
                         "dataset":"events_analytics_platform",
                         "environment":"prod",
-                        "eventTypes":["trace_item_span"]
-                        "query":"",
+                        "eventTypes":["trace_item_span"],
+                        "query":"is_transaction:true",
                         "queryType":1,
                         "timeWindow":3600,
-                        "extrapolationMode":"unknown",
-                    },
-                ],
+                        "extrapolationMode":"unknown"
+                    }
+                ]
             ```
 
             **Custom Metric Monitor**
-            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `dataset`: Use `events_analytics_platform`. To query transaction spans, add `is_transaction:true` to `query`.
             - `aggregate`: Valid values are:
             `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
             `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
@@ -762,11 +777,17 @@ DATA_SOURCES_HELP_TEXT = """
             ```json
             [
                 {
-                    "aggregate": "p75(measurements.ttfb)"
+                    "aggregate": "p75(measurements.ttfb)",
                     "dataset": "events_analytics_platform",
+                    "environment": "prod",
                     "queryType": 1,
-                },
-            ],
+                    "eventTypes": ["trace_item_span"],
+                    "query": "is_transaction:true",
+                    "timeWindow": 3600,
+                    "extrapolationMode": "unknown"
+                }
+            ]
+            ```
 """
 
 DETECTOR_CONFIG_HELP_TEXT = """
@@ -777,7 +798,7 @@ DETECTOR_CONFIG_HELP_TEXT = """
                 - `static`: Threshold based monitor
                 - `percent`: Change based monitor
                 - `dynamic`: Dynamic monitor
-            - `comparisonDelta`: If selecting a **change** detection type, the comparison delta is the time period at which to compare against in minutes.
+            - `comparisonDelta`: If selecting a **change** detection type, the comparison delta is the time period, in seconds, at which to compare against historical data.
             For example, a value of 3600 compares the metric tracked against data 1 hour ago.
                 - `300`: 5 minutes
                 - `900`: 15 minutes
@@ -789,20 +810,20 @@ DETECTOR_CONFIG_HELP_TEXT = """
             **Threshold**
             ```json
             {
-                "detectionType": "static",
+                "detectionType": "static"
             }
             ```
             **Change**
             ```json
             {
                 "detectionType": "percent",
-                "comparisonDelta": 3600,
+                "comparisonDelta": 3600
             }
             ```
             **Dynamic**
             ```json
             {
-                "detectionType": "dynamic",
+                "detectionType": "dynamic"
             }
             ```
         """

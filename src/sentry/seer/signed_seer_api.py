@@ -7,14 +7,17 @@ from urllib.parse import urlparse
 
 import orjson
 from django.conf import settings
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 from sentry.viewer_context import (
+    Actor,
+    ActorType,
     ViewerContext,
     encode_viewer_context,
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
 )
@@ -31,6 +34,10 @@ class SeerViewerContext(TypedDict, total=False):
 
 
 logger = logging.getLogger(__name__)
+
+
+class MissingViewerContextError(RuntimeError):
+    """Raised when a Sentry-to-Seer request has no ambient ViewerContext."""
 
 
 seer_summarization_default_connection_pool = connection_from_url(
@@ -57,71 +64,76 @@ seer_grouping_default_connection_pool = connection_from_url(
 def _resolve_viewer_context(
     explicit: SeerViewerContext | None = None,
     endpoint: str | None = None,
-) -> ViewerContext | None:
-    """Merge explicit SeerViewerContext with the contextvar.
+) -> ViewerContext:
+    """Require an ambient ViewerContext and merge legacy explicit fields into it.
 
-    Converts the legacy SeerViewerContext into a ViewerContext, then merges
-    with the contextvar. Explicit non-None fields win. On disagreement,
-    logs a warning and strips the token for safety.
+    SeerViewerContext remains temporarily supported for caller migration, but
+    it is never sufficient on its own. Explicit non-None fields win. On
+    logs a warning and strips actor elevation for safety.
     """
     vc = get_viewer_context()
-
-    if explicit is None and vc is None:
-        return None
-    if explicit is None:
-        return vc
-
-    explicit_vc = ViewerContext(
-        organization_id=explicit.get("organization_id"),
-        user_id=explicit.get("user_id"),
-    )
 
     if vc is None:
         logger.warning(
             "seer.viewer_context_not_set",
             extra={
-                "explicit_org_id": explicit_vc.organization_id,
-                "explicit_user_id": explicit_vc.user_id,
+                "explicit_org_id": explicit.get("organization_id") if explicit else None,
+                "explicit_user_id": explicit.get("user_id") if explicit else None,
                 "endpoint": endpoint,
             },
+            stack_info=True,
         )
         metrics.incr(
             "seer.viewer_context_resolution",
             tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
         )
-        return explicit_vc
+        raise MissingViewerContextError("ViewerContext is required for Seer requests")
+
+    if explicit is None:
+        return vc
+
+    explicit_org_id = explicit.get("organization_id")
+    explicit_user_id = explicit.get("user_id")
 
     has_mismatch = False
     org_id = vc.organization_id
-    user_id = vc.user_id
+    user_id = get_acting_user_id(vc)
+    actor = vc.actor
 
-    if explicit_vc.organization_id is not None:
-        if org_id is not None and org_id != explicit_vc.organization_id:
+    if explicit_org_id is not None:
+        if org_id is not None and org_id != explicit_org_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "organization_id",
                     "contextvar": org_id,
-                    "explicit": explicit_vc.organization_id,
+                    "explicit": explicit_org_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        org_id = explicit_vc.organization_id
+        org_id = explicit_org_id
 
-    if explicit_vc.user_id is not None:
-        if user_id is not None and user_id != explicit_vc.user_id:
+    if explicit_user_id is not None:
+        # A service account is its own principal; never re-attribute it to a human.
+        is_service_account = actor.type == ActorType.SERVICE_ACCOUNT
+        if (user_id is not None or is_service_account) and user_id != explicit_user_id:
             logger.warning(
                 "seer.viewer_context_mismatch",
                 extra={
                     "field": "user_id",
                     "contextvar": user_id,
-                    "explicit": explicit_vc.user_id,
+                    "explicit": explicit_user_id,
                     "endpoint": endpoint,
                 },
             )
             has_mismatch = True
-        user_id = explicit_vc.user_id
+        if actor.type == ActorType.USER:
+            actor = replace(actor, actor_id=explicit_user_id)
+        elif actor.type == ActorType.AGENT:
+            actor = replace(actor, delegated_user_id=explicit_user_id)
+        elif not is_service_account:
+            actor = Actor(type=ActorType.USER, actor_id=explicit_user_id)
 
     metrics.incr(
         "seer.viewer_context_resolution",
@@ -133,11 +145,16 @@ def _resolve_viewer_context(
     )
 
     if has_mismatch:
-        return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
-    return replace(vc, organization_id=org_id, user_id=user_id)
+        return replace(
+            vc,
+            organization_id=org_id,
+            actor=replace(actor, superuser=None),
+            project_id=None,
+        )
+    return replace(vc, organization_id=org_id, actor=actor)
 
 
-@trace
+@traces.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
@@ -149,7 +166,12 @@ def make_signed_seer_api_request(
     viewer_context: SeerViewerContext | None = None,
     metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
-    """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
+    """Send a signed request to Seer.
+
+    All outbound Sentry-to-Seer HTTP requests must go through this function so
+    ViewerContext propagation, signing, tracing, and metrics remain consistent.
+    Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies.
+    """
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -157,25 +179,18 @@ def make_signed_seer_api_request(
     url = f"{connection_pool.scheme}://{host}{path}"
     parsed = urlparse(url)
 
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
+    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
+    # Fail closed: a request without a signed ViewerContext must never reach Seer.
+    viewer_context_header = encode_viewer_context(resolved)
+
     auth_headers = sign_with_seer_secret(body)
 
     headers: dict[str, str] = {
         "content-type": "application/json;charset=utf-8",
         **auth_headers,
+        "X-Viewer-Context": viewer_context_header,
     }
-
-    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
-    observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
-    if resolved:
-        try:
-            headers["X-Viewer-Context"] = encode_viewer_context(resolved)
-        except ValueError:
-            logger.warning(
-                "viewer_context_jwt.no_signing_key",
-                extra={"reason": "No key available to sign viewer context JWT."},
-            )
-        except Exception:
-            logger.exception("Failed to encode viewer context JWT for call to Seer.")
 
     options: dict[str, Any] = {}
     if timeout:
@@ -193,14 +208,17 @@ def make_signed_seer_api_request(
         "seer.request_to_seer",
         sample_rate=1.0,
         tags=timer_tags,
-    ):
-        return connection_pool.urlopen(
+    ) as tags:
+        tags["status_class"] = "error"
+        response = connection_pool.urlopen(
             method,
             request_target,
             body=body,
             headers=headers,
             **options,
         )
+        tags["status_class"] = f"{response.status // 100}xx"
+        return response
 
 
 class OrgProjectKnowledgeProjectData(TypedDict):
@@ -217,27 +235,6 @@ class OrgProjectKnowledgeProjectData(TypedDict):
 class OrgProjectKnowledgeIndexRequest(TypedDict):
     org_id: int
     projects: list[OrgProjectKnowledgeProjectData]
-
-
-class RemoveRepositoryRequest(TypedDict):
-    organization_id: int
-    repo_provider: str
-    repo_external_id: str
-
-
-class RepoIdentifier(TypedDict):
-    repo_provider: str
-    repo_external_id: str
-
-
-class BulkRemoveRepositoriesRequest(TypedDict):
-    organization_id: int
-    repositories: list[RepoIdentifier]
-
-
-class RemoveHandoffsForIntegrationRequest(TypedDict):
-    organization_id: int
-    integration_id: int
 
 
 class AgentIndexProject(TypedDict):
@@ -342,48 +339,6 @@ def make_index_sentry_knowledge_request(
     )
 
 
-def make_remove_repository_request(
-    body: RemoveRepositoryRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/remove-repository",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_bulk_remove_repositories_request(
-    body: BulkRemoveRepositoriesRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/bulk-remove-repositories",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_remove_handoffs_for_integration_request(
-    body: RemoveHandoffsForIntegrationRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/project-preference/remove-handoffs-for-integration",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_agent_export_indexes_request(
     body: AgentExportIndexesRequest,
     viewer_context: SeerViewerContext,
@@ -455,12 +410,6 @@ def make_oneshot_request(
     )
 
 
-class SummarizeTraceRequest(TypedDict):
-    trace_id: str
-    only_transaction: bool
-    trace: dict[str, Any]
-
-
 class SummarizeIssueRequest(TypedDict):
     group_id: int
     issue: dict[str, Any]
@@ -511,21 +460,9 @@ class ServiceMapUpdateRequest(TypedDict):
     edges: list[dict[str, Any]]
 
 
-class UnitTestGenerationRequest(TypedDict):
-    repo: dict[str, Any]
-    pr_id: int
-
-
 class SearchAgentStateRequest(TypedDict):
     run_id: int
     organization_id: int
-
-
-class TranslateQueryRequest(TypedDict):
-    org_id: int
-    org_slug: str
-    project_ids: list[int]
-    natural_language_query: str
 
 
 class SearchAgentStartRequest(TypedDict):
@@ -551,11 +488,6 @@ class TranslateAgenticRequest(TypedDict):
     options: NotRequired[dict[str, Any]]
 
 
-class CreateCacheRequest(TypedDict):
-    org_id: int
-    project_ids: list[int]
-
-
 class CompareDistributionsRequest(TypedDict):
     baseline: list[dict[str, Any]]
     outliers: list[dict[str, Any]]
@@ -563,20 +495,6 @@ class CompareDistributionsRequest(TypedDict):
     total_outliers: int
     config: dict[str, Any]
     meta: dict[str, Any]
-
-
-def make_summarize_trace_request(
-    body: SummarizeTraceRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_summarization_default_connection_pool,
-        "/v1/automation/summarize/trace",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
 
 
 def make_summarize_issue_request(
@@ -649,20 +567,6 @@ def make_service_map_update_request(
     )
 
 
-def make_unit_test_generation_request(
-    body: UnitTestGenerationRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/automation/codegen/unit-tests",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
 def make_search_agent_state_request(
     body: SearchAgentStateRequest,
     timeout: int | float | None = None,
@@ -671,20 +575,6 @@ def make_search_agent_state_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/state",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_translate_query_request(
-    body: TranslateQueryRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/translate",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -713,20 +603,6 @@ def make_translate_agentic_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/assisted-query/translate-agentic",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_create_cache_request(
-    body: CreateCacheRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/assisted-query/create-cache",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

@@ -58,7 +58,7 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
     if symbolicated.get("filename"):
         new_frame["filename"] = symbolicated["filename"]
 
-    # Clear abs_path if Symbolicator unset it
+    # Clear filename if Symbolicator unset it
     elif new_frame.get("filename"):
         del new_frame["filename"]
 
@@ -66,8 +66,6 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
         new_frame["lineno"] = symbolicated["lineno"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
-    if symbolicated.get("in_app") is not None:
-        new_frame["in_app"] = symbolicated["in_app"]
 
     if symbolicated.get("pre_context"):
         new_frame["pre_context"] = symbolicated["pre_context"]
@@ -83,6 +81,17 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
         new_frame["in_app"] = False
 
 
+def fixup_frame_in_app(frame: dict[str, Any], release_package: str | None) -> None:
+    """Sets a frame's `in_app` field to `True` if it's unset and the frame's
+    `module` field matches the `release_package`."""
+
+    if not release_package or "in_app" in frame:
+        return
+
+    if (frame.get("module") or "").startswith(release_package):
+        frame["in_app"] = True
+
+
 def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     "Returns whether the frame should be symbolicated by JVM symbolication."
 
@@ -93,7 +102,7 @@ def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     )
 
 
-FRAME_FIELDS = ("platform", "abs_path", "lineno", "function", "module", "filename", "in_app")
+FRAME_FIELDS = ("platform", "abs_path", "lineno", "function", "module", "filename")
 
 
 def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
@@ -231,7 +240,6 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         ],
         stacktraces=stacktraces,
         modules=modules,
-        release_package=release_package,
         classes=window_class_names + exception_class_names,
         # We are sending frames in the same order in which
         # they were stored in the event, so this has to be "caller_first".
@@ -258,6 +266,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
                 for returned in matching_frames:
                     new_frame = dict(raw_frame)
                     _merge_frame(new_frame, returned)
+                    fixup_frame_in_app(new_frame, release_package)
                     new_frames.append(new_frame)
             elif not _handles_frame(raw_frame, data.get("platform", "unknown")):
                 new_frames.append(raw_frame)

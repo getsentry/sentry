@@ -18,9 +18,13 @@ from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.testutils.helpers.options import override_options
 
 
 class ApiClientTest(TestCase):
+    def setUp(self) -> None:
+        self.enterContext(override_options({"integrations.client.disable_retries": False}))
+
     @responses.activate
     def test_get(self) -> None:
         responses.add(responses.GET, "http://example.com", json={})

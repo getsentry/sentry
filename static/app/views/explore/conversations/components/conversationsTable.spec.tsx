@@ -1,19 +1,24 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {dragHandle} from 'sentry-test/dragMove';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  COL_WIDTH_MINIMUM,
-  COL_WIDTH_UNDEFINED,
-} from 'sentry/components/tables/gridEditable';
 import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
-  getConversationTimespan,
+  getConversationTimeSpan,
   getUserDisplayName,
   getVisibleToolCount,
   parseStoredColumnWidths,
@@ -33,6 +38,7 @@ const BASE_CONVERSATION = {
   llmCalls: 3,
   projectId: null,
   startTimestamp: 1000,
+  timeSpan: 1000,
   title: null,
   toolCalls: 0,
   toolErrors: 0,
@@ -72,6 +78,16 @@ describe('ConversationsTable', () => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
     });
+  });
+
+  it('renders the shared no-data state when there are no conversations', async () => {
+    mockConversations([]);
+
+    renderTable();
+
+    expect(
+      await screen.findByRole('heading', {name: 'No results found'})
+    ).toBeInTheDocument();
   });
 
   it('renders the AI-generated title when present', async () => {
@@ -133,35 +149,20 @@ describe('ConversationsTable', () => {
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
   });
 
-  it('uses elapsed wall-clock time for the conversation timespan', () => {
-    expect(
-      getConversationTimespan({
-        ...BASE_CONVERSATION,
-        startTimestamp: 1_000,
-        endTimestamp: 421_000,
-      })
-    ).toBe(420_000);
+  it('uses the conversation timespan', () => {
+    expect(getConversationTimeSpan({...BASE_CONVERSATION, timeSpan: 420_000})).toBe(
+      420_000
+    );
   });
 
   it('uses generation duration for a single span with no elapsed timespan', () => {
     expect(
-      getConversationTimespan({
+      getConversationTimeSpan({
         ...BASE_CONVERSATION,
-        startTimestamp: 1_000,
-        endTimestamp: 1_000,
+        timeSpan: 0,
         generationDuration: 750,
       })
     ).toBe(750);
-  });
-
-  it('clamps the conversation timespan when timestamps are out of order', () => {
-    expect(
-      getConversationTimespan({
-        ...BASE_CONVERSATION,
-        startTimestamp: 2_000,
-        endTimestamp: 1_000,
-      })
-    ).toBe(0);
   });
 
   it('uses the user ID when no other identifying fields are available', () => {
@@ -315,21 +316,20 @@ describe('ConversationsTable', () => {
       'descending'
     );
     expect(screen.queryByRole('button', {name: 'Conversation'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Timespan'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Tools'})).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Timespan'}));
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/agents/conversations/`,
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-conversation.totalCost']}),
+          query: expect.objectContaining({sort: ['-conversation.timeSpan']}),
         })
       )
     );
     await waitFor(() =>
-      expect(screen.getByRole('columnheader', {name: 'Cost'})).toHaveAttribute(
+      expect(screen.getByRole('columnheader', {name: 'Timespan'})).toHaveAttribute(
         'aria-sort',
         'descending'
       )
@@ -392,6 +392,112 @@ describe('ConversationsTable', () => {
     expect(router.location.pathname).toBe(initialPath);
 
     openSpy.mockRestore();
+  });
+
+  it('adds a cell value to the search query without opening the conversation', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', llmCalls: 7}]);
+
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    await screen.findByText('Filter me');
+    const messagesCell = screen.getAllByRole('cell')[2]!;
+    await userEvent.click(within(messagesCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.messages:7')
+    );
+    expect(router.location.pathname).toBe(initialPath);
+  });
+
+  it('excludes a cell value from the existing search query', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', errors: 2}]);
+
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {query: 'gen_ai.tool.name:search'}},
+      },
+    });
+
+    await screen.findByText('Filter me');
+    const errorsCell = screen.getAllByRole('cell')[3]!;
+    await userEvent.click(within(errorsCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'gen_ai.tool.name:search !conversation.errors:2'
+      )
+    );
+  });
+
+  it('filters the timespan and cost with comparisons', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 1500, totalCost: 0.25},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.timeSpan:>1.50s')
+    );
+
+    const costCell = screen.getAllByRole('cell')[4]!;
+    await userEvent.click(within(costCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'conversation.timeSpan:>1.50s conversation.totalCost:<0.25'
+      )
+    );
+  });
+
+  it('filters on generation duration when the timespan falls back to it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 0, generationDuration: 2000},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.generationDuration:<2.00s')
+    );
+  });
+
+  it('does not offer cell actions for a missing cost', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', totalCost: null}]);
+
+    renderTable();
+
+    await screen.findByText('Filter me');
+    const costCell = screen.getAllByRole('cell')[4]!;
+    expect(
+      within(costCell).queryByRole('button', {name: 'Actions'})
+    ).not.toBeInTheDocument();
   });
 });
 

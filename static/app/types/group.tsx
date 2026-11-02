@@ -544,7 +544,9 @@ export type TagValue = {
   firstSeen: string;
   lastSeen: string;
   name: string;
-  value: string;
+  // Missing tags come back as '' or, for tags Snuba stores in their own
+  // column (like user), null.
+  value: string | null;
   email?: string;
   identifier?: string;
   ipAddress?: string;
@@ -559,7 +561,7 @@ type Topvalue = {
   key: string;
   lastSeen: string;
   name: string;
-  value: string;
+  value: string | null;
   // Might not actually exist.
   query?: string;
   readable?: string;
@@ -676,6 +678,8 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -698,6 +702,10 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 
@@ -1133,7 +1141,19 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
 export type GroupActivity =
+  | GroupActivityUnlinkExternalIssue
+  | GroupActivityUnlinkPlatformExternalIssue
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration
@@ -1361,9 +1381,11 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string | null;
+  groupId: string;
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 
@@ -1476,11 +1498,7 @@ export type KeyValueListDataItem = {
    * If true, the action button will always be visible, not just on hover.
    */
   actionButtonAlwaysVisible?: boolean;
-  isContextData?: boolean;
-  isMultiValue?: boolean;
-  meta?: Meta;
   subjectDataTestId?: string;
-  subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };

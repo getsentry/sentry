@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
@@ -18,6 +18,28 @@ describe('Frame - Context', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
+  });
+
+  it('renders and copies extracted native variables when the flag is enabled', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+
+    render(
+      <Context
+        isExpanded
+        hasContextVars
+        platform="native"
+        frame={{...frame, vars: {argc: '0x2 (int)'}}}
+        event={event}
+        registers={{}}
+        components={[]}
+      />,
+      {organization: OrganizationFixture({features: ['native-variable-extraction']})}
+    );
+
+    expect(screen.getByText('0x2 (int)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Copy argc value'}));
+    expect(writeText).toHaveBeenCalledWith('0x2 (int)');
   });
 
   describe('syntax highlighting', () => {

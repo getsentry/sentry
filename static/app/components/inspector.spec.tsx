@@ -47,7 +47,13 @@ describe('SentryComponentInspector', () => {
     }
   });
 
-  it('renders a preview trace of the component', async () => {
+  it.each([
+    ['static/app/components/test/component.tsx', 'app/components/test/component.tsx'],
+    [
+      'static/packages/scraps/src/layout/stack.tsx',
+      'packages/scraps/src/layout/stack.tsx',
+    ],
+  ])('renders a preview trace of %s', async (sourcePath, displayPath) => {
     jest.mocked(constants).NODE_ENV = 'development';
 
     const mockUser = UserFixture({isSuperuser: true});
@@ -64,7 +70,7 @@ describe('SentryComponentInspector', () => {
           {/* intermediary div that should be skipped */}
           <div>
             <div
-              data-sentry-source-path="/static/app/components/test/component.tsx"
+              data-sentry-source-path={`/${sourcePath}`}
               data-sentry-component="TestComponent"
             >
               Test Component Content
@@ -81,9 +87,7 @@ describe('SentryComponentInspector', () => {
     expect(await screen.findByText('Hovered Components')).toBeInTheDocument();
 
     expect(await screen.findByText('TestComponent')).toBeInTheDocument();
-    expect(
-      await screen.findByText('.../app/components/test/component.tsx')
-    ).toBeInTheDocument();
+    expect(await screen.findByText(`.../${displayPath}`)).toBeInTheDocument();
 
     expect(await screen.findByText('ParentComponent')).toBeInTheDocument();
     expect(

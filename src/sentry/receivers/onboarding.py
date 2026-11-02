@@ -32,6 +32,7 @@ from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -84,7 +85,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
-    if user and user.is_authenticated:
+    if user and has_user(user):
         return user.id
 
     # this is either the organizations owners user id or None
@@ -101,8 +102,8 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
-        user_id = default_user_id = user.id
+    elif has_user(user):
+        user_id = default_user_id = acting_user_id(user)
     else:
         user_id = default_user_id = get_owner_id(project, user)
         if user_id is None:
@@ -485,15 +486,15 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    if (owner_id := get_owner_id(project)) is None:
-        logger.warning(
-            "Cannot record sourcemaps received for organization (%s) due to missing owners",
-            project.organization_id,
-        )
-        return
-
     # First, only enter this logic if we've never seen a minified stack trace before
     if not project.flags.has_sourcemaps:
+        if (owner_id := get_owner_id(project)) is None:
+            logger.warning(
+                "Cannot record sourcemaps received for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
+
         # Next, attempt to update the flag, but ONLY if the flag is currently not set.
         # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
         # This guarantees us that this analytics event will only be ever sent once.

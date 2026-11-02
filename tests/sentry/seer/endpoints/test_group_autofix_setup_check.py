@@ -79,10 +79,23 @@ class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
 
         assert result == "integration_missing"
 
-    def test_unsupported_gitlab_integration(self) -> None:
+    def test_supported_gitlab_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider=IntegrationProviderSlug.GITLAB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_unsupported_provider_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="unsupported-provider",
             external_id="1",
         )
 
@@ -150,6 +163,17 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             },
             "seerReposLinked": True,
         }
+
+    def test_forbidden_when_ai_features_hidden(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "AI features are disabled for this organization."}
 
     @patch(
         "sentry.seer.endpoints.group_autofix_setup_check.has_project_connected_repos",
@@ -249,6 +273,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             assert response.data["autofixEnabled"] is True
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def _set_seat_based_tier_cache(self, value: bool) -> None:
         """Set the cache for is_seer_seat_based_tier_enabled to return the given value."""

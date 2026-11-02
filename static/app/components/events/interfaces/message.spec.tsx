@@ -59,4 +59,19 @@ describe('Message entry', () => {
       '/settings/org-slug/security-and-privacy/'
     );
   });
+
+  it('renders colored text and links without escape codes when given an ANSI message', () => {
+    const formatted = '\x1B[31mfailed\x1B[0m to fetch https://example.com/status';
+    const event = EventFixture({
+      entries: [{type: 'message', data: {formatted}}],
+    });
+
+    render(<Message data={{formatted}} event={event} />);
+
+    expect(screen.getByText('failed').closest('pre')).toHaveTextContent(
+      /^failed to fetch https:\/\/example\.com\/status$/
+    );
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('https://example.com/status').tagName).toBe('A');
+  });
 });

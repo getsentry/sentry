@@ -57,13 +57,13 @@ describe('useMetricAttributesTreeActions', () => {
     });
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'release',
         attribute_value: '1.0.0',
         original_attribute_key: 'release',
         type: 'str',
       },
-      subtree: {},
+      subtree: new Map(),
       value: '1.0.0',
     };
 
@@ -81,13 +81,13 @@ describe('useMetricAttributesTreeActions', () => {
     });
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'value',
         attribute_value: 42,
         original_attribute_key: 'value',
         type: 'float',
       },
-      subtree: {},
+      subtree: new Map(),
       value: 42,
     };
 
@@ -118,13 +118,13 @@ describe('useMetricAttributesTreeActions', () => {
     });
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'code.line.number',
         attribute_value: '100',
         original_attribute_key: 'tags[code.line.number,number]',
         type: 'str',
       },
-      subtree: {},
+      subtree: new Map(),
       value: '100',
     };
 
@@ -136,13 +136,13 @@ describe('useMetricAttributesTreeActions', () => {
     ]);
   });
 
-  it('returns no actions when originalAttribute is missing', () => {
+  it('returns no actions when the original attribute is missing', () => {
     const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
       additionalWrapper: Wrapper,
     });
 
     const content: AttributesTreeContent = {
-      subtree: {},
+      subtree: new Map(),
       value: '',
     };
 

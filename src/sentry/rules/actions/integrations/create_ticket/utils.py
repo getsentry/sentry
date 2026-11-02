@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from typing import Any
 
 from rest_framework.response import Response
 
@@ -20,6 +21,7 @@ from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -31,7 +33,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
 
@@ -97,12 +98,15 @@ def create_link(
     )
 
 
-def build_description_workflow_engine_ui(
+def build_description(
     event: GroupEvent,
     workflow_id: int,
     installation: IssueBasicIntegration,
     generate_footer: Callable[[str], str],
 ) -> str:
+    """
+    Format the description of the ticket/work item
+    """
     project = event.group.project
     workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
 
@@ -112,41 +116,21 @@ def build_description_workflow_engine_ui(
     return description
 
 
-def build_description(
-    event: GroupEvent,
-    rule_id: int,
-    installation: IssueBasicIntegration,
-    generate_footer: Callable[[str], str],
-) -> str:
-    """
-    Format the description of the ticket/work item
-    """
-    project = event.group.project
-    rule_url = (
-        f"/organizations/{project.organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/"
-    )
-
-    description: str = installation.get_group_description(event.group, event) + generate_footer(
-        rule_url
-    )
-    return description
-
-
 def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     """Create an issue for a given event"""
     organization = event.group.project.organization
 
     for future in futures:
-        rule_id = future.rule.id
-        data = future.kwargs.get("data")
+        context = future.context
+        origin = context.origin
+        action_id = context.action_id
+        data: dict[str, Any] = future.kwargs["data"]
         provider = future.kwargs.get("provider")
         integration_id = future.kwargs.get("integration_id")
-        generate_footer = future.kwargs.get("generate_footer")
+        generate_footer: Callable[[str], str] = future.kwargs["generate_footer"]
 
-        # If we invoked this handler from the notification action, we need to replace the rule_id with the legacy_rule_id, so we link notifications correctly
-        # In the Notification Action, we store the rule_id in the action_id field
-        action_id = rule_id
-        rule_id = data.get("legacy_rule_id")
+        rule_id = origin.legacy_rule_id or origin.workflow_id
+        assert rule_id is not None
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
@@ -165,13 +149,26 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         )
         data["title"] = installation.get_group_title(event.group, event)
 
-        workflow_id = data.get("workflow_id")
+        workflow_id = origin.workflow_id
         if workflow_id is not None:
-            data["description"] = build_description_workflow_engine_ui(
+            data["description"] = build_description(
                 event, workflow_id, installation, generate_footer
             )
         else:
-            data["description"] = build_description(event, rule_id, installation, generate_footer)
+            # Without a workflow there's nothing to link the footer to, so the
+            # description is created without one.
+            if not origin.is_test_notification():
+                logger.warning(
+                    "%s.rule_trigger.missing_workflow_id",
+                    provider,
+                    extra={
+                        "legacy_rule_id": origin.legacy_rule_id,
+                        "project_id": event.group.project.id,
+                        "group_id": event.group.id,
+                        "organization_id": organization.id,
+                    },
+                )
+            data["description"] = installation.get_group_description(event.group, event)
 
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]

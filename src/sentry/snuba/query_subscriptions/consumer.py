@@ -6,6 +6,7 @@ import sentry_sdk
 from dateutil.parser import parse as parse_date
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import SubscriptionResult
+from sentry_sdk import traces
 
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.snuba.dataset import EntityKey
@@ -13,7 +14,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.constants import topic_to_dataset
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[QuerySubscriptionUpdate, QuerySubscription], None]
@@ -160,22 +160,24 @@ def handle_message(
 
         callback = subscriber_registry[subscription.type]
         with (
-            start_span(op="process_message", name="process_message") as span,
+            traces.start_span(
+                name="process_message", attributes={"sentry.op": "process_message"}
+            ) as span,
             metrics.timer(
                 "snuba_query_subscriber.callback.duration",
                 instance=subscription.type,
                 tags={"dataset": dataset},
             ),
         ):
-            set_span_data(span, "payload", contents)
-            set_span_data(span, "subscription_dataset", subscription.snuba_query.dataset)
-            set_span_data(span, "subscription_query", subscription.snuba_query.query)
-            set_span_data(span, "subscription_aggregation", subscription.snuba_query.aggregate)
-            set_span_data(span, "subscription_time_window", subscription.snuba_query.time_window)
-            set_span_data(span, "subscription_resolution", subscription.snuba_query.resolution)
-            set_span_data(span, "message_offset", message_offset)
-            set_span_data(span, "message_partition", message_partition)
-            set_span_data(span, "message_value", message_value)
+            span.set_attribute("payload", repr(contents))
+            span.set_attribute("subscription_dataset", subscription.snuba_query.dataset)
+            span.set_attribute("subscription_query", subscription.snuba_query.query)
+            span.set_attribute("subscription_aggregation", subscription.snuba_query.aggregate)
+            span.set_attribute("subscription_time_window", subscription.snuba_query.time_window)
+            span.set_attribute("subscription_resolution", subscription.snuba_query.resolution)
+            span.set_attribute("message_offset", message_offset)
+            span.set_attribute("message_partition", message_partition)
+            span.set_attribute("message_value", repr(message_value))
 
             callback(contents, subscription)
 

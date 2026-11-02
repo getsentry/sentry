@@ -85,6 +85,32 @@ describe('useFetchEventsTimeSeries', () => {
     expect(request).toHaveBeenCalledTimes(0);
   });
 
+  it('encodes ordered transformations at their original axis index', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {
+          yAxis: ['count()', 'avg(span.duration)'],
+          transformations: [[], ['fill(locf)', 'smooth(sma,5)']],
+        },
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(request.mock.lastCall![1].query).toEqual(
+      expect.objectContaining({
+        yAxis: ['count()', 'avg(span.duration)'],
+        'transformations[1]': ['fill(locf)', 'smooth(sma,5)'],
+      })
+    );
+    expect(request.mock.lastCall![1].query).not.toHaveProperty('transformations[0]');
+  });
+
   it('requires a referrer', () => {
     expect(() => {
       renderHookWithProviders(() =>
@@ -273,47 +299,6 @@ describe('useFetchEventsTimeSeries', () => {
           logQuery: ['span.op:db*'],
           metricQuery: ['span.op:db*'],
         }),
-      })
-    );
-  });
-
-  it('omits includeAnnotations by default', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: [],
-    });
-
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(DiscoverDatasets.SPANS, {yAxis: 'epm()'}, REFERRER)
-    );
-
-    await waitFor(() => expect(result.current.isPending).toBe(false));
-
-    expect(request.mock.calls[0][1].query).not.toHaveProperty('includeAnnotations');
-  });
-
-  it('opts in to annotations when includeAnnotations is set', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: [],
-    });
-
-    const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {yAxis: 'epm()', includeAnnotations: true},
-        REFERRER
-      )
-    );
-
-    await waitFor(() => expect(result.current.isPending).toBe(false));
-
-    expect(request).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({includeAnnotations: 1}),
       })
     );
   });

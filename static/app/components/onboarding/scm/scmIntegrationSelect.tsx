@@ -1,7 +1,8 @@
+import {IconSettings} from '@sentry/icons/settings';
+
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry import options
 from sentry.options.manager import (
@@ -21,7 +22,8 @@ class ConfigOptionsTest(CliTestCase):
     command = configoptions
 
     @pytest.fixture(autouse=True, scope="class")
-    def register_options(self) -> Generator[None]:
+    @classmethod
+    def register_options(cls) -> Generator[None]:
         options.register("readonly_option", default=10, flags=FLAG_IMMUTABLE)
         options.register("int_option", default=20, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("str_option", default="blabla", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -37,9 +39,10 @@ class ConfigOptionsTest(CliTestCase):
             default="",
             flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
         )
-        settings.SENTRY_OPTIONS["set_on_disk_option"] = "test"
-
-        yield
+        with override_settings(
+            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "set_on_disk_option": "test"}
+        ):
+            yield
 
         options.unregister("readonly_option")
         options.unregister("int_option")
@@ -52,7 +55,6 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("invalid_type")
         options.unregister("float_option")
         options.unregister("set_on_disk_option")
-        del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:

@@ -11,7 +11,11 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     SourceLineInfo,
 )
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+    get_current_scm_interaction_type,
+)
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
@@ -19,6 +23,82 @@ from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric, 
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.users.models.identity import Identity
+
+
+@pytest.mark.parametrize(
+    ("provider_key", "expected_provider"),
+    [
+        ("github", "github"),
+        ("integrations:github", "github"),
+        ("integrations:github_enterprise", "github_enterprise"),
+    ],
+)
+def test_scm_interaction_event_normalizes_provider(
+    provider_key: str, expected_provider: str
+) -> None:
+    event = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.GET_STACKTRACE_LINK,
+        provider_key=provider_key,
+    )
+
+    assert event.get_metric_tags() == {
+        "integration_domain": "source_code_management",
+        "integration_name": expected_provider,
+        "interaction_type": "get_stacktrace_link",
+    }
+
+
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_tracks_nested_lifecycles(_mock_record: MagicMock) -> None:
+    outer = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key="github",
+    )
+    inner = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+        provider_key="github",
+    )
+
+    assert get_current_scm_interaction_type() is None
+    with outer.capture():
+        assert (
+            get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+        )
+        with inner.capture():
+            assert get_current_scm_interaction_type() == SCMIntegrationInteractionType.GET_REPO_TREE
+        assert (
+            get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+        )
+    assert get_current_scm_interaction_type() is None
+
+
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_resets_after_exception(_mock_record: MagicMock) -> None:
+    event = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
+        provider_key="github",
+    )
+
+    with pytest.raises(RuntimeError), event.capture():
+        raise RuntimeError
+
+    assert get_current_scm_interaction_type() is None
+
+
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_rejects_reentry(_mock_record: MagicMock) -> None:
+    event = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
+        provider_key="github",
+    )
+    lifecycle = event.capture()
+
+    with lifecycle:
+        with pytest.raises(RuntimeError, match="cannot be re-entered"), lifecycle:
+            pass
+        assert get_current_scm_interaction_type() == SCMIntegrationInteractionType.SYNC_REPOS
+
+    assert get_current_scm_interaction_type() is None
 
 
 class MockCommitContextIntegration(CommitContextIntegration):

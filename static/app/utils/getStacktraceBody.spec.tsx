@@ -27,6 +27,17 @@ Error: an error occurred`,
     expect(result).toEqual(['Something is broken']);
   });
 
+  it('strips ANSI codes when the message contains them', () => {
+    const result = getStacktraceBody({
+      event: EventFixture({
+        entries: [
+          {type: 'message', data: {formatted: '\x1B[31mSomething\x1B[0m is broken'}},
+        ],
+      }),
+    });
+    expect(result).toEqual(['Something is broken']);
+  });
+
   it('formats with a thread', () => {
     const result = getStacktraceBody({event: eventThreads});
     expect(result).toEqual([

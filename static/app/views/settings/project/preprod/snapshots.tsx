@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -16,7 +17,11 @@ export default function SnapshotSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Snapshots')} />
       <SettingsPageHeader
-        title={t('Snapshots')}
+        title={{
+          type: 'page-title',
+          label: t('Snapshots'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
+        }}
         subtitle={t('Configure status checks and PR comments for snapshot testing.')}
       />
       <TopBar.Slot name="feedback">

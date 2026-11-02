@@ -1,34 +1,31 @@
 import {Fragment} from 'react';
-import Cookies from 'js-cookie';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {setWindowLocation} from 'sentry-test/utils';
 
-import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
-import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {AuthPageLoadingProvider} from 'sentry/views/authV2/useAuthPageLoading';
 
 import AuthLogin from './index';
 
 jest.mock('sentry/utils/analytics');
 
 describe('AuthLogin', () => {
-  beforeEach(() => {
-    jest.mocked(trackAnalytics).mockClear();
-    ConfigStore.set('singleOrganization', false);
-  });
-
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
       value: jest.fn(() => null),
     });
+  });
+
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+    ConfigStore.set('singleOrganization', false);
   });
 
   afterAll(() => {
@@ -70,14 +67,14 @@ describe('AuthLogin', () => {
 
   function renderWithLoadingState() {
     return render(
-      <BrandedAuthLoadingProvider>
+      <AuthPageLoadingProvider>
         {isLoading => (
           <Fragment>
             <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
             <AuthLogin />
           </Fragment>
         )}
-      </BrandedAuthLoadingProvider>
+      </AuthPageLoadingProvider>
     );
   }
 
@@ -313,14 +310,14 @@ describe('AuthLogin', () => {
     });
 
     render(
-      <BrandedAuthLoadingProvider>
+      <AuthPageLoadingProvider>
         {isLoading => (
           <Fragment>
             <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
             <AuthLogin />
           </Fragment>
         )}
-      </BrandedAuthLoadingProvider>,
+      </AuthPageLoadingProvider>,
       {
         initialRouterConfig: {
           location: {pathname: '/auth/login/acme/'},
@@ -575,38 +572,6 @@ describe('AuthLogin', () => {
       'href',
       '/auth/register/'
     );
-  });
-
-  it('returns to the legacy login experience', async () => {
-    const originalLocation = window.location.href;
-    setWindowLocation('https://login.sentry.io/auth/login/');
-    Cookies.set('sentry_react_auth', '1', {
-      domain: '.sentry.io',
-      path: '/auth/',
-    });
-    mockAuthConfig();
-
-    try {
-      render(
-        <BrandPageLayout>
-          <BrandPageLayout.Content>
-            <AuthLogin />
-          </BrandPageLayout.Content>
-        </BrandPageLayout>
-      );
-
-      expect(await screen.findByText('New Experience')).toBeVisible();
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Return to the old login experience'})
-      );
-
-      expect(Cookies.get('sentry_react_auth')).toBe('0');
-      expect(testableWindowLocation.reload).toHaveBeenCalled();
-    } finally {
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/auth/'});
-      setWindowLocation(originalLocation);
-    }
   });
 
   it('renders warnings above the configured login banner', async () => {

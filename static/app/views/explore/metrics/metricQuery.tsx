@@ -1,4 +1,5 @@
 import type {Location} from 'history';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX, type Sort} from 'sentry/utils/discover/fields';
@@ -7,7 +8,10 @@ import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  ReadableQueryParams,
+  type ReadableQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isBaseVisualize,
   isVisualize,
@@ -22,21 +26,11 @@ export interface TraceMetric {
   unit?: string | null;
 }
 
-function isTraceMetric(value: unknown): value is TraceMetric {
-  if (value === null || !defined(value) || typeof value !== 'object') {
-    return false;
-  }
-
-  const unit = 'unit' in value ? value.unit : undefined;
-
-  return (
-    'name' in value &&
-    typeof value.name === 'string' &&
-    'type' in value &&
-    typeof value.type === 'string' &&
-    (unit === undefined || unit === null || typeof unit === 'string')
-  );
-}
+export const traceMetricSchema = z.looseObject({
+  name: z.string(),
+  type: z.string(),
+  unit: z.string().nullish(),
+});
 
 export interface BaseMetricQuery {
   metric: TraceMetric;
@@ -62,11 +56,11 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
-  if (!isTraceMetric(json.metric)) {
+  if (!traceMetricSchema.safeParse(json.metric).success) {
     return null;
   }
 
-  const metric = json.metric;
+  const metric: TraceMetric = json.metric;
   const query = parseQuery(json.query);
   const visualizes = parseVisualizes(json.aggregateFields);
 
@@ -189,12 +183,28 @@ export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort
   return [{field: visualize.yAxis, kind: 'desc'}];
 }
 
+const READABLE_QUERY_PARAMS_KEYS = Object.keys({
+  aggregateCursor: true,
+  aggregateFields: true,
+  aggregateSortBys: true,
+  breakdownCursor: true,
+  breakdownQuery: true,
+  crossEvents: true,
+  cursor: true,
+  extrapolate: true,
+  fields: true,
+  id: true,
+  mode: true,
+  query: true,
+  sortBys: true,
+  title: true,
+} satisfies Record<keyof ReadableQueryParamsOptions, true>);
+
 export function stripMetricParamsFromLocation(location: Location): Location {
   const target: Location = {...location, query: {...location.query}};
-  for (const key in ReadableQueryParams.prototype) {
+  for (const key of READABLE_QUERY_PARAMS_KEYS) {
     delete target.query[key];
   }
-  // Metric context
   delete target.query.metric;
 
   return target;

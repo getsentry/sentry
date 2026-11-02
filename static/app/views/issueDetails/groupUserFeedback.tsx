@@ -1,8 +1,9 @@
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -54,11 +55,11 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <StyledLayoutBody>
+      <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -67,13 +68,13 @@ function GroupUserFeedback() {
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <StyledLayoutBody>
+    <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xs': 'lg'}}>
       <Layout.Main width="full">
         {hasUserFeedback && (
-          <FilterMessage>
+          <Text as="div" variant="muted">
             {t('The feedback shown below is not subject to search filters.')}
-            <StyledBreak />
-          </FilterMessage>
+            <Separator orientation="horizontal" margin="md 0" />
+          </Text>
         )}
         {reportList.length === 0 ? (
           <FeedbackEmptyState projectIds={[group.project.id]} issueTab />
@@ -90,28 +91,8 @@ function GroupUserFeedback() {
           </Stack>
         )}
       </Layout.Main>
-    </StyledLayoutBody>
+    </Layout.Body>
   );
 }
-
-const StyledLayoutBody = styled(Layout.Body)`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.lg};
-  }
-`;
-
-const FilterMessage = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const StyledBreak = styled('hr')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-  border-color: ${p => p.theme.tokens.border.primary};
-`;
 
 export default GroupUserFeedback;

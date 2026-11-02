@@ -27,7 +27,6 @@ from sentry.tasks.seer.agentic_triage.skip_cache import key as skip_cache_key
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils.redis import redis_clusters
@@ -50,15 +49,14 @@ def test_result_extras_preserve_dispatched_code_mode(
         run=run, seer_run=seer_run, extras=saved_mode
     )
 
-    with with_feature({"organizations:seer-night-shift-code-mode": False}):
-        deliver_agentic_triage_result(
-            organization_id=default_organization.id,
-            run_uuid=seer_run.uuid,
-            status="completed",
-            result={"verdicts": [{"group_id": group.id, "action": "autofix"} for group in groups]},
-            error=None,
-            prompt_version="2026-09-02.1",
-        )
+    deliver_agentic_triage_result(
+        organization_id=default_organization.id,
+        run_uuid=seer_run.uuid,
+        status="completed",
+        result={"verdicts": [{"group_id": group.id, "action": "autofix"} for group in groups]},
+        error=None,
+        prompt_version="2026-09-02.1",
+    )
 
     shard.refresh_from_db()
     assert shard.extras == {**saved_mode, "prompt_version": "2026-09-02.1"}

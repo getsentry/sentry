@@ -4,8 +4,9 @@ import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -71,6 +72,10 @@ class NotificationSource(StrEnum):
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
+    SEER_INVESTIGATION_STARTED = "seer-investigation-started"
+    SEER_INVESTIGATION_ERROR = "seer-investigation-error"
+    SEER_INVESTIGATION_STATUS = "seer-investigation-status"
+    SEER_INVESTIGATION_CONCLUSION = "seer-investigation-conclusion"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
@@ -135,6 +140,10 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
@@ -178,6 +187,16 @@ class NotificationProviderKey(StrEnum):
     SLACK_STAGING = ExternalProviderEnum.SLACK_STAGING
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
+
+
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
+
+SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
+    "slack": NotificationProviderKey.SLACK,
+    "slack_staging": NotificationProviderKey.SLACK_STAGING,
+    "discord": NotificationProviderKey.DISCORD,
+    "msteams": NotificationProviderKey.MSTEAMS,
+}
 
 
 class NotificationTargetResourceType(StrEnum):
@@ -226,6 +245,15 @@ class NotificationData(BaseModel):
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
+    """
+    organization_id: int
+    """
+    The organization this notification is sent for.
+    """
+    notification_uuid: str = Field(default_factory=lambda: str(uuid4()))
+    """
+    Identifies this notification in engagement tracking, so clicks can be tied to the send that
+    produced them.
     """
 
 

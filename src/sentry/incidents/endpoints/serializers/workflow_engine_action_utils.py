@@ -1,0 +1,90 @@
+from __future__ import annotations
+
+import logging
+
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionService
+
+logger = logging.getLogger(__name__)
+
+
+def human_desc(
+    action_type: int,
+    target_identifier: str | None,
+    target: OrganizationMember | Team | str | None,
+    target_display: str | None = None,
+    priority: str | None = None,
+) -> str | None:
+    """Return a human-readable description of a metric alert action for display in the UI.
+
+    Args:
+        action_type: An ``ActionService`` enum value (e.g. EMAIL, SLACK, PAGERDUTY).
+        priority: On-call severity/priority string when applicable.
+            PagerDuty: "default", "critical", "warning", "error", "info".
+            Opsgenie: "P1"–"P5".
+    """
+    if priority:
+        priority += " level"
+
+    slack_desc = f"Send a Slack notification to {target_display}"
+    action_type_to_string = {
+        ActionService.PAGERDUTY.value: (
+            f"Send a {priority} PagerDuty notification to {target_display}"
+            if priority
+            else f"Send a PagerDuty notification to {target_display}"
+        ),
+        ActionService.SLACK.value: slack_desc,
+        ActionService.SLACK_STAGING.value: slack_desc,
+        ActionService.MSTEAMS.value: f"Send a Microsoft Teams notification to {target_display}",
+        ActionService.SENTRY_APP.value: f"Send a notification via {target_display}",
+    }
+
+    if action_type == ActionService.EMAIL.value:
+        if isinstance(target, OrganizationMember):
+            return "Send a notification to " + target.get_email()
+        elif isinstance(target, Team):
+            return "Send an email to members of #" + target.slug
+        logger.info("email.action.description.no_action_target")
+        return "Send an email to [removed]"
+    elif action_type == ActionService.OPSGENIE.value:
+        if priority:
+            return f"Send a {priority} Opsgenie notification to {target_display}"
+        return f"Send an Opsgenie notification to {target_display}"
+    elif action_type == ActionService.DISCORD.value:
+        if not target_display:
+            logger.info(
+                "discord.action.description.no.channel",
+                extra={"target_identifier": target_identifier},
+            )
+        return f"Send a Discord notification to {target_display}"
+    else:
+        return action_type_to_string.get(action_type)
+
+
+def get_identifier_from_action(action_type, target_identifier, target_display=None):
+    if action_type in [
+        ActionService.PAGERDUTY.value,
+        ActionService.SENTRY_APP.value,
+    ]:
+        return int(target_identifier)
+    if action_type == ActionService.OPSGENIE.value:
+        # return team ID: opsgenie team IDs are strings
+        return target_identifier
+    # if an input_channel_id is provided, we flip these to display properly
+    return target_display if target_display is not None else target_identifier
+
+
+def get_input_channel_id(action_type, target_identifier=None):
+    """
+    Don't pass an inputChannelId value unless the action is for Slack
+    """
+    return (
+        target_identifier
+        if action_type
+        in (
+            ActionService.SLACK.value,
+            ActionService.SLACK_STAGING.value,
+        )
+        else None
+    )

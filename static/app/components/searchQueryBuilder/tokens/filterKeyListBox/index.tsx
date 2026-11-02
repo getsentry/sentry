@@ -9,11 +9,11 @@ import type {Key} from '@react-types/shared';
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {Overlay} from 'sentry/components/overlay';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
@@ -279,7 +279,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           </ListBoxSectionButton>
         ))}
       </SectionedListBoxTabPane>
-      <SectionedListBoxPane>
+      <Container overflowY="auto" area="list">
         <ListBox
           {...listBoxProps}
           ref={listBoxRef}
@@ -291,7 +291,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           size="sm"
           showDetails={!fullWidth}
         />
-      </SectionedListBoxPane>
+      </Container>
       {showDetailsPane ? (
         <DetailsPane>
           {focusedKey ? (
@@ -535,11 +535,6 @@ const RecentFiltersPane = styled('ul')`
   margin: 0;
 `;
 
-const SectionedListBoxPane = styled('div')`
-  grid-area: list;
-  overflow-y: auto;
-`;
-
 const DetailsPane = styled('div')`
   grid-area: details;
   overflow-y: auto;
@@ -564,7 +559,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;

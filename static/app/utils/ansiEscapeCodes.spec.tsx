@@ -1,4 +1,4 @@
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import {applyCarriageReturns, stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 
 describe('ansiEscapeCodes', () => {
   it('removes ANSI color codes', () => {
@@ -23,5 +23,15 @@ describe('ansiEscapeCodes', () => {
   it('handles strings with mixed characters and ANSI codes', () => {
     const input = 'Hello \x1B[1mWorld\x1B[0m!';
     expect(stripAnsi(input)).toBe('Hello World!');
+  });
+});
+
+describe('applyCarriageReturns', () => {
+  it('keeps only the final write when given carriage-return progress updates', () => {
+    expect(applyCarriageReturns('10%\r50%\r100%\ndone')).toBe('100%\ndone');
+  });
+
+  it('keeps line endings when given CRLF text', () => {
+    expect(applyCarriageReturns('first\r\nsecond\r\n')).toBe('first\r\nsecond\r\n');
   });
 });

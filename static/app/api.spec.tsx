@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import fetchMock from 'jest-fetch-mock';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +13,7 @@ import {
 } from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 jest.unmock('sentry/api');
@@ -57,6 +59,100 @@ describe('api', () => {
         request.cancel();
 
         await expect(request.requestPromise).rejects.toHaveProperty('name', 'AbortError');
+      });
+    });
+
+    describe('metrics', () => {
+      beforeEach(() => {
+        jest.mocked(Sentry.metrics.count).mockClear();
+        jest.mocked(Sentry.metrics.distribution).mockClear();
+      });
+
+      it('records the request duration with the sanitized url', async () => {
+        fetchMock.mockResponse(() => '{}');
+        const success = jest.fn();
+
+        new Client().request('/organizations/org-slug/issues/123/', {success});
+
+        await waitFor(() => expect(success).toHaveBeenCalled());
+        expect(Sentry.metrics.distribution).toHaveBeenCalledWith(
+          'ui.api-request',
+          expect.any(Number),
+          {
+            unit: 'millisecond',
+            attributes: {
+              status: 200,
+              outcome: 'success',
+              url: '/organizations/{orgSlug}/issues/{issueId}/',
+              method: 'GET',
+            },
+          }
+        );
+      });
+
+      it('records the request duration when a global error handler skips the error handler', async () => {
+        fetchMock.mockResponse(() => ({status: 401, body: '{}'}));
+        const unregister = registerApiErrorHandler(() => true);
+        const error = jest.fn();
+        const complete = jest.fn();
+
+        new Client().request('/test/', {error, complete});
+
+        await waitFor(() => expect(complete).toHaveBeenCalled());
+        unregister();
+        expect(error).not.toHaveBeenCalled();
+        expect(Sentry.metrics.distribution).toHaveBeenCalledWith(
+          'ui.api-request',
+          expect.any(Number),
+          {
+            unit: 'millisecond',
+            attributes: {status: 401, outcome: 'error', url: '/test/', method: 'GET'},
+          }
+        );
+      });
+
+      it('counts an abort once when a request is cancelled repeatedly', () => {
+        const client = new Client();
+        client.activeRequests = {1: new Request(new Promise(() => null))};
+
+        client.clear();
+        client.clear();
+
+        expect(Sentry.metrics.count).toHaveBeenCalledTimes(1);
+        expect(Sentry.metrics.count).toHaveBeenCalledWith('ui.api-request.abort', 1);
+      });
+
+      it('does not record a duration for a cancelled request that completes', async () => {
+        fetchMock.mockResponse(() => '{}');
+        const request = new Client().request('/test/', {skipAbort: true});
+        request.cancel();
+        await request.requestPromise;
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(Sentry.metrics.distribution).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('requestPromise()', () => {
+      it('rejects with a RequestError when the fetch itself fails', async () => {
+        fetchMock.mockReject(new TypeError('Failed to fetch'));
+
+        const error = await new Client().requestPromise('/test/').catch(e => e);
+
+        expect(error).toBeInstanceOf(RequestError);
+        expect(error.status).toBeUndefined();
+      });
+
+      it('stays unsettled when the request is cancelled', async () => {
+        fetchMock.mockResponse(() => '');
+        const client = new Client();
+        const settled = jest.fn();
+
+        client.requestPromise('/test/').then(settled, settled);
+        client.clear();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(settled).not.toHaveBeenCalled();
       });
     });
   });

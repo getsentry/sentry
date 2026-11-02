@@ -10,7 +10,7 @@ from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
-from sentry.tasks.assemble import ChunkFileState
+from sentry.tasks.assemble import AssembleTask, ChunkFileState, get_assemble_status
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -304,6 +304,65 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         # We test the endpoint without the release version.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+                "version": self.release.version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
+        assert set(response.data["missingChunks"]) == set()
+
+        mock_assemble_artifacts.apply_async.assert_called_once_with(
+            kwargs={
+                "org_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "version": self.release.version,
+                "dist": dist,
+                "chunks": [blob1.checksum],
+                "checksum": total_checksum,
+            }
+        )
+
+    @patch("sentry.tasks.assemble.assemble_artifacts")
+    def test_assemble_with_dist_and_no_version_does_not_block_retry(
+        self, mock_assemble_artifacts: MagicMock
+    ) -> None:
+        dist = "android"
+        bundle_file = self.create_artifact_bundle_zip(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+        # We test the endpoint with a dist but without the release version.
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["error"] == "You need to specify a release together with a dist"
+
+        # The rejected request must not leave an assemble status behind.
+        assert get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        ) == (None, None)
+
+        # We retry with the release version, which has to schedule the assembly.
         response = self.client.post(
             self.url,
             data={

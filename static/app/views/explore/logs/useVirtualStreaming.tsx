@@ -21,7 +21,7 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
 /**
  * Virtual Streaming
  *

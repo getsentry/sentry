@@ -36,7 +36,10 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def _get_action_handler(self) -> builtins.type[ActionHandler]:
         action_type = self.initial_data.get("type")
-        return action_handler_registry.get(action_type)
+        try:
+            return action_handler_registry.get(action_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid action type: {action_type}") from None
 
     def validate_data(self, value: Any) -> ActionData:
         data_schema = self._get_action_handler().data_schema
@@ -112,7 +115,13 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def create(self, validated_value: dict[str, Any]) -> Action:
         self._check_action_type(Action.Type(validated_value["type"]))
-        return Action.objects.create(**validated_value)
+        return Action.objects.create(
+            type=validated_value["type"],
+            config=validated_value["config"],
+            data=validated_value["data"],
+            integration_id=validated_value.get("integration_id"),
+            status=validated_value.get("status", ObjectStatus.ACTIVE),
+        )
 
     def update(self, instance: Action, validated_value: dict[str, Any]) -> Action:
         if instance.type != validated_value["type"]:

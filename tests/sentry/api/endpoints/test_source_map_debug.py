@@ -3,12 +3,21 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest import mock
 
 import orjson
 from django.core.files.base import ContentFile
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
+from sentry.api.endpoints.source_map_debug import (
+    MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
+    ReleaseBundleUrls,
+    SourceMapReleaseProcessResult,
+    get_release_bundle_urls,
+    report_unsuccessful_url_matches,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndex,
@@ -22,6 +31,7 @@ from sentry.models.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ARTIFACT_INDEX_TYPE, ReleaseFile
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -333,6 +343,119 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
 
         assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    def create_project_artifact_bundle(self, project_id: int, with_debug_id: bool) -> None:
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
+            artifact_count=1,
+        )
+
+        if with_debug_id:
+            DebugIdArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                debug_id="00000000-00000000-00000000-00000000",
+                artifact_bundle=artifact_bundle,
+                source_file_type=SourceFileType.SOURCE_MAP.value,
+            )
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_id,
+            artifact_bundle=artifact_bundle,
+        )
+
+    @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2})
+    def test_project_has_some_artifact_bundle_with_a_debug_id_in_newest_bundles(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+        )
+
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    def test_project_has_some_artifact_bundle_with_a_debug_id_only_in_older_bundles(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        with override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2}):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+        with override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 3}):
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+        assert resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2})
+    def test_project_has_some_artifact_bundle_with_a_debug_id_in_other_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_project_artifact_bundle(other_project.id, with_debug_id=True)
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+        )
+
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+
+    @override_options({"sourcemaps.source-map-debug.debug-id-check-max-bundles": 2})
+    def test_project_has_some_artifact_bundle_with_a_debug_id_reads_project_bundles(self) -> None:
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=False)
+
+        event = self.store_event(
+            data=create_event(),
+            project_id=self.project.id,
+        )
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(DebugIdArtifactBundle)]
+        ) as queries:
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+        assert not resp.data["has_uploaded_some_artifact_with_a_debug_id"]
+        # The organization's debug-ID rows aren't read, only those of the project's bundles.
+        debug_id_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_debugidartifactbundle"' in query["sql"]
+        ]
+        assert len(debug_id_queries) == 1
+        assert '"sentry_debugidartifactbundle"."organization_id"' not in debug_id_queries[0]
+        assert '"sentry_debugidartifactbundle"."artifact_bundle_id" IN' in debug_id_queries[0]
 
     def test_multiple_exceptions(self) -> None:
         event = self.store_event(
@@ -1371,6 +1494,496 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert release_process_result["source_map_lookup_result"] == "found"
         assert release_process_result["source_map_reference"] == "bundle.min.js.map"
         assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
+
+    def create_release_artifact_bundle(
+        self,
+        indexed_urls: list[str],
+        dist_name: str = "",
+        artifact_count: int = 2,
+        project_id: int | None = None,
+        release_name: str = "some-release",
+    ) -> None:
+        """
+        Creates a bundle of `~/bundle.min.js` and its source map in `release_name`, indexed under
+        `indexed_urls` and linked to `project_id`, by default the test's project.
+        """
+        compressed = BytesIO(b"SYSB")
+        with zipfile.ZipFile(compressed, "a") as zip_file:
+            zip_file.writestr(
+                "files/_/_/bundle.min.js",
+                b'console.log("hello world");\n//# sourceMappingURL=bundle.min.js.map\n',
+            )
+            zip_file.writestr("files/_/_/bundle.min.js.map", b"")
+            zip_file.writestr(
+                "manifest.json",
+                orjson.dumps(
+                    {
+                        "files": {
+                            "files/_/_/bundle.min.js": {
+                                "url": "~/bundle.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/bundle.min.js.map": {
+                                "url": "~/bundle.min.js.map",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                        },
+                    }
+                ).decode(),
+            )
+        compressed.seek(0)
+
+        file_obj = File.objects.create(name="artifact_bundle.zip", type="artifact.bundle")
+        file_obj.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            file=file_obj,
+            artifact_count=artifact_count,
+        )
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_id or self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=release_name,
+            dist_name=dist_name,
+            artifact_bundle=artifact_bundle,
+        )
+
+        for url in indexed_urls:
+            ArtifactBundleIndex.objects.create(
+                organization_id=self.organization.id,
+                artifact_bundle=artifact_bundle,
+                url=url,
+            )
+
+    def get_release_process_result(self, event_id: str) -> dict[str, Any]:
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event_id,
+        )
+        return resp.data["exceptions"][0]["frames"][0]["release_process"]
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_successful(self) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        release_process_result = self.get_release_process_result(event.event_id)
+
+        assert release_process_result["source_file_lookup_result"] == "found"
+        assert release_process_result["source_map_lookup_result"] == "found"
+        assert release_process_result["source_map_reference"] == "bundle.min.js.map"
+        assert release_process_result["matching_source_map_name"] == "~/bundle.min.js.map"
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_wrong_dist(self) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+                dist="some-dist",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/bundle.min.js"], dist_name="some-dist")
+        self.create_release_artifact_bundle(
+            ["~/bundle.min.js", "~/bundle.min.js.map"], dist_name="some-other-dist"
+        )
+
+        release_process_result = self.get_release_process_result(event.event_id)
+
+        assert release_process_result["source_file_lookup_result"] == "found"
+        assert release_process_result["source_map_lookup_result"] == "wrong-dist"
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_not_found(self) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/other.min.js", "~/other.min.js.map"])
+
+        release_process_result = self.get_release_process_result(event.event_id)
+
+        assert release_process_result["source_file_lookup_result"] == "unsuccessful"
+
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_newest_bundles(
+        self,
+    ) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js", "~/other.min.js.map"])
+
+        # Only the newest bundle fits in the budget, and the frame's file is in the older one.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 3}):
+            release_process_result = self.get_release_process_result(event.event_id)
+        assert release_process_result["source_file_lookup_result"] == "unsuccessful"
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 4}):
+            release_process_result = self.get_release_process_result(event.event_id)
+        assert release_process_result["source_file_lookup_result"] == "found"
+        assert release_process_result["source_map_lookup_result"] == "found"
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2})
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_newest_bundle(
+        self,
+    ) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(
+            ["~/bundle.min.js", "~/bundle.min.js.map"], artifact_count=3
+        )
+
+        release_process_result = self.get_release_process_result(event.event_id)
+
+        # The newest bundle is read even though its files exceed the budget.
+        assert release_process_result["source_file_lookup_result"] == "found"
+        assert release_process_result["source_map_lookup_result"] == "found"
+
+    @mock.patch("sentry.api.endpoints.source_map_debug.logger")
+    def test_frame_release_process_artifact_bundle_url_match_logs_unsuccessful_after_truncation(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frame({"abs_path": "http://example.com/bundle.min.js"})
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js", "~/other.min.js.map"])
+
+        # Only the newest bundle fits in the budget, and the frame's file is in the older one.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 3}):
+            release_process_result = self.get_release_process_result(event.event_id)
+
+        assert release_process_result["source_file_lookup_result"] == "unsuccessful"
+        mock_logger.info.assert_any_call(
+            "source_map_debug.url_match.unsuccessful_after_truncation",
+            extra={
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "release": "some-release",
+                "truncated_by": "index_rows",
+                "project_fallback": False,
+                "paths": 1,
+                "unsuccessful_files": 1,
+                "unsuccessful_source_maps": 0,
+            },
+        )
+
+    @mock.patch("sentry.api.endpoints.source_map_debug.logger")
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_unsuccessful_url_matches_are_logged_only_after_truncation(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        results: list[SourceMapReleaseProcessResult] = [
+            {
+                "abs_path": "http://example.com/found.min.js",
+                "matching_source_file_names": ["~/found.min.js"],
+                "matching_source_map_name": "~/found.min.js.map",
+                "source_map_reference": "found.min.js.map",
+                "source_file_lookup_result": "found",
+                "source_map_lookup_result": "found",
+            },
+            {
+                "abs_path": "http://example.com/missing.min.js",
+                "matching_source_file_names": ["~/missing.min.js"],
+                "matching_source_map_name": None,
+                "source_map_reference": None,
+                "source_file_lookup_result": "unsuccessful",
+                "source_map_lookup_result": "unsuccessful",
+            },
+            {
+                "abs_path": "http://example.com/no-map.min.js",
+                "matching_source_file_names": ["~/no-map.min.js"],
+                "matching_source_map_name": "~/no-map.min.js.map",
+                "source_map_reference": "no-map.min.js.map",
+                "source_file_lookup_result": "found",
+                "source_map_lookup_result": "unsuccessful",
+            },
+        ]
+
+        # Nothing is reported when every file and source map was found.
+        report_unsuccessful_url_matches(
+            self.project, release, ReleaseBundleUrls({}, "max_bundles", True), results[:1]
+        )
+        mock_metrics.incr.assert_not_called()
+        mock_logger.info.assert_not_called()
+
+        # Files missing after a full read are counted but not logged.
+        report_unsuccessful_url_matches(
+            self.project, release, ReleaseBundleUrls({}, None, False), results
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match.unsuccessful", tags={"truncated": "false"}
+        )
+        mock_logger.info.assert_not_called()
+
+        # Files missing after a truncated read are logged with the release.
+        report_unsuccessful_url_matches(
+            self.project, release, ReleaseBundleUrls({}, "max_bundles", True), results
+        )
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match.unsuccessful", tags={"truncated": "max_bundles"}
+        )
+        mock_logger.info.assert_called_once_with(
+            "source_map_debug.url_match.unsuccessful_after_truncation",
+            extra={
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "release": "some-release",
+                "truncated_by": "max_bundles",
+                "project_fallback": True,
+                "paths": 3,
+                "unsuccessful_files": 1,
+                "unsuccessful_source_maps": 1,
+            },
+        )
+
+    def test_release_bundle_urls_reads_at_most_max_index_rows(self) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(
+            ["~/bundle.min.js", "~/bundle.min.js.map", "~/other.min.js"], artifact_count=3
+        )
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2}):
+            release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The newest bundle has more files than the budget, so only part of them is read.
+        assert release_bundle_urls is not None
+        assert len(release_bundle_urls.urls) == 2
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 0}):
+            assert get_release_bundle_urls(self.project, release) is None
+
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_reports_truncation(self, mock_metrics: mock.MagicMock) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js", "~/other.min.js.map"])
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 4}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match", tags={"truncated": "false", "project_fallback": "false"}
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 4)
+
+        # Only the newest bundle fits in the budget.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 3}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "index_rows", "project_fallback": "false"},
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 2)
+
+        # The newest bundle alone has more files than the budget.
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 1}):
+            get_release_bundle_urls(self.project, release)
+        mock_metrics.incr.assert_called_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "index_rows", "project_fallback": "false"},
+        )
+        mock_metrics.distribution.assert_called_with("source_map_debug.url_match.index_rows", 1)
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_release_bundle_urls_skips_other_projects_bundles(self) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(
+            ["~/other.min.js", "~/other.min.js.map"], project_id=other_project.id
+        )
+
+        release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls.urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 2)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_falls_back_to_project_newest_bundles(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(ReleaseArtifactBundle)]
+        ) as queries:
+            release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The release's newest bundles belong to another project, so the project's bundle is
+        # found from its own newest bundles.
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls.urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "false", "project_fallback": "true"},
+        )
+        release_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_releaseartifactbundle"' in query["sql"]
+        ]
+        assert len(release_queries) == 2
+        assert all(" JOIN " not in sql for sql in release_queries)
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_misses_bundles_older_than_both_reads(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        other_project = self.create_project(organization=self.organization)
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(["~/other.min.js"], project_id=other_project.id)
+        self.create_release_artifact_bundle(["~/next.min.js"], release_name="next-release")
+
+        # The release's newest bundle belongs to another project, and the project's newest
+        # bundle is in another release, so none of the project's bundles are picked.
+        assert get_release_bundle_urls(self.project, release) == ReleaseBundleUrls(
+            {}, "max_bundles", True
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "max_bundles", "project_fallback": "true"},
+        )
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2})
+    @mock.patch("sentry.api.endpoints.source_map_debug.URL_MATCH_MAX_BUNDLES", 1)
+    @mock.patch("sentry.api.endpoints.source_map_debug.metrics")
+    def test_release_bundle_urls_skips_fallback_when_budget_is_used(
+        self, mock_metrics: mock.MagicMock
+    ) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/old.min.js", "~/old.min.js.map"])
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The newest bundle uses up the budget, so older bundles wouldn't be read anyway.
+        assert release_bundle_urls is not None
+        assert set(release_bundle_urls.urls) == {"~/bundle.min.js", "~/bundle.min.js.map"}
+        mock_metrics.incr.assert_called_once_with(
+            "source_map_debug.url_match",
+            tags={"truncated": "max_bundles", "project_fallback": "false"},
+        )
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_release_bundle_urls_reads_release_links_without_joins(self) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        with CaptureQueriesContext(
+            connections[router.db_for_read(ReleaseArtifactBundle)]
+        ) as queries:
+            assert get_release_bundle_urls(self.project, release) is not None
+
+        release_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if 'FROM "sentry_releaseartifactbundle"' in query["sql"]
+        ]
+        # Joining each of the release's links to its project link and bundle takes seconds on
+        # releases with many bundles, so the newest links are read on their own first.
+        assert len(release_queries) == 1
+        assert " JOIN " not in release_queries[0]
+
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
+    def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_index_once(
+        self,
+    ) -> None:
+        event = self.store_event(
+            data=create_event(
+                exceptions=[
+                    create_exception_with_frames(
+                        [
+                            {"abs_path": "http://example.com/bundle.min.js"},
+                            {"abs_path": "http://example.com/other.min.js"},
+                        ]
+                    )
+                ],
+                release="some-release",
+            ),
+            project_id=self.project.id,
+        )
+        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+
+        with CaptureQueriesContext(connections[router.db_for_read(ArtifactBundleIndex)]) as queries:
+            resp = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                event.event_id,
+            )
+
+        frames = resp.data["exceptions"][0]["frames"]
+        assert frames[0]["release_process"]["source_file_lookup_result"] == "found"
+        assert frames[1]["release_process"]["source_file_lookup_result"] == "unsuccessful"
+        # The release's files are read once for both frames, by bundle rather than by URL.
+        index_queries = [
+            query["sql"]
+            for query in queries.captured_queries
+            if '"sentry_artifactbundleindex"' in query["sql"]
+        ]
+        assert len(index_queries) == 1
+        conditions = index_queries[0].split(" WHERE ", 1)[1]
+        assert '"sentry_artifactbundleindex"."artifact_bundle_id" IN' in conditions
+        assert '"url"' not in conditions
 
     def test_frame_release_file_success(self) -> None:
         event = self.store_event(

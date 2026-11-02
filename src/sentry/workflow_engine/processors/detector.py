@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from sentry_sdk import traces
+
 from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -15,7 +16,6 @@ from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.tracing import trace
 
 # TODO - remove this import once getsentry can be updated
 from sentry.workflow_engine.defaults.detectors import (
@@ -262,35 +262,6 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
-    occurrence, status_change = None, None
-
-    if isinstance(result.result, IssueOccurrence):
-        occurrence = result.result
-        payload_type = PayloadType.OCCURRENCE
-
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.occurrence",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-    else:
-        status_change = result.result
-        payload_type = PayloadType.STATUS_CHANGE
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.status_change",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-
-    produce_occurrence_to_kafka(
-        payload_type=payload_type,
-        occurrence=occurrence,
-        status_change=status_change,
-        event_data=result.data["event_data"],
-    )
-
-
 def _get_detector_organization(detector: Detector) -> Organization | None:
     """
     Lookup the detector's organization through the organization cache.
@@ -335,7 +306,7 @@ def _emit_detector_evaluations(
         )
 
 
-@trace
+@traces.trace
 def process_detectors[T](
     data_packet: DataPacket[T],
     detectors: list[Detector],
@@ -346,7 +317,7 @@ def process_detectors[T](
 
     Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
 
-    Finally, the triggered detectors create issues via the Issue Platform.
+    Finally, triggered detectors create issues via Issue Platform unless publication is disabled.
     """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
@@ -386,7 +357,11 @@ def process_detectors[T](
                     tags={"detector_type": detector.type},
                 )
 
-                create_issue_platform_payload(result, detector.type)
+            with metrics.timer(
+                "workflow_engine.process_detectors.on_complete",
+                tags={"detector_type": detector.type},
+            ):
+                handler.on_complete(detector, result)
 
         if detector_results:
             results.append((detector, detector_results))
@@ -477,8 +452,13 @@ def ensure_association_with_detector(group: Group, detector_id: DetectorId | Non
     """
     Ensure a Group has a DetectorGroup association, creating it if missing.
     Backdates date_added to group.first_seen for gradual backfill of existing groups.
+    Returns False without a lookup when no association can be created.
     """
     if not options.get("workflow_engine.ensure_detector_association"):
+        return False
+
+    # Only error Groups can resolve a Detector without a detector_id
+    if detector_id is None and group.type != ErrorGroupType.type_id:
         return False
 
     # Common case: it exists, we verify and move on.
@@ -491,20 +471,17 @@ def ensure_association_with_detector(group: Group, detector_id: DetectorId | Non
     # Association is missing, determine the detector_id if not provided
     if detector_id is None:
         # For error Groups, we know there is a Detector and we can find it by project.
-        if group.type == ErrorGroupType.type_id:
-            try:
-                detector_id = Detector.get_error_detector_for_project(group.project.id).id
-            except Detector.DoesNotExist:
-                logger.warning(
-                    "ensure_association_with_detector_detector_not_found",
-                    extra={
-                        "group_id": group.id,
-                        "group_type": group.type,
-                        "project_id": group.project.id,
-                    },
-                )
-                return False
-        else:
+        try:
+            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+        except Detector.DoesNotExist:
+            logger.warning(
+                "ensure_association_with_detector_detector_not_found",
+                extra={
+                    "group_id": group.id,
+                    "group_type": group.type,
+                    "project_id": group.project.id,
+                },
+            )
             return False
     else:
         # Check if the explicitly provided detector exists. If not, create DetectorGroup

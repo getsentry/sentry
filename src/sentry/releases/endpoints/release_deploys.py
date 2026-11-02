@@ -111,7 +111,7 @@ def create_deploy(
         organization_id=organization.id,
         release=release,
         environment_id=env.id,
-        date_finished=result.get("dateFinished", timezone.now()),
+        date_finished=result.get("dateFinished") or timezone.now(),
         date_started=result.get("dateStarted"),
         name=result.get("name"),
         url=result.get("url"),

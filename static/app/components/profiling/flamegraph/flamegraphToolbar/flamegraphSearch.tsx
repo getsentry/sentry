@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SearchBar, SearchBarTrailingButton} from 'sentry/components/searchBar';
-import {IconChevron, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';

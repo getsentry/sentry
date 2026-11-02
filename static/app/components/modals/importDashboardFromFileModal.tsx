@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconUpload} from '@sentry/icons/upload';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

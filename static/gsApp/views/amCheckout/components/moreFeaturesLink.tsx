@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export function MoreFeaturesLink() {

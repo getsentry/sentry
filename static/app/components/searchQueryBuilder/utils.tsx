@@ -25,10 +25,22 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
 
   const keys = new Set<string>();
   const filterKeyPattern = /(?:^|[\s(])!?([^\s():]+):/g;
+  // Typed aggregate filters such as `avg(span.size):>1kb` are classified by
+  // their arguments, so the arguments need field metadata too.
+  const aggregateArgsPattern = /(?:^|[\s(])!?[\w.]+\(([^()]*)\):/g;
 
   for (const match of value.matchAll(filterKeyPattern)) {
     if (match[1]) {
       keys.add(match[1]);
+    }
+  }
+
+  for (const match of value.matchAll(aggregateArgsPattern)) {
+    for (const arg of match[1]?.split(',') ?? []) {
+      const key = arg.trim();
+      if (key && !key.startsWith('"')) {
+        keys.add(key);
+      }
     }
   }
 
@@ -136,13 +148,18 @@ function getSearchConfigFromKeys({
  */
 export function isInvalidFilterKey(
   key: TokenResult<Token.FILTER>['key'],
-  invalidFilterKeys: readonly string[] | undefined
+  invalidFilterKeys: readonly string[] | undefined,
+  filterKeyAliases?: TagCollection
 ): boolean {
   if (!invalidFilterKeys?.length) {
     return false;
   }
 
   const keyWithArgs = getKeyName(key, {aggregateWithArgs: true});
+  if (isFilterKeyAlias(keyWithArgs, filterKeyAliases)) {
+    return false;
+  }
+
   if (invalidFilterKeys.includes(keyWithArgs)) {
     return true;
   }
@@ -152,10 +169,18 @@ export function isInvalidFilterKey(
   return bareKey !== keyWithArgs && invalidFilterKeys.includes(bareKey);
 }
 
+function isFilterKeyAlias(
+  key: string,
+  filterKeyAliases: TagCollection | undefined
+): boolean {
+  return filterKeyAliases !== undefined && Object.hasOwn(filterKeyAliases, key);
+}
+
 function markInvalidFilterKeys(
   tokens: ParseResult | null,
   invalidFilterKeys: string[] | undefined,
-  invalidKeyMessage?: string
+  invalidKeyMessage?: string,
+  filterKeyAliases?: TagCollection
 ): ParseResult | null {
   if (!tokens || !invalidFilterKeys?.length) {
     return tokens;
@@ -166,7 +191,7 @@ function markInvalidFilterKeys(
       return token;
     }
 
-    if (!isInvalidFilterKey(token.key, invalidFilterKeys)) {
+    if (!isInvalidFilterKey(token.key, invalidFilterKeys, filterKeyAliases)) {
       return token;
     }
 
@@ -230,7 +255,8 @@ export function parseQueryBuilderValue(
       })
     ),
     options?.invalidFilterKeys,
-    options?.invalidMessages?.[InvalidReason.INVALID_KEY]
+    options?.invalidMessages?.[InvalidReason.INVALID_KEY],
+    options?.filterKeyAliases
   );
 }
 

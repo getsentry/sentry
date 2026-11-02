@@ -6,6 +6,7 @@ import responses
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
+from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
@@ -19,7 +20,10 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import (
+    TEST_ISSUE_OCCURRENCE,
+    create_notification_action_context,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -101,7 +105,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -152,7 +159,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -188,7 +198,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -228,7 +241,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -306,7 +322,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_valid_service_selected(self) -> None:
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
-        form = rule.get_form_instance()
+        form = PagerDutyNotifyServiceForm(
+            rule.data,
+            integrations=rule.get_integrations(),
+            services=rule.get_services(),
+        )
         assert form.is_valid()
 
     @responses.activate
@@ -385,7 +405,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": self.integration.id, "service": str(service["id"])})
 
-        form = rule.get_form_instance()
+        form = PagerDutyNotifyServiceForm(
+            rule.data,
+            integrations=rule.get_integrations(),
+            services=rule.get_services(),
+        )
         assert not form.is_valid()
         assert len(form.errors) == 1
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

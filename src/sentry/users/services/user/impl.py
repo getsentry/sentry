@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable, MutableMapping
 from typing import Any
 from uuid import uuid4
@@ -12,6 +11,7 @@ from django.db.models.functions import Upper
 from django.utils.text import slugify
 
 from sentry.api.serializers.base import Serializer, serialize
+from sentry.auth.email import ascii_casefold, filter_matching_emails, first_matching_email
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
@@ -50,7 +50,6 @@ from sentry.users.services.user.serial import (
     serialize_user_avatar,
 )
 from sentry.users.services.user.service import UserService
-from sentry.utils import metrics
 
 logger = logging.getLogger("user:provisioning")
 
@@ -90,8 +89,13 @@ class DatabaseBackedUserService(UserService):
         if is_verified:
             user_emails_query = user_emails_query.filter(is_verified=True)
 
+        # in_iexact is a locale-aware UPPER() comparison; keep only rows that also match
+        # under ASCII-only case folding.
+        wanted = {ascii_casefold(email) for email in emails}
         emails_by_user_ids: MutableMapping[int, list[str]] = {}
         for ue in user_emails_query:
+            if ascii_casefold(ue.email) not in wanted:
+                continue
             emails_by_user_ids.setdefault(ue.user_id, []).append(ue.email)
 
         user_query = self._FQ.base_query().filter(id__in=list(emails_by_user_ids.keys()))
@@ -105,46 +109,6 @@ class DatabaseBackedUserService(UserService):
             for user in user_query
             for email in emails_by_user_ids[user.id]
         ]
-
-    def resolve_fuzzy_user(
-        self,
-        organization_id: int,
-        email: str | None = None,
-        name: str | None = None,
-    ) -> int | None:
-        identity_pattern, inferred_name = _identity_pattern(email)
-        name_pattern = _name_pattern(name or inferred_name)
-        if not identity_pattern and not name_pattern:
-            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "empty"}, sample_rate=1.0)
-            return None
-
-        query = Q()
-        if identity_pattern:
-            query |= Q(emails__email__iregex=rf"^{identity_pattern}@")
-            query |= Q(username__iregex=rf"^{identity_pattern}$")
-        if name_pattern:
-            query |= Q(name__iregex=rf"^{name_pattern}$")
-
-        user_ids = list(
-            User.objects.filter(
-                query,
-                is_active=True,
-                orgmembermapping_set__organization_id=organization_id,
-            )
-            .exclude(is_sentry_app=True)
-            .values_list("id", flat=True)
-            .distinct()[:2]
-        )
-
-        if len(user_ids) == 1:
-            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "hit"}, sample_rate=1.0)
-            return user_ids[0]
-        if len(user_ids) > 1:
-            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "ambiguous"}, sample_rate=1.0)
-            return None
-
-        metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "none"}, sample_rate=1.0)
-        return None
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
@@ -165,7 +129,7 @@ class DatabaseBackedUserService(UserService):
             # If not, we can take a stab at guessing it's an email address
             if "@" in username:
                 # email isn't guaranteed unique
-                return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
+                return [serialize_rpc_user(u) for u in filter_matching_emails(qs, username)]
         return []
 
     def get_existing_usernames(self, *, usernames: list[str]) -> list[str]:
@@ -274,16 +238,18 @@ class DatabaseBackedUserService(UserService):
         email: str,
         ident: str | None = None,
     ) -> RpcUser | None:
-        user_query = User.objects.filter(email__iexact=email, is_active=True)
-        if user_query.exists():
+        candidates = filter_matching_emails(
+            User.objects.filter(is_active=True).order_by("id"), email
+        )
+        if candidates:
             # Users are not supposed to have the same email but right now our auth pipeline let this happen
             # So let's not break the user experience. Instead return the user with auth identity of ident or
             # the first user if ident is None
-            user = user_query[0]
-            if user_query.count() > 1:
+            user = candidates[0]
+            if len(candidates) > 1:
                 logger.warning("Email has multiple users", extra={"email": email})
                 if ident:
-                    identity_query = AuthIdentity.objects.filter(user__in=user_query, ident=ident)
+                    identity_query = AuthIdentity.objects.filter(user__in=candidates, ident=ident)
                     if identity_query.exists():
                         user = identity_query[0].user
                     if identity_query.count() > 1:
@@ -295,22 +261,22 @@ class DatabaseBackedUserService(UserService):
         return None
 
     def verify_user_email(self, *, email: str, user_id: int) -> bool:
-        user_email = UserEmail.objects.filter(email__iexact=email, user_id=user_id).first()
-        if user_email is None:
-            return False
-        if not user_email.is_verified:
-            user_email.update(is_verified=True)
-            return True
-        return False
+        return self._verify_first_matching(UserEmail.objects.filter(user_id=user_id), email)
 
     def verify_any_email(self, *, email: str) -> bool:
-        user_email = UserEmail.objects.filter(email__iexact=email).first()
-        if user_email is None:
+        return self._verify_first_matching(UserEmail.objects.all(), email)
+
+    @staticmethod
+    def _verify_first_matching(qs: QuerySet[UserEmail], email: str) -> bool:
+        """Mark the first ``UserEmail`` in ``qs`` matching ``email`` as verified.
+
+        Returns True only if a row was found and was not already verified.
+        """
+        user_email = first_matching_email(qs, email)
+        if user_email is None or user_email.is_verified:
             return False
-        if not user_email.is_verified:
-            user_email.update(is_verified=True)
-            return True
-        return False
+        user_email.update(is_verified=True)
+        return True
 
     def create_by_username_and_email(self, *, email: str, username: str) -> RpcUser:
         return serialize_rpc_user(User.objects.create(username=username, email=email))
@@ -329,11 +295,12 @@ class DatabaseBackedUserService(UserService):
             user_id = user_id_email["user_id"]
             email = user_id_email["email"]
 
-            user_email_qs = UserEmail.objects.filter(user_id=user_id, email__iexact=email)
+            user_email_qs = UserEmail.objects.filter(user_id=user_id)
             if only_verified:
                 user_email_qs = user_email_qs.filter(is_verified=True)
 
-            results[user_id] = RpcVerifyUserEmail(email=email, exists=user_email_qs.exists())
+            exists = bool(filter_matching_emails(user_email_qs, email))
+            results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
         return results
 
     def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
@@ -425,58 +392,3 @@ class DatabaseBackedUserService(UserService):
             return serialize_rpc_user(user)
 
     _FQ = _UserFilterQuery()
-
-
-def _identity_pattern(value: str | None) -> tuple[str | None, str | None]:
-    if not value:
-        return None, None
-    value = value.strip()
-    inferred_name = None
-
-    # Commit authors are often formatted as `Dana Reed <dana.reed@example.com>`.
-    # Keep the display name as another matching signal and parse the email inside `<...>`.
-    angled = re.match(r"^(?P<name>.*?)\s*<\s*(?P<email>[^<>]+)\s*>\s*$", value)
-    if angled:
-        inferred_name = angled.group("name").strip() or None
-        value = angled.group("email").strip()
-
-    local, separator, domain = value.lower().partition("@")
-    if not separator or not local or not domain:
-        return None, inferred_name
-
-    # GitHub noreply addresses encode the login after `+`, for example
-    # `12345+dana@users.noreply.github.com`. With no `+`, use the local part as-is.
-    token = local.split("+", 1)[-1] if domain == "users.noreply.github.com" else local
-
-    # Treat `.`, `_`, and `-` as interchangeable between known chunks. `dana.reed`
-    # becomes `dana[._-]*reed`, matching `dana_reed`, `dana-reed`, or `danareed`
-    parts = [part for part in re.split(r"[._-]+", token) if part]
-    if not parts:
-        return None, inferred_name
-    if len(parts) > 1 and not inferred_name:
-        inferred_name = " ".join(parts)
-    pattern = r"[._-]*".join(re.escape(part) for part in parts)
-    return pattern, inferred_name
-
-
-def _name_pattern(value: str | None) -> str | None:
-    parts = (value or "").split()
-    if not parts:
-        return None
-    if len(parts) == 1:
-        return re.escape(parts[0])
-
-    first, *middle, last = parts
-    if not middle:
-        # `John Smith` may refer to `John Smith`, `John G Smith`, or
-        # `John George Smith`, but the first and last names must stay exact.
-        return rf"{re.escape(first)}(?:\s+\S+)*\s+{re.escape(last)}"
-
-    # When middle names are supplied, preserve them as evidence but make the complete
-    # middle section optional so `John G Smith` can still match `John Smith`.
-    # A one-letter initial accepts an optional period; `G` and `G.` are equivalent.
-    middle_pattern = r"\s+".join(
-        rf"{re.escape(part.rstrip('.'))}\.?" if len(part.rstrip(".")) == 1 else re.escape(part)
-        for part in middle
-    )
-    return rf"{re.escape(first)}(?:\s+{middle_pattern})?\s+{re.escape(last)}"

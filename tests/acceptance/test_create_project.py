@@ -119,20 +119,22 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="menu-list-item-label"]')
         self.browser.click('[data-test-id="menu-list-item-label"]')
         self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-        self.browser.wait_until(
-            xpath='//*[@role="radiogroup"]//*[@role="radio" and @aria-checked="true"]'
-            '[contains(., "Django")]'
+        self.browser.wait_until_script_execution(
+            """return Array.from(document.querySelectorAll(
+                '[role="radiogroup"] [role="radio"][aria-checked="true"], '
+                + '[role="radiogroup"] label:has(input[type="radio"]:checked)'
+            )).some(card => card.textContent.includes('Django'));"""
         )
 
-    def create_scm_project(self, sdk_name: str, platform: str) -> Project:
+    def create_scm_project(self, sdk_name: str, platform: str, project_name: str) -> Project:
         self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
         self.browser.click(xpath='//button[contains(., "Create project")]')
         self.browser.wait_until(xpath=f'//h2[text()="Configure {sdk_name} SDK"]')
 
         project = Project.objects.get(organization=self.org)
         assert project.platform == platform
-        assert project.name == platform
-        assert project.slug == platform
+        assert project.name == project_name
+        assert project.slug == project_name
         assert_existing_projects_status(
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
@@ -194,7 +196,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
             self.browser.click(xpath='//button[contains(., "GitHub")]')
-            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Authorize GitHub")]')
             self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
 
             oauth_url = self.browser.driver.execute_script("return window.__testOpenUrl")
@@ -214,6 +216,12 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until(xpath='//button[contains(., "Install GitHub App")]')
             self.browser.driver.execute_script("window.__testOpenUrl = null;")
             self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
+            self.create_provider_integration(
+                provider="github",
+                name="getsentry",
+                external_id="12345",
+                metadata={"sender": {"login": "testuser"}},
+            )
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {
@@ -224,7 +232,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
 
             self.browser.wait_until(xpath='//button[contains(., "getsentry")]')
             self.select_repository()
-            self.create_scm_project("Django", "python-django")
+            self.create_scm_project("Django", "python-django", "sentry")
 
     def test_create_without_repository(self) -> None:
         with self.feature(
@@ -242,12 +250,19 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             )
             self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
 
-            self.browser.wait_until(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
-            self.browser.click(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
             self.browser.wait_until(
-                xpath='//*[@role="checkbox" and @aria-checked="true"][.//*[text()="Tracing"]]'
+                xpath='//*[@role="checkbox" or (self::label and .//input[@type="checkbox"])][.//*[text()="Tracing"]]'
             )
-            self.create_scm_project("React", "javascript-react")
+            self.browser.click(
+                xpath='//*[@role="checkbox" or (self::label and .//input[@type="checkbox"])][.//*[text()="Tracing"]]'
+            )
+            self.browser.wait_until_script_execution(
+                """return Array.from(document.querySelectorAll(
+                    '[role="checkbox"][aria-checked="true"], '
+                    + 'label:has(input[type="checkbox"]:checked)'
+                )).some(card => card.textContent.includes('Tracing'));"""
+            )
+            self.create_scm_project("React", "javascript-react", "javascript-react")
 
     def test_create_with_existing_integration(self) -> None:
         self.create_github_integration()
@@ -279,4 +294,4 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until('input[aria-autocomplete="list"]')
 
             self.select_repository()
-            self.create_scm_project("Django", "python-django")
+            self.create_scm_project("Django", "python-django", "sentry")

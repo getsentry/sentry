@@ -13,9 +13,29 @@ _PATCH_VERIFY = (
     "sentry.api.endpoints.organization_monitoring_provider_verify_connection.verify_gcp_connection"
 )
 _PATCH_SA_EMAIL = "sentry.api.endpoints.organization_monitoring_provider_verify_connection.integration_service.get_gcp_service_account_email"
+_PATCH_CONNECTED = "sentry.api.endpoints.organization_monitoring_provider_verify_connection.mark_investigation_telemetry_connected.delay"
 
 _SENTRY_SA = "sa@sentry-connectors.iam.gserviceaccount.com"
 _CUSTOMER_SA = "cust@customer.iam.gserviceaccount.com"
+
+
+def _connected_result() -> dict[str, Any]:
+    return {
+        "connection_status": "connected",
+        "projects": [
+            {
+                "gcp_project_id": "proj-a",
+                "connection_status": "connected",
+                "services": [
+                    {"service": "logging", "status": "connected", "error_detail": None},
+                    {"service": "monitoring", "status": "connected", "error_detail": None},
+                    {"service": "cloudtrace", "status": "connected", "error_detail": None},
+                ],
+                "error_detail": None,
+            }
+        ],
+        "error_detail": None,
+    }
 
 
 def _denied_result(project_id: str = "proj-a") -> dict[str, Any]:
@@ -534,3 +554,40 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
             )
 
         assert self._config()["connection_status"] == "unverified"
+
+    @patch(_PATCH_CONNECTED)
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    @patch(_PATCH_VERIFY, return_value=_connected_result())
+    def test_a_recorded_connection_applies_investigation_connect_requests(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock, mock_connected: MagicMock
+    ) -> None:
+        self._install()
+        # Installing the integration schedules its own check.
+        mock_connected.reset_mock()
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            self.get_success_response(
+                self.organization.slug, customer_sa_email=_CUSTOMER_SA, gcp_project_ids=["proj-a"]
+            )
+
+        mock_connected.assert_called_once_with(
+            organization_id=self.organization.id, provider="gcp", user_id=self.user.id, retry=False
+        )
+
+    @patch(_PATCH_CONNECTED)
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    def test_an_unrecorded_verification_applies_nothing(
+        self, mock_sa_email: MagicMock, mock_connected: MagicMock
+    ) -> None:
+        self._install(customer_sa="current@customer.iam.gserviceaccount.com")
+        mock_connected.reset_mock()
+
+        with (
+            patch(_PATCH_VERIFY, return_value=_connected_result()),
+            self.feature("organizations:seer-infra-telemetry"),
+        ):
+            self.get_success_response(
+                self.organization.slug, customer_sa_email=_CUSTOMER_SA, gcp_project_ids=["proj-a"]
+            )
+
+        mock_connected.assert_not_called()

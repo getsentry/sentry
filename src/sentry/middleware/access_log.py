@@ -119,7 +119,7 @@ def _create_api_access_log(
         org_id = getattr(getattr(request, "organization", None), "id", None)
         entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
-        # Set during dispatch, for organizations opted into `client_kind`.
+        # Set during dispatch, for endpoints that resolve an organization.
         client_kind = getattr(request, "client_kind", None)
         log_metrics = dict(
             method=request.method,

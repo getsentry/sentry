@@ -12,15 +12,31 @@ import {
   getSavedQueryDatasetLabel,
   isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getInvestigationsPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  getAutomationsPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function ExploreSecondaryNavigationImpl() {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
+  // Seer tabs live here until Seer primary nav release.
+  const showSeerTabs = !organization.features.includes('seer-primary-nav');
+  const automationsEnabled = useAutomationsEnabled() && showSeerTabs;
+  const investigationsEnabled = useInvestigationsEnabled() && showSeerTabs;
+  const automationsPath = getAutomationsPath(organization.slug);
+  const investigationsPath = getInvestigationsPath(organization.slug);
 
   const {data: starredQueries} = useGetSavedQueries({
     starred: true,
@@ -68,11 +84,17 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
-  if (organization.openMembership && organization.features.includes('investigations')) {
+  if (automationsEnabled) {
+    navItems.push({label: 'Automations', badge: 'alpha', to: automationsPath});
+  }
+  if (investigationsEnabled) {
+    navItems.push({label: 'Investigations', badge: 'alpha', to: investigationsPath});
+  }
+  if (organization.features.includes('explore-saved-formulas')) {
     navItems.push({
-      label: 'Investigations',
+      label: 'Saved Formulas',
       badge: 'alpha',
-      to: `${baseUrl}/investigations/`,
+      to: `${baseUrl}/saved-formulas/`,
     });
   }
 
@@ -94,7 +116,9 @@ function ExploreSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>{t('Explore')}</SecondaryNavigation.HeaderTitle>
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
@@ -136,7 +160,8 @@ function ExploreSecondaryNavigationImpl() {
                   to={`${baseUrl}/errors-v2/`}
                   activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Errors')}
                 </SecondaryNavigation.Link>
@@ -203,25 +228,36 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="new" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="new" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {organization.openMembership && (
-              <Feature features="organizations:investigations">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/investigations/`}
-                    activeTo={`${baseUrl}/investigations/`}
-                    analyticsItemName="explore_investigations"
-                    trailingItems={<FeatureBadge type="alpha" />}
-                  >
-                    {t('Investigations')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            {automationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={automationsPath}
+                  analyticsItemName="explore_automations"
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                >
+                  {t('Automations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+            {investigationsEnabled && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={investigationsPath}
+                  analyticsItemName="explore_investigations"
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
@@ -235,6 +271,18 @@ function ExploreSecondaryNavigationImpl() {
                     {t('All Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                      trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
+                    >
+                      {t('Saved Formulas')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                </Feature>
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
             {starredQueries && starredQueries.length > 0 && (

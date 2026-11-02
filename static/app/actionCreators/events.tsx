@@ -185,29 +185,6 @@ export type Tag = {
 };
 
 /**
- * Fetches tag facets for a query
- */
-export function fetchTagFacets(
-  api: Client,
-  orgSlug: string,
-  query: EventQuery
-): Promise<ApiResult<Tag[]>> {
-  const urlParams = pick(query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
-
-  const queryOption = {...urlParams, query: query.query};
-
-  return api.requestPromise(
-    getApiUrl('/organizations/$organizationIdOrSlug/events-facets/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-    {
-      query: queryOption,
-      includeAllArgs: true,
-    }
-  );
-}
-
-/**
  * Fetches total count of events for a given query
  */
 export function fetchTotalCount(

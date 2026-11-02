@@ -9,6 +9,10 @@ def _qualify(prefix: str, name: str) -> str:
     return f"{prefix}.{name}" if prefix else name
 
 
+def _differs(old: Any, new: Any) -> bool:
+    return old != new or isinstance(old, bool) != isinstance(new, bool)
+
+
 def describe_value(value: Any) -> str:
     """PII-safe value descriptor for production logging."""
     if value is None:
@@ -31,6 +35,9 @@ def describe_value(value: Any) -> str:
 @dataclass
 class ParityChecker:
     """Recursive dict comparator with dot-separated field paths.
+
+    Keys are visited in sorted order so mismatches are reported deterministically, and a bool
+    never matches an int of the same value.
 
     ``format_value`` controls how values appear in mismatch messages.
     Use ``repr`` (default) for test output with full values, or
@@ -62,10 +69,10 @@ class ParityChecker:
         *,
         unreliable: frozenset[str] = frozenset(),
     ) -> None:
-        for key in set(list(old.keys()) + list(new.keys())):
+        for key in sorted(old.keys() | new.keys(), key=str):
             if key in known_diffs:
                 full_diffs_key = _qualify(diffs_path, key)
-                if key not in new or key not in old or old[key] != new[key]:
+                if key not in new or key not in old or _differs(old[key], new[key]):
                     self.confirmed.add(full_diffs_key)
                 continue
 
@@ -109,7 +116,7 @@ class ParityChecker:
                                 child_diffs_path,
                                 unreliable=nested_unreliable,
                             )
-                        elif old_item != new_item:
+                        elif _differs(old_item, new_item):
                             self.mismatches.append(
                                 f"{item_path}: old={self.format_value(old_item)}, new={self.format_value(new_item)}"
                             )
@@ -122,7 +129,7 @@ class ParityChecker:
                         child_diffs_path,
                         unreliable=nested_unreliable,
                     )
-                elif old_val != new_val:
+                elif _differs(old_val, new_val):
                     self.mismatches.append(
                         f"{full_path}: old={self.format_value(old_val)}, new={self.format_value(new_val)}"
                     )
@@ -139,11 +146,11 @@ class ParityChecker:
                         self.compare(
                             old_item, new_item, frozenset(), item_path, _qualify(diffs_path, key)
                         )
-                    elif old_item != new_item:
+                    elif _differs(old_item, new_item):
                         self.mismatches.append(
                             f"{item_path}: old={self.format_value(old_item)}, new={self.format_value(new_item)}"
                         )
-            elif old_val != new_val:
+            elif _differs(old_val, new_val):
                 self.mismatches.append(
                     f"{full_path}: old={self.format_value(old_val)}, new={self.format_value(new_val)}"
                 )

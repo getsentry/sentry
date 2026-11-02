@@ -7,25 +7,21 @@ import {emptyStringValue, emptyValue} from 'sentry/utils/discover/emptyFieldValu
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
-
-const {SPAN_OP} = SpanFields;
 
 interface Props {
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   description?: string;
   group?: string | null;
-  spanOp?: string;
 }
 
 export function SpanDescriptionCell({
   description: rawDescription,
   group,
   moduleName,
-  spanOp,
   projectId,
 }: Props) {
   const formatterDescription = useMemo(() => {
@@ -45,7 +41,6 @@ export function SpanDescriptionCell({
       moduleName={moduleName}
       group={group}
       projectId={projectId}
-      spanOp={spanOp}
       description={formatterDescription}
     />
   );
@@ -78,7 +73,6 @@ export function SpanDescriptionCell({
               group={group}
               shortDescription={rawDescription}
               moduleName={moduleName}
-              filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
             />
           </Fragment>
         }

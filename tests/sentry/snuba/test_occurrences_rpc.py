@@ -77,7 +77,7 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="group_id", type=AttributeKey.Type.TYPE_INT
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count_aggregate(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
@@ -87,7 +87,7 @@ class OccurrencesRPCTest(TestCase):
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "count()"
         assert resolved_column.search_type == "integer"
 
@@ -109,7 +109,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, greaterOrEquals, 1704067200)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "count_if(timestamp, greaterOrEquals, 1704067200)"
         assert resolved_column.search_type == "integer"
 
@@ -131,7 +131,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, less, 1704067200)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.search_type == "integer"
 
     def test_count_if_aggregate_between(self) -> None:
@@ -169,7 +169,7 @@ class OccurrencesRPCTest(TestCase):
             label="count_if(timestamp, between, 1704067200, 1704153600)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.search_type == "integer"
 
     def test_count_if_aggregate_invalid_operator(self) -> None:
@@ -194,7 +194,7 @@ class OccurrencesRPCTest(TestCase):
             label="min(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         assert resolved_column.public_alias == "min(timestamp)"
         assert resolved_column.search_type == "string"  # timestamp is processed as string
 
@@ -203,7 +203,7 @@ class OccurrencesRPCTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="type", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_type_filter_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("type:error")

@@ -394,6 +394,42 @@ class FetchAIModelMetadataTest(TestCase):
         assert cached_data is None
 
     @responses.activate
+    def test_fetch_ai_model_metadata_models_dev_specialized_types(self) -> None:
+        """Test that token-priced specialized models.dev types are included"""
+        self._mock_openrouter_api_response({"data": []})
+        self._mock_models_dev_api_response(
+            {
+                "vercel": {
+                    "models": {
+                        "example-lab/decision-model": {
+                            "type": "decision",
+                            "cost": {"input": 0.042, "output": 0},
+                            "limit": {"context": 32000, "output": 0},
+                        },
+                        "example-lab/unknown-type-model": {
+                            "type": "unknown-type",
+                            "cost": {"input": 1, "output": 1},
+                        },
+                    }
+                }
+            }
+        )
+
+        fetch_ai_model_metadata()
+
+        cached_data = _get_metadata_from_cache()
+        assert cached_data is not None
+        models = cached_data["models"]
+
+        decision_model = models["decision-model"]
+        assert decision_model["costs"]["inputPerToken"] == 0.042 / 1000000
+        assert decision_model["costs"]["outputPerToken"] == 0.0
+        assert decision_model.get("contextSize") == 32000
+        assert models["*decision-model"] == decision_model
+
+        assert "unknown-type-model" not in models
+
+    @responses.activate
     def test_fetch_ai_model_metadata_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response
@@ -620,7 +656,7 @@ class FetchAIModelMetadataTest(TestCase):
 
     def test_normalize_model_id(self) -> None:
         """Test model ID normalization with various date and version formats"""
-        from sentry.tasks.ai_agent_monitoring import _normalize_model_id
+        from sentry.ai_monitoring.utils import normalize_model_id
 
         # Test cases with expected outputs
         test_cases = [
@@ -638,14 +674,14 @@ class FetchAIModelMetadataTest(TestCase):
         ]
 
         for model_id, expected_normalized in test_cases:
-            actual_normalized = _normalize_model_id(model_id)
+            actual_normalized = normalize_model_id(model_id)
             assert actual_normalized == expected_normalized, (
                 f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
             )
 
     def test_create_prefix_glob_model_name(self) -> None:
         """Test prefix glob generation for model names"""
-        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
+        from sentry.ai_monitoring.utils import prefix_glob_model_name
 
         # Test cases with expected outputs
         test_cases = [
@@ -656,7 +692,7 @@ class FetchAIModelMetadataTest(TestCase):
         ]
 
         for model_id, expected_glob in test_cases:
-            actual_glob = _create_prefix_glob_model_name(model_id)
+            actual_glob = prefix_glob_model_name(model_id)
             assert actual_glob == expected_glob, (
                 f"Expected {expected_glob} for {model_id}, got {actual_glob}"
             )

@@ -115,7 +115,7 @@ describe('attributesTree', () => {
           organization,
         }}
         getCustomActions={content => {
-          if (!content.originalAttribute) {
+          if (!content.original) {
             return [];
           }
 
@@ -162,6 +162,41 @@ describe('attributesTree', () => {
       expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
       expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
     }
+  });
+
+  it('renders an array attribute and types it as array in its details', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'array',
+        value: ['timestamp', 'message'],
+        name: 'tags[csv_headers,array]',
+      },
+    ];
+
+    render(
+      <AttributesTree
+        attributes={attributes}
+        config={{attributeDetailsType: 'log'}}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('attribute-tree-row')).toHaveTextContent(
+      '[timestamp,message]'
+    );
+
+    await userEvent.hover(
+      within(screen.getByTestId('tree-key-tags[csv_headers,array]')).getByText(
+        'csv_headers'
+      )
+    );
+
+    expect(await screen.findByText('array')).toBeInTheDocument();
   });
 
   it('describes an attribute key when an attribute details type is given', async () => {
@@ -252,9 +287,8 @@ describe('attributesTree', () => {
       />
     );
 
-    expect(screen.getByTestId('tree-key-sentry.logger.name')).toHaveAttribute(
-      'title',
-      'logger.name'
+    expect(screen.getByTitle('logger.name')).toContainElement(
+      screen.getByTestId('tree-key-sentry.logger.name')
     );
   });
 });

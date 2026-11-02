@@ -24,9 +24,7 @@ class WarmupEndpointTest(APITestCase):
     def test_shares_language_independent_django_url_caches(self) -> None:
         self._clear_url_caches()
 
-        with self.options({"warmup.url_resolver.enabled": True}):
-            self.client.get(reverse("sentry-warmup"))
-
+        self.client.get(reverse("sentry-warmup"))
         languages = [lang for lang, _ in settings.LANGUAGES]
         languages.append(settings.LANGUAGE_CODE)
 

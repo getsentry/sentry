@@ -11,6 +11,11 @@ export type GenericFilterSelectorProps = {
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
+  /**
+   * Show the filter's dataset inline in the trigger. Used when another filter
+   * on the dashboard has the same key but a different dataset.
+   */
+  showDatasetLabel?: boolean;
 };
 
 export function GenericFilterSelector({

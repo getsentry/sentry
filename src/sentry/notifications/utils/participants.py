@@ -5,7 +5,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from sentry import options
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -18,8 +17,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.release import Release
-from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
@@ -357,33 +354,13 @@ def get_send_to(
     event: Event | GroupEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
-    rules: Iterable[Rule] | None = None,
     notification_uuid: str | None = None,
 ) -> Mapping[ExternalProviders, set[Actor]]:
-    recipients_without_snoozes = list(
+    recipients = list(
         determine_eligible_recipients(
             project, target_type, target_identifier, event, fallthrough_choice
         )
     )
-
-    recipients = recipients_without_snoozes
-    if rules and not options.get("notifications.issue-alerts.disable-rule-snooze"):
-        recipients = _filter_rule_snoozed_recipients(recipients_without_snoozes, rules)
-        recipient_delta = len(set(recipients_without_snoozes) - set(recipients))
-        if recipient_delta:
-            metrics.incr(
-                "notifications.issue_alerts.rule_snooze.recipient_delta",
-                amount=recipient_delta,
-            )
-            logger.info(
-                "notifications.issue_alerts.rule_snooze.recipient_delta",
-                extra={
-                    "project_id": project.id,
-                    "recipient_delta": recipient_delta,
-                    "recipients_with_snoozes": len(recipients),
-                    "recipients_without_snoozes": len(recipients_without_snoozes),
-                },
-            )
 
     return _get_recipients_by_provider(
         project,
@@ -393,22 +370,6 @@ def get_send_to(
         target_identifier,
         notification_uuid,
     )
-
-
-def _filter_rule_snoozed_recipients(
-    recipients: Sequence[Actor], rules: Iterable[Rule]
-) -> list[Actor]:
-    muted_user_ids = set()
-    for rule_snooze in RuleSnooze.objects.filter(rule__in=rules):
-        if rule_snooze.user_id is None:
-            return []
-        muted_user_ids.add(rule_snooze.user_id)
-
-    return [
-        recipient
-        for recipient in recipients
-        if recipient.actor_type != ActorType.USER or recipient.id not in muted_user_ids
-    ]
 
 
 def get_fallthrough_recipients(

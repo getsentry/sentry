@@ -46,7 +46,7 @@ class AccountSettingsWithoutOrganizationTest(AcceptanceTestCase):
             self.browser.wait_until('input[name="name"]')
 
             primary_navigation = self.browser.element('nav[aria-label="Primary Navigation"]')
-            avatar = self.browser.element(f'button[aria-label="{self.user.email}"]')
+            avatar = self.browser.element('button[aria-label="Account"]')
             assert avatar.rect["y"] > primary_navigation.rect["y"]
 
             secondary_navigation = '[role="navigation"][aria-label="Secondary Navigation"]'

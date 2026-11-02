@@ -22,25 +22,6 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
   }
 
-  onHighlight(dataIndex: number): void {
-    const {config = {}} = this;
-    // The incomplete series prepends the final data point from the complete
-    // series. This causes off-by-one errors with `seriesDataIndex`, since the
-    // complete series has one more data points than we'd expect. Account for
-    // this by reconstructing the data points from the split series
-    const mergedData = this.#timeSeriesAndIsIncomplete.flatMap(([timeSeries]) => {
-      return timeSeries.values;
-    });
-
-    const datum = mergedData.at(dataIndex);
-
-    if (!datum) {
-      return;
-    }
-
-    config.onHighlight?.(datum);
-  }
-
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {config = {}} = this;
 
@@ -55,12 +36,15 @@ export class Area extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
+    // ECharts groups stacks by name, even when series use different Y axes.
+    const stackPrefix = plottingOptions.yAxisPosition;
+
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
-            stack: `incomplete-${index}`,
+            stack: `incomplete-${stackPrefix}-${index}`,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
@@ -80,7 +64,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
-            stack: `complete-${index}`,
+            stack: `complete-${stackPrefix}-${index}`,
             areaStyle: {
               color,
               opacity: 1,

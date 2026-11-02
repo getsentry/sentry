@@ -67,14 +67,6 @@ describe('Markdown', () => {
       expect(screen.getByRole('separator')).toBeInTheDocument();
     });
 
-    it('renders tables', () => {
-      const md = '| A | B |\n| --- | --- |\n| 1 | 2 |';
-      render(<Markdown raw={md} />);
-      expect(screen.getByRole('table')).toBeInTheDocument();
-      expect(screen.getByText('A')).toBeInTheDocument();
-      expect(screen.getByText('1')).toBeInTheDocument();
-    });
-
     it('renders strikethrough', () => {
       render(<Markdown raw="~~deleted~~" />);
       expect(screen.getByText('deleted')).toBeInTheDocument();
@@ -84,6 +76,73 @@ describe('Markdown', () => {
       render(<Markdown raw={'line 1  \nline 2'} />);
       expect(screen.getByText(/line 1/)).toBeInTheDocument();
       expect(screen.getByText(/line 2/)).toBeInTheDocument();
+    });
+  });
+
+  describe('tables', () => {
+    function getCellTexts(row: HTMLElement) {
+      return within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent);
+    }
+
+    it('renders the header and body rows', () => {
+      render(<Markdown raw={'| A | B |\n| --- | --- |\n| 1 | 2 |\n| 3 | 4 |'} />);
+
+      const table = screen.getByRole('table');
+      const [, firstRow, secondRow] = within(table).getAllByRole('row');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['A', 'B']);
+      expect(getCellTexts(firstRow!)).toEqual(['1', '2']);
+      expect(getCellTexts(secondRow!)).toEqual(['3', '4']);
+    });
+
+    it('renders inline Markdown inside cells', () => {
+      render(
+        <Markdown
+          raw={
+            '| **Name** | Details |\n| --- | --- |\n| `foo()` | *see* [docs](https://example.com) |'
+          }
+        />
+      );
+
+      const [, row] = screen.getAllByRole('row');
+
+      expect(screen.getByRole('columnheader', {name: 'Name'})).toContainHTML(
+        '<strong>Name</strong>'
+      );
+      expect(within(row!).getByText('foo()').tagName).toBe('CODE');
+      expect(within(row!).getByText('see').tagName).toBe('EM');
+      expect(within(row!).getByRole('link', {name: 'docs'})).toHaveAttribute(
+        'href',
+        'https://example.com'
+      );
+    });
+
+    it('renders empty cells in place', () => {
+      render(<Markdown raw={'| A | B | C |\n| --- | --- | --- |\n| 1 |  | 3 |'} />);
+
+      const [, row] = screen.getAllByRole('row');
+
+      expect(getCellTexts(row!)).toEqual(['1', '', '3']);
+    });
+
+    it('renders a table with only a header row', () => {
+      render(<Markdown raw={'| A | B |\n| --- | --- |'} />);
+
+      const table = screen.getByRole('table');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['A', 'B']);
+      expect(within(table).getAllByRole('row')).toHaveLength(1);
+      expect(within(table).queryByRole('cell')).not.toBeInTheDocument();
     });
   });
 
@@ -448,10 +507,19 @@ describe('Markdown', () => {
       );
     });
 
-    it('suppresses partial tag syntax in text', () => {
-      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+    it('suppresses partial tag syntax in text while streaming', () => {
+      const {container} = render(
+        <Markdown raw='Some text {% ref type="issue"' variant="streaming" />
+      );
       expect(container).toHaveTextContent(/Some text/);
       expect(container).not.toHaveTextContent(/\{%/);
+    });
+
+    it('renders unclosed tag syntax literally in static content', () => {
+      render(<Markdown raw="Seer chat emits {% autofix %} embeds." />);
+      expect(
+        screen.getByText('Seer chat emits {% autofix %} embeds.')
+      ).toBeInTheDocument();
     });
   });
 

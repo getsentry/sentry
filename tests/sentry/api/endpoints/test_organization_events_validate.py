@@ -39,6 +39,14 @@ class OrganizationEventsValidateEndpointTest(
             {"error": "At least one valid project is required to query", "valid": False}
         ]
 
+    def test_invalid_project(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        response = self.do_request({"project": [other_project.id]})
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["projects"] == [{"error": "Invalid project", "valid": False}]
+
     def test_invalid_dataset(self) -> None:
         response = self.do_request(
             {
@@ -432,7 +440,7 @@ class OrganizationEventsValidateEndpointTest(
             {
                 "project": [self.project.id],
                 "dataset": "spans",
-                "field": ["sentry.links"],
+                "field": ["sentry.organization_id"],
             }
         )
 
@@ -440,11 +448,30 @@ class OrganizationEventsValidateEndpointTest(
         assert not response.data["valid"]
         assert response.data["field"] == [
             {
-                "error": "The field sentry.links is not allowed for this query",
-                "name": "sentry.links",
+                "error": "The field sentry.organization_id is not allowed for this query",
+                "name": "sentry.organization_id",
                 "valid": False,
                 "attrType": None,
             },
+        ]
+
+    def test_private_attribute_allowed_by_fields_acl(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["sentry.links"],
+                "query": "sentry.links:*8873a98879faf06d*",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": "sentry.links", "valid": True, "attrType": "string"},
+        ]
+        assert response.data["query"]["fields"] == [
+            {"error": None, "name": "sentry.links", "valid": True, "attrType": "string"},
         ]
 
     def test_invalid_function(self) -> None:
@@ -849,3 +876,23 @@ class OrganizationEventsValidateEndpointTest(
                 "attrType": None,
             },
         ]
+
+    def test_llm_passes_replacement_attribute_wrong_type(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["device.memory.estimated_capacity", "transaction"],
+                "query": "device.memory.estimated_capacity:50GB",
+                "orderby": ["-device.memory.estimated_capacity"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+
+        assert response.data["query"] == {
+            "error": "device.memory.estimated_capacity: Invalid number: 50GB. Expected number then optional k, m, or b suffix (e.g. 500k).",
+            "valid": False,
+            "fields": [],
+        }

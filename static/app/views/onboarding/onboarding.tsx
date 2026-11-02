@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +17,6 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -384,8 +383,17 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns="repeat(2, 1fr)" as="header">
-        <LogoSvg showWordmark={false} />
+      <Grid
+        as="header"
+        columns="repeat(2, 1fr)"
+        padding="md 3xl"
+        position="sticky"
+        minHeight="60px"
+        align="center"
+        top={0}
+        style={{zIndex: 100}}
+      >
+        <LogoSentry showWordmark={false} height="24px" />
         <Flex align="center" justify="end" gap="md">
           <Override
             name="onboarding:targeted-onboarding-header"
@@ -393,12 +401,29 @@ export function OnboardingWithoutContext() {
           />
           <OnboardingSkipButton stepId={stepObj.id} />
         </Flex>
-      </Header>
-      <OnboardingContainer hasFooter={containerHasFooter}>
+      </Grid>
+      <Stack
+        containerType="inline-size"
+        flexGrow={1}
+        position="relative"
+        overflowX="hidden"
+        background="primary"
+        width="100%"
+        margin="0 auto"
+        paddingLeft="2xl"
+        paddingRight="2xl"
+        style={{
+          paddingTop: 60,
+          paddingBottom: containerHasFooter ? FOOTER_HEIGHT : 60,
+          marginBottom: containerHasFooter ? FOOTER_HEIGHT : undefined,
+        }}
+      >
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             key={stepObj.id}
             {...ONBOARDING_STAGGER}
+            flexGrow={1}
+            justify="center"
             data-test-id={`onboarding-step-${stepObj.id}`}
           >
             {stepObj.Component && (
@@ -431,7 +456,7 @@ export function OnboardingWithoutContext() {
             />
           </Flex>
         )}
-      </OnboardingContainer>
+      </Stack>
     </Stack>
   );
 }
@@ -444,41 +469,6 @@ function Onboarding() {
   );
 }
 
-const OnboardingContainer = styled('div')<{
-  hasFooter: boolean;
-}>`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow-x: hidden;
-  background: ${p => p.theme.tokens.background.primary};
-  padding: 60px ${p => p.theme.space['2xl']};
-  width: 100%;
-  margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
-  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
-`;
-
-const Header = styled(Grid)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
-  position: sticky;
-  min-height: 60px;
-  align-items: center;
-  top: 0;
-  z-index: 100;
-`;
-
-const LogoSvg = styled(LogoSentry)`
-  height: 24px;
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const OnboardingStep = styled(motion.div)`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
+const OnboardingStep = motion.create(Stack);
 
 export default Onboarding;

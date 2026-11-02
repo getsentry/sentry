@@ -10,8 +10,8 @@ interface ScmCollapsibleRevealProps {
 
 /**
  * Reveals or hides content with a height + fade tween. Shared by
- * ScmCollapsibleSection and ScmAlertOptionCard so their expand/collapse timing
- * stays in sync. Animating height (rather than display) lets sibling cards in a
+ * onboarding sections so their expand/collapse timing stays in sync.
+ * Animating height (rather than display) lets sibling cards in a
  * framer-motion layout="position" group reflow via normal document flow.
  * initial={false} renders the open state without animating on mount.
  */

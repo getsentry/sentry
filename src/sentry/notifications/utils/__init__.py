@@ -174,7 +174,7 @@ def get_suspect_commits_by_group_id(
     return list(commits.values())
 
 
-def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: Event | GroupEvent) -> Sequence[Mapping[str, Any]]:
     # let's identify possible suspect commits and owners
     commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:

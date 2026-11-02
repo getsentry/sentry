@@ -13,10 +13,10 @@ why: |
   Fixing callsites — not just annotating declarations — is what actually lets a
   deprecated symbol be deleted.
 
-  See: https://typescript-eslint.io/rules/no-deprecated/
+  See: https://oxc.rs/docs/guide/usage/linter/rules/typescript/no-deprecated.html
 
 detect: |
-  Detected by the type-aware eslint rule `@typescript-eslint/no-deprecated`.
+  Detected by the type-aware oxlint rule `typescript/no-deprecated`.
   The TypeScript checker resolves each referenced symbol across files, so the
   rule reports any use of a symbol whose declaration carries an `@deprecated`
   JSDoc tag — and includes that tag's migration text in the message. Runs via
@@ -35,9 +35,9 @@ fix: |
        target from the symbol's declaration or its surrounding docs before
        changing anything — do not guess.
 
-  Verify the fix by re-running eslint on the changed file (type information is
+  Verify the fix by re-running oxlint on the changed file (type information is
   required, so run from the repo root):
-    pnpm eslint --rule '{"@typescript-eslint/no-deprecated": "error"}' <file>
+    pnpm oxlint -D typescript/no-deprecated <file>
 
   Gotchas:
     1. Update the import when the replacement lives in a different module.

@@ -1,9 +1,13 @@
 from typing import Any
 
 from sentry import tagstore
-from sentry.rules import MATCH_CHOICES, MatchType, match_values
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.workflow_engine.handlers.condition.utils.match import (
+    MATCH_CHOICES,
+    MatchType,
+    match_values,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry

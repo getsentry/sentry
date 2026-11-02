@@ -85,18 +85,33 @@ describe('useDetectorStatsPeriods', () => {
     expect(router.location.query.statsPeriod).toBeUndefined();
   });
 
-  it('replaces start/end with statsPeriod when range is smaller than the interval', () => {
-    const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(86400), {
+  it('widens a start/end range shorter than three intervals around its center', () => {
+    const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(3600), {
       initialRouterConfig: {
         location: {
           pathname: '/detectors/1/',
-          query: {start: '2026-01-01T00:00:00', end: '2026-01-01T01:00:00'},
+          query: {start: '2017-10-01T00:00:00', end: '2017-10-01T01:00:00'},
         },
       },
     });
 
-    expect(router.location.query.statsPeriod).toBe('1d');
-    expect(router.location.query.start).toBeUndefined();
-    expect(router.location.query.end).toBeUndefined();
+    expect(router.location.query.start).toBe('2017-09-30T23:00:00');
+
+    expect(router.location.query.end).toBe('2017-10-01T02:00:00');
+
+    expect(router.location.query.statsPeriod).toBeUndefined();
+  });
+
+  it('replaces the history entry when widening the range', () => {
+    const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(3600), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/detectors/1/',
+          query: {start: '2017-10-01T00:00:00', end: '2017-10-01T01:00:00'},
+        },
+      },
+    });
+
+    expect(router.historyAction).toBe('REPLACE');
   });
 });

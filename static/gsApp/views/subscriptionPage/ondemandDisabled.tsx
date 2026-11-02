@@ -24,7 +24,7 @@
  *   - onDemandDisabled: boolean indicating if on-demand billing is disabled
  *   - onDemandMaxSpend: number indicating maximum on-demand spend limit
  */
-import {NavLink} from 'react-router-dom';
+import {NavLink} from 'react-router';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';

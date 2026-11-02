@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   DiffTableChangeAmountCell,
@@ -176,6 +176,7 @@ export function GroupInsightItemDiffTable({
           </SimpleTable.Empty>
         )}
         {currentDiffItems.map(groupDiffItem => {
+          // oxlint-disable-next-line react/todo
           rowIndex++;
           const groupDiffItemChange = getDiffChangeElements(groupDiffItem);
 
@@ -221,6 +222,7 @@ export function GroupInsightItemDiffTable({
               {groupDiffItem.diff_items?.map(diffItem => {
                 const diffItemChange = getDiffChangeElements(diffItem);
                 return (
+                  // oxlint-disable-next-line react/todo
                   <SimpleTable.Row key={++rowIndex}>
                     <SimpleTable.RowCell>
                       <Tag icon={diffItemChange.icon} variant={diffItemChange.type}>

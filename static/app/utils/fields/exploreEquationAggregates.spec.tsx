@@ -1,38 +1,22 @@
 import {
   ALLOWED_EXPLORE_EQUATION_AGGREGATES,
   ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES,
-  AggregationKey,
   EXPLORE_FILTERABLE_AGGREGATES,
-  getExploreEquationAggregates,
   getExploreEquationFieldDefinition,
   getFieldDefinition,
 } from 'sentry/utils/fields';
 
 describe('Explore equation conditional aggregates', () => {
-  it('keeps Discover avg_if and count_if on the ungated equation list', () => {
-    expect(ALLOWED_EXPLORE_EQUATION_AGGREGATES).toContain(AggregationKey.AVG_IF);
-    expect(ALLOWED_EXPLORE_EQUATION_AGGREGATES).toContain(AggregationKey.COUNT_IF);
-    expect(getExploreEquationAggregates(false)).toEqual(
-      ALLOWED_EXPLORE_EQUATION_AGGREGATES
-    );
-  });
-
-  it('offers EAP _if aggregates only when the feature is on', () => {
+  it('offers EAP _if aggregates in the equation builder', () => {
     expect(ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES).toEqual(
       EXPLORE_FILTERABLE_AGGREGATES.map(name => `${name}_if`)
     );
-    expect(getExploreEquationAggregates(true)).toEqual(
+    expect(ALLOWED_EXPLORE_EQUATION_AGGREGATES).toEqual(
       expect.arrayContaining(ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES)
     );
-    for (const name of ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES) {
-      if (name === 'avg_if' || name === 'count_if') {
-        continue;
-      }
-      expect(getExploreEquationAggregates(false)).not.toContain(name);
-    }
   });
 
-  it('uses EAP filter-first avg_if when gated on', () => {
+  it('uses EAP filter-first avg_if', () => {
     const ungated = getFieldDefinition('avg_if', 'span');
     expect(ungated?.parameters?.map(parameter => parameter.name)).toEqual([
       'column',
@@ -41,7 +25,7 @@ describe('Explore equation conditional aggregates', () => {
       'value',
     ]);
 
-    const definition = getExploreEquationFieldDefinition('avg_if', undefined, true);
+    const definition = getExploreEquationFieldDefinition('avg_if');
     expect(definition?.parameters?.map(parameter => parameter.name)).toEqual([
       'filter',
       'column',
@@ -57,7 +41,7 @@ describe('Explore equation conditional aggregates', () => {
   });
 
   it('keeps Discover avg_if when existing args are not backtick filters', () => {
-    const definition = getExploreEquationFieldDefinition('avg_if', undefined, true, [
+    const definition = getExploreEquationFieldDefinition('avg_if', undefined, [
       'span.duration',
       'span.op',
       'equals',
@@ -74,7 +58,7 @@ describe('Explore equation conditional aggregates', () => {
   it('keeps EAP filter-first params for EAP-only _if without backticks', () => {
     expect(getFieldDefinition('sum_if', 'span')).toBeNull();
 
-    const definition = getExploreEquationFieldDefinition('sum_if', undefined, true, [
+    const definition = getExploreEquationFieldDefinition('sum_if', undefined, [
       'span.duration',
     ]);
     expect(definition?.parameters?.map(parameter => parameter.name)).toEqual([
@@ -83,7 +67,7 @@ describe('Explore equation conditional aggregates', () => {
     ]);
   });
 
-  it('keeps Discover count_if unless the feature is on', () => {
+  it('uses EAP filter-first count_if', () => {
     const ungated = getFieldDefinition('count_if', 'span');
     expect(ungated?.parameters?.map(parameter => parameter.name)).toEqual([
       'column',
@@ -92,21 +76,21 @@ describe('Explore equation conditional aggregates', () => {
     ]);
     expect(ungated?.parameters?.some(parameter => 'options' in parameter)).toBe(true);
 
-    const gated = getExploreEquationFieldDefinition('count_if', undefined, true);
-    expect(gated?.parameters?.map(parameter => parameter.name)).toEqual([
+    const definition = getExploreEquationFieldDefinition('count_if');
+    expect(definition?.parameters?.map(parameter => parameter.name)).toEqual([
       'filter',
       'column',
     ]);
-    expect(gated?.parameters?.[0]).toMatchObject({
+    expect(definition?.parameters?.[0]).toMatchObject({
       kind: 'value',
       defaultValue: '``',
     });
-    expect(gated?.parameters?.some(parameter => 'options' in parameter)).toBe(false);
+    expect(definition?.parameters?.some(parameter => 'options' in parameter)).toBe(false);
   });
 
-  it('does not use Discover-style condition operators on gated equation _if aggregates', () => {
+  it('does not use Discover-style condition operators on equation _if aggregates', () => {
     for (const name of ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES) {
-      const definition = getExploreEquationFieldDefinition(name, undefined, true);
+      const definition = getExploreEquationFieldDefinition(name);
       expect(definition?.parameters?.[0]).toMatchObject({
         name: 'filter',
         kind: 'value',

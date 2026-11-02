@@ -1,6 +1,7 @@
+import {IconDocs} from '@sentry/icons/docs';
+
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconDocs} from 'sentry/icons';
 
 export const Docs = defineSeerEmbed({
   name: 'docs',

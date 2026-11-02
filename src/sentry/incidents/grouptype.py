@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
@@ -31,13 +32,13 @@ from sentry.workflow_engine.handlers.detector.base import EventData, EvidenceDat
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
-    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
 
 logger = logging.getLogger(__name__)
@@ -187,9 +188,11 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    regression_timeout = timedelta(hours=24)
+
     def build_detector_evidence_data(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        group_evaluation: DataConditionGroupEvaluation | None,
         data_packet: DataPacket[MetricUpdate],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
@@ -208,10 +211,11 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
     def create_occurrence(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[MetricUpdate],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
+        priority = evaluation.priority
+
         try:
             detector_trigger = DataCondition.objects.get(
                 condition_group=self.detector.workflow_condition_group, condition_result=priority
@@ -247,7 +251,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 issue_title=self.detector.name,
                 subtitle=self.construct_title(snuba_query, detector_trigger, priority),
                 evidence_data={
-                    **self.build_detector_evidence_data(group_evaluation, data_packet, priority),
+                    **self.build_detector_evidence_data(
+                        evaluation.data["trigger_group_evaluation"], data_packet, priority
+                    ),
                 },
                 evidence_display=[],  # XXX: may need to pass more info here for the front end
                 type=MetricIssue,
@@ -264,14 +270,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(
-        self, data_packet: DataPacket[MetricUpdate]
-    ) -> MetricResult | dict[DetectorGroupKey, MetricResult]:
+    def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            # A bare AnomalyDetectionValues dict would be interpreted as a grouped
-            # result dict, so wrap it with an explicit group key.
-            grouped: dict[DetectorGroupKey, MetricResult] = {None: data_packet.packet.values}
-            return grouped
+            return data_packet.packet.values
         return data_packet.packet.values["value"]
 
     def construct_title(
@@ -353,7 +354,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC.value
-    creation_quota = Quota(3600, 60, 100)
+    creation_quota = Quota(3600, 60, 1000)
     default_priority = PriorityLevel.HIGH
     released = True
     enable_auto_resolve = False
@@ -363,7 +364,7 @@ class MetricIssue(GroupType):
     enable_user_status_and_priority_changes = False
 
 
-@detector_settings_registry.register(MetricIssue.slug)
+@detector_settings_registry.register(DetectorType.METRIC_ISSUE)
 class MetricIssueDetectorSettings(DetectorSettings):
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator

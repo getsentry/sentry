@@ -67,6 +67,28 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('treats a blank extrapolate as on', () => {
+    const location = locationFixture({extrapolate: ''});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(readableQueryParamOptions({extrapolate: true}))
+    );
+  });
+
+  it('treats a blank saved query id and title as absent', () => {
+    const location = locationFixture({id: '', title: ''});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.id).toBeUndefined();
+    expect(queryParams.title).toBeUndefined();
+  });
+
+  it('ignores cross events when the param is repeated', () => {
+    const crossEvent = JSON.stringify([{query: '', type: 'logs'}]);
+    const location = locationFixture({crossEvents: [crossEvent, crossEvent]});
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.crossEvents).toBeUndefined();
+  });
+
   it('decodes samples mode correctly', () => {
     const location = locationFixture({mode: 'samples'});
     const queryParams = getReadableQueryParamsFromLocation(location);
@@ -311,7 +333,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
-  it('decodes custom aggregate fields correctly', () => {
+  it('decodes custom aggregate fields with multi aggregate charts', () => {
     const location = locationFixture({
       aggregateField: [
         {yAxes: ['count(span.duration)'], chartType: ChartType.AREA},
@@ -319,19 +341,87 @@ describe('getReadableQueryParamsFromLocation', () => {
         {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
       ].map(aggregateField => JSON.stringify(aggregateField)),
     });
-    const queryParams = getReadableQueryParamsFromLocation(location);
+    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    });
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
             new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
-            new VisualizeFunction('p50(span.duration)'),
-            new VisualizeFunction('p75(span.duration)'),
+            new VisualizeFunction('p50(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
+            new VisualizeFunction('p75(span.duration)', {
+              chartGroup: expect.any(String),
+            }),
           ],
         })
       )
     );
+
+    // Percentiles of the same field listed together share a chart.
+    const [count, , p50, p75] = queryParams.aggregateFields as VisualizeFunction[];
+    expect(count!.chartGroup).toBeUndefined();
+    expect(p50!.chartGroup).toBe(p75!.chartGroup);
+  });
+
+  it('keeps a chart per y axis when the y axes cannot share a chart', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['count(span.duration)', 'p50(span.duration)']},
+        {yAxes: ['p50(span.duration)', 'p50(span.self_time)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    });
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'span.op'},
+            new VisualizeFunction('count(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p50(span.self_time)'),
+          ],
+        })
+      )
+    );
+  });
+
+  it('keeps a chart per y axis for a percentile and a stat', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['p90(span.duration)', 'avg(span.duration)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const [, p90, avg] = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    }).aggregateFields as VisualizeFunction[];
+    expect(p90!.yAxis).toBe('p90(span.duration)');
+    expect(avg!.yAxis).toBe('avg(span.duration)');
+    expect(p90!.chartGroup).toBeUndefined();
+    expect(avg!.chartGroup).toBeUndefined();
+  });
+
+  it('keeps a chart per y axis without multi aggregate charts', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: 'span.op'},
+      new VisualizeFunction('p50(span.duration)'),
+      new VisualizeFunction('p75(span.duration)'),
+    ]);
   });
 
   it('decodes custom aggregatefields and inserts default group bys', () => {
@@ -422,6 +512,12 @@ describe('getReadableQueryParamsFromLocation', () => {
 });
 
 describe('getTargetWithReadableQueryParams', () => {
+  it('leaves a blank cursor in place when resetting cursors', () => {
+    const location = locationFixture({aggregateCursor: ''});
+    const target = getTargetWithReadableQueryParams(location, {aggregateCursor: null});
+    expect(target.query).toEqual({aggregateCursor: ''});
+  });
+
   it('removes the aggregate cursor when it is reset', () => {
     const location = locationFixture({aggregateCursor: '0:50:0'});
 

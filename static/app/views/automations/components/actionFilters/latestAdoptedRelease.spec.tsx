@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {LatestAdoptedReleaseNode} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {DataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 describe('LatestAdoptedReleaseNode', () => {
   const organization = OrganizationFixture();

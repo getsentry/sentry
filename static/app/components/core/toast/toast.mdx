@@ -5,7 +5,7 @@ category: feedback
 source: '@sentry/scraps/toast'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/toast/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/toast/index.tsx
   a11y:
     WCAG 2.2.4: https://www.w3.org/TR/WCAG22/#interruptions
     WAI-ARIA Alert: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
@@ -15,7 +15,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {IconRefresh} from 'sentry/icons';
+import {IconRefresh} from '@sentry/icons/refresh';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/toast');
@@ -113,11 +113,6 @@ a toast. Toasts of the same variant stack up to three at once; showing a differe
 dismisses the previous variant's active toasts.
 
 ```tsx
-// Dismiss one toast by id
-const id = toast.loading('Working...', {duration: Infinity});
-toast.dismiss(id);
-
-// Dismiss every toast
 toast.dismiss();
 ```
 

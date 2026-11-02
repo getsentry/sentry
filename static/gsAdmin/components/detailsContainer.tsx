@@ -1,22 +1,27 @@
-import styled from '@emotion/styled';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-export const DetailsContainer = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
+export function DetailsContainer({children}: {children: React.ReactNode}) {
+  return (
+    <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl" align="start">
+      {children}
+    </Grid>
+  );
+}
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-
-  h6 {
-    margin-top: ${p => p.theme.space['2xl']};
-    margin-bottom: ${p => p.theme.space.xl};
-    padding-bottom: ${p => p.theme.space.xs};
-    text-transform: uppercase;
-    font-size: ${p => p.theme.font.size.md};
-    color: ${p => p.theme.tokens.content.secondary};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-`;
+export function DetailsHeading({children}: {children: React.ReactNode}) {
+  return (
+    <Container
+      marginTop="2xl"
+      marginBottom="xl"
+      paddingBottom="xs"
+      borderBottom="secondary"
+    >
+      <Heading as="h6" size="md" variant="muted">
+        <Text as="span" variant="inherit" uppercase>
+          {children}
+        </Text>
+      </Heading>
+    </Container>
+  );
+}

@@ -210,6 +210,74 @@ def test_convert_span_to_item() -> None:
 SESSION_UUID = "87654321-4321-8765-4321-876543218765"
 
 
+def test_convert_deprecated_sample_rates() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        "client_sample_rate": {"type": "double", "value": 0.25},
+        "server_sample_rate": {"type": "double", "value": 0.0},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.client_sample_rate == 0.25
+    assert item.server_sample_rate == 0.0
+    assert item.attributes["client_sample_rate"] == AnyValue(double_value=0.25)
+
+
+@pytest.mark.parametrize("rate", [0, 1])
+def test_convert_integer_sample_rates(rate: int) -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        "sentry.client_sample_rate": {"type": "integer", "value": rate},
+        "sentry.server_sample_rate": {"type": "integer", "value": rate},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.client_sample_rate == rate
+    assert item.server_sample_rate == rate
+
+
+@pytest.mark.parametrize(
+    "client_attribute_name,server_attribute_name",
+    [
+        ("sentry.client_sample_rate", "sentry.server_sample_rate"),
+        ("client_sample_rate", "server_sample_rate"),
+    ],
+)
+@pytest.mark.parametrize(
+    "rate,expected", [("0", 0.0), ("0.25", 0.25), ("1", 1.0), ("invalid", 1.0), ("", 1.0)]
+)
+def test_convert_string_sample_rates(
+    client_attribute_name: str, server_attribute_name: str, rate: str, expected: float
+) -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        client_attribute_name: {"type": "string", "value": rate},
+        server_attribute_name: {"type": "string", "value": rate},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.client_sample_rate == expected
+    assert item.server_sample_rate == expected
+    assert item.attributes[client_attribute_name] == AnyValue(string_value=rate)
+    assert item.attributes[server_attribute_name] == AnyValue(string_value=rate)
+
+
+@pytest.mark.parametrize("rate", [0.5, "0.5"])
+def test_convert_sample_rate_precedence(rate: float | str) -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"] = {
+        "client_sample_rate": {"type": "double", "value": 0.25},
+        "sentry.client_sample_rate": {"type": "double", "value": rate},
+    }
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.client_sample_rate == 0.5
+
+
 def test_convert_conversation_and_session_id() -> None:
     message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
     message["attributes"] = {
@@ -287,6 +355,34 @@ def test_convert_span_links_to_json() -> None:
     assert item.attributes.get("sentry.links") == AnyValue(
         string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":{"type":"string","value":"parent"},"sentry.dropped_attributes_count":{"type":"integer","value":4}}},{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"873a988879faf06d"}]'
     )
+
+
+@pytest.mark.parametrize(
+    "count,expected_count",
+    [(5, 6), (0, 1), (3.5, 1), (3.0, 1), (True, 1), ("3", 1), (None, 1)],
+)
+def test_convert_span_link_dropped_count(
+    count: int | float | bool | str | None, expected_count: int
+) -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["links"] = [
+        {
+            "trace_id": message["trace_id"],
+            "span_id": message["span_id"],
+            "attributes": {
+                "sentry.dropped_attributes_count": {"type": "integer", "value": count},
+                "custom": {"type": "string", "value": "dropped"},
+            },
+        }
+    ]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+    links = orjson.loads(item.attributes["sentry.links"].string_value)
+
+    assert links[0]["attributes"]["sentry.dropped_attributes_count"] == {
+        "type": "integer",
+        "value": expected_count,
+    }
 
 
 def test_convert_renamed_attribute_meta() -> None:

@@ -610,10 +610,12 @@ function main() {
     process.exit(1);
   }
 
-  // Filter files
-  let files = parsedConfig.fileNames.filter(filePath => {
+  // Keep all tsconfig files in the program so ignored files can still provide
+  // declarations needed to infer types in files that we analyze.
+  const programFiles = parsedConfig.fileNames.filter(filePath => {
     return !filePath.includes('node_modules');
   });
+  let files = [...programFiles];
 
   if (opts.ignoreFiles) {
     const cwd = process.cwd();
@@ -638,8 +640,9 @@ function main() {
     process.exit(2);
   }
 
-  // Create program
-  const program = ts.createProgram(files, parsedConfig.options);
+  // Create the program from all tsconfig files. `files` only controls which
+  // files contribute to the coverage numbers below.
+  const program = ts.createProgram(programFiles, parsedConfig.options);
   const typeChecker = program.getTypeChecker();
 
   const totals = {total: 0, typed: 0};

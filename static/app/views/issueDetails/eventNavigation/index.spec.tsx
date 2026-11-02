@@ -172,6 +172,42 @@ describe('EventNavigation', () => {
     });
   });
 
+  describe('open period count', () => {
+    const metricGroup = GroupFixture({
+      id: group.id,
+      issueCategory: IssueCategory.METRIC,
+      issueType: IssueType.METRIC_ISSUE,
+    });
+
+    function renderMetricNav(org: typeof organization) {
+      return render(
+        <GroupDataContextProvider group={metricGroup} project={metricGroup.project}>
+          <IssueEventNavigation {...defaultProps} group={metricGroup} />
+        </GroupDataContextProvider>,
+        {initialRouterConfig: routerConfigForTab(Tab.DETAILS), organization: org}
+      );
+    }
+
+    it('shows the open period count reported by the chart on the first tab', () => {
+      const issueDetailsContext = jest.mocked(useIssueDetails)();
+
+      jest
+        .mocked(useIssueDetails)
+        .mockReturnValue({...issueDetailsContext, eventCount: 3});
+
+      renderMetricNav(
+        OrganizationFixture({
+          features: ['discover-basic', 'autofix-page'],
+          hideAiFeatures: false,
+        })
+      );
+
+      const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
+
+      expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
+    });
+  });
+
   describe('issue content navigation', () => {
     const seerOrganization = OrganizationFixture({
       features: ['discover-basic', 'autofix-page'],

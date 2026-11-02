@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from typing import Any
+from unittest import mock
 
 import pytest
 from django.db.models import F
@@ -526,6 +527,21 @@ class OrganizationReplayCountEndpointTest(
             assert response.status_code == 400
             assert response.data["detail"] == "Too many values provided"
 
+    def test_unexpected_value_error_is_not_exposed(self) -> None:
+        query = {"query": "issue.id:[1]"}
+
+        with (
+            self.feature(self.features),
+            mock.patch(
+                "sentry.replays.endpoints.organization_replay_count.get_replay_counts",
+                side_effect=ValueError("internal detail"),
+            ),
+        ):
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 500
+        assert b"internal detail" not in response.content
+
     def test_invalid_params_only_one_of_issue_and_transaction(self) -> None:
         query = {"query": "issue.id:[1] transaction:[2]"}
 
@@ -600,6 +616,7 @@ class OrganizationReplayCountEndpointTest(
                 query = {"query": f"replay_id:[{id}]"}
                 response = self.client.get(self.url, query, format="json")
                 assert response.status_code == 400
+                assert response.data["detail"] == "Invalid replay_id value"
 
     def test_endpoint_org_hasnt_sent_replays(self) -> None:
         event_id_a = "a" * 32

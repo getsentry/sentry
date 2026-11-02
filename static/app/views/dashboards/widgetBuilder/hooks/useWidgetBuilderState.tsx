@@ -23,14 +23,24 @@ import {
   WidgetType,
   type LegendType,
   type LinkedDashboard,
-  type Widget,
 } from 'sentry/views/dashboards/types';
 import {
   doesDisplayTypeSupportThresholds,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {
+  deserializeTransformations,
+  remapTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {
+  MAX_NUM_Y_AXES,
+  WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
+  type WidgetBuilderStateLocalParams,
+  BuilderStateAction,
+} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
@@ -41,10 +51,23 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {
+  serializeFields,
+  serializeLinkedDashboards,
+  serializeSorts,
+  normalizeSortField,
+  serializeThresholds,
+} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+export {
+  MAX_NUM_Y_AXES,
+  WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
+  BuilderStateAction,
+} from 'sentry/views/dashboards/widgetBuilder/constants';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
@@ -57,19 +80,6 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
   SpanFields.SPAN_DESCRIPTION,
   SpanFields.SPAN_CATEGORY,
 ] as const;
-
-export const MAX_NUM_Y_AXES = 3;
-
-export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
-  keyof WidgetBuilderStateLocalParams,
-  {key: string; storeCondition: (widget: Widget) => boolean; widgetField: keyof Widget}
-> = {
-  textContent: {
-    key: 'dashboard:widget-builder:text-content',
-    widgetField: 'description',
-    storeCondition: (widget: Widget) => widget.displayType === DisplayType.TEXT,
-  },
-};
 
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
@@ -86,11 +96,8 @@ export type WidgetBuilderStateQueryParams = {
   sort?: string[];
   thresholds?: string;
   title?: string;
+  transformations?: string;
   yAxis?: string[];
-};
-
-type WidgetBuilderStateLocalParams = {
-  textContent?: string;
 };
 
 /**
@@ -101,38 +108,30 @@ type WidgetBuilderStateLocalParams = {
 export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams &
   WidgetBuilderStateLocalParams;
 
-export const BuilderStateAction = {
-  SET_TITLE: 'SET_TITLE',
-  SET_DESCRIPTION: 'SET_DESCRIPTION',
-  SET_DISPLAY_TYPE: 'SET_DISPLAY_TYPE',
-  SET_DATASET: 'SET_DATASET',
-  SET_FIELDS: 'SET_FIELDS',
-  SET_Y_AXIS: 'SET_Y_AXIS',
-  SET_QUERY: 'SET_QUERY',
-  SET_SORT: 'SET_SORT',
-  SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',
-  SET_LIMIT: 'SET_LIMIT',
-  SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
-  SET_LEGEND_TYPE: 'SET_LEGEND_TYPE',
-  SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
-  SET_STATE: 'SET_STATE',
-  SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
-  SET_THRESHOLDS: 'SET_THRESHOLDS',
-  // Categorical bar chart specific actions
-  SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
-  SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
-  DELETE_AGGREGATE: 'DELETE_AGGREGATE',
-  SET_AXIS_RANGE: 'SET_AXIS_RANGE',
-} as const;
-
 type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_TITLE}
   | {payload: string; type: typeof BuilderStateAction.SET_DESCRIPTION}
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
   | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
-  | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
+  | {
+      payload: Column[];
+      type: typeof BuilderStateAction.SET_Y_AXIS;
+      sourceIndices?: number[];
+    }
+  | {
+      payload: QueryTransformations[] | undefined;
+      type: typeof BuilderStateAction.SET_TRANSFORMATIONS;
+    }
+  | {
+      payload: {index: number; transformations: readonly string[]};
+      type: typeof BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS;
+    }
+  | {
+      payload: string[];
+      type: typeof BuilderStateAction.SET_QUERY;
+      removedQueryIndex?: number;
+    }
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
@@ -205,6 +204,7 @@ export interface WidgetBuilderState {
   textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
+  transformations?: QueryTransformations[];
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
    * Not used by tables, big numbers, categorical bar, or heat map widgets.
@@ -400,6 +400,10 @@ export function useWidgetBuilderState(): {
 
   const [fields, setFields] = useSeededQueryState('field', parseAsColumns);
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
+  const [transformations, setTransformations] = useSeededQueryState(
+    'transformations',
+    parseAsTransformations
+  );
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
   // oxlint-disable-next-line react/refs
   const [sort, setRawSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
@@ -447,6 +451,7 @@ export function useWidgetBuilderState(): {
       dataset,
       fields,
       yAxis,
+      transformations,
       query,
       sort,
       limit,
@@ -484,6 +489,7 @@ export function useWidgetBuilderState(): {
       dataset,
       fields,
       yAxis,
+      transformations,
       query,
       sort,
       limit,
@@ -508,6 +514,13 @@ export function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          if (
+            ![DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(
+              action.payload
+            )
+          ) {
+            setTransformations(undefined, options);
+          }
           // When leaving the text widget type, clear local text content
           if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
             setTextContent(undefined);
@@ -528,6 +541,7 @@ export function useWidgetBuilderState(): {
           }));
           const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
           if (action.payload === DisplayType.TABLE) {
+            setQuery(query?.slice(0, 1), options);
             setLinkedDashboards([], options);
             setLimit(undefined, options);
             setYAxis([], options);
@@ -771,6 +785,7 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_DATASET: {
           const config = getDatasetConfig(action.payload);
+          setTransformations(undefined, options);
 
           let nextDisplayType = displayType;
           if (action.payload === WidgetType.ISSUE) {
@@ -997,6 +1012,19 @@ export function useWidgetBuilderState(): {
         }
         case BuilderStateAction.SET_Y_AXIS: {
           setYAxis(action.payload, options);
+          if (transformations) {
+            const sourceIndices = action.payload.map((field, index) =>
+              field.kind === FieldValueKind.FIELD
+                ? undefined
+                : (action.sourceIndices?.[index] ?? index)
+            );
+            setTransformations(
+              transformations.map(pipelines =>
+                remapTransformations(pipelines, sourceIndices)
+              ),
+              options
+            );
+          }
 
           if (fields?.length && fields.length > 0) {
             // Check if we need to update the limit for a Top N query
@@ -1018,8 +1046,36 @@ export function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_TRANSFORMATIONS:
+          setTransformations(action.payload, options);
+          break;
+        case BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS: {
+          const {index, transformations: pipeline} = action.payload;
+          setTransformations(
+            (query?.length ? query : ['']).map((_, queryIndex) => {
+              const pipelines = {...transformations?.[queryIndex]};
+              if (pipeline.length) {
+                pipelines[index] = [...pipeline];
+              } else {
+                delete pipelines[index];
+              }
+              return pipelines;
+            }),
+            options
+          );
+          break;
+        }
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
+          if (transformations) {
+            const remaining = transformations.filter(
+              (_, index) => index !== action.removedQueryIndex
+            );
+            setTransformations(
+              action.payload.map((_, index) => remaining[index] ?? remaining[0] ?? {}),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_SORT: {
           if (dataset === WidgetType.ISSUE) {
@@ -1081,6 +1137,12 @@ export function useWidgetBuilderState(): {
           }
           break;
         case BuilderStateAction.SET_STATE:
+          setTransformations(
+            action.payload.transformations
+              ? (deserializeTransformations(action.payload.transformations) ?? undefined)
+              : undefined,
+            options
+          );
           setDataset(action.payload.dataset, options);
           setDisplayType(action.payload.displayType, options);
           if (action.payload.displayType === DisplayType.TEXT) {
@@ -1225,6 +1287,17 @@ export function useWidgetBuilderState(): {
             // Time series: aggregates are in yAxis
             const newYAxis = yAxis?.filter((_, i) => i !== deleteIndex) ?? [];
             setYAxis(newYAxis, options);
+            if (transformations) {
+              const sourceIndices =
+                yAxis?.flatMap((_, index) => (index === deleteIndex ? [] : [index])) ??
+                [];
+              setTransformations(
+                transformations.map(pipelines =>
+                  remapTransformations(pipelines, sourceIndices)
+                ),
+                options
+              );
+            }
 
             // Replicate SET_Y_AXIS limit check
             if (fields?.length && fields.length > 0) {
@@ -1311,6 +1384,8 @@ export function useWidgetBuilderState(): {
       setLinkedDashboards,
       setTextContent,
       setYAxis,
+      transformations,
+      setTransformations,
       setFields,
       sort,
       query,
@@ -1369,33 +1444,6 @@ function deserializeFields(fields: string[]): Column[] {
   });
 }
 
-/**
- * Takes fields in the field and function format and coverts
- * them into a list of strings compatible with query params
- */
-export function serializeFields(fields: Column[]): string[] {
-  return fields.map(field => {
-    if (field.alias) {
-      return JSON.stringify({
-        field: generateFieldAsString(field),
-        alias: field.alias,
-      });
-    }
-    return generateFieldAsString(field);
-  });
-}
-
-export function serializeLinkedDashboards(
-  linkedDashboards: LinkedDashboard[] = []
-): string[] {
-  return linkedDashboards.map(linkedDashboard => {
-    return JSON.stringify({
-      dashboardId: linkedDashboard.dashboardId,
-      field: linkedDashboard.field,
-    } satisfies LinkedDashboard);
-  });
-}
-
 function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
   return linkedDashboards
     .map(linkedDashboard => {
@@ -1409,25 +1457,6 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
       return;
     })
     .filter(defined);
-}
-
-export function serializeSorts(dataset?: WidgetType) {
-  return function (sorts: Sort[]): string[] {
-    return sorts.map(sort => {
-      const field = normalizeSortField(sort.field);
-      // All issue fields do not use '-' regardless of order
-      if (dataset === WidgetType.ISSUE) {
-        return field;
-      }
-      const direction = sort.kind === 'desc' ? '-' : '';
-      return `${direction}${field}`;
-    });
-  };
-}
-
-function normalizeSortField(field: string): string {
-  const parsedField = explodeField({field});
-  return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1487,10 +1516,6 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
   return JSON.parse(value);
 }
 
-export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
-  return JSON.stringify(thresholds);
-}
-
 /**
  * nuqs parsers for every builder field that lives in the URL. Each one wraps the
  * (de)serializers above so the URL encoding stays in one place.
@@ -1518,6 +1543,11 @@ const parseAsColumns = createMultiParser({
   serialize: serializeFields,
   eq: bothEmpty,
 }).withDefault([]);
+
+const parseAsTransformations = createParser({
+  parse: deserializeTransformations,
+  serialize: (value: QueryTransformations[]) => JSON.stringify(value),
+});
 
 const parseAsQueries = createMultiParser({
   parse: (values: readonly string[]) => deserializeQuery([...values]),

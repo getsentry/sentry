@@ -45,3 +45,24 @@ def is_windows_absolute_scm_path(path: str) -> bool:
 def is_absolute_scm_path(path: str) -> bool:
     """Return whether a slash-normalized path is POSIX or Windows absolute."""
     return path.startswith("/") or is_windows_absolute_scm_path(path)
+
+
+def normalize_repository_source_root(path: str) -> str | None:
+    """Return a canonical repository-relative source root, or None if unsafe."""
+    normalized_separators = path.replace("\\", "/")
+    if is_windows_absolute_scm_path(normalized_separators):
+        return None
+
+    normalized_path = normalize_scm_path(path)
+    if normalized_path is None:
+        return None
+
+    repository_path = normalized_path.lstrip("/")
+    if (
+        is_windows_absolute_scm_path(repository_path)
+        or repository_path == ".."
+        or repository_path.startswith("../")
+    ):
+        return None
+
+    return repository_path

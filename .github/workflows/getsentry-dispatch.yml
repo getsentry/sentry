@@ -21,6 +21,10 @@ jobs:
   dispatch:
     if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'"
     name: getsentry dispatch
+    # Job-level so unrelated `labeled` events, which skip this job, don't cancel it.
+    concurrency:
+      group: getsentry-dispatch-${{ github.event.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7

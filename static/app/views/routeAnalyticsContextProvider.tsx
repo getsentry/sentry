@@ -1,5 +1,5 @@
 import {createContext, useMemo} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';

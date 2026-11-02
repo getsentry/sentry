@@ -1,18 +1,19 @@
 import type {Organization} from 'sentry/types/organization';
-import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+import {NodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/nodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
 
 export interface TraceTreeNodeDetailsProps<T> {
-  manager: VirtualizedViewManager | null;
   node: T;
-  onParentClick: (node: BaseNode) => void;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  replay: ReplayRecord | null;
   traceId: string;
   hideNodeActions?: boolean;
   initiallyCollapseAiIO?: boolean;
   tree?: TraceTree;
+}
+
+export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<BaseNode>) {
+  // Keyed by node so a panel error does not stick when another node is selected.
+  return <NodeDetails key={props.node.path} {...props} />;
 }

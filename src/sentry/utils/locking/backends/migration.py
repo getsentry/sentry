@@ -86,7 +86,9 @@ class MigrationLockBackend(LockBackend):
     backend always check the old backend. Keys that go to the old backend check the
     new backend only when the selector's `check_new()` is true, and release and
     locked also skip the new backend when it is false. This lets the new backend be down or
-    slow without effect on locks before the rollout starts and after a rollback.
+    slow without effect on locks before the rollout starts and after a rollback. Release
+    tries the backend that the selector picks first, and the other backend only if that
+    release fails.
 
     Two options control a rollout with `post_process_locks_selector` (the
     `locks.default.*` options do the same for `default_locks_selector`):
@@ -181,18 +183,24 @@ class MigrationLockBackend(LockBackend):
             raise Exception(f"Could not set key: {key!r}")
 
     def release(self, key: str, routing_key: str | None = None) -> None:
-        # Release on both backends, because the selector can have picked a different
-        # backend at acquire time than it picks now (the rate changed, or this process
-        # read a different option value).
-        backends = (self.backend_old, self.backend_new) if self._uses_new() else (self.backend_old,)
+        # Release on the backend that the selector picks now
+        # Release on the other backend only if that fails
+        # (the selector can have picked a different backend at acquire time)
+        if not self._uses_new():
+            backends: tuple[LockBackend, ...] = (self.backend_old,)
+        elif self._get_backend(key=key, routing_key=routing_key) is self.backend_old:
+            backends = (self.backend_old, self.backend_new)
+        else:
+            backends = (self.backend_new, self.backend_old)
         errors = []
         for backend in backends:
             try:
                 backend.release(key=key, routing_key=routing_key)
             except Exception as e:
                 errors.append(e)
-        if len(errors) == len(backends):
-            raise Exception(f"Could not release key: {key!r}: {errors!r}")
+            else:
+                return
+        raise Exception(f"Could not release key: {key!r}: {errors!r}")
 
     def locked(self, key: str, routing_key: str | None = None) -> bool:
         if self.backend_old.locked(key=key, routing_key=routing_key):

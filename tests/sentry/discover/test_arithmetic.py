@@ -6,7 +6,9 @@ from sentry.discover.arithmetic import (
     MaxOperatorError,
     Operation,
     parse_arithmetic,
+    resolve_arithmetic,
 )
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 
 
 def parse_arithmetic_must_be_operation(s: str) -> Operation:
@@ -64,6 +66,22 @@ def test_parse_arithmetic_returns_float() -> None:
 def test_parse_arithmetic_returns_column() -> None:
     result, _, _ = parse_arithmetic("spans.db")
     assert result == "spans.db"
+
+
+@pytest.mark.parametrize(
+    "inp,output",
+    [
+        ("1+1", 2),
+        ("1-1", 0),
+        ("1/1", 1),
+        ("1*2", 2),
+        ("1+2-3*4/6", 1),
+        ("2", 2),
+    ],
+)
+def test_resolve_arithmetic(inp, output) -> None:
+    parsed, _, _ = parse_arithmetic(inp)
+    assert resolve_arithmetic(parsed) == output
 
 
 @pytest.mark.parametrize(
@@ -330,3 +348,21 @@ def test_unparseable_arithmetic(equation) -> None:
 def test_invalid_arithmetic(equation) -> None:
     with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation, validate_single_operator=True)
+
+
+@pytest.mark.parametrize(
+    "equation",
+    [
+        # Previously on the hardcoded allowlist; must stay allowed via SPAN_DEFINITIONS.
+        "tpm() + failure_rate_if(is_transaction,equals,true)",
+        "failure_count_if(is_transaction,equals,true) + 0",
+        "ttid_contribution_rate() + ttfd_contribution_rate()",
+        "100 * ttid_contribution_rate()",
+        "division_if(span.self_time,span.duration,is_transaction,equals,true) + 0",
+        "trace_status_rate(ok) + 0",
+    ],
+)
+def test_span_definition_allowlist_keeps_prebuilt_dashboard_formulas(equation) -> None:
+    result, _, functions = parse_arithmetic(equation, definitions=SPAN_DEFINITIONS)
+    assert isinstance(result, Operation)
+    assert len(functions) > 0

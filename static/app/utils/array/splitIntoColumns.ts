@@ -1,8 +1,27 @@
-export function splitIntoColumns<T>(items: T[], columnCount: number): T[][] {
-  const columnSize = Math.ceil(items.length / columnCount);
+export function splitIntoColumns<T>(
+  items: T[],
+  columnCount: number,
+  getSize: (item: T) => number = () => 1
+): T[][] {
+  const total = items.reduce((sum, item) => sum + getSize(item), 0);
+  const columnSize = Math.ceil(total / columnCount);
   const columns: T[][] = [];
-  for (let i = 0; i < items.length; i += columnSize) {
-    columns.push(items.slice(i, i + columnSize));
+  let column: T[] = [];
+  let columnTotal = 0;
+
+  for (const item of items) {
+    if (columnTotal >= columnSize) {
+      columns.push(column);
+      column = [];
+      columnTotal = 0;
+    }
+    column.push(item);
+    columnTotal += getSize(item);
   }
+
+  if (column.length > 0) {
+    columns.push(column);
+  }
+
   return columns;
 }

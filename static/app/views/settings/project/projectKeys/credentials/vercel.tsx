@@ -3,8 +3,9 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {selectText} from 'sentry/utils/selectText';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 interface VercelTabProps {
@@ -54,9 +55,13 @@ export function VercelTab({
                 }
               )}
             >
-              <TextCopyInput aria-label={t('Vercel Log Drain Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -69,9 +74,13 @@ export function VercelTab({
                 'Set these authentication headers when configuring your Vercel Log Drain.'
               )}
             >
-              <TextCopyInput aria-label={t('Log Drain Authentication Header')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -89,9 +98,13 @@ export function VercelTab({
                 }
               )}
             >
-              <TextCopyInput aria-label={t('Vercel Trace Drain Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -104,9 +117,13 @@ export function VercelTab({
                 'Set these security headers when configuring your Vercel Trace Drain.'
               )}
             >
-              <TextCopyInput aria-label={t('Vercel Trace Drain Authentication Header')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>

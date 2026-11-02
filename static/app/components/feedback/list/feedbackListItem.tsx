@@ -1,24 +1,26 @@
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFatal} from '@sentry/icons/fatal';
+import {IconPlay} from '@sentry/icons/play';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Checkbox} from '@sentry/scraps/checkbox';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconFatal, IconPlay} from 'sentry/icons';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {feedbackHasLinkedError} from 'sentry/utils/feedback/hasLinkedError';
 import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,8 +38,6 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
 }
 
 export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
-  const {isSelected, toggleSelected} = useListItemCheckboxContext();
-
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -48,7 +48,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <CardSpacing>
+    <Container padding="xs xs 0 xs">
       <LinkedFeedbackCard
         data-selected={isOpen}
         to={{
@@ -75,12 +75,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
             e.stopPropagation();
           }}
         >
-          <Checkbox
-            disabled={isSelected(feedbackItem.id) === 'all-selected'}
-            checked={isSelected(feedbackItem.id) !== false}
-            onChange={() => {
-              toggleSelected(feedbackItem.id);
-            }}
+          <ListItemSelectCheckbox
+            htmlPrefix="feedback-list-select"
+            value={feedbackItem.id}
           />
         </Row>
 
@@ -93,18 +90,21 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow area="unread">
-            <Tooltip title={t('Unread')} skipWrapper>
-              <UnreadIndicator />
-            </Tooltip>
-          </DotRow>
+          <Row area="unread" justify="center">
+            <UnreadIndicator />
+          </Row>
         )}
 
         <PreviewRow align="start" justify="start" area="message">
           <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
         </PreviewRow>
 
-        <BottomGrid style={{gridArea: 'bottom'}}>
+        <Grid
+          gap="md"
+          overflow="hidden"
+          columns="auto max-content"
+          style={{gridArea: 'bottom'}}
+        >
           <Row justify="start" gap="sm">
             {feedbackItem.project ? (
               <StyledProjectBadge
@@ -147,9 +147,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
               />
             )}
           </Row>
-        </BottomGrid>
+        </Grid>
       </LinkedFeedbackCard>
-    </CardSpacing>
+    </Container>
   );
 }
 
@@ -188,14 +188,6 @@ const Row = styled(Flex)`
   place-items: center;
 `;
 
-const BottomGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto max-content;
-  gap: ${p => p.theme.space.md};
-
-  overflow: hidden;
-`;
-
 const StyledProjectBadge = styled(ProjectBadge)`
   && img {
     box-shadow: none;
@@ -206,19 +198,6 @@ const PreviewRow = styled(Row)`
   align-items: flex-start;
   font-size: ${p => p.theme.font.size.sm};
   padding-bottom: ${p => p.theme.space.sm};
-`;
-
-const DotRow = styled(Row)`
-  height: 1.1em;
-  align-items: flex-start;
-  justify-content: center;
-`;
-
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  border-radius: 50%;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
@@ -244,8 +223,4 @@ const ShortId = styled(TextOverflow)`
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.font.size.sm};
   grid-area: 'time';
-`;
-
-const CardSpacing = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xs} 0 ${p => p.theme.space.xs};
 `;

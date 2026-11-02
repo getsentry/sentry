@@ -1,5 +1,9 @@
+from unittest import mock
+
 from django.urls import reverse
 
+from sentry.models.release import Release
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -178,6 +182,96 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert "group_id" in response.data
         assert "not a valid integer id" in str(response.data["group_id"])
+
+    def _cur_event_url(self) -> str:
+        return reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": self.cur_event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+
+    def test_collapse_adjacent_events(self) -> None:
+        with (
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy,
+            mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids_snql") as snql,
+        ):
+            response = self.client.get(
+                self._cur_event_url(), format="json", data={"collapse": ["adjacentEvents"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] is None
+        assert legacy.call_count == 0
+        assert snql.call_count == 0
+
+    def test_adjacent_events_computed_by_default(self) -> None:
+        with mock.patch.object(
+            SnubaEventStorage,
+            "get_adjacent_event_ids",
+            autospec=True,
+            side_effect=SnubaEventStorage.get_adjacent_event_ids,
+        ) as legacy:
+            response = self.client.get(self._cur_event_url(), format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+        assert legacy.call_count == 1
+
+    def test_collapse_stacktrace_only(self) -> None:
+        with mock.patch.object(SnubaEventStorage, "get_adjacent_event_ids") as legacy:
+            response = self.client.get(
+                self._cur_event_url(), format="json", data={"collapse": ["stacktraceOnly"]}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert "previousEventID" not in response.data
+        assert "nextEventID" not in response.data
+        assert "release" not in response.data
+        assert legacy.call_count == 0
+
+
+class ProjectEventDetailsReleaseTest(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_collapse_full_release_matches_default(self) -> None:
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="1.0"
+        )
+        release.add_project(self.project)
+        event = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "release": "1.0",
+            },
+            project_id=self.project.id,
+        )
+        url = reverse(
+            "sentry-api-0-project-event-details",
+            kwargs={
+                "event_id": event.event_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+
+        default = self.client.get(url, format="json")
+        collapsed = self.client.get(url, format="json", data={"collapse": ["fullRelease"]})
+
+        assert default.status_code == 200, default.content
+        assert collapsed.status_code == 200, collapsed.content
+        assert collapsed.data["release"] == default.data["release"]
+        assert default.data["release"]["version"] == "1.0"
+        assert "firstEvent" not in default.data["release"]
 
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):

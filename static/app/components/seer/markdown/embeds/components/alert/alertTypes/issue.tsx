@@ -1,15 +1,15 @@
+import {IconSiren} from '@sentry/icons/siren';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/components/enabledStatusIndicator';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSiren} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -100,20 +100,10 @@ export function IssueAlertBlock({id, name}: EmbedOutput<'alert'>) {
 
   return (
     <SeerEmbedBlock
-      badge={
-        automation ? (
-          <Tag variant={automation.enabled ? 'success' : 'muted'}>
-            {t(
-              '%s - %s',
-              t('Issue alert'),
-              automation.enabled ? t('Enabled') : t('Disabled')
-            )}
-          </Tag>
-        ) : null
-      }
       href={href}
       icon={IconSiren}
       linkLabel={t('View Alert')}
+      status={automation ? <EnabledStatusIndicator enabled={automation.enabled} /> : null}
       testId="seer-alert-embed"
       title={automation?.name ?? name ?? t('Alert %s', id)}
     >

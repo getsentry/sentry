@@ -1,14 +1,15 @@
 from datetime import UTC, datetime
-from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
 
 from sentry.models.release import Release
-from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project_release_cache_key
 from sentry.testutils.skips import requires_snuba
-from sentry.utils.cache import cache
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    LatestReleaseCacheKey,
+    latest_release_cache,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -18,9 +19,6 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 class TestLatestReleaseCondition(ConditionTestCase):
     condition = Condition.LATEST_RELEASE
-    payload: Mapping[str, Any] = {
-        "id": LatestReleaseFilter.id,
-    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -30,15 +28,6 @@ class TestLatestReleaseCondition(ConditionTestCase):
             comparison=True,
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison is True
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison = False
@@ -106,18 +95,30 @@ class TestLatestReleaseCondition(ConditionTestCase):
         new_release.add_project(self.project)
 
         # ensure we clear the cache after creating a new release
-        cache_key = get_project_release_cache_key(self.event.group.project_id)
-        assert cache.get(cache_key) is None
+        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        assert latest_release_cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.event_data)
 
         # ensure we clear the cache when a release is deleted
         new_release.safe_delete()
-        cache_key = get_project_release_cache_key(self.event.group.project_id)
-        assert cache.get(cache_key) is None
+        cache_key = LatestReleaseCacheKey(self.event.group.project_id, None)
+        assert latest_release_cache.get(cache_key) is None
 
         # rule should pass again because the latest release is oldRelease
         self.assert_passes(self.dc, self.event_data)
+
+    def test_release_environment_clears_cache(self) -> None:
+        cache_key = LatestReleaseCacheKey(self.project.id, self.environment.id)
+        latest_release_cache.set(cache_key, self.release)
+
+        self.create_release(
+            project=self.project,
+            version="new-release",
+            environments=[self.environment],
+        )
+
+        assert latest_release_cache.get(cache_key) is None
 
     def test_latest_release_with_environment(self) -> None:
         self.create_release(

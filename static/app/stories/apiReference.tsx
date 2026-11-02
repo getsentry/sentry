@@ -1,14 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
-import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {Section} from 'sentry/stories/layout';
 import {fzf} from 'sentry/utils/search/fzf';
 
@@ -180,10 +179,16 @@ class PropTreeNode {
   public expanded = true;
   public children: Record<string, PropTreeNode> = {};
 
-  public prop: PropItem | {definitionFilePath: string; parent: PropItem['parent']};
+  public prop:
+    | TypeLoader.PropDoc
+    | {definitionFilePath: string; parent: TypeLoader.PropDoc['parent']};
   public result: ReturnType<typeof fzf> | null = null;
 
-  constructor(prop: PropItem | {definitionFilePath: string; parent: PropItem['parent']}) {
+  constructor(
+    prop:
+      | TypeLoader.PropDoc
+      | {definitionFilePath: string; parent: TypeLoader.PropDoc['parent']}
+  ) {
     this.prop = prop;
   }
 
@@ -204,7 +209,10 @@ class PropTreeNode {
   }
 }
 
-function usePropTree(props: Props, query: string): PropTreeNode[] {
+function usePropTree(
+  props: Record<string, TypeLoader.PropDoc>,
+  query: string
+): PropTreeNode[] {
   const root = useMemo(() => {
     const r = new PropTreeNode({definitionFilePath: 'root', parent: undefined});
     const grouped = Object.groupBy(Object.values(props), p => p.parent?.fileName ?? '');

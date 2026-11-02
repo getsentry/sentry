@@ -1,14 +1,16 @@
 import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, quotas
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
@@ -63,6 +65,16 @@ def is_api_or_agent_request(request: Request) -> bool:
     True when the request did NOT come from a logged-in browser session.
     """
     return not isinstance(request.successful_authenticator, SessionAuthentication)
+
+
+def export_window_within_retention(
+    organization: Organization, end: datetime, *, now: datetime
+) -> bool:
+    """Whether an export window ends within the organization's event retention period."""
+    retention_days = quotas.backend.get_event_retention(organization=organization)
+    if retention_days is None:
+        return True
+    return end >= now - timedelta(days=retention_days)
 
 
 class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
@@ -136,6 +148,13 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             sentry_sdk.set_attribute("query.error_reason", "Invalid date params")
             sentry_sdk.capture_exception(err)
             raise serializers.ValidationError("Invalid date parameters.")
+
+        if not export_window_within_retention(
+            self.context["organization"], end, now=timezone.now()
+        ):
+            raise serializers.ValidationError(
+                "The requested time range is outside your data retention period."
+            )
 
         if "statsPeriod" in query_info:
             del query_info["statsPeriod"]

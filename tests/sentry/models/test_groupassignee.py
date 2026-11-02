@@ -1,11 +1,16 @@
+from typing import Any
 from unittest import mock
 
 import pytest
+from django.db import OperationalError
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
+from sentry.issues.derived.framework import DerivedDataError
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
@@ -15,11 +20,162 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import (
+    Actor,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
+from sentry.viewer_context import ActorType as ViewerActorType
 
 pytestmark = requires_snuba
 
 
 class GroupAssigneeTestCase(TestCase):
+    def test_corrupt_progress_does_not_prevent_assignment(self) -> None:
+        self._assert_corrupt_derived_data_allows_assignment("progress", progress="invalid")
+
+    def test_corrupt_blob_does_not_prevent_assignment(self) -> None:
+        self._assert_corrupt_derived_data_allows_assignment("none", data=[])
+
+    def _assert_corrupt_derived_data_allows_assignment(
+        self, expected_feature: str, **values: Any
+    ) -> None:
+        derived = self.create_group_derived_data(
+            self.group, pipeline_hash=PIPELINE.pipeline_hash, **values
+        )
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            mock.patch("sentry.issues.derived.reporting.logger") as logger,
+            mock.patch("sentry.issues.derived.reporting.metrics.incr") as incr,
+        ):
+            self._assign_without_first_assignment_summary()
+
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+        logger.exception.assert_called_once()
+        context = logger.exception.call_args.kwargs["extra"]
+        assert context["group_id"] == self.group.id
+        assert context["operation"] == "assign"
+        assert context["stage"] == "decode"
+        assert context["cursor_id"] == derived.cursor_id
+        assert context["stored_pipeline_hash"] == PIPELINE.pipeline_hash
+        incr.assert_any_call(
+            "issues.derived.feature_error",
+            sample_rate=1.0,
+            tags={
+                "operation": "assign",
+                "stage": "decode",
+                "feature": expected_feature,
+                "aggregator": "none",
+            },
+        )
+
+    def _assign_without_first_assignment_summary(self) -> None:
+        with (
+            self.feature("organizations:issue-summary-on-first-assignment"),
+            mock.patch("sentry.models.groupassignee.issue_assigned.send_robust") as signal,
+            # Observe the summary lookup separately from processing the new assignment action.
+            mock.patch("sentry.receivers.outbox.cell.trigger_group_log_processing"),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = GroupAssignee.objects.assign(self.group, self.user)
+
+        assert result == {"new_assignment": True, "updated_assignment": False}
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+        signal.assert_called_once()
+        assert signal.call_args.kwargs["is_first_assignment"] is False
+
+    def test_failed_replay_without_stored_data_does_not_prevent_assignment(self) -> None:
+        context = self._assert_failed_replay_allows_assignment()
+        assert context["cursor_id"] is None
+        assert context["cursor_date"] is None
+        assert context["stored_pipeline_hash"] is None
+
+    def test_failed_replay_with_stale_data_does_not_prevent_assignment(self) -> None:
+        derived = self.create_group_derived_data(self.group, pipeline_hash="stale")
+        context = self._assert_failed_replay_allows_assignment()
+        assert context["cursor_id"] == derived.cursor_id
+        assert context["stored_pipeline_hash"] == "stale"
+
+    def _assert_failed_replay_allows_assignment(self) -> dict[str, Any]:
+        before = list(GroupDerivedData.objects.filter(group_id=self.group.id).values())
+        error = DerivedDataError(
+            "aggregate", aggregator_name="track_first_assignment", entry_id=123
+        )
+        with (
+            mock.patch(
+                "sentry.models.groupassignee.replay_feature_from_log", side_effect=error
+            ) as replay,
+            mock.patch("sentry.issues.derived.reporting.logger") as logger,
+            mock.patch("sentry.issues.derived.reporting.metrics.incr") as incr,
+        ):
+            self._assign_without_first_assignment_summary()
+
+        replay.assert_called_once()
+        assert list(GroupDerivedData.objects.filter(group_id=self.group.id).values()) == before
+        logger.exception.assert_called_once()
+        context = logger.exception.call_args.kwargs["extra"]
+        assert context["group_id"] == self.group.id
+        assert context["operation"] == "assign"
+        assert context["stage"] == "aggregate"
+        assert context["entry_id"] == 123
+        assert context["pipeline_hash"] == PIPELINE.pipeline_hash
+        incr.assert_any_call(
+            "issues.derived.feature_error",
+            sample_rate=1.0,
+            tags={
+                "operation": "assign",
+                "stage": "aggregate",
+                "feature": "none",
+                "aggregator": "track_first_assignment",
+            },
+        )
+        return context
+
+    def test_derived_data_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(
+            "sentry.models.groupassignee.GroupDerivedData.objects.get_or_none"
+        )
+
+    def test_replay_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(
+            "sentry.models.groupassignee.replay_feature_from_log"
+        )
+
+    def _assert_database_failure_propagates(self, target: str) -> None:
+        with (
+            self.feature("organizations:issue-summary-on-first-assignment"),
+            mock.patch(target, side_effect=OperationalError("database unavailable")),
+            mock.patch("sentry.models.groupassignee.report_derived_data_error") as report,
+            pytest.raises(OperationalError, match="database unavailable"),
+        ):
+            GroupAssignee.objects.assign(self.group, self.user)
+
+        report.assert_not_called()
+        assert not GroupAssignee.objects.filter(group=self.group).exists()
+
+    def test_assign_preserves_viewer_context_until_on_commit(self) -> None:
+        expected_context = ViewerContext(
+            actor=Actor(type=ViewerActorType.USER, actor_id=self.user.id),
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+        captured_contexts: list[ViewerContext | None] = []
+
+        with mock.patch("sentry.models.groupassignee.issue_assigned.send_robust") as send_robust:
+            send_robust.side_effect = lambda **kwargs: captured_contexts.append(
+                get_viewer_context()
+            )
+            with self.capture_on_commit_callbacks() as callbacks:
+                with viewer_context_scope(expected_context):
+                    GroupAssignee.objects.assign(self.group, self.user)
+
+            assert get_viewer_context() is None
+            for callback in callbacks:
+                callback()
+
+        assert captured_contexts == [expected_context]
+
     def test_constraints(self) -> None:
         # Can't both be assigned
         with pytest.raises(AssertionError):

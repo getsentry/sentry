@@ -62,6 +62,7 @@ from .manual_issue_assignment import *  # noqa: F401,F403
 from .member_invited import *  # noqa: F401,F403
 from .missing_members_nudge import *  # noqa: F401,F403
 from .monitor_mark_failed import *  # noqa: F401,F403
+from .notification_tracking import *  # noqa: F401,F403
 from .oauth_consent import *  # noqa: F401,F403
 from .onboarding_complete import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
@@ -86,7 +87,6 @@ from .relocation_organization_imported import *  # noqa: F401,F403
 from .repo_linked import *  # noqa: F401,F403
 from .rule_disable_opt_out import *  # noqa: F401,F403
 from .rule_reenable import *  # noqa: F401,F403
-from .rule_snooze import *  # noqa: F401,F403
 from .search_saved import *  # noqa: F401,F403
 from .second_platform_added import *  # noqa: F401,F403
 from .sentry_app_created import *  # noqa: F401,F403

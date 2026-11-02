@@ -113,6 +113,31 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     expect(emptyState).toHaveTextContent('No feature flags were found for this search');
   });
 
+  it('searches flags by value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: FeatureFlagTagsFixture(),
+    });
+
+    const group = GroupFixture();
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <FlagDrawerContent
+          environments={[]}
+          group={group}
+          search="FALSE"
+          orderBy={OrderBy.NEWEST}
+        />
+      </GroupDataContextProvider>
+    );
+
+    // Only the first flag has a false value
+    expect(
+      await screen.findByText('feature.organizations:my-feature')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('my-rolled-out-feature')).not.toBeInTheDocument();
+  });
+
   it('renders empty state when no flags returned and hasFlags', async () => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([

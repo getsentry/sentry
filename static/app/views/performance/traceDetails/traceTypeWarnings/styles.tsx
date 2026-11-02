@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
@@ -37,9 +37,9 @@ function Banner(props: BannerProps) {
 
   return (
     <BannerWrapper>
-      <ActionsWrapper>
+      <Container maxWidth="50%">
         <BannerTitle>{props.title}</BannerTitle>
-        <BannerDescription>{props.description}</BannerDescription>
+        <Container marginBottom="lg">{props.description}</Container>
         <Flex align="center" gap="xs">
           <Flex gap="md">
             <Button
@@ -62,8 +62,10 @@ function Banner(props: BannerProps) {
             </LinkButton>
           </Flex>
         </Flex>
-      </ActionsWrapper>
-      <BannerBackground image={props.image} />
+      </Container>
+      <Container display={{zero: 'none', '2xl': 'flex'}}>
+        {containerProps => <BannerBackground {...containerProps} image={props.image} />}
+      </Container>
       <CloseDropdownMenu
         position="bottom-end"
         trigger={triggerProps => (
@@ -106,18 +108,10 @@ const BannerWrapper = styled('div')`
   container-type: inline-size;
 `;
 
-const ActionsWrapper = styled('div')`
-  max-width: 50%;
-`;
-
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerDescription = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const CloseDropdownMenu = styled(DropdownMenu)`
@@ -131,7 +125,6 @@ const CloseDropdownMenu = styled(DropdownMenu)`
 `;
 
 const BannerBackground = styled('div')<{image: any}>`
-  display: flex;
   justify-self: flex-end;
   position: absolute;
   top: 11px;
@@ -142,15 +135,10 @@ const BannerBackground = styled('div')<{image: any}>`
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;
-
-  @container (max-width: 840px) {
-    display: none;
-  }
 `;
 
 const TraceWarningComponents = {
   Banner,
-  BannerBackground,
 };
 
 export {TraceWarningComponents};

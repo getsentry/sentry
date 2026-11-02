@@ -126,7 +126,8 @@ describe('Relocation', () => {
         },
       });
 
-      const {router} = await waitForRenderSuccess('get-started');
+      const {router} = renderPage('get-started');
+      await screen.findByTestId('in-progress');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -346,7 +347,8 @@ describe('Relocation', () => {
         })
       );
 
-      const {router} = await waitForRenderSuccess('public-key');
+      const {router} = renderPage('public-key');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -389,7 +391,8 @@ describe('Relocation', () => {
         })
       );
 
-      const {router} = await waitForRenderSuccess('encrypt-backup');
+      const {router} = renderPage('encrypt-backup');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -590,7 +593,8 @@ describe('Relocation', () => {
     it('redirects to `get-started` page if expected local storage data is missing', async () => {
       sessionStorage.setItem('relocationOnboarding', JSON.stringify({}));
 
-      const {router} = await waitForRenderSuccess('upload-backup');
+      const {router} = renderPage('upload-backup');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -638,7 +642,8 @@ describe('Relocation', () => {
     });
 
     it('redirects to `get-started` page if there is no existing relocation', async () => {
-      const {router} = await waitForRenderSuccess('in-progress');
+      const {router} = renderPage('in-progress');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
@@ -667,7 +672,8 @@ describe('Relocation', () => {
         },
       });
 
-      const {router} = await waitForRenderSuccess('in-progress');
+      const {router} = renderPage('in-progress');
+      await screen.findByTestId('get-started');
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 

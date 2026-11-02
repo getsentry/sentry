@@ -377,8 +377,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
         "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
         "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
+
+    # dashboard:read and dashboard:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(
         self,

@@ -29,7 +29,9 @@ describe('DocIntegrationDetailedView', () => {
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(await screen.findByText(doc.name)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: doc.name, level: 1})
+    ).toBeInTheDocument();
 
     expect(getMock).toHaveBeenCalledTimes(1);
 

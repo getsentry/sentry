@@ -3,14 +3,14 @@ from typing import Any
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.rules.age import AgeComparisonType, ModelAgeType
-from sentry.rules.filters.latest_adopted_release_filter import (
-    get_first_last_release_for_event,
-    is_newer_release,
-)
 from sentry.search.utils import LatestReleaseOrders
 from sentry.workflow_engine.handlers.condition.latest_release_handler import (
     get_latest_adopted_release_for_env,
+)
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_first_last_release_for_event,
+    is_newer_release,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior

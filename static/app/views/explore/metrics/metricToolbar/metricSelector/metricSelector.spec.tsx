@@ -177,6 +177,9 @@ describe('MetricSelector', () => {
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('listbox');
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{Escape}');
       await waitFor(() => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
@@ -190,7 +193,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[1]!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.click(document.body);
@@ -340,6 +346,9 @@ describe('MetricSelector', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('option', {name: 'bar'});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
 
@@ -354,6 +363,9 @@ describe('MetricSelector', () => {
       const searchInput = await screen.findByPlaceholderText(
         'Search application metrics\u2026'
       );
+      await waitFor(() => {
+        expect(searchInput).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
 
       // DOM focus stays on search input; virtual focus moves to first option
@@ -367,7 +379,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[1]!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
@@ -384,7 +399,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES.at(-1)!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
 
       // Move focus near the end of the list
       for (let i = 0; i < 5; i++) {
@@ -565,24 +583,9 @@ describe('MetricSelector', () => {
       });
     });
 
-    it('does not show unit badges without tracemetrics-units-ui feature', async () => {
+    it('shows unit badges', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: 'bar'});
-
-      expect(screen.queryByText('millisecond')).not.toBeInTheDocument();
-      expect(screen.queryByText('megabyte')).not.toBeInTheDocument();
-    });
-
-    it('shows unit badges when tracemetrics-units-ui feature is enabled', async () => {
-      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'tracemetrics-units-ui'],
-        },
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
@@ -593,10 +596,7 @@ describe('MetricSelector', () => {
 
     it('does not show a unit badge when the metric unit is none', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'tracemetrics-units-ui'],
-        },
+        organization,
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));

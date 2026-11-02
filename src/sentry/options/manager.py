@@ -105,9 +105,6 @@ DEFAULT_FLAGS = 1 << 0
 FLAG_IMMUTABLE = 1 << 1
 # Don't check/set in the datastore. Option only exists from file.
 FLAG_NOSTORE = 1 << 2
-# Values that should only exist in datastore, and shouldn't exist in
-# config files.
-FLAG_STOREONLY = 1 << 3
 # Values that must be defined for setup to be considered complete
 FLAG_REQUIRED = 1 << 4
 # If the value is defined on disk, use that and don't attempt to fetch from db.
@@ -361,19 +358,14 @@ class OptionsManager:
                     record_option(key, result)
                     return result
 
-            # Some values we don't want to allow them to be configured through
-            # config files and should only exist in the datastore
-            if opt.has_any_flag({FLAG_STOREONLY}):
-                optval = opt.default()
-            else:
+            try:
+                # default to the hardcoded local configuration for this key
+                optval = settings.SENTRY_OPTIONS[key]
+            except KeyError:
                 try:
-                    # default to the hardcoded local configuration for this key
-                    optval = settings.SENTRY_OPTIONS[key]
+                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
                 except KeyError:
-                    try:
-                        optval = settings.SENTRY_DEFAULT_OPTIONS[key]
-                    except KeyError:
-                        optval = opt.default()
+                    optval = opt.default()
             # options already present in store are cached by store
             # caching here to avoid database queries
             self.store.set_cache(opt, optval)
@@ -493,7 +485,6 @@ class OptionsManager:
 
     def validate_option(self, key: str, value):
         opt = self.lookup_key(key)
-        assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
         if not opt.type.test(value):
             raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 

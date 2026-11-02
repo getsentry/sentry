@@ -59,10 +59,18 @@ export function getHangProfileData(event: Event): HangProfileData | null {
   return null;
 }
 
-export function MetricKitHangProfileSection({data}: {data: HangProfileData}) {
+export function MetricKitHangProfileSection({
+  data,
+  initialCollapse,
+}: {
+  data: HangProfileData;
+  initialCollapse?: boolean;
+}) {
   return (
     <ErrorBoundary mini>
       <FoldSection
+        initialCollapse={initialCollapse}
+        disableCollapsePersistence={initialCollapse !== undefined}
         sectionKey={SectionKey.STACKTRACE_FLAMEGRAPH}
         title={
           <span>

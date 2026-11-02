@@ -1,16 +1,16 @@
 from typing import Any
 
-from sentry.rules.conditions.event_frequency import (
-    COMPARISON_INTERVALS,
-    PERCENT_INTERVALS,
-    STANDARD_INTERVALS,
-    percent_increase,
-)
 from sentry.workflow_engine.handlers.condition.event_attribute_handler import (
     EventAttributeConditionHandler,
 )
 from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
     TaggedEventConditionHandler,
+)
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import (
+    COMPARISON_INTERVALS,
+    PERCENT_INTERVALS,
+    STANDARD_INTERVALS,
+    percent_increase,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior

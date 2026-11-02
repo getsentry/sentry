@@ -24,8 +24,6 @@ class IncrMultiOptions(TypedDict):
 
 
 class TSDBModel(Enum):
-    internal = 0
-
     # number of events seen specific to grouping
     project = 1
     group = 4
@@ -40,8 +38,6 @@ class TSDBModel(Enum):
     project_total_rejected = 101
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
-    # the number of events forwarded to third party processors (data forwarding)
-    project_total_forwarded = 105
 
     # the number of events sent to the server
     organization_total_received = 200
@@ -102,13 +98,6 @@ class TSDBModel(Enum):
     project_total_received_discarded = 610
     # the number of events filtered because they refer to a healthcheck endpoint
     project_total_healthcheck = 611
-
-    servicehook_fired = 700
-
-    # the number of views that a Sentry App receives
-    sentry_app_viewed = 800
-    # the number of interactions a Sentry App UI Component receives
-    sentry_app_component_interacted = 801
 
 
 class BaseTSDB(Service):

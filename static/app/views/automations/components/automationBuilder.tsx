@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DataConditionGroupLogicType,
@@ -51,8 +51,7 @@ export function AutomationBuilder() {
                         height: '21px',
                       }),
                     }}
-                    isSearchable={false}
-                    isClearable={false}
+                    searchable={false}
                     name={`${state.triggers.id}.logicType`}
                     value={
                       // We do not expose ANY as a valid option, but it is

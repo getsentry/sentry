@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -21,7 +23,13 @@ export default function OrganizationGeneralSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader title={t('Early Features')} />
+        <SettingsPageHeader
+          title={{
+            type: 'page-title',
+            label: t('Early Features'),
+            trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          }}
+        />
         <OrganizationPermissionAlert />
 
         <EarlyFeaturesSettingsForm access={access} />

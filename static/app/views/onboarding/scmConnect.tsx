@@ -1,3 +1,6 @@
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
+import {IconLock} from '@sentry/icons/lock';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,7 +12,6 @@ import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegra
 import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
 import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
-import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 
@@ -93,10 +95,7 @@ export function ScmConnect({
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
 
   return (
-    // The onboarding flow has no page-level query container (project creation
-    // resolves against `#main`), and the flow's fixed footers preclude one
-    // higher up, so each SCM step declares its own.
-    <Stack containerType="inline-size">
+    <Stack>
       <ScmStepLayout>
         <ScmStepHeader
           heading={t('Connect your code')}

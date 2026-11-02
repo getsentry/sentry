@@ -5,17 +5,26 @@ import {Text} from '@sentry/scraps/text';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
-export interface BreadcrumbItemLinkProps {
+export type BreadcrumbItemLinkProps = {
   label: string;
+  /**
+   * Where the crumb leads. A breadcrumb trail is a path through the product, so
+   * every step in it stays inside the product.
+   */
   to: LinkProps['to'];
   /**
    * Decorative 16×16 leading graphic — a `ProjectsBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
-}
+};
 
 export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLinkProps) {
+  const content = (
+    <Text ellipsis variant="muted">
+      {label}
+    </Text>
+  );
   return (
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
@@ -31,9 +40,7 @@ export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLi
             data-test-id="breadcrumb-link"
             {...styleProps}
           >
-            <Text ellipsis variant="muted">
-              {label}
-            </Text>
+            {content}
           </Link>
         )}
       </Container>

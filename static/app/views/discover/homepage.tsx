@@ -176,7 +176,7 @@ export default function HomepageContainer() {
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
     <PageFiltersContainer skipInitializeUrlParams {...datePageFilterProps}>
-      <AiQueryProvider>
+      <AiQueryProvider strategy="Errors">
         <Homepage />
       </AiQueryProvider>
     </PageFiltersContainer>

@@ -77,6 +77,11 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
+    def test_non_integer_member_id(self) -> None:
+        for path in self._get_paths(["not-an-id", "abc"]):
+            resp = self.client.get(path)
+            assert resp.status_code == 400
+
     def test_invalid_token(self) -> None:
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization

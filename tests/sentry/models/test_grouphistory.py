@@ -1,6 +1,7 @@
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, get_prev_history
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, get_prev_history_date
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
 
@@ -60,28 +61,58 @@ class FilterToTeamTest(TestCase):
         assert set(GroupHistory.objects.filter_to_team(other_team)) == other_history
 
 
-class GetPrevHistoryTest(TestCase):
+class GetPrevHistoryDateTest(TestCase):
     def test_no_history(self) -> None:
         # Test both statuses with/without a previous status
-        assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) is None
-        assert get_prev_history(self.group, GroupHistoryStatus.DELETED) is None
+        assert get_prev_history_date(self.group, GroupHistoryStatus.UNRESOLVED) is None
+        assert get_prev_history_date(self.group, GroupHistoryStatus.DELETED) is None
 
     def test_history(self) -> None:
         prev_history = self.create_group_history(self.group, GroupHistoryStatus.UNRESOLVED)
-        assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history
-        assert get_prev_history(self.group, GroupHistoryStatus.DELETED) is None
+        assert (
+            get_prev_history_date(self.group, GroupHistoryStatus.RESOLVED)
+            == prev_history.date_added
+        )
+        assert get_prev_history_date(self.group, GroupHistoryStatus.DELETED) is None
 
     def test_multi_history(self) -> None:
         other_group = self.create_group()
         self.create_group_history(other_group, GroupHistoryStatus.UNRESOLVED)
-        assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) is None
+        assert get_prev_history_date(self.group, GroupHistoryStatus.UNRESOLVED) is None
         prev_history = self.create_group_history(self.group, GroupHistoryStatus.UNRESOLVED)
-        assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history
+        assert (
+            get_prev_history_date(self.group, GroupHistoryStatus.RESOLVED)
+            == prev_history.date_added
+        )
         prev_history = self.create_group_history(
             self.group, GroupHistoryStatus.RESOLVED, prev_history_date=prev_history.date_added
         )
-        assert get_prev_history(self.group, GroupHistoryStatus.UNRESOLVED) == prev_history
+        assert (
+            get_prev_history_date(self.group, GroupHistoryStatus.UNRESOLVED)
+            == prev_history.date_added
+        )
         prev_history = self.create_group_history(
             self.group, GroupHistoryStatus.UNRESOLVED, prev_history_date=prev_history.date_added
         )
-        assert get_prev_history(self.group, GroupHistoryStatus.RESOLVED) == prev_history
+        assert (
+            get_prev_history_date(self.group, GroupHistoryStatus.RESOLVED)
+            == prev_history.date_added
+        )
+
+    def test_newest_across_previous_statuses(self) -> None:
+        self.create_group_history(
+            self.group, GroupHistoryStatus.RESOLVED, date_added=before_now(hours=3)
+        )
+        newest = self.create_group_history(
+            self.group, GroupHistoryStatus.AUTO_RESOLVED, date_added=before_now(hours=1)
+        )
+        self.create_group_history(
+            self.group, GroupHistoryStatus.SET_RESOLVED_IN_RELEASE, date_added=before_now(hours=2)
+        )
+        self.create_group_history(
+            self.group, GroupHistoryStatus.UNRESOLVED, date_added=before_now(minutes=1)
+        )
+
+        with self.assertNumQueries(1):
+            prev_history_date = get_prev_history_date(self.group, GroupHistoryStatus.REGRESSED)
+        assert prev_history_date == newest.date_added

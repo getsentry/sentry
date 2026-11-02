@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';

@@ -1,0 +1,340 @@
+import {Fragment, type CSSProperties} from 'react';
+import {useDraggable, useDroppable} from '@dnd-kit/core';
+import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
+import omit from 'lodash/omit';
+
+import {Container} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
+
+import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {
+  DisplayType,
+  WidgetType,
+  type DashboardDetails,
+  type DashboardFilters,
+} from 'sentry/views/dashboards/types';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
+import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
+import {
+  DRAGGABLE_PREVIEW_HEIGHT_PX,
+  DRAGGABLE_PREVIEW_WIDTH_PX,
+  PREVIEW_HEIGHT_PX,
+  SIDEBAR_HEIGHT,
+  WIDGET_PREVIEW_DRAG_ID,
+  type WidgetDragPositioning,
+} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {
+  WidgetPreview,
+  type WidgetPreviewStatus,
+} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
+import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+
+export function WidgetPreviewContainer({
+  dashboardFilters,
+  dashboard,
+  isQueryConditionInvalid,
+  dragPosition,
+  isDraggable,
+  onDataFetched,
+  openWidgetTemplates,
+  widgetInterval,
+}: {
+  dashboard: DashboardDetails;
+  dashboardFilters: DashboardFilters;
+  dragPosition?: WidgetDragPositioning;
+  isDraggable?: boolean;
+  isQueryConditionInvalid?: boolean;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
+  openWidgetTemplates?: boolean;
+  widgetInterval?: string;
+}) {
+  const {state} = useWidgetBuilderContext();
+
+  const widget = convertBuilderStateToWidget(state);
+
+  // `MetricSelector` loads available metrics, and if the current widget doesn't
+  // have a selected metric, `MetricSelect` might _force_ one, in a `useEffect`.
+  // To prevent showing an error state while it's fetching, fetch data here, if
+  // needed. Show a loading screen while it's fetching. NOTE: the default
+  // aggregate for trace metrics is `sum(value)` because we don't know available
+  // metrics at render time, so a default metrics widget is invalid, which is
+  // why we need to wait for the load.
+  const needsMetric =
+    widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget);
+  const {data: metricOptions, isFetching: isFetchingMetricOptions} = useMetricOptions({
+    enabled: needsMetric,
+  });
+  const hasMetricOptions = (metricOptions?.data?.length ?? 0) > 0;
+
+  const isResolving = needsMetric && isFetchingMetricOptions;
+  const hasNoMetrics = needsMetric && !isFetchingMetricOptions && !hasMetricOptions;
+
+  // `convertBuilderStateToWidget` strips blank equations, so one only matters when it's
+  // the *only* thing entered — otherwise the widget renders from its other aggregates.
+  // In that lone-equation case, nudge the user to finish it rather than showing the
+  // generic "add a field" error.
+  const hasOnlyBlankEquation =
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.queries.every(query => query.aggregates.length === 0) &&
+    Boolean(
+      getTraceMetricAggregates(state.displayType, state.yAxis, state.fields)?.some(
+        aggregate =>
+          aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
+      )
+    );
+
+  const message =
+    (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
+    getWidgetConfigError(widget) ??
+    (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
+
+  let previewStatus: WidgetPreviewStatus;
+  if (isResolving) {
+    previewStatus = {status: 'loading'};
+  } else if (hasNoMetrics) {
+    previewStatus = {
+      status: 'invalid',
+      message: t('No metrics found for the selected projects.'),
+    };
+  } else if (message) {
+    previewStatus = {status: 'invalid', message};
+  } else {
+    previewStatus = {status: 'ready'};
+  }
+  const location = useLocation();
+  const theme = useTheme();
+  // The preview's mobile drag controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  // if small screen and draggable, enable dragging
+  const isDragEnabled = isSmallScreen && isDraggable;
+
+  const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
+    id: WIDGET_PREVIEW_DRAG_ID,
+    disabled: !isDragEnabled,
+    // May need to add 'handle' prop if we want to drag the preview by a specific area
+  });
+
+  const {translate, top, left} = dragPosition ?? {};
+
+  const draggableStyle: CSSProperties = {
+    transform: isDragEnabled
+      ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
+      : undefined,
+    top: isDragEnabled ? (top ?? 0) : undefined,
+    left: isDragEnabled ? (left ?? 0) : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragEnabled
+      ? theme.zIndex.modal
+      : isSmallScreen
+        ? theme.zIndex.initial
+        : // if not responsive, set z-index to default in styled component
+          undefined,
+    cursor: isDragEnabled ? 'grab' : undefined,
+    margin: isDragEnabled ? '0' : undefined,
+    alignSelf: isDragEnabled ? 'flex-start' : undefined,
+    position: isDragEnabled ? 'fixed' : undefined,
+  };
+
+  // check if the state is in the url because the state variable has default values
+  const hasUrlParams =
+    Object.keys(
+      omit(location.query, [
+        'environment',
+        'project',
+        'release',
+        'start',
+        'end',
+        'statsPeriod',
+      ])
+    ).length > 0;
+
+  const getPreviewHeight = () => {
+    if (isDragEnabled) {
+      return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    // if none of the widget templates are selected
+    if (openWidgetTemplates && !hasUrlParams) {
+      return PREVIEW_HEIGHT_PX;
+    }
+    if (state.displayType === DisplayType.TABLE) {
+      return 'auto';
+    }
+    if (state.displayType === DisplayType.BIG_NUMBER && !isSmallScreen) {
+      return '20vw';
+    }
+    return PREVIEW_HEIGHT_PX;
+  };
+
+  const animatedProps: MotionNodeAnimationOptions = {
+    initial: {opacity: 0, transform: 'translateX(100%) translateY(0)'},
+    animate: {opacity: 1, transform: 'translateX(0) translateY(0)'},
+    exit: {opacity: 0, transform: 'translateX(100%) translateY(0)'},
+    transition: animationTransitionSettings,
+  };
+
+  return (
+    <Fragment>
+      {isDragEnabled && <DroppablePreviewContainer />}
+      <DraggableWidgetContainer
+        ref={setNodeRef}
+        id={WIDGET_PREVIEW_DRAG_ID}
+        style={draggableStyle}
+        aria-label={t('Draggable Preview')}
+        {...attributes}
+        {...listeners}
+      >
+        <SampleWidgetCard
+          {...animatedProps}
+          style={{
+            width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
+            height: getPreviewHeight(),
+            outline: isDragEnabled
+              ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+                `8px solid ${theme.tokens.border.primary}`
+              : undefined,
+          }}
+        >
+          {openWidgetTemplates && !hasUrlParams ? (
+            <Container padding="xl" width="100%" height="100%">
+              {/* eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing heading moved from newWidgetBuilder.tsx. */}
+              <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+              <TemplateWidgetPreviewPlaceholder>
+                <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+              </TemplateWidgetPreviewPlaceholder>
+            </Container>
+          ) : (
+            <WidgetPreview
+              dashboardFilters={dashboardFilters}
+              dashboard={dashboard}
+              widgetInterval={widgetInterval}
+              previewStatus={previewStatus}
+              onDataFetched={onDataFetched}
+              shouldForceDescriptionTooltip={!isSmallScreen}
+            />
+          )}
+        </SampleWidgetCard>
+
+        {!isSmallScreen && (
+          <FilterBarContainer {...animatedProps}>
+            <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+          </FilterBarContainer>
+        )}
+      </DraggableWidgetContainer>
+    </Fragment>
+  );
+}
+
+function DroppablePreviewContainer() {
+  const containers = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+  return (
+    <DroppableGrid>
+      {containers.map(id => (
+        <Droppable key={id} id={id} />
+      ))}
+    </DroppableGrid>
+  );
+}
+
+function Droppable({id}: {id: string}) {
+  const {setNodeRef} = useDroppable({
+    id,
+  });
+
+  return <div ref={setNodeRef} id={id} />;
+}
+
+const SampleWidgetCard = styled(motion.div)`
+  width: 100%;
+  min-width: 100%;
+  border: 1px dashed ${p => p.theme.colors.gray400};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+  z-index: ${p => p.theme.zIndex.initial};
+  position: relative;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+    p.theme.breakpoints.md}) {
+    width: 30vw;
+    min-width: 100px;
+  }
+`;
+
+const DraggableWidgetContainer = styled('div')`
+  align-content: center;
+  z-index: ${p => p.theme.zIndex.initial};
+  position: relative;
+  margin: auto;
+  cursor: auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    z-index: ${p => p.theme.zIndex.modal};
+    transform: none;
+    cursor: auto;
+  }
+`;
+
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from newWidgetBuilder.tsx.
+const DroppableGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  position: fixed;
+  gap: ${p => p.theme.space['3xl']};
+  margin: ${p => p.theme.space.xl};
+  top: ${SIDEBAR_HEIGHT}px;
+  right: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.xl};
+  left: 0;
+`;
+
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from newWidgetBuilder.tsx.
+const TemplateWidgetPreviewPlaceholder = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 95%;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-style: italic;
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const FilterBarContainer = styled(motion.div)`
+  margin-top: ${p => p.theme.space.md};
+  background-color: ${p => p.theme.tokens.background.primary};
+  border-radius: ${p => p.theme.radius.md};
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+    p.theme.breakpoints.md}) {
+    width: 30vw;
+    min-width: 100px;
+  }
+`;

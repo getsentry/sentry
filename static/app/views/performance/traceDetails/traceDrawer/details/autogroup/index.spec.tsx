@@ -44,9 +44,6 @@ describe('AutogroupNodeDetails', () => {
           node={node}
           organization={organization}
           onTabScrollToNode={jest.fn()}
-          onParentClick={jest.fn()}
-          manager={null}
-          replay={null}
           traceId="test-trace-id"
         />
       </TraceStateProvider>

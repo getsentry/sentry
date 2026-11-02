@@ -3,16 +3,16 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -30,6 +30,12 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  GranularPermissionSelection,
+  granularPermissionsToScopes,
+  type GranularPermissions,
+} from 'sentry/views/settings/account/granularPermissionSelection';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -67,8 +73,15 @@ function getPermissionsPreview(scopes: string[]): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
+  const [granularPermissions, setGranularPermissions] = useState<GranularPermissions>({});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const organization = useOrganization({allowNull: true});
+
+  // Personal tokens aren't tied to an organization, so the flag is read from
+  // the organization currently in context.
+  const hasGranularPermissions =
+    organization?.features.includes('granular-permission-scopes-ui') ?? false;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -76,10 +89,12 @@ export default function ApiNewToken() {
   );
 
   const scopes = Array.from(
-    new Set(
-      permissionStateToList(permissions, false).filter(
-        (value): value is NonNullable<typeof value> => value !== undefined
-      )
+    new Set<string>(
+      hasGranularPermissions
+        ? granularPermissionsToScopes(granularPermissions)
+        : permissionStateToList(permissions, false).filter(
+            (value): value is NonNullable<typeof value> => value !== undefined
+          )
     )
   ).sort();
 
@@ -158,22 +173,30 @@ export default function ApiNewToken() {
           <Panel>
             <PanelHeader>{t('Permissions')}</PanelHeader>
             <PanelBody>
-              <PermissionSelection
-                appPublished={false}
-                displaySpecialPermissions={false}
-                permissions={permissions}
-                onChange={nextPermissions => {
-                  setPermissions({...nextPermissions});
-                }}
-                displayedPermissions={DISPLAYED_PERMISSIONS}
-              />
+              {hasGranularPermissions ? (
+                <GranularPermissionSelection
+                  permissions={granularPermissions}
+                  onChange={setGranularPermissions}
+                />
+              ) : (
+                <PermissionSelection
+                  appPublished={false}
+                  displaySpecialPermissions={false}
+                  permissions={permissions}
+                  onChange={nextPermissions => {
+                    setPermissions({...nextPermissions});
+                  }}
+                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                />
+              )}
+              <DisplayField.Row
+                label={t('Permissions Preview')}
+                hintText={t('Your token will have the following scopes.')}
+                padding="xl"
+              >
+                <Text>{permissionsPreview || '—'}</Text>
+              </DisplayField.Row>
             </PanelBody>
-            <FieldGroup
-              label={t('Permissions Preview')}
-              help={t('Your token will have the following scopes.')}
-            >
-              <div>{permissionsPreview || '—'}</div>
-            </FieldGroup>
           </Panel>
           <Flex justify="end" gap="md" padding="md">
             <Button onClick={handleGoBack}>{t('Cancel')}</Button>

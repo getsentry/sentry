@@ -16,6 +16,7 @@ from sentry.api.serializers.models.exploresavedquery import (
     ExploreSavedQueryModelSerializer,
     ExploreSavedQueryResponse,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -40,7 +41,7 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
 
         try:
             kwargs["query"] = ExploreSavedQuery.objects.get(
-                id=id,
+                id=to_valid_int_id("id", id, raise_404=True),
                 organization=kwargs["organization"],
             )
         except ExploreSavedQuery.DoesNotExist:

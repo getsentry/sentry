@@ -12,6 +12,7 @@ from sentry import analytics, features, options
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -233,6 +234,19 @@ def sync_status_inbound(
     except Organization.DoesNotExist:
         return
 
+    installation = integration.get_installation(organization_id=organization_id)
+    if not hasattr(installation, "get_resolve_sync_action"):
+        return
+    try:
+        org_integration = installation.org_integration
+    except OrganizationIntegrationNotFound:
+        # The organization uninstalled the integration after this sync was queued.
+        logger.info(
+            "sync_status_inbound.organization_integration_missing",
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
+        return
+
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(
             integration=integration, organizations=[organization], external_issue_key=issue_key
@@ -267,15 +281,16 @@ def sync_status_inbound(
         )
         return
 
-    installation = integration.get_installation(organization_id=organization_id)
-    if not (hasattr(installation, "get_resolve_sync_action") and installation.org_integration):
-        return
-
-    config = installation.org_integration.config
+    config = org_integration.config
     try:
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
     except Exception:
+        logger.warning(
+            "sync_status_inbound.get_resolve_sync_action_failed",
+            exc_info=True,
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
         return
 
     provider = installation.model.get_provider()
@@ -300,7 +315,7 @@ def sync_status_inbound(
                 activity_type,
                 activity_data,
             ) = get_resolutions_and_activity_data_for_groups(
-                affected_groups, config.get("resolution_strategy"), activity_data, organization_id
+                resolvable_groups, config.get("resolution_strategy"), activity_data, organization_id
             )
             with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(

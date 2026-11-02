@@ -4,7 +4,7 @@ description: Text components display text content with various typography option
 category: typography
 source: '@sentry/scraps/text'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/text/text.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/text/text.tsx
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
     WCAG 1.4.4: https://www.w3.org/TR/WCAG22/#resize-text
@@ -233,6 +233,16 @@ Handle text overflow with the `ellipsis` prop to truncate long text with an elli
 <Container width="200px" padding="md" border="primary">
   <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
 </Container>
+```
+
+### Rich content
+
+`Text` trims its box to the glyph bounds. With `ellipsis`, content taller than a line of text, such as a `Tag`, gets clipped. Pass `trim={false}` to keep the full line box.
+
+```jsx
+<Text ellipsis trim={false}>
+  <Tag variant="muted">Option</Tag>
+</Text>
 ```
 
 ## Wrapping

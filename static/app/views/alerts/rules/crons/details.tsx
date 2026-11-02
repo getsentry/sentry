@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -16,6 +16,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,8 +34,6 @@ import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneO
 import type {Monitor, MonitorBucket} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
-
-import {getMonitorRefetchInterval, getNextCheckInEnv} from './utils';
 
 function hasLastCheckIn(monitor: Monitor) {
   return monitor.environments.some(e => e.lastCheckIn);
@@ -173,8 +172,12 @@ export default function MonitorDetails() {
             )}
             {hasLastCheckIn(monitor) ? (
               <Fragment>
-                <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                <Stack gap="xl">
+                  <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
+                  <Container>
+                    <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                  </Container>
+                </Stack>
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
                   monitorSlug={monitor.slug}

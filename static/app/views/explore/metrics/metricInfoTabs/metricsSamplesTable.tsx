@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -34,6 +33,7 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
+const EMPTY_META: EventsMetaType = {fields: {}, units: {}};
 
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
@@ -60,7 +60,7 @@ export function MetricsSamplesTable({
 
   const {
     result: {data},
-    meta = {fields: {}, units: {}},
+    meta = EMPTY_META,
     error,
     isFetching,
   } = useMetricSamplesTable({
@@ -101,9 +101,7 @@ export function MetricsSamplesTable({
         </LoadingMaskRow>
       )}
       {!overrideTableData?.length && error ? (
-        <SimpleTable.Empty style={{minHeight: '140px'}}>
-          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </SimpleTable.Empty>
+        <SimpleTable.Error />
       ) : overrideTableData?.length || data?.length ? (
         (overrideTableData ?? data ?? []).map((row, i) => (
           <SampleTableRow

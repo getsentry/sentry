@@ -663,6 +663,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        team_slug = team.slug
+        user_ids_to_revoke = []
         if self._should_manage_privileges(team):
             user_ids_to_revoke = [
                 omt.organizationmember.user_id
@@ -671,16 +673,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 )
                 if omt.organizationmember.user_id
             ]
-            if user_ids_to_revoke:
-                sync_scim_team_privileges.delay(
-                    team_slug=team.slug,
-                    organization_id=team.organization.id,
-                    user_ids_to_grant=[],
-                    user_ids_to_revoke=user_ids_to_revoke,
-                )
 
         metrics.incr("sentry.scim.team.delete")
-        return super().delete(request, team)
+        response = super().delete(request, team)
+
+        if user_ids_to_revoke:
+            sync_scim_team_privileges.delay(
+                team_slug=team_slug,
+                organization_id=team.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=user_ids_to_revoke,
+            )
+        return response
 
     def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts

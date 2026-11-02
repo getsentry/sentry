@@ -1,11 +1,16 @@
 import {useMemo, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconBot} from '@sentry/icons/bot';
+import {IconBug} from '@sentry/icons/bug';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
@@ -25,12 +30,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconCode} from 'sentry/icons/iconCode';
-import {IconList} from 'sentry/icons/iconList';
-import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 
 interface ArtifactPreviewProps {
@@ -51,7 +51,7 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
           <Text>{t('Finding the root cause\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Markdown raw={artifact.data.one_line_description} />
+        <SeerMarkdown raw={artifact.data.one_line_description} />
       ) : (
         <Text variant="muted">
           {t(
@@ -77,7 +77,7 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
           <Text>{t('Formulating a plan\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Markdown raw={artifact.data.one_line_summary} />
+        <SeerMarkdown raw={artifact.data.one_line_summary} />
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}

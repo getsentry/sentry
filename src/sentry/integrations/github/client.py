@@ -13,6 +13,7 @@ import orjson
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Response
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -38,6 +39,8 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    get_current_scm_interaction_type,
+    normalize_scm_provider_key,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
@@ -69,7 +72,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.iterators import chunked
 from sentry.utils.safe import get_path
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -107,6 +109,7 @@ query SearchLabels($owner: String!, $name: String!, $search: String!) {
 # first are fetched concurrently. Bounded to keep the fan-out comfortably under
 # Github's secondary (concurrent request) rate limits.
 PAGINATION_MAX_WORKERS = 10
+GET_REPOSITORIES_METRIC = "integrations.source_code_management.get_repositories"
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -290,6 +293,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
     class AccessTokenData(TypedDict):
         access_token: str
+        expires_at: str
         permissions: dict[str, str] | None
 
     @cached_property
@@ -377,6 +381,7 @@ class GithubProxyClient(IntegrationProxyClient):
         self.integration = integration
         return {
             "access_token": access_token,
+            "expires_at": expires_at,
             "permissions": permissions,
         }
 
@@ -436,9 +441,10 @@ class GithubProxyClient(IntegrationProxyClient):
         if should_refresh:
             return self._refresh_access_token()
 
-        if access_token:
+        if access_token and expires_at:
             return {
                 "access_token": access_token,
+                "expires_at": expires_at,
                 "permissions": self.integration.metadata.get("permissions"),
             }
 
@@ -758,29 +764,37 @@ class GitHubBaseClient(
         (see ``_get_with_pagination``). Only interactive callers opt in; the
         background ``link_all_repos`` task keeps the serial default.
         """
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture() as lifecycle:
-            try:
-                return self._get_with_pagination(
-                    "/installation/repositories",
-                    response_key="repositories",
-                    page_number_limit=page_number_limit,
-                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-                    raise_on_page_limit=raise_on_page_limit,
-                    parallel=parallel,
-                )
-            except ApiPaginationTruncated as e:
-                # Hitting the pagination cap is an expected signal.
-                # Record as halt so the lifecycle doesn't create a
-                # Sentry every time this is called.
-                lifecycle.record_halt(e, create_issue=False)
-                raise
+        parent_interaction_type = get_current_scm_interaction_type()
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": (
+                str(parent_interaction_type) if parent_interaction_type else "unattributed"
+            ),
+        }
+        try:
+            repositories = self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                raise_on_page_limit=raise_on_page_limit,
+                parallel=parallel,
+            )
+        except ApiPaginationTruncated:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "halted"})
+            raise
+        except Exception:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "error"})
+            raise
 
-    def get_repos_cached(self, ttl: int = 300, parallel: bool = False) -> list[CachedRepo]:
+        metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "success"})
+        return repositories
+
+    def get_repos_cached(
+        self,
+        ttl: int = 300,
+        parallel: bool = False,
+    ) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation, cached in
         Django cache for ``ttl`` seconds.
@@ -908,9 +922,9 @@ class GitHubBaseClient(
         def page_items(resp: Any) -> Any:
             return resp[response_key] if response_key else resp
 
-        with start_span(
-            op=f"{self.integration_type}.http.pagination",
+        with traces.start_span(
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
+            attributes={"sentry.op": f"{self.integration_type}.http.pagination"},
         ):
             # Fetch the first page serially. Besides returning its data, this
             # warms up any lazily-initialized client state (auth token, session)

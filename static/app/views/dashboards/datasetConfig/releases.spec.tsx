@@ -1,6 +1,6 @@
 import {SessionUserCountByStatusByReleaseFixture} from 'sentry-fixture/sessions';
 
-import {transformSessionsResponseToTable} from 'sentry/views/dashboards/datasetConfig/releases';
+import {transformSessionsResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 
 describe('transformSessionsResponseToTable', () => {
   const widgetQuery = {

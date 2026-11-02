@@ -4,7 +4,7 @@ import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
 import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
 
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 
 /**
  * Named it appQueryClient because we already have a queryClient in sentry/utils/queryClient
