@@ -6,6 +6,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconList} from '@sentry/icons/list';
 import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -37,11 +38,10 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   displaySessionStatusPercent,
@@ -84,6 +84,12 @@ function ChartDiff({
   );
 }
 
+const releaseComparisonChartParsers = {
+  chart: parseAsString,
+  environment: parseAsStringArray,
+  project: parseAsStringArray,
+};
+
 type Props = {
   allSessions: SessionApiResponse | null;
   api: Client;
@@ -124,7 +130,8 @@ export function ReleaseComparisonChart({
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [{chart: chartParam, environment, project: projects}, setQueryParams] =
+    useQueryStates(releaseComparisonChartParsers);
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -152,7 +159,7 @@ export function ReleaseComparisonChart({
   );
 
   useEffect(() => {
-    const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
+    const chartInUrl = (chartParam || undefined) as ReleaseComparisonChartType;
     if (
       [
         ReleaseComparisonChartType.HEALTHY_SESSIONS,
@@ -188,13 +195,13 @@ export function ReleaseComparisonChart({
     ) {
       setIsOtherExpanded(true);
     }
-  }, [location.query.chart]);
+  }, [chartParam]);
 
   const fetchEventsTotals = useCallback(async () => {
     const url = `/organizations/${organization.slug}/events/`;
     const commonQuery = {
-      environment: decodeList(location.query.environment),
-      project: decodeList(location.query.project),
+      environment,
+      project: projects,
       start,
       end,
       ...(period ? {statsPeriod: period} : {}),
@@ -266,8 +273,8 @@ export function ReleaseComparisonChart({
   }, [
     api,
     end,
-    location.query.environment,
-    location.query.project,
+    environment,
+    projects,
     organization.slug,
     period,
     release.version,
@@ -286,7 +293,7 @@ export function ReleaseComparisonChart({
         {
           query: {
             project: project.id,
-            environment: decodeList(location.query.environment),
+            environment,
             start,
             end,
             ...(period ? {statsPeriod: period} : {}),
@@ -306,7 +313,7 @@ export function ReleaseComparisonChart({
   }, [
     api,
     end,
-    location.query.environment,
+    environment,
     organization.slug,
     period,
     project.id,
@@ -970,13 +977,7 @@ export function ReleaseComparisonChart({
       organization,
       chartType,
     });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        chart: chartType,
-      },
-    });
+    setQueryParams({chart: chartType}, {history: 'push'});
   }
 
   function handleExpanderToggle(chartType: ReleaseComparisonChartType) {
@@ -1019,14 +1020,12 @@ export function ReleaseComparisonChart({
     additionalCharts.splice(0, additionalCharts.length);
   }
 
-  let activeChart = decodeScalar(
-    location.query.chart,
-    hasHealthData
+  let activeChart = (chartParam ||
+    (hasHealthData
       ? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
       : hasPerformance
         ? ReleaseComparisonChartType.FAILURE_RATE
-        : ReleaseComparisonChartType.ERROR_COUNT
-  ) as ReleaseComparisonChartType;
+        : ReleaseComparisonChartType.ERROR_COUNT)) as ReleaseComparisonChartType;
 
   let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);
 

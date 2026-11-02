@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -33,7 +34,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
-  cleanReleaseCursors,
+  RELEASES_DRAWER_PARSERS,
   ReleasesDrawerFields,
 } from 'sentry/views/explore/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
@@ -53,6 +54,11 @@ interface Props extends PageFilters {
 
 type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error_count'>;
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
+
+const serializeReleasesDrawerQuery = createSerializer({
+  ...RELEASES_DRAWER_PARSERS,
+  [ReleasesDrawerFields.ACTIVE_REPO]: parseAsString,
+});
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
   {key: 'release', name: t('Release'), width: 320},
@@ -77,13 +83,14 @@ export function ReleasesDrawerTable({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const [drawerQuery, setDrawerQuery] = useQueryStates(RELEASES_DRAWER_PARSERS);
   const {data, isLoading, isError} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: projects,
         environment: environments,
-        cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
+        cursor: drawerQuery[ReleasesDrawerFields.LIST_CURSOR] || undefined,
         ...normalizeDateTimeParams(datetime),
         per_page: 15,
       },
@@ -124,11 +131,14 @@ export function ReleasesDrawerTable({
               onMouseOutRelease(dataRow.release);
             }}
             to={{
-              query: {
-                ...cleanReleaseCursors(location.query),
+              search: serializeReleasesDrawerQuery(location.search, {
+                [ReleasesDrawerFields.COMMIT_CURSOR]: null,
+                [ReleasesDrawerFields.FILES_CURSOR]: null,
+                [ReleasesDrawerFields.LIST_CURSOR]: null,
+                [ReleasesDrawerFields.ACTIVE_REPO]: null,
                 [ReleasesDrawerFields.RELEASE]: value,
-                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: dataRow.project_id,
-              },
+                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: String(dataRow.project_id),
+              }),
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
@@ -216,11 +226,11 @@ export function ReleasesDrawerTable({
       />
       <PaginationNoMargin
         pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
-          navigate({
-            pathname: path,
-            query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},
-          });
+        onCursor={cursor => {
+          setDrawerQuery(
+            {[ReleasesDrawerFields.LIST_CURSOR]: cursor ?? null},
+            {history: 'push'}
+          );
         }}
       />
     </div>

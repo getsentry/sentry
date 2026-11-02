@@ -29,7 +29,6 @@ import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FlamegraphProvider,
@@ -47,19 +46,6 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 };
 
 const noop = () => void 0;
-
-function decodeViewOrDefault(
-  value: string | string[] | null | undefined,
-  defaultValue: 'flamegraph' | 'profiles'
-): 'flamegraph' | 'profiles' {
-  if (!value || Array.isArray(value)) {
-    return defaultValue;
-  }
-  if (value === 'flamegraph' || value === 'profiles') {
-    return value;
-  }
-  return defaultValue;
-}
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
@@ -170,7 +156,6 @@ interface LandingAggregateFlamegraphProps {
 export function LandingAggregateFlamegraph({
   onDataState,
 }: LandingAggregateFlamegraphProps): React.ReactNode {
-  const location = useLocation();
   const organization = useOrganization();
 
   const {
@@ -241,18 +226,6 @@ export function LandingAggregateFlamegraph({
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
-
-  const [view, setView] = useState<'flamegraph' | 'profiles'>(
-    decodeViewOrDefault(location.query.view, 'flamegraph')
-  );
-
-  useEffect(() => {
-    const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
-    if (newView !== view) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
-    }
-  }, [location.query.view, view]);
 
   const onHideRegressionsClick = useCallback(() => {
     return setHideRegressions(!hideRegressions);

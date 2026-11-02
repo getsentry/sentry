@@ -1,3 +1,4 @@
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -315,12 +316,17 @@ describe('ReleasesList', () => {
       body: [],
     });
 
-    const {router} = render(<ReleasesList />, {
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    render(<ReleasesList />, {
       organization,
+      onNuqsUrlUpdate,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {query: 'derp'},
+          query: {query: 'derp', cursor: '0:20:0'},
         },
       },
     });
@@ -337,7 +343,35 @@ describe('ReleasesList', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'a{enter}');
 
-    expect(router.location.query.query).toBe('a');
+    // The testing adapter re-syncs the input to the stale URL after this write.
+    await waitFor(() => expect(onNuqsUrlUpdate).toHaveBeenCalled());
+    const [{searchParams, options}] = onNuqsUrlUpdate.mock.calls[0]!;
+    expect(searchParams.get('query')).toBe('a');
+    expect(searchParams.has('cursor')).toBe(false);
+    expect(options.history).toBe('push');
+  });
+
+  it('replaces an unsupported stats period with the closest supported one when the page loads', async () => {
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    const {router} = render(<ReleasesList />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {statsPeriod: '3d', sort: ReleasesSortOption.SESSIONS},
+        },
+      },
+    });
+
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('48h'));
+    expect(router.location.query.sort).toBe(ReleasesSortOption.SESSIONS);
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 
   it('sorts releases', async () => {
@@ -436,7 +470,7 @@ describe('ReleasesList', () => {
     await userEvent.click(statusActiveOption);
     expect(router.location.query.status).toBe(ReleasesStatusOption.ACTIVE);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Status Active'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Status Active'}));
     statusArchivedOption = screen.getByRole('option', {name: 'Archived'});
     await userEvent.click(statusArchivedOption);
     expect(router.location.query.status).toBe(ReleasesStatusOption.ARCHIVED);

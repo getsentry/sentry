@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {IconSearch} from '@sentry/icons/search';
-import type {Location} from 'history';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -16,7 +16,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ReleaseCard} from 'sentry/views/explore/releases/list/releaseCard';
 import {ReleasesAdoptionChart} from 'sentry/views/explore/releases/list/releasesAdoptionChart';
@@ -29,6 +28,9 @@ import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 
 interface Props {
   activeDisplay: ReleasesDisplayOption;
+  activeQuery: string;
+  activeSort: ReleasesSortOption;
+  activeStatus: ReleasesStatusOption;
   loading: boolean;
   organization: Organization;
   releases: Release[];
@@ -42,6 +44,9 @@ interface Props {
 
 export function ReleaseListInner({
   activeDisplay,
+  activeQuery,
+  activeSort,
+  activeStatus,
   loading,
   organization,
   releases,
@@ -53,6 +58,7 @@ export function ReleaseListInner({
   showReleaseAdoptionStages,
 }: Props) {
   const location = useLocation();
+  const [healthStatsPeriod] = useQueryState('healthStatsPeriod', parseAsString);
   const hasReleasesSetup = selectedProject?.features.includes('releases');
   const shouldShowLoadingIndicator =
     (loading && !reloading) || (loading && !releases?.length);
@@ -68,7 +74,13 @@ export function ReleaseListInner({
   }
 
   if (!releases?.length && hasReleasesSetup) {
-    return <EmptyReleaseMessage location={location} selection={selection} />;
+    return (
+      <EmptyReleaseMessage
+        activeQuery={activeQuery}
+        activeSort={activeSort}
+        activeStatus={activeStatus}
+      />
+    );
   }
 
   if (shouldShowQuickstart) {
@@ -81,14 +93,14 @@ export function ReleaseListInner({
       organization={organization}
       selection={selection}
       location={location}
-      display={[getDisplay(location)]}
+      display={[activeDisplay]}
       releasesReloading={reloading}
       healthStatsPeriod={
-        typeof location.query.healthStatsPeriod === 'string'
-          ? location.query.healthStatsPeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS
+        healthStatsPeriod === null
+          ? undefined
+          : healthStatsPeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             ? HealthStatsPeriodOption.TWENTY_FOUR_HOURS
             : HealthStatsPeriodOption.AUTO
-          : undefined
       }
     >
       {({isHealthLoading, getHealthData}) => {
@@ -135,78 +147,34 @@ export function ReleaseListInner({
   );
 }
 
-function getQuery(location: Location) {
-  const {query} = location.query;
-
-  return typeof query === 'string' ? query : undefined;
-}
-
-function getSort(location: Location, selection: PageFilters): ReleasesSortOption {
-  const {environments} = selection;
-  const {sort} = location.query;
-
-  // Require 1 environment for date adopted
-  if (sort === ReleasesSortOption.ADOPTION && environments.length !== 1) {
-    return ReleasesSortOption.DATE;
-  }
-
-  const sortExists =
-    Boolean(sort) &&
-    Object.values(ReleasesSortOption).includes(decodeScalar(sort) as ReleasesSortOption);
-  if (sortExists) {
-    return sort as ReleasesSortOption;
-  }
-
-  return ReleasesSortOption.DATE;
-}
-
-function getDisplay(location: Location): ReleasesDisplayOption {
-  const {display} = location.query;
-
-  switch (display) {
-    case ReleasesDisplayOption.USERS:
-      return ReleasesDisplayOption.USERS;
-    default:
-      return ReleasesDisplayOption.SESSIONS;
-  }
-}
-
-function getStatus(location: Location): ReleasesStatusOption {
-  const {status} = location.query;
-
-  switch (status) {
-    case ReleasesStatusOption.ARCHIVED:
-      return ReleasesStatusOption.ARCHIVED;
-    default:
-      return ReleasesStatusOption.ACTIVE;
-  }
-}
+const emptyReleaseMessageParsers = {
+  statsPeriod: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+};
 
 function EmptyReleaseMessage({
-  location,
-  selection,
+  activeQuery,
+  activeSort,
+  activeStatus,
 }: {
-  location: Location;
-  selection: PageFilters;
+  activeQuery: string;
+  activeSort: ReleasesSortOption;
+  activeStatus: ReleasesStatusOption;
 }) {
-  const {statsPeriod, start, end} = location.query;
-  const searchQuery = getQuery(location);
-  const activeSort = getSort(location, selection);
-  const activeStatus = getStatus(location);
+  const [{statsPeriod, start, end}] = useQueryStates(emptyReleaseMessageParsers);
 
   const selectedPeriod =
     !!start && !!end
       ? t('time range')
-      : getRelativeSummary(
-          decodeScalar(statsPeriod) || DEFAULT_STATS_PERIOD
-        ).toLowerCase();
+      : getRelativeSummary(statsPeriod || DEFAULT_STATS_PERIOD).toLowerCase();
 
-  if (searchQuery?.length) {
+  if (activeQuery.length) {
     return (
       <Panel>
         <EmptyMessage icon={<IconSearch />} size="lg">{`${t(
           'There are no releases that match'
-        )}: '${searchQuery}'.`}</EmptyMessage>
+        )}: '${activeQuery}'.`}</EmptyMessage>
       </Panel>
     );
   }

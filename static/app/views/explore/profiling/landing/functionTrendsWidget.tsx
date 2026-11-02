@@ -7,6 +7,7 @@ import {IconArrow} from '@sentry/icons/arrow';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconWarning} from '@sentry/icons/warning';
 import partition from 'lodash/partition';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack, Container} from '@sentry/scraps/layout';
@@ -31,9 +32,6 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
@@ -70,8 +68,6 @@ export function FunctionTrendsWidget({
   userQuery,
   onDataState,
 }: FunctionTrendsWidgetProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
 
   const analyticsSource =
@@ -83,19 +79,13 @@ export function FunctionTrendsWidget({
 
   const [expandedIndex, setExpandedIndex] = useState(0);
 
-  const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[cursorName]),
-    [cursorName, location.query]
-  );
+  const [fnTrendCursor, setFnTrendCursor] = useQueryState(cursorName, parseAsString);
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
-      navigate({
-        pathname,
-        query: {...query, [cursorName]: cursor},
-      });
+    (cursor: string | undefined) => {
+      setFnTrendCursor(cursor ?? null, {history: 'push'});
     },
-    [cursorName, navigate]
+    [setFnTrendCursor]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -114,7 +104,7 @@ export function FunctionTrendsWidget({
     trendType,
     query: userQuery,
     limit: MAX_FUNCTIONS,
-    cursor: fnTrendCursor,
+    cursor: fnTrendCursor || undefined,
   });
 
   useEffect(() => {

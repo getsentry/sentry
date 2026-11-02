@@ -1,4 +1,5 @@
 import {Fragment, useContext} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -42,10 +43,14 @@ interface CommitsProps {
 function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
   const location = useLocation();
   const params = useParams<{release: string}>();
+  const [{activeRepo, cursor}] = useQueryStates({
+    activeRepo: parseAsString,
+    cursor: parseAsString,
+  });
   const activeReleaseRepo =
-    releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
+    releaseRepos.find(repo => repo.name === activeRepo) ?? releaseRepos[0];
 
-  const query = getQuery({location});
+  const query = {...getQuery({location}), cursor: cursor ?? undefined};
   const {
     data,
     isPending: isLoadingCommitList,

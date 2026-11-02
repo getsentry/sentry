@@ -6,7 +6,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -44,9 +44,6 @@ import {
 } from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
@@ -88,8 +85,6 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   widgetHeight,
   onDataState,
 }: SlowestFunctionsWidgetProps<F>) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
 
   const [sortFunction, setSortFunction] = useState<SortOption>(DEFAULT_SORTING_OPTION);
@@ -112,19 +107,13 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     breakdownFunction,
   ]);
 
-  const slowFnCursor = useMemo(
-    () => decodeScalar(location.query[cursorName]),
-    [cursorName, location.query]
-  );
+  const [slowFnCursor, setSlowFnCursor] = useQueryState(cursorName, parseAsString);
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
-      navigate({
-        pathname,
-        query: {...query, [cursorName]: cursor},
-      });
+    (cursor: string | undefined) => {
+      setSlowFnCursor(cursor ?? null, {history: 'push'});
     },
-    [cursorName, navigate]
+    [setSlowFnCursor]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -149,7 +138,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     },
     query: userQuery,
     limit: MAX_FUNCTIONS,
-    cursor: slowFnCursor,
+    cursor: slowFnCursor || undefined,
   });
   const functionsQuery = useQuery({
     ...functionsQueryOptions,
@@ -229,14 +218,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   onChange={option => {
                     setSortFunction(option.value as SortOption);
                     setExpandedIndex(0);
-                    const newQuery = omit(location.query, [cursorName]);
-                    navigate(
-                      {
-                        pathname: location.pathname,
-                        query: newQuery,
-                      },
-                      {replace: true}
-                    );
+                    setSlowFnCursor(null);
                   }}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
