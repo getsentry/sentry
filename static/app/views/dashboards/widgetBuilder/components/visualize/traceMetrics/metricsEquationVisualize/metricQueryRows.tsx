@@ -277,30 +277,36 @@ export function MetricQueryRows({
           </BuilderStateMetricsQueryParamsProvider>
         );
       })}
-      {equationQuery && (
-        <BuilderStateMetricsQueryParamsProvider
-          metricQuery={equationQuery}
-          isSelected={isEquationSelected}
-        >
-          <MetricToolbar
-            label={equationQuery.label ?? ''}
-            referenceMap={referenceMap}
-            isSelected={isEquationSelected}
-            onRowSelection={onRowSelection}
-            onReferenceLabelsChange={setEquationReferencedLabels}
-            deleteDisabledReason={t('An equation is required')}
-            disabled={hasUnresolvedMetrics}
-          />
-        </BuilderStateMetricsQueryParamsProvider>
-      )}
-      {canTransform && plottedTransformations.length > 0 && (
-        <VisualizeTransformationRows
-          traceItemDataset={TraceItemDataset.TRACEMETRICS}
-          analyticsSource="dashboards"
-          transformations={plottedTransformations}
-          layout="inline"
-          onChange={setPlottedTransformations}
-        />
+      {(equationQuery || (canTransform && plottedTransformations.length > 0)) && (
+        <Stack gap="md">
+          {equationQuery && (
+            <BuilderStateMetricsQueryParamsProvider
+              metricQuery={equationQuery}
+              isSelected={isEquationSelected}
+            >
+              <MetricToolbar
+                label={equationQuery.label ?? ''}
+                referenceMap={referenceMap}
+                isSelected={isEquationSelected}
+                onRowSelection={onRowSelection}
+                onReferenceLabelsChange={setEquationReferencedLabels}
+                deleteDisabledReason={t('An equation is required')}
+                disabled={hasUnresolvedMetrics}
+              />
+            </BuilderStateMetricsQueryParamsProvider>
+          )}
+          {canTransform && plottedTransformations.length > 0 && (
+            <VisualizeTransformationRows
+              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+              analyticsSource="dashboards"
+              transformations={plottedTransformations}
+              layout="inline"
+              size="sm"
+              gap="md"
+              onChange={setPlottedTransformations}
+            />
+          )}
+        </Stack>
       )}
       <Flex gap="md" align="center">
         <Button

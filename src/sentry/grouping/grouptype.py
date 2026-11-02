@@ -18,6 +18,7 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorSettings,
+    DetectorType,
 )
 
 
@@ -57,7 +58,7 @@ class ErrorGroupType(GroupType):
     released = True
 
 
-@detector_settings_registry.register(ErrorGroupType.slug)
+@detector_settings_registry.register(DetectorType.ERROR)
 class ErrorDetectorSettings(DetectorSettings):
     handler = ErrorDetectorHandler
     validator = ErrorDetectorValidator

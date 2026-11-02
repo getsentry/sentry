@@ -206,6 +206,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -3450,6 +3451,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_run_execution(run, **kwargs) -> SeerWorkflowRunExecution:
         return SeerWorkflowRunExecution.objects.create(run=run, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_output_link(execution, **kwargs) -> SeerWorkflowOutputLink:
+        return SeerWorkflowOutputLink.objects.create(execution=execution, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

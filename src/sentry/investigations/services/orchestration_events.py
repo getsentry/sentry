@@ -1112,9 +1112,14 @@ def _lock_run_after_investigation(
 
 def schedule_investigation_updates(investigation_id: int, database: str) -> None:
     from sentry.seer.entrypoints.operator import process_investigation_updates
+    from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 
     transaction.on_commit(
         lambda: process_investigation_updates.delay(investigation_id=investigation_id),
+        using=database,
+    )
+    transaction.on_commit(
+        lambda: finish_investigation_executions.delay(investigation_id=investigation_id),
         using=database,
     )
 

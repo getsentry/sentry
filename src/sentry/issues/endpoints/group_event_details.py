@@ -191,6 +191,11 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             EventParams.EVENT_ID_EXTENDED,
             EventParams.EVENT_DETAILS_COLLAPSE,
             OpenApiParameter(
