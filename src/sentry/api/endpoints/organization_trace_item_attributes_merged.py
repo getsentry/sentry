@@ -79,10 +79,18 @@ class OrganizationTraceItemAttributesMergedEndpointSerializer(serializers.Serial
         required=False,
         source="attribute_type",
     )
+    attributeName = serializers.CharField(required=False, source="attribute_name")
     substringMatch = serializers.CharField(required=False, source="substring_match")
     search = serializers.CharField(required=False, allow_blank=True)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
     sort = serializers.ChoiceField(choices=SORT_CHOICES, required=False, default="name")
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if "attribute_name" in data and "substring_match" in data:
+            raise serializers.ValidationError(
+                "Pass either `attributeName` or `substringMatch`, not both."
+            )
+        return data
 
 
 def search_merged_attributes(
@@ -258,6 +266,8 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
                 )
 
         merged = merge_attributes_across_datasets(attributes_by_dataset)
+        if attribute_name := serialized.get("attribute_name"):
+            merged = [attribute for attribute in merged if attribute["name"] == attribute_name]
         if search:
             merged = search_merged_attributes(merged, search)
         merged = sort_merged_attributes(merged, sort)
