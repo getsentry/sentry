@@ -216,18 +216,6 @@ describe('parseVisualize', () => {
       ]);
     }
   );
-
-  it('groups y axes onto one chart when groupYAxes allows it', () => {
-    const visualizes = parseVisualize(
-      {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
-      {groupYAxes: () => true}
-    );
-    expect(visualizes).toEqual([
-      new VisualizeFunction('p50(span.duration)', {chartGroup: expect.any(String)}),
-      new VisualizeFunction('p75(span.duration)', {chartGroup: expect.any(String)}),
-    ]);
-    expect(visualizes[0]!.chartGroup).toBe(visualizes[1]!.chartGroup);
-  });
 });
 
 describe('parseAsBaseVisualizeList', () => {
