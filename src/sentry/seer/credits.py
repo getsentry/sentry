@@ -17,7 +17,7 @@ class SeerOperation(StrEnum):
     AUTOFIX_ROOT_CAUSE = "autofix_root_cause"
     AUTOFIX_SOLUTION = "autofix_solution"
     AUTOFIX_CODE_CHANGES = "autofix_code_changes"
-    AUTOFIX_CREATE_PR = "autofix_create_pr"
+    AUTOFIX_OPEN_PR = "autofix_open_pr"
     AUTOFIX_PR_ITERATION = "autofix_pr_iteration"
 
 
@@ -51,7 +51,7 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
     SeerOperation.AUTOFIX_CODE_CHANGES: SeerOperationConfig(
         SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
     ),
-    SeerOperation.AUTOFIX_CREATE_PR: SeerOperationConfig(
+    SeerOperation.AUTOFIX_OPEN_PR: SeerOperationConfig(
         SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
     ),
     SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(
