@@ -10,7 +10,7 @@ describe('ProjectAttributeDetails', () => {
     organization: {features: ['attribute-management']},
   });
   const project = ProjectFixture();
-  const attributesEndpoint = `/organizations/${organization.slug}/trace-items/attributes/merged/`;
+  const detailsEndpoint = `/organizations/${organization.slug}/trace-items/attributes/details/`;
 
   function renderDetails(attributeType: string, attributeName: string) {
     return render(<ProjectAttributeDetails />, {
@@ -31,22 +31,20 @@ describe('ProjectAttributeDetails', () => {
 
   it('renders the attribute metadata when the attribute is found', async () => {
     const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [
-        {
-          name: 'http.method',
-          attributeType: 'string',
-          attributeSource: {source_type: 'sentry'},
-          datasets: ['spans'],
-          context: {
-            brief: 'The HTTP method, such as `HEAD`.',
-            details: ['Uppercased by the SDK.\n\nSent on every request.'],
-            examples: ['GET', 'POST'],
-            isDeprecated: true,
-            replacementAttribute: 'http.request.method',
-          },
+      url: detailsEndpoint,
+      body: {
+        name: 'http.method',
+        attributeType: 'string',
+        attributeSource: {source_type: 'sentry'},
+        datasets: ['spans'],
+        context: {
+          brief: 'The HTTP method, such as `HEAD`.',
+          details: ['Uppercased by the SDK.\n\nSent on every request.'],
+          examples: ['GET', 'POST'],
+          isDeprecated: true,
+          replacementAttribute: 'http.request.method',
         },
-      ],
+      },
     });
 
     renderDetails('string', 'http.method');
@@ -63,12 +61,11 @@ describe('ProjectAttributeDetails', () => {
     expect(screen.getByText('Sent on every request.')).toBeInTheDocument();
     expect(screen.getByText('POST')).toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
-      attributesEndpoint,
+      detailsEndpoint,
       expect.objectContaining({
         query: expect.objectContaining({
           attributeName: 'http.method',
           attributeType: 'string',
-          expand: 'context',
           project: [project.id],
         }),
       })
@@ -77,16 +74,14 @@ describe('ProjectAttributeDetails', () => {
 
   it('labels the source as custom when a user attribute is not a known convention', async () => {
     MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [
-        {
-          name: 'cart.size',
-          attributeType: 'number',
-          attributeSource: {source_type: 'user'},
-          datasets: ['spans'],
-          context: {},
-        },
-      ],
+      url: detailsEndpoint,
+      body: {
+        name: 'cart.size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        context: {},
+      },
     });
 
     renderDetails('number', 'cart.size');
@@ -96,16 +91,14 @@ describe('ProjectAttributeDetails', () => {
 
   it('labels the source as a Sentry convention when a user attribute is a known convention', async () => {
     MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [
-        {
-          name: 'db.system',
-          attributeType: 'string',
-          attributeSource: {source_type: 'user'},
-          datasets: ['spans'],
-          context: {isConvention: true},
-        },
-      ],
+      url: detailsEndpoint,
+      body: {
+        name: 'db.system',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        context: {isConvention: true},
+      },
     });
 
     renderDetails('string', 'db.system');
@@ -115,33 +108,32 @@ describe('ProjectAttributeDetails', () => {
 
   it('requests and renders the attribute when its name contains a slash', async () => {
     const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [
-        {
-          name: 'http/route',
-          attributeType: 'string',
-          attributeSource: {source_type: 'user'},
-          datasets: ['spans'],
-          context: {brief: 'The matched route.'},
-        },
-      ],
+      url: detailsEndpoint,
+      body: {
+        name: 'http/route',
+        attributeType: 'string',
+        attributeSource: {source_type: 'user'},
+        datasets: ['spans'],
+        context: {brief: 'The matched route.'},
+      },
     });
 
     renderDetails('string', 'http/route');
 
     expect(await screen.findByText('The matched route.')).toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
-      attributesEndpoint,
+      detailsEndpoint,
       expect.objectContaining({
         query: expect.objectContaining({attributeName: 'http/route'}),
       })
     );
   });
 
-  it('renders a not found state when no attribute is returned', async () => {
+  it('renders a not found state when the attribute is not found', async () => {
     MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
+      url: detailsEndpoint,
+      statusCode: 404,
+      body: {detail: 'Attribute not found.'},
     });
 
     renderDetails('number', 'cart.size');
@@ -149,10 +141,24 @@ describe('ProjectAttributeDetails', () => {
     expect(await screen.findByText('Attribute not found')).toBeInTheDocument();
   });
 
+  it('renders an error state when the request fails for another reason', async () => {
+    MockApiClient.addMockResponse({
+      url: detailsEndpoint,
+      statusCode: 500,
+      body: {detail: 'Internal error'},
+    });
+
+    renderDetails('number', 'cart.size');
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
   it('renders a not found state without requesting attributes when the type is invalid', async () => {
     const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
+      url: detailsEndpoint,
+      body: {},
     });
 
     renderDetails('constructor', 'cart.size');
@@ -164,8 +170,8 @@ describe('ProjectAttributeDetails', () => {
   it('hides the page when the feature is disabled', () => {
     const {organization: organizationWithoutFeature} = initializeOrg();
     const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
+      url: detailsEndpoint,
+      body: {},
     });
 
     render(<ProjectAttributeDetails />, {

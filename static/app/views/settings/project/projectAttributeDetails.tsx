@@ -15,6 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {TraceItemAttributeType} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
@@ -55,15 +56,20 @@ function AttributeDetails({
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
 
-  const {data, isPending, isError, refetch} = useQuery(
-    apiOptions.as<Attribute[]>()(
-      '/organizations/$organizationIdOrSlug/trace-items/attributes/merged/',
+  const {
+    data: attribute,
+    error,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery(
+    apiOptions.as<Attribute>()(
+      '/organizations/$organizationIdOrSlug/trace-items/attributes/details/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
           attributeName,
           attributeType,
-          expand: 'context',
           project: [project.id],
           statsPeriod: ATTRIBUTES_STATS_PERIOD,
         },
@@ -77,13 +83,11 @@ function AttributeDetails({
   }
 
   if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  const attribute = data.at(0);
-
-  if (!attribute) {
-    return <AttributeNotFound />;
+    return error instanceof RequestError && error.status === 404 ? (
+      <AttributeNotFound />
+    ) : (
+      <LoadingError onRetry={refetch} />
+    );
   }
 
   return (
