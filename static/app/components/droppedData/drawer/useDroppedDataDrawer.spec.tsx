@@ -69,11 +69,16 @@ function mockMultiOutcomeDroppedData() {
   });
 }
 
-function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: string}) {
-  const openDroppedDataDrawer = useDroppedDataDrawer(
-    {dataset: DiscoverDatasets.SPANS, interval},
-    {enabled}
-  );
+function DroppedDataTrigger({
+  enabled,
+  interval,
+  dataset = DiscoverDatasets.SPANS,
+}: {
+  dataset?: DiscoverDatasets;
+  enabled?: boolean;
+  interval?: string;
+}) {
+  const openDroppedDataDrawer = useDroppedDataDrawer({dataset, interval}, {enabled});
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
 
@@ -253,6 +258,18 @@ describe('useDroppedDataDrawer', () => {
       screen.queryByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).not.toBeInTheDocument();
     expect(droppedDataRequest).not.toHaveBeenCalled();
+  });
+
+  it('uses a public name in the URL param for internal datasets', async () => {
+    mockDroppedData(10, '14d');
+
+    const {router} = render(<DroppedDataTrigger dataset={DiscoverDatasets.OURLOGS} />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/logs/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(router.location.query.droppedData).toBe('logs');
   });
 
   it('does not open when the URL param names a different dataset', async () => {

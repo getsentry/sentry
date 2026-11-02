@@ -7,7 +7,7 @@ import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDat
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -16,6 +16,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
+
+const DROPPED_DATA_PARAM_BY_DATASET: Partial<Record<DiscoverDatasets, string>> = {
+  [DiscoverDatasets.OURLOGS]: 'logs',
+  [DiscoverDatasets.TRACEMETRICS]: 'metrics',
+};
+
+function droppedDataParamValue(dataset: DiscoverDatasets): string {
+  return DROPPED_DATA_PARAM_BY_DATASET[dataset] ?? dataset;
+}
 
 interface UseDroppedDataDrawerParams {
   dataset: DiscoverDatasets;
@@ -44,8 +53,9 @@ export function useDroppedDataDrawer(
   // value would reopen the drawer.
   // The param carries the dataset so a page with several charts opens the drawer
   // for the chart whose dataset matches, not whichever mounts first.
+  const paramValue = droppedDataParamValue(dataset);
   const isDrawerInUrl =
-    decodeScalar(location.query[DROPPED_DATA_DRAWER_QUERY_KEY]) === dataset;
+    decodeScalar(location.query[DROPPED_DATA_DRAWER_QUERY_KEY]) === paramValue;
   const setIsDrawerInUrl = useCallback(
     (isOpen: boolean) => {
       navigate(
@@ -53,14 +63,14 @@ export function useDroppedDataDrawer(
           pathname: locationRef.current.pathname,
           query: {
             ...locationRef.current.query,
-            [DROPPED_DATA_DRAWER_QUERY_KEY]: isOpen ? dataset : undefined,
+            [DROPPED_DATA_DRAWER_QUERY_KEY]: isOpen ? paramValue : undefined,
           },
         },
         // Closing replaces; a pushed entry would reopen the drawer on back.
         {replace: !isOpen, preventScrollReset: true}
       );
     },
-    [navigate, dataset]
+    [navigate, paramValue]
   );
   const renderedIntervalRef = useRef(interval);
 
@@ -107,7 +117,7 @@ export function useDroppedDataDrawer(
         drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
-          decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== dataset,
+          decodeScalar(nextLocation.query[DROPPED_DATA_DRAWER_QUERY_KEY]) !== paramValue,
         onClose: () => {
           setIsDrawerInUrl(false);
         },
@@ -120,6 +130,7 @@ export function useDroppedDataDrawer(
     isAnyDrawerOpen,
     openDrawer,
     dataset,
+    paramValue,
     interval,
     onAskSeer,
     pathname,
