@@ -1,15 +1,3 @@
-"""
-Total web vital score formulas for the trace metrics dataset.
-
-Relay emits a ``browser.web_vital.<vital>.score`` distribution for every pageload or interaction
-span that scored the vital. Its value is the vital's 0-1 performance score as a ratio. A single
-vital's score and count are plain ``avg`` and ``count`` aggregates over that metric, so the only
-formulas needed here are the totals, which combine the five score metrics the way the spans
-``performance_score(measurements.score.total)`` and ``opportunity_score(measurements.score.total)``
-do. They keep the spans argument so the pages table can switch datasets without changing its
-fields. Because they read several metrics at once they are ``MultiTraceMetricFormulaDefinition``s.
-"""
-
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -26,7 +14,7 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.spans.utils import operate_multiple_columns
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
-from sentry.search.eap.trace_metrics.types import ANY_UNIT, TraceMetric
+from sentry.search.eap.trace_metrics.types import TraceMetric
 from sentry.search.eap.validator import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 
@@ -34,13 +22,11 @@ WEB_VITALS = ["lcp", "fcp", "cls", "ttfb", "inp"]
 
 TOTAL_SCORE_ARGUMENT = "measurements.score.total"
 
-# The unit is left open on purpose: the metric name and type already identify the score, and a
-# unit mismatch would silently drop every row.
 WEB_VITAL_SCORE_METRICS: dict[str, TraceMetric] = {
     vital: TraceMetric(
         metric_name=f"browser.web_vital.{vital}.score",
         metric_type="distribution",
-        metric_unit=ANY_UNIT,
+        metric_unit="ratio",
     )
     for vital in WEB_VITALS
 }
@@ -51,7 +37,7 @@ TOTAL_SCORE_COUNTS_CACHE_KEY = "trace_metrics_total_score_counts"
 
 
 def _score_count_column(vital: str) -> str:
-    return f"count(value,browser.web_vital.{vital}.score,distribution,{ANY_UNIT})"
+    return f"count(value,browser.web_vital.{vital}.score,distribution,ratio)"
 
 
 def _score_aggregate(
@@ -67,15 +53,24 @@ def _score_aggregate(
     )
 
 
-def _weighted(formula: Column.BinaryFormula, weight: float) -> Column:
+def _formula_with_default_zero(
+    left: Column, op: Column.BinaryFormula.Op.ValueType, right: Column
+) -> Column:
     return Column(
-        formula=Column.BinaryFormula(
-            default_value_double=0.0,
-            left=Column(formula=formula),
-            op=Column.BinaryFormula.OP_MULTIPLY,
-            right=Column(literal=LiteralValue(val_double=weight)),
-        )
+        formula=Column.BinaryFormula(default_value_double=0.0, left=left, op=op, right=right)
     )
+
+
+def _weighted(column: Column, weight: float) -> Column:
+    return _formula_with_default_zero(
+        column, Column.BinaryFormula.OP_MULTIPLY, Column(literal=LiteralValue(val_double=weight))
+    )
+
+
+def _has_data(vital: str, settings: ResolverSettings) -> Column:
+    # count / count is 1.0 and nulls out to 0.0 if there are no rows.
+    count = _score_aggregate(Function.FUNCTION_COUNT, vital, settings)
+    return _formula_with_default_zero(count, Column.BinaryFormula.OP_DIVIDE, count)
 
 
 def none_if_zero_processor(value: float) -> float | None:
@@ -86,29 +81,16 @@ def none_if_zero_processor(value: float) -> float | None:
 
 def performance_score(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     """
-    Weighted average of the per-vital scores, where only vitals with data contribute their weight.
+    Sum of weighted averages of the per-vital scores, where only vitals with data contribute their weight.
     """
     weighted_scores: list[Column] = []
     weights: list[Column] = []
 
     for vital in WEB_VITALS:
         weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital]
-        vital_score = Column.BinaryFormula(
-            default_value_double=0.0,
-            left=_score_aggregate(Function.FUNCTION_AVG, vital, settings),
-            op=Column.BinaryFormula.OP_MULTIPLY,
-            right=Column(literal=LiteralValue(val_double=1.0)),
-        )
-        weighted_scores.append(_weighted(vital_score, weight))
-
-        # count / count is 1.0 when the vital has data and falls back to 0.0 otherwise
-        vital_exists = Column.BinaryFormula(
-            default_value_double=0.0,
-            left=_score_aggregate(Function.FUNCTION_COUNT, vital, settings),
-            op=Column.BinaryFormula.OP_DIVIDE,
-            right=_score_aggregate(Function.FUNCTION_COUNT, vital, settings),
-        )
-        weights.append(_weighted(vital_exists, weight))
+        avg = _score_aggregate(Function.FUNCTION_AVG, vital, settings)
+        weighted_scores.append(_weighted(avg, weight))
+        weights.append(_weighted(_has_data(vital, settings), weight))
 
     return Column.BinaryFormula(
         default_value_double=0.0,
@@ -123,15 +105,12 @@ def _total_score_counts(settings: ResolverSettings) -> dict[str, float]:
     Number of scores per vital across the whole query, ignoring any group by. Used as the
     denominator of the opportunity score so each group is weighted by its share of traffic.
     """
-    # Imported here to avoid a circular import: the dataset module imports the definitions that
-    # include these formulas.
     from sentry.snuba.trace_metrics import TraceMetrics
 
     snuba_params = settings["snuba_params"]
 
     if snuba_params.organization is None:
-        # The function is only being validated (e.g. while saving a dashboard widget), so there
-        # is nothing to query.
+        # Dummy response for save query validation
         return {vital: 0 for vital in WEB_VITALS}
 
     if TOTAL_SCORE_COUNTS_CACHE_KEY in settings["query_result_cache"]:
@@ -154,8 +133,8 @@ def _total_score_counts(settings: ResolverSettings) -> dict[str, float]:
     return {vital: row.get(_score_count_column(vital)) or 0 for vital in WEB_VITALS}
 
 
-def _missing_score(vital: str, settings: ResolverSettings) -> Column.BinaryFormula:
-    """``count - sum`` of the ratios: the score points this group's vital left on the table."""
+def _score_deficit(vital: str, settings: ResolverSettings) -> Column.BinaryFormula:
+    """``count - sum``, which equals the score points left on the table."""
     return Column.BinaryFormula(
         default_value_double=0.0,
         left=_score_aggregate(Function.FUNCTION_COUNT, vital, settings),
@@ -174,18 +153,16 @@ def opportunity_score(_: ResolvedArguments, settings: ResolverSettings) -> Colum
     vitals_with_data = [vital for vital in WEB_VITALS if total_counts[vital] > 0]
 
     if not vitals_with_data:
-        # The RPC expects an aggregate formula so that group by still applies; without data every
-        # vital resolves to 0 anyway.
-        return _missing_score("lcp", settings)
+        # Return any aggregate to satisfy return type. _score_deficit resolves to 0 if there are no rows.
+        return _score_deficit(WEB_VITALS[0], settings)
 
     total_weight = sum(WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] for vital in vitals_with_data)
     weighted_scores: list[Column] = []
     for vital in vitals_with_data:
-        vital_opportunity = Column.BinaryFormula(
-            default_value_double=0.0,
-            left=Column(formula=_missing_score(vital, settings)),
-            op=Column.BinaryFormula.OP_DIVIDE,
-            right=Column(literal=LiteralValue(val_double=total_counts[vital])),
+        vital_opportunity = _formula_with_default_zero(
+            Column(formula=_score_deficit(vital, settings)),
+            Column.BinaryFormula.OP_DIVIDE,
+            Column(literal=LiteralValue(val_double=total_counts[vital])),
         )
         weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital] / total_weight
         weighted_scores.append(_weighted(vital_opportunity, weight))
