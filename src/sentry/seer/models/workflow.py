@@ -71,6 +71,12 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    backing_workflow = models.OneToOneField(
+        "workflow_engine.Workflow",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="seer_workflow_config",
+    )
     service_account_id = HybridCloudForeignKey(
         "service_accounts.ServiceAccount",
         on_delete="SET_NULL",

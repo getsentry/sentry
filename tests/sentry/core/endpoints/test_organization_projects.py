@@ -1,11 +1,14 @@
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -33,6 +36,59 @@ class OrganizationProjectsTestBase(APITestCase):
             HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
         )
         self.check_valid_response(response, [project])
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_without_open_membership_sees_linked_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        linked = self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "project:read"],
+            project_ids=[linked.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert [int(project["id"]) for project in response.data] == [linked.id]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_projects_without_a_team(self) -> None:
+        teamless = self.create_project(organization=self.organization, teams=[])
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "project:read"],
+            project_ids=[teamless.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert teamless.id in [int(project["id"]) for project in response.data]
 
 
 class OrganizationProjectsTest(OrganizationProjectsTestBase):

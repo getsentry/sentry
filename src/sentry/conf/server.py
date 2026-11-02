@@ -1935,6 +1935,8 @@ SENTRY_SCOPES = {
     "seer:write",
     "service_account:read",
     "service_account:write",
+    "user_preference:read",
+    "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1953,6 +1955,7 @@ SENTRY_READONLY_SCOPES = {
     "saved_query:read",
     "seer:read",
     "service_account:read",
+    "user_preference:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1990,6 +1993,8 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "service_account:read": {"service_account:read"},
     # Explicit by design: holding write does not grant read.
     "service_account:write": {"service_account:write"},
+    "user_preference:read": {"user_preference:read"},
+    "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2016,6 +2021,9 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
+        # Accepted by endpoints, but not granted by any role yet.
+        "user_preference:read",
+        "user_preference:write",
     ]
 )
 
@@ -2031,11 +2039,22 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            # Recent searches and prompt activity accept org:read today, including writes.
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    # Starring, starred order and last visited accept member:read today, including writes.
+    "member:read": frozenset(
+        [
+            # Removed once member:read has a full 1:1 translation to granular scopes.
+            "member:read",
+            "user_preference:read",
+            "user_preference:write",
         ]
     ),
     # No granular replacements yet.
     "project:read": frozenset(["project:read"]),
-    "member:read": frozenset(["member:read"]),
 }
 
 # API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
@@ -2114,6 +2133,16 @@ SENTRY_SCOPE_SETS = (
     (
         ("service_account:write", "Write access to service accounts."),
         ("service_account:read", "Read access to service accounts."),
+    ),
+    (
+        (
+            "user_preference:write",
+            "Write access to your own stars, recent searches, and dismissed prompts.",
+        ),
+        (
+            "user_preference:read",
+            "Read access to your own stars, recent searches, and dismissed prompts.",
+        ),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (

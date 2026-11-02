@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.kafka import publish_replay_event
@@ -75,7 +76,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                 replay_id=replay_id,
                 start=filter_params["start"],
                 end=filter_params["end"],
-                request_user_id=request.user.id,
+                request_user_id=acting_user_id(request.user),
                 organization=project.organization,
             )
         if not viewed_by_ids_response:
@@ -141,7 +142,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                     project_ids=[project.id],
                     period_start=filter_params["start"],
                     period_end=filter_params["end"],
-                    request_user_id=request.user.id,
+                    request_user_id=acting_user_id(request.user),
                 ),
                 tenant_id={"organization_id": project.organization.id}
                 if project.organization

@@ -213,6 +213,15 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "user_preferences",
+        "Your preferences",
+        ("user_preference:read", "user_preference:write"),
+        access_descriptions={
+            "read": "View your starred dashboards and issue views, recent searches, and dismissed prompts.",
+            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches, record issue view visits, and dismiss prompts.",
+        },
+    ),
+    OAuthPermissionResource(
         "openid",
         "Authentication",
         ("openid",),
@@ -241,6 +250,7 @@ _PERMISSION_ACTIONS = {
     "dashboard:write": ("write",),
     "saved_query:write": ("write",),
     "service_account:write": ("write",),
+    "user_preference:write": ("write",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }

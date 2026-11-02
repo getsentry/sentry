@@ -24,7 +24,6 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
-    StrictContractSerializer,
     StrictFloatField,
     StrictIntegerField,
 )
@@ -40,6 +39,7 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.notebooks.contracts import StrictContractSerializer
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
 from sentry.users.models.user import User

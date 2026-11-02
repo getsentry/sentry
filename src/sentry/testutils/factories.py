@@ -205,6 +205,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowTriggerBinding,
 )
+from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -3412,11 +3413,20 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_config(
-        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+        organization,
+        *,
+        trigger_actions: Sequence[Action] = (),
+        monitors: Sequence[Detector] = (),
+        **kwargs,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
+        if monitors:
+            BreachedMetricWorkflow(
+                config_id=config.id, organization_id=config.organization_id
+            ).set_monitor_selection([monitor.id for monitor in monitors])
+            config.refresh_from_db()
         return config
 
     @staticmethod

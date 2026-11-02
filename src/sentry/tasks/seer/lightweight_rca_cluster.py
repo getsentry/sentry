@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
     namespace=ingest_errors_postprocess_tasks,
     alias_namespace=ingest_errors_tasks,
 )
-def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
+def trigger_lightweight_rca_cluster_task(
+    group_id: int, event_id: str | None = None, **kwargs
+) -> None:
     try:
         group = Group.objects.get(id=group_id)
     except Group.DoesNotExist:
@@ -24,10 +26,10 @@ def trigger_lightweight_rca_cluster_task(group_id: int, **kwargs) -> None:
         return
 
     try:
-        trigger_lightweight_rca_cluster(group)
+        trigger_lightweight_rca_cluster(group, event_id=event_id)
     except Exception:
         logger.exception(
             "lightweight_rca_cluster_task.failed",
-            extra={"group_id": group_id},
+            extra={"group_id": group_id, "event_id": event_id},
         )
         raise
