@@ -428,8 +428,8 @@ describe('Cart', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders buttons and subtext for migrating partner customers', async () => {
-    const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
+  it('shows confirmation for sponsored partner plans', async () => {
+    const partnerOrg = OrganizationFixture();
     const partnerSub = SubscriptionFixture({
       organization: partnerOrg,
       partner: {
@@ -456,16 +456,11 @@ describe('Cart', () => {
       />
     );
 
-    expect(await screen.findByRole('button', {name: 'Migrate Now'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Schedule changes'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: /Confirm/})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Migrate Now'})).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', {name: 'Confirm and pay'})
+      screen.queryByRole('button', {name: 'Schedule changes'})
     ).not.toBeInTheDocument();
-    // wait for preview to be loaded
-    await screen.findByText(
-      /These changes will take effect at the end of your current Partner sponsored plan on Jun 14, 2022/
-    );
-    expect(screen.queryByTestId('cart-diff')).not.toBeInTheDocument(); // changes aren't shown for migrating partner customers
   });
 
   it('renders subtext for self-serve partner customers', async () => {

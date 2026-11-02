@@ -559,19 +559,6 @@ describe('OrganizationStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows installable build when expose category feature flag is enabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['expose-category-installable-build'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
-  });
-
   it('does not show installable build when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],

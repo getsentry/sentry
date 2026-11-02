@@ -355,7 +355,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       <Feature
-        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
+        features={['discover-query', 'dashboards-basic', 'dashboards-edit']}
         overrideName="feature-disabled:dashboards-sidebar-item"
         requireAll={false}
       >

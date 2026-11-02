@@ -280,7 +280,6 @@ export function CartDiff({
   subscription,
   isOpen,
   onToggle,
-  organization,
 }: {
   activePlan: Plan;
   formData: CheckoutFormData;
@@ -543,7 +542,7 @@ export function CartDiff({
     ]
   );
 
-  if (allChanges.length === 0 || isNewPayingCustomer(subscription, organization)) {
+  if (allChanges.length === 0 || isNewPayingCustomer(subscription)) {
     return null;
   }
 
