@@ -22,7 +22,7 @@ from sentry.models.organization import Organization
 
 
 class OrganizationTraceItemAttributeDetailsEndpointSerializer(serializers.Serializer):
-    attributeName = serializers.CharField(source="attribute_name")
+    attributeName = serializers.CharField(source="attribute_name", trim_whitespace=False)
     attributeType = serializers.ChoiceField(
         choices=POSSIBLE_ATTRIBUTE_TYPES, source="attribute_type"
     )
