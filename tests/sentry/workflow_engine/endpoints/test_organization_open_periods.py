@@ -824,9 +824,7 @@ def test_detector_registration_does_not_enable_open_period_activities(
     start_time = timezone.now()
     resolution_time = start_time + timedelta(minutes=1)
 
-    with patch.dict(detector_settings_registry.registrations):
-        detector_settings_registry.register(issue_type.slug)(DetectorSettings)
-
+    with patch.dict(detector_settings_registry.registrations, {issue_type.slug: DetectorSettings}):
         create_open_period(group, start_time)
         open_period = GroupOpenPeriod.objects.get(group=group)
         open_period.close_open_period(resolution_time)

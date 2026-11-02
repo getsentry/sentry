@@ -1,39 +1,46 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 import type {NavigateOptions} from 'react-router';
-import type {Location} from 'history';
+import type {ParserMap} from 'nuqs';
 
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  type QueryParamsUpdates,
+  type QueryParamsValues,
+} from 'sentry/views/explore/queryParams/parsers';
 import type {
   ReadableQueryParams,
   ReadableQueryParamsOptions,
 } from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
-interface ExploreLocationQueryParamsProviderProps {
+interface ExploreQueryParamsProviderProps<Parsers extends ParserMap> {
   children: ReactNode;
-  getReadableQueryParamsFromLocation: (location: Location) => ReadableQueryParams;
-  getTargetWithReadableQueryParams: (
-    location: Location,
+  getQueryParamsUpdates: (
     writableQueryParams: WritableQueryParams
-  ) => Location;
-  isDefaultFields: (location: Location) => boolean;
+  ) => QueryParamsUpdates<Parsers>;
+  getReadableQueryParams: (values: QueryParamsValues<Parsers>) => ReadableQueryParams;
+  isDefaultFields: (values: QueryParamsValues<Parsers>) => boolean;
+  parsers: Parsers;
   frozenParams?: Partial<ReadableQueryParamsOptions>;
   // Runs before navigation, e.g. to persist params to local storage.
   onSetWritableQueryParams?: (writableQueryParams: WritableQueryParams) => void;
 }
 
-export function ExploreLocationQueryParamsProvider({
+export function ExploreQueryParamsProvider<Parsers extends ParserMap>({
   children,
-  getReadableQueryParamsFromLocation,
-  getTargetWithReadableQueryParams,
+  getQueryParamsUpdates,
+  getReadableQueryParams,
   isDefaultFields,
+  parsers,
   frozenParams,
   onSetWritableQueryParams,
-}: ExploreLocationQueryParamsProviderProps) {
+}: ExploreQueryParamsProviderProps<Parsers>) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -44,36 +51,34 @@ export function ExploreLocationQueryParamsProvider({
   // oxlint-disable-next-line react/refs
   locationRef.current = location;
 
-  const _readableQueryParams = useMemo(
-    () => getReadableQueryParamsFromLocation(location),
-    [getReadableQueryParamsFromLocation, location]
+  const values = useMemo(
+    () => loadQueryParamsFromLocation(parsers, location),
+    [parsers, location]
   );
 
-  const readableQueryParams = useMemo(
-    () =>
-      frozenParams ? _readableQueryParams.replace(frozenParams) : _readableQueryParams,
-    [_readableQueryParams, frozenParams]
-  );
+  const readableQueryParams = useMemo(() => {
+    const readable = getReadableQueryParams(values);
+    return frozenParams ? readable.replace(frozenParams) : readable;
+  }, [getReadableQueryParams, values, frozenParams]);
 
   const setWritableQueryParams = useCallback(
     (writableQueryParams: WritableQueryParams, options?: NavigateOptions) => {
       onSetWritableQueryParams?.(writableQueryParams);
 
-      const target = getTargetWithReadableQueryParams(
+      const target = applyQueryParamsUpdates(
+        parsers,
         locationRef.current,
-        writableQueryParams
+        getQueryParamsUpdates(writableQueryParams)
       );
 
       navigateIfQueryChanged(navigate, locationRef.current, target, options);
     },
-    [navigate, getTargetWithReadableQueryParams, onSetWritableQueryParams]
+    [getQueryParamsUpdates, navigate, onSetWritableQueryParams, parsers]
   );
-
-  const isUsingDefaultFields = isDefaultFields(location);
 
   return (
     <QueryParamsContextProvider
-      isUsingDefaultFields={isUsingDefaultFields}
+      isUsingDefaultFields={isDefaultFields(values)}
       queryParams={readableQueryParams}
       setQueryParams={setWritableQueryParams}
       shouldManageFields

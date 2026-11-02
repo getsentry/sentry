@@ -13,6 +13,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
+from django.template import loader
 from django.utils import timezone
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
@@ -20,6 +21,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.issues.grouptype import (
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
@@ -208,6 +213,34 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
+    def test_endpoint_regression_uses_performance_template(self) -> None:
+        event = as_group_event(
+            self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        )
+        assert event.group is not None
+        event.group.type = PerformanceP95EndpointRegressionGroupType.type_id
+
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+
+        assert notification.template_path == "sentry/emails/performance"
+        assert loader.render_to_string(f"{notification.template_path}.txt")
+        assert loader.render_to_string(f"{notification.template_path}.html")
+
+    def test_profile_regression_uses_generic_template(self) -> None:
+        event = as_group_event(
+            self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        )
+        assert event.group is not None
+        event.group.type = ProfileFunctionRegressionType.type_id
+
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+
+        assert notification.template_path == "sentry/emails/generic"
+
     @mock.patch("sentry.analytics.record")
     def test_simple_notification(self, mock_record: MagicMock) -> None:
         event = self.store_event(

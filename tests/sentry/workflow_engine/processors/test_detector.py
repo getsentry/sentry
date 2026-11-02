@@ -5,7 +5,6 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 from django.db.models import F
 from django.utils import timezone
 
@@ -477,14 +476,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
-            with pytest.raises(ValueError):
-                results = process_detectors(data_packet, [detector])
-                assert (
-                    mock_logger.error.call_args[0][0]
-                    == "Registered grouptype for detector has no detector_handler"
-                )
+            results = process_detectors(data_packet, [detector])
 
-                assert results == []
+        mock_logger.error.assert_called_once_with(
+            "Registered detector type has no detector_handler",
+            extra={"detector_id": detector.id, "detector_type": detector.type},
+        )
+        assert results == []
 
     def test_sending_metric_before_evaluating(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -546,14 +544,10 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
 
-        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
-            with pytest.raises(ValueError):
-                process_detectors(data_packet, [detector])
+        with mock.patch("sentry.workflow_engine.processors.detector.metrics") as mock_metrics:
+            process_detectors(data_packet, [detector])
 
-                calls = mock_incr.call_args_list
-                # We can have background threads emitting metrics as tasks are scheduled
-                filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
-                assert len(filtered_calls) == 0
+        mock_metrics.incr.assert_not_called()
 
 
 class TestGetDetectorsForEvent(TestCase):

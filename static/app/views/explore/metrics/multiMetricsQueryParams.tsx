@@ -12,7 +12,6 @@ import isEqual from 'lodash/isEqual';
 import {useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -23,6 +22,7 @@ import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
 } from 'sentry/views/explore/metrics/useMetricQueriesController';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
 import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
@@ -53,7 +53,7 @@ interface MultiMetricsQueryParamsProviderProps {
 }
 
 const metricQueryParsers = {
-  metric: parseAsStringArray.withOptions({history: 'push'}),
+  metric: parseAsFieldList.withOptions({history: 'push'}),
 };
 
 export function MultiMetricsQueryParamsProvider({

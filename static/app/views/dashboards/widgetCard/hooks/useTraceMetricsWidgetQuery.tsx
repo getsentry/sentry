@@ -83,6 +83,7 @@ export function useTraceMetricsSeriesQuery(
           pageFilters,
           DiscoverDatasets.TRACEMETRICS,
           {
+            organization,
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,
