@@ -2371,6 +2371,43 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert rewritten.producer_revision == 2
         assert rewritten.content == "second body"
 
+    def test_adoption_keeps_a_block_with_a_rewrite_in_progress(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "rewriting", 1, "first body"))
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.event(
+                4,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "rewriting",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "rewriting",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                5,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=3
+                    )
+                },
+            )
+        )
+        self.deliver(self.event(6, "report_completed", {"reportRevision": 3}))
+
+        block = NotebookBlock.objects.get(producer_key="rewriting")
+        assert block.deleted_at is None
+        assert block.content == "first body"
+        assert block.current_execution is not None
+        assert block.current_execution.status == NotebookBlockExecutionStatus.CANCELLED
+
     def test_report_completion_removes_only_blocks_a_clear_replaced(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(self.text_block_upserted(2, "edited", 1, "first body"))

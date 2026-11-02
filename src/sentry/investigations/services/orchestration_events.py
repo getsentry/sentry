@@ -441,34 +441,48 @@ def _adopt_preserved_report_revision(
         or revision <= _report_revision(run)
     ):
         return False
-    live_blocks = NotebookBlock.objects.filter(
-        notebook=run.investigation,
-        producer_revision__isnull=False,
-        producer_key__isnull=False,
-        deleted_at__isnull=True,
-    )
-    completed_ids = list(
-        live_blocks.filter(
-            current_execution__status=NotebookBlockExecutionStatus.COMPLETED
-        ).values_list("id", flat=True)
-    )
-    discarded_ids = list(live_blocks.exclude(id__in=completed_ids).values_list("id", flat=True))
+    live_block_ids, completed_ids = _live_report_blocks(run)
+    # A rewrite of a kept block stops, and the block keeps its finished output.
+    cancelled = _cancel_report_executions(run, block_ids=live_block_ids)
+    discarded_ids = [block_id for block_id in live_block_ids if block_id not in completed_ids]
     if discarded_ids:
-        _cancel_report_executions(run, block_ids=discarded_ids)
         supersede_block_action_requests(
             run.investigation, remove_blocks(run.investigation, block_ids=discarded_ids)
         )
     control = _control(run)
-    kept_ids = set(completed_ids)
     replaced_ids = [
-        block_id for block_id in _replaced_report_block_ids(run) if block_id not in kept_ids
+        block_id for block_id in _replaced_report_block_ids(run) if block_id not in completed_ids
     ]
     if replaced_ids:
         control[_REPLACED_BLOCK_IDS_KEY] = replaced_ids
     else:
         control.pop(_REPLACED_BLOCK_IDS_KEY, None)
     control.update({"reportRevision": revision, "reportCleared": False})
-    return bool(discarded_ids)
+    return bool(discarded_ids) or bool(cancelled)
+
+
+def _live_report_blocks(run: InvestigationOrchestrationRun) -> tuple[list[int], set[int]]:
+    """Return the live producer block ids, and the ones whose shown output completed."""
+
+    live_blocks = NotebookBlock.objects.filter(
+        notebook=run.investigation,
+        producer_revision__isnull=False,
+        producer_key__isnull=False,
+        deleted_at__isnull=True,
+    )
+    completed_ids = set(
+        live_blocks.filter(
+            Q(
+                kind=NotebookBlockKind.QUERY,
+                result_execution__status=NotebookBlockExecutionStatus.COMPLETED,
+            )
+            | (
+                ~Q(kind=NotebookBlockKind.QUERY)
+                & Q(content_execution__status=NotebookBlockExecutionStatus.COMPLETED)
+            )
+        ).values_list("id", flat=True)
+    )
+    return list(live_blocks.values_list("id", flat=True)), completed_ids
 
 
 def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Notebook) -> None:
@@ -541,25 +555,7 @@ def _clear_report(
         revision == current_revision and control.get("reportCleared") and not force
     ):
         return False
-    live_blocks = NotebookBlock.objects.filter(
-        notebook=run.investigation,
-        producer_revision__isnull=False,
-        producer_key__isnull=False,
-        deleted_at__isnull=True,
-    )
-    live_block_ids = list(live_blocks.values_list("id", flat=True))
-    completed_ids = set(
-        live_blocks.filter(
-            Q(
-                kind=NotebookBlockKind.QUERY,
-                result_execution__status=NotebookBlockExecutionStatus.COMPLETED,
-            )
-            | (
-                ~Q(kind=NotebookBlockKind.QUERY)
-                & Q(content_execution__status=NotebookBlockExecutionStatus.COMPLETED)
-            )
-        ).values_list("id", flat=True)
-    )
+    live_block_ids, completed_ids = _live_report_blocks(run)
     _cancel_report_executions(run, block_ids=live_block_ids)
     supersede_action_requests_before(run.investigation, revision)
     # A block whose shown output never completed goes now. The rest stay visible
