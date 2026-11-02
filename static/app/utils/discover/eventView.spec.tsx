@@ -1146,6 +1146,25 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
 
     expect(eventView.team).toEqual(['myteams', 1]);
   });
+
+  it('does not crash when saved query has undefined fields and no URL fields', () => {
+    const saved = {
+      id: '42',
+      name: 'homepage',
+      // fields intentionally omitted to simulate API returning undefined fields
+      query: 'event.type:error',
+      projects: [123],
+      version: 2,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+    } as unknown as SavedQuery;
+
+    const location = LocationFixture({query: {}});
+
+    // Should not throw TypeError: Cannot read properties of undefined (reading 'map')
+    const eventView = EventView.fromSavedQueryOrLocation(saved, location);
+    expect(eventView.fields).toEqual([]);
+  });
 });
 
 describe('EventView.generateQueryStringObject()', () => {
