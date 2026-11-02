@@ -4,11 +4,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import type {MaxPickableDaysOptions} from 'sentry/utils/useMaxPickableDays';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -392,5 +394,55 @@ describe('ExploreContent', () => {
         })
       );
     });
+  });
+
+  it('waits for the final max pickable days before initializing shared date ranges', async () => {
+    act(() => ProjectsStore.loadInitialData([project]));
+    let maxPickableDays: MaxPickableDaysOptions = {
+      maxPickableDays: 30,
+      maxUpgradableDays: 90,
+      isLoading: true,
+    };
+    registerOverride('react-hook:use-max-pickable-days', () => maxPickableDays);
+    const organizationRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    const {rerender, unmount} = render(<ExploreContent />, {
+      organization,
+      additionalWrapper: TopBarWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {statsPeriod: '90d'},
+        },
+      },
+    });
+
+    // Let the bootstrap organization request settle so only the limits keep it loading.
+    await waitFor(() => expect(organizationRequest).toHaveBeenCalled());
+    await act(async () => {});
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(PageFiltersStore.getState().isReady).toBe(false);
+
+    maxPickableDays = {maxPickableDays: 90, maxUpgradableDays: 90};
+    rerender(<ExploreContent />);
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '90d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+
+    // Unmount before dropping the override so cleanup renders with the same hooks.
+    unmount();
+    registerOverride('react-hook:use-max-pickable-days', undefined as never);
   });
 });

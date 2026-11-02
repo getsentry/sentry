@@ -93,14 +93,16 @@ function ExploreContentInner() {
   );
 
   // PageFiltersContainer normalizes URL date params on mount. Wait until the
-  // bootstrapped org and OrganizationContext agree on the spans range feature.
+  // bootstrapped org and OrganizationContext agree on the spans range feature,
+  // and until the max pickable days are final (e.g. the subscription has loaded).
   // Compare effective bootstrap flags so stored feature flag overrides do not keep
   // the bootstrapped org and OrganizationContext permanently out of sync.
-  const organizationRangeLoading =
+  const rangeLimitsLoading =
     organizationLoading ||
     isBootstrapOrganizationPending ||
     (defined(bootstrappedOrganizationHasHighRange) &&
-      bootstrappedOrganizationHasHighRange !== organizationHasHighRange);
+      bootstrappedOrganizationHasHighRange !== organizationHasHighRange) ||
+    dataCategoryMaxPickableDays.isLoading;
 
   const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
     defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
@@ -115,7 +117,7 @@ function ExploreContentInner() {
 
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
-  if (organizationRangeLoading) {
+  if (rangeLimitsLoading) {
     return (
       <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
         <Stack flex={1} padding="2xl 3xl">
