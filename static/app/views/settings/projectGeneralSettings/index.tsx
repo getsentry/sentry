@@ -724,9 +724,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm
