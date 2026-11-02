@@ -14,7 +14,6 @@ from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry import features
-from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
@@ -42,10 +41,7 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
     telemetry_available,
 )
 from sentry.investigations.services.action_requests import complete_action_requests
-from sentry.investigations.services.investigations import (
-    InvestigationValidationError,
-    _validate_project_ids,
-)
+from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
@@ -66,9 +62,9 @@ from sentry.notebooks.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
 )
+from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.service_accounts.auth import authenticate_service_account
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
@@ -320,7 +316,7 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
 
 
 def _dispatch_viewer_scope(
-    investigation: Investigation, *, command: InvestigationOrchestrationCommand | None = None
+    investigation: Notebook, *, command: InvestigationOrchestrationCommand | None = None
 ) -> AbstractContextManager[None]:
     try:
         actor = command.requested_by_actor if command is not None else investigation.creator_actor
@@ -330,24 +326,20 @@ def _dispatch_viewer_scope(
     # Actorless commands are already interpreted as system by requested_by_actor.
     if actor is None or actor.type == ActorType.USER:
         return nullcontext()
-    context = ViewerContext(
-        organization_id=investigation.organization_id,
-        actor=Actor(type=actor.type, actor_id=actor.id),
-    )
     if actor.type == ActorType.SERVICE_ACCOUNT:
-        auth = authenticate_service_account(context)
-        if (
-            auth is None
-            or not INVESTIGATION_SCOPES.intersection(auth.get_scopes())
-            or not has_investigations_access(investigation.organization)
-        ):
-            raise PermissionDenied
         try:
-            _validate_project_ids(
-                investigation.organization_id, investigation.projects.values_list("id", flat=True)
+            context = resolve_investigation_service_account(
+                organization=investigation.organization,
+                account_id=actor.id,
+                project_ids=investigation.projects.values_list("id", flat=True),
             )
         except InvestigationValidationError as error:
             raise PermissionDenied from error
+    else:
+        context = ViewerContext(
+            organization_id=investigation.organization_id,
+            actor=Actor(type=actor.type, actor_id=actor.id),
+        )
     return viewer_context_scope(context)
 
 

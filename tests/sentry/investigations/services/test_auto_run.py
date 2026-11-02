@@ -29,7 +29,8 @@ from sentry.notebooks.models import (
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import MissingViewerContextError
-from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.service_accounts.models import ServiceAccountProject
+from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
     _reconcile_command_version_conflict,
@@ -40,6 +41,7 @@ from sentry.tasks.seer.investigation import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.viewer_context import (
     Actor,
@@ -961,7 +963,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             == inherited
         )
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     @override_settings(SEER_API_SHARED_SECRET="saved-actor-test-secret")
     @mock.patch(
         "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
@@ -971,8 +973,12 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self, urlopen: mock.Mock, connections: mock.Mock
     ) -> None:
         with outbox_runner():
-            creator = self.create_service_account(organization=self.organization, id=910001)
-            sender = self.create_service_account(organization=self.organization, name="sender")
+            creator = self.create_service_account(
+                organization=self.organization, id=910001, all_projects=True
+            )
+            sender = self.create_service_account(
+                organization=self.organization, name="sender", all_projects=True
+            )
         self.investigation.update(created_by_id=None, created_by_service_account_id=creator.id)
         urlopen.return_value = self.seer_run_response()
         with viewer_context_scope(None):
@@ -1016,24 +1022,30 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert command.error["reason"] == "workflow_version_conflict"
         connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
-    def test_account_create_access_failure_and_explicit_recovery(
-        self, create_run: mock.Mock
-    ) -> None:
+    def test_project_grant_revocation_and_explicit_recovery(self, create_run: mock.Mock) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
         with outbox_runner():
-            account = self.create_service_account(organization=self.organization)
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
         self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
-        replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
-        replica.update(is_active=False)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            grant = ServiceAccountProject.objects.get(service_account=account)
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            grant.update(project_id=other_project.id)
         dispatch_investigation_orchestration_create(self.orchestration_run.id)
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.status == "failed"
         assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
         assert self.orchestration_run.error["retryable"] is True
+        assert list(self.investigation.projects.values_list("id", flat=True)) == [self.project.id]
 
-        replica.update(is_active=True)
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            grant.update(project_id=self.project.id)
         with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
             accept_orchestration_command(
                 investigation=self.investigation,
@@ -1055,15 +1067,17 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, account.id)
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
-    def test_account_revoked_before_reconciliation(
+    def test_project_grant_revoked_before_reconciliation(
         self, dispatch: mock.Mock, get_run: mock.Mock
     ) -> None:
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
         with outbox_runner():
-            account = self.create_service_account(organization=self.organization)
-        replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
         self.orchestration_run.update(
             seer_run=self.create_seer_run(
                 organization=self.organization,
@@ -1081,13 +1095,41 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         )
 
         def revoke_and_conflict(*args: Any, **kwargs: Any) -> None:
-            replica.update(is_active=False)
+            with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+                ServiceAccountProject.objects.get(service_account=account).delete()
             raise SeerApiError("conflict", 409)
 
         dispatch.side_effect = revoke_and_conflict
         dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        dispatch.assert_called_once()
         get_run.assert_not_called()
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
         assert command.error["dispatchReason"] == "actor_access_denied"
         assert command.error["retryable"] is True
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_empty_selection_requires_explicit_all_projects(self, create_run: mock.Mock) -> None:
+        with outbox_runner():
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+        # Individual grants cover every current project, but not the empty selection's future ones.
+        assert list(self.organization.project_set.values_list("id", flat=True)) == [self.project.id]
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        create_run.assert_not_called()
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
+
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
+            ServiceAccountProject.objects.get(service_account=account).delete()
+            account.update(all_projects=True)
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        create_run.assert_called_once()
+        assert not self.investigation.projects.exists()
