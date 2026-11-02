@@ -135,6 +135,34 @@ class WorkflowConfigLastRun:
     last_run_status: str | None
 
 
+def check_project_access(
+    project_ids: Sequence[int],
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> str | None:
+    """
+    Check the caller can read every project in a list. Returns a user-facing denial
+    detail, or None when access is allowed.
+
+    - Every explicit project in ``projectIds`` must be active in the organization,
+      and the caller must have read access to it.
+    - Requesting all projects with ``[-1]`` requires global access.
+    """
+    if project_ids == [ALL_ACCESS_PROJECT_ID]:
+        if not request.access.has_global_access:
+            return "Requesting all projects requires global access"
+    elif project_ids:
+        # Raises PermissionDenied unless every project is active and accessible.
+        requested = endpoint.get_projects(request, organization, project_ids=set(project_ids))
+        for project in requested:
+            # TODO(aliu): currently a no-op unless endpoint permission class is looser
+            if not request.access.has_project_scope(project, "project:read"):
+                return f"You do not have access to project {project.id}"
+
+    return None
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
@@ -232,11 +260,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         Only ``strategy`` is required. ``enabled`` defaults to false, ``schedule`` to
         daily, and ``environments`` to all. ``name`` is optional. Omitting
-        ``projectIds`` selects no projects.
-
-        - Every explicit project in ``projectIds`` must be active in the organization,
-          and the caller must have read access to it.
-        - Requesting all projects with ``[-1]`` requires global access.
+        ``projectIds`` selects no projects. Use ``[-1]`` for all projects.
 
         The number of automations per organization is capped, and creation is rate
         limited. Failures past request validation, such as reaching the cap, return an
@@ -252,16 +276,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         strategy = SeerWorkflowStrategy(data["strategy"])
 
         project_ids: list[int] = data.get("projectIds") or []
-        if project_ids == [ALL_ACCESS_PROJECT_ID]:
-            if not request.access.has_global_access:
-                raise PermissionDenied
-        elif project_ids:
-            # Raises PermissionDenied unless every project is active and accessible.
-            requested = self.get_projects(request, organization, project_ids=set(project_ids))
-            if not all(
-                request.access.has_project_scope(project, "project:read") for project in requested
-            ):
-                raise PermissionDenied
+        denied = check_project_access(project_ids, request, organization, self)
+        if denied is not None:
+            raise PermissionDenied(detail=denied)
 
         try:
             workflow = SeerWorkflow.create_config(
@@ -347,9 +364,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         Only the fields sent are changed. ``projectIds`` replaces the projects the
         caller can access; selected projects the caller can't access are kept.
 
-        - Every explicit project in ``projectIds`` must be active in the organization,
-          and the caller must have read access to it.
-        - Requesting all projects with ``[-1]`` requires global access.
+        - The same project-access rules apply here AND to the associated projects of ``monitorIds``.
         - Changing the projects of a config that covers all projects requires global
           access.
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
@@ -379,17 +394,15 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            if all_projects or SeerWorkflowFilters.parse_obj(config.filters).all_projects:
+            if not all_projects and SeerWorkflowFilters.parse_obj(config.filters).all_projects:
                 if not request.access.has_global_access:
-                    raise PermissionDenied
+                    raise PermissionDenied(
+                        detail="You do not have permission to narrow this config's project scope"
+                    )
 
-            if not all_projects and bool(project_ids):
-                requested = self.get_projects(request, organization, project_ids=set(project_ids))
-                if not all(
-                    request.access.has_project_scope(project, "project:read")
-                    for project in requested
-                ):
-                    raise PermissionDenied
+            denied = check_project_access(project_ids, request, organization, self)
+            if denied is not None:
+                raise PermissionDenied(detail=denied)
 
             try:
                 if all_projects:

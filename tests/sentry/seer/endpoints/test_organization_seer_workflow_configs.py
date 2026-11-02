@@ -387,7 +387,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         config = self.create_config(filters={"all_projects": True})
         self.login_as(member)
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             config.id,
             method="put",
@@ -395,6 +395,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             status_code=403,
         )
 
+        assert response.data["detail"] == (
+            "You do not have permission to narrow this config's project scope"
+        )
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
         assert self.selected_project_ids(config) == []
@@ -405,9 +408,11 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         Factories.create_seer_workflow_config_project(config, accessible)
         self.login_as(member)
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug, config.id, method="put", projectIds=[-1], status_code=403
         )
+
+        assert response.data["detail"] == "Requesting all projects requires global access"
 
         config.refresh_from_db()
         assert config.filters.get("all_projects", False) is False
@@ -614,13 +619,20 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
         self.login_as(member)
 
-        for project_ids in ([accessible.id, hidden.id], [-1]):
-            self.get_error_response(
-                self.organization.slug,
-                strategy="agentic_triage_v2",
-                projectIds=project_ids,
-                status_code=403,
-            )
+        self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            projectIds=[accessible.id, hidden.id],
+            status_code=403,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            projectIds=[-1],
+            status_code=403,
+        )
+        assert response.data["detail"] == "Requesting all projects requires global access"
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
         response = self.get_success_response(
