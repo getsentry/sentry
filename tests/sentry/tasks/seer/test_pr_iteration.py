@@ -1832,6 +1832,26 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         mock_trigger.assert_not_called()
 
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_branch_moved_retries_do_not_extend_the_automated_streak(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # One automated iteration that retried once after its branch moved.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._iteration_block(1), self._iteration_block(1)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
     def _human_iteration_block(self, idx: int) -> MemoryBlock:
         return MemoryBlock(
             id=f"iter{idx}",
@@ -1877,6 +1897,26 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     ) -> None:
         mock_fetch.return_value = self._state_on_head(
             blocks=[self._human_iteration_block(i) for i in range(1, 3)]
+        )
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        with patch(f"{FEEDBACK_PATH}.MAX_TOTAL_ITERATIONS", 3):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_branch_moved_retries_do_not_count_toward_the_total_cap(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # Iteration 2 ran twice: its push was refused because the branch moved, and it retried.
+        mock_fetch.return_value = self._state_on_head(
+            blocks=[self._human_iteration_block(i) for i in (1, 2, 2)]
         )
         mock_pop.return_value = [self._queued(self._check_suite_feedback())]
 

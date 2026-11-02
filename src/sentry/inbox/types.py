@@ -2,10 +2,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
+from django.db import router, transaction
+from django.utils import timezone
+
+from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
-from sentry.notifications.models.inboxitemevent import InboxActorType
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
+from sentry.utils import metrics
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -70,4 +77,45 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         recipient_user_ids: Iterable[int],
         actor: InboxActor,
     ) -> None:
-        raise NotImplementedError
+        recipients = set(recipient_user_ids)
+        if actor.type == InboxActorType.USER:
+            recipients -= {actor.id}
+        if not recipients:
+            return
+
+        organization = Organization.objects.get_from_cache(
+            id=self.item_type.get_organization_id(subject)
+        )
+        if not features.has("organizations:universal-inbox-recording", organization):
+            return
+
+        subject_id = self.item_type.get_subject_id(subject)
+        payload = asdict(data)
+        tags = {"event_type": self.event_type}
+
+        with (
+            metrics.timer("inbox.record.duration", tags=tags),
+            transaction.atomic(using=router.db_for_write(InboxItem)),
+        ):
+            for user_id in sorted(recipients):
+                item, _ = InboxItem.objects.select_for_update().get_or_create(
+                    organization=organization,
+                    user_id=user_id,
+                    subject_type=self.item_type.subject_type,
+                    subject_id=subject_id,
+                    defaults={"last_activity_at": timezone.now()},
+                )
+                event = InboxItemEvent.objects.create(
+                    inbox_item=item,
+                    type=self.event_type,
+                    actor_type=actor.type,
+                    actor_id=actor.id,
+                    data=payload,
+                )
+                InboxItem.objects.filter(id=item.id).update(
+                    last_activity_at=max(item.last_activity_at, event.date_added),
+                    status=ObjectStatus.ACTIVE,
+                    date_updated=event.date_added,
+                )
+
+        metrics.incr("inbox.events.recorded", amount=len(recipients), tags=tags)

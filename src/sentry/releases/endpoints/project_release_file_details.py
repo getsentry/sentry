@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import (
     ReleaseFileSerializerResponse,
@@ -319,6 +320,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         return self.update_releasefile(request, release, file_id)
 
@@ -349,5 +351,6 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         return self.delete_releasefile(release, file_id)

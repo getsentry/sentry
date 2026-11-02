@@ -195,7 +195,7 @@ class JiraServerClient(ApiClient):
         return self.get_cached(self.STATUS_URL)
 
     def get_transitions(self, issue_key):
-        return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
+        return self.get(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
         return self.post(

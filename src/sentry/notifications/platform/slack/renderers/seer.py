@@ -374,8 +374,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_investigation_conclusion(
         cls, data: SeerInvestigationConclusion, link_decorator: NotificationLinkDecorator
     ) -> SlackRenderable:
-        blocks: list[Block] = [MarkdownBlock(text=section) for section in data.sections]
-        blocks.append(DividerBlock())
+        from sentry.integrations.slack.utils.escape import escape_slack_text
+
+        text = f"*{escape_slack_text(data.summary)}*"
+        if data.summary_description:
+            text += f"\n{escape_slack_text(data.summary_description)}"
+        blocks: list[Block] = [SectionBlock(text=MarkdownTextObject(text=text)), DividerBlock()]
         blocks.append(
             ActionsBlock(
                 elements=[

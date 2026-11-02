@@ -12,6 +12,7 @@ import type {LinearGradientObject, ZRColor} from 'echarts/types/dist/shared';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
+import {horizontalTooltipPosition} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
@@ -31,6 +32,7 @@ export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
 const BLEND_WIDTH = 0.3;
 const MAX_BLEND_WIDTH = 8;
+const TOOLTIP_GAP = 8;
 
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
@@ -236,7 +238,26 @@ function droppedDataTooltipOption(
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
-    position: 'bottom',
+    position(point, _params, dom, rect, size) {
+      const [tipWidth] = size.contentSize;
+      const anchorX = rect ? rect.x + rect.width / 2 : point[0];
+      const anchorBottom = rect ? rect.y + rect.height : point[1];
+
+      const {left, arrowLeft} = horizontalTooltipPosition({
+        anchorX,
+        chartLeft: chartRef.current?.ele?.getBoundingClientRect().left ?? 0,
+        tipWidth,
+      });
+
+      if (dom instanceof HTMLElement) {
+        const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
+        if (arrow) {
+          arrow.style.left = arrowLeft;
+        }
+      }
+
+      return {left, top: anchorBottom + TOOLTIP_GAP};
+    },
     formatter: params => {
       if (!isChartHovered(chartRef.current)) {
         return '';

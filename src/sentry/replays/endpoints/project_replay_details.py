@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.replays.endpoints.organization_replay_details import GetReplayResponse
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
@@ -89,7 +90,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
                 start=filter_params["start"],
                 end=filter_params["end"],
                 organization=project.organization,
-                request_user_id=request.user.id,
+                request_user_id=acting_user_id(request.user),
             )
 
         replay_data = process_raw_response(

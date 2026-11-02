@@ -11,18 +11,20 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.investigations.models import (
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockKind,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.orchestration import (
+    _create_agentic_investigation,
     accept_orchestration_command,
-    create_agentic_manual_investigation,
 )
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
+from sentry.notebooks.models import (
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookBlockKind,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.tasks.seer.investigation import (
@@ -33,28 +35,29 @@ from sentry.tasks.seer.investigation import (
     dispatch_investigation_orchestration_create,
 )
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorId, ActorType
 
 
 class InvestigationAutoRunTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
         )
-        self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.root = self.create_investigation_block(
-            investigation=self.investigation,
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.root = self.create_notebook_block(
+            notebook=self.investigation,
             position=0,
-            kind=InvestigationBlockKind.QUERY,
+            kind=NotebookBlockKind.QUERY,
             prompt="Chart the breach",
             config={"autoRun": True},
         )
-        self.sibling = self.create_investigation_block(
-            investigation=self.investigation,
+        self.sibling = self.create_notebook_block(
+            notebook=self.investigation,
             position=1,
-            kind=InvestigationBlockKind.TEXT,
+            kind=NotebookBlockKind.TEXT,
             prompt="Explain the chart",
         )
 
@@ -97,7 +100,7 @@ class InvestigationAutoRunTest(TestCase):
 
         self.root.refresh_from_db()
         assert self.root.current_execution_id == execution_id
-        assert InvestigationBlockExecution.objects.filter(block=self.root).count() == 1
+        assert NotebookBlockExecution.objects.filter(block=self.root).count() == 1
         dispatch.delay.assert_called_once_with(execution_id)
 
     @mock.patch("sentry.tasks.seer.investigation.start_execution_run")
@@ -144,7 +147,7 @@ class InvestigationAutoRunTest(TestCase):
         execution = self.root.current_execution
         assert execution is not None
         execution.update(
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             started_at=timezone.now() - timedelta(minutes=6),
         )
         dispatch.delay.reset_mock()
@@ -161,18 +164,18 @@ class InvestigationAutoRunTest(TestCase):
     def test_does_not_start_more_cells_after_a_current_execution_fails(
         self, dispatch: mock.Mock
     ) -> None:
-        failed_execution = self.create_investigation_block_execution(
+        failed_execution = self.create_notebook_block_execution(
             block=self.root,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.FAILED,
+            status=NotebookBlockExecutionStatus.FAILED,
             block_version=self.root.version,
         )
         self.root.current_execution = failed_execution
         self.root.save(update_fields=["current_execution"])
-        independent = self.create_investigation_block(
-            investigation=self.investigation,
+        independent = self.create_notebook_block(
+            notebook=self.investigation,
             position=2,
-            kind=InvestigationBlockKind.QUERY,
+            kind=NotebookBlockKind.QUERY,
             prompt="Compare releases",
             config={"autoRun": True},
         )
@@ -195,18 +198,18 @@ class InvestigationAutoRunTest(TestCase):
     def test_dispatch_failure_cancels_other_active_cells(
         self, record_failed: mock.Mock, start_run: mock.Mock
     ) -> None:
-        failed_execution = self.create_investigation_block_execution(
+        failed_execution = self.create_notebook_block_execution(
             block=self.root,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.PENDING,
+            status=NotebookBlockExecutionStatus.PENDING,
             block_version=self.root.version,
         )
         self.root.current_execution = failed_execution
         self.root.save(update_fields=["current_execution"])
-        sibling_execution = self.create_investigation_block_execution(
+        sibling_execution = self.create_notebook_block_execution(
             block=self.sibling,
             executor="text_generation",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=self.sibling.version,
         )
         self.sibling.current_execution = sibling_execution
@@ -216,8 +219,8 @@ class InvestigationAutoRunTest(TestCase):
 
         failed_execution.refresh_from_db()
         sibling_execution.refresh_from_db()
-        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
-        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert failed_execution.status == NotebookBlockExecutionStatus.FAILED
+        assert sibling_execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert sibling_execution.error == {
             "code": "investigation_execution_failed",
             "message": "Cancelled because another cell in this investigation failed.",
@@ -233,7 +236,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             source={"type": "manual"},
@@ -294,11 +297,12 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self, dispatch_create: mock.Mock, dispatch_commands: mock.Mock
     ) -> None:
         with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
-            investigation, run = create_agentic_manual_investigation(
+            investigation, run = _create_agentic_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
+                orchestration_source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[],
                 filters={},
             )

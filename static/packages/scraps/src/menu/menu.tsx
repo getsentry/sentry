@@ -62,15 +62,17 @@ export function MenuHeading({
 export function MenuSectionLabel({
   children,
   padding,
+  size = 'sm',
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
   children: React.ReactNode;
   padding?: ContainerProps['padding'];
+  size?: React.ComponentProps<typeof Text>['size'];
 }) {
   // TODO: Use the transparent menu heading color when Text exposes a variant for it.
   return (
     <Container padding={padding}>
-      <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+      <Text as="span" size={size} density="fixed" bold tabular {...props}>
         {children}
       </Text>
     </Container>
@@ -109,8 +111,8 @@ export function MenuSectionGroup(props: ContainerProps<'li'>) {
 }
 
 /** List wrapper for the items within a menu section. */
-export function MenuSectionList(props: ContainerProps<'ul'>) {
-  return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
+export function MenuSectionList(props: FlexProps<'ul'>) {
+  return <Stack as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
 /** Container for menu footer actions, with a divider above it. */

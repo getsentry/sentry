@@ -14,8 +14,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 export interface UseConversationsOptions {
@@ -295,10 +293,6 @@ function createNodeFromApiSpan(
       return null;
     },
     findParentEapTransaction: () => null,
-
-    renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
-    },
   };
 
   return node as unknown as AITraceSpanNode;

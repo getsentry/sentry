@@ -16,7 +16,6 @@ import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 import type {AlertVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-import {unreachable} from '@sentry/scraps/unreachable';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   variant: AlertVariant;
@@ -101,7 +100,7 @@ function getAlertTokens(variant: AlertProps['variant'], theme: Theme) {
         border: theme.tokens.border.primary,
       };
     default:
-      unreachable(variant);
+      variant satisfies never;
   }
 
   throw new TypeError(`Invalid alert variant, got ${variant}`);
@@ -282,7 +281,7 @@ function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode
     case 'muted':
       return <IconInfo />;
     default:
-      unreachable(variant);
+      variant satisfies never;
   }
 
   return null;

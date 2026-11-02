@@ -2575,7 +2575,7 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         assert config.version == original.version
         assert SeerWorkflowConfig.objects.filter(service_account_id=None).count() == 1
         inactive_config = SeerWorkflowConfig.objects.get(service_account_id=inactive.id)
-        workflow = SeerWorkflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
         assert workflow.get_project_ids() == [project.id]
         # Shared databases may replicate during import; explicitly simulate delayed delivery.
         ServiceAccountReplica.objects.filter(
@@ -2600,7 +2600,9 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
             )
         ) == [project.id]
         with pytest.raises(ValueError, match="inactive"):
-            SeerWorkflow(inactive_config).resolve_service_account()
+            SeerWorkflow(
+                config_id=inactive_config.id, organization_id=inactive_config.organization_id
+            ).resolve_service_account()
         config.refresh_from_db()
         assert config.version == original.version
 

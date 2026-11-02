@@ -33,6 +33,7 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
 
 logger = logging.getLogger(__name__)
@@ -269,7 +270,7 @@ class SourcemapConfigurationType(GroupType):
     in_default_search = False
 
 
-@detector_settings_registry.register(SourcemapConfigurationType.slug)
+@detector_settings_registry.register(DetectorType.SOURCEMAP_CONFIGURATION)
 class SourcemapConfigurationDetectorSettings(DetectorSettings):
     handler = SourcemapDetectorHandler
 

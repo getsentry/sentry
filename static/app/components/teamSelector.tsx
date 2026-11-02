@@ -9,7 +9,12 @@ import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import type {ControlProps, SelectValue, StylesConfig} from '@sentry/scraps/select';
+import type {
+  ControlProps,
+  SelectHandle,
+  SelectValue,
+  StylesConfig,
+} from '@sentry/scraps/select';
 import {Select, createFilter} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -48,13 +53,11 @@ const unassignedOption = {
 
 const CREATE_TEAM_VALUE = 'CREATE_TEAM_VALUE';
 
-const optionFilter = createFilter({
-  stringify: option => `${option.label} ${option.value}`,
-});
+const optionFilter = createFilter();
 
 const filterOption = (candidate: Parameters<typeof optionFilter>[0], input: string) =>
   // Never filter out the create team option
-  candidate.data.value === CREATE_TEAM_VALUE || optionFilter(candidate, input);
+  candidate.value === CREATE_TEAM_VALUE || optionFilter(candidate, input);
 
 // Ensures that the svg icon is white when selected
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
@@ -86,7 +89,10 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-type Props = DistributedOmit<ControlProps, 'onChange'> & {
+type Props = DistributedOmit<
+  ControlProps<string | null, TeamOption>,
+  'onChange' | 'options'
+> & {
   onChange: (value: any) => void;
   /**
    * Controls whether the dropdown allows to create a new team
@@ -155,7 +161,7 @@ export function TeamSelector(props: Props) {
   }, [useId, value]);
   const {isLoading: loadingSelectedTeams} = useTeamsById(selectedTeamsQuery);
 
-  const selectRef = useRef<{select: {inputRef: HTMLInputElement | null}}>(null);
+  const selectRef = useRef<SelectHandle>(null);
 
   const canCreateTeam = organization?.access?.includes('project:admin') ?? false;
   const canAddTeam = organization?.access?.includes('project:write') ?? false;
@@ -175,22 +181,8 @@ export function TeamSelector(props: Props) {
     [useId]
   );
 
-  /**
-   * Closes the select menu by blurring input if possible since that seems to
-   * be the only way to close it.
-   */
   function closeSelectMenu() {
-    if (!selectRef.current) {
-      return;
-    }
-
-    const select = selectRef.current.select;
-    const input = select.inputRef;
-
-    if (input) {
-      // I don't think there's another way to close `react-select`
-      input.blur();
-    }
+    selectRef.current?.blur();
   }
 
   const handleAddTeamToProject = useCallback(

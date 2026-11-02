@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, TypedDict
 
-from django.db.models import Prefetch, prefetch_related_objects
+from django.db.models import F, Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -93,6 +93,7 @@ SeerWorkflowExecutionResponse = (
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
+    strategy: str
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -112,7 +113,7 @@ class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
 
 class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
     status: Literal[SeerWorkflowRunStatus.FAILED, SeerWorkflowRunStatus.REJECTED]
-    error: SeerWorkflowErrorResponse
+    error: SeerWorkflowErrorResponse | None
 
 
 SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorResponse
@@ -167,6 +168,13 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         ``status`` distinguishes failed/rejected records, which include an ``error``
         code and display-safe message, from other records, which omit ``error``.
+        A run fails or is rejected in one of two ways:
+
+        - Rejected (e.g. over quota) or failed before starting any execution: the
+          run's ``error`` says why and it has no executions.
+        - Failed because one or more executions failed: the run's ``error`` is null
+          and each failed execution carries its own ``error``.
+
         Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
         Limited-access members must be able to access every project in the saved run
@@ -185,7 +193,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             organization=organization,
             workflow_config__organization=organization,
             workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-        )
+        ).annotate(strategy=F("workflow_config__strategy"))
         config_id = serializer.validated_data.get("config")
         if config_id is not None:
             runs = runs.filter(workflow_config_id=config_id)
@@ -221,6 +229,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
 
 def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRunsResponse:
+    """Serialize runs loaded with a `workflow_config__strategy` annotation."""
     prefetch_related_objects(
         runs,
         Prefetch(
@@ -232,9 +241,11 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
 
 
 def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
+    """Serialize a run loaded with a `workflow_config__strategy` annotation."""
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
+        "strategy": getattr(run, "strategy"),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
@@ -245,10 +256,11 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     }
     status = SeerWorkflowRunStatus(run.status) if run.status is not None else None
     if status == SeerWorkflowRunStatus.FAILED or status == SeerWorkflowRunStatus.REJECTED:
+        error = run.extras.get("error")
         return {
             **result,
             "status": status,
-            "error": serialize_workflow_error(run.extras.get("error")),
+            "error": serialize_workflow_error(error) if error is not None else None,
         }
     return {**result, "status": status}
 

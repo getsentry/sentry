@@ -1354,7 +1354,7 @@ class TestSeerInvestigationOperatorAccess(TestCase):
 class TestProcessInvestigationUpdates(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(organization=self.organization)
+        self.investigation = self.create_notebook(organization=self.organization)
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation
         )
@@ -1461,7 +1461,7 @@ class TestProcessInvestigationUpdates(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_records_failure_when_run_is_missing(self, mock_record: Mock) -> None:
         entrypoint_cls = self._make_entrypoint()
-        investigation = self.create_investigation(organization=self.organization)
+        investigation = self.create_notebook(organization=self.organization)
 
         with (
             self.feature("organizations:investigations"),

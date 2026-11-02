@@ -13,12 +13,12 @@ from sentry.investigations.contracts import (
     RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
-from sentry.investigations.models import InvestigationActionRequest
 from sentry.investigations.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
 )
+from sentry.notebooks.models import NotebookActionRequest
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -97,15 +97,15 @@ def test_snapshot_action_requests_are_kept_whole() -> None:
 class SeerContractRowsTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation
         )
 
-    def row(self, key: str) -> InvestigationActionRequest:
-        return InvestigationActionRequest.objects.get(investigation=self.investigation, key=key)
+    def row(self, key: str) -> NotebookActionRequest:
+        return NotebookActionRequest.objects.get(notebook=self.investigation, key=key)
 
     def test_action_requested_payloads_become_rows(self) -> None:
         for name in ACTION_REQUESTED:
@@ -113,7 +113,7 @@ class SeerContractRowsTest(TestCase):
             row = upsert_action_request(self.orchestration_run, request)
 
             anchor = request["anchor"]
-            assert (row.key, row.report_revision, row.primary) == (
+            assert (row.key, row.producer_revision, row.primary) == (
                 request["key"],
                 request["reportRevision"],
                 request["primary"],
@@ -148,7 +148,7 @@ class SeerContractRowsTest(TestCase):
 
         states = {
             row.key: (row.state, row.primary)
-            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
         }
         assert states == {
             **{item["key"]: ("suggested", item["primary"]) for item in items},

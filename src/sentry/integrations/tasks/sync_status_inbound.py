@@ -286,6 +286,11 @@ def sync_status_inbound(
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
     except Exception:
+        logger.warning(
+            "sync_status_inbound.get_resolve_sync_action_failed",
+            exc_info=True,
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
         return
 
     provider = installation.model.get_provider()
@@ -310,7 +315,7 @@ def sync_status_inbound(
                 activity_type,
                 activity_data,
             ) = get_resolutions_and_activity_data_for_groups(
-                affected_groups, config.get("resolution_strategy"), activity_data, organization_id
+                resolvable_groups, config.get("resolution_strategy"), activity_data, organization_id
             )
             with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(

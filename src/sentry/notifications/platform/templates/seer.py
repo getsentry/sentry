@@ -357,9 +357,10 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
 
 
 class SeerInvestigationConclusion(NotificationData):
-    """The report text of a finished Seer investigation, posted in the alert's Slack thread."""
+    """The summary of a finished Seer investigation, posted in the alert's Slack thread."""
 
-    sections: list[str]
+    summary: str
+    summary_description: str | None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
 
@@ -369,12 +370,9 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
     category = NotificationCategory.SEER
     example_data = SeerInvestigationConclusion(
         organization_id=1,
-        sections=[
-            "## Summary\n\nA frontend release added a render-blocking font file, "
-            "which delayed the first paint on organization login pages.",
-            "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
-            "- Add a performance budget for render-blocking assets.",
-        ],
+        summary="A render-blocking font slowed the login page",
+        summary_description="A frontend release added a render-blocking font file, "
+        "which delayed the first paint on organization login pages.",
         investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
     )
     hide_from_debugger = True
@@ -383,7 +381,9 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
         return NotificationRenderedTemplate(
             subject="Seer investigation conclusion",
             body=[
-                ParagraphSection(blocks=[PlainTextBlock(text=section)]) for section in data.sections
+                ParagraphSection(blocks=[PlainTextBlock(text=text)])
+                for text in (data.summary, data.summary_description)
+                if text
             ],
             actions=[
                 NotificationRenderedAction(

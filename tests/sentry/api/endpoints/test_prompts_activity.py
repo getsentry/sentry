@@ -1,6 +1,10 @@
 from django.urls import reverse
 
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class PromptsActivityTestBase(APITestCase):
@@ -353,3 +357,44 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == "Invalid project_id"
+
+
+@with_feature("organizations:granular-permission-scopes")
+@granular_roles_granting("user_preference:read", "user_preference:write")
+class PromptsActivityScopeTest(PromptsActivityTestBase):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def dismiss(self):
+        return self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "dismissed",
+            },
+        )
+
+    def test_read_scope_can_get(self) -> None:
+        self._use_token(["user_preference:read"])
+        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        assert resp.status_code == 200, resp.content
+
+    def test_read_scope_cannot_dismiss(self) -> None:
+        self._use_token(["user_preference:read"])
+        assert self.dismiss().status_code == 403
+
+    def test_write_scope_can_dismiss(self) -> None:
+        self._use_token(["user_preference:write"])
+        resp = self.dismiss()
+        assert resp.status_code == 201, resp.content
+
+    def test_write_scope_cannot_get(self) -> None:
+        # Write does not imply read.
+        self._use_token(["user_preference:write"])
+        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        assert resp.status_code == 403

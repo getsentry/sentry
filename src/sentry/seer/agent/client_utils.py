@@ -144,6 +144,7 @@ class AgentRunOptions(TypedDict):
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
+    pin_to_pr_head: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):

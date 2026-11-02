@@ -25,7 +25,7 @@ def _hypothesis(**overrides: Any) -> dict[str, Any]:
 
 class BuildInvestigationStatusTest(TestCase):
     def setUp(self) -> None:
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",

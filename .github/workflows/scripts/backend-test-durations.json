@@ -2103,7 +2103,6 @@
     "tests/sentry/toolbar/views/test_iframe_view.py": 1.9,
     "tests/sentry/toolbar/views/test_login_success_view.py": 0.8,
     "tests/sentry/tsdb/test_base.py": 0.1,
-    "tests/sentry/tsdb/test_redissnuba.py": 0.0,
     "tests/sentry/tsdb/test_snuba.py": 3.4,
     "tests/sentry/types/test_actor.py": 3.2,
     "tests/sentry/types/test_cell.py": 2.3,
