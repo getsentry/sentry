@@ -803,7 +803,6 @@ class MsTeamsWebhookTest(APITestCase):
             assert response.status_code == 400
 
     @responses.activate
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed_sets_viewer_context(

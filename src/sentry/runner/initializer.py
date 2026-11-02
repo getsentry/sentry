@@ -104,7 +104,6 @@ self_hosted_options_mapper = {
     "intercom.sentry-api-secret": "SENTRY_INTERCOM_API_SECRET",
     "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
     "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
-    "viewer-context.enabled": "SENTRY_VIEWER_CONTEXT_ENABLED",
     "analytics.backend": "SENTRY_ANALYTICS_BACKEND",
     "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
     "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",

@@ -256,7 +256,6 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 },
             )
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_status_sync_sets_viewer_context(self) -> None:
         captured_contexts: list = []
 
