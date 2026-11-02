@@ -1,13 +1,17 @@
 import itertools
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.core import mail
 from django.db.models import F
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
@@ -24,6 +28,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, assume_test_silo_mode_of
 from sentry.users.models.user import User
@@ -299,6 +304,75 @@ def test_update_organization_member() -> None:
     member_query = OrganizationMember.objects.all()
     assert member_query.count() == 1
     assert member_query[0].role == "manager"
+
+
+@django_db_all(transaction=True)
+def test_add_organization_member_outbox_flush_failure() -> None:
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+
+    with patch.object(
+        OrganizationMember, "handle_async_replication", side_effect=Exception("replication failed")
+    ) as mock_replication:
+        rpc_member = organization_service.add_organization_member(
+            organization_id=org.id,
+            default_org_role="member",
+            user_id=user.id,
+        )
+
+    mock_replication.assert_called()
+    assert OrganizationMember.objects.filter(id=rpc_member.id, user_id=user.id).exists()
+    assert CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=rpc_member.id
+    ).exists()
+
+    # At this point, the membership change has been committed, but the outbox
+    # has not been processed, so there should be no replica.
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert not OrganizationMemberMapping.objects.filter(
+            organizationmember_id=rpc_member.id
+        ).exists()
+
+    with outbox_runner():
+        pass
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMemberMapping.objects.filter(
+            organizationmember_id=rpc_member.id, user_id=user.id
+        ).exists()
+
+
+@django_db_all(transaction=True)
+def test_update_membership_flags_outbox_flush_failure() -> None:
+    org = Factories.create_organization()
+    user = Factories.create_user(email="test@sentry.io")
+    member = Factories.create_member(organization=org, user=user)
+    with outbox_runner():
+        pass
+    assert not CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=member.id
+    ).exists()
+    rpc_member = serialize_member(member)
+    rpc_member.flags.sso__linked = True
+
+    with patch.object(
+        OrganizationMember, "handle_async_replication", side_effect=Exception("replication failed")
+    ) as mock_replication:
+        organization_service.update_membership_flags(organization_member=rpc_member)
+
+    mock_replication.assert_called()
+    member.refresh_from_db()
+    assert member.flags["sso:linked"]
+    assert CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=member.id
+    ).exists()
+
+    with outbox_runner():
+        pass
+
+    assert not CellOutbox.objects.filter(
+        category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE, object_identifier=member.id
+    ).exists()
 
 
 @django_db_all(transaction=True)

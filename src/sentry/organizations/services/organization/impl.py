@@ -15,7 +15,12 @@ from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import (
+    ControlOutbox,
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule
@@ -90,6 +95,7 @@ from sentry.tasks.auth.auth import email_unlink_notifications
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 from sentry.utils.audit import create_org_delete_log
 
 
@@ -483,27 +489,50 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
-            org_member: OrganizationMember | None = None
-            if user_id is not None:
-                org_member = OrganizationMember.objects.filter(
-                    organization_id=organization_id, user_id=user_id
-                ).first()
-            elif email is not None:
-                org_member = OrganizationMember.objects.filter(
-                    organization_id=organization_id, email=email
-                ).first()
+        org_member: OrganizationMember | None = None
+        try:
+            with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+                if user_id is not None:
+                    org_member = OrganizationMember.objects.filter(
+                        organization_id=organization_id, user_id=user_id
+                    ).first()
+                elif email is not None:
+                    org_member = OrganizationMember.objects.filter(
+                        organization_id=organization_id, email=email
+                    ).first()
 
+                if org_member is None:
+                    org_member = OrganizationMember.objects.create(
+                        organization_id=organization_id,
+                        user_id=user_id,
+                        email=email,
+                        flags=self._deserialize_member_flags(flags) if flags else 0,
+                        role=role or default_org_role,
+                        inviter_id=inviter_id,
+                        invite_status=invite_status,
+                    )
+        except (OutboxDatabaseError, OutboxFlushError):
             if org_member is None:
-                org_member = OrganizationMember.objects.create(
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    flags=self._deserialize_member_flags(flags) if flags else 0,
-                    role=role or default_org_role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
+                raise
+
+            # Guard against replication fanout failures. The membership has been
+            # created, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "organization_service.add_organization_member.outbox-flush-failure",
+                extra={
+                    "organization_id": organization_id,
+                    "organization_member_id": org_member.id,
+                },
+                exc_info=True,
+            )
+            metrics.incr(
+                "organization_member.outbox_flush_deferred",
+                tags={
+                    "category": "ORGANIZATION_MEMBER_UPDATE",
+                    "callsite": "add_organization_member",
+                },
+            )
         return serialize_member(org_member)
 
     def update_organization_member(
@@ -578,7 +607,27 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         model = OrganizationMember.objects.get(id=organization_member.id)
         model.flags = self._deserialize_member_flags(organization_member.flags)  # type: ignore[assignment]  # TODO: make BitField a mypy plugin
-        model.save()
+        try:
+            model.save()
+        except (OutboxDatabaseError, OutboxFlushError):
+            # Guard against replication fanout failures. The membership has been
+            # updated, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "organization_service.update_membership_flags.outbox-flush-failure",
+                extra={
+                    "organization_id": model.organization_id,
+                    "organization_member_id": model.id,
+                },
+                exc_info=True,
+            )
+            metrics.incr(
+                "organization_member.outbox_flush_deferred",
+                tags={
+                    "category": "ORGANIZATION_MEMBER_UPDATE",
+                    "callsite": "update_membership_flags",
+                },
+            )
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)

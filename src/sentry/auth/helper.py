@@ -50,7 +50,11 @@ from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSession
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import (
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -434,58 +438,81 @@ class AuthIdentityHandler:
             # self.user is resolved to request.user earlier in the flow.
             raise AuthIdentityUserMismatch
 
-        # prioritize identifying by the SSO provider's user ID
-        with transaction.atomic(router.db_for_write(AuthIdentity)):
-            auth_identity = self._get_auth_identity(ident=self.identity["id"])
-            if auth_identity is None:
-                # otherwise look for an already attached identity
-                # this can happen if the SSO provider's internal ID changes
-                auth_identity = self._get_auth_identity(user_id=self.user.id)
+        auth_identity: AuthIdentity | None = None
+        try:
+            # prioritize identifying by the SSO provider's user ID
+            with transaction.atomic(router.db_for_write(AuthIdentity)):
+                auth_identity = self._get_auth_identity(ident=self.identity["id"])
+                if auth_identity is None:
+                    # otherwise look for an already attached identity
+                    # this can happen if the SSO provider's internal ID changes
+                    auth_identity = self._get_auth_identity(user_id=self.user.id)
 
-            if auth_identity is None:
-                assert self.user.is_authenticated
-                auth_is_new = True
-                auth_identity = AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
-                    user_id=self.user.id,
-                    ident=self.identity["id"],
-                    data=self.identity.get("data", {}),
-                )
-            else:
-                auth_is_new = False
-
-                # TODO(dcramer): this might leave the user with duplicate accounts,
-                # and in that kind of situation its very reasonable that we could
-                # test email addresses + is_managed to determine if we can auto
-                # merge
-                if auth_identity.user_id != self.user.id:
-                    wipe = self._wipe_existing_identity(auth_identity)
+                if auth_identity is None:
+                    assert self.user.is_authenticated
+                    auth_is_new = True
+                    auth_identity = AuthIdentity.objects.create(
+                        auth_provider=self.auth_provider,
+                        user_id=self.user.id,
+                        ident=self.identity["id"],
+                        data=self.identity.get("data", {}),
+                    )
                 else:
-                    wipe = None
+                    auth_is_new = False
 
-                now = timezone.now()
-                auth_identity.update(
-                    user_id=self.user.id,
-                    ident=self.identity["id"],
-                    data=self.provider.update_identity(
-                        new_data=self.identity.get("data", {}), current_data=auth_identity.data
-                    ),
-                    last_verified=now,
-                    last_synced=now,
-                )
+                    # TODO(dcramer): this might leave the user with duplicate accounts,
+                    # and in that kind of situation its very reasonable that we could
+                    # test email addresses + is_managed to determine if we can auto
+                    # merge
+                    if auth_identity.user_id != self.user.id:
+                        wipe = self._wipe_existing_identity(auth_identity)
+                    else:
+                        wipe = None
 
-                logger.info(
-                    "sso.login-pipeline.attach-existing-identity",
-                    extra={
-                        "wipe_result": repr(wipe),
-                        "organization_id": self.organization.id,
-                        "user_id": self.user.id,
-                        "auth_identity_user_id": auth_identity.user.id,
-                        "auth_provider_id": self.auth_provider.id,
-                        "idp_identity_id": self.identity["id"],
-                        "idp_identity_email": self.identity.get("email"),
-                    },
-                )
+                    now = timezone.now()
+                    auth_identity.update(
+                        user_id=self.user.id,
+                        ident=self.identity["id"],
+                        data=self.provider.update_identity(
+                            new_data=self.identity.get("data", {}),
+                            current_data=auth_identity.data,
+                        ),
+                        last_verified=now,
+                        last_synced=now,
+                    )
+
+                    logger.info(
+                        "sso.login-pipeline.attach-existing-identity",
+                        extra={
+                            "wipe_result": repr(wipe),
+                            "organization_id": self.organization.id,
+                            "user_id": self.user.id,
+                            "auth_identity_user_id": auth_identity.user.id,
+                            "auth_provider_id": self.auth_provider.id,
+                            "idp_identity_id": self.identity["id"],
+                            "idp_identity_email": self.identity.get("email"),
+                        },
+                    )
+        except (OutboxDatabaseError, OutboxFlushError):
+            if auth_identity is None:
+                raise
+
+            # Guard against replication fanout failures. The identity has been
+            # attached, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "sso.login-pipeline.attach-identity.outbox-flush-failure",
+                extra={
+                    "organization_id": self.organization.id,
+                    "auth_identity_id": auth_identity.id,
+                    "auth_provider_id": self.auth_provider.id,
+                },
+                exc_info=True,
+            )
+            metrics.incr(
+                "auth_identity.outbox_flush_deferred",
+                tags={"category": "AUTH_IDENTITY_UPDATE", "callsite": "sso_attach_identity"},
+            )
 
         if member is None:
             member = self._get_organization_member(auth_identity)
@@ -911,6 +938,7 @@ class AuthIdentityHandler:
         return None if is_new_account else self.user, "auth-confirm-identity"
 
     def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
+        auth_identity: AuthIdentity | None = None
         try:
             with transaction.atomic(router.db_for_write(User)):
                 user = User.objects.create(
@@ -956,6 +984,26 @@ class AuthIdentityHandler:
                         ident=self.identity["id"],
                         data=self.identity.get("data", {}),
                     )
+        except (OutboxDatabaseError, OutboxFlushError) as e:
+            if auth_identity is None:
+                raise NewUserTransactionFailed from e
+
+            # Guard against replication fanout failures. The user and identity
+            # have been created, and their outboxes have been committed alongside
+            # them, guaranteeing that they will eventually be valid in all regions.
+            logger.warning(
+                "auth.handle_new_user.outbox-flush-failure",
+                extra={
+                    "organization_id": self.organization.id,
+                    "user_id": user.id,
+                    "auth_identity_id": auth_identity.id,
+                },
+                exc_info=True,
+            )
+            metrics.incr(
+                "auth_identity.outbox_flush_deferred",
+                tags={"category": "AUTH_IDENTITY_UPDATE", "callsite": "sso_new_user"},
+            )
         except Exception as e:
             raise NewUserTransactionFailed from e
 
