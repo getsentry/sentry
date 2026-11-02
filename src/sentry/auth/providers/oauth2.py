@@ -124,7 +124,7 @@ class OAuth2Callback(AuthView):
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-            return dict(parse_qsl(body))
+            return dict(parse_qsl(body.decode("utf-8")))
         return orjson.loads(body)
 
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
