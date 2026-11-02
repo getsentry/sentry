@@ -321,6 +321,21 @@ describe('getLogsSeerLocationQuery', () => {
     expect(absoluteQuery.pageUtc).toBeUndefined();
   });
 
+  it('leaves blank params in place when Seer clears them', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({logsSortBys: '', start: ''}),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({
+        mode: 'aggregates',
+        statsPeriod: '24h',
+        visualizations: [{chartType: ChartType.BAR, yAxes: ['count(message)']}],
+      }),
+    });
+
+    expect(query).toMatchObject({logsSortBys: '', start: '', statsPeriod: '24h'});
+  });
+
   it('clears absolute datetime params when Seer returns a stats period', () => {
     const {query} = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({

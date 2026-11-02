@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -565,5 +566,34 @@ describe('SavedQueriesTable with discover queries', () => {
       'href',
       expect.stringContaining('explore/errors/results/')
     );
+  });
+
+  it('pushes its own cursor key when paginating', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [],
+      headers: {
+        Link: '<https://sentry.io/api/0/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+      },
+    });
+    const {router} = render(
+      <SavedQueriesTable mode="owned" title="title" cursorKey="ownedCursor" />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/saved-queries/',
+            query: {query: 'Query Name'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await waitFor(() => expect(router.location.query.ownedCursor).toBe('0:20:0'));
+    const paginatedQuery = router.location.query;
+    act(() => router.navigate(-1));
+
+    expect(paginatedQuery).toEqual({query: 'Query Name', ownedCursor: '0:20:0'});
+    expect(router.location.query).toEqual({query: 'Query Name'});
   });
 });

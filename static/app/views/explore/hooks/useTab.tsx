@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {
   applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
@@ -24,7 +24,7 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
   const navigate = useNavigate();
   const mode = useQueryParamsMode();
 
-  const table = decodeScalar(location.query.table);
+  const {table} = loadQueryParamsFromLocation(TAB_QUERY_PARSERS, location);
 
   const tab: Mode | Tab = useMemo(() => {
     // HACK: This is pretty gross but to not break anything in the

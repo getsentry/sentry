@@ -27,7 +27,7 @@ import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -42,7 +42,13 @@ import {
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+const SAVED_QUERY_ID_PARSERS = {id: parseAsScalar};
 
 interface ContentProps {
   datePageFilterProps: DatePageFilterProps;
@@ -56,7 +62,8 @@ function Content({datePageFilterProps}: ContentProps) {
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
-  const id = decodeScalar(location.query.id);
+  const id =
+    loadQueryParamsFromLocation(SAVED_QUERY_ID_PARSERS, location).id ?? undefined;
 
   useVisitQuery(id);
 
