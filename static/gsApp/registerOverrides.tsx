@@ -7,6 +7,7 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types'
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
+import {SeerOutOfCreditsCta} from 'getsentry/components/ai/seerOutOfCreditsCta';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
@@ -218,6 +219,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
 
   'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
+  'component:seer-out-of-credits-cta': () => SeerOutOfCreditsCta,
   'component:seer-trial-cta': () => SeerAutomationTrial,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,

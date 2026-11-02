@@ -1,0 +1,96 @@
+---
+title: Seer Out of Credits
+description: Tells the viewer their organization is out of Seer credits and offers the one action they can take.
+category: patterns
+source: sentry/components/seer/outOfCredits/seerOutOfCreditsNotice
+---
+
+import {SeerOutOfCreditsNotice} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsNotice';
+import * as Storybook from 'sentry/stories';
+
+Product code renders `SeerOutOfCreditsCta`, which getsentry fills in: it picks
+the escalation from the viewer's billing access and whether the org can
+self-serve. Open source has no credits and renders nothing. These demos render
+the `SeerOutOfCreditsNotice` underneath it.
+
+```jsx
+<SeerOutOfCreditsCta />
+<SeerOutOfCreditsCta message={t('Seer stopped because your organization ran out of credits.')} />
+```
+
+## Billing members
+
+Members with `org:billing` top up themselves. "Top up" links to the Seer wallet
+on the billing overview until the in-place top-up modal ships.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice escalation="top-up" topUpTo="/settings/billing/overview/" />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice escalation="top-up" topUpTo="/settings/billing/overview/" />
+```
+
+## Everyone else
+
+Members without billing access ask the billing members to add credits. Sending
+the request shows a toast.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice escalation="request" onRequestCredits={() => {}} />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice escalation="request" onRequestCredits={handleRequestCredits} />
+```
+
+## Request sending
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    escalation="request"
+    onRequestCredits={() => {}}
+    isRequestingCredits
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  escalation="request"
+  onRequestCredits={handleRequestCredits}
+  isRequestingCredits
+/>
+```
+
+## Orgs that can't self-serve
+
+Orgs that buy through an account team get no request button.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice escalation="contact" />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice escalation="contact" />
+```
+
+## Custom message
+
+Pass `message` to replace the headline, for example when a run already stopped
+part way because it ran out.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsNotice
+    escalation="top-up"
+    topUpTo="/settings/billing/overview/"
+    message="Seer stopped because your organization ran out of credits."
+  />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsNotice
+  escalation="top-up"
+  topUpTo="/settings/billing/overview/"
+  message={t('Seer stopped because your organization ran out of credits.')}
+/>
+```
