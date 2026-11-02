@@ -187,4 +187,14 @@ describe('RunChangesView', () => {
 
     expect(onBack).toHaveBeenCalledTimes(2);
   });
+
+  it('goes back with Escape after clicking the diff', async () => {
+    const onBack = jest.fn();
+    render(<RunChangesView changes={makeChanges()} onBack={onBack} />);
+
+    await userEvent.click(screen.getByText('cart on the PR'));
+    await userEvent.keyboard('{Escape}');
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
 });
