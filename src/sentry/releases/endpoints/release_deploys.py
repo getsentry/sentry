@@ -20,6 +20,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -221,8 +222,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(
             request, organization, release, require_all_projects=True
         ):
-            if request.user.is_authenticated:
-                auth = f"user.id: {request.user.id}"
+            if has_user(request.user):
+                auth = f"user.id: {acting_user_id(request.user)}"
             elif request.auth is not None:
                 auth = f"auth.entity_id: {request.auth.entity_id}"
             else:

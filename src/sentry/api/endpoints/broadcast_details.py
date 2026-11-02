@@ -11,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+from sentry.auth.principal import acting_user_id
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 logger = logging.getLogger("sentry")
@@ -117,7 +118,7 @@ class BroadcastDetailsEndpoint(Endpoint):
                     "broadcasts.update",
                     extra={
                         "ip_address": request.META["REMOTE_ADDR"],
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                         "broadcast_id": broadcast.id,
                         "data": update_kwargs,
                     },
