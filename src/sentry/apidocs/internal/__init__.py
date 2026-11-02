@@ -13,8 +13,9 @@ It is the published build, with the same hooks, checks, and settings, except tha
   described, since the backend sends them. With no omissions, it builds once, without
   the published build's second build checking them.
 - Every method is admitted, whatever its publish status, and stamped with it as
-  `x-sentry-publish-status`. The published reference's own checks (tags,
-  descriptions, unique summaries) skip unpublished operations.
+  `x-sentry-publish-status`, and with the permission classes guarding it as
+  `x-sentry-permissions`. The published reference's own checks (tags, descriptions,
+  unique summaries) skip unpublished operations.
 - A literal alternation in a route, such as `(?:issues|groups)`, is spelled as its
   first branch rather than `{var}`, so routes that differ only there stay apart. Every
   path such a route answers on is listed under `x-sentry-path-aliases`.
@@ -31,6 +32,7 @@ the published build's. The published build never sees any of it.
 
 from sentry.apidocs.internal.generator import (
     PATH_ALIASES_EXTENSION,
+    PERMISSIONS_EXTENSION,
     PUBLISH_STATUS_EXTENSION,
     InternalGenerator,
 )
@@ -40,6 +42,7 @@ from sentry.apidocs.spectacular_ports import UNRESOLVED_EXTENSION
 __all__ = (
     "InternalGenerator",
     "PATH_ALIASES_EXTENSION",
+    "PERMISSIONS_EXTENSION",
     "PUBLISH_STATUS_EXTENSION",
     "UNDOCUMENTED_EXTENSION",
     "UNRESOLVED_EXTENSION",

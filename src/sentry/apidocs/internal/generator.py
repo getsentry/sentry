@@ -12,6 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 from drf_spectacular.generators import SchemaGenerator
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.settings import spectacular_settings
+from rest_framework.permissions import OperandHolder, SingleOperandHolder
 
 from sentry.api.api_publish_status import ApiPublishStatus
 
@@ -29,6 +30,9 @@ from sentry.apidocs.spectacular_ports import TypeHintPolicy, type_hint_policy
 
 PUBLISH_STATUS_EXTENSION = "x-sentry-publish-status"
 PATH_ALIASES_EXTENSION = "x-sentry-path-aliases"
+# The class names in the view's `permission_classes`. Absent from `APPEND_PATHS`
+# operations, which have no view to read them from.
+PERMISSIONS_EXTENSION = "x-sentry-permissions"
 
 INTERNAL_TYPE_HINTS = TypeHintPolicy(
     closed_typed_dicts=True,
@@ -47,6 +51,14 @@ _DESCRIPTION = (
 _ALTERNATION = re.compile(r"\(\?:([a-z-]+(?:\|[a-z-]+)+)\)")
 
 
+@dataclass(frozen=True)
+class _Admitted:
+    """What preprocessing reads off an admitted operation's view class."""
+
+    status: ApiPublishStatus
+    permissions: tuple[str, ...]
+
+
 @dataclass
 class _InternalBuild:
     # Each path spelled from a literal alternation, keyed by the spelling kept, listing
@@ -54,8 +66,8 @@ class _InternalBuild:
     path_aliases: dict[str, list[str]] = field(default_factory=dict)
     # The same paths as the published build spells them, with `{var}` for an alternation.
     public_spellings: dict[str, str] = field(default_factory=dict)
-    # The publish status of each admitted operation, keyed by (path, lowercased method).
-    publish_status: dict[tuple[str, str], ApiPublishStatus] = field(default_factory=dict)
+    # Each admitted operation, keyed by (path, lowercased method).
+    admitted: dict[tuple[str, str], _Admitted] = field(default_factory=dict)
 
 
 _current: ContextVar[_InternalBuild] = ContextVar("internal_build")
@@ -139,23 +151,46 @@ def internal_preprocessing_hook(endpoints: Any) -> Any:
         admit=lambda status: True,
         public_path=lambda path: build.public_spellings.get(path, path),
     )
-    build.publish_status = {
-        (path, method.lower()): callback.view_class.publish_status[method]
+    build.admitted = {
+        (path, method.lower()): _Admitted(
+            status=callback.view_class.publish_status[method],
+            permissions=_permission_class_names(callback.view_class),
+        )
         for path, _path_regex, method, callback in admitted
     }
     return admitted
 
 
+def _permission_class_names(view_class: type) -> tuple[str, ...]:
+    names: set[str] = set()
+    for permission in getattr(view_class, "permission_classes", ()):
+        names |= _composed_names(permission)
+    return tuple(sorted(names))
+
+
+def _composed_names(permission: Any) -> set[str]:
+    """The classes a `permission_classes` entry guards on.
+
+    DRF composes permissions with `&`, `|` and `~` into holders rather than classes, and
+    naming a holder would lose the classes it composes."""
+    if isinstance(permission, OperandHolder):
+        return _composed_names(permission.op1_class) | _composed_names(permission.op2_class)
+    if isinstance(permission, SingleOperandHolder):
+        return _composed_names(permission.op1_class)
+    return {permission.__name__}
+
+
 def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
-    """Stamp each operation's publish status and aliases, then postprocess as published."""
+    """Stamp what preprocessing read and each path's aliases, then postprocess as published."""
     build = _build()
     # Before the published build's postprocessing, which can rewrite path keys.
     for path, operations in result["paths"].items():
         aliases = build.path_aliases.get(path)
         for method, operation in operations.items():
-            status = build.publish_status.get((path, method))
-            if status is not None:
-                operation[PUBLISH_STATUS_EXTENSION] = status.value
+            admitted = build.admitted.get((path, method))
+            if admitted is not None:
+                operation[PUBLISH_STATUS_EXTENSION] = admitted.status.value
+                operation[PERMISSIONS_EXTENSION] = list(admitted.permissions)
             if aliases is not None:
                 operation[PATH_ALIASES_EXTENSION] = list(aliases)
     return custom_postprocessing_hook(result, generator, in_reference=_in_reference, **kwargs)
