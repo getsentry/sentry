@@ -57,6 +57,8 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
     def test_returns_404_when_attribute_management_is_disabled(self) -> None:
+        self._store_span({"cart": "a"})
+
         response = self.do_request(
             query={"attributeName": "cart", "attributeType": "string"},
             features={
@@ -66,6 +68,7 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         )
 
         assert response.status_code == 404, response.content
+        assert response.data is None
 
     def test_returns_400_when_attribute_name_is_missing(self) -> None:
         response = self.do_request(query={"attributeType": "string"})
