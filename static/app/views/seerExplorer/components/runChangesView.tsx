@@ -90,6 +90,8 @@ export function RunChangesView({
   return (
     <Stack
       height="100%"
+      // Keep focus here when the diff is clicked, so Escape still reaches the handler below.
+      tabIndex={-1}
       onKeyDown={event => {
         if (event.key === 'Escape') {
           // Don't let Escape reach the panel and close it.
@@ -114,6 +116,8 @@ export function RunChangesView({
             <Container minWidth="0">
               {allChanges.length > 1 ? (
                 <CompactSelect
+                  // The select sizes to its trigger, so cap it to let long titles truncate.
+                  style={{maxWidth: '100%'}}
                   size="xs"
                   value={repoName}
                   options={allChanges.map(repoChanges => ({

@@ -227,3 +227,18 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
             qs_params={"repo": "getsentry/sentry", "number": "42"},
             status_code=502,
         )
+
+    @mock.patch(_MAKE_SCM)
+    def test_ambiguous_repo_name_returns_404(self, mock_make_scm):
+        self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github_enterprise",
+            integration_id=456,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "42"},
+            status_code=404,
+        )
+        mock_make_scm.assert_not_called()
