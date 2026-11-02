@@ -233,6 +233,8 @@ describe('PRLinksBar', () => {
     expect(onPushChanges).toHaveBeenCalledWith(
       'Push your latest changes to the acme/web PR.'
     );
+    // One repo's button already covers it.
+    expect(screen.queryByRole('button', {name: 'Update all'})).not.toBeInTheDocument();
   });
 
   it('asks Seer to open a PR when there is none', async () => {
@@ -276,6 +278,29 @@ describe('PRLinksBar', () => {
       ['Push your latest changes to the acme/web PR.'],
       ['Open a PR in acme/api with your changes.'],
     ]);
+  });
+
+  it('pushes every repo at once', async () => {
+    const onPushChanges = jest.fn();
+    render(
+      <PRLinksBar
+        repoPRStates={{[REPO]: makeState()}}
+        changes={[
+          makeChanges(makeState(), [filePatch('app/cart.py', 2, 0)]),
+          {
+            ...makeChanges(null, [filePatch('app/api.py', 1, 0)]),
+            repoName: 'acme/api',
+          },
+        ]}
+        onPushChanges={onPushChanges}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update all'}));
+
+    expect(onPushChanges).toHaveBeenCalledWith(
+      'Push your latest changes to acme/web, acme/api, opening a PR in any repo that does not have one.'
+    );
   });
 
   it('disables pushing while Seer is working', async () => {

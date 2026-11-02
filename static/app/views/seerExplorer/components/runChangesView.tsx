@@ -186,8 +186,14 @@ export function RunChangesView({
           </Flex>
         )}
       </Flex>
-      <Flex align="center" justify="between" gap="md" wrap="wrap" padding="md xl">
-        {hasPR ? (
+      <Flex
+        align="center"
+        justify={hasPR ? 'between' : 'end'}
+        gap="md"
+        wrap="wrap"
+        padding="md xl"
+      >
+        {hasPR && (
           <SegmentedControl
             size="xs"
             aria-label={t('Changes to show')}
@@ -208,10 +214,6 @@ export function RunChangesView({
               {t('Unpushed')}
             </SegmentedControl.Item>
           </SegmentedControl>
-        ) : (
-          <Text size="sm" bold>
-            {t('Not in a PR yet')}
-          </Text>
         )}
         {shown && shown.files.length > 0 && (
           <Button
