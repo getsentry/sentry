@@ -2,6 +2,8 @@ import type * as React from 'react';
 import {useMemo} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
+import {defined} from '@sentry/scraps/defined';
+
 /**
  * Returns a stable function for merging a dynamic child ref with a stable ref.
  *
@@ -14,7 +16,7 @@ export function useStableMergeRef<T>(stableRef: React.Ref<T> | undefined) {
     const cache = new WeakMap<NonNullable<React.Ref<T>>, React.Ref<T>>();
 
     return (ref: React.Ref<T> | null | undefined) => {
-      if (ref === null || ref === undefined) {
+      if (!defined(ref)) {
         return stableRef;
       }
 
