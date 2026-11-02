@@ -18,7 +18,7 @@ class SeerCreditsTest(TestCase):
             assert SEER_OPERATIONS[operation].estimate() > 0
 
     @patch(
-        "sentry.quotas.backend.check_seer_credits",
+        "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
     def test_can_run_seer_operation_skips_billing_when_credit_checks_disabled(
@@ -29,7 +29,7 @@ class SeerCreditsTest(TestCase):
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.check_seer_credits",
+        "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
     def test_can_run_seer_operation_returns_false_when_billing_has_no_credits(
@@ -47,7 +47,7 @@ class SeerCreditsTest(TestCase):
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.check_seer_credits",
+        "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
     def test_can_run_seer_operation_returns_true_when_billing_has_credits(
