@@ -1,6 +1,7 @@
 from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
@@ -45,16 +46,24 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         prefetch_related_objects(item_list, "projects")
         attrs: MutableMapping[Any, Any] = {}
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=self.organization,
-            user_id=user.id,
-            group_search_view_id__in=[item.id for item in item_list],
-        )
-        user_starred_view_ids = set(
-            GroupSearchViewStarred.objects.filter(
+        last_visited_views = (
+            GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
                 user_id=user.id,
-            ).values_list("group_search_view_id", flat=True)
+                group_search_view_id__in=[item.id for item in item_list],
+            )
+            if not isinstance(user, AnonymousUser)
+            else []
+        )
+        user_starred_view_ids = (
+            set(
+                GroupSearchViewStarred.objects.filter(
+                    organization=self.organization,
+                    user_id=user.id,
+                ).values_list("group_search_view_id", flat=True)
+            )
+            if not isinstance(user, AnonymousUser)
+            else set()
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
 
