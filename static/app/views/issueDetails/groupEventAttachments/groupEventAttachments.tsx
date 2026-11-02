@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {IconFilter} from '@sentry/icons/filter';
-import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -12,8 +11,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
@@ -35,17 +35,11 @@ type GroupEventAttachmentsProps = {
 const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
 
 export function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
-  const [{attachmentFilter, cursor, statsPeriod, start, end}, setQueryParams] =
-    useQueryStates({
-      attachmentFilter: parseAsString,
-      cursor: parseAsString,
-      statsPeriod: pageFilterParsers.statsPeriod,
-      start: pageFilterParsers.start,
-      end: pageFilterParsers.end,
-    });
+  const location = useLocation();
   const organization = useOrganization();
   const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
+  const navigate = useNavigate();
   const [previouslyUsedAttachmentsTab, setPreviouslyUsedAttachmentsTab] =
     useLocalStorageState(
       `issue-details-attachments-default-tab-${project.id}`,
@@ -53,16 +47,25 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     );
 
   const activeAttachmentsTab =
-    (attachmentFilter as EventAttachmentFilter | null) ??
+    (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
     previouslyUsedAttachmentsTab ??
     DEFAULT_ATTACHMENTS_TAB;
 
   // Persist the previously used attachments tab in the url if it's not already set
   useEffect(() => {
-    if (!attachmentFilter && previouslyUsedAttachmentsTab !== DEFAULT_ATTACHMENTS_TAB) {
-      setQueryParams({attachmentFilter: previouslyUsedAttachmentsTab});
+    if (
+      !location.query.attachmentFilter &&
+      previouslyUsedAttachmentsTab !== DEFAULT_ATTACHMENTS_TAB
+    ) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {...location.query, attachmentFilter: previouslyUsedAttachmentsTab},
+        },
+        {replace: true}
+      );
     }
-  }, [attachmentFilter, previouslyUsedAttachmentsTab, setQueryParams]);
+  }, [previouslyUsedAttachmentsTab, location, navigate]);
 
   const {attachments, isPending, isError, pageLinks, refetch} = useGroupEventAttachments({
     group,
@@ -71,7 +74,8 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
 
-  const hasSetStatsPeriod = statsPeriod || start || end;
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
 
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
@@ -80,7 +84,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       activeAttachmentsTab,
       group,
       orgSlug: organization.slug,
-      cursor: cursor ?? undefined,
+      cursor: location.query.cursor as string | undefined,
       environment: eventView.environment as string[],
       eventQuery,
       ...(hasSetStatsPeriod && {

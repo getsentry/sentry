@@ -1,6 +1,7 @@
+import {useMemo} from 'react';
 import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {
   bulkUpdate,
@@ -20,9 +21,9 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -209,8 +210,14 @@ export function getGroupReprocessingStatus(group: Group) {
 }
 
 export function useEnvironmentsFromUrl(): string[] {
-  const [environments] = useQueryState('environment', parseAsRawList);
-  return environments;
+  const location = useLocation();
+  const envs = location.query.environment;
+
+  const envsArray = useMemo(() => {
+    return typeof envs === 'string' ? [envs] : (envs ?? []);
+  }, [envs]);
+
+  return envsArray;
 }
 
 function getGroupEventDetailsQueryData({

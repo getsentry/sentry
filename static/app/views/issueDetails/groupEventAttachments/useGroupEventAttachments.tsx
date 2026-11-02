@@ -1,10 +1,9 @@
 import {useQuery, keepPreviousData} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
 
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
@@ -110,17 +109,13 @@ export function useGroupEventAttachments({
   activeAttachmentsTab,
   options,
 }: UseGroupEventAttachmentsOptions) {
-  const [{cursor, statsPeriod, start, end}] = useQueryStates({
-    cursor: parseAsString,
-    statsPeriod: pageFilterParsers.statsPeriod,
-    start: pageFilterParsers.start,
-    end: pageFilterParsers.end,
-  });
+  const location = useLocation();
   const organization = useOrganization();
   const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
 
-  const hasSetStatsPeriod = statsPeriod || start || end;
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
 
   const filterParams = options?.fetchAllAvailable
     ? {}
@@ -139,7 +134,7 @@ export function useGroupEventAttachments({
       activeAttachmentsTab,
       group,
       orgSlug: organization.slug,
-      cursor: cursor ?? undefined,
+      cursor: location.query.cursor as string | undefined,
       ...filterParams,
     }),
     placeholderData: options?.placeholderData,

@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
-import {useQueryState} from 'nuqs';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
@@ -10,7 +9,6 @@ import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
@@ -35,7 +33,6 @@ interface EventListProps {
 export function EventList({group}: EventListProps) {
   const referrer = 'issue_details.streamline_list';
   const location = useLocation();
-  const [sortParams] = useQueryState('sort', parseAsStringArray);
   const organization = useOrganization();
   // Remount both Discover queries on retry, preserving the filters in the URL.
   const [retryCount, setRetryCount] = useState(0);
@@ -69,7 +66,9 @@ export function EventList({group}: EventListProps) {
   });
 
   // oxlint-disable-next-line react/immutability
-  eventView.sorts = decodeSorts(sortParams).filter(sort => fields.includes(sort.field));
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   if (!eventView.sorts.length) {
     // oxlint-disable-next-line react/immutability
