@@ -144,16 +144,21 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         allow_empty=True,
     )
 
-    def validate_projectIds(self, value: list[int]) -> list[int]:
-        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
-            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
-        return value
-
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
         allow_empty=True,
     )
+
+    def validate_projectIds(self, value: list[int]) -> list[int]:
+        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
+            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
+        return value
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if ("projectIds" in data) == ("monitorIds" in data):
+            raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
+        return data
 
 
 @dataclass(frozen=True)
@@ -487,7 +492,17 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
         if monitor_ids is not None:
             if not isinstance(workflow, BreachedMetricWorkflow):
-                return Response(status=400)
+                return Response(
+                    {"detail": "Only metric automations support monitor selection."}, status=400
+                )
+            denied = check_project_access(
+                get_monitor_project_ids(monitor_ids, organization),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
+            if denied is not None:
+                raise PermissionDenied(detail=denied)
             try:
                 workflow.set_monitor_selection(monitor_ids)
             except ValueError as e:
