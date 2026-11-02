@@ -145,6 +145,52 @@ const query = {
 > configuration destination has no use for a stale `statsPeriod`. Decide per
 > crumb based on whether the destination is filtered.
 
+### Drawers and panels
+
+A trail inside a drawer or panel describes a location within the page, not the
+page itself. The page already has its `<h1>` in the TopBar, so use
+`BreadcrumbList.Current` for the current location instead of
+`BreadcrumbList.Title`. It renders the same bold, truncating label with
+`aria-current="location"`, but no heading. Name the drawer with its own heading
+if it needs one.
+
+`BreadcrumbList` renders no landmark. Outside the TopBar, wrap the list and the
+current item in a `<nav>` with an `aria-label`, and lay them out like the TopBar
+so the overflow breakpoint is measured across the whole row.
+
+Only include parents the user can navigate to. Context that has no destination,
+such as the event a drawer belongs to, goes in `labelTooltip` rather than in a
+text-only crumb.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'All Tags', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Current
+        item={{label: 'browser.name', labelTooltip: 'Event ID: 1a2b3c4d'}}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<nav aria-label={t('Breadcrumbs')}>
+  <Flex containerType="inline-size" width="100%" align="center" gap="sm" minWidth="0">
+    <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
+      <BreadcrumbList items={[{type: 'link', label: t('All Tags'), to: allTagsUrl}]} />
+    </Flex>
+    <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+      <BreadcrumbList.Current
+        item={{label: tagKey, labelTooltip: t('Event ID: %s', shortEventId)}}
+      />
+    </Flex>
+  </Flex>
+</nav>
+```
+
+`BreadcrumbList.Current` accepts `label`, `labelTooltip`, and `leadingGraphic`.
+It has no pagination or trailing actions; put drawer actions in the drawer
+itself.
+
 ## Item types
 
 ### `'link'` — parent page
@@ -292,12 +338,12 @@ input replaces the heading.
 
 Beyond `label`, the optional props are not shared evenly across the item types.
 
-| Prop              | `'link'` | `'page-title'` | `'editable-title'` |
-| ----------------- | :------: | :------------: | :----------------: |
-| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |
-| `labelTooltip`    |          |       ✓        |                    |
-| `pagination`      |          |       ✓        |                    |
-| `trailingActions` |          |       ✓        |                    |
+| Prop              | `'link'` | `'page-title'` | `'editable-title'` | `Current` |
+| ----------------- | :------: | :------------: | :----------------: | :-------: |
+| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |     ✓     |
+| `labelTooltip`    |          |       ✓        |                    |     ✓     |
+| `pagination`      |          |       ✓        |                    |           |
+| `trailingActions` |          |       ✓        |                    |           |
 
 Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
@@ -311,7 +357,8 @@ is the message used when an empty title cannot be saved.
 
 ### Leading graphics
 
-**Available on** `'link'`, `'page-title'`, and `'editable-title'`.
+**Available on** `'link'`, `'page-title'`, `'editable-title'`, and
+`BreadcrumbList.Current`.
 An optional `React.ReactNode` — a `ProjectsBadge`, an avatar, or a Sentry icon.
 It is rendered as decorative content in a fixed 16×16 slot, so the label carries
 the meaning.
@@ -359,7 +406,7 @@ the meaning.
 
 ### Label tooltip
 
-**Available on** `'page-title'` only.
+**Available on** `'page-title'` and `BreadcrumbList.Current`.
 
 `labelTooltip` explains a label that cannot explain itself — an opaque
 identifier, or a value the label shows in shortened form. It is always on, not

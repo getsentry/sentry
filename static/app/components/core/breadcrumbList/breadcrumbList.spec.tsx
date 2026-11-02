@@ -145,6 +145,58 @@ describe('BreadcrumbList container-query collapse', () => {
   });
 });
 
+describe('BreadcrumbList.Current', () => {
+  it('marks the current location without rendering a heading', () => {
+    render(
+      <Fragment>
+        <BreadcrumbList items={[{type: 'link', label: 'Releases', to: '/releases/'}]} />
+        <BreadcrumbList.Current item={{label: 'v1.2.3'}} />
+      </Fragment>
+    );
+
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.getByText('v1.2.3')).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByRole('link', {name: 'Releases'})).not.toHaveAttribute(
+      'aria-current'
+    );
+  });
+
+  it('shows the label tooltip on hover', async () => {
+    render(
+      <BreadcrumbList.Current
+        item={{label: 'Breadcrumbs', labelTooltip: 'Event ID: 1a2b3c4d'}}
+      />
+    );
+
+    const label = screen.getByText('Breadcrumbs');
+    expect(label).toHaveAttribute('tabindex', '0');
+    await userEvent.hover(label);
+    expect(await screen.findByText('Event ID: 1a2b3c4d')).toBeInTheDocument();
+  });
+
+  it('is not focusable without a label tooltip', () => {
+    render(<BreadcrumbList.Current item={{label: 'Logs'}} />);
+
+    expect(screen.getByText('Logs')).not.toHaveAttribute('tabindex');
+  });
+
+  it('hides the leading graphic from assistive technology', () => {
+    render(
+      <BreadcrumbList.Current
+        item={{
+          label: 'Activity',
+          leadingGraphic: <span data-test-id="current-graphic">P</span>,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('current-graphic').parentElement).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+});
+
 describe('BreadcrumbList rich page-title items', () => {
   it('renders a pagination chevron disabled when it has no destination', () => {
     render(
