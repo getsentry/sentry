@@ -8,10 +8,10 @@ from sentry.models.organization import Organization
 class DiscoverSavedQueryPermission(OrganizationPermission):
     # Relaxed permissions for saved queries in Discover
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "saved_query:read"],
+        "POST": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
     def has_object_permission(self, request, view, obj):

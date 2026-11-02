@@ -107,6 +107,10 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
     "./useOnClickOutside": {
       "types": "./dist/useOnClickOutside.d.ts",
       "import": "./dist/useOnClickOutside.js"
@@ -126,10 +130,6 @@
     "./descriptionList": {
       "types": "./dist/descriptionList/index.d.ts",
       "import": "./dist/descriptionList/index.js"
-    },
-    "./interactionStateLayer": {
-      "types": "./dist/interactionStateLayer/index.d.ts",
-      "import": "./dist/interactionStateLayer/index.js"
     },
     "./radio": {
       "types": "./dist/radio/index.d.ts",
@@ -288,6 +288,7 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
+    "@tanstack/react-hotkeys": "0.17.0",
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
@@ -315,8 +316,8 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2004",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },

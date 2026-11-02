@@ -42,8 +42,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by the client",
+                    "contributes": false,
+                    "hint": "marked in-app by the client but ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -220,7 +220,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": "31cfc54cd60b693b789568c5ec9278e2",
+      "hash": "04eb3e30c44355bca4f760682c7b6198",
       "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
@@ -263,8 +263,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -298,8 +298,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -441,7 +441,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": "633f98691c6d46f1b91a753cfbb90cc0",
+      "hash": "3280616726a0dc4b6230272e6ae3cafb",
       "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"

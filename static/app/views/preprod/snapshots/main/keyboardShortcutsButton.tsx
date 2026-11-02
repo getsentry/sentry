@@ -41,8 +41,8 @@ function getShortcutGroups(): ShortcutGroup[] {
         {
           keys: (
             <Keys>
-              <Hotkey value="up" />
-              <Hotkey value="down" />
+              <Hotkey value="ArrowUp" />
+              <Hotkey value="ArrowDown" />
             </Keys>
           ),
           description: t('Move selection up / down'),
@@ -50,15 +50,15 @@ function getShortcutGroups(): ShortcutGroup[] {
         {
           keys: (
             <Keys>
-              <Hotkey value="command+up" />
-              <Hotkey value="command+down" />
+              <Hotkey value="Mod+ArrowUp" />
+              <Hotkey value="Mod+ArrowDown" />
             </Keys>
           ),
           description: t('Select first / last snapshot'),
         },
-        {keys: <Hotkey value="enter" />, description: t('Open selected snapshot')},
+        {keys: <Hotkey value="Enter" />, description: t('Open selected snapshot')},
         {
-          keys: <Hotkey value="space" />,
+          keys: <Hotkey value="Space" />,
           description: t('Scroll selected snapshot into view'),
         },
         {
@@ -70,13 +70,13 @@ function getShortcutGroups(): ShortcutGroup[] {
     {
       title: t('Single image view'),
       shortcuts: [
-        {keys: <Hotkey value="up" />, description: t('Previous image')},
-        {keys: <Hotkey value="down" />, description: t('Next image')},
+        {keys: <Hotkey value="ArrowUp" />, description: t('Previous image')},
+        {keys: <Hotkey value="ArrowDown" />, description: t('Next image')},
         {
           keys: (
             <Keys>
-              <Hotkey value="command+up" />
-              <Hotkey value="command+down" />
+              <Hotkey value="Mod+ArrowUp" />
+              <Hotkey value="Mod+ArrowDown" />
             </Keys>
           ),
           description: t('First / last image'),
@@ -86,8 +86,11 @@ function getShortcutGroups(): ShortcutGroup[] {
     {
       title: t('Navigation'),
       shortcuts: [
-        {keys: <Hotkey value="left" />, description: t('Switch to list view')},
-        {keys: <Hotkey value="right" />, description: t('Switch to single image view')},
+        {keys: <Hotkey value="ArrowLeft" />, description: t('Switch to list view')},
+        {
+          keys: <Hotkey value="ArrowRight" />,
+          description: t('Switch to single image view'),
+        },
       ],
     },
     {
@@ -96,7 +99,7 @@ function getShortcutGroups(): ShortcutGroup[] {
         {
           keys: (
             <Keys>
-              <Hotkey value="command" />
+              <Hotkey value="Mod" />
               <Kbd>{t('Scroll')}</Kbd>
             </Keys>
           ),

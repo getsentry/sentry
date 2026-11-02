@@ -48,10 +48,7 @@ from sentry.seer.autofix.feature.models import (
     RepoPins,
     SolutionStepArgs,
 )
-from sentry.seer.autofix.pr_iteration.constants import (
-    MANUAL_FLAG,
-    REVIEW_REQUEST_FLAG,
-)
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
@@ -924,14 +921,12 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
 
 def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
     lines = _build_issue_reference_lines(group)
-
-    if features.has(MANUAL_FLAG, group.organization):
-        lines.append(
-            # One command per line, and one `<sub>` tag per line: a blank line
-            # would close the tag and leave the next line full size.
-            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
-            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
-        )
+    lines.append(
+        # One command per line, and one `<sub>` tag per line: a blank line
+        # would close the tag and leave the next line full size.
+        "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+        "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
+    )
 
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id

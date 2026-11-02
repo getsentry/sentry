@@ -3,7 +3,11 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.insights.models import InsightsStarredSegment
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class OrganizationStarredServiceSpansTest(APITestCase, SnubaTestCase):
@@ -137,3 +141,34 @@ class OrganizationStarredServiceSpansTest(APITestCase, SnubaTestCase):
         with self.feature(self.feature_name):
             response = self.client.delete(self.url)
             assert response.status_code == 400
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
+    def test_user_preference_write_can_star_and_unstar(self) -> None:
+        self._use_token(["user_preference:write"])
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
+            )
+            assert response.status_code == 200, response.content
+            response = self.client.delete(self.delete_url("my_service_span", self.project_ids[0]))
+        assert response.status_code == 200, response.content
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
+    def test_user_preference_read_cannot_star(self) -> None:
+        self._use_token(["user_preference:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                data={"service_span": "my_service_span", "project_id": self.project_ids[0]},
+            )
+        assert response.status_code == 403
+        assert not InsightsStarredSegment.objects.filter(segment_name="my_service_span").exists()

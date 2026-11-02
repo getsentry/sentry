@@ -10,13 +10,15 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, APITestCaseMixin, BaseTestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerRepoGetBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repo"
 
     def detail_url(self, repo_id):
@@ -95,7 +97,9 @@ class ProjectSeerRepoGetTestMixin(BaseTestCase, APITestCaseMixin):
         self.get_error_response(status_code=404)
 
 
-class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetTestMixin, APITestCase):
+class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config_returns_404(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -108,7 +112,9 @@ class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetTestMixin, APITes
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetTestMixin, APITestCase):
+class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -127,7 +133,9 @@ class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetTestMixin, APITe
         self.get_error_response(status_code=404)
 
 
-class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerRepoPutBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repo"
     method = "put"
 
@@ -297,7 +305,9 @@ class ProjectSeerRepoPutTestMixin(BaseTestCase, APITestCaseMixin):
         assert project_repo.date_updated == original_date_updated
 
 
-class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutTestMixin, APITestCase):
+class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutBaseTest):
+    __test__ = True
+
     def test_repo_without_seer_config_returns_404(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -310,7 +320,9 @@ class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutTestMixin, APITes
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerRepoPutTokenBasedBillingTest(ProjectSeerRepoPutTestMixin, APITestCase):
+class ProjectSeerRepoPutTokenBasedBillingTest(ProjectSeerRepoPutBaseTest):
+    __test__ = True
+
     def test_creates_seer_config_for_repo_without_one(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -451,7 +463,9 @@ class ProjectSeerRepoDeleteTokenBasedBillingTest(APITestCase):
         assert SeerProjectRepository.objects.filter(id=seer_project_repo.id).exists()
 
 
-class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerReposGetBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repos"
 
     def reverse_url(self):
@@ -655,7 +669,9 @@ class ProjectSeerReposGetTestMixin(BaseTestCase, APITestCaseMixin):
         assert len(response.data) == 0
 
 
-class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetTestMixin, APITestCase):
+class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo1)
 
@@ -669,7 +685,9 @@ class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetTestMixin, APIT
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetTestMixin, APITestCase):
+class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetBaseTest):
+    __test__ = True
+
     def test_includes_repos_without_seer_config(self) -> None:
         project_repo = self.create_project_repository(project=self.project, repository=self.repo1)
         self.create_seer_project_repository(self.project, repository=self.repo2, branch_name="main")
@@ -693,7 +711,9 @@ class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetTestMixin, API
         assert len(response.data) == 0
 
 
-class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
+class ProjectSeerReposPostBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-repos"
     method = "post"
 
@@ -856,7 +876,9 @@ class ProjectSeerReposPostTestMixin(BaseTestCase, APITestCaseMixin):
         )
 
 
-class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostTestMixin, APITestCase):
+class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostBaseTest):
+    __test__ = True
+
     def test_repo_without_integration_is_accepted(self) -> None:
         self.repo1.integration_id = None
         self.repo1.save()
@@ -870,7 +892,9 @@ class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostTestMixin, AP
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class ProjectSeerReposPostTokenBasedBillingTest(ProjectSeerReposPostTestMixin, APITestCase):
+class ProjectSeerReposPostTokenBasedBillingTest(ProjectSeerReposPostBaseTest):
+    __test__ = True
+
     def test_repo_without_integration_returns_400(self) -> None:
         self.repo1.integration_id = None
         self.repo1.save()

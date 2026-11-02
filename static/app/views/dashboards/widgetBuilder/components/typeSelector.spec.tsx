@@ -11,6 +11,48 @@ import {
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 describe('TypeSelector', () => {
+  it('clears transformations while collapsing filters when switching to a table', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TypeSelector />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['explore-interpolation-and-smoothing'],
+        }),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()', 'avg(span.duration)'],
+              query: ['environment:production', 'environment:development'],
+              transformations:
+                '[{"0":["fill(zero)"],"1":["smooth(sma,3)"]},{"0":["fill(linear)"]}]',
+            },
+          },
+        },
+      }
+    );
+    expect(router.location.query.transformations).toBe(
+      '[{"0":["fill(zero)"],"1":["smooth(sma,3)"]},{"0":["fill(linear)"]}]'
+    );
+    await userEvent.click(await screen.findByText('Line'));
+    await userEvent.click(await screen.findByText('Table'));
+    await waitFor(() => {
+      expect(router.location.query.displayType).toBe(DisplayType.TABLE);
+      expect(router.location.query.query).toBe('environment:production');
+      expect(router.location.query).not.toHaveProperty('transformations');
+    });
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Line'));
+    await waitFor(() => {
+      expect(router.location.query.yAxis).toEqual(['count()', 'avg(span.duration)']);
+      expect(router.location.query).not.toHaveProperty('transformations');
+    });
+  });
+
   it('gates trace metrics tables behind the release flag', () => {
     const config = getDatasetConfig(WidgetType.TRACEMETRICS);
 

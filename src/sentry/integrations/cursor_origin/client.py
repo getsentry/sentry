@@ -501,7 +501,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         # Origin has no HEAD route for contents, so this is a GET whose body we discard.
-        # Errors are left for RepositoryIntegration.check_file, which classifies them.
+        # Errors are left for RepositoryIntegration._check_file, which classifies them.
         return self.get_contents(repo.name, path, ref=version)
 
     def get_file(

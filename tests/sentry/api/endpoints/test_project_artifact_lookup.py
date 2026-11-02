@@ -29,6 +29,7 @@ from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.response import close_streaming_response
 
 
 def make_file(artifact_name, content, type="artifact.bundle", headers=None):
@@ -855,6 +856,50 @@ class ArtifactLookupTest(APITestCase):
         )
 
         self.assert_download_matches_file(f"{url}?download=release_file/{rf_a.id}", file_content)
+
+    def test_release_file_download_as_sentry_app(self) -> None:
+        file = make_file("app.js", b"File contents here", "release.file", {})
+        releasefile = self.create_release_file(
+            self.release.id, file=file, name="http://example.com/app.js"
+        )
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        url = f"{url}?download=release_file/{releasefile.id}"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The default debug files role requires write access
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+        # The member role only requires read access
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
 
     def test_download_invalid_id(self) -> None:
         self.login_as(user=self.user)

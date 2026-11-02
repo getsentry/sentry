@@ -9,12 +9,9 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationOrchestrationRun,
-    InvestigationSourceType,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -131,7 +128,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             format="json",
         )
         assert launched.status_code == 404
-        assert not Investigation.objects.filter(organization=self.organization).exists()
+        assert not Notebook.objects.filter(organization=self.organization).exists()
 
     def test_candidate_launches_the_exact_open_period(self) -> None:
         group, open_period = self.create_metric_open_period()
@@ -160,15 +157,15 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.data["source"]["snapshot"]["analysisWindow"]["end"] == ended_at.isoformat()
         assert launched.data["source"]["snapshot"]["monitor"]["detectionType"] == "static"
         assert launched.data["filters"] == {}
-        investigation = Investigation.objects.get(id=launched.data["id"])
-        assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
-        assert investigation.source_key is not None
+        investigation = Notebook.objects.get(id=launched.data["id"])
+        assert investigation.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+        assert investigation.source_key == f"metric_open_period:{group.id}:{open_period.id}"
         assert investigation.filters == {}
 
         duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 200
         assert duplicate.data["id"] == launched.data["id"]
-        assert Investigation.objects.count() == 1
+        assert Notebook.objects.count() == 1
 
         response = self.client.post(self.candidates_url, candidate_payload, format="json")
         assert response.data == {
@@ -205,8 +202,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "heartbeatAt": None,
             "notebookRevision": 0,
         }
-        investigation = Investigation.objects.get(id=launched.data["id"])
-        assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
+        investigation = Notebook.objects.get(id=launched.data["id"])
+        assert investigation.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
         run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
         assert run.source["type"] == "breached_metric"
         assert run.source["projectIds"] == [self.project.id]
@@ -418,12 +415,12 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         launch_payload = {"source": source}
         launched = self.client.post(self.collection_url, launch_payload, format="json")
         assert launched.status_code == 201
-        investigation = Investigation.objects.get(id=launched.data["id"])
+        investigation = Notebook.objects.get(id=launched.data["id"])
         restricted_team = self.create_team(organization=self.organization)
         restricted_project = self.create_project(
             organization=self.organization, teams=[restricted_team]
         )
-        self.create_investigation_project(investigation=investigation, project=restricted_project)
+        self.create_notebook_project(notebook=investigation, project=restricted_project)
         viewer = self.create_user()
         self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
         self.login_as(viewer)
@@ -431,7 +428,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 200
         assert duplicate.data["id"] == str(investigation.id)
-        assert Investigation.objects.count() == 1
+        assert Notebook.objects.count() == 1
 
         candidate = self.client.post(
             self.candidates_url,

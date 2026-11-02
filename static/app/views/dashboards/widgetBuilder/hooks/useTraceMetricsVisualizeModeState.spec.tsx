@@ -349,6 +349,51 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
   });
 
+  it('does not restore transformations onto a display type that cannot use them', async () => {
+    function useCombinedStateHooks() {
+      const modeState = useTraceMetricsVisualizeModeState();
+      const {state, dispatch} = useWidgetBuilderContext();
+      return {visualizeModeState: modeState, widgetBuilderState: state, dispatch};
+    }
+
+    const {result} = renderHookWithProviders(useCombinedStateHooks, {
+      organization: OrganizationFixture({features: EQUATION_FEATURES}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            yAxis: ['sum(value,alpha_metric,counter,none)'],
+            transformations: '[{"0":["fill(zero)"]}]',
+          },
+        },
+      },
+    });
+
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(true);
+    });
+    act(() => {
+      result.current.dispatch({
+        type: BuilderStateAction.SET_DISPLAY_TYPE,
+        payload: DisplayType.TABLE,
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.widgetBuilderState.displayType).toBe(DisplayType.TABLE);
+    });
+    act(() => {
+      result.current.visualizeModeState.handleModeToggle(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.visualizeModeState.isEquationMode).toBe(false);
+    });
+    expect(result.current.widgetBuilderState.transformations).toBeUndefined();
+  });
+
   it('restores equation yAxis when toggling to equation mode with a cached snapshot', async () => {
     const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),

@@ -11,7 +11,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
-import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
+import {ToolbarVisualizeRow} from 'sentry/views/explore/components/toolbar/styles';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
@@ -68,7 +68,7 @@ export function VisualizeEquation({
   );
 
   return (
-    <ToolbarRow
+    <ToolbarVisualizeRow
       ref={setNodeRef}
       style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
@@ -89,6 +89,6 @@ export function VisualizeEquation({
           aria-label={deleteLabel ?? t('Remove Overlay')}
         />
       )}
-    </ToolbarRow>
+    </ToolbarVisualizeRow>
   );
 }
