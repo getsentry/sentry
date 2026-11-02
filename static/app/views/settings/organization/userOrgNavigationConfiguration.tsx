@@ -62,6 +62,15 @@ function getAccountNavigationConfiguration({
         {
           path: `${userSettingsPathPrefix}/security/`,
           title: t('Security'),
+          keywords: [
+            t('2fa'),
+            t('2 factor authentication'),
+            t('two factor authentication'),
+            t('mfa'),
+            t('multi factor'),
+            t('password'),
+            t('authenticator'),
+          ],
           description: t('Change your account password and/or two factor authentication'),
         },
         {
@@ -120,7 +129,14 @@ function getOrganizationNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: settingsV3 ? t('General') : t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            t('data storage location'),
+            t('data region'),
+            t('data residency'),
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -159,6 +175,9 @@ function getOrganizationNavigationConfiguration({
             t('pii'),
             t('attachments'),
             t('advanced data scrubbing'),
+            t('data scrubber'),
+            t('prevent storing of ip addresses'),
+            t('ip address'),
           ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -370,6 +389,11 @@ function getDeveloperNavigationConfiguration({
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('create token'),
+        t('new token'),
+        t('sentry auth token'),
+        t('personal auth token'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t(
@@ -399,6 +423,11 @@ function getDeveloperNavigationConfiguration({
         t('token'),
         t('credentials'),
         t('user auth tokens'),
+        t('create new token'),
+        t('create token'),
+        t('new token'),
+        t('sentry auth token'),
+        t('organization auth token'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t('Manage organization tokens'),

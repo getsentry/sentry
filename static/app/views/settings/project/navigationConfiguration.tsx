@@ -34,6 +34,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: settingsV3 ? t('General') : t('General Settings'),
+          keywords: [t('slug'), t('project slug'), t('rename project')],
           description: t('Configure general settings for a project'),
         },
         {
@@ -117,6 +118,15 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
+          keywords: [
+            t('data scrubbing'),
+            t('data scrubber'),
+            t('privacy'),
+            t('pii'),
+            t('prevent storing of ip addresses'),
+            t('ip address'),
+            t('advanced data scrubbing'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),
