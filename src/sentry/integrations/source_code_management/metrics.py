@@ -65,9 +65,6 @@ class SCMIntegrationInteractionType(StrEnum):
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
 
-    # Rate Limiting
-    GET_RATE_LIMIT = "get_rate_limit"
-
 
 _current_scm_interaction_type: ContextVar[SCMIntegrationInteractionType | None] = ContextVar(
     "current_scm_interaction_type", default=None
