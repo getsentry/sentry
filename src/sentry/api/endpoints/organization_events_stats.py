@@ -29,6 +29,7 @@ from sentry.search.eap.trace_metrics.config import (
     get_trace_metric_from_request,
 )
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.fields import is_function
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -305,6 +306,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in raw_groupby:
                     raise ParseError("Cannot group by timestamp")
                 if use_rpc:
+                    if all(is_function(column) for column in raw_groupby):
+                        raise ParseError("topEvents requires at least one non-aggregate field")
                     return scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
