@@ -186,6 +186,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     @extend_schema(
@@ -329,6 +330,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMTeamPermission,)
     _allow_idp_changes = True
 

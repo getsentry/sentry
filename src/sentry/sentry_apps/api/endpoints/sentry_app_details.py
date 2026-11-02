@@ -75,6 +75,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (SentryAppDetailsEndpointPermission,)
     allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 

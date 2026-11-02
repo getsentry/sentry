@@ -146,6 +146,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listOrganizationReleaseDeploys",

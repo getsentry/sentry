@@ -67,6 +67,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
     _allow_idp_changes = False
 

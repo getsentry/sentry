@@ -97,6 +97,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
 
