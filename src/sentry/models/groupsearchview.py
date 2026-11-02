@@ -5,7 +5,9 @@ from django.db import models
 from django.db.models import CheckConstraint, Q
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel, DefaultFieldsModelExisting
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
@@ -89,3 +91,11 @@ class GroupSearchView(DefaultFieldsModelExisting):
                 name="sentry_groupsearchview_single_creator",
             ),
         ]
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole view.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
