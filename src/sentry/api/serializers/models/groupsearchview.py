@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.principal import acting_user_id
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -45,18 +46,26 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         prefetch_related_objects(item_list, "projects")
         attrs: MutableMapping[Any, Any] = {}
 
-        last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            organization=self.organization,
-            user_id=user.id,
-            group_search_view_id__in=[item.id for item in item_list],
-        )
-        user_starred_view_ids = set(
-            GroupSearchViewStarred.objects.filter(
-                organization=self.organization,
-                user_id=user.id,
-            ).values_list("group_search_view_id", flat=True)
-        )
-        last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
+        # Last visited and starred are per user; a caller with no user (e.g. a service
+        # account) has neither.
+        viewer_id = acting_user_id(user)
+        last_visited_map: dict[int, GroupSearchViewLastVisited] = {}
+        user_starred_view_ids: set[int] = set()
+        if viewer_id is not None:
+            last_visited_map = {
+                lv.group_search_view_id: lv
+                for lv in GroupSearchViewLastVisited.objects.filter(
+                    organization=self.organization,
+                    user_id=viewer_id,
+                    group_search_view_id__in=[item.id for item in item_list],
+                )
+            }
+            user_starred_view_ids = set(
+                GroupSearchViewStarred.objects.filter(
+                    organization=self.organization,
+                    user_id=viewer_id,
+                ).values_list("group_search_view_id", flat=True)
+            )
 
         serialized_users = {
             user["id"]: user
