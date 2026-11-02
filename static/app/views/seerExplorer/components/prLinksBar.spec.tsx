@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {PRLinksBar} from './prLinksBar';
@@ -128,5 +130,70 @@ describe('PRLinksBar', () => {
     render(<PRLinksBar repoPRStates={{[REPO]: makeState({pr_creation_status: null})}} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  describe('out of credits', () => {
+    // getsentry fills in the CTA; this stand-in shows the headline it was given.
+    function StubOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits">{message}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
+    it('explains a PR that failed for credits and shows the CTA', async () => {
+      render(
+        <PRLinksBar
+          repoPRStates={{
+            [REPO]: makeState({
+              pr_creation_status: 'error',
+              pr_creation_error: "Your organization doesn't have enough Seer credits.",
+              pr_creation_error_code: 'out_of_credits',
+              pr_number: null,
+              pr_url: null,
+            }),
+          }}
+        />
+      );
+
+      const message =
+        "Seer couldn't open a pull request in acme/web because your organization is out of credits.";
+      expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(message);
+
+      await userEvent.hover(screen.getByRole('button', {name: REPO}));
+      expect(await screen.findAllByText(message)).toHaveLength(2);
+    });
+
+    it('shows one CTA for several PRs that failed for credits', () => {
+      const failed = {
+        pr_creation_status: 'error',
+        pr_creation_error_code: 'out_of_credits',
+      } as const;
+      render(
+        <PRLinksBar
+          repoPRStates={{
+            [REPO]: makeState(failed),
+            'acme/api': makeState({...failed, repo_name: 'acme/api'}),
+          }}
+        />
+      );
+
+      expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+        "Seer couldn't finish 2 pull requests because your organization is out of credits."
+      );
+    });
+
+    it('shows no CTA for other failures', () => {
+      render(
+        <PRLinksBar
+          repoPRStates={{
+            [REPO]: makeState({pr_creation_status: 'error', pr_creation_error: 'Nope'}),
+          }}
+        />
+      );
+
+      expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
+    });
   });
 });

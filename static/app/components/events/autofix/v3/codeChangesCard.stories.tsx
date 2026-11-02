@@ -110,6 +110,29 @@ function makeAssistantBlock(
   };
 }
 
+function makeStepBlock(
+  step: string | undefined,
+  content: string
+): AutofixSection['blocks'][number] {
+  return {
+    id: `block-${step ?? 'continued'}`,
+    timestamp: '2026-07-20T00:00:00Z',
+    message: {role: 'assistant', content, metadata: step ? {step} : undefined},
+  };
+}
+
+// The block Seer appends when a run stops for credits. The card leaves it out
+// in favor of the CTA.
+const SEER_OUT_OF_CREDITS_BLOCK: AutofixSection['blocks'][number] = {
+  id: 'error-1',
+  timestamp: '2026-07-20T00:00:00Z',
+  message: {
+    role: 'assistant',
+    content:
+      "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+  },
+};
+
 function makeSection(
   status: AutofixSection['status'],
   blocks: AutofixSection['blocks'],
@@ -433,6 +456,77 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
           />
         </StatusExample>
       </Stack>
+    );
+  });
+
+  story('Stopped for credits', () => (
+    <Stack gap="xl">
+      <Text size="sm" variant="muted">
+        The organization ran out of Seer credits while Seer was writing the code changes.
+        The run ends with <code>failure_reason: out_of_credits</code>. The card keeps what
+        Seer wrote and the partial diff, and the out-of-credits CTA takes the place of the
+        retry buttons. Copy as Markdown and Re-run step are disabled, and the drawer
+        offers no “Yes, draft a PR” for a run that stopped, so Create PR is not available.
+      </Text>
+      <CodeChangesCard
+        groupId="1"
+        autofix={makeAutofix([], {status: 'error', failure_reason: 'out_of_credits'})}
+        section={{
+          ...makeSection('error', [
+            makeStepBlock(
+              'code_changes',
+              'Passing an initial accumulator to `reduce` so an empty cart totals to zero. Next I was going to add a regression test in `cartService.test.ts`.'
+            ),
+            SEER_OUT_OF_CREDITS_BLOCK,
+          ]),
+          failureReason: 'out_of_credits',
+        }}
+      />
+    </Stack>
+  ));
+
+  story('PR iteration stopped for credits', () => {
+    const user = useUser();
+    return (
+      <FeatureWrapper>
+        <Text size="sm" variant="muted">
+          The organization ran out of credits while Seer was working on feedback for an
+          open PR. The feedback item is marked failed (hover the red icon), the code
+          already pushed stays on screen, and the CTA says the PR update stopped.
+        </Text>
+        <CodeChangesCard
+          groupId="1"
+          autofix={makeAutofix([], {
+            status: 'error',
+            failure_reason: 'out_of_credits',
+            repo_pr_states: {
+              'org/repo': {
+                repo_name: 'org/repo',
+                branch_name: 'seer/fix-null-user',
+                commit_sha: 'abc1234',
+                pr_number: 42,
+                pr_id: 42,
+                pr_url: 'https://github.com/org/repo/pull/42',
+                title: 'Guard against a null user',
+                pr_creation_status: 'completed',
+                pr_creation_error: null,
+              },
+            },
+          })}
+          section={{
+            ...makeSection('error', [
+              makeStepBlock('code_changes', 'Guarded the handler against a null user.'),
+              makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
+              makeStepBlock(
+                undefined,
+                'Adding a test for an unauthenticated request in `test_handlers.py`.'
+              ),
+              SEER_OUT_OF_CREDITS_BLOCK,
+            ]),
+            failureReason: 'out_of_credits',
+          }}
+        />
+      </FeatureWrapper>
     );
   });
 

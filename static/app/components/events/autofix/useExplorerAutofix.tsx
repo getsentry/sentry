@@ -25,6 +25,7 @@ import {
   type Artifact,
   type Block,
   type ExplorerCodingAgentState,
+  type ExplorerFailureReason,
   type ExplorerFilePatch,
   type RepoPRState,
   type SeerExplorerRunId,
@@ -216,6 +217,7 @@ export interface ExplorerAutofixState {
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
@@ -415,6 +417,10 @@ export interface AutofixSection {
   blocks: Block[];
   status: 'processing' | 'completed' | 'error';
   step: string;
+  /**
+   * Why the run stopped, on the section it stopped in.
+   */
+  failureReason?: ExplorerFailureReason | null;
   index?: number;
 }
 
@@ -460,6 +466,7 @@ function buildSection(
 
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
+    section.failureReason = runState.failure_reason;
   } else if (
     (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
@@ -670,6 +677,15 @@ export function isPullRequestsSection(section: AutofixSection): boolean {
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
+}
+
+/**
+ * The step stopped because the organization ran out of Seer credits. Running it
+ * again fails the same way until someone adds credits, and the blocks it wrote
+ * before stopping are still worth showing.
+ */
+export function isOutOfCreditsSection(section: AutofixSection): boolean {
+  return section.status === 'error' && section.failureReason === 'out_of_credits';
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {

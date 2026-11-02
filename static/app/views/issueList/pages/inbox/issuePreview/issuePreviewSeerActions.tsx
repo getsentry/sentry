@@ -30,11 +30,13 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {isOutOfCreditsPRState} from 'sentry/views/seerExplorer/types';
 
 import {
   hidesCodingAgentResultLink,
@@ -299,6 +301,9 @@ function SeerActionButton({
   );
 
   if (failedPullRequest) {
+    // Retrying fails the same way until someone adds credits. The button stays,
+    // disabled, so nothing else steps in as the next action.
+    const isOutOfCredits = isOutOfCreditsPRState(failedPullRequest);
     return (
       <RunSeerActionButton
         action={() => autofix.createPR(runState.run_id, failedPullRequest.repo_name)}
@@ -307,12 +312,16 @@ function SeerActionButton({
         analyticsEventName="Issue Inbox: Create PR Setup Clicked"
         analyticsParams={{is_retry: true}}
         autofix={autofix}
-        disabled={disabled}
+        disabled={disabled || isOutOfCredits}
         group={group}
         icon={<IconRefresh />}
         label={t('Retry PR in %s', failedPullRequest.repo_name)}
         onContinueInSeer={onContinueInSeer}
-        tooltip={failedPullRequest.pr_creation_error}
+        tooltip={
+          isOutOfCredits
+            ? getOutOfCreditsPRMessage(failedPullRequest)
+            : failedPullRequest.pr_creation_error
+        }
         variant={variant}
       />
     );

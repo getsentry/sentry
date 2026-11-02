@@ -493,6 +493,94 @@ describe('AutofixRef embed', () => {
     }
   );
 
+  describe('out of credits', () => {
+    // getsentry fills in the CTA; this stand-in shows the headline it was given.
+    function StubOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits">{message}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
+    function makeStoppedRun(step: AutofixExplorerStep): ExplorerAutofixState {
+      const run = makeRunThrough(step, {status: 'error'});
+      return {
+        ...run,
+        failure_reason: 'out_of_credits',
+        blocks: [
+          ...run.blocks,
+          {
+            id: 'error-1',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {
+              role: 'assistant',
+              content: "Your organization doesn't have enough Seer credits for this.",
+            },
+          },
+        ],
+      };
+    }
+
+    function withOutOfCreditsPR(run: ExplorerAutofixState): ExplorerAutofixState {
+      const prState = run.repo_pr_states!['getsentry/sentry']!;
+      return {
+        ...run,
+        repo_pr_states: {
+          'getsentry/sentry': {...prState, pr_creation_error_code: 'out_of_credits'},
+        },
+      };
+    }
+
+    it.each([
+      ['root_cause', 'Seer stopped before finishing the root cause'],
+      ['solution', 'Seer stopped before finishing the plan'],
+      ['code_changes', 'Seer stopped before finishing the code changes'],
+    ] as const)(
+      'keeps what the %s step wrote and offers the CTA instead of a retry',
+      async (step, message) => {
+        mockRun(makeStoppedRun(step));
+        render(
+          <AutofixChatProvider sendMessage={jest.fn()}>
+            <AutofixRefFor step={step} />
+          </AutofixChatProvider>,
+          {organization}
+        );
+        await expandAll(1);
+
+        expect(screen.getByText(`Finished ${step}`)).toBeInTheDocument();
+        expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(message);
+        expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+        expect(getButtons('Try again')).toHaveLength(0);
+        expect(getButtons('Draft a pull request')).toHaveLength(0);
+      }
+    );
+
+    it('does not offer the pull request again after a create failed for credits', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization}
+      );
+      await expandAll(1);
+
+      expect(getButtons('Draft a pull request')).toHaveLength(0);
+    });
+
+    it('offers the CTA on the pull request step when the create failed for credits', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      render(<AutofixRefFor step="pr_iteration" />, {organization});
+      await expandAll(1);
+
+      expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+        "Seer couldn't open a pull request in getsentry/sentry because your organization is out of credits."
+      );
+      expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    });
+  });
+
   // One embed per step, as a conversation that walked the whole run holds.
   // Only the action the run has not taken yet is on offer, from one place.
   it('offers only the untaken action across a conversation spanning every step', async () => {

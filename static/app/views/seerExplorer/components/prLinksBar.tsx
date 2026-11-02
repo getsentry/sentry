@@ -2,12 +2,17 @@ import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {
+  getOutOfCreditsPRMessage,
+  getOutOfCreditsPRsMessage,
+} from 'sentry/components/seer/outOfCredits/messages';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
-import type {RepoPRState} from 'sentry/views/seerExplorer/types';
+import {isOutOfCreditsPRState, type RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface PRLinksBarProps {
   repoPRStates: Record<string, RepoPRState>;
@@ -22,12 +27,31 @@ export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
     return null;
   }
 
+  // The failure toast is gone by the time anyone reads it, so the CTA lives here.
+  const outOfCreditsStates = states.filter(isOutOfCreditsPRState);
+
   return (
-    <Flex margin="lg xl 0" gap="md" wrap="wrap">
-      {states.map(state => (
-        <PRButton key={state.repo_name} state={state} />
-      ))}
-    </Flex>
+    <Stack margin="lg xl 0" gap="md">
+      <Flex gap="md" wrap="wrap">
+        {states.map(state => (
+          <PRButton key={state.repo_name} state={state} />
+        ))}
+      </Flex>
+      {outOfCreditsStates.length > 0 && (
+        <SeerOutOfCreditsCta message={getOutOfCreditsPRsMessage(outOfCreditsStates)} />
+      )}
+    </Stack>
+  );
+}
+
+function getErrorTooltip(state: RepoPRState): string {
+  if (isOutOfCreditsPRState(state)) {
+    return getOutOfCreditsPRMessage(state);
+  }
+  // A PR number means the PR already exists, so the failure was a push to it.
+  return (
+    state.pr_creation_error ??
+    (state.pr_number ? t('Could not push changes') : t('Could not open PR'))
   );
 }
 
@@ -56,14 +80,7 @@ function PRButton({state}: {state: RepoPRState}) {
 
   const isError = state.pr_creation_status === 'error';
   const icon = isError ? <IconWarning variant="danger" /> : <IconPullRequest />;
-  const tooltipProps = isError
-    ? {
-        // A PR number means the PR already exists, so the failure was a push to it.
-        title:
-          state.pr_creation_error ??
-          (state.pr_number ? t('Could not push changes') : t('Could not open PR')),
-      }
-    : undefined;
+  const tooltipProps = isError ? {title: getErrorTooltip(state)} : undefined;
 
   // A failed push to an existing PR still links to it.
   if (prUrl) {

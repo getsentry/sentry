@@ -18,6 +18,7 @@ import {
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
+  isOutOfCreditsSection,
   isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
@@ -638,6 +639,34 @@ describe('getOrderedAutofixSections', () => {
     const prSection = sections[sections.length - 1]!;
     expect(prSection.status).toBe('completed');
     expect(prSection.artifacts).toEqual([[prState]]);
+  });
+
+  it('marks only the section the run stopped in with its failure reason', () => {
+    const sections = getOrderedAutofixSections({
+      ...makeState([
+        makeBlock({message: {metadata: {step: 'root_cause'}}}),
+        makeBlock({message: {metadata: {step: 'solution'}}}),
+      ]),
+      status: 'error',
+      failure_reason: 'out_of_credits',
+    });
+
+    expect(sections.map(s => [s.status, s.failureReason])).toEqual([
+      ['completed', undefined],
+      ['error', 'out_of_credits'],
+    ]);
+    expect(sections.map(isOutOfCreditsSection)).toEqual([false, true]);
+  });
+
+  it('does not treat other failures as out of credits', () => {
+    const [section] = getOrderedAutofixSections({
+      ...makeState([makeBlock({message: {metadata: {step: 'root_cause'}}})]),
+      status: 'error',
+      failure_reason: 'timeout',
+    });
+
+    expect(section!.status).toBe('error');
+    expect(isOutOfCreditsSection(section!)).toBe(false);
   });
 
   it('marks the synthetic pull_request section as processing while a PR is creating', () => {

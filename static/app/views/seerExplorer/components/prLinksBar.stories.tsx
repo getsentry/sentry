@@ -64,6 +64,16 @@ const PUSH_FAILED = prState({
   pr_creation_status: 'error',
 });
 
+const OUT_OF_CREDITS = prState({
+  repo_name: 'acme/billing',
+  pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+  pr_creation_error_code: 'out_of_credits',
+  pr_creation_status: 'error',
+  pr_number: null,
+  pr_url: null,
+  title: 'fix: Retry failed invoice webhooks',
+});
+
 const ALL_STATES = [COMPLETED, CREATING, UPDATING, ERRORED, PUSH_FAILED];
 
 function byRepo(...states: RepoPRState[]): Record<string, RepoPRState> {
@@ -107,6 +117,20 @@ export default Storybook.story('PRLinksBar', story => {
     <Frame>
       <PRLinksBar repoPRStates={byRepo(PUSH_FAILED)} />
     </Frame>
+  ));
+
+  story('Failed for credits', () => (
+    <Stack gap="md">
+      <Text variant="muted">
+        The PR could not be opened because the organization ran out of Seer credits. The
+        button's tooltip says so instead of the raw backend error, and the out-of-credits
+        CTA sits under the bar, since the failure toast is gone by the time anyone reads
+        it.
+      </Text>
+      <Frame>
+        <PRLinksBar repoPRStates={byRepo(COMPLETED, OUT_OF_CREDITS)} />
+      </Frame>
+    </Stack>
   ));
 
   story('Several repos', () => (

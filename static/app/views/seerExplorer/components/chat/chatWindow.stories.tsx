@@ -416,6 +416,29 @@ const AWAITING_ANSWER_SESSION: Session = {
   blocks: [USER_QUESTION, SEARCH_SPANS],
 };
 
+// Seer ran out of credits after two tool calls. It keeps the blocks it wrote and appends a
+// plain-text error block, which the chat swaps for the out-of-credits CTA.
+const OUT_OF_CREDITS_SESSION: Session = {
+  status: 'error',
+  failure_reason: 'out_of_credits',
+  updated_at: at(14),
+  blocks: [
+    USER_QUESTION,
+    SEARCH_SPANS,
+    INSPECT_ISSUE,
+    {
+      id: 'error-1',
+      message: {
+        role: 'assistant',
+        content:
+          "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+      },
+      timestamp: at(14),
+      loading: false,
+    },
+  ],
+};
+
 export default Storybook.story('ChatWindow', story => {
   story('Completed conversation', () => (
     <Fragment>
@@ -539,6 +562,18 @@ export default Storybook.story('ChatWindow', story => {
         initialQuery="Open a pull request that prefetches product in the cart query."
         wallet={{autoReloadEnabled: true, remaining: 50, total: 1000}}
       />
+    </Fragment>
+  ));
+
+  story('Stopped for credits', () => (
+    <Fragment>
+      <p>
+        The organization ran out of Seer credits mid-response. The run ends with{' '}
+        <code>failure_reason: out_of_credits</code>. The reasoning and tool calls Seer
+        made before it stopped stay in the thinking block, and the out-of-credits CTA
+        replaces Seer's plain-text error message.
+      </p>
+      <ChatWindow session={OUT_OF_CREDITS_SESSION} />
     </Fragment>
   ));
 

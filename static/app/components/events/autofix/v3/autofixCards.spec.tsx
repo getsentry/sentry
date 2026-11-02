@@ -12,6 +12,8 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {seerCreditCheckApiOptions} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {
   ExplorerCodingAgentState,
@@ -2700,5 +2702,194 @@ describe('ArtifactCard', () => {
         'true'
       );
     });
+  });
+});
+
+describe('out of credits', () => {
+  // getsentry fills in the CTA; this stand-in shows the headline it was given.
+  function StubOutOfCreditsCta({message}: SeerOutOfCreditsCtaProps) {
+    return <div data-test-id="seer-out-of-credits">{message}</div>;
+  }
+
+  beforeEach(() => {
+    registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+  });
+
+  function makeOutOfCreditsSection(
+    step: string,
+    blocks: AutofixSection['blocks'],
+    artifacts: AutofixArtifact[] = []
+  ): AutofixSection {
+    return {
+      ...makeSection(step, 'error', artifacts, blocks),
+      failureReason: 'out_of_credits',
+    };
+  }
+
+  function makeBlock(
+    id: string,
+    content: string,
+    metadata?: Record<string, string>
+  ): AutofixSection['blocks'][number] {
+    return {
+      id,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {role: 'assistant', content, metadata},
+    };
+  }
+
+  // Seer appends this when it stops a run for credits.
+  const seerErrorBlock = makeBlock(
+    'error-1',
+    "Your organization doesn't have enough Seer credits for this, so I stopped here."
+  );
+
+  const autofixWithStoppedRun: ReturnType<typeof useExplorerAutofix> = {
+    ...mockAutofix,
+    runState: {
+      run_id: 123,
+      blocks: [],
+      status: 'error',
+      failure_reason: 'out_of_credits',
+      updated_at: '2026-01-01T00:00:00Z',
+    },
+  };
+
+  it('keeps what the root cause step wrote and offers the CTA instead of a re-run', () => {
+    render(
+      <RootCauseCard
+        autofix={autofixWithStoppedRun}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeBlock('block-1', 'The cache key omits the org slug.', {
+            step: 'root_cause',
+          }),
+          seerErrorBlock,
+        ])}
+      />
+    );
+
+    expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      'Seer stopped before finishing the root cause because your organization is out of credits.'
+    );
+    expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+  });
+
+  it('keeps what the plan step wrote and offers the CTA instead of a re-run', () => {
+    render(
+      <SolutionCard
+        autofix={autofixWithStoppedRun}
+        section={makeOutOfCreditsSection('solution', [
+          makeBlock('block-1', 'Seed the reduction with zero.', {step: 'solution'}),
+          seerErrorBlock,
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      'Seer stopped before finishing the plan because your organization is out of credits.'
+    );
+    expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+  });
+
+  it('keeps the partial diff of code changes that stopped for credits', () => {
+    render(
+      <CodeChangesCard
+        autofix={autofixWithStoppedRun}
+        groupId="1"
+        section={makeOutOfCreditsSection(
+          'code_changes',
+          [
+            makeBlock('block-1', 'Editing the cart service.', {step: 'code_changes'}),
+            seerErrorBlock,
+          ],
+          [[makePatch('org/repo', 'src/cart.py')]]
+        )}
+      />
+    );
+
+    expect(screen.getByText('Editing the cart service.')).toBeInTheDocument();
+    expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      'Seer stopped before finishing the code changes because your organization is out of credits.'
+    );
+    expect(
+      screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add context & retry'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+    // Partial changes are not the finished artifact.
+    expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('says a PR iteration stopped for credits', () => {
+    render(
+      <CodeChangesCard
+        autofix={autofixWithStoppedRun}
+        groupId="1"
+        section={makeOutOfCreditsSection(
+          'code_changes',
+          [
+            makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+            makePrIterationBlock(0, {text: 'Please add a test'}),
+            seerErrorBlock,
+          ],
+          [[makePatch('org/repo', 'src/cart.py')]]
+        )}
+      />,
+      {organization: manualPrIterationOrganization}
+    );
+
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      'Seer stopped before updating the pull request because your organization is out of credits.'
+    );
+    // Only the iteration that stopped is replayed, not the original step.
+    expect(screen.queryByText('Applied the fix.')).not.toBeInTheDocument();
+  });
+
+  it('offers the CTA instead of retrying a PR that failed for credits', () => {
+    render(
+      <PullRequestsCard
+        autofix={mockAutofixWithRunState}
+        section={makeSection('pull_request', 'completed', [
+          [
+            makePR({
+              repo_name: 'org/api',
+              pr_creation_status: 'error',
+              pr_creation_error: "Your organization doesn't have enough Seer credits.",
+              pr_creation_error_code: 'out_of_credits',
+              pr_number: null,
+              pr_url: null,
+            }),
+            makePR({
+              repo_name: 'org/web',
+              pr_creation_status: 'error',
+              pr_creation_error: 'Push rejected',
+              pr_number: null,
+              pr_url: null,
+            }),
+          ],
+        ])}
+      />
+    );
+
+    expect(screen.getByTestId('seer-out-of-credits')).toHaveTextContent(
+      "Seer couldn't open a pull request in org/api because your organization is out of credits."
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Retry PR in org/api'})
+    ).not.toBeInTheDocument();
+    // Other failures stay retryable.
+    expect(screen.getByRole('button', {name: 'Retry PR in org/web'})).toBeEnabled();
   });
 });

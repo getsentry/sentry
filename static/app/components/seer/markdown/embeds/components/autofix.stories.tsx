@@ -1,4 +1,4 @@
-import {useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 import {
   QueryClient,
@@ -512,6 +512,58 @@ function creditsRun(blocks: Block[]): ExplorerAutofixState {
   };
 }
 
+// The block Seer appends when a run stops for credits.
+const SEER_OUT_OF_CREDITS_BLOCK: Block = {
+  id: 'error-1',
+  timestamp: '2026-10-07T12:00:00Z',
+  loading: false,
+  message: {
+    role: 'assistant',
+    content:
+      "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+  },
+};
+
+// Root cause and plan finished; code changes stopped part way, one file in.
+const CODE_CHANGES_STOPPED_RUN: ExplorerAutofixState = {
+  run_id: CREDITS_RUN_ID,
+  status: 'error',
+  failure_reason: 'out_of_credits',
+  updated_at: '2026-10-07T12:00:00Z',
+  blocks: [
+    ROOT_CAUSE_BLOCK,
+    SOLUTION_BLOCK,
+    {
+      ...CODE_CHANGES_BLOCK,
+      message: {
+        ...CODE_CHANGES_BLOCK.message,
+        content:
+          'Passed `0` as the initial accumulator in `cartService.ts`. Next up was the empty-cart test in `cartService.test.ts`.',
+      },
+    },
+    SEER_OUT_OF_CREDITS_BLOCK,
+  ],
+};
+
+// Code changes finished, then opening the PR failed for credits.
+const PR_STOPPED_RUN: ExplorerAutofixState = {
+  ...creditsRun([ROOT_CAUSE_BLOCK, SOLUTION_BLOCK, CODE_CHANGES_BLOCK]),
+  repo_pr_states: {
+    'acme/checkout': {
+      repo_name: 'acme/checkout',
+      branch_name: null,
+      commit_sha: null,
+      pr_creation_status: 'error',
+      pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+      pr_creation_error_code: 'out_of_credits',
+      pr_id: null,
+      pr_number: null,
+      pr_url: null,
+      title: null,
+    },
+  },
+};
+
 /**
  * Answers the embeds' run request with the given run, the credit check with the
  * given balance, and every other request with an empty list.
@@ -546,6 +598,25 @@ class CreditsQueryClient extends QueryClient {
 }
 
 /**
+ * Autofix embeds ship collapsed. Open them so the state is visible without a
+ * click.
+ */
+function ExpandedEmbeds({children}: {children: ReactNode}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) {
+      return;
+    }
+    opened.current = true;
+    ref.current
+      ?.querySelectorAll<HTMLButtonElement>('button[aria-expanded="false"]')
+      .forEach(button => button.click());
+  }, []);
+  return <Container ref={ref}>{children}</Container>;
+}
+
+/**
  * A conversation in an org with credit checks on, out of credits unless
  * `hasEnoughCredits` is set, where the chat can still send, so each embed
  * offers its next step. Like the Explorer chat, it shows the out-of-credits
@@ -555,12 +626,17 @@ function CreditsChat({
   children,
   description,
   run,
+  expanded = false,
   hasEnoughCredits = false,
   isBillingMember = false,
 }: {
   children: ReactNode;
   description: ReactNode;
   run: ExplorerAutofixState;
+  /**
+   * Open the embeds on load, so the story needs no click.
+   */
+  expanded?: boolean;
   hasEnoughCredits?: boolean;
   /**
    * Billing members configure auto-reload; everyone else contacts their admins.
@@ -571,6 +647,21 @@ function CreditsChat({
   const [queryClient] = useState(() => new CreditsQueryClient(run, hasEnoughCredits));
   const {isAutofixOutOfCredits, autofixDenialReason, reportOutOfCredits} =
     useAutofixOutOfCreditsEmbeds();
+  const chat = (
+    <ChatShell
+      notice={
+        isAutofixOutOfCredits ? (
+          <SeerOutOfCreditsCta
+            reason="autofix-continue"
+            denialReason={autofixDenialReason}
+            size="md"
+          />
+        ) : null
+      }
+    >
+      {children}
+    </ChatShell>
+  );
 
   return (
     <Stack gap="md">
@@ -595,19 +686,7 @@ function CreditsChat({
             sendMessage={() => {}}
             reportOutOfCredits={reportOutOfCredits}
           >
-            <ChatShell
-              notice={
-                isAutofixOutOfCredits ? (
-                  <SeerOutOfCreditsCta
-                    reason="autofix-continue"
-                    denialReason={autofixDenialReason}
-                    size="md"
-                  />
-                ) : null
-              }
-            >
-              {children}
-            </ChatShell>
+            {expanded ? <ExpandedEmbeds>{chat}</ExpandedEmbeds> : chat}
           </AutofixChatProvider>
         </QueryClientProvider>
       </OrganizationContext.Provider>
@@ -662,6 +741,48 @@ export default Storybook.story('Autofix', story => {
       <User>Got it. Put together a plan to fix it.</User>
       <Seer raw={`Here's the plan:\n\n${PLANNED_SOLUTION}`} />
     </ChatShell>
+  ));
+
+  story('Stopped for credits', () => (
+    <CreditsChat
+      description={
+        <Fragment>
+          The organization ran out of Seer credits while Autofix was writing code changes,
+          so the run ended with <code>failure_reason: out_of_credits</code>. The card keeps
+          what Seer wrote and the partial diff, and the out-of-credits CTA replaces “Try
+          again”, which would only fail again. No “Draft a pull request” is offered for
+          the unfinished changes.
+        </Fragment>
+      }
+      run={CODE_CHANGES_STOPPED_RUN}
+      expanded
+    >
+      <User>Fix {ISSUE.shortId} all the way.</User>
+      <Seer
+        raw={`I started on the code changes:\n\n${autofixRefTag(ISSUE, 'code_changes', CREDITS_RUN_ID)}`}
+      />
+    </CreditsChat>
+  ));
+
+  story('Pull request failed for credits', () => (
+    <CreditsChat
+      description={
+        <Fragment>
+          The code changes finished, then opening the PR failed because the organization
+          ran out of credits (<code>pr_creation_error_code: out_of_credits</code>). The
+          Pull Request card shows the CTA in place of Seer's generic failure, and the Code
+          Changes card stops offering “Draft a pull request”, which would fail the same
+          way.
+        </Fragment>
+      }
+      run={PR_STOPPED_RUN}
+      expanded
+    >
+      <User>Open a pull request for {ISSUE.shortId}.</User>
+      <Seer
+        raw={`${autofixRefTag(ISSUE, 'code_changes', CREDITS_RUN_ID)}\n\n${autofixRefTag(ISSUE, 'pr_iteration', CREDITS_RUN_ID)}`}
+      />
+    </CreditsChat>
   ));
 
   story('Live Autofix run (autofixRef)', () => <AutofixRefStory />);
