@@ -14,7 +14,10 @@ from .group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .organization_code_mapping_repo_prefixes import OrganizationCodeMappingRepoPrefixesEndpoint
 from .organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .organization_eventid import EventIdLookupEndpoint
-from .organization_group_index import OrganizationGroupIndexEndpoint
+from .organization_group_index import (
+    OrganizationGroupIndexEndpoint,
+    OrganizationGroupResolveCapabilityEndpoint,
+)
 from .organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .organization_group_search_view_details import OrganizationGroupSearchViewDetailsEndpoint
 from .organization_group_search_view_details_starred import (
@@ -57,6 +60,7 @@ __all__ = (
     "OrganizationCodeMappingRepoPrefixesEndpoint",
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationGroupIndexEndpoint",
+    "OrganizationGroupResolveCapabilityEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
     "OrganizationGroupSearchViewsEndpoint",
     "OrganizationGroupSearchViewDetailsEndpoint",

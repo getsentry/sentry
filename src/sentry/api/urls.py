@@ -353,6 +353,7 @@ from sentry.issues.endpoints import (
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
+    OrganizationGroupResolveCapabilityEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
     OrganizationGroupSearchViewsEndpoint,
@@ -1955,6 +1956,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues/$",
         OrganizationGroupIndexEndpoint.as_view(),
         name="sentry-api-0-organization-group-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-resolve-capability/$",
+        OrganizationGroupResolveCapabilityEndpoint.as_view(),
+        name="sentry-api-0-organization-group-resolve-capability",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-count/$",
