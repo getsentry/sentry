@@ -536,15 +536,6 @@ class MetadataCompletedPayloadSerializer(_ReportRevisionMixin):
     title = StrictCharField(required=False, max_length=255)
 
 
-class ActionPayloadSerializer(RelaxedContractSerializer):
-    """Base class for an action kind's payload. Each kind validates its own fields."""
-
-    kind = StrictCharField(max_length=64)
-
-    @classmethod
-    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """Remove values this kind won't accept. Return None to keep the request as advice."""
-        return action
 
 
 def _payload_serializer(action: Any) -> type[ActionPayloadSerializer] | None:
