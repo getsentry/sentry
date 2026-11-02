@@ -5,10 +5,12 @@ import responses
 from django.test import override_settings
 from pytest import raises
 from requests import Request
+from requests.adapters import HTTPAdapter
 
 from sentry.constants import ObjectStatus
 from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
+    MAX_RETRY_SLEEP_SECONDS,
     IntegrationProxyClient,
     get_control_silo_ip_address,
     infer_org_integration,
@@ -251,6 +253,32 @@ class IntegrationProxyClientTest(TestCase):
             assert client.post("/some/endpoint") == {"ok": True}
 
         assert len(responses.calls) == 2
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_does_not_honor_retry_after_in_control(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retries = adapter.max_retries
+
+        assert retries.total == 3
+        assert retries.respect_retry_after_header is False
+        assert retries.backoff_max == MAX_RETRY_SLEEP_SECONDS
+        assert retries.retry_after_max == MAX_RETRY_SLEEP_SECONDS
+        assert not retries.is_retry("GET", 429, has_retry_after=True)
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_does_not_honor_retry_after_in_cell(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retries = adapter.max_retries
+
+        assert retries.respect_retry_after_header is False
+        assert retries.backoff_max == MAX_RETRY_SLEEP_SECONDS
+        assert retries.retry_after_max == MAX_RETRY_SLEEP_SECONDS
+        # 503s from the proxy are still retried, with capped backoff instead of Retry-After.
+        assert retries.is_retry("POST", 503, has_retry_after=True)
 
 
 def test_get_control_silo_ip_address() -> None:

@@ -108,6 +108,12 @@ def get_proxy_url() -> str:
     return urljoin(settings.SENTRY_CONTROL_ADDRESS, PROXY_BASE_PATH)
 
 
+# Retries sleep inside the request thread. Upstream rate limits can send a Retry-After of an
+# hour or more, which would hold a web worker thread for that long, so we ignore Retry-After
+# and cap any backoff sleep.
+MAX_RETRY_SLEEP_SECONDS = 60
+
+
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
@@ -168,9 +174,21 @@ class IntegrationProxyClient(ApiClient):
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+                    respect_retry_after_header=False,
+                    backoff_max=MAX_RETRY_SLEEP_SECONDS,
+                    retry_after_max=MAX_RETRY_SLEEP_SECONDS,
                 ),
             )
-        return build_session()
+        # Same retry count as the urllib3 default (Retry(3)) we used to fall back to, but
+        # without honoring Retry-After: a 413/429/503 goes straight back to the caller.
+        return build_session(
+            max_retries=Retry(
+                total=3,
+                respect_retry_after_header=False,
+                backoff_max=MAX_RETRY_SLEEP_SECONDS,
+                retry_after_max=MAX_RETRY_SLEEP_SECONDS,
+            )
+        )
 
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
