@@ -44,6 +44,12 @@ build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
 	pnpm run build-deprecated-docs
 
+# Every endpoint method, published or not, for internal consumers such as frontend type
+# generation; never published. See src/sentry/apidocs/internal/__init__.py.
+build-internal-api-docs: build-deprecated-docs
+	@echo "--> Building internal drf-spectacular openapi spec (every endpoint method)"
+	@OPENAPIGENERATE=1 sentry django spectacular --generator-class sentry.apidocs.internal.InternalGenerator --file tests/apidocs/openapi-internal.json --format openapi-json --validate
+
 build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
