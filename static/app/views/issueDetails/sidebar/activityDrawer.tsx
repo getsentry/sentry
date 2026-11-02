@@ -2,6 +2,7 @@ import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
@@ -10,9 +11,7 @@ import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
 } from 'sentry/components/events/eventDrawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
@@ -60,53 +59,54 @@ export function ActivityDrawer() {
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <DrawerBreadcrumbs
           current={{
             label: t('Activity'),
           }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Activity')}</Header>
-        <SegmentedControl
-          size="xs"
-          aria-label={t('Filter activity')}
-          value={filter}
-          onChange={value => {
-            trackAnalytics('issue_details.activity_drawer.filter_changed', {
-              organization,
-              filter: value,
-            });
-            setSearchParams(
-              params => {
-                if (value === 'comments') {
-                  params.set('filter', 'comments');
-                } else {
-                  params.delete('filter');
-                }
-                return params;
-              },
-              {replace: true}
-            );
-          }}
-        >
-          <SegmentedControl.Item key="comments" textValue={t('Comments')}>
-            <Flex as="span" align="center" gap="sm">
-              {t('Comments')}
-              {group.numComments > 0 ? (
-                <Badge
-                  aria-label={tn('%s comment', '%s comments', group.numComments)}
-                  variant="muted"
-                >
-                  {group.numComments}
-                </Badge>
-              ) : null}
-            </Flex>
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All activity')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator
+        actions={
+          <SegmentedControl
+            size="sm"
+            aria-label={t('Filter activity')}
+            value={filter}
+            onChange={value => {
+              trackAnalytics('issue_details.activity_drawer.filter_changed', {
+                organization,
+                filter: value,
+              });
+              setSearchParams(
+                params => {
+                  if (value === 'comments') {
+                    params.set('filter', 'comments');
+                  } else {
+                    params.delete('filter');
+                  }
+                  return params;
+                },
+                {replace: true}
+              );
+            }}
+          >
+            <SegmentedControl.Item key="comments" textValue={t('Comments')}>
+              <Flex as="span" align="center" gap="sm">
+                {t('Comments')}
+                {group.numComments > 0 ? (
+                  <Badge
+                    aria-label={tn('%s comment', '%s comments', group.numComments)}
+                    variant="muted"
+                  >
+                    {group.numComments}
+                  </Badge>
+                ) : null}
+              </Flex>
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All activity')}</SegmentedControl.Item>
+          </SegmentedControl>
+        }
+      />
       <EventDrawerBody>
         {shouldFetchComments && commentsQuery.isError ? (
           <Text variant="muted">{t('Unable to load comments.')}</Text>

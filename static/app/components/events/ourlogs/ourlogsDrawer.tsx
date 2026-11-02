@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack} from '@sentry/scraps/layout';
 
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
 } from 'sentry/components/events/eventDrawer';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
@@ -91,26 +91,24 @@ export function OurlogsDrawer({
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <EventDrawerContainer>
-        <EventDrawerHeader>
+        <DrawerHeader>
           <DrawerBreadcrumbs
             current={{
               label: t('Logs'),
               labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
             }}
           />
-        </EventDrawerHeader>
-        <EventNavigator>
-          <Flex align="center" gap="sm">
-            <Flex flex="1">
-              <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
-            </Flex>
-            {exploreUrl && (
+        </DrawerHeader>
+        <EventNavigator
+          search={<TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />}
+          actions={
+            exploreUrl ? (
               <LinkButton size="sm" to={exploreUrl} openInNewTab>
                 {t('Open in Explore')}
               </LinkButton>
-            )}
-          </Flex>
-        </EventNavigator>
+            ) : null
+          }
+        />
         <EventDrawerBody>
           <Stack position="relative" flex="1" minHeight="0">
             <LogsInfiniteTable

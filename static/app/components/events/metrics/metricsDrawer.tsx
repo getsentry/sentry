@@ -1,10 +1,11 @@
 import {useRef} from 'react';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
 } from 'sentry/components/events/eventDrawer';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -28,24 +29,26 @@ export function MetricsDrawer({event}: MetricsIssueDrawerProps) {
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <DrawerBreadcrumbs
           current={{
             label: t('Application Metrics'),
             labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
           }}
         />
-      </EventDrawerHeader>
-      <EventNavigator style={{gap: '0px'}}>
-        <SearchQueryBuilder
-          placeholder={t('Search application metrics for this trace')}
-          filterKeys={{}}
-          getTagValues={() => new Promise<string[]>(() => [])}
-          initialQuery={metricsSearch.formatString()}
-          searchSource="tracemetrics"
-          onSearch={query => setMetricsQuery(query)}
-        />
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator
+        search={
+          <SearchQueryBuilder
+            placeholder={t('Search application metrics for this trace')}
+            filterKeys={{}}
+            getTagValues={() => new Promise<string[]>(() => [])}
+            initialQuery={metricsSearch.formatString()}
+            searchSource="tracemetrics"
+            onSearch={query => setMetricsQuery(query)}
+          />
+        }
+      />
       <EventDrawerBody ref={containerRef}>
         <div>
           <MetricsSamplesTable source="issueDetails" />

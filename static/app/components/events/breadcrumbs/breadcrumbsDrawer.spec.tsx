@@ -32,10 +32,7 @@ describe('BreadcrumbsDrawer', () => {
       await screen.findByText(`Event ID: ${getShortEventId(event.id)}`)
     ).toBeInTheDocument();
 
-    // Header & Controls
-    expect(
-      within(drawerScreen).getByText('Breadcrumbs', {selector: 'h3'})
-    ).toBeInTheDocument();
+    // Controls
     expect(
       within(drawerScreen).getByRole('textbox', {name: 'Search All Breadcrumbs'})
     ).toBeInTheDocument();

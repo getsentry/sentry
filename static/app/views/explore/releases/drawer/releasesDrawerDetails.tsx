@@ -5,19 +5,18 @@ import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
-import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
 } from 'sentry/components/events/eventDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -67,45 +66,42 @@ function ReleasesDrawerContent({
 }: ReleasesDrawerContentProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
+  const releaseProjects = releaseMeta?.projects ?? [];
 
   return (
     <Fragment>
-      <EventNavigator>
-        <ErrorBoundary mini>
-          <HeaderToolbar>
-            <Flex align="center" gap="md" minWidth={0} maxWidth="100%">
-              <ErrorBoundary mini>
-                <SelectableProjectBadges>
-                  {releaseMeta?.projects?.map(releaseProject => (
-                    <SelectableProjectBadge
-                      key={releaseProject.id}
-                      data-test-id={`select-project-${releaseProject.id}`}
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProject.id,
-                        },
-                      }}
-                    >
-                      <ProjectBadge
-                        project={releaseProject}
-                        hideName
-                        avatarSize={16}
-                        disableLink
-                      />
-                    </SelectableProjectBadge>
-                  ))}
-                </SelectableProjectBadges>
-              </ErrorBoundary>
-              <Container minWidth={0} maxWidth="100%">
-                <Text size="xl" bold ellipsis>
-                  {formatVersion(release)}
-                </Text>
-              </Container>
-            </Flex>
-
-            <FullDetailsButton
+      <EventNavigator
+        actions={
+          <Fragment>
+            {releaseProjects.length > 1 ? (
+              <CompactSelect
+                size="sm"
+                value={projectId}
+                options={releaseProjects.map(releaseProject => ({
+                  value: String(releaseProject.id),
+                  label: releaseProject.slug,
+                  leadingItems: <ProjectAvatar project={releaseProject} size={16} />,
+                }))}
+                onChange={option => {
+                  navigate(
+                    {
+                      pathname: location.pathname,
+                      query: {
+                        ...location.query,
+                        [ReleasesDrawerFields.RELEASE_PROJECT_ID]: option.value,
+                      },
+                    },
+                    {replace: true}
+                  );
+                }}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
+                )}
+              />
+            ) : null}
+            <LinkButton
+              size="sm"
               to={normalizeUrl({
                 pathname: makeReleasesPathname({
                   path: `/${encodeURIComponent(release)}/`,
@@ -115,7 +111,6 @@ function ReleasesDrawerContent({
                   project: projectId,
                 },
               })}
-              size="xs"
               onClick={() => {
                 trackAnalytics('releases.drawer_view_full_details', {
                   organization: organization.id,
@@ -124,10 +119,10 @@ function ReleasesDrawerContent({
               }}
             >
               {t('View Full Details')}
-            </FullDetailsButton>
-          </HeaderToolbar>
-        </ErrorBoundary>
-      </EventNavigator>
+            </LinkButton>
+          </Fragment>
+        }
+      />
 
       <EventDrawerBody>
         <div>
@@ -291,7 +286,7 @@ export function ReleasesDrawerDetails({
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <ErrorBoundary mini>
           <DrawerBreadcrumbs
             items={crumbs}
@@ -312,7 +307,7 @@ export function ReleasesDrawerDetails({
             }}
           />
         </ErrorBoundary>
-      </EventDrawerHeader>
+      </DrawerHeader>
 
       <ErrorBoundary>
         {showContent ? (
@@ -347,31 +342,4 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const SelectableProjectBadges = styled('div')`
-  display: flex;
-  & > :not(:first-child) {
-    margin-left: -${p => p.theme.space.xs};
-  }
-`;
-
-const SelectableProjectBadge = styled(Link)`
-  display: flex;
-  cursor: pointer;
-
-  & img {
-    cursor: pointer;
-  }
-`;
-
-const FullDetailsButton = styled(LinkButton)`
-  flex-shrink: 0;
-`;
-
-const HeaderToolbar = styled(Header)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;

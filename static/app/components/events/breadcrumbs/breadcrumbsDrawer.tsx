@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFilter} from '@sentry/icons/filter';
@@ -8,17 +8,16 @@ import {IconTimer} from '@sentry/icons/timer';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Grid, Container} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
   SearchInput,
 } from 'sentry/components/events/eventDrawer';
 import {
@@ -95,28 +94,31 @@ export function BreadcrumbsDrawer({
     [displayCrumbs, timeDisplay]
   );
 
+  const searchInput = (
+    <InputGroup>
+      <SearchInput
+        size="sm"
+        value={search}
+        onChange={e => {
+          setSearch(e.target.value);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: BreadcrumbControlOptions.SEARCH,
+            organization,
+          });
+        }}
+        aria-label={t('Search All Breadcrumbs')}
+        {...getFocusProps(BreadcrumbControlOptions.SEARCH)}
+      />
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+
   const actions = (
-    <Grid flow="column" align="center" gap="md">
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            trackAnalytics('breadcrumbs.drawer.action', {
-              control: BreadcrumbControlOptions.SEARCH,
-              organization,
-            });
-          }}
-          aria-label={t('Search All Breadcrumbs')}
-          {...getFocusProps(BreadcrumbControlOptions.SEARCH)}
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
+    <Fragment>
       <CompactSelect
-        size="xs"
+        size="sm"
         multiple
         clearable
         menuTitle={t('Filter by')}
@@ -146,7 +148,7 @@ export function BreadcrumbsDrawer({
         )}
       />
       <CompactSelect
-        size="xs"
+        size="sm"
         trigger={props => (
           <OverlayTrigger.IconButton
             variant="transparent"
@@ -169,15 +171,15 @@ export function BreadcrumbsDrawer({
         options={BREADCRUMB_SORT_OPTIONS}
       />
       <CompactSelect
-        size="xs"
+        size="sm"
         trigger={props => (
           <OverlayTrigger.IconButton
             variant="transparent"
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
-                <IconClock size="xs" />
+                <IconClock size="sm" />
               ) : (
-                <IconTimer size="xs" />
+                <IconTimer size="sm" />
               )
             }
             aria-label={t('Change Time Format for All Breadcrumbs')}
@@ -196,24 +198,21 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
-      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} />
-    </Grid>
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} size="sm" />
+    </Fragment>
   );
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <DrawerBreadcrumbs
           current={{
             label: t('Breadcrumbs'),
             labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
           }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Breadcrumbs')}</Header>
-        {actions}
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator search={searchInput} actions={actions} />
       <EventDrawerBody ref={setContainer}>
         <Container column="span 2">
           {displayCrumbs.length === 0 ? (

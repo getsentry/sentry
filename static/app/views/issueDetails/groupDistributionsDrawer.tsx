@@ -1,8 +1,7 @@
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {
-  EventDrawerContainer,
-  EventDrawerHeader,
-} from 'sentry/components/events/eventDrawer';
+import {EventDrawerContainer} from 'sentry/components/events/eventDrawer';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -31,9 +30,9 @@ export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props)
   return (
     <AnalyticsArea name="distributions_drawer">
       <EventDrawerContainer>
-        <EventDrawerHeader>
+        <DrawerHeader>
           <GroupDistributionCrumbs tab={tab} />
-        </EventDrawerHeader>
+        </DrawerHeader>
         {tab === DrawerTab.TAGS ? (
           <TagsDistributionDrawer
             organization={organization}

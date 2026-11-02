@@ -1,16 +1,14 @@
 import {useState} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Grid} from '@sentry/scraps/layout';
 
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
   SearchInput,
 } from 'sentry/components/events/eventDrawer';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
@@ -50,50 +48,50 @@ export function EventFeatureFlagDrawer({
     f.item.key.includes(search)
   );
 
-  const actions = (
-    <Grid flow="column" align="center" gap="md">
-      <InputGroup>
-        <SearchInput
-          size="xs"
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value.toLowerCase());
-          }}
-          aria-label={t('Search Flags')}
-          {...getFocusProps(FlagControlOptions.SEARCH)}
-        />
-        <InputGroup.TrailingItems disablePointerEvents>
-          <IconSearch size="xs" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      <FeatureFlagSort
-        orderByOptions={ORDER_BY_OPTIONS}
-        orderBy={orderBy}
-        setOrderBy={value => {
-          setOrderBy(value);
-          trackAnalytics('flags.sort_flags', {
-            organization,
-            sortMethod: value as string,
-          });
+  const searchInput = (
+    <InputGroup>
+      <SearchInput
+        size="sm"
+        value={search}
+        onChange={e => {
+          setSearch(e.target.value.toLowerCase());
         }}
+        aria-label={t('Search Flags')}
+        {...getFocusProps(FlagControlOptions.SEARCH)}
       />
-    </Grid>
+      <InputGroup.TrailingItems disablePointerEvents>
+        <IconSearch size="xs" />
+      </InputGroup.TrailingItems>
+    </InputGroup>
+  );
+
+  const actions = (
+    <FeatureFlagSort
+      size="sm"
+      variant="transparent"
+      orderByOptions={ORDER_BY_OPTIONS}
+      orderBy={orderBy}
+      setOrderBy={value => {
+        setOrderBy(value);
+        trackAnalytics('flags.sort_flags', {
+          organization,
+          sortMethod: value as string,
+        });
+      }}
+    />
   );
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <DrawerBreadcrumbs
           current={{
             label: t('Feature Flags'),
             labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
           }}
         />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{t('Feature Flags')}</Header>
-        {actions}
-      </EventNavigator>
+      </DrawerHeader>
+      <EventNavigator search={searchInput} actions={actions} />
       <EventDrawerBody>
         <KeyValueColumns columnCount={1} maxKeyWidth="70%">
           {() => [

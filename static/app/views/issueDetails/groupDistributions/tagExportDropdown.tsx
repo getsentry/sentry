@@ -23,12 +23,12 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
 
   return (
     <DropdownMenu
-      size="xs"
+      size="sm"
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
           variant="transparent"
-          size="xs"
+          size="sm"
           aria-label={t('Export options')}
           icon={<IconDownload />}
         />

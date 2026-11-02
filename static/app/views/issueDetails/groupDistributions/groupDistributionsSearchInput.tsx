@@ -19,7 +19,7 @@ export function GroupDistributionsSearchInput({
   return (
     <InputGroup>
       <InputGroup.Input
-        size="xs"
+        size="sm"
         value={search}
         onChange={e => {
           onChange?.(e.target.value);

@@ -2,6 +2,8 @@ import {useCallback, useRef} from 'react';
 import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {
   ChartWidgetLoader,
   type ChartId,
@@ -10,12 +12,9 @@ import {
   DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
-  EventNavigator,
-  Header,
 } from 'sentry/components/events/eventDrawer';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -26,7 +25,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
 
@@ -111,7 +109,6 @@ export function ReleasesDrawerList({
 }: ReleasesDrawerListProps) {
   const navigate = useNavigate();
   const {groupId} = useParams();
-  const {releases} = useReleaseStats(pageFilters);
   const location = useLocation();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? '160px' : '220px';
@@ -162,8 +159,6 @@ export function ReleasesDrawerList({
     );
   }, []);
 
-  const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
-
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
       let {startValue, endValue} = (evt as any).batch[0] as {
@@ -194,12 +189,9 @@ export function ReleasesDrawerList({
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <DrawerBreadcrumbs current={{label: t('Releases')}} />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{title}</Header>
-      </EventNavigator>
+      </DrawerHeader>
       <EventDrawerBody>
         {chart ? (
           <div style={{height: chartHeight}}>
