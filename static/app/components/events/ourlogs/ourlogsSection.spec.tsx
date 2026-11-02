@@ -256,7 +256,7 @@ describe('OurlogsSection', () => {
 
     await userEvent.click(screen.getByText(/i am a log/));
 
-    const aside = screen.getByRole('complementary', {name: 'logs drawer'});
+    const aside = await screen.findByRole('complementary', {name: 'logs drawer'});
     expect(aside).toBeInTheDocument();
 
     await waitFor(() => {
@@ -269,6 +269,46 @@ describe('OurlogsSection', () => {
 
     expect(within(aside).getByTestId('tree-key-severity')).toBeInTheDocument();
     expect(within(aside).getByTestId('tree-key-severity')).toHaveTextContent('severity');
+  });
+
+  it('keeps the drawer open after writing the clicked log to the URL and clears both keys on close', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${logId}/`,
+      body: {itemId: logId, timestamp: '2025-04-03T15:50:10+00:00', attributes: []},
+    });
+
+    const {router} = render(
+      <OurlogsSection event={event} project={project} group={group} />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+            query: {project: project.id},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByText(/i am a log/));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        project: project.id,
+        logsDrawer: 'true',
+        expandedLogId: logId,
+      })
+    );
+    expect(router.historyAction).toBe('REPLACE');
+    expect(
+      await screen.findByRole('complementary', {name: 'logs drawer'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(router.location.query).toEqual({project: project.id}));
+    expect(
+      screen.queryByRole('complementary', {name: 'logs drawer'})
+    ).not.toBeInTheDocument();
   });
 
   const rageClickGroup = GroupFixture({issueType: IssueType.REPLAY_RAGE_CLICK});
@@ -440,10 +480,10 @@ describe('OurlogsSection', () => {
 
     await userEvent.click(screen.getByText(/i am a log/));
 
-    const aside = screen.getByRole('complementary', {name: 'logs drawer'});
+    const aside = await screen.findByRole('complementary', {name: 'logs drawer'});
     expect(aside).toBeInTheDocument();
 
-    const openInExploreButton = within(aside).getByRole('button', {
+    const openInExploreButton = await within(aside).findByRole('button', {
       name: 'Open in Explore',
     });
     expect(openInExploreButton).toBeInTheDocument();

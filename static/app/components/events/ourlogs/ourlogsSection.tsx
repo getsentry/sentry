@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
+import {createLoader, parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -23,7 +24,6 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {replayRecordApiOptions} from 'sentry/utils/replays/hooks/useReplayData';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
@@ -38,6 +38,12 @@ import {getLogBodySearchTerms} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+const logsDrawerParsers = {
+  [LOGS_DRAWER_QUERY_PARAM]: parseAsBoolean.withDefault(false),
+  expandedLogId: parseAsString,
+};
+const loadLogsDrawerParams = createLoader(logsDrawerParsers);
 
 export function OurlogsSection({
   event,
@@ -100,7 +106,7 @@ export function OurlogsSection({
   return (
     <LazyRender
       disabled={
-        location.query[LOGS_DRAWER_QUERY_PARAM] === 'true' ||
+        loadLogsDrawerParams(location.search)[LOGS_DRAWER_QUERY_PARAM] ||
         location.hash === `#${SectionKey.LOGS}`
       }
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
@@ -136,8 +142,12 @@ function OurlogsSectionContent({
   project: Project;
 }) {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const location = useLocation();
+  // GlobalDrawer closes from the router location, which nuqs values can lag behind.
+  const drawerQuery = loadLogsDrawerParams(location.search);
+  const isDrawerInUrl = drawerQuery[LOGS_DRAWER_QUERY_PARAM];
+  const {expandedLogId} = drawerQuery;
+  const [, setDrawerQuery] = useQueryStates(logsDrawerParsers);
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
   const logsSearch = useQueryParamsSearch();
@@ -149,25 +159,18 @@ function OurlogsSectionContent({
   const logsUrl = useEventLogsUrl(event);
 
   const onOpenLogsDrawer = useCallback(
-    (e: React.MouseEvent, expandedLogId?: string) => {
+    (e: React.MouseEvent, logItemId?: string) => {
       e.stopPropagation();
       trackAnalytics('logs.issue_details.drawer_opened', {
         organization,
       });
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [LOGS_DRAWER_QUERY_PARAM]: 'true',
-            ...(expandedLogId && {expandedLogId}),
-          },
-        },
-        {replace: true}
-      );
+      setDrawerQuery({
+        [LOGS_DRAWER_QUERY_PARAM]: true,
+        ...(logItemId && {expandedLogId: logItemId}),
+      });
     },
-    [navigate, location, organization]
+    [setDrawerQuery, organization]
   );
 
   const onEmbeddedRowClick = useCallback(
@@ -178,10 +181,7 @@ function OurlogsSectionContent({
   );
 
   useEffect(() => {
-    const shouldOpenDrawer = location.query[LOGS_DRAWER_QUERY_PARAM] === 'true';
-    if (shouldOpenDrawer) {
-      const expandedLogId = location.query.expandedLogId as string | undefined;
-
+    if (isDrawerInUrl) {
       openDrawer(
         () => (
           <LogsQueryParamsProvider
@@ -211,28 +211,28 @@ function OurlogsSectionContent({
         {
           ariaLabel: 'logs drawer',
           drawerKey: 'logs-issue-drawer',
+          shouldCloseOnLocationChange: nextLocation =>
+            !loadLogsDrawerParams(nextLocation.search)[LOGS_DRAWER_QUERY_PARAM],
           shouldCloseOnInteractOutside: element => {
             const viewAllButton = viewAllButtonRef.current;
             return !viewAllButton?.contains(element);
           },
           onClose: () => {
-            navigate(
-              {
-                ...location,
-                query: {
-                  ...location.query,
-                  [LOGS_DRAWER_QUERY_PARAM]: undefined,
-                  expandedLogId: undefined,
-                },
-              },
-              {replace: true}
-            );
+            setDrawerQuery(null);
           },
         }
       );
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
+  }, [
+    isDrawerInUrl,
+    expandedLogId,
+    freeze,
+    group,
+    event,
+    project,
+    openDrawer,
+    setDrawerQuery,
+  ]);
   if (!feature) {
     return null;
   }
