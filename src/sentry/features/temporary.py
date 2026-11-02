@@ -46,6 +46,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array query support for trace items (array attributes in querying/autocomplete)
     manager.add("organizations:trace-item-array-query-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Show a notice in issue details when attachments were dropped for exceeding the attachment quota
+    manager.add("organizations:attachments-quota-exceeded-notice", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Allow querying the EAP occurrences dataset via the events endpoint (testing / perf validation)
     manager.add("organizations:test-occurrences-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the Settings > Attributes browser & editor page
