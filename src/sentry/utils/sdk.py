@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import os
 import re
 import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
+from urllib.parse import unquote
 
 import sentry_sdk
 from django.conf import settings
@@ -347,6 +349,31 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     return sdk_options, dsns
 
 
+def _parse_otel_resource_attributes(raw: str | None) -> dict[str, str]:
+    """
+    Parse an `OTEL_RESOURCE_ATTRIBUTES` value (comma-separated, percent-encoded
+    `key=value` pairs). Malformed entries are skipped.
+    """
+    attributes: dict[str, str] = {}
+    for entry in (raw or "").split(","):
+        key, sep, value = entry.partition("=")
+        key = unquote(key.strip())
+        value = unquote(value.strip())
+        if sep and key and value:
+            attributes[key] = value
+    return attributes
+
+
+def _set_resource_attributes() -> None:
+    # Global scope attributes are added to every streamed span (and log/metric)
+    # without overwriting attributes the span already has. Infra sets these on
+    # k8s pods so traces show which pod/node/cluster a span ran in.
+    attributes = _parse_otel_resource_attributes(os.environ.get("OTEL_RESOURCE_ATTRIBUTES"))
+    global_scope = sentry_sdk.get_global_scope()
+    for key, value in attributes.items():
+        global_scope.set_attribute(key, value)
+
+
 def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
@@ -403,6 +430,7 @@ def configure_sdk():
             disabled_integrations=disabled_integrations,
             **sdk_options,
         )
+        _set_resource_attributes()
         return
 
     internal_project_key = get_project_key()
@@ -413,6 +441,7 @@ def configure_sdk():
             disabled_integrations=disabled_integrations,
             **sdk_options,
         )
+        _set_resource_attributes()
         return
 
     if not in_test_environment():

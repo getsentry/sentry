@@ -961,6 +961,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
     "sentry.spans.consumers.process_segments.tasks",
@@ -1938,6 +1939,10 @@ SENTRY_SCOPES = {
     "saved_query:write",
     "seer:read",
     "seer:write",
+    "service_account:read",
+    "service_account:write",
+    "user_preference:read",
+    "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1955,6 +1960,8 @@ SENTRY_READONLY_SCOPES = {
     "dashboard:read",
     "saved_query:read",
     "seer:read",
+    "service_account:read",
+    "user_preference:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1989,6 +1996,11 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "service_account:read": {"service_account:read"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
+    "user_preference:read": {"user_preference:read"},
+    "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2015,22 +2027,14 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
+        "user_preference:read",
+        "user_preference:write",
     ]
 )
 
-# Broad read scopes being retired in favour of granular ones. API attribution tags
-# whether a caller still holds one (see sentry.api.caller_scopes).
-DEPRECATED_SCOPES = frozenset(
-    [
-        "org:read",
-        "project:read",
-        "member:read",
-    ]
-)
-
-# Scopes a deprecated scope is replaced with at request time (see
-# sentry.auth.deprecated_scope_translation). Stored token scopes are left unchanged.
-# Remove an entry once callers no longer rely on the translation.
+# Broad read scopes being retired in favour of granular ones, mapped to the scopes they're
+# replaced with at request time (see sentry.auth.deprecated_scope_translation). Stored token
+# scopes are left unchanged. Remove an entry once callers no longer rely on the translation.
 DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
     "org:read": frozenset(
         [
@@ -2040,9 +2044,26 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            # Recent searches and prompt activity accept org:read today, including writes.
+            "user_preference:read",
+            "user_preference:write",
         ]
     ),
+    # Starring, starred order and last visited accept member:read today, including writes.
+    "member:read": frozenset(
+        [
+            # Removed once member:read has a full 1:1 translation to granular scopes.
+            "member:read",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    # No granular replacements yet.
+    "project:read": frozenset(["project:read"]),
 }
+
+# API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(DEPRECATED_SCOPE_TRANSLATIONS)
 
 SENTRY_SCOPE_SETS = (
     (
@@ -2114,6 +2135,20 @@ SENTRY_SCOPE_SETS = (
         ),
         ("seer:read", "Read access to Seer-generated work."),
     ),
+    (
+        ("service_account:write", "Write access to service accounts."),
+        ("service_account:read", "Read access to service accounts."),
+    ),
+    (
+        (
+            "user_preference:write",
+            "Write access to your own stars, recent searches, and dismissed prompts.",
+        ),
+        (
+            "user_preference:read",
+            "Read access to your own stars, recent searches, and dismissed prompts.",
+        ),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2144,6 +2179,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2171,6 +2207,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2214,6 +2251,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2250,6 +2289,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2320,6 +2361,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2329,6 +2371,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2351,6 +2395,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2367,6 +2412,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2400,8 +2447,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2440,8 +2491,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },

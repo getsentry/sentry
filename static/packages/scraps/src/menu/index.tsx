@@ -13,6 +13,7 @@ export {
   MenuSectionSeparator as SectionSeparator,
   SearchInput as Search,
   useReserveLeadingSlot,
+  focusMenuItemDetails,
 } from './menu';
 
 export type {ListItemProps, MenuItemTrailingAction} from './menu';

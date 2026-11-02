@@ -153,8 +153,6 @@ export function ProjectDetail() {
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
 
-  const createMonitorQuery = new URLSearchParams({project: params.projectId}).toString();
-
   const projectActions: MenuItemProps[] = [
     {
       key: 'view-all-issues',
@@ -169,7 +167,10 @@ export function ProjectDetail() {
       key: 'create-monitor',
       label: t('Create Monitor'),
       leadingItems: <IconSiren size="md" />,
-      to: `${makeMonitorCreatePathname(organization.slug)}?${createMonitorQuery}`,
+      to: {
+        pathname: makeMonitorCreatePathname(organization.slug),
+        query: {project: projectId},
+      },
       disabled: !canCreateAlert,
       tooltip: canCreateAlert
         ? undefined

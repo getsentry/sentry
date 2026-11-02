@@ -562,9 +562,11 @@ class DashboardRevision(DefaultFieldsModel):
         Create a revision snapshot for the given dashboard and prune any revisions
         beyond the retention limit. Must be called inside a transaction.atomic block.
         """
+        from sentry.auth.principal import acting_user_id  # circular import
+
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=user.id if user.is_authenticated else None,
+            created_by_id=acting_user_id(user),
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

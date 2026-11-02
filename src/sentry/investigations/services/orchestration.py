@@ -13,7 +13,6 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.auth.access import from_user
-from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -26,7 +25,16 @@ from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
 )
-from sentry.investigations.services.investigations import (
+from sentry.models.organization import Organization
+from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookSourceType,
+    NotebookStatus,
+)
+from sentry.notebooks.services.notebooks import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
@@ -35,14 +43,6 @@ from sentry.investigations.services.investigations import (
     archive_investigation,
     default_investigation_title,
     update_investigation,
-)
-from sentry.models.organization import Organization
-from sentry.notebooks.models import (
-    Notebook,
-    NotebookBlockExecution,
-    NotebookBlockExecutionStatus,
-    NotebookSourceType,
-    NotebookStatus,
 )
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.users.services.user.service import user_service

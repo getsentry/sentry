@@ -1,4 +1,5 @@
-import type {Location} from 'history';
+import {parseAsJson, parseAsNativeArrayOf} from 'nuqs';
+import {z} from 'zod';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {defined} from 'sentry/utils/defined';
@@ -8,9 +9,8 @@ import {
   stripEquationPrefix,
   type ParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 export const MAX_VISUALIZES = 8;
 
@@ -89,27 +89,33 @@ export abstract class Visualize {
     return json;
   }
 
-  static fromJSON(json: BaseVisualize): Visualize[] {
-    const transformations =
-      Array.isArray(json.transformations) &&
-      json.transformations.every(value => typeof value === 'string')
-        ? json.transformations
-        : undefined;
-    return json.yAxes.map(yAxis => {
+  static fromJSON(json: BaseVisualize, options?: ParseVisualizeOptions): Visualize[] {
+    const visualizes = json.yAxes.map(yAxis => {
       if (isEquation(yAxis)) {
         return new VisualizeEquation(yAxis, {
           chartType: json.chartType,
           visible: json.visible,
           internalExpression: json.internalExpression,
-          transformations,
+          transformations: json.transformations,
         });
       }
       return new VisualizeFunction(yAxis, {
         chartType: json.chartType,
         visible: json.visible,
-        transformations,
+        transformations: json.transformations,
       });
     });
+
+    if (
+      visualizes.length < 2 ||
+      !visualizes.every(isVisualizeFunction) ||
+      !options?.groupYAxes?.(json.yAxes)
+    ) {
+      return visualizes;
+    }
+
+    const chartGroup = createChartGroup();
+    return visualizes.map(visualize => visualize.replace({chartGroup}));
   }
 }
 
@@ -262,46 +268,17 @@ export class VisualizeEquation extends Visualize {
   }
 }
 
-export function getVisualizesFromLocation(
-  location: Location,
-  key: string,
+export function getVisualizes(
+  baseVisualizes: readonly BaseVisualize[],
   options?: ParseVisualizeOptions
 ): Visualize[] | null {
-  const rawVisualizes = decodeList(location.query?.[key]);
-
-  const visualizes: Visualize[] = [];
-
-  for (const rawVisualize of rawVisualizes) {
-    let value: any;
-    try {
-      value = JSON.parse(rawVisualize);
-    } catch (error) {
-      continue;
-    }
-    for (const visualize of parseVisualize(value, options)) {
-      visualizes.push(visualize);
-    }
-  }
-
+  const visualizes = baseVisualizes.flatMap(json => Visualize.fromJSON(json, options));
   return visualizes.length ? visualizes : null;
 }
 
-export function parseVisualize(value: any, options?: ParseVisualizeOptions): Visualize[] {
-  if (!isBaseVisualize(value)) {
-    return [];
-  }
-
-  const visualizes = Visualize.fromJSON(value);
-  if (
-    visualizes.length < 2 ||
-    !visualizes.every(isVisualizeFunction) ||
-    !options?.groupYAxes?.(value.yAxes)
-  ) {
-    return visualizes;
-  }
-
-  const chartGroup = createChartGroup();
-  return visualizes.map(visualize => visualize.replace({chartGroup}));
+export function parseVisualize(value: unknown): Visualize[] {
+  const result = baseVisualizeSchema.safeParse(value);
+  return result.success ? Visualize.fromJSON(result.data) : [];
 }
 
 export function isVisualize(value: any): value is Visualize {
@@ -332,22 +309,14 @@ export interface BaseVisualize {
   visible?: boolean;
 }
 
-export function isBaseVisualize(value: any): value is BaseVisualize {
-  const hasYAxes =
-    defined(value) &&
-    typeof value === 'object' &&
-    Array.isArray(value.yAxes) &&
-    value.yAxes.every((yAxis: any) => typeof yAxis === 'string');
+export const baseVisualizeSchema = z.object({
+  yAxes: z.array(z.string()),
+  chartType: z.enum(ChartType).optional().catch(undefined),
+  internalExpression: z.string().optional().catch(undefined),
+  transformations: z.array(z.string()).optional().catch(undefined),
+  visible: z.boolean().optional().catch(undefined),
+});
 
-  if (hasYAxes) {
-    // check for valid chart type
-    if (defined(value.chartType)) {
-      return Object.values(ChartType).includes(value.chartType);
-    }
-
-    // unselected chart type
-    return true;
-  }
-
-  return false;
-}
+export const parseAsBaseVisualizeList = parseAsNativeArrayOf(
+  parseAsJson(baseVisualizeSchema)
+);

@@ -422,6 +422,50 @@ class DeletionFieldGoodDeletePendingWithNotNullM2M(BaseSafeMigrationTest):
         self.run_migration()
 
 
+class DropNotNullWithLeftoverCheckTest(BaseSafeMigrationTest):
+    app = "good_flow_drop_not_null_with_check_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    table = f"{app}_testtable"
+
+    def check_name(self) -> str:
+        with connection.schema_editor() as schema_editor:
+            return schema_editor._create_index_name(  # type: ignore[attr-defined]
+                self.table, ["field"], suffix="_notnull"
+            )
+
+    def constraint_exists(self, name: str) -> bool:
+        with connection.cursor() as cursor:
+            return name in connection.introspection.get_constraints(cursor, self.table)
+
+    def test_drops_leftover_check(self) -> None:
+        self._run_migration(self.app, "0001_initial")
+        name = self.check_name()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'ALTER TABLE "{self.table}" ADD CONSTRAINT "{name}" CHECK ("field" IS NOT NULL)'
+            )
+        assert self.constraint_exists(name)
+
+        self._run_migration(self.app, "0002_drop_not_null")
+
+        assert not self.constraint_exists(name)
+        with connection.cursor() as cursor:
+            cursor.execute(f'INSERT INTO "{self.table}" ("field") VALUES (NULL)')
+
+    def test_without_leftover_check(self) -> None:
+        self.run_migration()
+        with connection.cursor() as cursor:
+            cursor.execute(f'INSERT INTO "{self.table}" ("field") VALUES (NULL)')
+
+    def test_sql(self) -> None:
+        assert split_sql_queries(self.sql_migrate(self.app, "0002")) == [
+            f'ALTER TABLE "{self.table}" ALTER COLUMN "field" DROP NOT NULL;',
+            f'ALTER TABLE "{self.table}" DROP CONSTRAINT IF EXISTS "{self.check_name()}";',
+        ]
+
+
 class ColExistsMixin:
     app = ""
 

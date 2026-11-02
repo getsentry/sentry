@@ -22,7 +22,11 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  PREBUILT_DASHBOARD_LABEL,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
@@ -171,6 +175,7 @@ export function getMenuOptions(
   widget: Widget,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  isPrebuiltDashboard = false,
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
@@ -183,6 +188,20 @@ export function getMenuOptions(
   const disableTransactionEdit =
     organization.features.includes('discover-saved-queries-deprecation') &&
     widget.widgetType === WidgetType.TRANSACTIONS;
+
+  const prebuiltDashboardMessages = isPrebuiltDashboard
+    ? {
+        edit: tct('Widgets on [label] dashboards cannot be edited.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        duplicate: tct('Widgets on [label] dashboards cannot be duplicated.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        delete: tct('Widgets on [label] dashboards cannot be deleted.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+      }
+    : undefined;
 
   if (
     organization.features.includes('discover-basic') &&
@@ -401,7 +420,7 @@ export function getMenuOptions(
         onAction: onDuplicate,
         tooltip: disableTransactionEdit
           ? t('This dataset is no longer supported. Please use the Spans dataset.')
-          : undefined,
+          : prebuiltDashboardMessages?.duplicate,
         disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
       });
     }
@@ -413,7 +432,7 @@ export function getMenuOptions(
         onAction: onEdit,
         disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
         tooltip: isWidgetEditable(widget.displayType)
-          ? undefined
+          ? prebuiltDashboardMessages?.edit
           : t('Static widgets from the widget library cannot be edited.'),
       });
     }
@@ -431,6 +450,7 @@ export function getMenuOptions(
           });
         },
         disabled: !hasEditAccess,
+        tooltip: prebuiltDashboardMessages?.delete,
       });
     }
   }

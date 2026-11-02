@@ -2,10 +2,9 @@ import {defined} from 'sentry/utils/defined';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  isBaseVisualize,
   isVisualizeFunction,
-  Visualize,
-  type BaseVisualize,
+  parseVisualize,
+  type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
@@ -156,12 +155,9 @@ function findAllFieldRefs(
       ? // null means to clear it so make sure to handle it correctly
         []
       : defined(writableQueryParams.aggregateFields)
-        ? writableQueryParams.aggregateFields
-            .filter<BaseVisualize>(isBaseVisualize)
-            .flatMap(visualize => {
-              const visualizes = Visualize.fromJSON(visualize);
-              return visualizes.flatMap(getVisualizeFields);
-            })
+        ? writableQueryParams.aggregateFields.flatMap(aggregateField =>
+            parseVisualize(aggregateField).flatMap(getVisualizeFields)
+          )
         : // undefined means it's unchanged so use the results from the readableQueryParams
           readableVisualizeFields;
 

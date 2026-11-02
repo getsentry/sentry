@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -298,7 +298,7 @@ class Activity(Model):
             activity.send_activity_notifications.delay(self.id)
 
 
-class ActivityIntegration(Enum):
+class ActivityIntegration(StrEnum):
     """Used in the Activity data column to define an acting integration"""
 
     CODEOWNERS = "codeowners"

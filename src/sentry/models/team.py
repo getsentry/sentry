@@ -41,11 +41,12 @@ class TeamManager(BaseManager["Team"]):
         """
         Returns a list of all teams a user has some level of access to.
         """
+        from sentry.auth.principal import has_user
         from sentry.auth.superuser import is_active_superuser
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
-        if not user.is_authenticated:
+        if not has_user(user):
             return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
