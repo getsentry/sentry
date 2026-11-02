@@ -105,7 +105,10 @@ def infer_org_integration(
 
 def get_proxy_url() -> str:
     assert settings.SENTRY_CONTROL_ADDRESS is not None
-    return urljoin(settings.SENTRY_CONTROL_ADDRESS, PROXY_BASE_PATH)
+    host = settings.SENTRY_CONTROL_ADDRESS
+    if settings.SENTRY_INTEGRATION_PROXY_ADDRESS:
+        host = settings.SENTRY_INTEGRATION_PROXY_ADDRESS
+    return urljoin(host, PROXY_BASE_PATH)
 
 
 class IntegrationProxyClient(ApiClient):
