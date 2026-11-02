@@ -63,6 +63,17 @@ function failedPR(repoName = REPO): RepoPRState {
   };
 }
 
+// What the backend records when the LLM calls behind a PR (description, commit
+// message) run out of credits.
+function outOfCreditsPR(repoName = REPO): RepoPRState {
+  return {
+    ...creatingPR(repoName),
+    pr_creation_status: 'error',
+    pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+    pr_creation_error_code: 'out_of_credits',
+  };
+}
+
 function makeSection(pullRequests: RepoPRState[]): AutofixSection {
   return {
     step: 'pull_request',
@@ -137,6 +148,37 @@ export default Storybook.story('PullRequestsCard', story => {
           <PullRequestsCard
             autofix={makeAutofix()}
             section={makeSection([completedPR(4821)])}
+          />
+        </DrawerExample>
+      </Stack>
+    );
+  });
+
+  story('Failed for credits', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          Creating the PR failed because the organization ran out of Seer credits (
+          <code>pr_creation_error_code: out_of_credits</code>). A retry would fail the
+          same way, so the out-of-credits CTA replaces the “Retry PR” button.
+        </Text>
+
+        <DrawerExample label="One repo whose PR failed for credits.">
+          <PullRequestsCard
+            autofix={makeAutofix()}
+            section={makeSection([outOfCreditsPR()])}
+          />
+        </DrawerExample>
+
+        <DrawerExample label="Several repos: one PR opened before credits ran out, two failed for credits, and one failed for another reason and stays retryable. One CTA covers both credit failures.">
+          <PullRequestsCard
+            autofix={makeAutofix()}
+            section={makeSection([
+              completedPR(1290, 'org/worker'),
+              outOfCreditsPR('org/api'),
+              outOfCreditsPR('org/frontend'),
+              failedPR('org/infra'),
+            ])}
           />
         </DrawerExample>
       </Stack>

@@ -1,6 +1,6 @@
-import {useMemo, useState, type ReactNode} from 'react';
+import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
-import {useQuery} from '@tanstack/react-query';
+import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {AssistantMessage, MessageRow, UserMessage} from '@sentry/scraps/chat';
@@ -15,6 +15,7 @@ import {
   isPullRequestsSection,
   useExplorerAutofix,
   type AutofixExplorerStep,
+  type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
@@ -22,7 +23,11 @@ import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  ExplorerFilePatch,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 import type {
   AutofixOverviewResponse,
   MilestoneKey,
@@ -396,6 +401,192 @@ function AutofixRefStory() {
   );
 }
 
+const STOPPED_AT = '2026-10-07T12:00:00Z';
+
+function stepBlock(id: string, step: string | undefined, content: string): Block {
+  return {
+    id,
+    timestamp: STOPPED_AT,
+    loading: false,
+    message: {role: 'assistant', content, metadata: step ? {step} : undefined},
+  };
+}
+
+const ROOT_CAUSE_BLOCK: Block = {
+  ...stepBlock('root-cause', 'root_cause', 'Found the root cause.'),
+  artifacts: [
+    {
+      key: 'root_cause',
+      reason: 'Found the root cause',
+      data: {
+        one_line_description:
+          '`CartService.total()` reduces the line items without an initial accumulator, so an empty cart throws.',
+        five_whys: ['`items.reduce` is called without a second argument.'],
+      },
+    },
+  ],
+};
+
+const SOLUTION_BLOCK: Block = {
+  ...stepBlock('solution', 'solution', 'Planned the fix.'),
+  artifacts: [
+    {
+      key: 'solution',
+      reason: 'Planned the fix',
+      data: {
+        one_line_summary: 'Seed the reduction with `0`.',
+        steps: [{title: 'Pass an initial accumulator', description: 'Pass `0`.'}],
+      },
+    },
+  ],
+};
+
+const CART_PATCH: ExplorerFilePatch = {
+  repo_name: 'acme/storefront',
+  diff: '',
+  patch: {
+    path: 'src/checkout/cartService.ts',
+    added: 1,
+    removed: 1,
+    source_file: 'src/checkout/cartService.ts',
+    target_file: 'src/checkout/cartService.ts',
+    type: 'M',
+    hunks: [
+      {
+        section_header: 'total(items: LineItem[]) {',
+        source_start: 12,
+        source_length: 1,
+        target_start: 12,
+        target_length: 1,
+        lines: [
+          {
+            line_type: '-',
+            value: '    return items.reduce((sum, item) => sum + item.price);',
+            source_line_no: 12,
+            target_line_no: null,
+            diff_line_no: null,
+          },
+          {
+            line_type: '+',
+            value: '    return items.reduce((sum, item) => sum + item.price, 0);',
+            source_line_no: null,
+            target_line_no: 12,
+            diff_line_no: null,
+          },
+        ],
+      },
+    ],
+  },
+} as ExplorerFilePatch;
+
+// The block Seer appends when a run stops for credits.
+const SEER_OUT_OF_CREDITS_BLOCK = stepBlock(
+  'error-1',
+  undefined,
+  "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue."
+);
+
+// Root cause and plan finished; code changes stopped part way, one file in.
+const CODE_CHANGES_STOPPED_RUN: ExplorerAutofixState = {
+  run_id: 501,
+  status: 'error',
+  failure_reason: 'out_of_credits',
+  updated_at: STOPPED_AT,
+  blocks: [
+    ROOT_CAUSE_BLOCK,
+    SOLUTION_BLOCK,
+    {
+      ...stepBlock(
+        'code-changes',
+        'code_changes',
+        'Passed `0` as the initial accumulator in `cartService.ts`. Next up was the empty-cart test in `cartService.test.ts`.'
+      ),
+      merged_file_patches: [CART_PATCH],
+    },
+    SEER_OUT_OF_CREDITS_BLOCK,
+  ],
+};
+
+// Code changes finished, then opening the PR failed for credits.
+const PR_STOPPED_RUN: ExplorerAutofixState = {
+  run_id: 502,
+  status: 'completed',
+  updated_at: STOPPED_AT,
+  blocks: [
+    ROOT_CAUSE_BLOCK,
+    SOLUTION_BLOCK,
+    {
+      ...stepBlock('code-changes', 'code_changes', 'Applied the fix.'),
+      merged_file_patches: [CART_PATCH],
+    },
+  ],
+  repo_pr_states: {
+    'acme/storefront': {
+      repo_name: 'acme/storefront',
+      branch_name: null,
+      commit_sha: null,
+      pr_creation_status: 'error',
+      pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+      pr_creation_error_code: 'out_of_credits',
+      pr_id: null,
+      pr_number: null,
+      pr_url: null,
+      title: null,
+    },
+  },
+};
+
+/**
+ * Answers the embed's run-state query with a fixed run, and every other query
+ * (the pages it refreshes once a step lands) with an empty list.
+ */
+class FixedRunQueryClient extends QueryClient {
+  run: ExplorerAutofixState;
+
+  constructor(run: ExplorerAutofixState) {
+    super({defaultOptions: {queries: {retry: false}}});
+    this.run = run;
+  }
+
+  override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
+    const defaulted = super.defaultQueryOptions(options);
+    const url = String(defaulted.queryKey[0]);
+    const json = url.includes(`/issues/${ISSUE.id}/autofix/`) ? {autofix: this.run} : [];
+    const queryFn = () => Promise.resolve({json, headers: {}});
+    return {...defaulted, queryFn: queryFn as never};
+  };
+}
+
+/**
+ * Autofix embeds ship collapsed. Open them so the state is visible without a
+ * click.
+ */
+function ExpandedEmbeds({children}: {children: ReactNode}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) {
+      return;
+    }
+    opened.current = true;
+    ref.current
+      ?.querySelectorAll<HTMLButtonElement>('button[aria-expanded="false"]')
+      .forEach(button => button.click());
+  }, []);
+  return <Container ref={ref}>{children}</Container>;
+}
+
+function FixedRunChat({children, run}: {children: ReactNode; run: ExplorerAutofixState}) {
+  const [queryClient] = useState(() => new FixedRunQueryClient(run));
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ExpandedEmbeds>
+        <ChatShell>{children}</ChatShell>
+      </ExpandedEmbeds>
+    </QueryClientProvider>
+  );
+}
+
 export default Storybook.story('Autofix', story => {
   story('Fix it end to end', () => (
     <ChatShell>
@@ -443,6 +634,41 @@ export default Storybook.story('Autofix', story => {
       <User>Got it. Put together a plan to fix it.</User>
       <Seer raw={`Here's the plan:\n\n${PLANNED_SOLUTION}`} />
     </ChatShell>
+  ));
+
+  story('Stopped for credits', () => (
+    <Stack gap="md">
+      <Text variant="muted">
+        The organization ran out of Seer credits while Autofix was writing code changes,
+        so the run ended with <code>failure_reason: out_of_credits</code>. The card keeps
+        what Seer wrote and the partial diff, and the out-of-credits CTA replaces “Try
+        again”, which would only fail again. No “Draft a pull request” is offered for the
+        unfinished changes.
+      </Text>
+      <FixedRunChat run={CODE_CHANGES_STOPPED_RUN}>
+        <User>Fix {ISSUE.shortId} all the way.</User>
+        <Seer
+          raw={`I started on the code changes:\n\n${autofixRefTag(ISSUE, 'code_changes', CODE_CHANGES_STOPPED_RUN.run_id)}`}
+        />
+      </FixedRunChat>
+    </Stack>
+  ));
+
+  story('Pull request failed for credits', () => (
+    <Stack gap="md">
+      <Text variant="muted">
+        The code changes finished, then opening the PR failed because the organization ran
+        out of credits (<code>pr_creation_error_code: out_of_credits</code>). The Pull
+        Request card shows the CTA in place of Seer's generic failure, and the Code
+        Changes card stops offering “Draft a pull request”, which would fail the same way.
+      </Text>
+      <FixedRunChat run={PR_STOPPED_RUN}>
+        <User>Open a pull request for {ISSUE.shortId}.</User>
+        <Seer
+          raw={`${autofixRefTag(ISSUE, 'code_changes', PR_STOPPED_RUN.run_id)}\n\n${autofixRefTag(ISSUE, 'pr_iteration', PR_STOPPED_RUN.run_id)}`}
+        />
+      </FixedRunChat>
+    </Stack>
   ));
 
   story('Live Autofix run (autofixRef)', () => <AutofixRefStory />);

@@ -8,18 +8,21 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
+  isOutOfCreditsSection,
   isSolutionArtifact,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
-import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {ArtifactLoadingDetails, ArtifactPartialDetails} from './artifactLoadingDetails';
 import {AutofixResetPrompt} from './autofixResetPrompt';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
@@ -42,9 +45,13 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
     [artifact]
   );
 
+  const isOutOfCredits = isOutOfCreditsSection(section);
+
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
       autofix,
+      // A re-run fails the same way until someone adds credits.
+      canReset: isOutOfCredits ? false : undefined,
       section,
       step: 'solution',
     });
@@ -103,6 +110,11 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
               </Container>
             </ArtifactDetails>
           ) : null}
+        </Fragment>
+      ) : isOutOfCredits ? (
+        <Fragment>
+          <ArtifactPartialDetails blocks={section.blocks} />
+          <SeerOutOfCreditsCta message={OUT_OF_CREDITS_STEP_MESSAGE.solution} />
         </Fragment>
       ) : (
         <ArtifactDetails>

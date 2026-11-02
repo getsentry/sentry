@@ -1437,6 +1437,46 @@ describe('InboxPage', () => {
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
 
+  it('does not retry an Autofix pull request that failed for credits', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          repo_pr_states: {
+            'org/repository': AutofixRepoPRStateFixture({
+              pr_creation_error:
+                "Your organization doesn't have enough Seer credits for this.",
+              pr_creation_error_code: 'out_of_credits',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    const retryButton = await within(preview).findByRole('button', {
+      name: 'Retry PR in org/repository',
+    });
+    expect(retryButton).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(retryButton);
+    expect(
+      await screen.findByText(
+        "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+  });
+
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();

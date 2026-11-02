@@ -8,18 +8,21 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getAutofixArtifactFromSection,
+  isOutOfCreditsSection,
   isRootCauseArtifact,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
-import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {ArtifactLoadingDetails, ArtifactPartialDetails} from './artifactLoadingDetails';
 import {AutofixEvidence} from './autofixEvidence';
 import {AutofixResetPrompt} from './autofixResetPrompt';
 import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
@@ -45,9 +48,13 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     [artifact]
   );
 
+  const isOutOfCredits = isOutOfCreditsSection(section);
+
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
       autofix,
+      // A re-run fails the same way until someone adds credits.
+      canReset: isOutOfCredits ? false : undefined,
       section,
       step: 'root_cause',
     });
@@ -59,6 +66,22 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   });
 
   const evidence = useAutofixSectionEvidence({section});
+  const evidenceDetails =
+    evidence.length > 0 ? (
+      <ArtifactDetails>
+        <Text bold>{t('Evidence')}</Text>
+        <Flex gap="md" wrap="wrap">
+          {evidence.map(e => (
+            <AutofixEvidence
+              key={e.toolCall.id}
+              evidenceButtonProps={e.evidenceButtonProps}
+              groupId={groupId}
+              toolCall={e.toolCall}
+            />
+          ))}
+        </Flex>
+      </ArtifactDetails>
+    ) : null;
 
   return (
     <ArtifactCard
@@ -117,21 +140,13 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               ) : null}
             </Fragment>
           ) : null}
-          {evidence.length > 0 && (
-            <ArtifactDetails>
-              <Text bold>{t('Evidence')}</Text>
-              <Flex gap="md" wrap="wrap">
-                {evidence.map(e => (
-                  <AutofixEvidence
-                    key={e.toolCall.id}
-                    evidenceButtonProps={e.evidenceButtonProps}
-                    groupId={groupId}
-                    toolCall={e.toolCall}
-                  />
-                ))}
-              </Flex>
-            </ArtifactDetails>
-          )}
+          {evidenceDetails}
+        </Fragment>
+      ) : isOutOfCredits ? (
+        <Fragment>
+          <ArtifactPartialDetails blocks={section.blocks} />
+          {evidenceDetails}
+          <SeerOutOfCreditsCta message={OUT_OF_CREDITS_STEP_MESSAGE.root_cause} />
         </Fragment>
       ) : (
         <ArtifactDetails>
