@@ -161,8 +161,6 @@ def react_to_completed_iteration(
                     record("reacted")
                 else:
                     record("react_skipped_no_changes")
-                # No :eyes: to remove: the trigger doesn't add one to review bodies
-                # because GitHub won't let the app delete it.
             case GithubPrCommentFeedbackSource(comment=GithubIssueComment(id=int() as comment_id)):
                 _add_comment_reaction(
                     scm,
