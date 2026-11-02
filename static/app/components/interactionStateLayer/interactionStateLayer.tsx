@@ -3,6 +3,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {defined} from 'sentry/utils/defined';
+
 /* oxlint-disable @sentry/scraps/no-dom-coupling -- Deprecated app component retains its legacy parent-state selectors. */
 
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -63,7 +65,7 @@ export const InteractionStateLayer = styled(
   opacity: 0;
 
   ${p =>
-    p.isHovered !== undefined && p.isHovered !== null
+    defined(p.isHovered)
       ? p.isHovered &&
         css`
           opacity: ${p.higherOpacity ? 0.085 : 0.06};
@@ -76,7 +78,7 @@ export const InteractionStateLayer = styled(
         `}
 
   ${p =>
-    p.isPressed !== undefined && p.isPressed !== null
+    defined(p.isPressed)
       ? p.isPressed &&
         css`
           &&& {
