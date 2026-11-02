@@ -40,6 +40,7 @@ from sentry.seer.workflows.breached_metrics import (
 from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -48,6 +49,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
@@ -577,6 +579,9 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_failed_investigation_dispatch_fails_the_run(self) -> None:
         self.attach_service_account()
+        ServiceAccountReplica.objects.filter(
+            organization_id=self.organization.id, service_account_id=self.config.service_account_id
+        ).update(is_active=False)
 
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
@@ -589,6 +594,26 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         }
         assert not Notebook.objects.exists()
         assert not SeerWorkflowOutputLink.objects.exists()
+
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_breach_starts_one_investigation_as_service_account(self, dispatch: mock.Mock) -> None:
+        self.attach_service_account()
+        event = self.breach_event(detector_id=self.detector.id)
+
+        self.process_breach_workflow(event)
+        self.process_breach_workflow(event)
+
+        notebook = Notebook.objects.get()
+        assert notebook.creator_actor == ActorId(
+            ActorType.SERVICE_ACCOUNT, self.config.service_account_id
+        )
+        dispatch.assert_called_once_with(notebook.orchestration_run.id)
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        execution = SeerWorkflowRunExecution.objects.get(run=run)
+        assert run.status == SeerWorkflowRunStatus.RUNNING
+        assert execution.status == SeerWorkflowExecutionStatus.RUNNING
+        assert SeerWorkflowOutputLink.objects.get(execution=execution).notebook_id == notebook.id
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:

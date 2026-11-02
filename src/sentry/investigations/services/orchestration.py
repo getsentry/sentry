@@ -209,9 +209,6 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
-        # Remove once dispatch can use the saved service-account identity.
-        if creator.type == ActorType.SERVICE_ACCOUNT:
-            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 
