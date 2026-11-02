@@ -13,6 +13,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
     WorkflowRunListErrorResponse,
@@ -34,7 +35,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:seer-automations")
+@with_feature(["organizations:seer-automations", "organizations:investigations"])
 class OrganizationSeerWorkflowRunsTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflow-runs"
 
@@ -67,6 +68,13 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         queued = Factories.create_seer_workflow_run_execution(
             run, status=SeerWorkflowExecutionStatus.QUEUED
         )
+        investigation = self.create_notebook(self.organization, title="Checkout latency")
+        archived = self.create_notebook(
+            self.organization, title="Database latency", status=NotebookStatus.ARCHIVED
+        )
+        Factories.create_seer_workflow_output_link(completed, notebook=investigation)
+        Factories.create_seer_workflow_output_link(completed, notebook=archived)
+        Factories.create_seer_workflow_output_link(failed, notebook=archived)
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
 
@@ -88,6 +96,18 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                             "dateAdded": completed.date_added,
                             "dateUpdated": completed.date_updated,
                             "dateCompleted": completed.date_completed,
+                            "outputs": [
+                                {
+                                    "type": "investigation",
+                                    "id": str(investigation.id),
+                                    "title": investigation.title,
+                                },
+                                {
+                                    "type": "investigation",
+                                    "id": str(archived.id),
+                                    "title": archived.title,
+                                },
+                            ],
                         },
                         {
                             "id": str(failed.id),
@@ -97,6 +117,13 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                             "dateUpdated": failed.date_updated,
                             "dateCompleted": failed.date_completed,
                             "error": error,
+                            "outputs": [
+                                {
+                                    "type": "investigation",
+                                    "id": str(archived.id),
+                                    "title": archived.title,
+                                }
+                            ],
                         },
                         {
                             "id": str(queued.id),
@@ -105,6 +132,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                             "dateAdded": queued.date_added,
                             "dateUpdated": queued.date_updated,
                             "dateCompleted": None,
+                            "outputs": [],
                         },
                     ],
                 }
@@ -389,9 +417,13 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
     def test_execution_serialization_batches_database_reads(self) -> None:
         created = [self.create_run() for _ in range(3)]
         for run in created:
-            Factories.create_seer_workflow_run_execution(
+            execution = Factories.create_seer_workflow_run_execution(
                 run, seer_run=Factories.create_seer_run(self.organization)
             )
+            first = self.create_notebook(self.organization, title="Checkout latency")
+            second = self.create_notebook(self.organization, title="Database latency")
+            Factories.create_seer_workflow_output_link(execution, notebook=first)
+            Factories.create_seer_workflow_output_link(execution, notebook=second)
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
@@ -400,11 +432,49 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
         with CaptureQueriesContext(connections[using]) as queries:
-            result = serialize_workflow_runs(runs)
+            result = serialize_workflow_runs(runs, include_investigations=True)
 
-        assert len(queries) == 1
+        assert len(queries) == 2
         assert [len(run["executions"]) for run in result["runs"]] == [2, 2, 2]
         assert result["runs"][0]["executions"][0]["seerRunId"] is not None
+        assert [len(run["executions"][0]["outputs"]) for run in result["runs"]] == [2, 2, 2]
+
+    def test_omits_foreign_and_empty_output_links(self) -> None:
+        run = self.create_run()
+        execution = Factories.create_seer_workflow_run_execution(run)
+        foreign = self.create_notebook(self.create_organization(), title="Foreign investigation")
+        Factories.create_seer_workflow_output_link(execution, notebook=foreign)
+        Factories.create_seer_workflow_output_link(execution)
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+
+        assert response.data["runs"][0]["executions"][0]["outputs"] == []
+        assert foreign.title not in response.content.decode()
+
+    def test_omits_outputs_when_investigations_are_disabled(self) -> None:
+        run = self.create_run()
+        execution = Factories.create_seer_workflow_run_execution(run)
+        investigation = self.create_notebook(self.organization, title="Checkout latency")
+        Factories.create_seer_workflow_output_link(execution, notebook=investigation)
+
+        with self.feature({"organizations:investigations": False}):
+            response = self.get_success_response(self.organization.slug, config=self.config.id)
+
+        assert response.data["runs"][0]["executions"][0]["outputs"] == []
+        assert investigation.title not in response.content.decode()
+
+    def test_omits_outputs_without_open_membership(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        run = self.create_run()
+        execution = Factories.create_seer_workflow_run_execution(run)
+        investigation = self.create_notebook(self.organization, title="Checkout latency")
+        Factories.create_seer_workflow_output_link(execution, notebook=investigation)
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+
+        assert response.data["runs"][0]["executions"][0]["outputs"] == []
+        assert investigation.title not in response.content.decode()
 
     def create_run(self, *, project_ids: Sequence[int] | None = None, **kwargs) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)

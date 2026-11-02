@@ -54,20 +54,40 @@ jobs:
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-24.04
+    env:
+      DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          skip-devservices: 'true'
+
+      # Only the pytest step needs devservices (~60s to pull and get healthy in
+      # default mode), so bring them up while node is set up and the specs build.
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          DEVSERVICES_MODE: default
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sentry init
+          python3 .github/actions/setup-sentry/devservices-bg.py start
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build and validate API docs
+        run: make validate-api-docs
+
+      - name: Wait for devservices
+        run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
       - name: Run API docs tests
-        run: |
-          make test-api-docs
+        run: python3 -b -m pytest tests/apidocs --reuse-db
 
       - name: Inspect failure
         if: failure()
@@ -636,9 +656,12 @@ jobs:
         id: setup
         with:
           mode: migrations
+          early-devservices: 'true'
 
+      # The backup tests are mostly waiting on postgres, so 4 workers cut ~4m to ~1.5m.
       - name: Run test
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n 4 --dist=load"
           make test-monolith-dbs
 
       - name: Report failures

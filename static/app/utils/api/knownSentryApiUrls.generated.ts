@@ -371,6 +371,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/seer/autofix-overview/'
   | '/organizations/$organizationIdOrSlug/seer/autofix-scm-info/'
   | '/organizations/$organizationIdOrSlug/seer/chat-suggestions/'
+  | '/organizations/$organizationIdOrSlug/seer/credit-check/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/'
   | '/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/'
