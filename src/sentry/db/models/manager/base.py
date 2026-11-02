@@ -268,7 +268,9 @@ class BaseManager(_base_manager_base[M]):
 
         db_for_write = router.db_for_write(self.model)
 
-        if transaction.get_connection(db_for_write).in_atomic_block:
+        is_in_atomic_block = transaction.get_connection(db_for_write).in_atomic_block
+
+        if is_in_atomic_block:
             transaction.on_commit(delete_cache_keys, using=db_for_write)
         else:
             delete_cache_keys()
