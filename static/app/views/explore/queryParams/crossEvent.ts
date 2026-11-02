@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import {defined} from 'sentry/utils/defined';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -15,18 +13,15 @@ export type CrossEventQueryExtras = {
   spanQuery: string[];
 };
 
-export function getCrossEventsFromLocation(
-  location: Location,
-  key: string
-): CrossEvent[] | undefined {
+export function getCrossEvents(rawCrossEvents: string | null): CrossEvent[] | undefined {
   let json: any;
 
-  if (!defined(location.query?.[key]) || Array.isArray(location.query?.[key])) {
+  if (!defined(rawCrossEvents)) {
     return undefined;
   }
 
   try {
-    json = JSON.parse(location.query?.[key]);
+    json = JSON.parse(rawCrossEvents);
   } catch {
     return undefined;
   }
