@@ -718,9 +718,17 @@ class ExhaustiveFixtures(Fixtures):
             )
 
         # Setup a test 'Issue Rule' and 'Automation'
-        workflow = self.create_workflow(organization=org)
+        workflow = self.create_workflow(
+            organization=org, created_by_service_account_id=service_account.id
+        )
         seer_workflow_config.update(backing_workflow=workflow)
-        detector = self.create_detector(project=project, type=MetricIssue.slug)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_auth_token = OrgAuthToken.objects.get(organization_id=org.id)
+        detector = self.create_detector(
+            project=project,
+            type=MetricIssue.slug,
+            created_by_org_auth_token_id=org_auth_token.id,
+        )
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 

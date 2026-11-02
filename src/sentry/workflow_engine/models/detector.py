@@ -135,9 +135,34 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
 
     class Meta(OwnerModel.Meta):
-        constraints = OwnerModel.Meta.constraints
+        constraints = [
+            *OwnerModel.Meta.constraints,
+            models.CheckConstraint(
+                condition=(
+                    models.Q(created_by_service_account_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_service_account_id__isnull=True)
+                ),
+                name="workflow_engine_detector_single_creator",
+            ),
+        ]
         indexes = [
             models.Index(
                 models.F("config__organization_id"),

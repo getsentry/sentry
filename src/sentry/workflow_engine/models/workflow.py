@@ -75,6 +75,14 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
     )
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
 
     DEFAULT_FREQUENCY = 30
 
@@ -101,6 +109,21 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             models.UniqueConstraint(
                 fields=["when_condition_group_id"],
                 name="workflow_engine_workflow_when_condition_group_id_11d9ba05_uniq",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(created_by_service_account_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (
+                    models.Q(created_by_id__isnull=True)
+                    & models.Q(created_by_service_account_id__isnull=True)
+                ),
+                name="workflow_engine_workflow_single_creator",
             ),
         ]
 
