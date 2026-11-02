@@ -1,7 +1,7 @@
+import {parseAsString, useQueryState} from 'nuqs';
+
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 export const ALL_EVENTS_EXCLUDED_TAGS = [
   'environment',
@@ -48,7 +48,6 @@ export function getEventSearchFromIssueQuery(query: string): string {
 }
 
 export function useEventQuery(): string {
-  const location = useLocation();
-  const locationQuery = decodeScalar(location.query.query) ?? '';
-  return getEventSearchFromIssueQuery(locationQuery);
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
+  return getEventSearchFromIssueQuery(query);
 }

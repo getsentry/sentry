@@ -424,6 +424,36 @@ describe('GroupActions', () => {
     );
   });
 
+  it('reports the alert params from the URL when resolving', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {alert_date: '1700000000000', alert_rule_id: '123', alert_type: 'email'},
+        },
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issue_details.action_clicked',
+      expect.objectContaining({
+        action_type: 'resolved',
+        alert_date: '2023-11-14T22:13:20',
+        alert_rule_id: '123',
+        alert_type: 'email',
+      })
+    );
+  });
+
   it('does not report success when resolving fails', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,

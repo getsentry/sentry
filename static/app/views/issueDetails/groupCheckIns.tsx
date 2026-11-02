@@ -1,15 +1,16 @@
 import {useQuery} from '@tanstack/react-query';
 import uniq from 'lodash/uniq';
+import {useQueryState} from 'nuqs';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {MonitorCheckInsGrid} from 'sentry/views/insights/crons/components/monitorCheckInsGrid';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
@@ -20,6 +21,7 @@ export default function GroupCheckIns() {
   const organization = useOrganization();
   const {groupId} = useParams<{groupId: string}>();
   const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsScalar);
   const cronAlertId = useCronIssueAlertId({groupId});
 
   const {
@@ -32,14 +34,14 @@ export default function GroupCheckIns() {
   const canFetchMonitorCheckIns =
     Boolean(organization.slug) && Boolean(group?.project.slug) && Boolean(cronAlertId);
 
-  const {cursor, ...locationQuery} = location.query;
+  const {cursor: _cursor, ...locationQuery} = location.query;
   const {data, isPending: isDataPending} = useQuery({
     ...monitorCheckInsApiOptions({
       orgSlug: organization.slug,
       projectSlug: group?.project.slug ?? '',
       monitorIdOrSlug: cronAlertId ?? '',
       limit: 50,
-      cursor: decodeScalar(cursor),
+      cursor: cursor ?? undefined,
       queryParams: locationQuery,
     }),
     select: selectJsonWithHeaders,

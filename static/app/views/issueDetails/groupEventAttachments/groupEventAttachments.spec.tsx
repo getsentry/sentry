@@ -137,8 +137,34 @@ describe('GroupEventAttachments', () => {
         );
       });
       expect(router.location.query).toEqual({...query, attachmentFilter: filter});
+      expect(router.historyAction).toBe('REPLACE');
     }
   );
+
+  it('restores the previously used filter into the URL when none is set', async () => {
+    localStorageWrapper.setItem(
+      `issue-details-attachments-default-tab-${project.id}`,
+      JSON.stringify('screenshot')
+    );
+    const {router} = render(<GroupEventAttachments project={project} group={group} />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
+          query: {statsPeriod: '7d'},
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        statsPeriod: '7d',
+        attachmentFilter: 'screenshot',
+      });
+    });
+    expect(router.historyAction).toBe('REPLACE');
+  });
 
   it('calls opens modal when clicking on panel body', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {

@@ -247,6 +247,11 @@ describe('FlagDetailsDrawerContent', () => {
       },
       headers: {Link: pageLinks},
     });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+      match: [MockApiClient.matchQuery({cursor: '0:50:0'})],
+    });
 
     const group = GroupFixture();
     const {router} = render(
@@ -260,6 +265,8 @@ describe('FlagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.flagDrawerCursor).toBe('0:50:0');
     });
+    expect(router.historyAction).toBe('PUSH');
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
     expect(trackAnalytics).toHaveBeenCalledWith(
       'flags.logs-paginated',
       expect.objectContaining({

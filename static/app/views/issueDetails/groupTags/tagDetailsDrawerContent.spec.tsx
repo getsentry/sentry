@@ -91,6 +91,12 @@ describe('TagDetailsDrawerContent', () => {
       body: TagValuesFixture(),
       headers: {Link: pageLinks},
     });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
     const {router} = render(<TagDetailsDrawerContent group={group} />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
@@ -104,6 +110,8 @@ describe('TagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
+    expect(router.historyAction).toBe('PUSH');
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
   });
 
   it('sorts tag values by the clicked column header', async () => {
@@ -139,6 +147,34 @@ describe('TagDetailsDrawerContent', () => {
       'aria-sort'
     );
     expect(dateSortRequest).toHaveBeenCalled();
+  });
+
+  it('drops the pagination params from the sort links', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: {
+        ...makeInitialRouterConfig('user'),
+        location: {
+          pathname: '/organizations/org-slug/issues/1/tags/user/',
+          query: {
+            cursor: '1:0:0',
+            page: '2',
+            tagDrawerCursor: '0:100:0',
+            statsPeriod: '7d',
+          },
+        },
+      },
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(screen.getByRole('link', {name: 'Last Seen'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/tags/user/?statsPeriod=7d&tagDrawerSort=date'
+    );
   });
 
   it('renders an empty state when the tag has no values', async () => {
