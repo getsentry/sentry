@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -32,9 +33,6 @@ import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
@@ -169,11 +167,13 @@ function useSourceMapUploads({
 
 export function SourceMapsList({project}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const query = queryParams.query || undefined;
+  const cursor = queryParams.cursor || undefined;
 
   const {
     data: sourceMapUploads,
@@ -193,12 +193,9 @@ export function SourceMapsList({project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: newQuery},
-      });
+      setQueryParams({cursor: null, query: newQuery}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   const platformByProject = defined(project.platform)

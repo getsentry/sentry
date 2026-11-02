@@ -174,6 +174,7 @@ describe('ProjectAttributes', () => {
 
     await waitFor(() => expect(router.location.query.dataset).toBe('logs'));
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.historyAction).toBe('PUSH');
     expect(request).toHaveBeenLastCalledWith(
       attributesEndpoint,
       expect.objectContaining({query: expect.objectContaining({dataset: 'logs'})})

@@ -94,6 +94,34 @@ describe('ConfigureIntegration settings tab', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Code Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'codeMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('links the configurations crumb to the provider configurations tab', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',

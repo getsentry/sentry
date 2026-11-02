@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import {IconMail} from '@sentry/icons/mail';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -29,7 +30,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -92,7 +92,10 @@ function OrganizationMembersList() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [{query, cursor}, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
   const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
     Member[]
   >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
@@ -115,8 +118,8 @@ function OrganizationMembersList() {
   const membersQueryOptions = membersApiOptions({
     orgSlug: organization.slug,
     query: {
-      query: location.query.query,
-      cursor: location.query.cursor,
+      query: query ?? undefined,
+      cursor: cursor ?? undefined,
     },
   });
   const {
@@ -296,10 +299,8 @@ function OrganizationMembersList() {
     });
   };
 
-  const handleQueryChange = (query: string) => {
-    navigate({
-      query: {...location.query, query, cursor: undefined},
-    });
+  const handleQueryChange = (newQuery: string) => {
+    setQueryParams({query: newQuery, cursor: null}, {history: 'push'});
   };
 
   const canAddMembers = organization.access.includes('member:write');
@@ -316,7 +317,7 @@ function OrganizationMembersList() {
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;
 
-  const searchQuery = (location.query.query as string) || '';
+  const searchQuery = query ?? '';
 
   const membersPageLinks = membersResponse?.headers.Link;
 
