@@ -1,9 +1,9 @@
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {derivedMetricsToField} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   SESSIONS_TAGS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {derivedMetricsToField} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 export function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined

@@ -1,5 +1,5 @@
-import {Component} from 'react';
-import type {LocationDescriptorObject} from 'history';
+import {useCallback, type ReactNode} from 'react';
+import type {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
@@ -70,334 +70,345 @@ export const PAGE_QUERY_PARAMS = [
   'clientDiscard',
 ];
 
-export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
-  get dataCategoryInfo(): DataCategoryInfo {
-    const dataCategoryPlural = this.props.location?.query?.dataCategory;
+type PageStateOnUrl = {
+  clientDiscard?: boolean;
+  cursor?: string;
+  dataCategory?: DataCategory;
+  query?: string;
+  sort?: string;
+  transform?: ChartDataTransform;
+};
 
-    const categories = Object.values(DATA_CATEGORY_INFO);
-    // Only consider categories that are shown in the usage chart (showExternalStats).
-    // Categories that don't have showExternalStats (e.g. monitorSeats) are not
-    // present in CHART_OPTIONS_DATACATEGORY and would cause a crash in UsageChart.
-    const info = categories.find(
-      c => c.plural === dataCategoryPlural && c.statsInfo.showExternalStats
-    );
+type SetStateOnUrl = (
+  nextState: PageStateOnUrl,
+  options?: {willUpdateRouter?: boolean}
+) => LocationDescriptorObject;
 
-    // Default to errors
-    return info ?? DATA_CATEGORY_INFO.error;
-  }
+/**
+ * Values derived from the URL / page filters that are passed to the usage
+ * stats org component. Used by the "component:enhanced-org-stats" override
+ * to render its own usage stats component.
+ */
+type UsageStatsOrgRenderArgs = {
+  chartTransform: string | undefined;
+  clientDiscard: boolean;
+  dataCategory: DataCategoryInfo['plural'];
+  dataCategoryApiName: DataCategoryInfo['name'];
+  dataCategoryName: DataCategoryInfo['titleName'];
+  dataDatetime: DateTimeObject;
+  handleChangeState: SetStateOnUrl;
+  isSingleProject: boolean;
+  projectIds: number[];
+};
 
-  get dataCategory() {
-    return this.dataCategoryInfo.plural;
-  }
+type OrganizationStatsInnerProps = OrganizationStatsProps & {
+  /**
+   * Replaces the default usage stats org component.
+   * Used by the "component:enhanced-org-stats" override.
+   */
+  renderUsageStatsOrg?: (args: UsageStatsOrgRenderArgs) => ReactNode;
+};
 
-  get dataCategoryName() {
-    return this.dataCategoryInfo.titleName;
-  }
+function getDataCategoryInfo(location: Location): DataCategoryInfo {
+  const dataCategoryPlural = location?.query?.dataCategory;
 
-  get dataCategoryApiName() {
-    return this.dataCategoryInfo.name;
-  }
+  const categories = Object.values(DATA_CATEGORY_INFO);
+  // Only consider categories that are shown in the usage chart (showExternalStats).
+  // Categories that don't have showExternalStats (e.g. monitorSeats) are not
+  // present in CHART_OPTIONS_DATACATEGORY and would cause a crash in UsageChart.
+  const info = categories.find(
+    c => c.plural === dataCategoryPlural && c.statsInfo.showExternalStats
+  );
 
-  get dataDatetime(): DateTimeObject {
-    const params = this.props.selection.datetime;
+  // Default to errors
+  return info ?? DATA_CATEGORY_INFO.error;
+}
 
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = normalizeDateTimeParams(params, {
-      allowEmptyPeriod: true,
-      allowAbsoluteDatetime: true,
-      allowAbsolutePageDatetime: true,
-    });
+function getDataDatetime(
+  params: OrganizationStatsProps['selection']['datetime']
+): DateTimeObject {
+  const {
+    start,
+    end,
+    statsPeriod,
+    utc: utcString,
+  } = normalizeDateTimeParams(params, {
+    allowEmptyPeriod: true,
+    allowAbsoluteDatetime: true,
+    allowAbsolutePageDatetime: true,
+  });
 
-    if (!statsPeriod && !start && !end) {
-      return {period: DEFAULT_STATS_PERIOD};
-    }
-
-    // Following getParams, statsPeriod will take priority over start/end
-    if (statsPeriod) {
-      return {period: statsPeriod};
-    }
-
-    const utc = utcString === 'true';
-    if (start && end) {
-      return utc
-        ? {
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          }
-        : {
-            // Treat start/end URL params as UTC (consistent with DatePageFilter)
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          };
-    }
-
+  if (!statsPeriod && !start && !end) {
     return {period: DEFAULT_STATS_PERIOD};
   }
 
-  get clientDiscard(): boolean {
-    return this.props.location?.query?.clientDiscard === 'true';
+  // Following getParams, statsPeriod will take priority over start/end
+  if (statsPeriod) {
+    return {period: statsPeriod};
   }
 
-  // Validation and type-casting should be handled by chart
-  get chartTransform(): string | undefined {
-    return decodeScalar(this.props.location?.query?.transform);
-  }
-
-  // Validation and type-casting should be handled by table
-  get tableSort(): string | undefined {
-    return decodeScalar(this.props.location?.query?.sort);
-  }
-
-  get tableQuery(): string | undefined {
-    return decodeScalar(this.props.location?.query?.query);
-  }
-
-  get tableCursor(): string | undefined {
-    return decodeScalar(this.props.location?.query?.cursor);
-  }
-
-  // Project selection from GlobalSelectionHeader
-  get projectIds(): number[] {
-    return this.props.selection.projects;
-  }
-
-  get isSingleProject(): boolean {
-    return this.projectIds.length === 1 && !this.projectIds.includes(-1);
-  }
-
-  getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
-    const {location, organization} = this.props;
-    const nextLocation: LocationDescriptorObject = {
-      ...location,
-      query: {
-        ...location.query,
-        project: project.id,
-      },
-    };
-
-    // Do not leak out page-specific keys
-    nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
-
+  const utc = utcString === 'true';
+  if (start && end) {
+    // Treat start/end URL params as UTC (consistent with DatePageFilter)
     return {
-      performance: {
-        ...nextLocation,
-        pathname: getPerformanceBaseUrl(organization.slug),
-      },
-      projectDetail: {
-        ...nextLocation,
-        pathname: makeProjectsPathname({
-          path: `/${project.slug}/`,
-          organization,
-        }),
-      },
-      issueList: {
-        ...nextLocation,
-        pathname: `/organizations/${organization.slug}/issues/`,
-      },
-      settings: {
-        pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-      },
+      start: moment.utc(start).format(),
+      end: moment.utc(end).format(),
+      utc,
     };
-  };
+  }
+
+  return {period: DEFAULT_STATS_PERIOD};
+}
+
+function CategoryPageControl({
+  organization,
+  dataCategory,
+  setStateOnUrl,
+}: {
+  dataCategory: DataCategoryInfo['plural'];
+  organization: OrganizationStatsProps['organization'];
+  setStateOnUrl: SetStateOnUrl;
+}) {
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+
+  const hasProfiling = organization.features.includes('continuous-profiling');
+  const hasProfilingStats = organization.features.includes('continuous-profiling-stats');
+
+  const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+    if (isSelfHostedErrorsOnly) {
+      return opt.value === DataCategory.ERRORS;
+    }
+    if (opt.value === DataCategory.REPLAYS) {
+      return organization.features.includes('session-replay');
+    }
+    if (opt.value === DataCategory.SPANS) {
+      return organization.features.includes('span-stats');
+    }
+    if (opt.value === DataCategory.TRANSACTIONS) {
+      return !organization.features.includes('spans-usage-tracking');
+    }
+    if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
+      return (
+        organization.features.includes('seer-billing') &&
+        organization.features.includes('seer-added')
+      );
+    }
+    if ([DataCategory.LOG_BYTE].includes(opt.value)) {
+      return organization.features.includes('ourlogs-enabled');
+    }
+    if ([DataCategory.LOG_ITEM].includes(opt.value)) {
+      return organization.features.includes('explore-dev-features');
+    }
+    if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
+      return canUseMetricsStatsUI(organization);
+    }
+    if ([DataCategory.TRACE_METRIC_BYTE].includes(opt.value)) {
+      return canUseMetricsStatsBytesUI(organization);
+    }
+    if (
+      [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
+        opt.value
+      )
+    ) {
+      return hasProfiling || hasProfilingStats;
+    }
+    if (opt.value === DataCategory.PROFILES) {
+      return !hasProfilingStats;
+    }
+    if (opt.value === DataCategory.INSTALLABLE_BUILD) {
+      return organization.features.includes('expose-category-installable-build');
+    }
+    return true;
+  }).map(opt => {
+    if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
+      return {...opt, label: `${opt.label} (legacy)`};
+    }
+    return opt;
+  });
+
+  return (
+    <Grid
+      columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}
+      width={{zero: '100%', xl: 'max-content'}}
+    >
+      <PageFilterBar>
+        <ProjectPageFilter />
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
+          )}
+          value={dataCategory}
+          options={options}
+          onChange={opt => setStateOnUrl({dataCategory: opt.value})}
+        />
+        <DatePageFilter />
+      </PageFilterBar>
+    </Grid>
+  );
+}
+
+export function OrganizationStatsInner({
+  location,
+  navigate,
+  organization,
+  selection,
+  renderUsageStatsOrg,
+}: OrganizationStatsInnerProps) {
+  const dataCategoryInfo = getDataCategoryInfo(location);
+  const dataCategory = dataCategoryInfo.plural;
+  const dataCategoryName = dataCategoryInfo.titleName;
+  const dataCategoryApiName = dataCategoryInfo.name;
+  const dataDatetime = getDataDatetime(selection.datetime);
+  const clientDiscard = location?.query?.clientDiscard === 'true';
+  // Validation and type-casting should be handled by chart
+  const chartTransform = decodeScalar(location?.query?.transform);
+  // Validation and type-casting should be handled by table
+  const tableSort = decodeScalar(location?.query?.sort);
+  const tableQuery = decodeScalar(location?.query?.query);
+  const tableCursor = decodeScalar(location?.query?.cursor);
+  // Project selection from GlobalSelectionHeader
+  const projectIds = selection.projects;
+  const isSingleProject = projectIds.length === 1 && !projectIds.includes(-1);
+
+  const getNextLocations = useCallback(
+    (project: Project): Record<string, LocationDescriptorObject> => {
+      const nextLocation: LocationDescriptorObject = {
+        ...location,
+        query: {
+          ...location.query,
+          project: project.id,
+        },
+      };
+
+      // Do not leak out page-specific keys
+      nextLocation.query = omit(nextLocation.query, PAGE_QUERY_PARAMS);
+
+      return {
+        performance: {
+          ...nextLocation,
+          pathname: getPerformanceBaseUrl(organization.slug),
+        },
+        projectDetail: {
+          ...nextLocation,
+          pathname: makeProjectsPathname({
+            path: `/${project.slug}/`,
+            organization,
+          }),
+        },
+        issueList: {
+          ...nextLocation,
+          pathname: `/organizations/${organization.slug}/issues/`,
+        },
+        settings: {
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
+        },
+      };
+    },
+    [location, organization]
+  );
 
   /**
    * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
    */
-  setStateOnUrl = (
-    nextState: {
-      clientDiscard?: boolean;
-      cursor?: string;
-      dataCategory?: DataCategory;
-      query?: string;
-      sort?: string;
-      transform?: ChartDataTransform;
+  const setStateOnUrl = useCallback<SetStateOnUrl>(
+    (nextState, options = {willUpdateRouter: true}) => {
+      const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+
+      const nextLocation = {
+        ...location,
+        query: {
+          ...location?.query,
+          ...nextQueryParams,
+        },
+      };
+
+      if (options.willUpdateRouter) {
+        navigate(nextLocation);
+      }
+
+      return nextLocation;
     },
-    options: {
-      willUpdateRouter?: boolean;
-    } = {
-      willUpdateRouter: true,
-    }
-  ): LocationDescriptorObject => {
-    const {location, navigate} = this.props;
-    const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
+    [location, navigate]
+  );
 
-    const nextLocation = {
-      ...location,
-      query: {
-        ...location?.query,
-        ...nextQueryParams,
-      },
-    };
-
-    if (options.willUpdateRouter) {
-      navigate(nextLocation);
-    }
-
-    return nextLocation;
+  const usageStatsOrgArgs: UsageStatsOrgRenderArgs = {
+    projectIds,
+    isSingleProject,
+    dataCategory,
+    dataCategoryName,
+    dataCategoryApiName,
+    dataDatetime,
+    chartTransform,
+    clientDiscard,
+    handleChangeState: setStateOnUrl,
   };
 
-  renderProjectPageControl = () => {
-    const {organization} = this.props;
+  const hasTeamInsights = organization.features.includes('team-insights');
+  const showProfilingBanner = dataCategory === 'profiles';
 
-    const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-
-    const hasProfiling = organization.features.includes('continuous-profiling');
-    const hasProfilingStats = organization.features.includes(
-      'continuous-profiling-stats'
-    );
-
-    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
-      if (isSelfHostedErrorsOnly) {
-        return opt.value === DataCategory.ERRORS;
-      }
-      if (opt.value === DataCategory.REPLAYS) {
-        return organization.features.includes('session-replay');
-      }
-      if (opt.value === DataCategory.SPANS) {
-        return organization.features.includes('span-stats');
-      }
-      if (opt.value === DataCategory.TRANSACTIONS) {
-        return !organization.features.includes('spans-usage-tracking');
-      }
-      if ([DataCategory.SEER_AUTOFIX, DataCategory.SEER_SCANNER].includes(opt.value)) {
-        return (
-          organization.features.includes('seer-billing') &&
-          organization.features.includes('seer-added')
-        );
-      }
-      if ([DataCategory.LOG_BYTE].includes(opt.value)) {
-        return organization.features.includes('ourlogs-enabled');
-      }
-      if ([DataCategory.LOG_ITEM].includes(opt.value)) {
-        return organization.features.includes('explore-dev-features');
-      }
-      if ([DataCategory.TRACE_METRICS].includes(opt.value)) {
-        return canUseMetricsStatsUI(organization);
-      }
-      if ([DataCategory.TRACE_METRIC_BYTE].includes(opt.value)) {
-        return canUseMetricsStatsBytesUI(organization);
-      }
-      if (
-        [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
-          opt.value
-        )
-      ) {
-        return hasProfiling || hasProfilingStats;
-      }
-      if (opt.value === DataCategory.PROFILES) {
-        return !hasProfilingStats;
-      }
-      if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-        return organization.features.includes('expose-category-installable-build');
-      }
-      return true;
-    }).map(opt => {
-      if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
-        return {...opt, label: `${opt.label} (legacy)`};
-      }
-      return opt;
-    });
-
-    return (
-      <Grid
-        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, max-content)'}}
-        width={{zero: '100%', xl: 'max-content'}}
-      >
-        <PageFilterBar>
-          <ProjectPageFilter />
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Category')} />
-            )}
-            value={this.dataCategory}
-            options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: opt.value})}
-          />
-          <DatePageFilter />
-        </PageFilterBar>
-      </Grid>
-    );
-  };
-
-  /**
-   * This method is replaced by the hook "component:enhanced-org-stats"
-   */
-  renderUsageStatsOrg() {
-    const {organization} = this.props;
-    return (
-      <UsageStatsOrg
-        projectIds={this.projectIds}
-        organization={organization}
-        dataCategory={this.dataCategory}
-        dataCategoryName={this.dataCategoryName}
-        dataCategoryApiName={this.dataCategoryApiName}
-        dataDatetime={this.dataDatetime}
-        chartTransform={this.chartTransform}
-        clientDiscard={this.clientDiscard}
-        handleChangeState={this.setStateOnUrl}
-      />
-    );
-  }
-
-  render() {
-    const {organization} = this.props;
-    const hasTeamInsights = organization.features.includes('team-insights');
-    const showProfilingBanner = this.dataCategory === 'profiles';
-
-    const noTeamInsightsHeader = (
-      <SettingsPageHeader
-        title={t('Stats & Usage')}
-        subtitle={t(
-          'A view of the usage data that Sentry has received across your entire organization.'
-        )}
-      />
-    );
-
-    return (
-      <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
-        <NoProjectMessage organization={organization}>
-          <PageFiltersContainer>
-            {hasTeamInsights ? (
-              <HeaderTabs organization={organization} activeTab="stats" />
-            ) : (
-              noTeamInsightsHeader
-            )}
-            <div>
-              <Layout.Main width="full">
-                <OverrideStatsBanner organization={organization} />
-                <Flex justify="between" align="center" marginBottom="xl" gap="xs">
-                  {this.renderProjectPageControl()}
-                </Flex>
-                {showProfilingBanner && <OverrideOrgStatsProfilingBanner />}
-                <div>
-                  <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
-                </div>
+  return (
+    <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
+      <NoProjectMessage organization={organization}>
+        <PageFiltersContainer>
+          {hasTeamInsights ? (
+            <HeaderTabs organization={organization} activeTab="stats" />
+          ) : (
+            <SettingsPageHeader
+              title={t('Stats & Usage')}
+              subtitle={t(
+                'A view of the usage data that Sentry has received across your entire organization.'
+              )}
+            />
+          )}
+          <div>
+            <Layout.Main width="full">
+              <OverrideStatsBanner organization={organization} />
+              <Flex justify="between" align="center" marginBottom="xl" gap="xs">
+                <CategoryPageControl
+                  organization={organization}
+                  dataCategory={dataCategory}
+                  setStateOnUrl={setStateOnUrl}
+                />
+              </Flex>
+              {showProfilingBanner && <OverrideOrgStatsProfilingBanner />}
+              <div>
                 <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    dataCategory={this.dataCategoryInfo}
-                    isSingleProject={this.isSingleProject}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
+                  {renderUsageStatsOrg ? (
+                    renderUsageStatsOrg(usageStatsOrgArgs)
+                  ) : (
+                    <UsageStatsOrg
+                      projectIds={projectIds}
+                      organization={organization}
+                      dataCategory={dataCategory}
+                      dataCategoryName={dataCategoryName}
+                      dataCategoryApiName={dataCategoryApiName}
+                      dataDatetime={dataDatetime}
+                      chartTransform={chartTransform}
+                      clientDiscard={clientDiscard}
+                      handleChangeState={setStateOnUrl}
+                    />
+                  )}
                 </ErrorBoundary>
-              </Layout.Main>
-            </div>
-          </PageFiltersContainer>
-        </NoProjectMessage>
-      </SentryDocumentTitle>
-    );
-  }
+              </div>
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  dataCategory={dataCategoryInfo}
+                  isSingleProject={isSingleProject}
+                  projectIds={projectIds}
+                  dataDatetime={dataDatetime}
+                  tableSort={tableSort}
+                  tableQuery={tableQuery}
+                  tableCursor={tableCursor}
+                  handleChangeState={setStateOnUrl}
+                  getNextLocations={getNextLocations}
+                />
+              </ErrorBoundary>
+            </Layout.Main>
+          </div>
+        </PageFiltersContainer>
+      </NoProjectMessage>
+    </SentryDocumentTitle>
+  );
 }
 
 const OverrideOrgStats = OverrideOrDefault({

@@ -36,6 +36,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import LatestReleaseB
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
+    _handle_regression,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
@@ -49,7 +50,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import SetRegressedAction
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -765,6 +766,21 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         log.assert_logged(
             SetRegressedAction, group_id=group.id, source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR
         )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_regression_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+
+        group.update(status=GroupStatus.RESOLVED, substatus=None, active_at=before_now(days=1))
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            _handle_regression(group, event, None)
+
+        assert produce_snapshot.called
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_marks_as_unresolved_with_new_release(

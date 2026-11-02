@@ -8,6 +8,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {t} from 'sentry/locale';
@@ -205,7 +206,7 @@ function IssueViewEditMenu() {
         },
       ]}
       trigger={props => (
-        <Button
+        <OverlayTrigger.IconButton
           size="sm"
           {...props}
           tooltipProps={{title: moreOptionsLabel}}

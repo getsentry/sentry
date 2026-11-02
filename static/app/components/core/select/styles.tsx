@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from '@sentry/scraps/theme';
 
 export const CheckWrap = styled('div')<{
   isMultiple: boolean;

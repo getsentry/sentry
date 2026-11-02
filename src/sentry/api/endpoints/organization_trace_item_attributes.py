@@ -52,7 +52,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    mark_parameter_experimental,
+)
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -65,7 +70,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import TraceItemAttributeContext as TraceItemAttributeContextModel
 from sentry.explore.models import TraceItemAttributeTypes, TraceItemTypes
 from sentry.models.organization import Organization
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
@@ -218,21 +223,21 @@ VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
     description="Restrict results to attribute values containing this substring.",
 )
 
-EXPAND_QUERY_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["context"],
-    # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is ``omit_from_public_schema`` on
-    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
-    exclude=True,
-    description=(
-        "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.)."
-    ),
+# The endpoint is PUBLIC, but the context shape is still evolving, so only this
+# parameter is flagged experimental.
+EXPAND_QUERY_PARAM = mark_parameter_experimental(
+    OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=["context"],
+        description=(
+            "Optional fields to expand. Pass `context` to include attribute metadata "
+            "(brief, examples, deprecation, etc.)."
+        ),
+    )
 )
 
 
@@ -728,6 +733,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
+
+        Pass `expand=context` (experimental) to include each attribute's metadata:
+        a brief description, examples, and deprecation details.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -1184,6 +1192,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         )
 
 
+# status is nullable; a null status predates the field and means OPEN.
+NON_ARCHIVED_RELEASES = Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True)
+
+
 class TraceItemAttributeValuesAutocompletionExecutor:
     PROJECT_SLUG_KEYS = {"project", "project.name"}
     PROJECT_ID_KEYS = {"project.id"}
@@ -1300,7 +1312,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         ]
 
     def semver_autocomplete_function(self):
-        versions = Release.objects.filter(version__contains="@" + self.query)
+        versions = Release.objects.filter(NON_ARCHIVED_RELEASES, version__contains="@" + self.query)
 
         project_ids = self.snuba_params.project_ids
         if project_ids:
@@ -1361,7 +1373,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             "exact",
             build,
             self.snuba_params.project_ids,
-        )
+        ).filter(NON_ARCHIVED_RELEASES)
 
         environment_ids = self.snuba_params.environment_ids
         if environment_ids:
@@ -1399,6 +1411,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         )
 
         versions = Release.objects.filter(
+            NON_ARCHIVED_RELEASES,
             organization_id=self.snuba_params.organization_id,
             package__in=packages,
             id__in=ReleaseProject.objects.filter(

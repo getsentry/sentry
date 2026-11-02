@@ -54,12 +54,10 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
 
-  if (
-    // autofix results are loading
-    autofix.isLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
-  ) {
+  const isLoadingRun =
+    autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
+
+  if (isLoadingRun && !autofix.isWaitingForRun) {
     return (
       <Stack gap="xl">
         <Placeholder height="15rem" />

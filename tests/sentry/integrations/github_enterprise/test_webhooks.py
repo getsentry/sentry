@@ -806,10 +806,9 @@ class PullRequestEventWebhook(APITestCase):
         merged["pull_request"]["body"] = fixes_body
         merged["pull_request"]["merged_by"] = {"id": 999999, "login": "dependabot[bot]"}
 
-        with self.feature("organizations:pr-lifecycle-activity"):
-            self._post_pull_request_event(orjson.dumps(opened))
-            with capture_action_log() as log:
-                self._post_pull_request_event(orjson.dumps(merged))
+        self._post_pull_request_event(orjson.dumps(opened))
+        with capture_action_log() as log:
+            self._post_pull_request_event(orjson.dumps(merged))
 
         log.assert_logged(
             PullRequestMergedAction,

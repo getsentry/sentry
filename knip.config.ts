@@ -8,8 +8,6 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
-  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
-  'utils/reactRouterV6/index.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -25,10 +23,25 @@ const productionEntryPoints = [
   'views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
+// Scoped configs reuse the test package's dependencies. Parse the shared config
+// in its owning workspace, and treat each wrapper as a development entry.
+const scopedJest = {
+  config: [],
+  entry: ['jest.config.mjs', '**/*.{spec,test}.{js,ts,tsx}'],
+};
+
+// Shared Oxlint plugins belong to the root workspace. Analyze package wrappers
+// as development entries without assigning the shared plugin list to each package.
+const scopedOxlint = {
+  config: [],
+  entry: ['oxlint.config.ts'],
+};
+
 const frontendWorkspace = {
+  jest: scopedJest,
   // SWC injects these imports while compiling each app package.
   ignoreDependencies: ['core-js'],
-  entry: ['**/*.spec.{js,ts,tsx}'],
+  entry: ['**/*.{spec,test}.{js,ts,tsx}'],
   project: [
     '**/*.{js,ts,tsx,mdx}!',
     // fixtures and helpers are only used in tests and stories
@@ -42,18 +55,16 @@ const frontendWorkspace = {
 const config: KnipConfig = {
   // MDX tooling is declared at the root, but stories belong to the app workspace.
   compilers: {mdx: true},
+  // Test package exports are development entry points, not production code.
+  ignoreWorkspaces: ['tests/js!', 'tests/js/getsentry-test!'],
   workspaces: {
     '.': {
-      entry: [
-        'scripts/*.ts!',
-        'tests/js/**/*.spec.{js,ts,tsx}',
-        'tests/js/test-balancer/*.ts',
-        'build-utils/mdx-plugins.ts',
-      ],
+      // The root runs app tests, but Jest is declared in the test package.
+      jest: {config: 'tests/js/jest.config.ci.mjs'},
+      entry: ['scripts/*.ts!', 'build-utils/mdx-plugins.ts'],
       project: [
         'static/**/*.{js,ts,tsx,mdx,less}!',
         'config/**/*.ts',
-        'tests/js/**/*.{js,ts,tsx}',
         // fixtures can be ignored in production - it's fine that they are only used in tests
         '!static/**/{fixtures,__fixtures__}/**!',
         // helper files for tests - it's fine that they are only used in tests
@@ -65,17 +76,11 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
+        'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
-        '@swc-contrib/mut-cjs-exports', // used in jest config
         'zrender', // used in echarts
-        // Knip does not count jest.mock/requireActual calls in tests/js/setup.ts.
-        '@sentry-internal/global-search',
-        '@stripe/react-stripe-js',
-        '@stripe/stripe-js',
-        '@tanstack/react-pacer',
-        'echarts-for-react',
-        // Referenced by its node_modules path in jest.config.ts.
+        // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
@@ -85,10 +90,15 @@ const config: KnipConfig = {
     'static/app': {
       ...frontendWorkspace,
       // Locale modules are loaded with a template-string import.
-      ignoreDependencies: [...frontendWorkspace.ignoreDependencies, 'moment'],
+      ignoreDependencies: [
+        ...frontendWorkspace.ignoreDependencies,
+        'moment',
+        '@figma/code-connect', // Figma mappings are parsed by the CLI via pnpm dlx.
+      ],
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
+        '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',
         '**/*.mdx',
@@ -100,32 +110,62 @@ const config: KnipConfig = {
     },
     'static/gsApp': {
       ...frontendWorkspace,
-      entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
+      entry: [
+        ...frontendWorkspace.entry,
+        '**/*.snapshots.tsx',
+        '**/__mocks__/**/*.{js,ts,tsx}',
+      ],
     },
     'static/gsAdmin': {
       ...frontendWorkspace,
     },
+    'tests/js': {
+      jest: {
+        config: ['jest.config.mjs', 'jest.config.ci.mjs', 'jest.config.snapshots.ts'],
+      },
+      entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
+      project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
+      includeEntryExports: true,
+    },
+    'tests/js/getsentry-test': {
+      project: ['**/*.{js,ts,tsx,mdx}'],
+      includeEntryExports: true,
+    },
     'static/packages/icons': {
+      oxlint: scopedOxlint,
       // test helpers are only used outside production.
       project: ['**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!', '!test/**!'],
       includeEntryExports: true,
     },
     'static/packages/scraps': {
+      oxlint: scopedOxlint,
       project: [
         '**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx,mdx}!',
         // Test helpers and package verification scripts are not production code.
         '!{test,scripts}/**!',
       ],
     },
+    'static/packages/search-syntax': {
+      jest: scopedJest,
+      oxlint: scopedOxlint,
+    },
+    'static/oxlint/eslintPluginScraps': {
+      jest: scopedJest,
+    },
     'static/oxlint/eslintPluginSentry': {
+      jest: scopedJest,
       // RuleTester resolves these cross-file fixtures by filename.
       ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
+  cycles: {
+    dynamicImports: false,
+  },
   rules: {
     binaries: 'off',
     enumMembers: 'off',
+    cycles: 'error',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {

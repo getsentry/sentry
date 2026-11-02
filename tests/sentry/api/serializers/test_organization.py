@@ -29,14 +29,18 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-granular_scopes = ["dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"]
+granular_scopes = ["dashboard:read", "dashboard:write", "saved_query:read", "saved_query:write"]
+# Accepted by endpoints, but no role grants them yet.
+ungranted_scopes = ["user_preference:read", "user_preference:write"]
 non_default_owner_scopes = [
     "org:ci",
+    "org:tokens",
     "openid",
     "email",
     "profile",
     "project:distribution",
     *granular_scopes,
+    *ungranted_scopes,
 ]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
@@ -88,6 +92,11 @@ class OrganizationSummarySerializerTest(TestCase):
             "uptime",
         ]
 
+    @with_feature("organizations:flamegraph-attachments")
+    def test_flamegraph_feature_is_exposed(self) -> None:
+        result = serialize(self.organization, self.user)
+        assert "flamegraph-attachments" in result["features"]
+
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()
@@ -118,7 +127,7 @@ class OrganizationSerializerTest(TestCase):
 
         assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == default_owner_scopes
+        assert result["access"] == sorted(default_owner_scopes)
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
@@ -133,7 +142,7 @@ class OrganizationSerializerTest(TestCase):
         serializer = OrganizationSerializer()
         result = serialize(organization, user, serializer, access=acc)
 
-        assert result["access"] == default_owner_scopes | set(granular_scopes)
+        assert result["access"] == sorted(default_owner_scopes | set(granular_scopes))
         for role in result["orgRoleList"]:
             assert set(granular_scopes) <= role["scopes"]
 
@@ -256,7 +265,7 @@ class OrganizationWithProjectsAndTeamsSerializerTest(TestCase):
 
         assert result["id"] == str(self.organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == default_owner_scopes
+        assert result["access"] == sorted(default_owner_scopes)
         assert result["relayPiiConfig"] is None
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1

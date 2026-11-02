@@ -42,20 +42,14 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
 };
 
 function TestComponent({
-  artifactId,
-  projectId,
   buildDetailsData,
   isBuildDetailsPending,
 }: {
-  artifactId: string;
-  projectId: string;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
 }) {
   return (
     <BuildDetailsSidebarContent
-      artifactId={artifactId}
-      projectId={projectId}
       buildDetailsData={buildDetailsData}
       isBuildDetailsPending={isBuildDetailsPending}
     />
@@ -67,40 +61,32 @@ describe('BuildDetailsSidebarContent', () => {
     organization: OrganizationFixture(),
   });
 
-  const defaultProps = {
-    artifactId: '123',
-    projectId: 'test-project',
-  };
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   it('renders loading skeleton when data is pending', () => {
-    render(<TestComponent {...defaultProps} isBuildDetailsPending />, {
+    render(<TestComponent isBuildDetailsPending />, {
       organization,
     });
 
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
   });
 
-  it('renders app info, build metadata section when artifact state is PROCESSED', async () => {
+  it('renders build metadata section when artifact state is PROCESSED', async () => {
     const buildDetailsData = {
       ...mockBuildDetailsData,
       state: BuildDetailsState.PROCESSED,
     };
 
-    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+    render(<TestComponent buildDetailsData={buildDetailsData} />, {
       organization,
     });
 
-    // App info should be visible
-    await waitFor(() => {
-      expect(screen.getByText('Test App')).toBeInTheDocument();
-    });
-
     // Build Metadata should show VCS data
-    expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Build Metadata')).toBeInTheDocument();
+    });
     expect(screen.getByText('abc123')).toBeInTheDocument(); // head_sha
     expect(screen.getByText('def456')).toBeInTheDocument(); // base_sha
     expect(screen.getByText('main')).toBeInTheDocument(); // head_ref
@@ -109,53 +95,23 @@ describe('BuildDetailsSidebarContent', () => {
     expect(screen.getByText('test-repo')).toBeInTheDocument(); // repo_name
   });
 
-  it('hides app info, status check info and build metadata section when artifact state is UPLOADED', () => {
-    const buildDetailsData = {
-      ...mockBuildDetailsData,
-      state: BuildDetailsState.UPLOADED,
-    };
+  it.each([
+    ['UPLOADED', BuildDetailsState.UPLOADED],
+    ['UPLOADING', BuildDetailsState.UPLOADING],
+    ['FAILED', BuildDetailsState.FAILED],
+  ])(
+    'hides status check info and build metadata section when artifact state is %s',
+    (_name, state) => {
+      const buildDetailsData = {...mockBuildDetailsData, state};
 
-    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
-      organization,
-    });
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {
+        organization,
+      });
 
-    // App info, status check info and build metadata section should be hidden
-    expect(screen.queryByText('Test App')).not.toBeInTheDocument();
-    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
-    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
-  });
-
-  it('hides app info, status check info and build metadata section when artifact state is UPLOADING', () => {
-    const buildDetailsData = {
-      ...mockBuildDetailsData,
-      state: BuildDetailsState.UPLOADING,
-    };
-
-    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
-      organization,
-    });
-
-    // App info, status check info and build metadata section should be hidden
-    expect(screen.queryByText('Test App')).not.toBeInTheDocument();
-    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
-    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
-  });
-
-  it('hides app info, status check info and build metadata section when artifact state is FAILED', () => {
-    const buildDetailsData = {
-      ...mockBuildDetailsData,
-      state: BuildDetailsState.FAILED,
-    };
-
-    render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
-      organization,
-    });
-
-    // App info, status check info and build metadata section should be hidden
-    expect(screen.queryByText('Test App')).not.toBeInTheDocument();
-    expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
-    expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
-  });
+      expect(screen.queryByText('Status check info')).not.toBeInTheDocument();
+      expect(screen.queryByText('Build Metadata')).not.toBeInTheDocument();
+    }
+  );
 
   describe('Base Build row', () => {
     it('does not render Base Build row when base_sha is null', async () => {
@@ -167,7 +123,7 @@ describe('BuildDetailsSidebarContent', () => {
         },
       };
 
-      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {
         organization,
       });
 
@@ -189,7 +145,7 @@ describe('BuildDetailsSidebarContent', () => {
         base_build_info: null,
       };
 
-      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {
         organization,
       });
 
@@ -223,7 +179,7 @@ describe('BuildDetailsSidebarContent', () => {
         },
       };
 
-      render(<TestComponent {...defaultProps} buildDetailsData={buildDetailsData} />, {
+      render(<TestComponent buildDetailsData={buildDetailsData} />, {
         organization,
       });
 
@@ -249,43 +205,6 @@ describe('BuildDetailsSidebarContent', () => {
 
       // Should be an internal link (not opening in a new tab)
       expect(baseBuildLink).not.toHaveAttribute('target', '_blank');
-    });
-
-    it('renders Base Build row with link even when projectId is null', async () => {
-      const buildDetailsData: BuildDetailsApiResponse = {
-        ...mockBuildDetailsData,
-        vcs_info: {
-          ...mockBuildDetailsData.vcs_info,
-          base_sha: 'def456',
-        },
-        base_artifact_id: 'base-artifact-id',
-        base_build_info: {
-          version: '1.0',
-          build_number: '2',
-        },
-      };
-
-      render(
-        <TestComponent
-          {...defaultProps}
-          projectId={null as unknown as string}
-          buildDetailsData={buildDetailsData}
-        />,
-        {
-          organization,
-        }
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText('Build Metadata')).toBeInTheDocument();
-      });
-
-      // Base Build row should be present with label and link
-      const baseBuildLink = screen.getByRole('link', {name: 'v1.0 (2)'});
-      expect(baseBuildLink).toHaveAttribute(
-        'href',
-        `/organizations/${organization.slug}/preprod/size/base-artifact-id/`
-      );
     });
   });
 });

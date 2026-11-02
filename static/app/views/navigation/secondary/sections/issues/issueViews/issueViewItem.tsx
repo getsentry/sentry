@@ -5,24 +5,38 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
-import {
-  constructViewLink,
-  type IssueView,
-} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewUtils';
 
 interface IssueViewItemProps {
   isActive: boolean;
   view: IssueView;
 }
+
+const constructViewLink = (baseUrl: string, view: IssueView) => {
+  return normalizeUrl({
+    pathname: `${baseUrl}/views/${view.id}/`,
+    query: {
+      query: view.query,
+      sort: view.querySort,
+      project: view.projects,
+      environment: view.environments,
+      ...normalizeDateTimeParams(view.timeFilters),
+      cursor: undefined,
+      page: undefined,
+    },
+  });
+};
 
 export function IssueViewItem({view, isActive}: IssueViewItemProps) {
   const organization = useOrganization();

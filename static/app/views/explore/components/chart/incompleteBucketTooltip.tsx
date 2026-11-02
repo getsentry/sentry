@@ -7,7 +7,7 @@ import {escape} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 type SeriesDetailsRenderer = (seriesNames: string[], timestamp: number) => string;
 
@@ -33,12 +33,12 @@ function renderNote(theme: Theme, delayLine: string, waitLine?: string): string 
 }
 
 export function useIncompleteBucketTooltipDetails(
-  chartInfo: ChartInfo
+  series: TimeSeries[],
+  completeThrough: number | undefined
 ): SeriesDetailsRenderer | undefined {
   const theme = useTheme();
   const organization = useOrganization();
   const hasFeature = organization.features.includes('measured-ingestion-delay-ui');
-  const completeThrough = chartInfo.timeseriesResult.meta?.ingestion?.completeThrough;
 
   return useMemo<SeriesDetailsRenderer | undefined>(() => {
     if (!hasFeature || !defined(completeThrough)) {
@@ -46,11 +46,16 @@ export function useIncompleteBucketTooltipDetails(
     }
 
     const delayLine = t('Event ingestion is incomplete.');
+    const retentionLine = t('Some of this data is outside your retention period.');
 
     const notes = new Map<number, string>();
-    for (const {meta, values} of chartInfo.series) {
-      for (const {timestamp, incomplete} of values) {
+    for (const {meta, values} of series) {
+      for (const {timestamp, incomplete, incompleteReason} of values) {
         if (!incomplete || notes.has(timestamp)) {
+          continue;
+        }
+        if (incompleteReason === 'OUTSIDE_RETENTION') {
+          notes.set(timestamp, renderNote(theme, retentionLine));
           continue;
         }
         const secondsRemaining = (timestamp + meta.interval - completeThrough) / 1000;
@@ -63,5 +68,5 @@ export function useIncompleteBucketTooltipDetails(
     }
 
     return notes.size > 0 ? (_, timestamp) => notes.get(timestamp) ?? '' : undefined;
-  }, [chartInfo.series, completeThrough, hasFeature, theme]);
+  }, [series, completeThrough, hasFeature, theme]);
 }

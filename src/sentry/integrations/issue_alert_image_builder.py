@@ -5,7 +5,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry.api import client
+from sentry.api.client import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.time_utils import get_approx_start_time, get_relative_time

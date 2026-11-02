@@ -1,5 +1,8 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {
+  getPrebuiltDashboardConfig,
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -39,5 +42,37 @@ describe('PREBUILT_DASHBOARDS', () => {
         expect(layout.x + layout.w).toBeLessThanOrEqual(NUM_DESKTOP_COLS);
       }
     });
+  });
+});
+
+describe('getPrebuiltDashboardConfig', () => {
+  const defaultConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.WEB_VITALS];
+  const variantConfig = {...defaultConfig, title: 'Web Vitals (variant)'};
+  const variants = {
+    [PrebuiltDashboardId.WEB_VITALS]: {
+      feature: 'some-feature',
+      config: variantConfig,
+    },
+  };
+
+  it('returns the default config when there is no variant', () => {
+    const organization = OrganizationFixture({features: ['some-feature']});
+    expect(
+      getPrebuiltDashboardConfig(PrebuiltDashboardId.HTTP, organization, variants)
+    ).toBe(PREBUILT_DASHBOARDS[PrebuiltDashboardId.HTTP]);
+  });
+
+  it('returns the default config when the organization lacks the feature', () => {
+    const organization = OrganizationFixture({features: []});
+    expect(
+      getPrebuiltDashboardConfig(PrebuiltDashboardId.WEB_VITALS, organization, variants)
+    ).toBe(defaultConfig);
+  });
+
+  it('returns the variant when the organization has the feature', () => {
+    const organization = OrganizationFixture({features: ['some-feature']});
+    expect(
+      getPrebuiltDashboardConfig(PrebuiltDashboardId.WEB_VITALS, organization, variants)
+    ).toBe(variantConfig);
   });
 });

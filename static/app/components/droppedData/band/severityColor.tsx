@@ -14,7 +14,7 @@ export function severityColor(ratio: number, theme: Theme): string {
     return withAlpha(theme.tokens.background.secondary, 1);
   }
 
-  const scale = theme.tokens.dataviz.sequential.magma.series5;
+  const scale = theme.tokens.dataviz.sequential.magma.series7.slice(0, 5);
   const step = SEVERITY_THRESHOLDS.findLastIndex(threshold => ratio >= threshold);
   return withAlpha(scale[step]!, 1);
 }

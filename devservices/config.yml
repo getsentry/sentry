@@ -400,9 +400,9 @@ x-programs:
   devserver:
     command: sentry devserver
   taskworker:
-    command: sentry run taskworker
+    command: sentry run taskworker --autoreload
   taskworker-sentry:
-    command: sentry run taskworker --rpc-host localhost:50052
+    command: sentry run taskworker --autoreload --rpc-host localhost:50052
   taskworker-scheduler:
     command: sentry run taskworker-scheduler
   ingest-events:

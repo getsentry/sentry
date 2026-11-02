@@ -1,0 +1,45 @@
+---
+title: Grafana Installation
+description: Connect a Grafana Cloud stack to Seer with a service account token.
+category: forms
+source: sentry/components/pipeline/integrationGrafana
+---
+
+import {grafanaIntegrationPipeline} from 'sentry/components/pipeline/integrationGrafana';
+import * as Storybook from 'sentry/stories';
+
+export const GrafanaCredentialsStep = grafanaIntegrationPipeline.steps[0].component;
+
+The registered Grafana pipeline collects a stack URL and service account token. The backend validates the connection before completing installation, so failed checks can be corrected in the same form.
+
+## Credentials
+
+This demo renders the credentials step without making API requests. Use synthetic credentials.
+
+<Storybook.Demo>
+  <GrafanaCredentialsStep
+    advance={() => {}}
+    advanceError={null}
+    isAdvancing={false}
+    isInitializing={false}
+    stepData={{}}
+    stepIndex={0}
+    totalSteps={1}
+  />
+</Storybook.Demo>
+
+```jsx
+<GrafanaCredentialsStep
+  advance={advance}
+  advanceError={null}
+  isAdvancing={false}
+  isInitializing={false}
+  stepData={{}}
+  stepIndex={0}
+  totalSteps={1}
+/>
+```
+
+## Accessibility
+
+Both fields have associated labels and help text. The token is masked, and the Continue button is disabled while initialization or submission is pending. The pipeline modal announces connection failures with an alert.

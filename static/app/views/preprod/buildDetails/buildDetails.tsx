@@ -188,14 +188,12 @@ export default function BuildDetails() {
     <SentryDocumentTitle title={title}>
       <Stack flex={1}>
         <PreprodQuotaAlert system />
-        <Layout.Header>
-          <BuildDetailsHeaderContent
-            buildDetailsQuery={buildDetailsQuery}
-            projectSlug={projectSlug ?? ''}
-            artifactId={artifactId}
-            projectType={projectType}
-          />
-        </Layout.Header>
+        <BuildDetailsHeaderContent
+          buildDetailsQuery={buildDetailsQuery}
+          projectSlug={projectSlug ?? ''}
+          artifactId={artifactId}
+          projectType={projectType}
+        />
 
         <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
           <Layout.Side
@@ -206,8 +204,6 @@ export default function BuildDetails() {
             <BuildDetailsSidebarContent
               buildDetailsData={buildDetailsQuery.data}
               isBuildDetailsPending={buildDetailsQuery.isLoading}
-              artifactId={artifactId}
-              projectId={projectSlug ?? null}
             />
           </Layout.Side>
           <Layout.Main row={{zero: 'auto', '4xl': '1'}}>

@@ -84,6 +84,26 @@ class IDPMigrationTests(TestCase):
         assert asserted not in sent.to
         assert sent.to == [self.user.email]
 
+    def test_legacy_identity_id_formats_normalized_on_read(self) -> None:
+        client = idpmigration._get_redis_client()
+        base = {"user_id": self.user.id, "email": self.email, "organization_id": self.org.id}
+        client.setex(
+            "auth:one-time-key:legacy-list",
+            60,
+            json.dumps({**base, "identity_id": ["sub-1", self.email]}),
+        )
+        client.setex("auth:one-time-key:legacy-int", 60, json.dumps({**base, "identity_id": 12345}))
+        client.setex("auth:one-time-key:legacy-none", 60, json.dumps({**base, "identity_id": None}))
+
+        def read(key: str) -> object:
+            value = idpmigration.get_verification_value_from_key(key)
+            assert value is not None
+            return value["identity_id"]
+
+        assert read("legacy-list") == "sub-1"
+        assert read("legacy-int") == "12345"
+        assert read("legacy-none") is None
+
     def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID

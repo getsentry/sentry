@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -19,7 +19,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import ensure_cron_detector_deletion, get_request_attribution
@@ -52,17 +52,8 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 extra={"organization_id": project.organization_id, **attribution},
             )
 
-            if features.has(
-                "organizations:crons-disable-alert-rule",
-                project.organization,
-                actor=request.user,
-            ):
-                expand = [value for value in expand if value != "alertRule"]
-
         return self.respond(
-            serialize(
-                monitor, request.user, MonitorSerializer(environments=environments, expand=expand)
-            )
+            serialize(monitor, request.user, MonitorSerializer(environments=environments))
         )
 
     def update_monitor(
@@ -207,9 +198,6 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                 )
                 if rule:
                     rule.update(status=ObjectStatus.PENDING_DELETION)
-                    RuleActivity.objects.create(
-                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
-                    )
                     scheduled_rule = CellScheduledDeletion.schedule(
                         rule, days=0, actor=request.user
                     )

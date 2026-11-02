@@ -597,6 +597,14 @@ describe('OrganizationRepositories', () => {
         match: [MockApiClient.matchQuery({project: PROJECT.id})],
       });
       MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${PROJECT.slug}/code-mapping-prefixes/stack/`,
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mapping-prefixes/repo/',
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
         body: {repos: []},
       });

@@ -1,7 +1,10 @@
-from sentry.testutils.cases import SnubaTestCase, TestMigrations
+import pytest
+
+from sentry.testutils.cases import TestMigrations
 
 
-class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations, SnubaTestCase):
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
+class UpdateIfSyntaxOnDashboardSpansTest(TestMigrations):
     app = "sentry"
     migrate_from = "1208_sentryappinstallation_uuid_index"
     migrate_to = "1209_update_if_syntax_on_dashboard_spans"

@@ -146,6 +146,7 @@ export function SeerRepoTableHeader({
           repositoryIds.length
         )
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsBulkUpdating(false);
     }

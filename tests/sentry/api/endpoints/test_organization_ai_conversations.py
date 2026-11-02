@@ -154,7 +154,7 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     compiled = compile_conversation_query(f"conversation.totalCost:{operator}0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     _, expected, _ = resolver.resolve_query(
-        f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
+        f"sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens):{operator}0"
     )
     assert having == expected
 
@@ -207,10 +207,17 @@ def test_group_filter_accepts_long_text() -> None:
     assert having is not None
 
 
-@pytest.mark.parametrize("key", ["gen_ai.conversation.id", "conversation.conversationId"])
-def test_group_filter_compiles_exact_id(key: str) -> None:
+def test_group_filter_compiles_exact_id_as_indexed_filter() -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    assert compile_conversation_query(f'{key}:"session:123"', resolver) == (
+    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+        "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+        '(gen_ai.conversation.id:"session:123")'
+    )
+
+
+def test_group_filter_compiles_conversation_id_alias() -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    assert compile_conversation_query('conversation.conversationId:"session:123"', resolver) == (
         "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
         '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
     )
@@ -299,6 +306,25 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
         return_value={"data": []},
     )
+    def test_exact_conversation_id_uses_indexed_filter(self, run_table_query: MagicMock) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "query": 'gen_ai.conversation.id:"conversation-a"',
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["query_string"] == (
+            "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+            '(gen_ai.conversation.id:"conversation-a")'
+        )
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
     def test_querying_preserves_requested_sampling_mode(self, run_table_query: MagicMock) -> None:
         for sampling_mode in ["NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"]:
             response = self.do_request(
@@ -326,7 +352,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert query["selected_columns"] == [
             "gen_ai.conversation.id",
             "max(timestamp)",
-            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+            "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens) as total_cost",
         ]
         assert query["orderby"] == ["-total_cost", "gen_ai.conversation.id"]
         assert query["query_string"] == (

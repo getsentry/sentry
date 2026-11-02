@@ -6,7 +6,11 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {BILLED_DATA_CATEGORY_INFO, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {
+  BILLED_DATA_CATEGORY_INFO,
+  MILLISECONDS_IN_HOUR,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import type {
   BilledDataCategoryInfo,
   BillingMetricHistory,
@@ -17,7 +21,6 @@ import type {
   ReservedBudgetCategory,
   Subscription,
 } from 'getsentry/types';
-import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 /**
  * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,

@@ -1,5 +1,6 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
@@ -43,7 +44,9 @@ export function useCreateProject() {
       );
     },
     onSuccess: response => {
-      ProjectsStore.onCreateSuccess(response, organization.slug);
+      ProjectsStore.onCreateSuccess(response);
+      // Reload organization details since we've created a new project
+      fetchOrganizationDetails(api, organization.slug);
     },
   });
 }

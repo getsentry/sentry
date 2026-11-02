@@ -11,6 +11,7 @@ import {gcpIntegrationPipeline} from './integrationGcp';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {grafanaIntegrationPipeline} from './integrationGrafana';
 import {jiraIntegrationPipeline} from './integrationJira';
 import {jiraServerIntegrationPipeline} from './integrationJiraServer';
 import {msTeamsIntegrationPipeline} from './integrationMsTeams';
@@ -41,6 +42,7 @@ export const PIPELINE_REGISTRY = [
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
+  grafanaIntegrationPipeline,
   jiraIntegrationPipeline,
   jiraServerIntegrationPipeline,
   msTeamsIntegrationPipeline,

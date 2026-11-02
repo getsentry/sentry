@@ -1,3 +1,4 @@
+import {isUnlinkableFilename} from 'sentry/components/events/interfaces/frame/utils';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -42,7 +43,8 @@ export function useSourceCodeLink(
         props.project &&
         props.platform &&
         props.frame &&
-        (props.frame.file || props.frame.path)
+        (props.frame.file || props.frame.path) &&
+        !isUnlinkableFilename(props.frame.file ?? '')
       ),
       staleTime: Infinity,
     }

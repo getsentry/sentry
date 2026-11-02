@@ -371,8 +371,6 @@ def create_monitor(project: Project, environment: Environment) -> None:
     )
 
     MonitorCheckIn.objects.create(
-        project_id=monitor.project_id,
-        monitor=monitor,
         monitor_environment=monitor_env,
         status=CheckInStatus.OK if monitor_env.status == MonitorStatus.OK else CheckInStatus.ERROR,
     )

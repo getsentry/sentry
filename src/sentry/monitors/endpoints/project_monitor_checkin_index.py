@@ -13,7 +13,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import ProjectMonitorEndpoint
-from .base_monitor_checkin_index import MonitorCheckInMixin
+from .base_monitor_checkin_index import CHECKIN_LIST_RATE_LIMITS, MonitorCheckInMixin
 
 
 @cell_silo_endpoint
@@ -23,6 +23,7 @@ class ProjectMonitorCheckInIndexEndpoint(ProjectMonitorEndpoint, MonitorCheckInM
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.CRONS
+    rate_limits = CHECKIN_LIST_RATE_LIMITS
 
     @extend_schema(
         operation_id="listProjectMonitorCheckins",

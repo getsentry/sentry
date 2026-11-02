@@ -303,6 +303,16 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         ):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
 
+    def test_project_does_not_exist(self, mock_record: Any) -> None:
+        # If the project is deleted after the task is enqueued, process_event
+        # should return early without raising.
+        non_existent_project_id = 0
+        code_mappings, in_app_rules = process_event(
+            non_existent_project_id, self.event.group_id, self.event.event_id
+        )
+        assert code_mappings == []
+        assert in_app_rules == []
+
 
 class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""

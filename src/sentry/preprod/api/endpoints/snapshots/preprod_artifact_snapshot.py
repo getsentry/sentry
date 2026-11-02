@@ -15,7 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -30,8 +30,10 @@ from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
-from sentry.issues.action_log import resolve_action_source
+from sentry.constants import DataCategory
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -91,6 +93,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
@@ -267,9 +270,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiDeleteEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
             )
         )
@@ -494,9 +495,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
                 client=resolve_action_source(request),
             )
@@ -871,6 +870,30 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
+
+        if images:
+            try:
+                if features.has(
+                    "organizations:preprod-snapshot-billing-outcomes", project.organization
+                ):
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project.id,
+                        key_id=None,
+                        outcome=Outcome.ACCEPTED,
+                        quantity=len(images),
+                        category=DataCategory.SNAPSHOT_IMAGE,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to track snapshot image billing outcome",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "organization_id": project.organization_id,
+                        "project_id": project.id,
+                        "image_count": len(images),
+                    },
+                )
 
         try:
             parsed_manifest = orjson.loads(manifest_bytes)

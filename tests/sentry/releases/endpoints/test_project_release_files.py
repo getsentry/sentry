@@ -459,3 +459,39 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, data, format="multipart")
 
         assert response.status_code == 409, response.content
+
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        other_project = self.create_project(
+            teams=[self.create_team(organization=org)], organization=org
+        )
+        release = self.create_release(project, additional_projects=[other_project])
+        user = self.create_user()
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_id_or_slug": org.slug,
+                "project_id_or_slug": project.slug,
+                "version": release.version,
+            },
+        )
+        response = self.client.post(
+            url,
+            {
+                "name": "http://example.com/application.js",
+                "file": SimpleUploadedFile(
+                    "application.js", b"function() { }", content_type="application/javascript"
+                ),
+            },
+            format="multipart",
+        )
+
+        assert response.status_code == 403, response.content
+        assert release.count_artifacts() == 0

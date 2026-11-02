@@ -9,6 +9,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -25,6 +26,7 @@ export function SaveConversationQueryButton() {
     {agent: parseAsArrayOf(parseAsString)},
     {history: 'replace'}
   );
+  const {errorsOnly} = useErrorsOnlyFilter();
 
   function handleClick() {
     openSaveQueryModal({
@@ -44,11 +46,12 @@ export function SaveConversationQueryButton() {
               dataset: 'ai_conversations',
               projects,
               environment: environments,
-              range: datetime.period ?? undefined,
+              statsPeriod: datetime.period ?? undefined,
               start: datetime.start ?? undefined,
               end: datetime.end ?? undefined,
               starred: starred ?? true,
               agent: agent?.length ? agent : undefined,
+              errorsOnly: errorsOnly || undefined,
               query: [
                 {
                   fields: [],

@@ -85,7 +85,9 @@ def resolve_candidate(
     )
     finding = replace(
         candidate,
-        classification=resolve_with_warmth(candidate.classification, warmth),
+        classification=resolve_with_warmth(
+            candidate.classification, warmth, candidate.stats.reuse_boundary
+        ),
         warmth=warmth,
     )
     if finding.classification.reason is not OutcomeReason.ZERO_CACHE_TOKENS:

@@ -54,7 +54,7 @@ def test_resolve_candidate_checks_ambiguous_zero_instrumentation() -> None:
         classification=Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
         stats=make_stats(),
     )
-    warmth = CallSiteWarmth(1_000, 1_000, 800, 800)
+    warmth = CallSiteWarmth(1_000, 1_000, 800)
 
     with (
         mock.patch.object(resolution, "fetch_call_site_warmth", return_value=warmth),

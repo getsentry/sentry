@@ -19,7 +19,7 @@ export function SearchQueryBuilderParenIcon({
   token,
 }: Pick<SearchQueryBuilderParenProps, 'token'>) {
   return (
-    <IconParenthesis side={token.type === Token.L_PAREN ? 'left' : 'right'} height={26} />
+    <IconParenthesis side={token.type === Token.L_PAREN ? 'left' : 'right'} size="lg" />
   );
 }
 

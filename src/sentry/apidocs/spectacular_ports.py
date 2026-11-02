@@ -162,11 +162,12 @@ def resolve_type_hint(hint) -> Any:
     elif origin is Literal:
         # Literal only works for python >= 3.8 despite typing_extensions, because it
         # behaves slightly different w.r.t. __origin__
-        schema = {"enum": list(args)}
-        if all(type(args[0]) is type(choice) for choice in args):
-            basic_type = build_basic_type(type(args[0]))
+        choices = [choice.value if isinstance(choice, Enum) else choice for choice in args]
+        schema = {"enum": choices}
+        if all(type(choices[0]) is type(choice) for choice in choices):
+            basic_type = build_basic_type(type(choices[0]))
             if basic_type is None:
-                raise ValueError(f"Cannot update schema with None type: {type(args[0])}")
+                raise ValueError(f"Cannot update schema with None type: {type(choices[0])}")
             schema.update(basic_type)
         return schema
     elif inspect.isclass(hint) and issubclass(hint, Enum):

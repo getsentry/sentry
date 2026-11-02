@@ -368,3 +368,21 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
+
+export function getQueryErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('message' in error)) {
+    return undefined;
+  }
+
+  const {message} = error;
+  if (typeof message !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed || trimmed === t('An unknown error occurred.')) {
+    return undefined;
+  }
+
+  return trimmed;
+}

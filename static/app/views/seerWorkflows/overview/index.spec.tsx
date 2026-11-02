@@ -858,8 +858,11 @@ describe('AutofixOverview', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('shows the cards when the issueStats call fails instead of blocking forever', async () => {

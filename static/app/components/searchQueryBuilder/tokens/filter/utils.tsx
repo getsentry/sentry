@@ -114,6 +114,19 @@ export function getValidOpsForFilter({
     regexOperators.forEach(op => validOps.delete(op));
   }
 
+  if (fieldDefinition?.comparisonOperatorsFirst) {
+    const ops = [...validOps];
+    const isComparison = (op: TermOperator) =>
+      (comparisonOperators as readonly TermOperator[]).includes(op);
+    const isBasic = (op: TermOperator) =>
+      op === TermOperator.DEFAULT || op === TermOperator.NOT_EQUAL;
+    return [
+      ...ops.filter(isBasic),
+      ...ops.filter(isComparison),
+      ...ops.filter(op => !isBasic(op) && !isComparison(op)),
+    ];
+  }
+
   return [...validOps];
 }
 

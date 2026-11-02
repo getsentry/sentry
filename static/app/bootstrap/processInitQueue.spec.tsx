@@ -14,7 +14,7 @@ import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {
-    it('renders setup wizard', async () => {
+    it('renders setup wizards queued before and after initialization', async () => {
       window.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.SETUP_WIZARD,
@@ -72,8 +72,14 @@ describe('processInitQueue', () => {
         body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
       });
 
-      render(<div id="setup-wizard-container" />);
-      processInitQueue();
+      render(
+        <div>
+          <div id="setup-wizard-container" />
+          <div id="second-setup-wizard-container" />
+        </div>
+      );
+      const init = window.__onSentryInit[0]!;
+      await act(() => processInitQueue());
 
       await waitFor(
         () => {
@@ -81,61 +87,17 @@ describe('processInitQueue', () => {
         },
         {timeout: 5000}
       );
-    });
 
-    it('renders superuser staff access form', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
-          container: '#su-staff-access-form-container',
-          name: 'renderReact',
-        },
-      ];
-
-      const authenticatorsResponse = MockApiClient.addMockResponse({
-        url: '/authenticators/',
-        body: [],
+      await processInitQueue();
+      act(() => {
+        window.__onSentryInit.push({
+          ...init,
+          container: '#second-setup-wizard-container',
+        });
       });
-
-      render(<div id="su-staff-access-form-container" />);
-      processInitQueue();
-
       await waitFor(() => {
-        expect(authenticatorsResponse).toHaveBeenCalled();
+        expect(screen.getAllByText('Select your Sentry project')).toHaveLength(2);
       });
-      expect(await screen.findByText('COPS/CSM')).toBeInTheDocument();
-    });
-  });
-
-  it('renders components queued before and after initialization', async () => {
-    const init = {
-      component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
-      container: '#first-staff-access-container',
-      name: 'renderReact',
-    } as const;
-
-    render(
-      <div>
-        <div id="first-staff-access-container" />
-        <div id="second-staff-access-container" />
-      </div>
-    );
-    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
-    window.__onSentryInit = [init];
-
-    await act(() => processInitQueue());
-    expect(await screen.findByText('COPS/CSM')).toBeInTheDocument();
-
-    await processInitQueue();
-    act(() => {
-      window.__onSentryInit.push({
-        ...init,
-        container: '#second-staff-access-container',
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.getAllByText('COPS/CSM')).toHaveLength(2);
     });
   });
 });

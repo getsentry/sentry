@@ -27,10 +27,6 @@ export interface ChartDefinition {
 }
 
 export enum PerformanceWidgetSetting {
-  DURATION_HISTOGRAM = 'duration_histogram',
-  LCP_HISTOGRAM = 'lcp_histogram',
-  FCP_HISTOGRAM = 'fcp_histogram',
-  FID_HISTOGRAM = 'fid_histogram',
   APDEX_AREA = 'apdex_area',
   P50_DURATION_AREA = 'p50_duration_area',
   P75_DURATION_AREA = 'p75_duration_area',
@@ -40,9 +36,6 @@ export enum PerformanceWidgetSetting {
   TPM_AREA = 'tpm_area',
   FAILURE_RATE_AREA = 'failure_rate_area',
   USER_MISERY_AREA = 'user_misery_area',
-  MOST_CHANGED = 'most_changed',
-  MOST_IMPROVED = 'most_improved',
-  MOST_REGRESSED = 'most_regressed',
   MOST_RELATED_ERRORS = 'most_related_errors',
   MOST_RELATED_ISSUES = 'most_related_issues',
   MOST_TIME_SPENT_DB_QUERIES = 'most_time_spent_db_queries',
@@ -78,30 +71,6 @@ export const WIDGET_DEFINITIONS: ({
   const durationField = useEap ? 'span.duration' : 'transaction.duration';
 
   return {
-    [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
-      title: t('Duration Distribution'),
-      fields: [durationField],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
-      title: t('LCP Distribution'),
-      fields: ['measurements.lcp'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.FCP_HISTOGRAM]: {
-      title: t('FCP Distribution'),
-      fields: ['measurements.fcp'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.FID_HISTOGRAM]: {
-      title: t('FID Distribution'),
-      fields: ['measurements.fid'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
     [PerformanceWidgetSetting.TPM_AREA]: {
       title: t('Transactions Per Minute'),
       fields: ['epm()'],
@@ -294,21 +263,6 @@ export const WIDGET_DEFINITIONS: ({
       fields: ['avg(measurements.frames_frozen)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
       chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.MOST_IMPROVED]: {
-      title: t('Most Improved (P95)'),
-      fields: [],
-      dataType: GenericPerformanceWidgetDataType.TRENDS,
-    },
-    [PerformanceWidgetSetting.MOST_REGRESSED]: {
-      title: t('Most Regressed (P95)'),
-      fields: [],
-      dataType: GenericPerformanceWidgetDataType.TRENDS,
-    },
-    [PerformanceWidgetSetting.MOST_CHANGED]: {
-      title: t('Most Changed (P95)'),
-      fields: [],
-      dataType: GenericPerformanceWidgetDataType.TRENDS,
     },
     [PerformanceWidgetSetting.SPAN_OPERATIONS]: {
       title: t('Span Operations Breakdown'),

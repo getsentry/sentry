@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from datetime import timedelta
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.db import connection
@@ -7,6 +8,7 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -30,13 +32,22 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.actor import Actor
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -46,6 +57,36 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    @patch(
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_seer_cleanup_uses_scheduled_actor_context(
+        self, mock_delete_seer_grouping_records: MagicMock
+    ) -> None:
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        project.update_option("sentry:similarity_backfill_completed", 1)
+        event = self.store_event(data={"message": "error"}, project_id=project.id)
+        assert event.group is not None
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == org.id
+            assert viewer_context.project_id == project.id
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
+
+        mock_delete_seer_grouping_records.side_effect = assert_viewer_context
+        self.ScheduledDeletion.schedule(instance=org, actor=self.user, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions()
+
+        mock_delete_seer_grouping_records.assert_called()
+        assert get_viewer_context() is None
 
     def test_simple(self) -> None:
         org_owner = self.create_user()
@@ -313,32 +354,44 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
 
         project = self.create_project(teams=[from_team])
         environment = Environment.get_or_create(project, "production")
-        staging_environment = Environment.get_or_create(project, "staging")
-
-        project_rule = self.create_project_rule(project=project)
-        project_rule.update(environment_id=staging_environment.id)
-
-        alert_rule = self.create_alert_rule(
-            organization=from_org,
-            projects=[project],
-            owner=Actor.from_identifier(f"team:{from_team.id}"),
+        snuba_query = create_snuba_query(
+            query_type=SnubaQuery.Type.ERROR,
+            dataset=Dataset.Events,
+            query="",
+            aggregate="count()",
+            time_window=timedelta(minutes=5),
+            resolution=timedelta(minutes=1),
             environment=environment,
         )
+        subscription = QuerySubscription.objects.create(
+            project=project,
+            snuba_query=snuba_query,
+            type="test",
+        )
+        data_source = self.create_data_source(
+            organization=from_org,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        detector = self.create_detector(project=project, type=MetricIssue.slug)
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        workflow = self.create_workflow(organization=from_org)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
 
         project.transfer_to(organization=to_org)
         assert project.organization.id is to_org.id
 
-        alert_rule.refresh_from_db()
-        assert AlertRule.objects.fetch_for_project(project).count() == 1
-        assert alert_rule.snuba_query.environment is not None
-        assert alert_rule.snuba_query.environment.id != environment.id
-        assert (
-            alert_rule.snuba_query.environment.name
-            == Environment.objects.filter(organization_id=to_org.id, name=environment.name)
-            .get()
-            .name
-        )
-        assert EnvironmentProject.objects.filter(project=project).count() == 2
+        snuba_query.refresh_from_db()
+        data_source.refresh_from_db()
+        workflow.refresh_from_db()
+        assert snuba_query.environment is not None
+        assert snuba_query.environment.id != environment.id
+        assert snuba_query.environment.organization_id == to_org.id
+        assert snuba_query.environment.name == environment.name
+        assert data_source.organization_id == to_org.id
+        assert workflow.organization_id == to_org.id
+        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+        assert EnvironmentProject.objects.filter(project=project).count() == 1
         assert (
             Environment.objects.filter(organization_id=from_org.id, name=environment.name).get().id
             == environment.id
@@ -346,18 +399,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert (
             Environment.objects.filter(organization_id=to_org.id, name=environment.name).get().id
             != environment.id
-        )
-        assert (
-            Environment.objects.filter(organization_id=from_org.id, name=staging_environment.name)
-            .get()
-            .id
-            == project_rule.environment_id
-        )
-        assert (
-            Environment.objects.filter(organization_id=to_org.id, name=staging_environment.name)
-            .get()
-            .id
-            != project_rule.environment_id
         )
 
         from_org.update(status=OrganizationStatus.PENDING_DELETION)
@@ -369,14 +410,13 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not Organization.objects.filter(name=from_org.name).exists()
         assert Organization.objects.filter(name=to_org.name).exists()
         assert not Environment.objects.filter(organization_id=from_org.id).exists()
-        assert Environment.objects.filter(organization_id=to_org.id).count() == 2
-        assert EnvironmentProject.objects.filter(project_id=project.id).count() == 2
-        assert AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert (
-            SnubaQuery.objects.filter(id=alert_rule.snuba_query.id)
-            .exclude(environment=None)
-            .exists()
-        )
+        assert Environment.objects.filter(organization_id=to_org.id).count() == 1
+        assert EnvironmentProject.objects.filter(project_id=project.id).count() == 1
+        assert QuerySubscription.objects.filter(id=subscription.id).exists()
+        assert DataSource.objects.filter(id=data_source.id, organization_id=to_org.id).exists()
+        assert Detector.objects.filter(id=detector.id, project_id=project.id).exists()
+        assert Workflow.objects.filter(id=workflow.id, organization_id=to_org.id).exists()
+        assert SnubaQuery.objects.filter(id=snuba_query.id).exclude(environment=None).exists()
 
     def test_orphan_group_environment_cleanup(self) -> None:
         # Regression test: GroupEnvironment rows orphaned after group deletion (e.g. groups

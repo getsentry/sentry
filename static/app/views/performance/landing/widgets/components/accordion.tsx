@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -41,7 +42,7 @@ function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
               onClick={() => setExpandedIndex(index)}
             />
           </AccordionHeader>
-          <AccordionContent>{index === expandedIndex && item.content}</AccordionContent>
+          <Container padding="0 xl">{index === expandedIndex && item.content}</Container>
         </AccordionItem>
       ))}
     </AccordionContainer>
@@ -63,10 +64,6 @@ const AccordionHeader = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const AccordionContent = styled('div')`
-  padding: 0 ${p => p.theme.space.xl};
 `;
 
 export {Accordion};

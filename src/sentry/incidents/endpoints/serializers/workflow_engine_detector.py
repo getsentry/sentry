@@ -102,7 +102,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if action is None:
                     continue
 
-                # Prepare AlertRuleTriggerActions that are SentryApp components
+                # Prepare actions that are SentryApp components
                 install_context = None
                 sentry_app_id = str(action.get("sentryAppId"))
                 if sentry_app_id:

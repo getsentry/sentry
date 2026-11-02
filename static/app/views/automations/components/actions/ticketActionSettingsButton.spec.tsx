@@ -43,7 +43,7 @@ function renderComponent({
           onUpdate: jest.fn(),
         }}
       >
-        <TicketActionSettingsButton />
+        <TicketActionSettingsButton ticketType="a Jira issue" />
       </ActionNodeContext.Provider>
     </AutomationFormProvider>
   );

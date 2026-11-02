@@ -47,6 +47,10 @@ class GroupActivitiesEndpointTest(APITestCase):
     @action_log_activity_enabled()
     def test_endpoint_with_group_action_log_entries(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}
+            )
 
         for i in range(0, 4):
             GroupActionLogEntry.objects.create(
@@ -68,4 +72,9 @@ class GroupActivitiesEndpointTest(APITestCase):
         )
 
         assert "activity" in response.data
-        assert len(response.data["activity"]) == 5
+        assert len(response.data["activity"]) == 6
+        notes = [item for item in response.data["activity"] if item["type"] == "note"]
+        assert len(notes) == 1
+        assert notes[0]["id"] == notes[0]["commentId"] == str(note.id)
+        assert notes[0]["data"]["text"] == "no GAL event"
+        assert notes[0]["source"] is None

@@ -10,7 +10,6 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -31,6 +30,7 @@ import {
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
@@ -40,7 +40,8 @@ import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/platform';
 import {StackView, type StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
@@ -97,8 +98,13 @@ export function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+  const {projects} = useProjects();
+  // Projects aren't loaded on the shared issue page, which can't make
+  // authenticated requests
+  const hasProject = projects.some(p => p.id === event.projectID);
+  const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
+    enabled: hasProject,
   });
   const isDartAsyncSuspensionFrame =
     frame.filename === '<asynchronous suspension>' ||

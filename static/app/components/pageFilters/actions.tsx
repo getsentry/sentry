@@ -32,7 +32,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {getAbsoluteRangeFromPeriod} from 'sentry/utils/duration/getAbsoluteRangeFromPeriod';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
@@ -92,8 +92,28 @@ function getProjectIdFromProject(project: MinimalProject) {
   return parseInt(project.id, 10);
 }
 
-export function getOldestPickableStart(maxPickableDays: number, now = Date.now()) {
-  return new Date(now - maxPickableDays * DAY_IN_MS);
+export function exceedsDatetimeLimits(
+  {period, start, end}: PageFilterDatetime,
+  maxPickableDays: number,
+  maxDateRange?: number,
+  now = Date.now()
+) {
+  if (period) {
+    return parsePeriodToHours(period) > (maxDateRange ?? maxPickableDays) * 24;
+  }
+
+  if (!start || !end) {
+    return false;
+  }
+
+  const startTime = new Date(start).getTime();
+  if (maxDateRange && new Date(end).getTime() - startTime > maxDateRange * DAY_IN_MS) {
+    return true;
+  }
+
+  // Ranges taken from the window (a chart's first bucket, a shared link) drift out of
+  // it as time passes, so give them a day of slack before calling them too old.
+  return startTime < now - (maxPickableDays + 1) * DAY_IN_MS;
 }
 
 /**
@@ -349,56 +369,25 @@ export function initializeUrlState({
   let shouldUseMaxPickableDays = false;
   let shouldUseMaxDateRange = false;
 
-  if (maxPickableDays && pageFilters.datetime) {
-    const now = Date.now();
-    let {start, end} = pageFilters.datetime;
-
-    const range = pageFilters.datetime.period
-      ? getAbsoluteRangeFromPeriod(pageFilters.datetime.period, now)
-      : null;
-    if (range) {
-      start = range.start;
-      end = range.end;
-    }
-
-    if (start && end) {
-      const periodStart = new Date(start);
-      const periodEnd = new Date(end);
-      const maxTimeRange = (maxDateRange ?? maxPickableDays) * DAY_IN_MS;
-      const maxStart = getOldestPickableStart(maxPickableDays, now);
-      if (maxDateRange) {
-        if (
-          periodEnd.getTime() - periodStart.getTime() > maxTimeRange ||
-          periodStart.getTime() < maxStart.getTime()
-        ) {
-          shouldUseMaxDateRange = true;
-          pageFilters.datetime = {
-            period: `${maxDateRange}d`,
-            start: null,
-            end: null,
-            utc: datetime.utc,
-          };
-          adjustments.datetime = {
-            reason: PageFilterAdjustmentReason.MAX_DATE_RANGE,
-            days: maxDateRange,
-          };
-        }
-      } else {
-        if (periodStart.getTime() < maxStart.getTime()) {
-          shouldUseMaxPickableDays = true;
-          pageFilters.datetime = {
-            period: `${maxPickableDays}d`,
-            start: null,
-            end: null,
-            utc: datetime.utc,
-          };
-          adjustments.datetime = {
-            reason: PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
-            days: maxPickableDays,
-          };
-        }
-      }
-    }
+  if (
+    maxPickableDays &&
+    exceedsDatetimeLimits(pageFilters.datetime, maxPickableDays, maxDateRange)
+  ) {
+    const days = maxDateRange ?? maxPickableDays;
+    shouldUseMaxDateRange = !!maxDateRange;
+    shouldUseMaxPickableDays = !maxDateRange;
+    pageFilters.datetime = {
+      period: `${days}d`,
+      start: null,
+      end: null,
+      utc: datetime.utc,
+    };
+    adjustments.datetime = {
+      reason: maxDateRange
+        ? PageFilterAdjustmentReason.MAX_DATE_RANGE
+        : PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+      days,
+    };
   }
 
   PageFiltersStore.onInitializeUrlState(pageFilters, shouldPersist, adjustments);

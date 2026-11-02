@@ -9,6 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -113,22 +114,14 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
         }}
         keyForRow={row => (row._isExpansionRow ? `expand-${row._parentId}` : row.id)}
         columns={[
-          <th key="expand" style={{width: 40}} />,
-          <th key="provider">Provider</th>,
-          <th key="integrationStatus">Integration Status</th>,
-          <th key="orgIntegrationStatus">Org Integration Status</th>,
-          <th key="id" style={{textAlign: 'right'}}>
-            Org Integration ID
-          </th>,
-          <th key="integrationId" style={{textAlign: 'right'}}>
-            Integration ID
-          </th>,
-          <th key="gracePeriodEnd" style={{textAlign: 'right'}}>
-            Grace Period End
-          </th>,
-          <th key="externalId" style={{textAlign: 'right'}}>
-            External ID
-          </th>,
+          {key: 'expand', label: 'Expand', hideLabel: true, width: 40},
+          {key: 'provider', label: 'Provider'},
+          {key: 'integrationStatus', label: 'Integration Status'},
+          {key: 'orgIntegrationStatus', label: 'Org Integration Status'},
+          {key: 'id', label: 'Org Integration ID', align: 'right'},
+          {key: 'integrationId', label: 'Integration ID', align: 'right'},
+          {key: 'gracePeriodEnd', label: 'Grace Period End', align: 'right'},
+          {key: 'externalId', label: 'External ID', align: 'right'},
         ]}
         columnsForRow={(row: any) => {
           if (row._isExpansionRow) {
@@ -139,18 +132,18 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
               Object.keys(parentRow.integration.metadata).length > 0;
 
             if (!isExpanded || !hasMetadata) {
-              return [<td key="empty" colSpan={8} style={{padding: 0, height: 0}} />];
+              return [];
             }
 
             return [
-              <td key="metadata" colSpan={8}>
-                <Container>
+              <SimpleTable.FullWidthCell key="metadata">
+                <Container padding="lg xl">
                   <Heading as="h6">Integration Metadata</Heading>
                   <MetadataContent>
                     {JSON.stringify(parentRow.integration.metadata, null, 2)}
                   </MetadataContent>
                 </Container>
-              </td>,
+              </SimpleTable.FullWidthCell>,
             ];
           }
 
@@ -159,7 +152,7 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
             row.integration.metadata && Object.keys(row.integration.metadata).length > 0;
 
           return [
-            <td key="expand">
+            <SimpleTable.RowCell key="expand">
               <Button
                 size="zero"
                 variant="transparent"
@@ -168,22 +161,28 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
                 aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
                 disabled={!hasMetadata}
               />
-            </td>,
-            <td key="provider">{row.integration.provider}</td>,
-            <td key="integrationStatus">{getStatusLabel(row.integration.status)}</td>,
-            <td key="orgIntegrationStatus">{getStatusLabel(row.status)}</td>,
-            <td key="orgIntegrationId" style={{textAlign: 'right'}}>
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="provider">
+              {row.integration.provider}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="integrationStatus">
+              {getStatusLabel(row.integration.status)}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="orgIntegrationStatus">
+              {getStatusLabel(row.status)}
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="orgIntegrationId" justify="end">
               {row.id}
-            </td>,
-            <td key="integrationId" style={{textAlign: 'right'}}>
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="integrationId" justify="end">
               {row.integration.id}
-            </td>,
-            <td key="gracePeriodEnd" style={{textAlign: 'right'}}>
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="gracePeriodEnd" justify="end">
               {row.gracePeriodEnd ? moment(row.gracePeriodEnd).fromNow() : 'n/a'}
-            </td>,
-            <td key="externalId" style={{textAlign: 'right'}}>
+            </SimpleTable.RowCell>,
+            <SimpleTable.RowCell key="externalId" justify="end">
               {row.integration.externalId || 'n/a'}
-            </td>,
+            </SimpleTable.RowCell>,
           ];
         }}
       />

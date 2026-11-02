@@ -1,13 +1,8 @@
-import {useId, useState} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
-import {IconOpen} from '@sentry/icons/open';
 import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -20,131 +15,68 @@ interface PRLinksBarProps {
 
 /** The run's PRs, pinned above the chat input so they outlive the transcript scroll. */
 export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
-  const [expanded, setExpanded] = useState(true);
-  const contentId = useId();
   const states = Object.values(repoPRStates).filter(
     state => state.pr_creation_status !== null
   );
-
-  // Re-open whenever Seer starts a PR in another repo.
-  const [seenCount, setSeenCount] = useState(states.length);
-  if (states.length !== seenCount) {
-    setSeenCount(states.length);
-    if (states.length > seenCount) {
-      setExpanded(true);
-    }
-  }
   if (states.length === 0) {
     return null;
   }
 
   return (
-    <Stack margin="lg xl 0" gap="sm" align="start">
-      {expanded && (
-        <Stack id={contentId} gap="sm" width="100%">
-          {states.map(state => (
-            <PRLinkRow key={state.repo_name} state={state} />
-          ))}
-        </Stack>
-      )}
-      {/* Below the list so it stays put, and bordered so it reads as clickable. */}
-      <Button
-        size="sm"
-        aria-expanded={expanded}
-        aria-controls={expanded ? contentId : undefined}
-        onClick={() => setExpanded(value => !value)}
-      >
-        <Flex align="center" gap="md">
-          <IconChevron size="sm" direction={expanded ? 'up' : 'right'} />
-          <Text>{t('Pull requests (%s)', states.length)}</Text>
-        </Flex>
-      </Button>
-    </Stack>
-  );
-}
-
-function PRLinkRow({state}: {state: RepoPRState}) {
-  // The URL comes from session data, so only link http(s) URLs and never e.g. `javascript:`.
-  const prUrl = state.pr_url && isValidUrl(state.pr_url) ? state.pr_url : null;
-  // GitHub's owner/repo#number reference format.
-  const prName = state.pr_number
-    ? `${state.repo_name}#${state.pr_number}`
-    : state.repo_name;
-
-  // Same surface as the transcript's user messages.
-  return (
-    <Flex
-      align="center"
-      gap="md"
-      minWidth="0"
-      padding="md lg"
-      radius="md"
-      background="secondary"
-      border="primary"
-    >
-      <IconPullRequest variant="success" />
-      <Flex align="center" justify="between" gap="md" wrap="wrap" flex="1" minWidth="0">
-        <Text bold wordBreak="break-word">
-          {prUrl ? <ExternalLink href={prUrl}>{prName}</ExternalLink> : prName}
-        </Text>
-        <PRLinkStatus state={state} prUrl={prUrl} />
-      </Flex>
+    <Flex margin="lg xl 0" gap="md" wrap="wrap">
+      {states.map(state => (
+        <PRButton key={state.repo_name} state={state} />
+      ))}
     </Flex>
   );
 }
 
-type StatusKind = 'opening' | 'pushing' | 'open-error' | 'push-error' | 'view';
+/** Styled like the autofix evidence buttons: status icon, then owner/repo#number. */
+function PRButton({state}: {state: RepoPRState}) {
+  // The URL comes from session data, so only link http(s) URLs and never e.g. `javascript:`.
+  const prUrl = state.pr_url && isValidUrl(state.pr_url) ? state.pr_url : null;
+  const label = state.pr_number
+    ? `${state.repo_name}#${state.pr_number}`
+    : state.repo_name;
 
-function getStatusKind(state: RepoPRState, prUrl: string | null): StatusKind | null {
-  // A PR number means the PR already exists, so in-flight or failed work is a push to it.
   if (state.pr_creation_status === 'creating') {
-    return state.pr_number ? 'pushing' : 'opening';
+    return (
+      <Button
+        disabled
+        size="sm"
+        icon={<LoadingIndicator size={16} style={{margin: 0}} />}
+        tooltipProps={{
+          title: state.pr_number ? t('Pushing changes…') : t('Opening PR…'),
+        }}
+      >
+        {label}
+      </Button>
+    );
   }
-  if (state.pr_creation_status === 'error') {
-    return state.pr_number ? 'push-error' : 'open-error';
-  }
-  return prUrl ? 'view' : null;
-}
 
-/** Every status is rendered in one grid cell and all but the current one hidden, so the slot's size never changes. */
-function PRLinkStatus({state, prUrl}: {prUrl: string | null; state: RepoPRState}) {
-  const kind = getStatusKind(state, prUrl);
-  const layer = (layerKind: StatusKind) => ({
-    area: 'status',
-    align: 'center' as const,
-    justify: 'end' as const,
-    visibility: kind === layerKind ? ('visible' as const) : ('hidden' as const),
-  });
+  const isError = state.pr_creation_status === 'error';
+  const icon = isError ? <IconWarning variant="danger" /> : <IconPullRequest />;
+  const tooltipProps = isError
+    ? {
+        // A PR number means the PR already exists, so the failure was a push to it.
+        title:
+          state.pr_creation_error ??
+          (state.pr_number ? t('Could not push changes') : t('Could not open PR')),
+      }
+    : undefined;
+
+  // A failed push to an existing PR still links to it.
+  if (prUrl) {
+    return (
+      <LinkButton href={prUrl} external size="sm" icon={icon} tooltipProps={tooltipProps}>
+        {label}
+      </LinkButton>
+    );
+  }
 
   return (
-    <Grid areas="'status'" flexShrink={0}>
-      <Flex {...layer('opening')} gap="sm">
-        <LoadingIndicator size={16} style={{margin: 0}} />
-        <Text variant="muted" wrap="nowrap">
-          {t('Opening PR…')}
-        </Text>
-      </Flex>
-      <Flex {...layer('pushing')} gap="sm">
-        <LoadingIndicator size={16} style={{margin: 0}} />
-        <Text variant="muted" wrap="nowrap">
-          {t('Pushing changes…')}
-        </Text>
-      </Flex>
-      <Flex {...layer('open-error')}>
-        <InfoText title={state.pr_creation_error} variant="danger" wrap="nowrap">
-          {t('Could not open PR')}
-        </InfoText>
-      </Flex>
-      <Flex {...layer('push-error')}>
-        <InfoText title={state.pr_creation_error} variant="danger" wrap="nowrap">
-          {t('Could not push changes')}
-        </InfoText>
-      </Flex>
-      <Flex {...layer('view')}>
-        <LinkButton href={prUrl ?? ''} external size="xs" icon={<IconOpen />}>
-          {t('View PR')}
-        </LinkButton>
-      </Flex>
-    </Grid>
+    <Button disabled size="sm" icon={icon} tooltipProps={tooltipProps}>
+      {label}
+    </Button>
   );
 }

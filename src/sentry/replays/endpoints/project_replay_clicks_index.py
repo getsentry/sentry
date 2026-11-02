@@ -39,7 +39,7 @@ from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoi
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
-from sentry.replays.usecases.query import search_filter_to_condition
+from sentry.replays.usecases.query import search_filter_to_condition, validate_boolean_operators
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.utils.snuba import raw_snql_query
 
@@ -90,10 +90,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         def data_fn(offset, limit):
             try:
@@ -198,6 +195,8 @@ def handle_search_filters(
     search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
+    validate_boolean_operators(search_filters)
+
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:

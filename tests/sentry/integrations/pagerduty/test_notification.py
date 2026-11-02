@@ -12,7 +12,6 @@ from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotifica
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.notifications.types import NotificationActionContext
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -21,7 +20,10 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import (
+    TEST_ISSUE_OCCURRENCE,
+    create_notification_action_context,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -104,7 +106,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            context=create_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -158,7 +160,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            context=create_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -197,7 +199,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            context=create_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(group_event, futures=[rule_future])
@@ -240,7 +242,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=NotificationActionContext.from_legacy_rule(self.project_rule),
+            context=create_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])

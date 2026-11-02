@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
-import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
@@ -20,7 +20,6 @@ describe('Sentry Application Dashboard', () => {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
   let webhookRequest: ReturnType<typeof SentryAppWebhookRequestFixture>;
   let statsMock: ReturnType<typeof MockApiClient.addMockResponse>;
-  let interactionMock: ReturnType<typeof MockApiClient.addMockResponse>;
   let webhookRequestMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
   function renderDashboard(organization: Organization = OrganizationFixture()) {
@@ -71,17 +70,6 @@ describe('Sentry Application Dashboard', () => {
       webhookRequestMock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
-      });
-
-      interactionMock = MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        body: {
-          componentInteractions: {
-            'stacktrace-link': [[1569783600, 1]],
-            'issue-link': [[1569783600, 1]],
-          },
-          views: [[1569783600, 1]],
-        },
       });
 
       MockApiClient.addMockResponse({
@@ -140,11 +128,8 @@ describe('Sentry Application Dashboard', () => {
         expect(await screen.findByTestId('installs')).toHaveTextContent(
           'Total installs5'
         );
-        expect(await screen.findByText('Integration Views')).toBeInTheDocument();
-        expect(await screen.findByText('Component Interactions')).toBeInTheDocument();
-        await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
+        expect(screen.getAllByTestId('chart')).toHaveLength(1);
         expect(statsMock).toHaveBeenCalledTimes(1);
-        expect(interactionMock).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('heading', {name: 'Request Log'})).toBeInTheDocument();
         expect(
           screen.getByText(
@@ -204,14 +189,6 @@ describe('Sentry Application Dashboard', () => {
         screen.queryByText('No requests found in the last 30 days.')
       ).not.toBeInTheDocument();
     });
-
-    it('shows integration and interactions chart with a deduplicated interaction fetch', async () => {
-      renderDashboard();
-
-      await waitFor(() => expect(screen.getAllByTestId('chart')).toHaveLength(3));
-      expect(statsMock).toHaveBeenCalledTimes(1);
-      expect(interactionMock).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('Viewing the Sentry App Dashboard for an internal integration', () => {
@@ -239,16 +216,6 @@ describe('Sentry Application Dashboard', () => {
         body: [webhookRequest],
       });
 
-      interactionMock = MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        body: {
-          componentInteractions: {
-            'stacktrace-link': [[1569783600, 1]],
-          },
-          views: [[1569783600, 1]],
-        },
-      });
-
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
@@ -273,9 +240,6 @@ describe('Sentry Application Dashboard', () => {
           '/organizations/org-slug/issues/42/'
         );
         expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
-
-        // Does not show the integration views
-        expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
       }
     );
 
@@ -289,8 +253,6 @@ describe('Sentry Application Dashboard', () => {
             'You need organization write or admin access to view the request log.'
           )
         ).toBeInTheDocument();
-        expect(await screen.findByTestId('chart')).toBeInTheDocument();
-        expect(interactionMock).toHaveBeenCalledTimes(1);
         expect(screen.queryByTestId('request-item')).not.toBeInTheDocument();
         expect(webhookRequestMock).not.toHaveBeenCalled();
       }
@@ -306,14 +268,6 @@ describe('Sentry Application Dashboard', () => {
       expect(
         await screen.findByText('No requests found in the last 30 days.')
       ).toBeInTheDocument();
-    });
-
-    it('shows the component interactions in a line chart without fetching stats', async () => {
-      renderDashboard();
-
-      expect(await screen.findByTestId('chart')).toBeInTheDocument();
-      expect(statsMock).not.toHaveBeenCalled();
-      expect(interactionMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -332,14 +286,6 @@ describe('Sentry Application Dashboard', () => {
         },
       });
 
-      interactionMock = MockApiClient.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/interaction/`,
-        body: {
-          componentInteractions: {},
-          views: [[1569783600, 1]],
-        },
-      });
-
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
         body: [webhookRequest],
@@ -352,15 +298,12 @@ describe('Sentry Application Dashboard', () => {
     });
 
     it.each(['org:write', 'org:admin', 'org:superuser'] as const)(
-      'shows the request log with %s access without fetching stats or interactions',
+      'shows the request log with %s access without fetching stats',
       async scope => {
         renderDashboard(OrganizationFixture({access: ['org:read', scope]}));
 
         expect(await screen.findByTestId('request-item')).toBeInTheDocument();
-        expect(screen.queryByText('Integration Views')).not.toBeInTheDocument();
-        expect(screen.queryByText('Component Interactions')).not.toBeInTheDocument();
         expect(statsMock).not.toHaveBeenCalled();
-        expect(interactionMock).not.toHaveBeenCalled();
       }
     );
 

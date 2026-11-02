@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
@@ -16,12 +17,13 @@ from sentry.issues.escalating.escalating import (
     get_group_hourly_count_eap,
     get_group_hourly_count_snuba,
     is_escalating,
+    manage_issue_states,
     query_groups_past_counts,
 )
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupinbox import GroupInbox
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import (
     PerformanceIssueTestCase,
@@ -437,3 +439,40 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         # return exactly one bucket with count 2.
         assert len(snuba_results) == len(eap_results) == 1
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 2
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class ManageIssueStatesSnapshotTest(TestCase):
+    def test_escalating_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(
+            status=GroupStatus.IGNORED,
+            substatus=GroupSubStatus.UNTIL_ESCALATING,
+            priority_locked_at=before_now(days=1),
+        )
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.ESCALATING)
+
+        assert produce_snapshot.called
+
+    def test_ongoing_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.ONGOING)
+
+        assert produce_snapshot.called
+
+    def test_unignored_emits_snapshot(self, produce_snapshot: mock.MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+
+        produce_snapshot.reset_mock()
+
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            manage_issue_states(group, GroupInboxReason.UNIGNORED)
+
+        assert produce_snapshot.called

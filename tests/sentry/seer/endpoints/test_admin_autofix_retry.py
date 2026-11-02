@@ -6,7 +6,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 def block(step: str | None, referrer: str | None = None) -> MemoryBlock:
@@ -92,7 +92,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             insert_index=2,
         )
         assert viewer_contexts == [
-            ViewerContext(organization_id=self.organization.id, actor_type=ActorType.SYSTEM)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id)
         ]
 
     def test_reports_per_run_results(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:

@@ -12,7 +12,7 @@ import {
   getInitialColumnDepths,
 } from './layoutUtils';
 import {DEFAULT_TABLE_LIMIT} from './types';
-import type {DashboardDetails, Widget, WidgetLayout} from './types';
+import type {DashboardDetails, Widget, WidgetLayout, WidgetQuery} from './types';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
@@ -64,13 +64,27 @@ export function applySeerWidgetDefaults(widgets: Widget[]): Widget[] {
   return widgets.map(widget => {
     const layout = applyLayoutDefaults(widget.layout, widget.displayType);
     const limit = applyLimitDefaults(widget.limit);
+    const queries = (widget.queries ?? []).map(applyQueryDefaults);
 
     return {
       ...widget,
       layout,
       limit,
+      queries,
     };
   });
+}
+
+function applyQueryDefaults(query: WidgetQuery): WidgetQuery {
+  return {
+    ...query,
+    aggregates: query.aggregates ?? [],
+    columns: query.columns ?? [],
+    fields: query.fields ?? [...(query.columns ?? []), ...(query.aggregates ?? [])],
+    conditions: query.conditions ?? '',
+    name: query.name ?? '',
+    orderby: query.orderby ?? '',
+  };
 }
 
 function applyLayoutDefaults(

@@ -7,10 +7,8 @@ import {
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-  type MetricDetectorFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
@@ -82,15 +80,11 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
     location.query.query === '' ? '' : decodeScalar(location.query.query);
   const defaultQuery = DEFAULT_THRESHOLD_METRIC_FORM_DATA.query ?? '';
   const query = queryFromUrl === undefined ? defaultQuery : queryFromUrl;
-  const environmentFromUrl = decodeScalar(location.query.environment, '') ?? '';
-  const nameFromUrl = decodeScalar(location.query.name, '') ?? '';
 
   return {
     ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
     dataset,
     aggregateFunction: aggregateFromUrl ?? defaultAggregate,
     query,
-    environment: environmentFromUrl,
-    name: nameFromUrl,
   } satisfies Partial<MetricDetectorFormData>;
 }

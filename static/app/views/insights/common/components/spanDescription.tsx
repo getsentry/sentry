@@ -29,7 +29,7 @@ import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: SpanResponse[SpanFields.SPAN_GROUP];
+  spanId: SpanResponse[SpanFields.ID];
   preliminaryDescription?: string;
   shouldClipHeight?: boolean;
   showBorder?: boolean;
@@ -38,7 +38,7 @@ interface Props {
 const formatter = new SQLishFormatter();
 
 export function DatabaseSpanDescription({
-  groupId,
+  spanId,
   preliminaryDescription,
   showBorder = true,
   shouldClipHeight = true,
@@ -50,7 +50,8 @@ export function DatabaseSpanDescription({
 
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({'span.group': groupId ?? undefined}),
+      search: MutableSearch.fromQueryObject({id: spanId}),
+      enabled: Boolean(spanId),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,
@@ -64,7 +65,6 @@ export function DatabaseSpanDescription({
         SpanFields.RELEASE,
         SpanFields.PLATFORM,
       ],
-      sorts: [{field: SpanFields.CODE_FILE_PATH, kind: 'desc'}],
     },
     'api.insights.span-description'
   );

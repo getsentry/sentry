@@ -24,10 +24,6 @@ import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eve
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-import {
-  AndroidNativeTombstonesBanner,
-  shouldShowTombstonesBanner,
-} from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
@@ -57,22 +53,26 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useInvestigationsEnabled} from 'sentry/views/investigations/utils';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SectionKey} from 'sentry/views/issueDetails/context';
-import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {getHangProfileData} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
 import {
   MetricDetectorTriggeredSection,
   MetricIssueSeerInvestigationSection,
 } from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+const LazyEventFlamegraph = lazy(() =>
+  import('sentry/components/events/eventFlamegraph').then(module => ({
+    default: module.EventFlamegraph,
+  }))
+);
 
 const LazyEventViewHierarchy = lazy(() =>
   import('sentry/components/events/eventViewHierarchy').then(module => ({
@@ -92,6 +92,7 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;
@@ -105,9 +106,6 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const isMetricKitHang =
-    mechanism === 'mx_hang_diagnostic' && getHangProfileData(event) !== null;
-  const isSampleError = useIsSampleEvent();
 
   useCopyIssueDetails(group, event);
 
@@ -152,23 +150,13 @@ export function EventDetailsContent({
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
       )}
-      {group.issueType === IssueType.METRIC_ISSUE && (
-        <Feature features="organizations:investigations">
-          <MetricIssueSeerInvestigationSection group={group} event={event} />
-        </Feature>
+      {group.issueType === IssueType.METRIC_ISSUE && investigationsEnabled && (
+        <MetricIssueSeerInvestigationSection group={group} event={event} />
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
-      )}
-      {!isMetricKitHang && shouldShowTombstonesBanner(event) && !isSampleError && (
-        <ErrorBoundary mini>
-          <AndroidNativeTombstonesBanner
-            event={event}
-            projectId={group?.project.id ?? event.projectID ?? ''}
-          />
-        </ErrorBoundary>
       )}
       <EventStackTrace event={event} group={group} projectSlug={projectSlug} />
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
@@ -263,6 +251,12 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <LazyLoad
+        LazyComponent={LazyEventFlamegraph}
+        event={event}
+        project={project}
+        loadingFallback={null}
+      />
+      <LazyLoad
         LazyComponent={LazyEventViewHierarchy}
         event={event}
         project={project}
@@ -309,12 +303,4 @@ export function EventDetailsContent({
       )}
     </DebugMetaSearchProvider>
   );
-}
-
-export function GroupEventDetailsContent({
-  group,
-  event,
-  project,
-}: EventDetailsContentProps) {
-  return <EventDetails event={event} group={group} project={project} />;
 }

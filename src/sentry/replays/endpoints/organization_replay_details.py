@@ -26,6 +26,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
@@ -33,7 +34,7 @@ from sentry.replays.lib.eap import read as eap_read
 from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
-from sentry.replays.validators import ReplayValidator
+from sentry.replays.validators import ReplayValidator, validate_fields
 
 
 class GetReplayResponse(TypedDict):
@@ -252,6 +253,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
         Return details on an individual replay.
         """
         self.check_replay_access(request, organization)
+        fields = validate_fields(request.query_params.getlist("field"))
 
         try:
             filter_params = self.get_filter_params(
@@ -282,7 +284,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     start=filter_params["start"],
                     end=filter_params["end"],
                     organization_id=organization.id,
-                    request_user_id=request.user.id,
+                    request_user_id=acting_user_id(request.user),
                 )["data"]
 
                 if snuba_response:
@@ -301,12 +303,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     start=filter_params["start"],
                     end=filter_params["end"],
                     organization=organization,
-                    request_user_id=request.user.id,
+                    request_user_id=acting_user_id(request.user),
                 )
 
         replay_data = process_raw_response(
             snuba_response,
-            fields=request.query_params.getlist("field"),
+            fields=fields,
         )
 
         if len(replay_data) == 0:

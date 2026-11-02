@@ -14,11 +14,11 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIssueAlertNotificationOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
-  useIssueAlertNotificationOptions,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';

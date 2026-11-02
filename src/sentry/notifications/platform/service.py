@@ -21,7 +21,11 @@ from sentry.notifications.platform.provider import (
 )
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
-from sentry.notifications.platform.target import deserialize_target, serialize_target
+from sentry.notifications.platform.target import (
+    IntegrationNotificationTarget,
+    deserialize_target,
+    serialize_target,
+)
 from sentry.notifications.platform.threading import (
     ThreadContext,
     ThreadingConfig,
@@ -314,6 +318,13 @@ class NotificationService[T: NotificationData]:
                     target_id=target.resource_id,
                     thread_identifier=result.provider_message_id,
                     provider_data=None,
+                    object_type=threading_options.thread_key.object_type,
+                    object_id=threading_options.thread_key.object_id,
+                    integration_id=(
+                        target.integration_id
+                        if isinstance(target, IntegrationNotificationTarget)
+                        else None
+                    ),
                 )
                 ThreadingService.store_new_thread(
                     threading_config=threading_config,

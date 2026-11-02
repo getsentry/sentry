@@ -17,8 +17,11 @@ describe('getStaleTimeForEventView', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('returns 0 when the absolute range ends in the future', () => {

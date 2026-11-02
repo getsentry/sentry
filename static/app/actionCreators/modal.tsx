@@ -1,4 +1,5 @@
 import type {ModalTypes} from '@sentry/scraps/modal';
+import type {Theme} from '@sentry/scraps/theme';
 
 import type {
   CommandPaletteState,
@@ -26,7 +27,6 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {Theme} from 'sentry/utils/theme';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 

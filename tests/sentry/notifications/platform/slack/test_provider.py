@@ -176,7 +176,15 @@ class SlackNotificationProviderSendTest(TestCase):
     def test_send_success(self, mock_slack_client: Mock) -> None:
         """Test successful message sending returns SendResult"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = self._create_target()
         renderable = self._create_renderable()
@@ -184,7 +192,8 @@ class SlackNotificationProviderSendTest(TestCase):
         result = SlackNotificationProvider.send(target=target, renderable=renderable)
 
         assert isinstance(result, SendSuccessResult)
-        assert result.provider_message_id is None
+        assert result.provider_message_id == "1234567890.123456"
+        assert result.is_threaded is False
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
             blocks=renderable["blocks"],
@@ -214,7 +223,15 @@ class SlackNotificationProviderSendTest(TestCase):
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:
         """Test sending message to direct message (user)"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,

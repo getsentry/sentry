@@ -94,6 +94,15 @@ http_error_count_percent.
 - Do not use widget_type "discover" or "transaction-like" — they are deprecated. Use "spans" or \
 "error-events" instead.
 
+Projects:
+- If the user names one or more projects for the dashboard, set the dashboard's `projects` field \
+to the numeric IDs of exactly those projects. If you do not already have a project's numeric ID, \
+look it up with a tool call before writing the dashboard. Never put project slugs in `projects`.
+- Scope the whole dashboard with the `projects` field, not with `project:` filters on every widget. \
+Only add a `project:<slug>` filter to a widget query when the user wants that one widget limited \
+to a project and the rest of the dashboard not. Never use numeric project IDs in widget queries.
+- If the user does not name a project, leave `projects` empty.
+
 Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
 - Description must not exceed 255 characters for non-text widgets. For text widgets,
