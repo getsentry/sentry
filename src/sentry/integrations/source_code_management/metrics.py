@@ -96,6 +96,9 @@ class SCMIntegrationEventLifecycle(IntegrationEventLifecycle):
         self._interaction_token: Token[SCMIntegrationInteractionType | None] | None = None
 
     def __enter__(self) -> Self:
+        if self._interaction_token is not None:
+            raise RuntimeError("SCM integration lifecycle cannot be re-entered")
+
         self._interaction_token = _current_scm_interaction_type.set(self.interaction_type)
         try:
             return super().__enter__()

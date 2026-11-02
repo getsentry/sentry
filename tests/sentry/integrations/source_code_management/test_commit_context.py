@@ -85,6 +85,22 @@ def test_scm_interaction_context_resets_after_exception(_mock_record: MagicMock)
     assert get_current_scm_interaction_type() is None
 
 
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_rejects_reentry(_mock_record: MagicMock) -> None:
+    event = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
+        provider_key="github",
+    )
+    lifecycle = event.capture()
+
+    with lifecycle:
+        with pytest.raises(RuntimeError, match="cannot be re-entered"), lifecycle:
+            pass
+        assert get_current_scm_interaction_type() == SCMIntegrationInteractionType.SYNC_REPOS
+
+    assert get_current_scm_interaction_type() is None
+
+
 class MockCommitContextIntegration(CommitContextIntegration):
     """Mock implementation for testing"""
 
