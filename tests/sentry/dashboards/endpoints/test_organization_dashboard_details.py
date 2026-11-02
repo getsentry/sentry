@@ -34,7 +34,6 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -5093,7 +5092,6 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
 
 @with_feature("organizations:granular-permission-scopes")
-@granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id: int) -> str:
         return reverse(

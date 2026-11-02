@@ -87,7 +87,7 @@ def should_prefetch_organization_resources(request: HttpRequest | Request) -> bo
     if is_agent_auth(request.auth) or is_system_auth(request.auth):
         return False
     return bool(
-        getattr(request.user, "is_sentry_app", False)
+        request.user.is_sentry_app
         or is_active_superuser(request)
         or (request.auth is not None and not request.user.is_authenticated)
     )

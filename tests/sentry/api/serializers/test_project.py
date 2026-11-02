@@ -37,6 +37,8 @@ from sentry.testutils.helpers.datetime import before_now
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
+TEAM_CONTRIBUTOR_SCOPES = sorted(TEAM_CONTRIBUTOR["scopes"])
+TEAM_ADMIN_SCOPES = sorted(TEAM_ADMIN["scopes"])
 
 
 class ProjectSerializerTest(TestCase):
@@ -65,7 +67,7 @@ class ProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization)
 
         result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
+        assert result["access"] == TEAM_CONTRIBUTOR_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -73,14 +75,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
-        assert result["access"] == set()
+        assert result["access"] == []
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
-        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
+        assert result["access"] == TEAM_CONTRIBUTOR_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -89,7 +91,7 @@ class ProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization)
 
         result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_CONTRIBUTOR["scopes"]
+        assert result["access"] == TEAM_CONTRIBUTOR_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -97,14 +99,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
-        assert result["access"] == set()
+        assert result["access"] == []
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team, role="admin")
         result = serialize(self.project, self.user)
         # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -112,7 +114,7 @@ class ProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization, role="admin")
 
         result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -120,14 +122,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
-        assert result["access"] == set()
+        assert result["access"] == []
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -135,7 +137,7 @@ class ProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization, role="manager")
 
         result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -143,14 +145,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -158,7 +160,7 @@ class ProjectSerializerTest(TestCase):
         self.create_member(user=self.user, organization=self.organization, role="owner")
 
         result = serialize(self.project, self.user)
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
@@ -166,14 +168,14 @@ class ProjectSerializerTest(TestCase):
         self.organization.save()
         result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
         self.create_team_membership(user=self.user, team=self.team)
         result = serialize(self.project, self.user)
         # after giving them access to team
-        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["access"] == TEAM_ADMIN_SCOPES
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
@@ -185,7 +187,7 @@ class ProjectSerializerTest(TestCase):
 
         with env.active_request(req):
             result = serialize(self.project, self.user)
-            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["access"] == TEAM_ADMIN_SCOPES
             assert result["hasAccess"] is True
             assert result["isMember"] is False
 
@@ -193,7 +195,7 @@ class ProjectSerializerTest(TestCase):
             self.organization.save()
             result = serialize(self.project, self.user)
             # after changing to allow_joinleave=False
-            assert result["access"] == TEAM_ADMIN["scopes"]
+            assert result["access"] == TEAM_ADMIN_SCOPES
             assert result["hasAccess"] is True
             assert result["isMember"] is False
 
