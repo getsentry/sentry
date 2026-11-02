@@ -206,6 +206,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
 
     permission_classes = (OrganizationTraceExplorerAIPermission,)
+    requires_user = True
 
     @extend_schema(
         operation_id="startSearchAgentRun",

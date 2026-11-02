@@ -677,8 +677,9 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
 }
 
-# Rows that act on the caller as a person (saved views, stars, a personal team), so a
-# service account is denied with user-required instead of matching the oracle.
+# Rows that act on the caller as a person (saved views, stars, a personal team, search
+# agent runs), so a service account is denied with user-required instead of matching
+# the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
         "OrganizationGroupSearchViews",
@@ -686,6 +687,9 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
         "OrganizationProjects_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
+        "SearchAgentStart_post",
+        "SearchAgentState",
+        "SearchAgentTranslate_post",
     }
 )
 
