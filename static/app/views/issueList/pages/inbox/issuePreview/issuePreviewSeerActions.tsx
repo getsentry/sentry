@@ -22,12 +22,8 @@ import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNex
 import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
-  collectPatches,
   explorerAutofixApiOptions,
-  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
-  isCodeChangesArtifact,
-  type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
@@ -42,7 +38,7 @@ import {
   PullRequestButtons,
   useIssuePreviewPullRequests,
 } from './issuePreviewPullRequests';
-import {useIssuePreviewSeer} from './issuePreviewSeer';
+import {hasCodeChanges, useIssuePreviewSeer} from './issuePreviewSeer';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -79,11 +75,6 @@ interface RunSeerActionButtonProps extends SeerActionAnalyticsProps {
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
   waiting?: boolean;
-}
-
-function hasCodeChanges(section: AutofixSection): boolean {
-  const artifact = getAutofixArtifactFromSection(section);
-  return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []).size > 0;
 }
 
 function getSeerActionButtonProps({

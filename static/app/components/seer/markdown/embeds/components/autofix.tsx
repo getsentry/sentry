@@ -13,6 +13,10 @@ import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  AutofixOutOfCreditsCta,
+  useAutofixCreditCheck,
+} from 'sentry/components/events/autofix/autofixCredits';
+import {
   getRepoPullRequestLink,
   hasCreatedPullRequests,
 } from 'sentry/components/events/autofix/pullRequests';
@@ -289,6 +293,13 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const canCreatePR =
     step === 'code_changes' && !hasCreatedPullRequests(runState?.repo_pr_states);
 
+  const showsNextAction =
+    section?.status === 'completed' && (canCreatePR || !!pendingNextStep);
+  const creditCheck = useAutofixCreditCheck(canCreatePR ? 'create_pr' : pendingNextStep, {
+    // A read-only conversation offers nothing to pay for.
+    enabled: showsNextAction && !!sendMessage,
+  });
+
   /**
    * The run state lags the agent, so it cannot gate these alone. `isBusy`
    * covers the agent working on a step that `isPolling` has not seen yet, and
@@ -296,6 +307,39 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * state still offers the step it just started.
    */
   const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
+  // Held disabled while checking, so a button the org can't afford is never
+  // clickable before it's swapped for the CTA.
+  const canContinue = canAct && !creditCheck.isPending;
+
+  let nextAction: ReactNode = null;
+  if (showsNextAction && !creditCheck.hasEnoughCredits) {
+    nextAction = <AutofixOutOfCreditsCta />;
+  } else if (showsNextAction) {
+    nextAction = (
+      <Flex gap="sm">
+        {canCreatePR && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleCreatePR}
+            disabled={!canContinue}
+          >
+            {t('Draft a pull request')}
+          </Button>
+        )}
+        {pendingNextStep && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => handleContinue(pendingNextStep)}
+            disabled={!canContinue}
+          >
+            {t('Continue: %s', STEP_LABELS[pendingNextStep])}
+          </Button>
+        )}
+      </Flex>
+    );
+  }
 
   return (
     <AutofixBlock id={id} shortId={shortId} step={step}>
@@ -308,30 +352,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
             </Button>
           </Flex>
         )}
-        {section?.status === 'completed' && (canCreatePR || pendingNextStep) && (
-          <Flex gap="sm">
-            {canCreatePR && (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={handleCreatePR}
-                disabled={!canAct}
-              >
-                {t('Draft a pull request')}
-              </Button>
-            )}
-            {pendingNextStep && (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => handleContinue(pendingNextStep)}
-                disabled={!canAct}
-              >
-                {t('Continue: %s', STEP_LABELS[pendingNextStep])}
-              </Button>
-            )}
-          </Flex>
-        )}
+        {nextAction}
       </Stack>
     </AutofixBlock>
   );

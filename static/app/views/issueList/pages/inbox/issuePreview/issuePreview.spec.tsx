@@ -24,6 +24,7 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {
@@ -1529,5 +1530,120 @@ describe('IssuePreview', () => {
       await screen.findByText('Unable to update events. Please try again.')
     ).toBeInTheDocument();
     expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      features: ['seer-credit-checks'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    function mockCreditCheck(operation: string) {
+      return MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits: false},
+      });
+    }
+
+    it('shows the CTA instead of starting Seer', async () => {
+      const creditCheck = mockCreditCheck('autofix_root_cause');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy as Markdown'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Find Root Cause'})
+      ).not.toBeInTheDocument();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the root cause and shows the CTA instead of making a plan', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture(),
+      });
+      mockCreditCheck('autofix_solution');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(
+        screen.getByText('The issue was caused by an unexpected value.')
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Make a Plan'})).not.toBeInTheDocument();
+    });
+
+    it('shows the CTA instead of Create PR', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture(),
+              ExplorerAutofixBlockFixture({
+                id: 'code-changes',
+                artifacts: undefined,
+                merged_file_patches: [
+                  {
+                    repo_name: 'org/repo',
+                    diff: 'diff --git a/src/user.ts b/src/user.ts',
+                    patch: {
+                      path: 'src/user.ts',
+                      added: 1,
+                      removed: 0,
+                      hunks: [],
+                      source_file: 'src/user.ts',
+                      target_file: 'src/user.ts',
+                      type: DiffFileType.MODIFIED,
+                    },
+                  },
+                ],
+                message: {
+                  content: 'Code changes complete',
+                  metadata: {step: 'code_changes'},
+                  role: 'assistant',
+                },
+              }),
+            ],
+          }),
+        }),
+      });
+      const creditCheck = mockCreditCheck('autofix_create_pr');
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Create PR'})).not.toBeInTheDocument();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not check credits while Seer is processing', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({status: 'processing'}),
+        }),
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
   });
 });
