@@ -417,6 +417,7 @@ export default function OrganizationRepositories() {
         <SettingsPageHeader
           title={t('Repositories')}
           subtitle={pageDescription}
+          wideSubtitle
           action={
             scmIntegrations.length > 0 ? (
               <ConnectProviderDropdown
