@@ -165,6 +165,37 @@ const audit = {
   },
 } satisfies Suite;
 
+const frontend = {
+  files: [
+    'static/app/**/*.ts',
+    'static/app/**/*.tsx',
+    'static/gsApp/**/*.ts',
+    'static/gsApp/**/*.tsx',
+  ],
+  ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx', '**/__stories__/**'],
+  rules: {
+    parsesJsonUrlParamWithoutParseAsJson: {
+      prompt:
+        'Does the code turn a URL query parameter whose value is JSON into data with JSON.parse instead of nuqs parseAsJson with a Zod schema? A URL query parameter is a value from location.query (including through decodeScalar or decodeList), window.location.search, qs.parse, URLSearchParams, useSearchParams, or a nuqs hook or parser (useQueryState, useQueryStates, createParser, createMultiParser). JSON from localStorage, sessionStorage, an API response, a webhook body, event or span attributes, a file, or the clipboard does not count, and neither do JSON.parse(JSON.stringify(...)) copies or writing JSON into a URL.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'JSON.parse turns a JSON-valued URL query parameter into data, whether or not the result is checked afterward.',
+          severity: 'warn',
+          report:
+            'JSON-valued URL query params should be described with a Zod schema and read with nuqs `parseAsJson(schema)`. This file parses one with `JSON.parse`.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'JSON-valued URL query parameters are read with parseAsJson and a Zod schema, or JSON.parse only reads JSON that does not come from the URL.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 const security = {
   ignores: [
     '**/tests/**',
@@ -340,5 +371,5 @@ export default {
   model: jev,
   files: ['src/sentry/**/*.py'],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, security},
+  suites: {api, audit, frontend, security},
 } satisfies Config;
