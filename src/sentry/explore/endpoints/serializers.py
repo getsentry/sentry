@@ -5,6 +5,9 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
+from sentry import features
+from sentry.api.helpers.timeseries_transformations import parse_transformations
+from sentry.api.utils import handle_query_errors
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
@@ -19,6 +22,9 @@ logger = logging.getLogger(__name__)
 class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
+    transformations = serializers.ListField(
+        child=serializers.CharField(trim_whitespace=False), required=False
+    )
 
 
 class GroupBySerializer(serializers.Serializer):
@@ -29,6 +35,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     # visualizes
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
+    transformations = serializers.ListField(
+        child=serializers.CharField(trim_whitespace=False), required=False
+    )
 
     # group bys
     groupBy = serializers.CharField(required=False)
@@ -250,6 +259,23 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
+        transformation_pipelines = []
+        for query in data["query"]:
+            for field in ("visualize", "aggregateField"):
+                for visualization in query.get(field) or []:
+                    if "transformations" in visualization:
+                        transformation_pipelines.append(visualization["transformations"])
+        if transformation_pipelines and not features.has(
+            "organizations:explore-interpolation-and-smoothing",
+            self.context["organization"],
+            actor=self.context["user"],
+        ):
+            raise ParseError(detail="You do not have access to query transformations.")
+
+        for transformations in transformation_pipelines:
+            with handle_query_errors():
+                parse_transformations(transformations)
+
         query = {}
         query_keys = [
             "environment",

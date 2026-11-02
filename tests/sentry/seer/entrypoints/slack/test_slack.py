@@ -15,6 +15,7 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -55,6 +56,7 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
+from sentry.seer.entrypoints.slack.investigation_status import MAX_SUMMARY_DESCRIPTION_LENGTH
 from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
     schedule_all_thread_updates,
@@ -1271,7 +1273,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             provider="slack",
             metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",
@@ -1381,20 +1383,21 @@ class SlackInvestigationEntrypointTest(TestCase):
             status=status
         )
 
-    def _report_cell(self, content: str, **kwargs: Any) -> None:
-        kwargs.setdefault("report_revision", 0)
-        self.create_investigation_block(investigation=self.investigation, content=content, **kwargs)
+    def _set_summary(self, summary: str | None, description: str | None = None) -> None:
+        Notebook.objects.filter(id=self.investigation.id).update(
+            summary=summary, summary_description=description
+        )
 
-    def _conclusion_sections(self) -> list[str]:
+    def _conclusion_text(self) -> str:
         (call,) = [
             call
             for call in self.mock_post_message.call_args_list
             if call.kwargs["text"] == "Seer finished the investigation"
         ]
         assert call.kwargs["thread_ts"] == self.message_ts
-        *sections, _divider, actions = call.kwargs["blocks"]
+        section, _divider, actions = call.kwargs["blocks"]
         assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
-        return [section.text for section in sections]
+        return section.text.text
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
@@ -1637,25 +1640,21 @@ class SlackInvestigationEntrypointTest(TestCase):
 
     def test_completed_run_posts_conclusion_once(self) -> None:
         self._set_cache()
-        self._report_cell("## Summary\n\nA release added a slow font.", position=0)
-        self._report_cell("## Next steps\n\nPreload the font.", position=1)
+        self._set_summary("A release added a slow font", "Preload the font.")
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
         self._update([_hypothesis()])
 
         self.mock_update.assert_called_once()
-        assert self._conclusion_sections() == [
-            "## Summary\n\nA release added a slow font.",
-            "## Next steps\n\nPreload the font.",
-        ]
+        assert self._conclusion_text() == "*A release added a slow font*\nPreload the font."
         cache_payload = self._get_cache()
         assert cache_payload is not None
         assert cache_payload["final_sent"] is True
 
     def test_conclusion_posts_when_status_is_unchanged(self) -> None:
         self._set_cache()
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         self._update([_hypothesis()])
         self.mock_update.reset_mock()
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
@@ -1663,10 +1662,10 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_not_called()
-        assert self._conclusion_sections() == ["The release added a slow font."]
+        assert self._conclusion_text() == "*A release added a slow font*"
 
     def test_failed_or_cancelled_run_posts_no_conclusion(self) -> None:
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         for status in (
             InvestigationOrchestrationStatus.FAILED,
             InvestigationOrchestrationStatus.CANCELLED,
@@ -1678,40 +1677,20 @@ class SlackInvestigationEntrypointTest(TestCase):
 
             self.mock_post_message.assert_not_called()
 
-    def test_conclusion_skips_query_deleted_empty_and_manual_cells(self) -> None:
+    def test_conclusion_escapes_and_truncates_the_summary(self) -> None:
         self._set_cache()
-        self._report_cell("Second", position=2)
-        self._report_cell("First", position=0)
-        self._report_cell("Query", position=1, kind="query")
-        self._report_cell("Deleted", position=3, deleted_at=datetime(2024, 8, 27, tzinfo=UTC))
-        self._report_cell("  \n", position=4)
-        self._report_cell("Manual", position=5, report_revision=None)
+        self._set_summary("<!channel> & friends", "a" * 3000)
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
 
-        assert self._conclusion_sections() == ["First", "Second"]
-
-    def test_conclusion_strips_embed_tags(self) -> None:
-        self._set_cache()
-        self._report_cell(
-            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n"
-            '{% issue %}{"id": "PYTHON-FLASK-6 (id 5)"}{% /issue %}\n\n'
-            '## Why\nIt started at {% timestamp %}{"value": "now"}{% /timestamp %}.\n'
-            '{% chart %}\n{"title": "Errors"}\n{% /chart %}\n'
-            'See {% docs href="https://docs.sentry.io" title="Docs" /%}.'
+        assert self._conclusion_text() == (
+            "*&lt;!channel&gt; &amp; friends*\n" + "a" * (MAX_SUMMARY_DESCRIPTION_LENGTH - 1) + "…"
         )
-        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
-        self._update([_hypothesis()])
-
-        assert self._conclusion_sections() == [
-            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n## Why\nIt started at .\nSee ."
-        ]
-
-    def test_no_text_cells_marks_final_sent(self) -> None:
+    def test_no_summary_marks_final_sent(self) -> None:
         self._set_cache()
-        self._report_cell("", kind="query")
+        self._set_summary(None)
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
@@ -1723,7 +1702,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_failed_conclusion_post_leaves_final_sent_unset(self, mock_record: Mock) -> None:
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
         for error, halt_count in (("ratelimited", 2), ("invalid_blocks", 1)):
             self._set_cache()
@@ -1744,18 +1723,3 @@ class SlackInvestigationEntrypointTest(TestCase):
                 if call.args[0] == EventLifecycleOutcome.HALTED
             ]
             assert len(halts) == halt_count, error
-
-    def test_conclusion_is_cut_at_a_paragraph(self) -> None:
-        self._set_cache()
-        self._report_cell("a" * 6000, position=0)
-        self._report_cell("b" * 4000 + "\n\n" + "c" * 4000, position=1)
-        self._report_cell("d", position=2)
-        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
-
-        self._update([_hypothesis()])
-
-        assert self._conclusion_sections() == [
-            "a" * 6000,
-            "b" * 4000,
-            "_The rest of the report is in the full investigation._",
-        ]

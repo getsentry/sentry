@@ -4,11 +4,6 @@
       "count": 1
     }
   },
-  "components/adminConfirmationModal.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 13
-    }
-  },
   "components/changeBalanceAction.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1

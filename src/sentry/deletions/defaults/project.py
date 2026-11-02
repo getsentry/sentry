@@ -17,10 +17,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
-        from sentry.investigations.models import (
-            InvestigationBlockExecutionProject,
-            InvestigationProject,
-        )
         from sentry.models.activity import Activity
         from sentry.models.artifactbundle import ProjectArtifactBundle
         from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
@@ -48,6 +44,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.userreport import UserReport
         from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
         from sentry.monitors.models import Monitor
+        from sentry.notebooks.models import NotebookBlockExecutionProject, NotebookProject
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.seer.models.project_repository import (
             SeerProjectRepository,
@@ -92,8 +89,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectArtifactBundle,
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
-            InvestigationProject,
-            InvestigationBlockExecutionProject,
+            NotebookProject,
+            NotebookBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
+from sentry_sdk import traces
+
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import (
@@ -37,11 +39,11 @@ class RpcCircuitBreaker:
         )
 
     def _build_breaker(self) -> CircuitBreaker | None:
-        base_config: RateBasedTripStrategyConfig = options.get(
-            "hybridcloud.rpc.circuit-breaker.config"
-        )
-        config: RateBasedTripStrategyConfig = {**base_config, "metrics_key": "hybridcloud.rpc"}
         try:
+            base_config: RateBasedTripStrategyConfig = options.get(
+                "hybridcloud.rpc.circuit-breaker.config"
+            )
+            config: RateBasedTripStrategyConfig = {**base_config, "metrics_key": "hybridcloud.rpc"}
             # One breaker per destination, so a failing cell doesn't block calls to the others.
             return CircuitBreaker(
                 key=f"hybridcloud.rpc.{self.destination}",
@@ -101,6 +103,11 @@ class RpcCircuitBreaker:
             "hybrid_cloud.dispatch_rpc.circuit_breaker.rejected",
             tags={**self.metric_tags, "reason": reason},
         )
+        # Tag the RPC span so traces show which requests the breaker turned away.
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("circuit_breaker.rejected", reason)
+            span.set_attribute("circuit_breaker.destination", self.destination)
 
     def _record_internal_error(self, kind: str) -> None:
         logger.exception(

@@ -2,13 +2,15 @@ import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
+  inbox: ['inbox'],
   issues: ['issues'],
   explore: ['explore', 'preprod'],
   seer: ['seer'],
@@ -76,6 +78,8 @@ export function PrimaryNavigationContextProvider(
   } | null>(null);
 
   const theme = useTheme();
+  // Primary navigation switches at the viewport breakpoint.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
   const hasHover = useMedia('(hover: hover)');
   const activeRouteGroup = useActiveNavigationGroup();

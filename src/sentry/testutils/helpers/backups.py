@@ -564,7 +564,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         linked_dashboard = Dashboard.objects.create(
             title=f"Linked Dashboard 1 for {slug}",
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             organization=org,
         )
         DashboardFavoriteUser.objects.create(
@@ -588,7 +588,11 @@ class ExhaustiveFixtures(Fixtures):
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         widget_query = DashboardWidgetQuery.objects.create(
-            widget=widget, order=1, name=f"Test Query for {slug}"
+            widget=widget,
+            order=1,
+            name=f"Test Query for {slug}",
+            aggregates=["count()"],
+            transformations={"0": ["fill(locf)", "smooth(sma,3)"]},
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
@@ -715,6 +719,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
+        seer_workflow_config.update(backing_workflow=workflow)
         detector = self.create_detector(project=project, type=MetricIssue.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
@@ -946,6 +951,7 @@ class ExhaustiveFixtures(Fixtures):
         ApiDeviceCode.objects.create(
             application=app.application,
             scope_list=["openid", "profile"],
+            login_hint=owner.email,
         )
 
         # ServiceHook

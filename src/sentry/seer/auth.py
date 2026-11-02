@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from sentry.api.authentication import AuthenticationSiloLimit
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
-from sentry.viewer_context import get_acting_user_id, viewer_context_from_header
+from sentry.viewer_context import ActorType, get_acting_user_id, viewer_context_from_header
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,11 @@ class SeerRpcViewerContextAuthentication(BaseAuthentication):
             # valid HMAC on the same request can still win; otherwise the
             # endpoint denies via _is_authorized. This guarantees every
             # VC-authenticated call carries an attested org to enforce against.
+            return None
+
+        if vc.actor.type == ActorType.SERVICE_ACCOUNT:
+            # seer-rpc methods trust their org_id argument and skip access checks, so a
+            # service account here would escape its scopes, project links and disabling.
             return None
 
         user: Any = AnonymousUser()

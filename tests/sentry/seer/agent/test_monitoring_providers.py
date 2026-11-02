@@ -609,3 +609,70 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert len(result) == 1
         assert result[0]["identity_id"] is None
         assert result[0]["auth_method"] == "api_key"
+
+    def _create_org_grafana_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        url: str = "https://example-stack.grafana.net",
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="grafana",
+            external_id=str(self.organization.id),
+            name="Grafana (example-stack.grafana.net)",
+            metadata=metadata if metadata is not None else {"token": "glsa_org_token"},
+            oi_params={"status": org_integration_status, "config": {"url": url}},
+            **kwargs,
+        )
+
+    def test_org_grafana_connection(self) -> None:
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "grafana"
+        assert conn["url"] == "https://example-stack.grafana.net"
+        assert conn["identity_id"] is None
+        assert conn["auth_method"] == "service_account_token"
+        assert conn["refreshable"] is False
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer glsa_org_token"
+
+    def test_org_grafana_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_grafana_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_ignores_uninstalled_org_integration(self) -> None:
+        # The token stays in Integration.metadata after uninstall until async deletion runs.
+        self._create_org_grafana_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_skips_missing_url(self) -> None:
+        self._create_org_grafana_integration(url="")
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    def test_org_grafana_connection_skips_missing_token(self) -> None:
+        self._create_org_grafana_integration(metadata={})
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_grafana_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []

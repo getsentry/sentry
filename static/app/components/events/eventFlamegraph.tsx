@@ -93,7 +93,7 @@ function EventFlamegraphContent({event, project}: Props) {
               value={attachment.id}
               options={attachments.map(item => ({value: item.id, label: item.name}))}
               onChange={option => setSelectedAttachment(option.value)}
-              isClearable={false}
+              clearable={false}
             />
           </Container>
         )}

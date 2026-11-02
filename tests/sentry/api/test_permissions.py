@@ -18,6 +18,7 @@ from sentry.api.permissions import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -198,13 +199,14 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
         return self.make_request(user=self.user, auth=token, method="GET")
 
     @override_options({"auth.deprecated-scope-translation.enabled": True})
-    @patch("sentry.auth.deprecated_scope_translation.metrics")
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
     def test_deprecated_scope_is_translated(self, mock_metrics) -> None:
         request = self._token_request(["org:read"])
         assert self.permission.has_permission(request, APIView())
-        mock_metrics.incr.assert_called_once_with(
+        mock_metrics.count.assert_called_once_with(
             "auth.deprecated_scope_translation.applied",
-            tags={"endpoint": "APIView", "deprecated_scope": "org:read"},
+            1,
+            attributes={"endpoint": "APIView", "deprecated_scope": "org:read"},
         )
 
     @override_options({"auth.deprecated-scope-translation.enabled": False})
@@ -213,26 +215,28 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
         assert not self.permission.has_permission(request, APIView())
 
     @override_options({"auth.deprecated-scope-translation.enabled": True})
-    @patch("sentry.auth.deprecated_scope_translation.metrics")
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
     def test_granular_scope_does_not_record_translation(self, mock_metrics) -> None:
         request = self._token_request(["dashboard:read"])
         assert self.permission.has_permission(request, APIView())
-        mock_metrics.incr.assert_not_called()
+        mock_metrics.count.assert_not_called()
 
     @override_options({"auth.deprecated-scope-translation.enabled": True})
-    @patch("sentry.auth.deprecated_scope_translation.metrics")
+    @patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
     def test_translation_not_recorded_when_granular_scopes_already_held(self, mock_metrics) -> None:
         request = self._token_request(
             [
                 "org:read",
                 "dashboard:read",
-                "dashboard:create",
-                "dashboard:update",
-                "dashboard:delete",
+                "dashboard:write",
+                "saved_query:read",
+                "saved_query:write",
+                "user_preference:read",
+                "user_preference:write",
             ]
         )
         assert self.permission.has_permission(request, APIView())
-        mock_metrics.incr.assert_not_called()
+        mock_metrics.count.assert_not_called()
 
     def test_unrelated_scope_is_not_translated(self) -> None:
         request = self._token_request(["project:read"])
@@ -358,6 +362,21 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             )
 
             assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+    def test_determine_access_omits_full_organization_resources(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[team])
+        request = self.make_request(self.readonly_user)
+
+        with (
+            override_options(
+                {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+            ),
+            assert_no_organization_resource_hydration(),
+        ):
+            self.user_permission.determine_access(request=request, organization=self.organization)
+
+        assert request.access.scopes == frozenset(READONLY_SCOPES)
 
 
 class InsufficientScopeResponseTest(APITestCase):

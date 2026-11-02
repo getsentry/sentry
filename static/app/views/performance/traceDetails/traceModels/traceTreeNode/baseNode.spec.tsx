@@ -4,7 +4,6 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPError,
@@ -56,12 +55,6 @@ class TestNode extends BaseNode {
     _props: TraceRowProps<T>
   ): React.ReactNode {
     return <div data-test-id="waterfall-row">Waterfall Row</div>;
-  }
-
-  renderDetails<T extends BaseNode>(
-    _props: TraceTreeNodeDetailsProps<T>
-  ): React.ReactNode {
-    return <div data-test-id="node-details">Details</div>;
   }
 
   matchWithFreeText(key: string): boolean {
@@ -708,9 +701,6 @@ describe('BaseNode', () => {
 
       render(node.renderWaterfallRow({} as any) as React.ReactElement);
       expect(screen.getByTestId('waterfall-row')).toBeInTheDocument();
-
-      render(node.renderDetails({} as any) as React.ReactElement);
-      expect(screen.getByTestId('node-details')).toBeInTheDocument();
     });
   });
 

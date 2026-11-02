@@ -3030,7 +3030,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self) -> None:
         """Test successful repository lookup"""
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
             provider="integrations:github",
@@ -3045,6 +3045,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
+        assert result.repository_id == repo.id
         assert result.organization_id == self.organization.id
         assert result.integration_id == "123"
         assert result.provider == "integrations:github"

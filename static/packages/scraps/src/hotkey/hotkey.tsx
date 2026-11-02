@@ -1,4 +1,10 @@
 import styled from '@emotion/styled';
+import {isMac} from '@react-aria/utils';
+import {
+  formatForDisplay,
+  type CanonicalModifier,
+  type HotkeyChord,
+} from '@tanstack/react-hotkeys';
 
 import {Kbd} from '@sentry/scraps/hotkey/kbd';
 
@@ -6,39 +12,36 @@ import {resolveKeyGlyph} from './keyMappings';
 
 interface HotkeyProps {
   /**
-   * Key combination string(s) in the same format as `useHotkeys` match strings.
-   * Keys are separated by `+`. For example: `"command+k"`, `"shift+enter"`.
+   * Shortcuts in TanStack's native syntax, such as `"Mod+K"` or `"Shift+Enter"`.
+   * A single modifier can also be displayed, such as `"Mod"` or `"Shift"`.
    *
    * Platform modifiers are mapped automatically:
-   * - `command` renders as `⌘` on Mac, `CTRL` on other platforms
-   * - `ctrl` renders as `⌃` on Mac, `CTRL` on other platforms
-   * - `alt`/`option` renders as `⌥` on Mac, `ALT` on other platforms
+   * - `Mod` renders as `⌘` on Mac, `Ctrl` on other platforms
+   * - `Control` renders as `⌃` on Mac, `Ctrl` on other platforms
+   * - `Alt` renders as `⌥` on Mac, `Alt` on other platforms
    *
    * Pass an array only when the actual keys differ across platforms
-   * (not just modifier names). The first compatible combo is used:
+   * (not just modifier names). The first combo is displayed:
    *
    * ```tsx
-   * <Hotkey value={['command+backspace', 'delete']} />
+   * <Hotkey value={['Mod+Backspace', 'Delete']} />
    * ```
    */
-  value: string | string[];
+  value: HotkeyChord | CanonicalModifier | 'Mod' | readonly HotkeyChord[];
   variant?: 'embossed' | 'debossed';
 }
 
 export function Hotkey({value, variant}: HotkeyProps) {
-  const keySets = (Array.isArray(value) ? value : [value]).map(v => v.trim().split('+'));
-
-  // Resolve glyphs for each key set
-  const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key)));
-
-  // If multiple combos provided, prefer the first one.
-  // (With auto platform mapping, a single string works cross-platform,
-  // so the array form is only for truly different key combos.)
-  const finalKeys = resolved[0];
-
-  if (!finalKeys || finalKeys.length === 0) {
+  const hotkey = typeof value === 'string' ? value : value[0];
+  if (!hotkey) {
     return null;
   }
+
+  const finalKeys = formatForDisplay(hotkey, {
+    platform: isMac() ? 'mac' : 'linux',
+    parts: true,
+    keyLabels: {Delete: 'Del', Tab: 'Tab', Space: 'Space'},
+  }).map(resolveKeyGlyph);
 
   return (
     <WrapperKbd variant={variant}>

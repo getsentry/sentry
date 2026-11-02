@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
-import {IconLightning} from '@sentry/icons/lightning';
+import {IconTimer} from '@sentry/icons/timer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -42,7 +42,7 @@ import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetS
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import {
-  PREBUILT_DASHBOARDS,
+  getPrebuiltDashboardConfig,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -104,7 +104,8 @@ export function FiltersBar({
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
-    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    ? (getPrebuiltDashboardConfig(prebuiltDashboardId, organization).filters
+        .globalFilter ?? [])
     : [];
 
   const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
@@ -393,13 +394,14 @@ export function FiltersBar({
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
-                icon={<IconLightning />}
+                icon={<IconTimer />}
                 aria-label={t('Query priority: %s', queryPriorityLabel)}
               >
                 {queryPriorityLabel}
               </OverlayTrigger.Button>
             )}
             menuTitle={t('Query priority')}
+            menuWidth={240}
             options={queryPriorityOptions}
           />
         )}

@@ -10,7 +10,6 @@ import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import type {ContainerProps} from '@sentry/scraps/layout/container';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -62,15 +61,17 @@ export function MenuHeading({
 export function MenuSectionLabel({
   children,
   padding,
+  size = 'sm',
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
   children: React.ReactNode;
   padding?: ContainerProps['padding'];
+  size?: React.ComponentProps<typeof Text>['size'];
 }) {
   // TODO: Use the transparent menu heading color when Text exposes a variant for it.
   return (
     <Container padding={padding}>
-      <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+      <Text as="span" size={size} density="fixed" bold tabular {...props}>
         {children}
       </Text>
     </Container>
@@ -109,8 +110,8 @@ export function MenuSectionGroup(props: ContainerProps<'li'>) {
 }
 
 /** List wrapper for the items within a menu section. */
-export function MenuSectionList(props: ContainerProps<'ul'>) {
-  return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
+export function MenuSectionList(props: FlexProps<'ul'>) {
+  return <Stack as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
 /** Container for menu footer actions, with a divider above it. */
@@ -163,7 +164,7 @@ export function useReserveLeadingSlot() {
 }
 
 /**
- * Menu item priority. Determines the text and background color.
+ * Menu item priority. Determines the text color.
  */
 type Priority = 'primary' | 'danger' | 'default';
 
@@ -216,11 +217,10 @@ const StyledInnerWrap = styled(Flex, {
     typeof prop === 'string' &&
     (isPropValid(prop) ||
       ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
-    !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
+    !['disabled', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;
   hasTrailingAction: boolean;
-  isFocused: boolean;
   priority: Priority;
   size?: FormSize;
 }>`
@@ -228,6 +228,7 @@ const StyledInnerWrap = styled(Flex, {
   position: relative;
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
+  background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
 
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
@@ -241,31 +242,35 @@ const StyledInnerWrap = styled(Flex, {
   }
   ${p => p.disabled && 'cursor: default;'}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-  }
-
   ${p =>
-    p.isFocused &&
+    !p.disabled &&
     css`
-      ${!p.hasTrailingAction && 'z-index: 1;'}
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.tokens.background.overlay};
+      &[data-focused='true'] {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover},
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover}
+          ),
+          ${p.theme.tokens.background.overlay};
+      }
+
+      &[data-pressed='true'],
+      &:active:not([data-pressed='false']),
+      &[aria-expanded='true']:not([data-pressed='false']),
+      &[aria-selected='true']:not([data-pressed='false']) {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.active},
+            ${p.theme.tokens.interactive.transparent.neutral.background.active}
+          ),
+          ${p.theme.tokens.background.overlay};
       }
     `}
 `;
 
-const StyledContentWrap = styled('div')<{
-  isFocused: boolean;
-  size?: FormSize;
-}>`
+const StyledContentWrap = styled('div')`
   position: relative;
   width: 100%;
   min-width: 0;
@@ -354,7 +359,7 @@ export type ListItemProps = {
    */
   leadingItems?: ExtraContent;
   /**
-   * Accented text and background (on hover) colors.
+   * Accented text color.
    */
   priority?: Priority;
   /**
@@ -463,18 +468,14 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           // they sat before the slot existed, at every size.
           paddingLeft={hasLeadingSlot ? 'md' : undefined}
           paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
-          isFocused={isFocused}
+          data-focused={isFocused}
+          data-pressed={isPressed}
           hasTrailingAction={Boolean(trailingAction)}
           disabled={disabled}
           priority={priority}
           size={size}
           {...innerWrapProps}
         >
-          <StyledInteractionStateLayer
-            isHovered={isFocused}
-            isPressed={isPressed}
-            higherOpacity={priority !== 'default'}
-          />
           {hasLeadingSlot && (
             <StyledLeadingItems
               disabled={disabled}
@@ -486,7 +487,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 : leadingItems}
             </StyledLeadingItems>
           )}
-          <StyledContentWrap isFocused={isFocused} size={size}>
+          <StyledContentWrap>
             {/* Size the label box to match leading and trailing items, so labels that
                 already render at that height do not get extra space. */}
             <Stack
@@ -657,10 +658,6 @@ const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolea
   &:focus-visible {
     outline: none;
   }
-`;
-
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  z-index: -1;
 `;
 
 const TrailingItems = styled('div')<{disabled: boolean}>`

@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
 from sentry.apidocs.constants import (
@@ -25,6 +26,16 @@ from sentry.releases.endpoints.project_release_file_details import (
     ReleaseFileDetailsMixin,
     ReleaseFileSerializer,
 )
+
+
+def has_release_download_permission(request: Request, release: Release) -> bool:
+    # Release files are shared by every project on the release, so allow the download
+    # only if the project-level endpoint would allow it for one of those projects.
+    return any(
+        has_download_permission(request, project)
+        for project in release.projects.select_related("organization")
+        if request.access.has_project_access(project)
+    )
 
 
 @extend_schema(tags=["Releases"])
@@ -82,7 +93,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             request,
             release,
             file_id,
-            check_permission_fn=lambda: request.access.has_scope("project:write"),
+            check_permission_fn=lambda: has_release_download_permission(request, release),
         )
 
     @extend_schema(

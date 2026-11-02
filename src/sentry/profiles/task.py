@@ -278,6 +278,8 @@ def process_profile_task(
     sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    if project.organization_id == organization.id:
+        project.set_cached_field_value("organization", organization)
 
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_attribute("project", project.id)

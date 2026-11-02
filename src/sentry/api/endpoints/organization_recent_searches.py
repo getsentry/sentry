@@ -19,8 +19,8 @@ class RecentSearchSerializer(serializers.Serializer):
 
 class OrganizationRecentSearchPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "user_preference:read"],
+        "POST": ["org:read", "org:write", "org:admin", "user_preference:write"],
     }
 
 

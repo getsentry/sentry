@@ -3,7 +3,7 @@ from functools import partial
 from typing import Any, assert_never
 
 from django.db import router, transaction
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
@@ -74,7 +74,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
     should_include_all_projects_detector,
 )
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import DataSourceDetector, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.types import DetectorAPIOperation
@@ -345,6 +345,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(enabled=enabled)
 
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
+
+        # Cron and uptime detectors that lost their data source can't run and
+        # can't be rendered, so hide them until they're cleaned up.
+        queryset = queryset.exclude(
+            Q(type__in=[MonitorIncidentType.slug, UptimeDomainCheckFailure.slug])
+            & ~Exists(DataSourceDetector.objects.filter(detector_id=OuterRef("pk")))
+        )
 
         sort_by = request.GET.get("sortBy", "id")
         sort_by_field = sort_by.lstrip("-")

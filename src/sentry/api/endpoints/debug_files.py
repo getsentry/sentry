@@ -36,7 +36,12 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -64,7 +69,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
-from sentry.options.rollout import in_random_rollout
 from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -104,9 +108,9 @@ def has_download_permission(request: Request, project: Project):
 
     if request.user.is_sentry_app:
         if organization_roles.can_manage("member", required_role):
-            return request.access.has_scope("project:write")
-        else:
             return request.access.has_scope("project:read")
+        else:
+            return request.access.has_scope("project:write")
 
     try:
         current_role = (
@@ -249,7 +253,7 @@ DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
 )
 
 
-def code_id_queries(code_id: str, use_legacy: bool) -> list[Q]:
+def code_id_queries(code_id: str) -> list[Q]:
     """Returns a list of queries that, for a given code ID:
        1. compare it to the `code_id` field.
        2. compare it to the `wasm_legacy_code_id` field.
@@ -264,23 +268,17 @@ def code_id_queries(code_id: str, use_legacy: bool) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
-
-    The behavior is gated behind the `use_legacy` flag.
-    If it's turned off, only the first query is returned.
     """
 
-    qs = [Q(code_id__exact=code_id)]
+    qs = [Q(code_id__exact=code_id), Q(wasm_legacy_code_id__exact=code_id)]
 
-    if use_legacy:
-        qs.append(Q(wasm_legacy_code_id__exact=code_id))
-
-        if legacy_id := wasm_legacy_code_id(code_id):
-            qs.append(Q(code_id__exact=legacy_id))
+    if legacy_id := wasm_legacy_code_id(code_id):
+        qs.append(Q(code_id__exact=legacy_id))
 
     return qs
 
 
-def debug_id_queries(debug_id: str, use_legacy: bool) -> list[Q]:
+def debug_id_queries(debug_id: str) -> list[Q]:
     """Returns a list of queries that, for a given debug ID:
        1. compare it to the `debug_id` field.
        2. compare it to the `wasm_legacy_debug_id` field.
@@ -295,18 +293,12 @@ def debug_id_queries(debug_id: str, use_legacy: bool) -> list[Q]:
     Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
     `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
     any file that never suffered from the WASM build ID bug.
-
-    The behavior is gated behind the `use_legacy` flag.
-    If it's turned off, only the first query is returned.
     """
 
-    qs = [Q(debug_id__exact=debug_id)]
+    qs = [Q(debug_id__exact=debug_id), Q(wasm_legacy_debug_id__exact=debug_id)]
 
-    if use_legacy:
-        qs.append(Q(wasm_legacy_debug_id__exact=debug_id))
-
-        if legacy_id := wasm_legacy_debug_id(debug_id):
-            qs.append(Q(debug_id__exact=legacy_id))
+    if legacy_id := wasm_legacy_debug_id(debug_id):
+        qs.append(Q(debug_id__exact=legacy_id))
 
     return qs
 
@@ -424,8 +416,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
                     )
             q &= file_format_q
 
-        query_legacy_ids = in_random_rollout("debug-files.query-legacy-ids.rollout-rate")
-
         # If we have at least one of debug_id or code_id, use them to build the queryset
         if debug_id or code_id:
             # Be lenient when searching for debug files, check either for a matching debug id
@@ -438,14 +428,14 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # will match.
             debug_id_qs = ProjectDebugFile.objects.none().select_related("file")
             if debug_id:
-                for debug_id_q in debug_id_queries(debug_id, query_legacy_ids):
+                for debug_id_q in debug_id_queries(debug_id):
                     debug_id_qs = debug_id_qs.union(
                         ProjectDebugFile.objects.filter(debug_id_q & q).select_related("file")
                     )
 
             code_id_qs = ProjectDebugFile.objects.none().select_related("file")
             if code_id:
-                for code_id_q in code_id_queries(code_id, query_legacy_ids):
+                for code_id_q in code_id_queries(code_id):
                     code_id_qs = code_id_qs.union(
                         ProjectDebugFile.objects.filter(
                             code_id_q
@@ -592,29 +582,61 @@ AssembleRequestPayload = dict[str, AssembleRequestFile]
 """Mapping from file checksums to the corresponding assemble request payload."""
 
 
+_SHA1_PATTERN = "^[0-9a-f]{40}$"
+
+# One file in the assemble request. Shared by validation and the OpenAPI schema.
+_ASSEMBLE_REQUEST_FILE_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "required": ["name", "chunks"],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The file name. A ProGuard mapping without `debug_id` can carry it in the name, as in `/proguard/mapping-<uuid>.txt`.",
+        },
+        "debug_id": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9-]+$",
+            "description": "The debug ID to store the file under, overriding the one read from the file.",
+        },
+        "chunks": {
+            "type": "array",
+            "items": {"type": "string", "pattern": _SHA1_PATTERN},
+            "description": "The SHA-1 checksums of the file's chunks, in order. Upload missing chunks with the chunk upload endpoint. Send an empty list to poll the file's state.",
+        },
+    },
+    "additionalProperties": True,
+}
+
+_ASSEMBLE_REQUEST_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "patternProperties": {_SHA1_PATTERN: _ASSEMBLE_REQUEST_FILE_SCHEMA},
+    "additionalProperties": False,
+}
+
+# OpenAPI 3.0 has no patternProperties, so the docs describe the checksum keys in prose.
+_ASSEMBLE_REQUEST_OPENAPI_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "description": "The files to assemble, keyed by the SHA-1 checksum of each whole file.",
+    "additionalProperties": _ASSEMBLE_REQUEST_FILE_SCHEMA,
+}
+
+
+class DifAssembleFileResponse(TypedDict):
+    # One of the ChunkFileState values: ok, not_found, created, assembling, or error.
+    state: str
+    missingChunks: list[str]
+    detail: NotRequired[str | None]
+    dif: NotRequired[DebugFileSerializerResponse]
+
+
+class _AssembleErrorResponse(TypedDict):
+    error: str
+
+
 def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
     """Parse and validate the DIF assemble request body."""
-    schema: dict[str, object] = {
-        "type": "object",
-        "patternProperties": {
-            "^[0-9a-f]{40}$": {
-                "type": "object",
-                "required": ["name", "chunks"],
-                "properties": {
-                    "name": {"type": "string"},
-                    "debug_id": {"type": "string", "pattern": "^[A-Fa-f0-9-]+$"},
-                    "chunks": {
-                        "type": "array",
-                        "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                    },
-                },
-                "additionalProperties": True,
-            }
-        },
-        "additionalProperties": False,
-    }
     payload_obj: object = orjson.loads(body)
-    jsonschema.validate(payload_obj, schema)
+    jsonschema.validate(payload_obj, _ASSEMBLE_REQUEST_SCHEMA)
     return cast(AssembleRequestPayload, payload_obj)
 
 
@@ -629,12 +651,14 @@ def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]
     return name, debug_id, chunks
 
 
-def batch_assemble(project: Project, files: AssembleRequestPayload):
+def batch_assemble(
+    project: Project, files: AssembleRequestPayload
+) -> dict[str, DifAssembleFileResponse]:
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
     files_to_check = files.copy()
-    file_response = {}
+    file_response: dict[str, DifAssembleFileResponse] = {}
 
     # 1. Exclude all files that already have an assemble status.
     for checksum, file in list(files_to_check.items()):
@@ -903,7 +927,7 @@ def _clone_proguard_debug_file_for_reupload(
     debug_file: ProjectDebugFile,
     requested_debug_id: str,
     is_proguard_clone_source: bool,
-) -> dict[str, object]:
+) -> DifAssembleFileResponse:
     """Clone a ProGuard debug file row for a reupload and return a batch response.
 
     ``is_proguard_clone_source`` must reflect the caller's annotation-based
@@ -979,23 +1003,43 @@ def _clone_proguard_debug_file_for_reupload(
     }
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     # Assemble state is cached per checksum, so a resend reports it instead of
     # starting a second job.
     idempotent_methods = frozenset({"POST"})
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="assembleProjectDebugFiles",
+        summary="Assemble Debug Information Files",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request={"application/json": _ASSEMBLE_REQUEST_OPENAPI_SCHEMA},
+        responses={
+            200: inline_sentry_response_serializer(
+                "AssembleProjectDebugFilesResponse", dict[str, DifAssembleFileResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[dict[str, DifAssembleFileResponse]] | Response[_AssembleErrorResponse]:
         """
-        Assemble one or multiple chunks (FileBlob) into debug files
-        ````````````````````````````````````````````````````````````
+        Assemble previously uploaded chunks into debug information files.
 
-        :auth: required
+        The response reports each file's `state`, keyed by the same checksums. If chunks are
+        missing, upload them and send the request again. Repeat the request to poll until the
+        state is `ok` or `error`. Resending an identical request is safe: a file that is
+        already assembling or assembled reports its state instead of starting a new job.
         """
         try:
             files = parse_assemble_request_payload(request.body)
