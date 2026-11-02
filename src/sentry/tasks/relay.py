@@ -1,5 +1,6 @@
 import logging
 import time
+from collections import defaultdict
 
 import sentry_sdk
 from django.db import connections, router, transaction
@@ -140,9 +141,18 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         # it could be possible that refrequent invalidations cause the task to take excessive time
         # to complete.
         for organization in Organization.objects.filter(id=organization_id):
-            for project in Project.objects.filter(organization_id=organization_id):
+            projects = list(Project.objects.filter(organization_id=organization_id))
+            # Fetch the keys of all projects in a single query instead of one query per
+            # project, which would be an N+1 for organizations with many projects.
+            keys_by_project_id: dict[int, list[ProjectKey]] = defaultdict(list)
+            for key in ProjectKey.objects.filter(
+                project_id__in=[project.id for project in projects]
+            ).order_by("id"):
+                keys_by_project_id[key.project_id].append(key)
+
+            for project in projects:
                 project.set_cached_field_value("organization", organization)
-                for key in ProjectKey.objects.filter(project_id=project.id):
+                for key in keys_by_project_id.get(project.id, []):
                     key.set_cached_field_value("project", project)
                     # If we find the config in the cache it means it was active.  As such we want to
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
