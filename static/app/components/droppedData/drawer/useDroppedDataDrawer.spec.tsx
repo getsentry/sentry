@@ -101,7 +101,7 @@ describe('useDroppedDataDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
-    expect(router.location.query.droppedData).toBe('true');
+    expect(router.location.query.droppedData).toBe('spans');
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.drawer_opened',
       expect.objectContaining({dataset: DiscoverDatasets.SPANS})
@@ -211,7 +211,7 @@ describe('useDroppedDataDrawer', () => {
     render(<DroppedDataTrigger />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+        location: {pathname: '/explore/traces/', query: {droppedData: 'spans'}},
       },
     });
 
@@ -242,7 +242,26 @@ describe('useDroppedDataDrawer', () => {
     render(<DroppedDataTrigger enabled={false} />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/discover/results/', query: {droppedData: 'true'}},
+        location: {pathname: '/discover/results/', query: {droppedData: 'spans'}},
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Open dropped data'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).not.toBeInTheDocument();
+    expect(droppedDataRequest).not.toHaveBeenCalled();
+  });
+
+  it('does not open when the URL param names a different dataset', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/explore/traces/', query: {droppedData: 'ourlogs'}},
       },
     });
 
@@ -266,7 +285,7 @@ describe('useDroppedDataDrawer', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+          location: {pathname: '/explore/traces/', query: {droppedData: 'spans'}},
         },
       }
     );
@@ -310,7 +329,7 @@ describe('useDroppedDataDrawer', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Dropped and Filtered Spans'})
     ).toBeInTheDocument();
-    expect(router.location.query.droppedData).toBe('true');
+    expect(router.location.query.droppedData).toBe('spans');
   });
 
   it('stays open and refreshes when zooming changes the time range', async () => {
@@ -326,7 +345,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
 
     act(() => {
-      router.navigate('/explore/traces/?droppedData=true&statsPeriod=1h');
+      router.navigate('/explore/traces/?droppedData=spans&statsPeriod=1h');
       PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: false});
     });
 
