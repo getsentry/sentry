@@ -749,11 +749,24 @@ export function BaseChart({
     let resizeFrame: number | null = null;
     let lastResizedHeight = 0;
     let lastResizedWidth = 0;
+    let disposed = false;
 
     const handleResize = () => {
       resizeFrame = null;
 
-      const instance = echartsInstanceRef.current?.getEchartsInstance();
+      // The frame may fire after the chart has been (partially) unmounted. Its
+      // DOM element can already be detached, and calling `getEchartsInstance()`
+      // with a null element throws inside echarts' `getInstanceByDom`.
+      if (disposed || !container.isConnected) {
+        return;
+      }
+
+      const chartRef = echartsInstanceRef.current;
+      if (!chartRef?.ele) {
+        return;
+      }
+
+      const instance = chartRef.getEchartsInstance();
       if (!instance || instance.isDisposed()) {
         return;
       }
@@ -789,6 +802,7 @@ export function BaseChart({
 
     // Destroy observer and cancel pending resize on unmount
     return () => {
+      disposed = true;
       if (resizeFrame !== null) {
         window.cancelAnimationFrame(resizeFrame);
       }
