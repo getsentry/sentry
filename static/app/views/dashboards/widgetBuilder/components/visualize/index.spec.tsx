@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -1189,6 +1190,56 @@ describe('Visualize', () => {
     expect(await screen.findAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(
       2
     );
+  });
+
+  it('moves transformations with their series when series are reordered', async () => {
+    // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+    const rectSpy = jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['avg(span.duration)', 'count(span.duration)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const [firstHandle] = await screen.findAllByRole('button', {
+      name: 'Drag to reorder',
+    });
+    act(() => firstHandle!.focus());
+    await userEvent.keyboard(' ');
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    await userEvent.keyboard(' ');
+
+    await waitFor(() => {
+      expect(router.location.query.yAxis).toEqual([
+        'count(span.duration)',
+        'avg(span.duration)',
+      ]);
+    });
+    expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
+    rectSpy.mockRestore();
   });
 
   it('allows for selecting a column from the aggregate dropdown', async () => {

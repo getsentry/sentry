@@ -15,6 +15,10 @@ import {
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
+  supportsWidgetTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
+import {
   dispatchYAxisUpdate,
   prepareQueriesForEquationMode,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
@@ -38,6 +42,7 @@ interface SeriesModeSnapshot {
   fields: QueryFieldValue[];
   legendAlias: string[];
   query: string[];
+  transformations?: QueryTransformations[];
 }
 
 export interface EquationModeSnapshot {
@@ -103,6 +108,12 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         type: BuilderStateAction.SET_LEGEND_ALIAS,
         payload: seriesSnapshot.current.legendAlias,
       });
+      if (supportsWidgetTransformations(state.dataset, state.displayType)) {
+        dispatch({
+          type: BuilderStateAction.SET_TRANSFORMATIONS,
+          payload: seriesSnapshot.current.transformations,
+        });
+      }
       return;
     }
 
@@ -147,7 +158,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
-  }, [state.displayType, state.fields, dispatch]);
+  }, [state.dataset, state.displayType, state.fields, dispatch]);
 
   const restoreEquationState = useCallback(() => {
     let snapshot = equationSnapshot.current;
@@ -263,8 +274,10 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
           fields: currentFields ? structuredClone(currentFields) : [],
           legendAlias: currentLegendAlias,
           query: state.query ? [...state.query] : [],
+          transformations: state.transformations,
         };
         restoreEquationState();
+        dispatch({type: BuilderStateAction.SET_TRANSFORMATIONS, payload: undefined});
       } else {
         restoreSeriesState();
       }
@@ -278,6 +291,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       state.fields,
       state.query,
       state.legendAlias,
+      state.transformations,
+      dispatch,
       restoreSeriesState,
       restoreEquationState,
     ]
