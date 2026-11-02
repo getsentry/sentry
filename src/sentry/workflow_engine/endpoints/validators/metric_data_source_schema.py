@@ -22,8 +22,8 @@ validator lets through:
   `count()` queries instead, because Explore and alerts don't support these functions.
 
 `EAP_MONITOR_FUNCTIONS` is also written to
-`static/app/views/detectors/monitorAggregates.generated.ts` by
-`python3 -m tools.monitor_aggregates_to_typescript`, so the monitor form can't offer a function
+`static/app/views/detectors/monitorAggregates.generated.json` by
+`python3 -m tools.monitor_aggregates_to_json`, so the monitor form can't offer a function
 that the backend rejects.
 """
 

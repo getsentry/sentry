@@ -12,7 +12,7 @@ from sentry.workflow_engine.endpoints.validators.metric_data_source_schema impor
     ERRORS_AGGREGATES,
     METRIC_DATA_SOURCE_SCHEMA,
 )
-from tools.monitor_aggregates_to_typescript import OUTPUT_PATH, render
+from tools.monitor_aggregates_to_json import OUTPUT_PATH, render
 
 
 def _matching_titles(data_source: dict[str, Any]) -> list[str]:
@@ -129,10 +129,10 @@ def test_rejected_aggregates(data_source: dict[str, Any]) -> None:
     assert _matching_titles(data_source) == []
 
 
-def test_generated_typescript_is_current() -> None:
+def test_generated_aggregates_are_current() -> None:
     with open(OUTPUT_PATH) as f:
         current = f.read()
     assert current == render(), (
         f"{OUTPUT_PATH} is out of date. "
-        "Run `python3 -m tools.monitor_aggregates_to_typescript` to update it."
+        "Run `python3 -m tools.monitor_aggregates_to_json` to update it."
     )
