@@ -9,6 +9,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import type {FormSize, SpaceSize} from '@sentry/scraps/theme';
 
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -344,7 +345,7 @@ function TransformationRow({
         />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
-            <Flex gap="md">
+            <PageFilterBar condensed css={theme => ({height: theme.form[size].height})}>
               <CompactSelect
                 size={size}
                 options={KIND_OPTIONS}
@@ -407,7 +408,7 @@ function TransformationRow({
                   }}
                 />
               )}
-            </Flex>
+            </PageFilterBar>
           ) : (
             <Text size="sm">{t('Unsupported transformation')}</Text>
           )}
