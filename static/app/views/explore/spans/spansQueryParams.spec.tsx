@@ -333,6 +333,63 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('skips malformed visualizes and keeps the valid ones', () => {
+    const location = locationFixture({
+      visualize: [
+        '{',
+        'null',
+        JSON.stringify({yAxes: [1]}),
+        JSON.stringify({yAxes: ['avg(span.self_time)'], chartType: 99, extra: true}),
+        JSON.stringify({yAxes: ['p50(span.duration)'], visible: false}),
+      ],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: ''},
+      new VisualizeFunction('avg(span.self_time)'),
+      new VisualizeFunction('p50(span.duration)', {visible: false}),
+    ]);
+  });
+
+  it('falls back to the default visualize when every visualize is malformed', () => {
+    const location = locationFixture({
+      visualize: ['', '{', JSON.stringify({chartType: ChartType.LINE})],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(new ReadableQueryParams(readableQueryParamOptions()));
+  });
+
+  it('keeps an aggregate field with a malformed chart type on the default chart type', () => {
+    const location = locationFixture({
+      aggregateField: [
+        JSON.stringify({groupBy: 'span.op'}),
+        JSON.stringify({yAxes: ['avg(span.self_time)'], chartType: 99}),
+      ],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toEqual([
+      {groupBy: 'span.op'},
+      new VisualizeFunction('avg(span.self_time)'),
+    ]);
+  });
+
+  it('decodes custom visualizes with multi aggregate charts', () => {
+    const location = locationFixture({
+      visualize: [
+        JSON.stringify({yAxes: ['count(span.duration)']}),
+        JSON.stringify({yAxes: ['p50(span.duration)', 'p75(span.duration)']}),
+      ],
+    });
+    const [, count, p50, p75] = getReadableQueryParamsFromLocation(location, undefined, {
+      multiAggregateCharts: true,
+    }).aggregateFields as VisualizeFunction[];
+    expect(count!.chartGroup).toBeUndefined();
+    expect(p50!.yAxis).toBe('p50(span.duration)');
+    expect(p75!.yAxis).toBe('p75(span.duration)');
+    expect(p50!.chartGroup).toBeDefined();
+    expect(p50!.chartGroup).toBe(p75!.chartGroup);
+  });
+
   it('decodes custom aggregate fields with multi aggregate charts', () => {
     const location = locationFixture({
       aggregateField: [

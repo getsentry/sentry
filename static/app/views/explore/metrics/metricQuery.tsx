@@ -13,8 +13,8 @@ import {
   type ReadableQueryParamsOptions,
 } from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  isBaseVisualize,
   isVisualize,
+  parseVisualize,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -219,7 +219,7 @@ function parseVisualizes(value: unknown): Visualize[] {
     return [];
   }
 
-  return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
+  return value.flatMap(item => parseVisualize(item));
 }
 
 function parseGroupBys(value: unknown): GroupBy[] {
