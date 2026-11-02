@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -25,7 +26,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'status', width: 'min-content'},
   {key: 'id', width: 'max-content'},
   {key: 'date', width: 'max-content'},
-  {key: 'strategy', width: '1fr'},
+  {key: 'trigger', width: '1fr'},
 ];
 
 /**
@@ -51,7 +52,7 @@ export function RunsTable({configId}: {configId?: string}) {
             <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Trigger')}</SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
       >
@@ -89,7 +90,13 @@ function RunRow({run}: {run: SeerAutomationRun}) {
         </Tooltip>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Text>{getStrategyLabel(run.strategy)}</Text>
+        <Stack gap="2xs">
+          <Text>{getStrategyLabel(run.strategy)}</Text>
+          {/* TEMPORARY: every run is cron-triggered until runs report their trigger */}
+          <Text size="sm" variant="muted">
+            {t('Cron')}
+          </Text>
+        </Stack>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

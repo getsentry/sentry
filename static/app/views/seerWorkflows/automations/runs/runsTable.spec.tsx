@@ -55,6 +55,7 @@ describe('RunsTable', () => {
     expect(screen.getByText('11')).toBeInTheDocument();
     expect(screen.getByText('Breached metrics')).toBeInTheDocument();
     expect(screen.getByText('Agentic triage')).toBeInTheDocument();
+    expect(screen.getAllByText('Cron')).toHaveLength(2);
   });
 
   it('shows an empty state when there are no runs', async () => {
