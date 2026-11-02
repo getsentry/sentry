@@ -50,7 +50,11 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
-from sentry.service_accounts.models import ServiceAccountProjectReplica, ServiceAccountReplica
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.types.request import _HttpRequestWithUser
@@ -1536,15 +1540,25 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
         return DEFAULT
-    # The token doesn't carry `all_projects`, so read it from the replica, like the
-    # project links. An account deactivated since authentication gets no access.
-    all_projects = (
-        ServiceAccountReplica.objects.filter(
-            service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+    # The token doesn't carry `all_projects`, so read it from the account: the source
+    # on control, the replica elsewhere. An account deactivated since authentication
+    # gets no access.
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        all_projects = (
+            ServiceAccount.objects.filter(
+                id=auth.entity_id, organization_id=organization_id, is_active=True
+            )
+            .values_list("all_projects", flat=True)
+            .first()
         )
-        .values_list("all_projects", flat=True)
-        .first()
-    )
+    else:
+        all_projects = (
+            ServiceAccountReplica.objects.filter(
+                service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+            )
+            .values_list("all_projects", flat=True)
+            .first()
+        )
     if all_projects is None:
         return DEFAULT
     return ServiceAccountAccess(

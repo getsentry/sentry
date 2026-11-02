@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.app import env
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
@@ -160,7 +161,8 @@ class SentryAppSerializer(Serializer):
             for app in ApiApplication.objects.filter(id__in=[i.application_id for i in item_list])
         }
 
-        user_orgs = user_service.get_organizations(user_id=user.id)
+        user_id = acting_user_id(user)
+        user_orgs = user_service.get_organizations(user_id=user_id) if user_id is not None else []
         user_org_ids = {uo.id for uo in user_orgs}
 
         # Fetch organization contexts for unique owner_ids where user is a member.
@@ -171,7 +173,7 @@ class SentryAppSerializer(Serializer):
         unique_owner_ids = {i.owner_id for i in item_list if i.owner_id in user_org_ids}
         for owner_id in unique_owner_ids:
             owner_context = organization_service.get_access_context(
-                organization_id=owner_id, user_id=user.id
+                organization_id=owner_id, user_id=user_id
             )
             if owner_context:
                 owner_contexts[owner_id] = owner_context

@@ -1,10 +1,14 @@
 from django.db import connections
+from django.test import override_settings
+from django.urls import reverse
 
 from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
@@ -47,6 +51,31 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
         assert api_key.label == "New Label"
         assert api_key.allowed_origins == "sentry.io"
         assert api_key.get_scopes() == ["org:read", "project:read", "project:write", "team:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_update_key(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:admin"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            reverse(self.endpoint, args=[self.organization.slug, self.api_key.id]),
+            data={"scope_list": ["org:admin", "service_account:write"]},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert ApiKey.objects.get(id=self.api_key.id).get_scopes() == sorted(DEFAULT_SCOPES)
 
     def test_update_api_key_rejects_invalid_scopes(self) -> None:
         data = {"scope_list": ["a", "b", "c", "d"]}

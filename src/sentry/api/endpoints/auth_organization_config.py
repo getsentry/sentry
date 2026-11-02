@@ -17,7 +17,7 @@ from sentry.api.serializers.models.auth import (
 )
 from sentry.auth import access
 from sentry.auth.exceptions import ProviderNotRegistered
-from sentry.auth.principal import acting_user_id, require_user
+from sentry.auth.principal import acting_user_id, has_user, require_user
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.models.authprovider import AuthProvider
@@ -98,7 +98,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
 
         warnings = []
         if (
-            request.user.is_authenticated
+            has_user(request.user)
             and organization_context.member is None
             and not organization_access.has_global_access
             and not is_demo_organization

@@ -2,6 +2,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -32,6 +33,7 @@ from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 FEATURE_FLAG = "organizations:service-accounts"
 
@@ -500,6 +502,36 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
 
     def test_flag_off_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, self.service_account.id, status_code=404)
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_service_account_cannot_update_service_accounts(self) -> None:
+        caller = self.create_service_account(
+            organization=self.organization, name="caller", scope_list=["org:admin", "org:read"]
+        )
+        disabled = self.create_service_account(
+            organization=self.organization, name="disabled", is_active=False
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=caller.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, disabled.id]),
+                data={"isActive": True, "scopes": ["org:admin", "org:read"]},
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        # Writes need service_account:write, which a service account can't hold.
+        assert response.status_code == 403, response.content
+        disabled.refresh_from_db()
+        assert not disabled.is_active
+        assert disabled.scope_list == ["org:read"]
 
     def test_get(self) -> None:
         with self.feature(FEATURE_FLAG):
