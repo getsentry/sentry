@@ -143,6 +143,7 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
 
 
 GROUP_DETAILS: GroupDetailsResponse = {
+    "activeAt": datetime.fromisoformat("2018-11-06T21:19:55Z"),
     "id": "1",
     "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",

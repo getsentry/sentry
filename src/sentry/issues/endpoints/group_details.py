@@ -374,6 +374,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             data.update(
                 {
+                    "activeAt": group.active_at,
                     "activity": activity_items,
                     "seenBy": seen_by,
                     "participants": participants,
