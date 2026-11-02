@@ -3,7 +3,9 @@ import {parseAsInteger, useQueryState} from 'nuqs';
 
 const SelectedReplayIndexContext = createContext(0);
 
-const parseAsSelectedReplayIndex = parseAsInteger.withDefault(0);
+const parseAsSelectedReplayIndex = parseAsInteger
+  .withDefault(0)
+  .withOptions({clearOnDefault: false});
 
 export function SelectedReplayIndexProvider({children}: {children: React.ReactNode}) {
   const [selectedReplayIndex] = useQueryState(
@@ -21,7 +23,7 @@ export function SelectedReplayIndexProvider({children}: {children: React.ReactNo
 export function useSelectedReplayIndex() {
   const [, setSelectedReplayIndex] = useQueryState(
     'selected_replay_index',
-    parseAsSelectedReplayIndex.withOptions({clearOnDefault: false})
+    parseAsSelectedReplayIndex
   );
 
   const index = useContext(SelectedReplayIndexContext);

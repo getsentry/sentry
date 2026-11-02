@@ -93,6 +93,7 @@ describe('useFetchGroupDetails', () => {
       ReturnType<OnUrlUpdateFunction>,
       Parameters<OnUrlUpdateFunction>
     >();
+    setWindowLocation(`http://localhost/organizations/org-slug/issues/${group.id}/`);
 
     const {router} = renderHookWithProviders(useFetchGroupDetails, {
       additionalWrapper: GroupRouteProvider,
@@ -114,6 +115,9 @@ describe('useFetchGroupDetails', () => {
       ReturnType<OnUrlUpdateFunction>,
       Parameters<OnUrlUpdateFunction>
     >();
+    setWindowLocation(
+      `http://localhost/organizations/org-slug/issues/${group.id}/?_allp=1&project=${project.id}&referrer=issue-stream`
+    );
 
     const {router} = renderHookWithProviders(useFetchGroupDetails, {
       additionalWrapper: GroupRouteProvider,

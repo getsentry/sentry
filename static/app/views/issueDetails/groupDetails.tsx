@@ -1,10 +1,17 @@
-import {useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import {parseAsBoolean, parseAsString, useQueryState, useQueryStates} from 'nuqs';
+import {
+  createLoader,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
@@ -91,6 +98,13 @@ type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 const allProjectsQueryParsers = {
   _allp: parseAsString,
   project: parseAsString,
+};
+
+const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
+
+const seerRedirectQueryParsers = {
+  seerDrawer: parseAsStringLiteral(['true']),
+  seerDrawerAction: parseAsString,
 };
 
 const trackViewQueryParsers = {
@@ -377,47 +391,41 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
-  const syncAllProjectsQuery = useEffectEvent(
-    (groupProjectId: string | undefined, hasChangedAllProjects: boolean) => {
-      const {_allp: allProjectsFlag, project: urlProject} = loadQueryParamsFromLocation(
-        allProjectsQueryParsers,
-        location
-      );
-      // We use _allp as a temporary measure to know they came from the
-      // issue list page with no project selected (all projects included in
-      // filter).
-      //
-      // If it is not defined, we add the locked project id to the URL
-      // (this is because if someone navigates directly to an issue on
-      // single-project priveleges, then goes back - they were getting
-      // assigned to the first project).
-      //
-      // If it is defined, we do not so that our back button will bring us
-      // to the issue list page with no project selected instead of the
-      // locked project.
-      if (
-        urlProject === null &&
-        !allProjectsFlag &&
-        !hasChangedAllProjects &&
-        groupProjectId
-      ) {
-        setAllProjectsQuery({project: groupProjectId});
-      }
-
-      if (allProjectsFlag && !hasChangedAllProjects) {
-        // We delete _allp from the URL to keep the hack a bit cleaner, but
-        // this is not an ideal solution and will ultimately be replaced with
-        // something smarter.
-        setAllProjectsQuery({_allp: null, project: null});
-        setAllProjectChanged(true);
-      }
-    }
-  );
-
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    syncAllProjectsQuery(group?.project.id, allProjectChanged);
-  }, [group?.project.id, allProjectChanged]);
+    const {_allp: allProjectsFlag, project: urlProject} = loadAllProjectsQuery(
+      window.location.search
+    );
+
+    // We use _allp as a temporary measure to know they came from the
+    // issue list page with no project selected (all projects included in
+    // filter).
+    //
+    // If it is not defined, we add the locked project id to the URL
+    // (this is because if someone navigates directly to an issue on
+    // single-project priveleges, then goes back - they were getting
+    // assigned to the first project).
+    //
+    // If it is defined, we do not so that our back button will bring us
+    // to the issue list page with no project selected instead of the
+    // locked project.
+    if (
+      urlProject === null &&
+      !allProjectsFlag &&
+      !allProjectChanged &&
+      group?.project.id
+    ) {
+      setAllProjectsQuery({project: group.project.id});
+    }
+
+    if (allProjectsFlag && !allProjectChanged) {
+      // We delete _allp from the URL to keep the hack a bit cleaner, but
+      // this is not an ideal solution and will ultimately be replaced with
+      // something smarter.
+      setAllProjectsQuery({_allp: null, project: null});
+      // oxlint-disable-next-line react/set-state-in-effect
+      setAllProjectChanged(true);
+    }
+  }, [group?.project.id, allProjectChanged, setAllProjectsQuery]);
 
   const errorType =
     groupError instanceof RequestError
@@ -657,7 +665,11 @@ function GroupDetailsContentInner({
   // Autofix has its own tab behind the flag, so legacy `?seerDrawer=true` links
   // are redirected there instead of opening the drawer. This reads the router
   // location, which updates with the redirect, so it renders only once.
-  const redirectToAutofixTab = autofixPage && location.query.seerDrawer === 'true';
+  const seerRedirectQuery = loadQueryParamsFromLocation(
+    seerRedirectQueryParsers,
+    location
+  );
+  const redirectToAutofixTab = autofixPage && seerRedirectQuery.seerDrawer === 'true';
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -761,10 +773,7 @@ function GroupDetailsContentInner({
           makeSeerLocation({
             organization,
             groupId: group.id,
-            action:
-              typeof location.query.seerDrawerAction === 'string'
-                ? location.query.seerDrawerAction
-                : undefined,
+            action: seerRedirectQuery.seerDrawerAction ?? undefined,
             query: location.query,
           })
         )}

@@ -20,8 +20,9 @@ import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parseAsSort} from 'sentry/utils/url/parseAsSort';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -101,7 +102,7 @@ const mobileOverviewQueryParsers = {
   isDefaultQuery: parseAsBoolean,
   [QueryParameterNames.PAGES_CURSOR]: parseAsString,
   query: parseAsString.withDefault(''),
-  sort: parseAsSort,
+  sort: parseAsStringArray,
 };
 
 interface EAPMobileOverviewPageProps {
@@ -212,7 +213,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
       field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
-    sort && isAValidSort(sort) ? sort : DEFAULT_SORT,
+    decodeSorts(sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
   existingQuery.addFilterValue('is_transaction', 'true');
