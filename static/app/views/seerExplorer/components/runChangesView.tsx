@@ -135,7 +135,6 @@ export function RunChangesView({
                       {...triggerProps}
                       variant="link"
                       showChevron={false}
-                      aria-label={t('Repository')}
                     >
                       <Flex align="center" gap="xs" minWidth="0">
                         {/* The button's own font is smaller than the title's. */}
@@ -227,7 +226,8 @@ export function RunChangesView({
           </Button>
         )}
       </Flex>
-      <Container flex="1" minHeight="0" overflowY="auto" padding="0 xl xl">
+      {/* Keyed so another repo's diff also starts over at the top. */}
+      <Container key={repoName} flex="1" minHeight="0" overflowY="auto" padding="0 xl xl">
         <Stack gap="md">
           {!shown && allStatus === 'pending' && (
             <Stack gap="md">
