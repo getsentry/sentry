@@ -1,5 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {EntryType} from 'sentry/types/event';
@@ -70,5 +69,4 @@ export const MOCK_DATA_SECTION_PROPS = {
     id: 'abc123def456ghi789jkl',
     entries: [MOCK_BREADCRUMB_ENTRY, MOCK_EXCEPTION_ENTRY],
   }),
-  project: ProjectFixture(),
 };

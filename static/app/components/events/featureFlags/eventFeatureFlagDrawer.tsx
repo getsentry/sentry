@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -22,7 +21,6 @@ import {
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,13 +32,11 @@ interface FlagDrawerProps {
   event: Event;
   hydratedFlags: KeyValueTableDataRowProps[];
   initialOrderBy: OrderBy;
-  project: Project;
   focusControl?: FlagControlOptions;
 }
 
 export function EventFeatureFlagDrawer({
   event,
-  project,
   initialOrderBy,
   hydratedFlags,
   focusControl: initialFocusControl,
@@ -91,7 +87,6 @@ export function EventFeatureFlagDrawer({
           current={{
             label: t('Feature Flags'),
             labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
-            leadingGraphic: <ProjectAvatar project={project} size={16} />,
           }}
         />
       </EventDrawerHeader>

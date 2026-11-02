@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
@@ -296,6 +297,9 @@ export function ReleasesDrawerDetails({
             current={{
               label: displayVersion,
               labelTooltip: displayVersion === release ? undefined : release,
+              leadingGraphic: project ? (
+                <ProjectAvatar project={project} size={16} />
+              ) : undefined,
             }}
           />
         </ErrorBoundary>

@@ -99,7 +99,7 @@ function MetricsSectionContent({
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-            <MetricsDrawer event={event} project={project} />
+            <MetricsDrawer event={event} />
           </TraceViewMetricsProviderWrapper>
         ),
         {

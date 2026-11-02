@@ -39,15 +39,25 @@ interface DrawerBreadcrumbsProps {
  */
 export function DrawerBreadcrumbs({items = [], current}: DrawerBreadcrumbsProps) {
   return (
-    <Flex as="nav" aria-label={t('Breadcrumbs')} flex="1" minWidth="0">
-      <Flex containerType="inline-size" width="100%" align="center" gap="sm" minWidth="0">
-        <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
-          <BreadcrumbList items={items} />
+    <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" flex="1" minWidth="0">
+      {items.length === 0 ? (
+        <BreadcrumbList.Current item={current} />
+      ) : (
+        <Flex
+          containerType="inline-size"
+          width="100%"
+          align="center"
+          gap="sm"
+          minWidth="0"
+        >
+          <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
+            <BreadcrumbList items={items} />
+          </Flex>
+          <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+            <BreadcrumbList.Current item={current} />
+          </Flex>
         </Flex>
-        <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-          <BreadcrumbList.Current item={current} />
-        </Flex>
-      </Flex>
+      )}
     </Flex>
   );
 }

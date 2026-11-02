@@ -1,7 +1,5 @@
 import {useRef} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
@@ -12,7 +10,6 @@ import {
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import {
@@ -22,10 +19,9 @@ import {
 
 interface MetricsIssueDrawerProps {
   event: Event;
-  project: Project;
 }
 
-export function MetricsDrawer({event, project}: MetricsIssueDrawerProps) {
+export function MetricsDrawer({event}: MetricsIssueDrawerProps) {
   const setMetricsQuery = useSetQueryParamsQuery();
   const metricsSearch = useQueryParamsSearch();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,7 +33,6 @@ export function MetricsDrawer({event, project}: MetricsIssueDrawerProps) {
           current={{
             label: t('Application Metrics'),
             labelTooltip: t('Event ID: %s', getShortEventId(event.id)),
-            leadingGraphic: <ProjectAvatar project={project} size={16} />,
           }}
         />
       </EventDrawerHeader>

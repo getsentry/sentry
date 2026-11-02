@@ -219,7 +219,7 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} project={project} />
+      <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
           <OurlogsSection event={event} group={group} project={project} />

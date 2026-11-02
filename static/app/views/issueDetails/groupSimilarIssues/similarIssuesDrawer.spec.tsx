@@ -74,7 +74,7 @@ describe('SimilarIssuesDrawer', () => {
   });
 
   it('renders the content as expected', async () => {
-    render(<SimilarIssuesDrawer group={group} project={project} />, {
+    render(<SimilarIssuesDrawer group={group} />, {
       organization,
       initialRouterConfig,
     });

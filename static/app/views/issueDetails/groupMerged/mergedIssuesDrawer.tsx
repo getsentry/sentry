@@ -1,5 +1,3 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
 import {
   DrawerBreadcrumbs,
   EventDrawerBody,
@@ -20,7 +18,6 @@ export function MergedIssuesDrawer({group, project}: {group: Group; project: Pro
         <DrawerBreadcrumbs
           current={{
             label: t('Merged Issues'),
-            leadingGraphic: <ProjectAvatar project={project} size={16} />,
           }}
         />
       </EventDrawerHeader>
