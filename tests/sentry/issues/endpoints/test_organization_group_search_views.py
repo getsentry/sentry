@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,6 +17,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 # Ignores the dateCreated and dateUpdated fields
@@ -141,6 +143,34 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[2]["stars"] == 0
         assert response.data[2]["createdBy"]["id"] == str(self.user.id)
         assert not response.data[2]["starred"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_shared_views_without_personal_state(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        mine = self.client.get(url, {"createdBy": "me"}, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert mine.status_code == 200, mine.content
+        assert mine.data == []
+
+        others = self.client.get(url, {"createdBy": "others"}, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert others.status_code == 200, others.content
+        shared = GroupSearchView.objects.filter(
+            organization=self.organization, visibility=GroupSearchViewVisibility.ORGANIZATION
+        )
+        assert {view["id"] for view in others.data} == {str(view.id) for view in shared}
+        assert not any(view["starred"] for view in others.data)
+        assert not any(view.get("lastVisited") for view in others.data)
 
     def test_get_views_created_by_others(self) -> None:
         self.login_as(user=self.user)
