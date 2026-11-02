@@ -79,7 +79,6 @@ describe('BreadcrumbsDataSection', () => {
     render(
       <BreadcrumbsDataSection
         event={singleCrumbEvent}
-        group={MOCK_DATA_SECTION_PROPS.group}
         project={MOCK_DATA_SECTION_PROPS.project}
       />
     );

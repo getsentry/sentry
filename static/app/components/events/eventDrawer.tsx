@@ -1,11 +1,15 @@
-import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  BreadcrumbList,
+  type BreadcrumbCurrentItem,
+  type BreadcrumbListProps,
+} from '@sentry/scraps/breadcrumbList';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {t} from 'sentry/locale';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
@@ -23,31 +27,30 @@ export const Header = styled('h3')`
 
 export const SearchInput = InputGroup.Input;
 
-const StyledNavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
-  padding: 0;
-`;
+interface DrawerBreadcrumbsProps {
+  current: BreadcrumbCurrentItem;
+  items?: BreadcrumbListProps['items'];
+}
 
 /**
- * Standalone breadcrumbs for drawers/panels. Unlike breadcrumbs rendered into
- * the top bar title (which live inside the page `<h1>`), these are not inside a
- * heading, so they render as a proper `<nav>` landmark.
+ * Breadcrumbs for drawers and panels. The page already owns the `<h1>` in the
+ * TopBar, so the current location renders without a heading. Unlike the TopBar
+ * trail, these are rendered in a `<nav>` landmark.
  */
-export function NavigationCrumbs(
-  props: ComponentPropsWithoutRef<typeof NavigationBreadcrumbs>
-) {
-  return <StyledNavigationCrumbs as="nav" {...props} />;
+export function DrawerBreadcrumbs({items = [], current}: DrawerBreadcrumbsProps) {
+  return (
+    <Flex as="nav" aria-label={t('Breadcrumbs')} flex="1" minWidth="0">
+      <Flex containerType="inline-size" width="100%" align="center" gap="sm" minWidth="0">
+        <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
+          <BreadcrumbList items={items} />
+        </Flex>
+        <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+          <BreadcrumbList.Current item={current} />
+        </Flex>
+      </Flex>
+    </Flex>
+  );
 }
-
-export function CrumbContainer(props: FlexProps) {
-  return <Flex align="center" gap="md" {...props} />;
-}
-
-export const ShortId = styled('div')`
-  font-family: ${p => p.theme.font.family.sans};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1;
-`;
 
 // oxlint-disable-next-line @sentry/scraps/prefer-primitives
 export const EventDrawerContainer = styled('div')`

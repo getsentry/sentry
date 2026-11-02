@@ -32,7 +32,7 @@ export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props)
     <AnalyticsArea name="distributions_drawer">
       <EventDrawerContainer>
         <EventDrawerHeader>
-          <GroupDistributionCrumbs project={project} group={group} tab={tab} />
+          <GroupDistributionCrumbs project={project} tab={tab} />
         </EventDrawerHeader>
         {tab === DrawerTab.TAGS ? (
           <TagsDistributionDrawer

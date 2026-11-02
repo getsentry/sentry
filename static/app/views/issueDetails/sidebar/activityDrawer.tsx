@@ -8,14 +8,12 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  CrumbContainer,
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
   EventDrawerHeader,
   EventNavigator,
   Header,
-  NavigationCrumbs,
-  ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
@@ -69,18 +67,11 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
-        <NavigationCrumbs
-          crumbs={[
-            {
-              label: (
-                <CrumbContainer>
-                  <ProjectAvatar project={project} />
-                  <ShortId>{group.shortId}</ShortId>
-                </CrumbContainer>
-              ),
-            },
-            {label: t('Activity')},
-          ]}
+        <DrawerBreadcrumbs
+          current={{
+            label: t('Activity'),
+            leadingGraphic: <ProjectAvatar project={project} size={16} />,
+          }}
         />
       </EventDrawerHeader>
       <EventNavigator>

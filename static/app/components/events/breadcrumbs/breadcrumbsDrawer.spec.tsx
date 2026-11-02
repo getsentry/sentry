@@ -20,11 +20,15 @@ describe('BreadcrumbsDrawer', () => {
     ).toBeInTheDocument();
 
     // Inner drawer breadcrumbs
-    const {event, group} = MOCK_DATA_SECTION_PROPS;
-    expect(within(drawerScreen).getByText(group.shortId)).toBeInTheDocument();
-    expect(within(drawerScreen).getByText(event.id.slice(0, 8))).toBeInTheDocument();
+    const {event} = MOCK_DATA_SECTION_PROPS;
+    const navigation = within(drawerScreen).getByRole('navigation', {
+      name: 'Breadcrumbs',
+    });
+    const currentCrumb = within(navigation).getByText('Breadcrumbs');
+    expect(currentCrumb).toHaveAttribute('aria-current', 'location');
+    await userEvent.hover(currentCrumb);
     expect(
-      within(drawerScreen).getByText('Breadcrumbs', {selector: 'span'})
+      await screen.findByText(`Event ID: ${event.id.slice(0, 8)}`)
     ).toBeInTheDocument();
 
     // Header & Controls

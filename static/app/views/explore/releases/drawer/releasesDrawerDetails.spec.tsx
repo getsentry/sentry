@@ -102,11 +102,9 @@ describe('ReleasesDrawerDetails', () => {
   it('renders content when projectId exists', async () => {
     render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, renderOptions);
 
-    // no start/end from url params, so can't link back to releases
-    const notLink = await screen.findByText('Releases');
-    expect(notLink).not.toHaveAttribute('href');
-
     expect(await screen.findByText('Details')).toBeInTheDocument();
+    // no start/end from url params, so there is no releases crumb to link back to
+    expect(screen.queryByRole('link', {name: 'Releases'})).not.toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -123,7 +121,7 @@ describe('ReleasesDrawerDetails', () => {
       renderOptions
     );
 
-    const link = await screen.findByText('Releases');
+    const link = await screen.findByRole('link', {name: 'Releases'});
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining(

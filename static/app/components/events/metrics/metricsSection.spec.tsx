@@ -147,7 +147,7 @@ describe('MetricsSection', () => {
         ],
       },
     });
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
     });
     await userEvent.click(
@@ -162,7 +162,7 @@ describe('MetricsSection', () => {
       contexts: {},
     });
 
-    render(<MetricsSection event={eventWithoutTrace} project={project} group={group} />, {
+    render(<MetricsSection event={eventWithoutTrace} project={project} />, {
       organization,
     });
 
@@ -174,7 +174,7 @@ describe('MetricsSection', () => {
       features: [],
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization: orgWithoutFeature,
     });
 
@@ -190,7 +190,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
     });
 
@@ -203,7 +203,7 @@ describe('MetricsSection', () => {
   });
 
   it('renders metrics section with data', async () => {
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -251,7 +251,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
     });
 
@@ -291,7 +291,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -352,7 +352,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} project={project} />, {
       organization,
     });
 
