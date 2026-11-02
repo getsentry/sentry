@@ -164,7 +164,7 @@ export function useReserveLeadingSlot() {
 }
 
 /**
- * Menu item priority. Determines the text and background color.
+ * Menu item priority. Determines the text color.
  */
 type Priority = 'primary' | 'danger' | 'default';
 
@@ -217,11 +217,10 @@ const StyledInnerWrap = styled(Flex, {
     typeof prop === 'string' &&
     (isPropValid(prop) ||
       ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
-    !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
+    !['disabled', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;
   hasTrailingAction: boolean;
-  isFocused: boolean;
   priority: Priority;
   size?: FormSize;
 }>`
@@ -229,6 +228,7 @@ const StyledInnerWrap = styled(Flex, {
   position: relative;
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
+  background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
 
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
@@ -242,31 +242,35 @@ const StyledInnerWrap = styled(Flex, {
   }
   ${p => p.disabled && 'cursor: default;'}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-  }
-
   ${p =>
-    p.isFocused &&
+    !p.disabled &&
     css`
-      ${!p.hasTrailingAction && 'z-index: 1;'}
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.tokens.background.overlay};
+      &[data-focused='true'] {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover},
+            ${p.theme.tokens.interactive.transparent.neutral.background.hover}
+          ),
+          ${p.theme.tokens.background.overlay};
+      }
+
+      &[data-pressed='true'],
+      &:active:not([data-pressed='false']),
+      &[aria-expanded='true']:not([data-pressed='false']),
+      &[aria-selected='true']:not([data-pressed='false']) {
+        ${!p.hasTrailingAction && 'z-index: 1;'}
+        background:
+          linear-gradient(
+            ${p.theme.tokens.interactive.transparent.neutral.background.active},
+            ${p.theme.tokens.interactive.transparent.neutral.background.active}
+          ),
+          ${p.theme.tokens.background.overlay};
       }
     `}
 `;
 
-const StyledContentWrap = styled('div')<{
-  isFocused: boolean;
-  size?: FormSize;
-}>`
+const StyledContentWrap = styled('div')`
   position: relative;
   width: 100%;
   min-width: 0;
@@ -355,7 +359,7 @@ export type ListItemProps = {
    */
   leadingItems?: ExtraContent;
   /**
-   * Accented text and background (on hover) colors.
+   * Accented text color.
    */
   priority?: Priority;
   /**
@@ -464,19 +468,14 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           // they sat before the slot existed, at every size.
           paddingLeft={hasLeadingSlot ? 'md' : undefined}
           paddingRight={trailingAction ? TRAILING_ACTION_SPACE : undefined}
-          isFocused={isFocused}
+          data-focused={isFocused}
+          data-pressed={isPressed}
           hasTrailingAction={Boolean(trailingAction)}
           disabled={disabled}
           priority={priority}
           size={size}
           {...innerWrapProps}
         >
-          <MenuItemStateLayer
-            role="presentation"
-            isHovered={isFocused}
-            isPressed={isPressed}
-            higherOpacity={priority !== 'default'}
-          />
           {hasLeadingSlot && (
             <StyledLeadingItems
               disabled={disabled}
@@ -488,7 +487,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 : leadingItems}
             </StyledLeadingItems>
           )}
-          <StyledContentWrap isFocused={isFocused} size={size}>
+          <StyledContentWrap>
             {/* Size the label box to match leading and trailing items, so labels that
                 already render at that height do not get extra space. */}
             <Stack
@@ -658,49 +657,6 @@ const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolea
   }
   &:focus-visible {
     outline: none;
-  }
-`;
-
-const MenuItemStateLayer = styled('span')<{
-  higherOpacity: boolean;
-  isHovered: boolean;
-  isPressed?: boolean;
-}>`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  transform: translate(-50%, -50%);
-  box-sizing: content-box;
-  border-radius: inherit;
-  border: inherit;
-  color: currentcolor;
-  background-color: currentcolor;
-  border-color: currentcolor;
-  pointer-events: none;
-  opacity: ${p => (p.isHovered ? (p.higherOpacity ? 0.085 : 0.06) : 0)};
-  z-index: -1;
-
-  ${p =>
-    p.isPressed !== undefined && p.isPressed !== null
-      ? p.isPressed &&
-        css`
-          &&& {
-            opacity: ${p.higherOpacity ? 0.12 : 0.09};
-          }
-        `
-      : css`
-          *:active > &&,
-          *[aria-expanded='true'] > &&,
-          *[aria-selected='true'] > && {
-            opacity: ${p.higherOpacity ? 0.12 : 0.09};
-          }
-        `}
-
-  *:disabled &&,
-  *[aria-disabled='true'] && {
-    opacity: 0;
   }
 `;
 

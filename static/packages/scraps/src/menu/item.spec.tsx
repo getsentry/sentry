@@ -6,7 +6,7 @@ import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
 import {ListItem, ReserveLeadingSlot} from '@sentry/scraps/menu';
-import {lightTheme} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
@@ -43,28 +43,81 @@ describe('ListItem', () => {
       }));
   });
 
-  it.each([
-    {isFocused: false, isPressed: false, disabled: false, opacity: '0'},
-    {isFocused: true, isPressed: false, disabled: false, opacity: '0.06'},
-    {isFocused: true, isPressed: true, disabled: false, opacity: '0.09'},
-    {isFocused: true, isPressed: true, disabled: true, opacity: '0'},
-  ])('preserves interaction feedback for %j', ({opacity, ...props}) => {
-    render(<ListItem label="Action" {...props} />, {wrapper: ThemeWrapper});
+  describe.each([
+    ['light', lightTheme],
+    ['dark', darkTheme],
+  ] as const)('%s theme interaction backgrounds', (_, theme) => {
+    const background = theme.tokens.interactive.transparent.neutral.background;
 
-    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe(opacity);
-  });
+    it.each([
+      {isFocused: false, isPressed: false, disabled: false, state: 'rest'},
+      {isFocused: true, isPressed: false, disabled: false, state: 'hover'},
+      {isFocused: false, isPressed: true, disabled: false, state: 'active'},
+      {isFocused: true, isPressed: true, disabled: false, state: 'active'},
+      {isFocused: true, isPressed: true, disabled: true, state: 'rest'},
+    ] as const)('uses the $state background for %j', ({state, ...props}) => {
+      render(
+        <ThemeProvider theme={theme}>
+          <ListItem label="Action" innerWrapProps={{role: 'menuitem'}} {...props} />
+        </ThemeProvider>
+      );
 
-  it('uses stronger interaction feedback for accented items', () => {
-    const {rerender} = render(
-      <ListItem label="Delete" priority="danger" isFocused isPressed={false} />,
-      {wrapper: ThemeWrapper}
+      expect(screen.getByRole('menuitem')).toHaveStyle({
+        background:
+          state === 'rest'
+            ? background.rest
+            : `linear-gradient(${background[state]}, ${background[state]}), ${theme.tokens.background.overlay}`,
+      });
+    });
+
+    it.each(['default', 'primary', 'danger'] as const)(
+      'keeps neutral feedback and the %s text color',
+      priority => {
+        render(
+          <ThemeProvider theme={theme}>
+            <ListItem
+              label="Action"
+              priority={priority}
+              isFocused
+              innerWrapProps={{role: 'menuitem'}}
+            />
+          </ThemeProvider>
+        );
+
+        expect(screen.getByRole('menuitem')).toHaveStyle({
+          background: `linear-gradient(${background.hover}, ${background.hover}), ${theme.tokens.background.overlay}`,
+          color:
+            priority === 'primary'
+              ? theme.tokens.content.accent
+              : priority === 'danger'
+                ? theme.tokens.content.danger
+                : theme.tokens.content.primary,
+        });
+      }
     );
 
-    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe('0.085');
+    it.each([
+      {isPressed: undefined, state: 'active'},
+      {isPressed: false, state: 'hover'},
+    ] as const)(
+      'uses $state for an expanded item with isPressed=$isPressed',
+      ({isPressed, state}) => {
+        render(
+          <ThemeProvider theme={theme}>
+            <ListItem
+              label="Action"
+              isFocused
+              isPressed={isPressed}
+              innerWrapProps={{role: 'menuitem', 'aria-expanded': true}}
+            />
+          </ThemeProvider>
+        );
 
-    rerender(<ListItem label="Delete" priority="danger" isFocused isPressed />);
-
-    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe('0.12');
+        expect(screen.getByRole('menuitem')).toHaveStyle({
+          background: `linear-gradient(${background[state]}, ${background[state]}), ${theme.tokens.background.overlay}`,
+        });
+      }
+    );
   });
 
   it('attaches the ref to the default li wrapper', () => {
