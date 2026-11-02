@@ -95,6 +95,16 @@ describe('KeyDescription', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders description links as text when shown in a menu', () => {
+    renderKeyDescription(
+      {key: 'db.system', name: 'db.system', kind: FieldKind.TAG},
+      key => getFieldDefinition(key, 'span')
+    );
+
+    expect(screen.getByText(/OpenTelemetry docs/)).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('names an aggregate by its arguments', () => {
     renderKeyDescription(
       {key: 'count_unique', name: 'count_unique', kind: FieldKind.FUNCTION},
