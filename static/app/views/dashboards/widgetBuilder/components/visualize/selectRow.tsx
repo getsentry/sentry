@@ -484,7 +484,7 @@ export function SelectRow({
   ]);
 
   return (
-    <Stack width="100%" minWidth="0" gap="sm">
+    <Stack width="100%" minWidth="0" gap="md">
       <PrimarySelectRow
         hasColumnParameter={hasColumnParameter}
         elevated={isSelectMenuOpen}
