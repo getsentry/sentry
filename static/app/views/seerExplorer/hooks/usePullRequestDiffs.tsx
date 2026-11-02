@@ -61,14 +61,16 @@ export function usePullRequestDiffs({
     [states, organizationSlug, enabled]
   );
 
-  // Seer's pushes change the PR, so fetch its diff again after each one.
+  // Seer's pushes change the PR, so fetch its diff again after each one. Reset rather than
+  // invalidate: the cached diff lacks the pushed edits, which have already left the unpushed
+  // changes, so showing it until the refetch lands would drop them.
   const queryClient = useQueryClient();
   const pushedCommits = useRef(new Map<string, string | null>());
   useEffect(() => {
     states.forEach((state, index) => {
       const previous = pushedCommits.current.get(state.repo_name);
       if (previous !== undefined && previous !== state.commit_sha) {
-        queryClient.invalidateQueries({queryKey: queries[index]!.queryKey});
+        queryClient.resetQueries({queryKey: queries[index]!.queryKey});
       }
       pushedCommits.current.set(state.repo_name, state.commit_sha);
     });
