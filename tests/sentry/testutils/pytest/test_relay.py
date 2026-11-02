@@ -4,6 +4,7 @@ import pytest
 import requests
 
 from sentry.testutils.pytest import relay
+from sentry.testutils.relay import RelayStoreHelper
 
 
 class FakeRelay:
@@ -48,3 +49,41 @@ def test_gives_up_at_deadline_with_last_result() -> None:
     # The last probe is capped by the time left, so the deadline isn't overshot.
     assert fake.probe_timeouts == pytest.approx([1, 1, 0.4])
     assert fake.now == pytest.approx(2.5)
+
+
+@pytest.mark.parametrize(
+    ("status", "stored"),
+    [(200, False), (200, True), (403, False)],
+)
+def test_negative_relay_helper_requires_accepted_request_and_absent_event(
+    status: int, stored: bool
+) -> None:
+    helper = mock.Mock()
+    helper.project.id = 1
+    helper.auth_header = "auth"
+    url = "http://relay/api/1/store/"
+    helper.get_relay_store_url.return_value = url
+    helper.wait_for_ingest_consumer.side_effect = lambda predicate: predicate()
+
+    event_id = "1234567890abcdef1234567890abcdef"
+    resp = mock.Mock(status_code=status, text="response")
+    resp.json.return_value = {"id": event_id}
+    event = object() if stored else None
+    with (
+        mock.patch("sentry.testutils.relay.uuid4", return_value=mock.Mock(hex=event_id)),
+        mock.patch("sentry.testutils.relay.responses.add_passthru"),
+        mock.patch("sentry.testutils.relay.requests.post", return_value=resp) as post,
+        mock.patch(
+            "sentry.testutils.relay.eventstore.backend.get_event_by_id", return_value=event
+        ),
+    ):
+        if stored or status != 200:
+            with pytest.raises(AssertionError):
+                RelayStoreHelper.post_and_assert_not_stored(helper, {"message": "test"})
+        else:
+            RelayStoreHelper.post_and_assert_not_stored(helper, {"message": "test"})
+        post.assert_called_once_with(
+            url,
+            headers={"x-sentry-auth": "auth", "content-type": "application/json"},
+            json={"message": "test", "event_id": event_id},
+        )

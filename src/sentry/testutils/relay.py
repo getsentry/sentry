@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 import pytest
 import requests
@@ -91,11 +92,30 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(self, data, headers=None):
-        try:
-            return self.post_and_retrieve_event(data, headers)
-        except AssertionError:
-            return None
+    def post_and_assert_not_stored(self, data, headers=None):
+        """Assert the event was not ingested, without swallowing unrelated failures."""
+        if headers is None:
+            headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
+        url = self.get_relay_store_url(self.project.id)
+        responses.add_passthru(url)
+
+        # Use a unique ID so the absence check targets exactly the submitted event.
+        payload = {**data, "event_id": uuid4().hex}
+        resp = requests.post(url, headers=headers, json=payload)
+        assert resp.status_code == 200, resp.text
+        event_id = resp.json()["id"]
+        assert event_id == payload["event_id"]
+
+        # Absence is only checked after the established ingestion wait; a single
+        # immediate eventstore lookup would be meaningless for async ingestion.
+        event = self.wait_for_ingest_consumer(
+            lambda: eventstore.backend.get_event_by_id(
+                self.project.id,
+                event_id,
+                tenant_ids={"referrer": "relay-test", "organization_id": 123},
+            )
+        )
+        assert event is None, f"Unexpectedly ingested event {event_id}"
 
     def post_and_retrieve_attachment(self, event_id, files):
         url = self.get_relay_attachments_url(self.project.id, event_id)
