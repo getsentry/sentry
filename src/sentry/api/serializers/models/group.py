@@ -16,6 +16,7 @@ from sentry_sdk import traces
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.base import IntegrationFeatures
@@ -294,7 +295,7 @@ class GroupSerializerBase(Serializer, ABC):
         # making unnecessary queries.
         prefetch_related_objects(item_list, "project__organization")
 
-        if user.is_authenticated and item_list:
+        if has_user(user) and item_list:
             bookmarks = set(
                 GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
                     "group_id", flat=True

@@ -8,6 +8,8 @@ from sentry import audit_log
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.service_accounts.endpoints.organization_service_accounts import (
+    ALL_PROJECTS_ROLE_ERROR,
+    ALL_PROJECTS_WITH_PROJECTS_ERROR,
     OrganizationServiceAccountDetailsEndpoint,
 )
 from sentry.service_accounts.models import (
@@ -67,6 +69,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "name": "seer-autofix",
                 "scopes": ["org:read", "project:read"],
                 "projectIds": [str(project.id) for project in sorted(projects, key=lambda p: p.id)],
+                "allProjects": False,
                 "isActive": True,
                 "dateCreated": first.date_added,
             },
@@ -75,6 +78,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "name": "nightly-triage",
                 "scopes": ["org:read"],
                 "projectIds": [],
+                "allProjects": False,
                 "isActive": False,
                 "dateCreated": second.date_added,
             },
@@ -132,6 +136,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "name": "nightly-triage",
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
+            "allProjects": False,
             "isActive": True,
             "dateCreated": service_account.date_added,
         }
@@ -144,6 +149,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "name": "nightly-triage",
             "scopes": ["event:read", "project:read"],
             "project_ids": [str(project.id)],
+            "all_projects": False,
             "is_active": True,
         }
 
@@ -242,6 +248,70 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         assert str(other_project.id) in str(response.data["detail"])
         assert not ServiceAccount.objects.exists()
 
+    def test_create_all_projects(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                method="post",
+                name="seer-autofix",
+                scopes=["event:read"],
+                allProjects=True,
+                status_code=201,
+            )
+
+        service_account = ServiceAccount.objects.get(id=response.data["id"])
+        assert service_account.all_projects
+        assert project_ids_for(service_account) == []
+        assert response.data["allProjects"] is True
+        assert response.data["projectIds"] == []
+        entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("SERVICE_ACCOUNT_ADD"))
+        assert entry.data["all_projects"] is True
+
+    def test_create_rejects_all_projects_with_projects(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            project = self.create_project(organization=self.organization)
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                method="post",
+                name="seer-autofix",
+                scopes=["event:read"],
+                allProjects=True,
+                projectIds=[project.id],
+                status_code=400,
+            )
+
+        assert response.data["detail"]["projectIds"] == [ALL_PROJECTS_WITH_PROJECTS_ERROR]
+        assert not ServiceAccount.objects.exists()
+
+    def test_create_all_projects_requires_global_role(self) -> None:
+        api_key = self.create_api_key(
+            organization=self.organization, scope_list=["org:admin", "event:read"]
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        with self.feature(FEATURE_FLAG):
+            response = self.client.post(
+                url,
+                data={"name": "seer-autofix", "scopes": ["event:read"], "allProjects": True},
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+            assert response.status_code == 403
+            assert response.data["detail"] == ALL_PROJECTS_ROLE_ERROR
+            assert not ServiceAccount.objects.exists()
+
+            # The same caller can still create an account with listed projects.
+            response = self.client.post(
+                url,
+                data={"name": "seer-autofix", "scopes": ["event:read"]},
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+            assert response.status_code == 201
+            assert response.data["allProjects"] is False
+
     def test_owner_can_grant_projects_outside_their_teams(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             project = self.create_project(
@@ -290,6 +360,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "name": "seer-autofix",
             "scopes": ["org:read", "project:read"],
             "projectIds": [str(self.projects[0].id)],
+            "allProjects": False,
             "isActive": True,
             "dateCreated": self.service_account.date_added,
         }
@@ -342,6 +413,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "name": "seer-autofix-v2",
             "scopes": ["event:read"],
             "project_ids": [str(self.projects[0].id)],
+            "all_projects": False,
             "is_active": False,
         }
 
@@ -378,6 +450,100 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
 
             assert response.data["projectIds"] == []
             assert project_ids_for(service_account) == []
+
+    def test_update_to_all_projects_clears_projects(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="put",
+                allProjects=True,
+            )
+
+        self.service_account.refresh_from_db()
+        assert self.service_account.all_projects
+        assert project_ids_for(self.service_account) == []
+        assert response.data["allProjects"] is True
+        assert response.data["projectIds"] == []
+        entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"))
+        assert entry.data["all_projects"] is True
+        assert entry.data["project_ids"] == []
+
+    def test_update_from_all_projects_to_listed_projects(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, name="seer-explorer", all_projects=True
+        )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                service_account.id,
+                method="put",
+                allProjects=False,
+                projectIds=[self.projects[1].id],
+            )
+
+        service_account.refresh_from_db()
+        assert not service_account.all_projects
+        assert project_ids_for(service_account) == [self.projects[1].id]
+        assert response.data["allProjects"] is False
+        assert response.data["projectIds"] == [str(self.projects[1].id)]
+
+    def test_update_rejects_projects_on_all_projects_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, name="seer-explorer", all_projects=True
+        )
+
+        with self.feature(FEATURE_FLAG):
+            for data in (
+                {"projectIds": [self.projects[0].id]},
+                {"allProjects": True, "projectIds": [self.projects[0].id]},
+            ):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    service_account.id,
+                    method="put",
+                    status_code=400,
+                    **data,
+                )
+                assert response.data["detail"]["projectIds"] == [ALL_PROJECTS_WITH_PROJECTS_ERROR]
+
+        service_account.refresh_from_db()
+        assert service_account.all_projects
+        assert project_ids_for(service_account) == []
+
+    def test_update_all_projects_requires_global_role(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, name="seer-explorer", all_projects=True
+        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:admin"])
+
+        def put(service_account_id: int, data: dict[str, Any]) -> Any:
+            return self.client.put(
+                reverse(self.endpoint, args=[self.organization.slug, service_account_id]),
+                data=data,
+                format="json",
+                HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+            )
+
+        with self.feature(FEATURE_FLAG):
+            # Widening an account with listed projects.
+            response = put(self.service_account.id, {"allProjects": True})
+            assert response.status_code == 403
+            assert response.data["detail"] == ALL_PROJECTS_ROLE_ERROR
+            # Editing an account that keeps all projects.
+            response = put(service_account.id, {"name": "renamed"})
+            assert response.status_code == 403
+            # Narrowing it is allowed.
+            response = put(service_account.id, {"allProjects": False})
+            assert response.status_code == 200
+
+        self.service_account.refresh_from_db()
+        assert not self.service_account.all_projects
+        assert project_ids_for(self.service_account) == [self.projects[0].id]
+        service_account.refresh_from_db()
+        assert service_account.name == "seer-explorer"
+        assert not service_account.all_projects
 
     def test_update_keeps_own_name(self) -> None:
         with self.feature(FEATURE_FLAG):
@@ -483,11 +649,23 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             replica = ServiceAccountReplica.objects.get(service_account_id=self.service_account.id)
             assert replica.scope_list == ["org:read"]
+            assert not replica.all_projects
             assert list(
                 ServiceAccountProjectReplica.objects.filter(service_account=replica).values_list(
                     "project_id", flat=True
                 )
             ) == [self.projects[1].id]
+
+    def test_update_to_all_projects_replicates_to_cell(self) -> None:
+        with self.feature(FEATURE_FLAG), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, self.service_account.id, method="put", allProjects=True
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ServiceAccountReplica.objects.get(service_account_id=self.service_account.id)
+            assert replica.all_projects
+            assert not ServiceAccountProjectReplica.objects.filter(service_account=replica).exists()
 
     def test_delete(self) -> None:
         service_account_id = self.service_account.id

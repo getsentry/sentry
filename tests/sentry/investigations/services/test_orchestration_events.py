@@ -13,8 +13,6 @@ from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
-from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
@@ -24,11 +22,6 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_requests import STALE
-from sentry.investigations.services.investigations import (
-    InvestigationConflictError,
-    archive_investigation,
-    update_investigation,
-)
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
@@ -44,6 +37,8 @@ from sentry.investigations.services.orchestration_events import (
     reconcile_orchestration_projection,
     synchronize_orchestration_projection,
 )
+from sentry.notebooks.endpoints.serializers import InvestigationBlockSerializer
+from sentry.notebooks.endpoints.validators.block import BlockUpdateValidator
 from sentry.notebooks.models import (
     NotebookActionRequest,
     NotebookActionRequestState,
@@ -52,6 +47,11 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookBlockExecutor,
     NotebookStatus,
+)
+from sentry.notebooks.services.notebooks import (
+    InvestigationConflictError,
+    archive_investigation,
+    update_investigation,
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase

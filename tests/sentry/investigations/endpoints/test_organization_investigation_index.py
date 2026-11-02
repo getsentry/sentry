@@ -41,7 +41,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    @mock.patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @mock.patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_create_manual_and_list(self, metrics_count: mock.MagicMock) -> None:
         response = self.client.post(
             self.collection_url,
@@ -396,8 +396,12 @@ class OrganizationInvestigationIndexTest(APITestCase):
     def test_private_schema_matches_frontend_responses(self) -> None:
         with patched_settings(PRIVATE_SCHEMA_SETTINGS):
             schema = CustomGenerator().get_schema(public=True)
-        base = "/api/0/organizations/{organization_id_or_slug}/investigations/"
+        base = "/api/0/organizations/{organization_id_or_slug}/notebooks/"
         detail_path = base + "{investigation_id}/"
+        orchestration_path = (
+            "/api/0/organizations/{organization_id_or_slug}/investigations/"
+            "{investigation_id}/orchestration/"
+        )
 
         def validate_response(response: Response, method: str, path: str) -> None:
             assert 200 <= response.status_code < 300, response.data
@@ -454,7 +458,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
         )
         validate_response(agentic, "post", base)
         orchestration = self.client.get(f"{self.collection_url}{agentic.data['id']}/orchestration/")
-        validate_response(orchestration, "get", detail_path + "orchestration/")
+        validate_response(orchestration, "get", orchestration_path)
 
     def test_private_schema_matches_a_populated_orchestration_projection(self) -> None:
         with patched_settings(PRIVATE_SCHEMA_SETTINGS):

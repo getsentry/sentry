@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
@@ -28,8 +29,9 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import NoAccess, from_request
+from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
@@ -40,9 +42,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -261,6 +266,38 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
 
+    def _service_account_request(self, organization: Organization) -> Request:
+        service_account = self.create_service_account(
+            organization=organization, scope_list=["org:read"]
+        )
+        request = drf_request_from_request(self.make_request(method="GET"))
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=service_account.id,
+                organization_id=organization.id,
+                name=service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=service_account.id,
+                organization_id=organization.id,
+                scopes=["org:read"],
+            ),
+        )
+        return request
+
+    def test_service_account_gets_its_credential_access(self) -> None:
+        request = self._service_account_request(self.org)
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, ServiceAccountAccess)
+        assert request.access.has_scope("org:read")
+
+    def test_service_account_has_no_access_to_another_org(self) -> None:
+        request = self._service_account_request(self.create_organization())
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, NoAccess)
+
     def test_org_auth_token_passes_2fa(self) -> None:
         self.org_require_2fa()
 
@@ -465,6 +502,52 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         self.org.save()
 
         assert not permission.is_not_2fa_compliant(request=drf_request, organization=self.org)
+
+
+class DeprecatedScopesPermission(OrganizationPermission):
+    scope_map = {"GET": ["org:read", "project:read", "member:read", "org:write", "dashboard:read"]}
+    rejects_deprecated_scopes = True
+
+
+class RejectsDeprecatedScopesTest(TestCase):
+    def allowed_scopes(self, permission_cls, organization=None) -> set[str]:
+        request = drf_request_from_request(self.make_request(method="GET"))
+        return permission_cls().get_allowed_scopes(request, organization or self.organization)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == {"org:write", "dashboard:read"}
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes_with_organization_context(self) -> None:
+        organization_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.user.id
+        )
+        assert organization_context is not None
+        assert self.allowed_scopes(DeprecatedScopesPermission, organization_context) == {
+            "org:write",
+            "dashboard:read",
+        }
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_without_granular_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_keeps_deprecated_scopes_without_translation(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_unless_opted_in(self) -> None:
+        assert self.allowed_scopes(OrganizationPermission) == {"org:read", "org:write", "org:admin"}
 
 
 class BaseOrganizationEndpointTest(TestCase):

@@ -16,6 +16,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
@@ -102,8 +103,8 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 project=group.project,
                 actor=(
-                    GroupActionActor.user(request.user.id)
-                    if request.user.is_authenticated
+                    GroupActionActor.user(user_id)
+                    if (user_id := acting_user_id(request.user)) is not None
                     else SYSTEM_ACTOR
                 ),
             )

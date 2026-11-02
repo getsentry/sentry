@@ -9,6 +9,7 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
+from sentry.auth.principal import has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -246,7 +247,8 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
-        if user_persisted_fields:
+        # Per-user defaults need a person, which a service account isn't.
+        if user_persisted_fields and has_user(user):
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.get_many(

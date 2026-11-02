@@ -12,6 +12,7 @@ import {
 import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 
 function formatMetricsTimeseriesLabel({
   widgetQuery,
@@ -75,7 +76,11 @@ export const traceMetricsResponseTransforms: Pick<
       queryIndex,
       {
         getSeriesName: (timeSeries, widgetQuery) =>
-          formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+          formatTimeSeriesName({
+            ...timeSeries,
+            yAxis: formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+            groupBy: [],
+          }),
         // Score breakdown charts undergo frontend side transformations that change
         // the value type of the series to `score`.
         meta: isScoreBreakdown ? {valueType: 'score', valueUnit: null} : undefined,

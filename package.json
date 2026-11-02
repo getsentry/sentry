@@ -115,7 +115,7 @@
     "eslint-plugin-react-you-might-not-need-an-effect": "1.0.2",
     "eslint-plugin-regexp": "3.1.1",
     "eslint-plugin-testing-library": "7.16.2",
-    "eslint-plugin-unicorn": "74.0.0",
+    "eslint-plugin-unicorn": "79.0.0",
     "getsentry-test": "workspace:@sentry-internal/getsentry-test@*",
     "knip": "6.42.1",
     "odiff-bin": "4.3.8",

@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -11,6 +12,7 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from pydantic import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -23,6 +25,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
@@ -31,7 +34,7 @@ from sentry.seer.workflows.breached_metrics import (
     MetricBreachRunExtras,
     MetricBreachTrigger,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
+from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -40,7 +43,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-from sentry.workflow_engine.models import Action, Detector, DetectorWorkflow
+from sentry.workflow_engine.models import (
+    Action,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.processors.evaluations import ProcessWorkflowsResult
@@ -60,8 +68,16 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
             create_open_period=False,
         )
         self.action = self.create_action(type=Action.Type.SEER_WORKFLOW)
-        self.config = BreachedMetricWorkflow.create(self.organization.id, enabled=True).get_config()
-        Factories.create_seer_workflow_trigger_binding(self.config, self.action)
+        self.config = self.create_metric_config(trigger_actions=[self.action])
+
+    def create_metric_config(self, **kwargs: Any) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            monitors=[self.create_detector(project=self.project, type=MetricIssue.slug)],
+            **kwargs,
+        )
 
     def breach_event(self, *, detector_id: int, value: int = 180) -> GroupEvent:
         event_id = uuid4().hex
@@ -92,22 +108,25 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
 
 @with_feature("organizations:seer-automations")
 class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
-    def test_creates_all_projects_config_preserving_environment_filter(self) -> None:
+    def test_creates_config_without_projects_preserving_environment_filter(self) -> None:
         workflow = BreachedMetricWorkflow.create(self.organization.id, environments=["production"])
 
         config = workflow.get_config()
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is False
-        assert config.filters == {"all_projects": True, "environments": ["production"]}
+        assert config.filters == {"all_projects": False, "environments": ["production"]}
+        assert config.backing_workflow_id is None
+        assert workflow.get_project_ids() == []
 
     def test_project_selection_is_managed_by_connected_monitors(self) -> None:
-        with pytest.raises(ValueError, match="selected by connecting monitors"):
-            SeerWorkflow(
-                config_id=self.config.id, organization_id=self.config.organization_id
-            ).set_project_selection(SelectedProjects(project_ids=(self.project.id,)))
+        workflow = SeerWorkflow(
+            config_id=self.config.id, organization_id=self.config.organization_id
+        )
+        for selection in (SelectedProjects(project_ids=(self.project.id,)), AllProjects()):
+            with pytest.raises(ValueError, match="selected by connecting monitors"):
+                workflow.set_project_selection(selection)
 
-        self.config.refresh_from_db()
-        assert self.config.filters["all_projects"] is True
+        assert workflow.get_config().version == self.config.version
 
     def test_replaying_old_metadata_logs_validation_error_without_replacing_run(self) -> None:
         event = self.breach_event(detector_id=1)
@@ -323,6 +342,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             comparison={"value": MetricIssue.slug},
             condition_result=True,
         )
+        self.config.update(backing_workflow=self.workflow)
 
     def test_matching_breach_runs_once_and_preserves_original_trigger(self) -> None:
         self.config.update(filters={"all_projects": True, "environments": ["production"]})
@@ -337,7 +357,9 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             self.detector.update(name="Edited after breach")
             self.condition.update(comparison=200)
             snapshot = deepcopy(run.extras["snapshot"])
-            self.config.update(version=2, output_policy={"review_required": True})
+            self.config.update(
+                version=self.config.version + 1, output_policy={"review_required": True}
+            )
 
             self.process_breach_workflow(event)
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id, value=240))
@@ -351,7 +373,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert trigger["workflow_id"] == self.workflow.id
         assert trigger["action_id"] == self.action.id
         assert run.extras["snapshot"] == snapshot
-        assert run.extras["snapshot"]["config_version"] == 1
+        assert run.extras["snapshot"]["config_version"] == self.config.version - 1
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.date_completed is not None
         execution = SeerWorkflowRunExecution.objects.get(run=run)
@@ -386,10 +408,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         shared_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         Factories.create_seer_workflow_trigger_binding(self.config, shared_action)
         other_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
-        other_config = BreachedMetricWorkflow.create(
-            self.organization.id, enabled=True
-        ).get_config()
-        Factories.create_seer_workflow_trigger_binding(other_config, other_action)
+        other_config = self.create_metric_config(trigger_actions=[other_action])
         self.create_data_condition_group_action(
             action=shared_action, condition_group=self.action_conditions
         )
@@ -607,3 +626,195 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         group_event = stored.for_group(group)
         group_event.occurrence = occurrence
         return group_event, detector
+
+
+@with_feature("organizations:seer-automations")
+class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.monitors = [
+            self.create_detector(project=self.create_project(), type=MetricIssue.slug)
+            for _ in range(3)
+        ]
+        self.monitor_ids = [monitor.id for monitor in self.monitors]
+        self.config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            filters={"all_projects": False, "environments": ["production"]},
+        )
+
+    def test_connects_selected_monitors(self) -> None:
+        updated = self.select_monitors([*self.monitor_ids, self.monitor_ids[0]])
+
+        workflow = updated.backing_workflow
+        assert workflow is not None
+        assert workflow.name == "Seer automation"
+        assert list(
+            workflow.detectorworkflow_set.order_by("detector_id").values_list(
+                "detector_id", flat=True
+            )
+        ) == sorted(self.monitor_ids)
+        assert self.project_ids() == {monitor.project_id for monitor in self.monitors}
+        assert updated.version == 2
+
+    def test_replaces_selection_idempotently_preserving_other_alerts(self) -> None:
+        self.select_monitors(self.monitor_ids[:2])
+        backing = Workflow.objects.get(organization=self.organization)
+        binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
+        unrelated = self.create_detector_workflow(
+            detector=self.monitors[0], workflow=self.create_workflow(organization=self.organization)
+        )
+        selected = self.monitor_ids[1:]
+
+        changed = self.select_monitors(selected)
+        assert changed.version == 3
+        assert self.project_ids() == {monitor.project_id for monitor in self.monitors[1:]}
+        connections = list(backing.detectorworkflow_set.values_list("id", flat=True))
+        repeated = self.select_monitors([*reversed(selected), selected[0]])
+        assert repeated.version == changed.version
+        assert list(backing.detectorworkflow_set.values_list("id", flat=True)) == connections
+
+        assert self.select_monitors([]).version == 4
+        assert self.project_ids() == set()
+        assert not backing.detectorworkflow_set.exists()
+        assert DetectorWorkflow.objects.filter(id=unrelated.id).exists()
+
+        assert self.select_monitors(self.monitor_ids).version == 5
+        assert Workflow.objects.filter(organization=self.organization).count() == 2
+        assert SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config).id == binding.id
+        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+
+    def test_deleted_monitors_leave_scope(self) -> None:
+        self.select_monitors(self.monitor_ids)
+
+        self.monitors[0].update(status=ObjectStatus.PENDING_DELETION)
+        self.monitors[1].delete()
+
+        assert self.project_ids() == {self.monitors[2].project_id}
+
+    def test_deleted_backing_workflow_empties_scope_and_is_replaced(self) -> None:
+        original = self.select_monitors(self.monitor_ids)
+        backing = original.backing_workflow
+        assert backing is not None
+        backing.update(status=ObjectStatus.PENDING_DELETION)
+        assert self.project_ids() == set()
+
+        replaced = self.select_monitors(self.monitor_ids[:1])
+
+        assert replaced.backing_workflow is not None
+        assert replaced.backing_workflow_id != backing.id
+        assert replaced.backing_workflow.status == ObjectStatus.ACTIVE
+        assert replaced.version == original.version + 1
+        assert self.project_ids() == {self.monitors[0].project_id}
+        assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
+
+        Workflow.objects_for_deletion.filter(id=replaced.backing_workflow_id).delete()
+        self.config.refresh_from_db()
+        assert self.config.backing_workflow_id is None
+        assert self.project_ids() == set()
+
+    def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:
+        invalid_monitors = [
+            self.create_detector(project=self.project),
+            self.create_detector(
+                project=self.create_project(organization=self.create_organization()),
+                type=MetricIssue.slug,
+            ),
+            self.create_detector(
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.PENDING_DELETION
+            ),
+            self.create_detector(
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+            ),
+            self.create_detector(
+                project=self.create_project(status=ObjectStatus.PENDING_DELETION),
+                type=MetricIssue.slug,
+            ),
+        ]
+        for monitor in invalid_monitors:
+            with pytest.raises(ValueError, match="active metric monitors in this organization"):
+                self.select_monitors([self.monitor_ids[0], monitor.id])
+
+        self.config.refresh_from_db()
+        assert self.config.version == 1
+        assert not Workflow.objects.exists()
+        assert not SeerWorkflowTriggerBinding.objects.exists()
+
+    def test_rejects_foreign_config_and_non_metric_strategy(self) -> None:
+        other = Factories.create_seer_workflow_config(
+            self.create_organization(), strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        with pytest.raises(SeerWorkflowConfig.DoesNotExist):
+            BreachedMetricWorkflow(
+                config_id=other.id, organization_id=self.organization.id
+            ).set_monitor_selection(self.monitor_ids)
+
+        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        with pytest.raises(ValueError, match="Only metric automations"):
+            self.select_monitors(self.monitor_ids)
+        assert not Workflow.objects.exists()
+
+    def test_connected_breach_starts_run_and_disconnect_stops_it(self) -> None:
+        self.create_project()
+        self.select_monitors(self.monitor_ids)
+        for monitor in self.monitors:
+            self.process_breach(monitor)
+        assert SeerWorkflowRun.objects.filter(workflow_config=self.config).count() == 3
+        assert set(SeerWorkflowRunExecution.objects.values_list("extras__result", flat=True)) == {
+            "noop"
+        }
+        for run in SeerWorkflowRun.objects.filter(workflow_config=self.config):
+            assert set(run.extras["snapshot"]["project_ids"]) == {
+                monitor.project_id for monitor in self.monitors
+            }
+
+        self.select_monitors([])
+        self.process_breach(self.monitors[0])
+        assert SeerWorkflowRun.objects.filter(workflow_config=self.config).count() == 3
+
+    def select_monitors(self, monitor_ids: list[int]) -> SeerWorkflowConfig:
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+        workflow.set_monitor_selection(monitor_ids)
+        return workflow.get_config()
+
+    def project_ids(self) -> set[int]:
+        return set(
+            BreachedMetricWorkflow(
+                config_id=self.config.id, organization_id=self.organization.id
+            ).get_project_ids()
+        )
+
+    def process_breach(self, monitor: Detector) -> None:
+        group = self.create_group(
+            project=monitor.project, type=MetricIssue.type_id, create_open_period=False
+        )
+        self.create_detector_group(detector=monitor, group=group)
+        event_id = uuid4().hex
+        occurrence = self.build_occurrence(
+            event_id=event_id,
+            project_id=group.project_id,
+            type=MetricIssue.type_id,
+            evidence_data={"detector_id": monitor.id, "value": 180},
+        )
+        occurrence.save()
+        event = self.store_event(
+            data={"event_id": event_id, "environment": "production"}, project_id=group.project_id
+        ).for_group(group)
+        event.occurrence = occurrence
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=event,
+                    group=group,
+                    group_state=GroupState(
+                        id=group.id, is_new=True, is_regression=False, is_new_group_environment=True
+                    ),
+                ),
+                event.datetime,
+            )
