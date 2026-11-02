@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.core.endpoints.scim.constants import SCIM_400_INVALID_BODY, SCIM_400_INVALID_ORGROLE
 from sentry.core.endpoints.scim.utils import SCIMFilterError, parse_filter_conditions
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -356,12 +357,59 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
             role="manager",
             flags=OrganizationMember.flags["partnership:restricted"],
         )
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             self.partnership_member.id,
             status_code=403,
             **generate_put_data(self.partnership_member, role="member"),
         )
+        assert response.data == {
+            "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
+        }
+
+    def test_returns_member_resource(self) -> None:
+        member = self.unrestricted_default_role_member
+        response = self.get_success_response(
+            self.organization.slug,
+            member.id,
+            status_code=200,
+            **generate_put_data(member, role="manager"),
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": str(member.id),
+            "userName": member.get_email(),
+            "emails": [{"primary": True, "value": member.get_email(), "type": "work"}],
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "active": True,
+            "meta": {"resourceType": "User"},
+            "sentryOrgRole": "manager",
+        }
+
+    def test_non_string_role(self) -> None:
+        member = self.restricted_default_role_member
+        for role in (["member"], {"value": "member"}, 1, True):
+            put_data = generate_put_data(member)
+            put_data["sentryOrgRole"] = role
+            response = self.get_error_response(
+                self.organization.slug, member.id, status_code=400, **put_data
+            )
+            assert response.data["detail"] == SCIM_400_INVALID_ORGROLE
+        member.refresh_from_db()
+        assert member.role == self.organization.default_role
+
+    def test_non_object_body(self) -> None:
+        member = self.restricted_default_role_member
+        response = self.get_error_response(
+            self.organization.slug,
+            member.id,
+            status_code=400,
+            raw_data=[generate_put_data(member, role="manager")],
+        )
+        assert response.data["detail"] == SCIM_400_INVALID_BODY
+        assert response.data["scimType"] == "invalidSyntax"
+        member.refresh_from_db()
+        assert member.role == self.organization.default_role
 
 
 class SCIMMemberDetailsTests(SCIMTestCase):
