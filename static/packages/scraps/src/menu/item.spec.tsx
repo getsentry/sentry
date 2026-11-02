@@ -43,6 +43,30 @@ describe('ListItem', () => {
       }));
   });
 
+  it.each([
+    {isFocused: false, isPressed: false, disabled: false, opacity: '0'},
+    {isFocused: true, isPressed: false, disabled: false, opacity: '0.06'},
+    {isFocused: true, isPressed: true, disabled: false, opacity: '0.09'},
+    {isFocused: true, isPressed: true, disabled: true, opacity: '0'},
+  ])('preserves interaction feedback for %j', ({opacity, ...props}) => {
+    render(<ListItem label="Action" {...props} />, {wrapper: ThemeWrapper});
+
+    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe(opacity);
+  });
+
+  it('uses stronger interaction feedback for accented items', () => {
+    const {rerender} = render(
+      <ListItem label="Delete" priority="danger" isFocused isPressed={false} />,
+      {wrapper: ThemeWrapper}
+    );
+
+    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe('0.085');
+
+    rerender(<ListItem label="Delete" priority="danger" isFocused isPressed />);
+
+    expect(getComputedStyle(screen.getByRole('presentation')).opacity).toBe('0.12');
+  });
+
   it('attaches the ref to the default li wrapper', () => {
     const ref = createRef<HTMLLIElement>();
 

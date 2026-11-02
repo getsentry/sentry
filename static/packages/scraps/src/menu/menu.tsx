@@ -10,7 +10,6 @@ import {IconSearch} from '@sentry/icons/search';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import type {ContainerProps} from '@sentry/scraps/layout/container';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -472,7 +471,8 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           size={size}
           {...innerWrapProps}
         >
-          <StyledInteractionStateLayer
+          <MenuItemStateLayer
+            role="presentation"
             isHovered={isFocused}
             isPressed={isPressed}
             higherOpacity={priority !== 'default'}
@@ -661,8 +661,47 @@ const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolea
   }
 `;
 
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+const MenuItemStateLayer = styled('span')<{
+  higherOpacity: boolean;
+  isHovered: boolean;
+  isPressed?: boolean;
+}>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  box-sizing: content-box;
+  border-radius: inherit;
+  border: inherit;
+  color: currentcolor;
+  background-color: currentcolor;
+  border-color: currentcolor;
+  pointer-events: none;
+  opacity: ${p => (p.isHovered ? (p.higherOpacity ? 0.085 : 0.06) : 0)};
   z-index: -1;
+
+  ${p =>
+    p.isPressed !== undefined && p.isPressed !== null
+      ? p.isPressed &&
+        css`
+          &&& {
+            opacity: ${p.higherOpacity ? 0.12 : 0.09};
+          }
+        `
+      : css`
+          *:active > &&,
+          *[aria-expanded='true'] > &&,
+          *[aria-selected='true'] > && {
+            opacity: ${p.higherOpacity ? 0.12 : 0.09};
+          }
+        `}
+
+  *:disabled &&,
+  *[aria-disabled='true'] && {
+    opacity: 0;
+  }
 `;
 
 const TrailingItems = styled('div')<{disabled: boolean}>`
