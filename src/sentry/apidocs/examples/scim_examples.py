@@ -143,8 +143,9 @@ class SCIMExamples:
                 "active": True,
                 "name": {"familyName": "N/A", "givenName": "N/A"},
                 "meta": {"resourceType": "User"},
+                "sentryOrgRole": "member",
             },
-            status_codes=["201"],
+            status_codes=["200"],
         ),
     ]
 

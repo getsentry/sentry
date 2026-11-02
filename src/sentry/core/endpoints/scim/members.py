@@ -30,6 +30,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberSCIMSerializerResponse,
 )
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
@@ -54,6 +55,7 @@ from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
+    SCIM_400_INVALID_BODY,
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
     SCIM_409_USER_EXISTS,
@@ -384,21 +386,35 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            name="SCIMMemberReplace",
+            fields={
+                "sentryOrgRole": serializers.ChoiceField(
+                    help_text="""The organization role of the member. If omitted, empty, or null, a
+                    role previously set through SCIM is reset to the organization's default role.
+                    The options are:""",
+                    choices=[role for role in ROLE_CHOICES if role[0] != "owner"],
+                    required=False,
+                    allow_blank=True,
+                    allow_null=True,
+                ),
+            },
         ),
         responses={
-            201: OrganizationMemberSCIMSerializer,
+            200: OrganizationMemberSCIMSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.UPDATE_USER_ROLE,
     )
-    def put(self, request: Request, organization: Organization, member):
+    def put(
+        self, request: Request, organization: Organization, member
+    ) -> Response[OrganizationMemberSCIMSerializerResponse]:
         """
-        Update an organization member
-
-        Currently only updates organization role
+        Replace an organization member's attributes with a SCIM User PUT request.
+        - Only `sentryOrgRole` is read. Other attributes in the request body are ignored.
+        - An organization owner's role can't be changed through SCIM, so it's left as is.
         """
         # Do not allow modifications on members with the highest priority role
         if member.role == organization_roles.get_top_dog().id:
@@ -406,24 +422,28 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             member.flags["idp:provisioned"] = True
             member.save()
 
-            context = serialize(
+            context: OrganizationMemberSCIMSerializerResponse = serialize(
                 member, serializer=_scim_member_serializer_with_expansion(organization)
             )
             return Response(context, status=200)
 
         if getattr(member.flags, "partnership:restricted"):
-            return Response(
-                {
-                    "detail": "This member is managed by an active partnership and cannot be modified until the end of the partnership."
-                },
-                status=403,
+            raise PermissionDenied(
+                detail="This member is managed by an active partnership and cannot be modified until the end of the partnership."
             )
 
-        if request.data.get("sentryOrgRole"):
+        if not isinstance(request.data, dict):
+            raise SCIMApiError(detail=SCIM_400_INVALID_BODY, scim_type="invalidSyntax")
+
+        sentry_org_role = request.data.get("sentryOrgRole")
+        if sentry_org_role and not isinstance(sentry_org_role, str):
+            raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+        if sentry_org_role:
             # Don't update if the org role is the same
             if (
                 member.flags["idp:role-restricted"]
-                and member.role.lower() == request.data["sentryOrgRole"].lower()
+                and member.role.lower() == sentry_org_role.lower()
             ):
                 context = serialize(
                     member, serializer=_scim_member_serializer_with_expansion(organization)
@@ -431,7 +451,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 return Response(context, status=200)
 
             # Update if the org role is changing and lock the role
-            requested_role = request.data["sentryOrgRole"].lower()
+            requested_role = sentry_org_role.lower()
             idp_role_restricted = True
 
         # if sentryOrgRole is blank

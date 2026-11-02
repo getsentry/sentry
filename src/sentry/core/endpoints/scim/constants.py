@@ -38,6 +38,8 @@ SCIM_404_GROUP_RES = {
 
 SCIM_400_INVALID_ORGROLE = "Invalid organization role."
 
+SCIM_400_INVALID_BODY = "The request body must be a JSON object."
+
 SCIM_409_USER_EXISTS = "User already exists in the database."
 
 SCIM_400_INVALID_FILTER = {
