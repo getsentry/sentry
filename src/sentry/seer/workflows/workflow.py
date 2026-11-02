@@ -239,6 +239,17 @@ class SeerWorkflow:
         """Return active project IDs matching this workflow's filters, in ascending order."""
         return self._get_project_ids(self.get_config())
 
+    def has_all_projects(self) -> bool:
+        """Return whether this workflow's scope covers every active project in its organization."""
+        config = self.get_config()
+        return (
+            not Project.objects.filter(
+                organization_id=config.organization_id, status=ObjectStatus.ACTIVE
+            )
+            .exclude(id__in=self._get_projects(config).values("id"))
+            .exists()
+        )
+
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
         with self._lock_config() as config:

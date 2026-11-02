@@ -286,6 +286,46 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.get_config().version == 1
         assert workflow.get_project_ids() == [previous.id]
 
+    def test_has_all_projects_for_all_projects_config(self) -> None:
+        self.create_project()
+        self.create_project(status=ObjectStatus.PENDING_DELETION)
+        self.create_project(organization=self.create_organization())
+        config = self.create_config(all_projects=True)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        assert workflow.has_all_projects() is True
+
+        self.create_project()
+        assert workflow.has_all_projects() is True
+
+    def test_has_all_projects_requires_every_active_project_selected(self) -> None:
+        first, second = self.create_project(), self.create_project()
+        self.create_project(status=ObjectStatus.PENDING_DELETION)
+        config = self.create_config(first)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        assert workflow.has_all_projects() is False
+
+        # An explicit selection of every active project counts, even without the flag.
+        workflow.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
+        assert workflow.filters.all_projects is False
+        assert workflow.has_all_projects() is True
+
+        self.create_project()
+        assert workflow.has_all_projects() is False
+
+    def test_has_all_projects_without_active_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization, status=ObjectStatus.PENDING_DELETION)
+        config = Factories.create_seer_workflow_config(
+            organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        # Nothing is missing from the scope, so an empty selection covers all projects.
+        assert workflow.get_project_ids() == []
+        assert workflow.has_all_projects() is True
+
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
         config = Factories.create_seer_workflow_config(
             self.organization,

@@ -23,7 +23,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECT_ID
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
@@ -137,6 +137,7 @@ class WorkflowConfigLastRun:
 
 def check_project_access(
     project_ids: Sequence[int],
+    *,
     request: Request,
     organization: Organization,
     endpoint: OrganizationEndpoint,
@@ -149,15 +150,15 @@ def check_project_access(
       and the caller must have read access to it.
     - Requesting all projects with ``[-1]`` requires global access.
     """
-    if project_ids == [ALL_ACCESS_PROJECT_ID]:
+    if set(project_ids) == ALL_ACCESS_PROJECTS:
         if not request.access.has_global_access:
             return "Requesting all projects requires global access"
     elif project_ids:
         # Raises PermissionDenied unless every project is active and accessible.
         requested = endpoint.get_projects(request, organization, project_ids=set(project_ids))
         for project in requested:
-            # TODO(aliu): currently a no-op unless endpoint permission class is looser
             if not request.access.has_project_scope(project, "project:read"):
+                # TODO(aliu): unreachable unless the endpoint permission class is looser
                 return f"You do not have access to project {project.id}"
 
     return None
@@ -276,7 +277,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         strategy = SeerWorkflowStrategy(data["strategy"])
 
         project_ids: list[int] = data.get("projectIds") or []
-        denied = check_project_access(project_ids, request, organization, self)
+        denied = check_project_access(
+            project_ids, request=request, organization=organization, endpoint=self
+        )
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
@@ -394,13 +397,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            if not all_projects and SeerWorkflowFilters.parse_obj(config.filters).all_projects:
-                if not request.access.has_global_access:
-                    raise PermissionDenied(
-                        detail="You do not have permission to narrow this config's project scope"
-                    )
-
-            denied = check_project_access(project_ids, request, organization, self)
+            denied = check_project_access(
+                project_ids,
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
 
