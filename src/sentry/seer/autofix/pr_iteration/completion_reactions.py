@@ -23,7 +23,6 @@ from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
     _add_review_reaction,
     _delete_own_comment_eyes_reaction,
-    _delete_own_review_eyes_reaction,
 )
 from sentry.utils import metrics
 
@@ -162,8 +161,8 @@ def react_to_completed_iteration(
                     record("reacted")
                 else:
                     record("react_skipped_no_changes")
-                if delete_eyes:
-                    _delete_own_review_eyes_reaction(scm, pr_number=pr_number, review_id=review_id)
+                # No :eyes: to remove: the trigger doesn't add one to review bodies
+                # because GitHub won't let the app delete it.
             case GithubPrCommentFeedbackSource(comment=GithubIssueComment(id=int() as comment_id)):
                 _add_comment_reaction(
                     scm,

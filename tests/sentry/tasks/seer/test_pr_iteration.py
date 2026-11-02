@@ -70,7 +70,6 @@ from sentry.tasks.seer.pr_iteration import (
     _add_review_reaction,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
-    _delete_own_review_eyes_reaction,
     _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
@@ -2977,8 +2976,6 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
 class _ReviewReactionScmProtocols:
     def create_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
-    def delete_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
-
 
 class ReviewReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
@@ -3010,23 +3007,6 @@ class ReviewReactionTest(TestCase):
 
         mock_capture.assert_called_once()
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_deletes_own_eyes_by_content(self, mock_scm_actions: MagicMock) -> None:
-        scm = MagicMock(spec=_ReviewReactionScmProtocols)
-
-        _delete_own_review_eyes_reaction(scm, pr_number=7, review_id=500)
-
-        mock_scm_actions.delete_pull_request_review_reaction.assert_called_once_with(
-            scm, "7", "500", "eyes"
-        )
-
-    @patch(f"{TASK_PATH}.scm_actions")
-    def test_delete_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
-        mock_scm_actions.delete_pull_request_review_reaction.side_effect = RuntimeError("boom")
-
-        _delete_own_review_eyes_reaction(
-            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500
-        )
 
 
 class BuildReviewFeedbackTest(TestCase):

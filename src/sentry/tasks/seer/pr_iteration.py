@@ -18,7 +18,6 @@ from scm.types import (
     CreatePullRequestReviewReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
-    DeletePullRequestReviewReactionProtocol,
     DeleteReviewCommentReactionProtocol,
     DiffLine,
     GetAuthenticatedActorProtocol,
@@ -1042,22 +1041,6 @@ def _add_review_reaction(
         sentry_sdk.capture_exception(e)
 
 
-def _delete_own_review_eyes_reaction(
-    scm: SourceCodeManager,
-    *,
-    pr_number: int,
-    review_id: int,
-) -> None:
-    """Remove the :eyes: we added to a review body at trigger time."""
-    if not isinstance(scm, DeletePullRequestReviewReactionProtocol):
-        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
-        return
-    try:
-        scm_actions.delete_pull_request_review_reaction(scm, str(pr_number), str(review_id), "eyes")
-    except Exception:
-        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
-
-
 def _comment_pr_iteration_ineligible(
     scm: SourceCodeManager,
     *,
@@ -1992,7 +1975,7 @@ def _trigger_pr_iteration_from_review(
         run_state=agent_state,
     )
 
-    # Ack each inline comment and the review body with :eyes:, mirroring the
+    # Ack each inline comment with :eyes:, mirroring the
     # single-comment path. Skip the ack when no consume was scheduled (a bot review
     # past the cap, a paused run), and gate each item on should_consume so we don't
     # ack one consume will drop as stale.
@@ -2003,11 +1986,10 @@ def _trigger_pr_iteration_from_review(
             source = feedback_obj.source
             if not source.should_consume(agent_state).ok:
                 continue
+            # No :eyes: on the review body: GitHub won't let the app remove a
+            # review-body reaction ("Resource not accessible by integration"), so it
+            # would stay up after completion. The body gets :tada: when it completes.
             match source:
-                case GithubPrReviewBodyFeedbackSource():
-                    _add_review_reaction(
-                        scm, pr_number=pr_number, review_id=review_id, reaction="eyes"
-                    )
                 case GithubPrReviewCommentFeedbackSource(
                     comment=GithubIssueComment(id=int() as comment_id)
                 ):

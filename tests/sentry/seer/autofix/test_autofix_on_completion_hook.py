@@ -2314,12 +2314,11 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_delete_eyes.assert_not_called()
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_reacts_hooray_on_review_body(
-        self, mock_react, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
+        self, mock_react, mock_make_scm, mock_review_react, mock_sensitive
     ):
         scm = MagicMock()
         mock_make_scm.return_value = scm
@@ -2330,31 +2329,16 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_review_react.assert_called_once_with(
             scm, pr_number=7, review_id=333, reaction="hooray"
         )
-        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
+        # Review bodies never get :eyes:, so only the :tada: call is made.
+        assert mock_review_react.call_count == 1
         mock_react.assert_not_called()
-
-    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
-    @patch(f"{REACT_PATH}._add_review_reaction")
-    @patch(f"{REACT_PATH}.make_scm")
-    def test_skips_review_body_eyes_delete_for_rate_limit_sensitive_org(
-        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive
-    ):
-        mock_make_scm.return_value = MagicMock()
-        state = self._state_with([self._review_body_source()])
-
-        self._run(state)
-
-        assert mock_review_react.call_args.kwargs["reaction"] == "hooray"
-        mock_delete_eyes.assert_not_called()
 
     @patch(f"{REACT_PATH}.metrics.incr")
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
-    @patch(f"{REACT_PATH}._delete_own_review_eyes_reaction")
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
     def test_skips_review_body_reaction_when_iteration_made_no_changes(
-        self, mock_make_scm, mock_review_react, mock_delete_eyes, mock_sensitive, mock_incr
+        self, mock_make_scm, mock_review_react, mock_sensitive, mock_incr
     ):
         scm = MagicMock()
         mock_make_scm.return_value = scm
@@ -2365,8 +2349,6 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
         mock_review_react.assert_not_called()
         assert self._reaction_outcomes(mock_incr) == ["react_skipped_no_changes"]
-        # :eyes: is still removed from the review body.
-        mock_delete_eyes.assert_called_once_with(scm, pr_number=7, review_id=333)
 
     @patch(f"{REACT_PATH}._add_review_reaction")
     @patch(f"{REACT_PATH}.make_scm")
