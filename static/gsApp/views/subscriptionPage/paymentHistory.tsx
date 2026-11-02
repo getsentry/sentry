@@ -6,6 +6,7 @@ import {IconTimer} from '@sentry/icons/timer';
 import {IconWarning} from '@sentry/icons/warning';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
+import {useQueryState} from 'nuqs';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -29,7 +30,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -154,12 +154,12 @@ function UsageCsvDownloads({
  */
 function PaymentHistory() {
   const organization = useOrganization();
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor');
 
   const {data, isPending, isError} = useQuery({
     ...apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {cursor: location.query.cursor},
+      query: {cursor: cursor ?? undefined},
       staleTime: 0,
     }),
     select: selectJsonWithHeaders,
