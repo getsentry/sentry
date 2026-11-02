@@ -36,6 +36,11 @@ build-js-po:
 	mkdir -p build
 	pnpm run build-js-po
 
+.PHONY: build-feature-flag-types
+build-feature-flag-types:
+	.venv/bin/python -m tools.feature_flags_to_typescript
+	pnpm exec oxfmt static/app/types/featureFlags.generated.ts
+
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
 	@OPENAPIGENERATE=1 sentry django spectacular --file tests/apidocs/openapi-spectacular.json --format openapi-json --validate --fail-on-warn
