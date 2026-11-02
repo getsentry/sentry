@@ -1,5 +1,4 @@
 import copy
-import itertools
 from unittest import mock
 
 import pytest
@@ -47,8 +46,22 @@ def mock_event_processing_store():
 
 @django_db_all
 @pytest.mark.parametrize(
-    "inline,disable_store,redis_backups",
-    [(False, False, 1), (True, False, 1), (True, True, 0)],
+    "transport_options,inline,disable_store,redis_backups",
+    [
+        (
+            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False},
+            False,
+            False,
+            1,
+        ),
+        (
+            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": False},
+            True,
+            False,
+            1,
+        ),
+        ({}, True, True, 0),
+    ],
 )
 def test_move_to_symbolicate_event(
     default_project,
@@ -56,6 +69,7 @@ def test_move_to_symbolicate_event(
     mock_save_event,
     mock_symbolicate_event,
     mock_event_processing_store,
+    transport_options,
     inline,
     disable_store,
     redis_backups,
@@ -64,12 +78,7 @@ def test_move_to_symbolicate_event(
     cache_key = None if disable_store else "e:1"
     mock_event_processing_store.store.return_value = "e:1"
     with (
-        override_options(
-            {
-                "store.enable-inline-payloads": float(inline),
-                "store.disable-processing-store": disable_store,
-            }
-        ),
+        override_options(transport_options),
         mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
     ):
         preprocess_event(cache_key=cache_key, data=data)
@@ -102,7 +111,6 @@ def test_symbolication_passes_unprocessed_event_inline(
 
     mock_symbolication_function.side_effect = _symbolicate_in_place
     with (
-        override_options({"store.enable-inline-payloads": 1.0}),
         mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
         TaskRunner(),
     ):
@@ -112,7 +120,6 @@ def test_symbolication_passes_unprocessed_event_inline(
 
 
 @django_db_all
-@pytest.mark.parametrize("inline", (False, True))
 @pytest.mark.parametrize(
     "error,load_shed,symbolicate_functions,expected_metrics",
     [
@@ -134,42 +141,30 @@ def test_symbolication_continues_after_error_or_load_shedding(
     load_shed,
     expected_metrics,
     symbolicate_functions,
-    inline,
 ):
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    cache_key = None if inline else "e:1"
-    mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = cache_key
     mock_symbolication_function.side_effect = error
     with (
-        override_options(
-            {
-                "store.enable-inline-payloads": float(inline),
-                "store.disable-processing-store": inline,
-            }
-        ),
         mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
     ):
         symbolicate_event(
-            cache_key=cache_key,
-            data=data if inline else None,
+            data=data,
             symbolicate_functions=symbolicate_functions,
         )
 
     mock_process_event.delay.assert_called_once()
     kwargs = mock_process_event.delay.call_args.kwargs
-    assert kwargs["data"] == (data if inline else None)
-    assert kwargs["cache_key"] == cache_key
+    assert kwargs["data"] == data
+    assert kwargs["cache_key"] is None
     assert data.get("_metrics", {}) == expected_metrics
     assert kwargs["data_has_changed"] is (error is not None)
-    assert mock_event_processing_store.get.call_count == (0 if inline else 1)
-    assert mock_event_processing_store.store.call_args_list == [mock.call(data)] * (not inline)
+    mock_event_processing_store.get.assert_not_called()
+    mock_event_processing_store.store.assert_not_called()
 
 
 @django_db_all
-@pytest.mark.parametrize("inline", (False, True))
 def test_symbolicate_minidump_and_native_stacktrace(
-    default_project, mock_event_processing_store, mock_process_event, mock_save_event, inline
+    default_project, mock_event_processing_store, mock_process_event, mock_save_event
 ):
     """
     An event containing both a minidump and an additional raw native stacktrace
@@ -214,21 +209,6 @@ def test_symbolicate_minidump_and_native_stacktrace(
             }
         ],
     }
-
-    # A stateful stand-in for the event processing store, so that the second
-    # symbolication task picks up the data stored by the first one.
-    stored_data = {}
-    counter = itertools.count()
-
-    def _store(event_data):
-        key = f"e:{next(counter)}"
-        stored_data[key] = event_data
-        return key
-
-    mock_event_processing_store.get.side_effect = stored_data.get
-    mock_event_processing_store.store.side_effect = _store
-
-    cache_key = None if inline else _store(data)
 
     minidump_response = {
         "status": "completed",
@@ -277,16 +257,10 @@ def test_symbolicate_minidump_and_native_stacktrace(
         mock.patch.object(
             Symbolicator, "process_payload", return_value=payload_response
         ) as mock_process_payload,
-        override_options(
-            {
-                "store.enable-inline-payloads": float(inline),
-                "store.disable-processing-store": inline,
-            }
-        ),
         mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event,
         TaskRunner(),
     ):
-        preprocess_event(cache_key=cache_key, data=data)
+        preprocess_event(data=data)
 
     # The event was sent to Symbolicator twice.
     assert mock_process_minidump.call_count == 1
@@ -295,15 +269,10 @@ def test_symbolicate_minidump_and_native_stacktrace(
     # Both symbolication rounds ran without errors and the event moved on to
     # processing.
     assert mock_process_event.delay.call_count == 1
-    final_cache_key = mock_process_event.delay.call_args.kwargs["cache_key"]
-    final_data = (
-        mock_process_event.delay.call_args.kwargs["data"]
-        if inline
-        else stored_data[final_cache_key]
-    )
-    assert bool(final_cache_key) is not inline
-    assert mock_event_processing_store.store.call_count == (0 if inline else 3)
-    assert mock_event_processing_store.get.call_count == (0 if inline else 2)
+    final_data = mock_process_event.delay.call_args.kwargs["data"]
+    assert mock_process_event.delay.call_args.kwargs["cache_key"] is None
+    mock_event_processing_store.store.assert_not_called()
+    mock_event_processing_store.get.assert_not_called()
     mock_save_event.delay.assert_not_called()
     mock_do_process_event.assert_not_called()
     assert not final_data.get("_metrics", {}).get("flag.processing.error")

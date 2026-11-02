@@ -77,7 +77,7 @@ def test_recursion_breaker(post_event_with_sdk) -> None:
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
     project = Project.objects.get(id=1)
-    assert_mock_called_once_with_partial(save, project=project, cache_key=f"e:{event_id}:1")
+    assert_mock_called_once_with_partial(save, project=project)
 
 
 @no_silo_test

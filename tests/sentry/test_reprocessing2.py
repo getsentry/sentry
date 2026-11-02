@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest import mock
 
-import pytest
-
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.project import Project
 from sentry.reprocessing2 import (
@@ -17,23 +15,14 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "rate,disable_store,expected_writes", [(0.0, True, 1), (1.0, False, 1), (1.0, True, 0)]
-)
 def test_reprocessing_conditions_working_payload_write(
     default_project: Project,
-    rate: float,
-    disable_store: bool,
-    expected_writes: int,
 ) -> None:
     event_id = "a" * 32
     data = {"event_id": event_id, "project": default_project.id}
     event = mock.Mock(group_id=123)
     event.get_primary_hash.return_value = "original-hash"
     with (
-        override_options(
-            {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
-        ),
         mock.patch(
             "sentry.reprocessing2.pull_event_data",
             return_value=ReprocessableEvent(event=event, data=data, attachments=[]),
@@ -45,8 +34,8 @@ def test_reprocessing_conditions_working_payload_write(
     ):
         reprocess_event(default_project.id, event_id, start_time=1.0)
 
-    assert store.call_count == expected_writes
-    assert bool(preprocess.call_args.kwargs["cache_key"]) is bool(expected_writes)
+    store.assert_not_called()
+    assert preprocess.call_args.kwargs["cache_key"] is None
     assert preprocess.call_args.kwargs["data"] is data
 
 
