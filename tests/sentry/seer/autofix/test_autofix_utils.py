@@ -49,7 +49,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
@@ -271,8 +271,10 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         assert result is True
 
 
-class HasProjectConnectedReposTestMixin(BaseTestCase):
+class HasProjectConnectedReposBaseTest(TestCase):
     """Test the has_project_connected_repos function."""
+
+    __test__ = False
 
     def setUp(self) -> None:
         self.organization = self.create_organization()
@@ -348,7 +350,9 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
         assert has_project_connected_repos(self.organization, self.project) is True
 
 
-class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
     def test_returns_false_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -368,7 +372,9 @@ class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestM
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
     def test_returns_true_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -961,7 +967,9 @@ class TestGetTokenBasedBillingProjectRepos(TestCase):
         )
 
 
-class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
+class ReadPreferenceFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
     def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
@@ -1194,7 +1202,9 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.repositories[0].name == "test-repo"
 
 
-class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbTestMixin, TestCase):
+class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo)
 
@@ -1208,9 +1218,9 @@ class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbT
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestReadPreferenceFromSentryDbTokenBasedBilling(
-    ReadPreferenceFromSentryDbTestMixin, TestCase
-):
+class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
 
     def test_includes_repos_without_seer_config(self) -> None:
@@ -1224,7 +1234,9 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(
         assert result.repositories[0].branch_overrides == []
 
 
-class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
+class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
     def setUp(self):
         self.organization = self.create_organization()
         self.project1 = self.create_project(organization=self.organization)
@@ -1368,9 +1380,9 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert len(result[self.project2.id].repositories) == 0
 
 
-class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
-    BulkReadPreferencesFromSentryDbTestMixin, TestCase
-):
+class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project1, repository=self.repo)
 
@@ -1384,9 +1396,9 @@ class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
-    BulkReadPreferencesFromSentryDbTestMixin, TestCase
-):
+class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
 
     def test_includes_repos_without_seer_config(self) -> None:

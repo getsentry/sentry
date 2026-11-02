@@ -17,6 +17,7 @@ from sentry.auth.access import (
     SingularRpcAccessOrgOptimization,
     maybe_singular_rpc_access_org_context,
 )
+from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.scim.constants import SCIM_SCHEMA_GROUP
 from sentry.integrations.models.external_actor import ExternalActor
@@ -46,7 +47,7 @@ def _get_team_memberships(
     optimization: SingularRpcAccessOrgOptimization | None = None,
 ) -> dict[int, str | None]:
     """Get memberships the user has in the provided team list"""
-    if not user.is_authenticated:
+    if not has_user(user):
         return {}
 
     if optimization:
@@ -92,7 +93,7 @@ def get_org_roles(
     """
     Get the roles the user has in each org
     """
-    if not user.is_authenticated:
+    if not has_user(user):
         return {}
 
     if optimization:
@@ -114,7 +115,7 @@ def get_org_roles(
 def get_access_requests(
     item_list: Sequence[Team], user: User | RpcUser | AnonymousUser
 ) -> frozenset[int]:
-    if user.is_authenticated:
+    if has_user(user):
         return frozenset(
             OrganizationAccessRequest.objects.filter(
                 team__in=item_list, member__user_id=user.id
@@ -137,7 +138,7 @@ class BaseTeamSerializerResponse(TypedDict):
     isMember: bool
     teamRole: str | None
     flags: dict[str, Any]
-    access: frozenset[str]  # scopes granted by teamRole
+    access: list[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -312,7 +313,7 @@ class BaseTeamSerializer(Serializer):
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
             "flags": {"idp:provisioned": bool(obj.idp_provisioned)},
-            "access": attrs["access"],
+            "access": sorted(attrs["access"]),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],

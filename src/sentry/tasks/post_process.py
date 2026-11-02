@@ -1691,7 +1691,7 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     ):
         return
 
-    trigger_lightweight_rca_cluster_task.delay(group.id)
+    trigger_lightweight_rca_cluster_task.delay(group.id, event_id=event.event_id)
 
 
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:

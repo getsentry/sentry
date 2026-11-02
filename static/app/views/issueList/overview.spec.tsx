@@ -285,7 +285,7 @@ describe('IssueList', () => {
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: Array.from(Array.from({length: 25}), (_, i) =>
+        body: Array.from(Array.from({length: 5}), (_, i) =>
           GroupFixture({id: `${i}`, project})
         ),
         headers: {
@@ -308,7 +308,7 @@ describe('IssueList', () => {
       });
 
       expect(
-        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+        await screen.findByText(textWithMarkupMatcher('1-5 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
       unmount();
@@ -321,10 +321,10 @@ describe('IssueList', () => {
       });
 
       expect(
-        await screen.findByText(textWithMarkupMatcher('1-25 of 500'))
+        await screen.findByText(textWithMarkupMatcher('1-5 of 500'))
       ).toBeInTheDocument();
       expect(issuesRequest).toHaveBeenCalledTimes(1);
-    }, 20_000);
+    });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async () => {
       MockApiClient.addMockResponse({
@@ -796,7 +796,7 @@ describe('IssueList', () => {
       });
     });
 
-    const createWrapper = async (moreProps: any) => {
+    const renderEmptyIssueList = async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -805,9 +805,8 @@ describe('IssueList', () => {
         },
       });
 
-      render(<IssueListOverview {...moreProps} />, {
+      render(<IssueListOverview />, {
         organization,
-
         initialRouterConfig,
       });
 
@@ -816,186 +815,42 @@ describe('IssueList', () => {
       });
     };
 
-    it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
+    it('displays when the issue list is empty and no project has a first event', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          is_member: true,
-        },
         body: {sentFirstEvent: false},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projectsBody,
+        body: [ProjectFixture({slug: 'foo', firstEvent: null})],
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
         body: [],
       });
 
-      await createWrapper({
-        organization: OrganizationFixture(),
-      });
+      await renderEmptyIssueList();
 
       expect(
         await screen.findByRole('heading', {name: /waiting for events/i})
       ).toBeInTheDocument();
     });
 
-    it('does not display when no projects selected and any projects have a first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
-      MockApiClient.addMockResponse({
+    it('checks first events for the selected projects', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1, 2],
+        environments: [],
+        datetime: {period: '14d', start: null, end: null, utc: null},
+      });
+      const sentFirstEvent = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          is_member: true,
-        },
         body: {sentFirstEvent: true},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-      await createWrapper({
-        organization: OrganizationFixture(),
+        match: [MockApiClient.matchQuery({project: [1, 2]})],
       });
 
-      expect(
-        screen.queryByRole('heading', {name: /waiting for events/i})
-      ).not.toBeInTheDocument();
-    });
+      await renderEmptyIssueList();
 
-    it('displays when all selected projects do not have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: null,
-        }),
-      ];
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          project: [1, 2],
-        },
-        body: {sentFirstEvent: false},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/foo/issues/',
-        body: [],
-      });
-
-      await createWrapper({
-        selection: {
-          projects: [1, 2],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-        organization: OrganizationFixture(),
-      });
-
-      expect(
-        await screen.findByRole('heading', {name: /waiting for events/i})
-      ).toBeInTheDocument();
-    });
-
-    it('does not display when any selected projects have first event', async () => {
-      const projectsBody = [
-        ProjectFixture({
-          id: '1',
-          slug: 'foo',
-          isMember: true,
-          firstEvent: null,
-        }),
-        ProjectFixture({
-          id: '2',
-          slug: 'bar',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-        ProjectFixture({
-          id: '3',
-          slug: 'baz',
-          isMember: true,
-          firstEvent: new Date().toISOString(),
-        }),
-      ];
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sent-first-event/',
-        query: {
-          project: [1, 2],
-        },
-        body: {sentFirstEvent: true},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: projectsBody,
-      });
-
-      await createWrapper({
-        selection: {
-          projects: [1, 2],
-          environments: [],
-          datetime: {period: '14d'},
-        },
-        organization: OrganizationFixture(),
-      });
-
+      await waitFor(() => expect(sentFirstEvent).toHaveBeenCalled());
       expect(
         screen.queryByRole('heading', {name: /waiting for events/i})
       ).not.toBeInTheDocument();
@@ -1005,7 +860,7 @@ describe('IssueList', () => {
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: Array.from(Array.from({length: 25}), (_, i) =>
+      body: Array.from(Array.from({length: 5}), (_, i) =>
         GroupFixture({id: `${i}`, project})
       ),
       headers: {
@@ -1042,7 +897,7 @@ describe('IssueList', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('1-5 of 500'))).toBeInTheDocument();
     });
 
     parseLinkHeaderSpy.mockReturnValue({
@@ -1060,9 +915,9 @@ describe('IssueList', () => {
     rerender(<IssueListOverview />);
 
     await waitFor(() => {
-      expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
+      expect(screen.getByText(textWithMarkupMatcher('26-30 of 500'))).toBeInTheDocument();
     });
-  }, 20_000);
+  });
 
   describe('project low trends queue alert', () => {
     beforeEach(() => {

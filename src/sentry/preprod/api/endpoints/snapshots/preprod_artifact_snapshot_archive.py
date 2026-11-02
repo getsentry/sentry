@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.issues.action_log.request import resolve_action_source
 from sentry.models.organization import Organization
@@ -123,9 +124,7 @@ class OrganizationPreprodSnapshotArchiveEndpoint(OrganizationEndpoint):
                 PreprodArtifactApiSnapshotArchiveDownloadEvent(
                     organization_id=organization.id,
                     project_id=artifact.project_id,
-                    user_id=(
-                        request.user.id if request.user and request.user.is_authenticated else None
-                    ),
+                    user_id=acting_user_id(request.user),
                     artifact_id=str(artifact.id),
                     client=resolve_action_source(request),
                 )

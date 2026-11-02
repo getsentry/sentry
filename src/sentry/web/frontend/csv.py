@@ -6,6 +6,8 @@ from typing import Generic, TypeVar
 
 from django.http import StreamingHttpResponse
 
+from sentry.utils.csv import escape_csv_value
+
 T = TypeVar("T")
 
 
@@ -34,7 +36,7 @@ class CsvResponder(Generic[T]):
         pseudo_buffer = Echo()
         writer = csv.writer(pseudo_buffer)
         return StreamingHttpResponse(
-            (writer.writerow(r) for r in row_iter()),
+            (writer.writerow([escape_csv_value(value) for value in r]) for r in row_iter()),
             content_type="text/csv",
             headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'},
         )

@@ -19,7 +19,6 @@ VALID_RESULT: dict[str, object] = {
     "five_whys": ["a", "b", "c"],
     "reproduction_steps": ["do x"],
     "relevant_repo": "owner/repo",
-    "fixability": {"assessment": "fixable", "reason": "matches the stacktrace"},
 }
 
 

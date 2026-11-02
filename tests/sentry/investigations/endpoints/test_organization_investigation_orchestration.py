@@ -9,14 +9,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRun,
-    InvestigationStatus,
 )
 from sentry.investigations.services.orchestration import create_agentic_manual_investigation
+from sentry.notebooks.models import Notebook, NotebookBlockExecutionStatus, NotebookStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -33,7 +31,7 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def create_agentic(self) -> tuple[Investigation, InvestigationOrchestrationRun]:
+    def create_agentic(self) -> tuple[Notebook, InvestigationOrchestrationRun]:
         return create_agentic_manual_investigation(
             organization=self.organization,
             creator=ActorId(ActorType.USER, self.user.id),
@@ -176,7 +174,7 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
         assert response.data["runId"] is None
 
     def test_returns_not_found_for_an_investigation_without_a_run(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Manual"
         )
 
@@ -336,16 +334,16 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         dispatch.assert_not_called()
 
     def test_workflow_command_preserves_notebook_until_seer_clears_the_report(self) -> None:
-        block = self.create_investigation_block(
-            investigation=self.investigation,
+        block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
-            report_revision=1,
-            stable_agent_key="summary",
+            producer_revision=1,
+            producer_key="summary",
         )
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=block.version,
         )
 
@@ -359,7 +357,7 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         block.refresh_from_db()
         assert block.deleted_at is None
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert execution.status == NotebookBlockExecutionStatus.RUNNING
 
     def test_reusing_a_request_id_for_a_different_command_conflicts(self) -> None:
         body = self.command()
@@ -409,7 +407,7 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         assert not InvestigationOrchestrationCommand.objects.exists()
 
     def test_archived_investigation_rejects_commands_without_advancing_the_run(self) -> None:
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         response = self.client.post(self.command_url, data=self.command(), format="json")
 
@@ -419,7 +417,7 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         assert not self.orchestration_run.commands.exists()
 
     def test_returns_not_found_for_an_investigation_without_a_run(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Manual"
         )
 

@@ -46,6 +46,7 @@ from sentry.seer.autofix.utils import (
     add_seer_project_repos,
     get_seer_project_repo,
     get_token_based_billing_project_repos,
+    get_token_based_billing_repo_filter,
     is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
     update_seer_project_repo,
@@ -157,14 +158,8 @@ def _get_seat_based_billing_repos(organization: Organization) -> QuerySet[Reposi
 
 
 def _get_token_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
-    """Repos Seer can use under token-based billing. Same checks as get_token_based_billing_project_repos."""
-    return Repository.objects.filter(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=get_supported_scm_providers(organization),
-        integration_id__isnull=False,
-        external_id__isnull=False,
-    ).exclude(external_id="")
+    """Repos Seer can use under token-based billing."""
+    return Repository.objects.filter(get_token_based_billing_repo_filter(organization))
 
 
 def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:

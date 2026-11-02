@@ -1910,7 +1910,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2793,7 +2792,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },

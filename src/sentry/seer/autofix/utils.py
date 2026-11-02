@@ -3,13 +3,13 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from pydantic import BaseModel
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -473,20 +473,31 @@ def get_repo_url_path(repo: Repository) -> str:
     return repo.name
 
 
+def get_token_based_billing_repo_filter(
+    organization: Organization,
+    prefix: Literal["", "repository__", "projectrepository__repository__"] = "",
+) -> Q:
+    """Filter for repos Seer can use under token-based billing. prefix is the lookup path to Repository."""
+    return Q(
+        **{
+            f"{prefix}organization_id": organization.id,
+            f"{prefix}status": ObjectStatus.ACTIVE,
+            f"{prefix}provider__in": get_supported_scm_providers(organization),
+            f"{prefix}integration_id__isnull": False,
+            f"{prefix}external_id__isnull": False,
+        }
+    ) & ~Q(**{f"{prefix}external_id": ""})
+
+
 def get_token_based_billing_project_repos(
     organization: Organization, project_ids: Sequence[int]
 ) -> QuerySet[ProjectRepository]:
     """Linked repos Seer can use under token-based billing."""
     return (
         ProjectRepository.objects.filter(
+            get_token_based_billing_repo_filter(organization, prefix="repository__"),
             project_id__in=project_ids,
-            repository__organization_id=organization.id,
-            repository__status=ObjectStatus.ACTIVE,
-            repository__provider__in=get_supported_scm_providers(organization),
-            repository__integration_id__isnull=False,
-            repository__external_id__isnull=False,
         )
-        .exclude(repository__external_id="")
         .select_related("repository", "seerprojectrepository")
         .prefetch_related("seerprojectrepository__branch_overrides")
     )

@@ -1407,7 +1407,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
     def test_investigation_event_cannot_cross_organization_scope(self) -> None:
         organization = self.create_organization(owner=self.user)
         other_organization = self.create_organization()
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=other_organization,
             created_by=self.user,
             source={"type": "manual"},
