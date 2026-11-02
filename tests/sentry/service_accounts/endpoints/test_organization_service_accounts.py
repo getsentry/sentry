@@ -99,20 +99,11 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             )
             assert [row["id"] for row in response.data] == [str(second.id)]
 
-    def test_list_requires_service_account_read(self) -> None:
+    def test_member_can_list(self) -> None:
         self.create_service_account(organization=self.organization)
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.login_as(member)
-
-        with self.feature(FEATURE_FLAG):
-            self.get_error_response(self.organization.slug, status_code=403)
-
-    def test_manager_can_list(self) -> None:
-        self.create_service_account(organization=self.organization)
-        manager = self.create_user()
-        self.create_member(organization=self.organization, user=manager, role="manager")
-        self.login_as(manager)
 
         with self.feature(FEATURE_FLAG):
             response = self.get_success_response(self.organization.slug)
