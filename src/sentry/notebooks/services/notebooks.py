@@ -130,18 +130,19 @@ def create_notebook(
     filters: dict[str, Any],
     project_ids: list[int],
 ) -> Notebook:
-    investigation = Notebook.objects.create(
-        organization=organization,
-        created_by_id=created_by_id,
-        created_by_service_account_id=created_by_service_account_id,
-        title=title,
-        source_type=source_type,
-        source_key=source_key,
-        source=deepcopy(source),
-        source_revision=source_revision,
-        filters=deepcopy(filters),
-    )
-    _create_project_links(investigation, project_ids)
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        investigation = Notebook.objects.create(
+            organization=organization,
+            created_by_id=created_by_id,
+            created_by_service_account_id=created_by_service_account_id,
+            title=title,
+            source_type=source_type,
+            source_key=source_key,
+            source=deepcopy(source),
+            source_revision=source_revision,
+            filters=deepcopy(filters),
+        )
+        _create_project_links(investigation, project_ids)
     return investigation
 
 
