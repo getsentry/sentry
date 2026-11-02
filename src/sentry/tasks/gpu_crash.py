@@ -208,7 +208,6 @@ def _maybe_resolve_shader_difs(
                 dump,
                 shaders,
                 shader_binaries=difs.binaries,
-                shader_pdbs=difs.pdbs,
             )
     except TeapotUnavailable:
         metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "unavailable"})

@@ -69,12 +69,7 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
-# DXC shader binaries carry the DXBC container magic; DXC shader PDBs are MSF
-# files whose stream directory names an `ILDN` (debug name) part.
 _DXIL_MAGIC = b"DXBC"
-_MSF_MAGIC = b"Microsoft C/C++ MSF 7.00"
-_DXIL_PDB_PART = b"ILDN"
-_DXIL_PDB_SCAN_BYTES = 64 * 1024
 _SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
 SHADER_GROUP_MAX_LENGTH = 512
@@ -107,8 +102,6 @@ def _dif_file_extension(file_format: str, file_type: str | None) -> str:
         return ".json"
     if file_format == "dxil":
         return ".dxil"
-    if file_format == "dxilpdb":
-        return ".pdb"
 
     return ""
 
@@ -467,7 +460,6 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
     uuidmap_seen = False
     il2cpp_seen = False
     dxil_seen = False
-    dxilpdb_seen = False
     for i, dif in enumerate(difs):
         mime_type = dif.get_content_type()
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
@@ -488,11 +480,6 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
         elif mime_type == DIF_MIMETYPES["dxil"]:
             if not dxil_seen:
                 dxil_seen = True
-            else:
-                dif.delete()
-        elif mime_type == DIF_MIMETYPES["dxilpdb"]:
-            if not dxilpdb_seen:
-                dxilpdb_seen = True
             else:
                 dif.delete()
         else:
@@ -539,7 +526,6 @@ def _get_dif_object_name(meta: DifMeta) -> str:
         "il2cpp",
         "dartsymbolmap",
         "dxil",
-        "dxilpdb",
     ):
         return meta.name
     if meta.file_format == "breakpad":
@@ -914,7 +900,6 @@ class DifKind(enum.Enum):
     Il2Cpp = enum.auto()
     DartSymbolMap = enum.auto()
     Dxil = enum.auto()
-    DxilPdb = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -936,22 +921,17 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.DartSymbolMap
         elif data.startswith(_DXIL_MAGIC):
             return DifKind.Dxil
-        elif _MSF_MAGIC.startswith(data):
-            data += fp.read(_DXIL_PDB_SCAN_BYTES - len(data))
-            if data.startswith(_MSF_MAGIC) and _DXIL_PDB_PART in data:
-                return DifKind.DxilPdb
-            return DifKind.Object
         else:
             return DifKind.Object
 
 
-def _shader_debug_id(debug_id: str | None, kind: str) -> str:
+def _shader_debug_id(debug_id: str | None) -> str:
     if debug_id is None:
-        raise BadDif(f"Missing debug_id for {kind}")
+        raise BadDif("Missing debug_id for dxil")
     try:
         return normalize_debug_id(debug_id)
     except SymbolicError as e:
-        raise BadDif(f"Invalid debug_id for {kind}: {e}")
+        raise BadDif(f"Invalid debug_id for dxil: {e}")
 
 
 def detect_dif_from_path(
@@ -1093,23 +1073,11 @@ def detect_dif_from_path(
             DifMeta(
                 file_format="dxil",
                 arch="any",
-                debug_id=_shader_debug_id(debug_id, "dxil"),
+                debug_id=_shader_debug_id(debug_id),
                 code_id=code_id,
                 name=name,
                 path=path,
                 data=dxil_data,
-            )
-        ]
-    elif dif_kind == DifKind.DxilPdb:
-        logger.debug("File loaded as dxilpdb: %s", path)
-        return [
-            DifMeta(
-                file_format="dxilpdb",
-                arch="any",
-                debug_id=_shader_debug_id(debug_id, "dxilpdb"),
-                name=name,
-                path=path,
-                data={"type": "dxilpdb", "features": ["debug"]},
             )
         ]
     else:

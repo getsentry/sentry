@@ -375,7 +375,6 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
     "application/x-portable-pdb": "portablepdb",
     "application/x-dartsymbolmap+json": "dartsymbolmap",
     "application/x-dxil": "dxil",
-    "application/x-dxil-pdb": "dxilpdb",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

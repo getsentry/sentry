@@ -140,7 +140,6 @@ class TeapotClient:
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
         shader_binaries: Sequence[dict[str, str]] | None = None,
-        shader_pdbs: Sequence[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -160,10 +159,9 @@ class TeapotClient:
             ],
         }
         request_id = self.event_id
-        if shader_binaries or shader_pdbs:
+        if shader_binaries:
             # Second round: a distinct id, or teapot's idempotency cache replays the first response.
-            body["shader_binaries"] = list(shader_binaries or [])
-            body["shader_pdbs"] = list(shader_pdbs or [])
+            body["shader_binaries"] = list(shader_binaries)
             request_id = f"{self.event_id}-2"
         data = orjson.dumps(body)
         headers = {
@@ -235,7 +233,6 @@ def submit_to_teapot(
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
     shader_binaries: Sequence[dict[str, str]] | None = None,
-    shader_pdbs: Sequence[dict[str, str]] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -244,8 +241,8 @@ def submit_to_teapot(
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
 
-    ``shader_binaries`` / ``shader_pdbs`` make this the second round, with presigned
-    URLs for the shader DIFs teapot reported missing.
+    ``shader_binaries`` makes this the second round, with presigned URLs for the
+    shader binaries teapot reported missing.
     """
 
     try:
@@ -254,7 +251,6 @@ def submit_to_teapot(
             dump,
             shader_debug_info or [],
             shader_binaries=shader_binaries,
-            shader_pdbs=shader_pdbs,
         )
     except TeapotRequestError as e:
         logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})

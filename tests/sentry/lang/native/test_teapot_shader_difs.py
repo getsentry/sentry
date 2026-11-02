@@ -11,22 +11,15 @@ import pytest
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.lang.native.shader_difs import (
-    ShaderDifs,
-    debug_id_from_debug_name,
-    missing_shader_difs,
-    resolve_shader_difs,
-)
+from sentry.lang.native.shader_difs import ShaderDifs, missing_shader_difs, resolve_shader_difs
 from sentry.lang.native.teapot import TeapotClient, TeapotUnavailable
-from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.debugfile import DIF_MIMETYPES, ProjectDebugFile
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import _try_symbolicate
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
-DXC_HASH = "731322bf682bdc554eefdd89098b7383"
 DEBUG_ID = "731322bf-682b-dc55-4eef-dd89098b7383"
-DEBUG_NAME = f"{DXC_HASH}.pdb"
 AFTERMATH_HASH = "0123456789abcdef"
 SHADER_GROUP = "GlobalShaders"
 
@@ -63,10 +56,7 @@ def _partial(**overrides: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
         "status": "partial",
         "fault_category": "shader_hang",
-        "missing_difs": [
-            {"debug_id": AFTERMATH_HASH, "kind": "dxil"},
-            {"debug_id": DEBUG_NAME, "kind": "dxil_pdb"},
-        ],
+        "missing_difs": [{"debug_id": AFTERMATH_HASH, "kind": "dxil"}],
     }
     base.update(overrides)
     return base
@@ -84,8 +74,7 @@ def _resolved() -> ShaderDifs:
                 "storage_url": "http://objectstore/dxil?sig=x",
                 "group": SHADER_GROUP,
             }
-        ],
-        pdbs=[{"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/pdb?sig=x"}],
+        ]
     )
 
 
@@ -106,15 +95,12 @@ def teapot_session() -> Iterator[mock.Mock]:
 # ---------------------------------------------------------------------------
 
 
-def test_client_second_round_sends_shader_arrays(teapot_session: mock.Mock) -> None:
+def test_client_second_round_sends_shader_binaries(teapot_session: mock.Mock) -> None:
     resolved = _resolved()
     with mock.patch("sentry.lang.native.teapot.requests.post") as mock_post:
         mock_post.return_value = _FakeResponse(200, _completed())
         TeapotClient(_FakeProject(), "abc").symbolicate(
-            _FakeAttachment(),
-            [],
-            shader_binaries=resolved.binaries,
-            shader_pdbs=resolved.pdbs,
+            _FakeAttachment(), [], shader_binaries=resolved.binaries
         )
 
     kwargs = mock_post.call_args.kwargs
@@ -125,10 +111,9 @@ def test_client_second_round_sends_shader_arrays(teapot_session: mock.Mock) -> N
     assert body["event_id"] == "abc"
     assert body["dump"] == {"storage_url": "http://objectstore/dump-obj-id?sig=abc"}
     assert body["shader_binaries"] == resolved.binaries
-    assert body["shader_pdbs"] == resolved.pdbs
 
 
-def test_client_first_round_omits_shader_arrays(teapot_session: mock.Mock) -> None:
+def test_client_first_round_omits_shader_binaries(teapot_session: mock.Mock) -> None:
     with mock.patch("sentry.lang.native.teapot.requests.post") as mock_post:
         mock_post.return_value = _FakeResponse(200, _completed())
         TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment(), [])
@@ -138,7 +123,6 @@ def test_client_first_round_omits_shader_arrays(teapot_session: mock.Mock) -> No
     assert kwargs["headers"]["X-Request-Id"] == "abc"
     body = orjson.loads(kwargs["data"])
     assert "shader_binaries" not in body
-    assert "shader_pdbs" not in body
 
 
 # ---------------------------------------------------------------------------
@@ -150,40 +134,23 @@ def test_missing_shader_difs_parsing() -> None:
     response = _partial(
         missing_difs=[
             {"debug_id": AFTERMATH_HASH, "kind": "dxil"},
-            {"debug_id": DEBUG_NAME, "kind": "dxil_pdb"},
-            {"debug_id": "deadbeef", "kind": "pdb"},
+            {"debug_id": "deadbeef", "kind": "unknown"},
             {"kind": "dxil"},
             "garbage",
         ]
     )
-    assert missing_shader_difs(response) == ([AFTERMATH_HASH], [DEBUG_NAME])
-    assert missing_shader_difs({}) == ([], [])
-
-
-@pytest.mark.parametrize(
-    "debug_name,expected",
-    (
-        (DEBUG_NAME, DEBUG_ID),
-        (DXC_HASH.upper() + ".PDB", DEBUG_ID),
-        ("C:\\build\\shaders\\" + DEBUG_NAME, DEBUG_ID),
-        (DXC_HASH, DEBUG_ID),
-        ("not-a-hash.pdb", None),
-    ),
-)
-def test_debug_id_from_debug_name(debug_name: str, expected: str | None) -> None:
-    assert debug_id_from_debug_name(debug_name) == expected
+    assert missing_shader_difs(response) == [AFTERMATH_HASH]
+    assert missing_shader_difs({}) == []
 
 
 def _create_dif(
     project: Project,
-    dif_type: str,
+    dif_type: str = "dxil",
     code_id: str | None = None,
     storage_path: str | None = "difs/shader",
     shader_group: str | None = None,
 ) -> ProjectDebugFile:
-    content_type = "application/x-dxil" if dif_type == "dxil" else "application/x-dxil-pdb"
-    features = ["symtab"] if dif_type == "dxil" else ["debug"]
-    data: dict[str, Any] = {"type": dif_type, "features": features}
+    data: dict[str, Any] = {"type": dif_type, "features": ["symtab"]}
     if shader_group is not None:
         data["shader_group"] = shader_group
     return ProjectDebugFile.objects.create(
@@ -195,7 +162,7 @@ def _create_dif(
         checksum="0" * 40,
         data=data,
         storage_path=storage_path,
-        content_type=content_type,
+        content_type=DIF_MIMETYPES[dif_type],
         file_size=64,
         date_created=timezone.now(),
     )
@@ -219,12 +186,10 @@ def test_resolve_shader_difs_presigns_objectstore_rows(
 ) -> None:
     _create_dif(
         default_project,
-        "dxil",
         code_id=AFTERMATH_HASH,
         storage_path="difs/dxil",
         shader_group=SHADER_GROUP,
     )
-    _create_dif(default_project, "dxilpdb", storage_path="difs/pdb")
 
     resolved = resolve_shader_difs(default_project, _partial())
 
@@ -236,9 +201,6 @@ def test_resolve_shader_difs_presigns_objectstore_rows(
             "group": SHADER_GROUP,
         }
     ]
-    assert resolved.pdbs == [
-        {"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/difs/pdb?sig=x"}
-    ]
     # Token validity is the longer DIF one, not the attachment default.
     assert dif_presign.call_args.kwargs["token_validity"] is not None
 
@@ -247,7 +209,7 @@ def test_resolve_shader_difs_presigns_objectstore_rows(
 def test_resolve_shader_difs_matches_code_id_case_insensitively(
     default_project: Project, dif_presign: mock.Mock
 ) -> None:
-    _create_dif(default_project, "dxil", code_id=AFTERMATH_HASH)
+    _create_dif(default_project, code_id=AFTERMATH_HASH)
     response = _partial(missing_difs=[{"debug_id": AFTERMATH_HASH.upper(), "kind": "dxil"}])
 
     resolved = resolve_shader_difs(default_project, response)
@@ -255,28 +217,26 @@ def test_resolve_shader_difs_matches_code_id_case_insensitively(
     assert resolved.binaries == [
         {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/difs/shader?sig=x"}
     ]
-    assert resolved.pdbs == []
 
 
 @django_db_all
 def test_resolve_shader_difs_ignores_other_types(
     default_project: Project, dif_presign: mock.Mock
 ) -> None:
-    # Same debug_id, but the row is the binary; teapot asked for the PDB.
-    _create_dif(default_project, "dxil", code_id=AFTERMATH_HASH)
-    response = _partial(missing_difs=[{"debug_id": DEBUG_NAME, "kind": "dxil_pdb"}])
+    # Same code_id, but the row is not a shader binary.
+    _create_dif(default_project, dif_type="pe", code_id=AFTERMATH_HASH)
 
-    resolved = resolve_shader_difs(default_project, response)
+    resolved = resolve_shader_difs(default_project, _partial())
 
     assert bool(resolved) is False
+    dif_presign.assert_not_called()
 
 
 @django_db_all
 def test_resolve_shader_difs_skips_legacy_rows(
     default_project: Project, dif_presign: mock.Mock
 ) -> None:
-    _create_dif(default_project, "dxil", code_id=AFTERMATH_HASH, storage_path=None)
-    _create_dif(default_project, "dxilpdb", storage_path=None)
+    _create_dif(default_project, code_id=AFTERMATH_HASH, storage_path=None)
 
     resolved = resolve_shader_difs(default_project, _partial())
 
@@ -322,8 +282,7 @@ def test_task_runs_second_round_with_resolved_difs(
     assert resolve.call_args.args[1] is partial
     assert teapot.call_count == 2
     second = teapot.call_args_list[1]
-    assert second.kwargs["shader_binaries"] == _resolved().binaries
-    assert second.kwargs["shader_pdbs"] == _resolved().pdbs
+    assert second.kwargs == {"shader_binaries": _resolved().binaries}
     assert apply.call_args.args[1] is completed
     circuit_breaker.record_success.assert_called_once()
     circuit_breaker.record_error.assert_not_called()

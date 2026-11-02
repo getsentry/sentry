@@ -30,9 +30,6 @@ DEBUG_ID = "731322bf-682b-dc55-4eef-dd89098b7383"
 AFTERMATH_HASH = "0123456789abcdef"
 
 DXIL_BYTES = b"DXBC" + b"\x00" * 60
-MSF_MAGIC = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\x00\x00\x00"
-DXIL_PDB_BYTES = MSF_MAGIC + b"\x00" * 4096 + b"ILDN" + b"\x00" * 64
-PLAIN_PDB_BYTES = MSF_MAGIC + b"\x00" * 4096
 
 
 def _write(tmp_path: Path, name: str, data: bytes) -> str:
@@ -41,31 +38,14 @@ def _write(tmp_path: Path, name: str, data: bytes) -> str:
     return str(path)
 
 
-def test_shader_formats_registered() -> None:
+def test_dxil_format_registered() -> None:
     assert KNOWN_DIF_FORMATS["application/x-dxil"] == "dxil"
-    assert KNOWN_DIF_FORMATS["application/x-dxil-pdb"] == "dxilpdb"
     assert DIF_MIMETYPES["dxil"] == "application/x-dxil"
-    assert DIF_MIMETYPES["dxilpdb"] == "application/x-dxil-pdb"
     assert _dif_file_extension("dxil", "dxil") == ".dxil"
-    assert _dif_file_extension("dxilpdb", "dxilpdb") == ".pdb"
 
 
 def test_determine_dif_kind_dxil(tmp_path: Path) -> None:
     assert determine_dif_kind(_write(tmp_path, "a.dxil", DXIL_BYTES)) == DifKind.Dxil
-
-
-def test_determine_dif_kind_dxil_pdb(tmp_path: Path) -> None:
-    assert determine_dif_kind(_write(tmp_path, "a.pdb", DXIL_PDB_BYTES)) == DifKind.DxilPdb
-
-
-def test_determine_dif_kind_plain_pdb_is_object(tmp_path: Path) -> None:
-    # A regular MSF PDB has no ILDN part and stays with symbolic.
-    assert determine_dif_kind(_write(tmp_path, "a.pdb", PLAIN_PDB_BYTES)) == DifKind.Object
-
-
-def test_determine_dif_kind_ildn_outside_scan_window_is_object(tmp_path: Path) -> None:
-    data = MSF_MAGIC + b"\x00" * (64 * 1024) + b"ILDN"
-    assert determine_dif_kind(_write(tmp_path, "a.pdb", data)) == DifKind.Object
 
 
 def test_detect_dxil(tmp_path: Path) -> None:
@@ -93,28 +73,14 @@ def test_detect_dxil_without_code_id(tmp_path: Path) -> None:
     assert meta.code_id is None
 
 
-def test_detect_dxil_pdb(tmp_path: Path) -> None:
-    path = _write(tmp_path, f"{DXC_HASH}.pdb", DXIL_PDB_BYTES)
-
-    meta = detect_single_dif_from_path(path, name=f"{DXC_HASH}.pdb", debug_id=DXC_HASH)
-
-    assert meta.file_format == "dxilpdb"
-    assert meta.arch == "any"
-    assert meta.debug_id == DEBUG_ID
-    assert meta.code_id is None
-    assert meta.data == {"type": "dxilpdb", "features": ["debug"]}
-    assert _get_dif_object_name(meta) == f"{DXC_HASH}.pdb"
-
-
-@pytest.mark.parametrize("data", (DXIL_BYTES, DXIL_PDB_BYTES))
-def test_detect_shader_requires_debug_id(tmp_path: Path, data: bytes) -> None:
-    path = _write(tmp_path, "shader.bin", data)
+def test_detect_dxil_requires_debug_id(tmp_path: Path) -> None:
+    path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
 
     with pytest.raises(BadDif, match="Missing debug_id"):
-        detect_dif_from_path(path, name="shader.bin")
+        detect_dif_from_path(path, name="shader.dxil")
 
 
-def test_detect_shader_rejects_invalid_debug_id(tmp_path: Path) -> None:
+def test_detect_dxil_rejects_invalid_debug_id(tmp_path: Path) -> None:
     path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
 
     with pytest.raises(BadDif, match="Invalid debug_id"):
@@ -128,25 +94,23 @@ def test_detect_dxil_rejects_invalid_code_id(tmp_path: Path) -> None:
         detect_dif_from_path(path, name="shader.dxil", debug_id=DXC_HASH, code_id="abc")
 
 
-def test_detect_dxil_stores_shader_group(tmp_path: Path) -> None:
-    path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
-
-    meta = detect_single_dif_from_path(
-        path, name="shader.dxil", debug_id=DXC_HASH, shader_group="  GlobalShaders "
-    )
-
-    assert meta.data == {"type": "dxil", "features": ["symtab"], "shader_group": "GlobalShaders"}
-
-
-@pytest.mark.parametrize("shader_group", (None, "", "   "))
-def test_detect_dxil_drops_empty_shader_group(tmp_path: Path, shader_group: str | None) -> None:
+@pytest.mark.parametrize(
+    "shader_group,stored",
+    (("  GlobalShaders ", "GlobalShaders"), (None, None), ("", None), ("   ", None)),
+)
+def test_detect_dxil_stores_shader_group(
+    tmp_path: Path, shader_group: str | None, stored: str | None
+) -> None:
     path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
 
     meta = detect_single_dif_from_path(
         path, name="shader.dxil", debug_id=DXC_HASH, shader_group=shader_group
     )
 
-    assert meta.data == {"type": "dxil", "features": ["symtab"]}
+    expected: dict[str, object] = {"type": "dxil", "features": ["symtab"]}
+    if stored is not None:
+        expected["shader_group"] = stored
+    assert meta.data == expected
 
 
 def test_detect_dxil_rejects_overlong_shader_group(tmp_path: Path) -> None:
@@ -159,16 +123,6 @@ def test_detect_dxil_rejects_overlong_shader_group(tmp_path: Path) -> None:
             debug_id=DXC_HASH,
             shader_group="g" * (SHADER_GROUP_MAX_LENGTH + 1),
         )
-
-
-def test_detect_dxil_pdb_ignores_shader_group(tmp_path: Path) -> None:
-    path = _write(tmp_path, f"{DXC_HASH}.pdb", DXIL_PDB_BYTES)
-
-    meta = detect_single_dif_from_path(
-        path, name=f"{DXC_HASH}.pdb", debug_id=DXC_HASH, shader_group="GlobalShaders"
-    )
-
-    assert meta.data == {"type": "dxilpdb", "features": ["debug"]}
 
 
 def _create_shader_dif(
@@ -209,24 +163,19 @@ def test_reupload_backfills_missing_shader_group(default_project: Project, tmp_p
     assert ProjectDebugFile.objects.filter(project_id=default_project.id).count() == 1
 
 
+@pytest.mark.parametrize("reupload_group", ("Group B", None))
 @django_db_all
-def test_reupload_keeps_existing_shader_group(default_project: Project, tmp_path: Path) -> None:
+def test_reupload_keeps_existing_shader_group(
+    default_project: Project, tmp_path: Path, reupload_group: str | None
+) -> None:
     first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
 
-    second, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group B")
+    second, created = _create_shader_dif(
+        default_project, tmp_path, "a.dxil", DXIL_BYTES, reupload_group
+    )
 
     assert created is False
     assert second.id == first.id
-    first.refresh_from_db()
-    assert first.data["shader_group"] == "Group A"
-
-
-@django_db_all
-def test_reupload_without_shader_group_is_noop(default_project: Project, tmp_path: Path) -> None:
-    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
-
-    _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
-
     first.refresh_from_db()
     assert first.data["shader_group"] == "Group A"
 
