@@ -28,15 +28,6 @@ MAX_PROJECTION_BYTES = 512 * 1024
 MAX_THOUGHT_TEXT_CHARS = 1_500
 
 
-class RelaxedContractSerializer(serializers.Serializer[Any]):
-    def to_internal_value(self, data: Any) -> dict[str, Any]:
-        validated = cast("dict[str, Any]", super().to_internal_value(data))
-        if not isinstance(data, dict):
-            return validated
-        passthrough = {key: value for key, value in data.items() if key not in self.fields}
-        return {**passthrough, **validated}
-
-
 WORK_STATUSES = {
     "not_started",
     "queued",
@@ -92,19 +83,6 @@ MAX_EVIDENCE_DATA_BYTES = 128 * 1024
 MAX_PROJECT_IDS = 100
 MAX_PROJECTION_ERRORS = 50
 MAX_PROJECTION_INTENTS = 50
-
-
-class StrictCharField(serializers.CharField):
-    """A string that rejects the numbers DRF would stringify, and keeps its whitespace."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        kwargs.setdefault("trim_whitespace", False)
-        super().__init__(**kwargs)
-
-    def to_internal_value(self, data: Any) -> str:
-        if not isinstance(data, str):
-            self.fail("invalid")
-        return super().to_internal_value(data)
 
 
 class StrictIntegerField(serializers.IntegerField):
@@ -490,25 +468,6 @@ MAX_REPORT_BLOCKS = 200
 MAX_ACTION_REQUESTS = 50
 ACTION_REQUEST_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
 ANCHOR_TYPES = ("block", "hypothesis")
-
-
-class ActionRequestAnchor(TypedDict):
-    type: Literal["block", "hypothesis"]
-    id: str
-
-
-class ActionRequestItem(TypedDict):
-    """A request from Seer that has passed validation."""
-
-    key: str
-    reportRevision: int
-    title: str
-    rationale: str
-    impact: str | None
-    primary: bool
-    anchor: ActionRequestAnchor | None
-    # The action kind owns this, so nothing else should read inside it.
-    action: dict[str, Any] | None
 
 
 MAX_TEXT_DELTA_CHARS = 64 * 1024

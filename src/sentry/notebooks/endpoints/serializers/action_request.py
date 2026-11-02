@@ -162,39 +162,6 @@ class InvestigationActionRequestSerializer(
             if key is not None
         }
 
-    def _follow_ups(
-        self, item_list: Sequence[NotebookActionRequest]
-    ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
-        request_ids = {
-            item.followup_request_id for item in item_list if item.followup_request_id is not None
-        }
-        if not request_ids:
-            return {}
-        return {
-            (investigation_id, request_id): {
-                "status": InvestigationOrchestrationCommandStatus(status),
-                "reason": (error or {}).get("reason"),
-                "rerun": InvestigationOrchestrationRerun(rerun) if rerun is not None else None,
-                "retryable": status == InvestigationOrchestrationCommandStatus.FAILED
-                and follow_up_can_be_retried(command_type, error),
-            }
-            for investigation_id, request_id, command_type, status, error, rerun in (
-                InvestigationOrchestrationCommand.objects.filter(
-                    orchestration_run__investigation_id__in={
-                        item.notebook_id for item in item_list
-                    },
-                    request_id__in=request_ids,
-                ).values_list(
-                    "orchestration_run__investigation_id",
-                    "request_id",
-                    "type",
-                    "status",
-                    "error",
-                    "rerun",
-                )
-            )
-        }
-
     @override
     def get_attrs(
         self,

@@ -357,41 +357,6 @@ def _check_can_apply(
     )
 
 
-def _queue_follow_up(
-    investigation: Notebook,
-    run: InvestigationOrchestrationRun,
-    command: FollowUpCommand,
-    actor_id: int | None,
-) -> UUID:
-    """Send Seer a command for an action request, and return its request ID. Requests that
-    need the same command share it while it's queued.
-    """
-
-    queued = (
-        InvestigationOrchestrationCommand.objects.filter(
-            orchestration_run=run,
-            type=command["type"],
-            payload=command["payload"],
-            status__in=(
-                InvestigationOrchestrationCommandStatus.ACCEPTED,
-                InvestigationOrchestrationCommandStatus.DISPATCHED,
-            ),
-        )
-        .values_list("request_id", flat=True)
-        .first()
-    )
-    if queued is not None:
-        return queued
-    return accept_orchestration_command(
-        investigation=investigation,
-        request_id=uuid4(),
-        expected_workflow_version=run.workflow_version,
-        command_type=command["type"],
-        payload=command["payload"],
-        actor_id=actor_id,
-    ).request_id
-
-
 def _complete_action_request(
     investigation: Notebook,
     run: InvestigationOrchestrationRun,
@@ -404,20 +369,6 @@ def _complete_action_request(
     applied it for the user. Callers hold the investigation, run, and request locks.
     """
 
-    accept_orchestration_command(
-        investigation=investigation,
-        request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
-        expected_workflow_version=run.workflow_version,
-        command_type="record_action_outcome",
-        payload={
-            "key": action_request.key,
-            "action": action_request.action_payload,
-            "reportRevision": action_request.producer_revision,
-            "outcome": "applied",
-            "appliedBy": applied_by,
-        },
-        actor_id=applied_by,
-    )
     kind = get_action_kind(action_request.action_kind)
     assert kind is not None
     command = kind.follow_up_command(action_request)
@@ -463,43 +414,13 @@ def complete_action_requests(
                     _complete_action_request(
                         investigation, run, row, applied_by=applied_by, details=details
                     )
-
-
-def _seer_can_recheck(
-    run: InvestigationOrchestrationRun, action_request: NotebookActionRequest
-) -> bool:
-    # Seer turns a re-check down unless it's for the current report, and that report is done.
-    report = run.projection.get("report")
-    return (
-        run.phase
-        in (InvestigationOrchestrationPhase.METADATA, InvestigationOrchestrationPhase.COMPLETED)
-        and isinstance(report, dict)
-        and report.get("status") == "completed"
-        and report.get("revision") == action_request.producer_revision
-    )
-
-
 def _queue_recheck(context: ApplyContext) -> UUID | None:
-    """Ask Seer to check its requests for this report again against the current source, and
-    return the command's request ID. None if Seer would turn it down or Sentry can't rebuild
-    the source.
-    """
-
     if not _seer_can_recheck(context.run, context.action_request):
         return None
     source = rebuild_orchestration_source(context.investigation)
-    if source is None:
-        return None
-    return _queue_follow_up(
         context.investigation,
         context.run,
-        {
-            "type": "recheck_action_requests",
-            "payload": {
                 "reportRevision": context.action_request.producer_revision,
-                "source": source,
-            },
-        },
         context.actor_id,
     )
 
@@ -518,12 +439,6 @@ def _failed_recheck(
     action_request: NotebookActionRequest,
 ) -> InvestigationOrchestrationCommand | None:
     if not _is_stale(action_request) or action_request.followup_request_id is None:
-        return None
-    return InvestigationOrchestrationCommand.objects.filter(
-        orchestration_run__investigation_id=action_request.notebook_id,
-        request_id=action_request.followup_request_id,
-        status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).first()
 
 
 def _undelivered_follow_up(
@@ -661,26 +576,12 @@ def _recheck(
     if failed is not None:
         _check_can_apply(context.investigation, action_request, request, retry=True)
         _check_action_unchanged(action_request, expected_action)
-        if command_can_be_requeued(failed):
-            # Seer never got it, and Sentry already moved the workflow version for it.
-            accept_orchestration_command(
                 investigation=context.investigation,
-                request_id=failed.request_id,
-                expected_workflow_version=failed.expected_workflow_version,
-                command_type=failed.type,
-                payload=failed.payload,
                 actor_id=context.actor_id,
             )
         elif (
             isinstance(failed.error, dict) and failed.error.get("code") == "earlier_command_failed"
         ):
-            # A new command would expect the version of a command Seer never got.
-            raise ApplyFailed(
-                {
-                    "detail": "This goes to Seer once the command ahead of it does.",
-                    "code": ApplyErrorCode.NOT_RETRYABLE,
-                }
-            )
         else:
             assert action_request.error is not None
             _record_stale(context, action_request.error["current"])

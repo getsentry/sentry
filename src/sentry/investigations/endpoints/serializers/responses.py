@@ -235,15 +235,3 @@ class InvestigationCandidateResponse(TypedDict):
 
 class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
-
-
-class InvestigationActionRequestApplyResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRecheckResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
