@@ -42,8 +42,7 @@ class TestGenerateControlsiloUrls(TestCase):
         assert "This is generated code" in result
         assert "export const controlsiloUrlPatterns: RegExp[] = [" in result
         assert "new RegExp('^api/0/users/$')," in result
-        # Wizard is an HTML view that gets POST from UI code.
-        assert "new RegExp('^account/settings/wizard/[^/]+/$')," in result
+        assert "new RegExp('^api/0/wizard/[^/]+/session/$')," in result
         # Views that render react application (like /dashboards)
         # are not be used by UI code, and shouldn't be in the URL list
         assert "new RegExp('^dashboards" not in result
