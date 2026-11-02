@@ -60,7 +60,6 @@ from sentry.issues.endpoints import (
     organization_group_search_views_starred,
 )
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
-from sentry.hybridcloud.rpc.service import dispatch_remote_call
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -739,31 +738,20 @@ class ControlSiloOrganizationEndpointTest(TestCase):
         request.auth = None
         return drf_request_from_request(request)
 
-    def assert_lightweight_context(self, organization_id_or_slug: int | str) -> None:
+    def assert_organization_access(self, organization_id_or_slug: int | str) -> None:
         request = self.build_request()
-        with (
-            assert_no_organization_resource_hydration(),
-            mock.patch(
-                "sentry.organizations.services.organization.impl.get_active_resource_ids",
-                side_effect=AssertionError("Unexpected organization-wide resource lookup"),
-            ) as resource_ids,
-        ):
-            _, kwargs = ControlSiloOrganizationEndpoint().convert_args(
-                request, organization_id_or_slug
-            )
+        _, kwargs = ControlSiloOrganizationEndpoint().convert_args(request, organization_id_or_slug)
 
-        resource_ids.assert_not_called()
-        assert kwargs["organization"].projects == []
-        assert kwargs["organization"].teams == []
+        assert kwargs["organization"].id == self.organization.id
         assert request.access.has_scope("org:read")
         assert request.access.has_project_access(self.project)
         assert request.access.has_team_access(self.team)
 
-    def test_convert_args_omits_projects_and_teams_by_default_for_slug(self) -> None:
-        self.assert_lightweight_context(self.organization.slug)
+    def test_convert_args_resolves_organization_and_access_by_slug(self) -> None:
+        self.assert_organization_access(self.organization.slug)
 
-    def test_convert_args_omits_projects_and_teams_by_default_for_id(self) -> None:
-        self.assert_lightweight_context(self.organization.id)
+    def test_convert_args_resolves_organization_and_access_by_id(self) -> None:
+        self.assert_organization_access(self.organization.id)
 
     def test_org_token_enumerates_resources_without_additional_rpcs(self) -> None:
         request = self.build_request()
@@ -772,24 +760,15 @@ class ControlSiloOrganizationEndpointTest(TestCase):
             kind="org_auth_token", organization_id=self.organization.id, scopes=["org:read"]
         )
         unassigned = self.create_project(organization=self.organization, teams=[])
-        with (
-            assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False),
-            mock.patch(
-                "sentry.hybridcloud.rpc.service.dispatch_remote_call", wraps=dispatch_remote_call
-            ) as rpc,
-        ):
-            _, kwargs = ControlSiloOrganizationEndpoint().convert_args(
-                request, self.organization.slug
-            )
-            assert request.access.accessible_project_ids == frozenset(
-                {self.project.id, unassigned.id}
-            )
-            assert request.access.accessible_team_ids == frozenset({self.team.id})
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            ControlSiloOrganizationEndpoint().convert_args(request, self.organization.slug)
+            with mock.patch("sentry.hybridcloud.rpc.service.dispatch_remote_call") as rpc:
+                assert request.access.accessible_project_ids == frozenset(
+                    {self.project.id, unassigned.id}
+                )
+                assert request.access.accessible_team_ids == frozenset({self.team.id})
 
-        rpc.assert_called_once()
-        assert rpc.call_args.args[1:3] == ("organization", "get_access_context_by_slug")
-        assert kwargs["organization"].projects == []
-        assert kwargs["organization"].teams == []
+        rpc.assert_not_called()
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):

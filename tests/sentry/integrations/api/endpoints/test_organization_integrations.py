@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -46,7 +47,11 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" in response.data[0]
 
     def test_no_config(self) -> None:
-        with patch.object(organization_service, "get", wraps=organization_service.get) as get_org:
+        self.create_project(organization=self.organization)
+        with (
+            assert_no_organization_resource_hydration(),
+            patch.object(organization_service, "get", wraps=organization_service.get) as get_org,
+        ):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"includeConfig": 0}
             )
@@ -89,22 +94,6 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert len(response.data) == 30
         assert all(item["configOrganization"] for item in response.data)
         get_org.assert_called_once_with(id=self.organization.id)
-
-    def test_opts_out_of_organization_projects_and_teams(self) -> None:
-        self.create_project(organization=self.organization)
-        with (
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_project",
-                side_effect=AssertionError("Unexpected project hydration"),
-            ) as projects,
-            patch(
-                "sentry.organizations.services.organization.serial.serialize_rpc_team",
-                side_effect=AssertionError("Unexpected team hydration"),
-            ) as teams,
-        ):
-            self.get_success_response(self.organization.slug, qs_params={"includeConfig": "0"})
-        projects.assert_not_called()
-        teams.assert_not_called()
 
     def test_feature_filters(self) -> None:
         response = self.get_success_response(

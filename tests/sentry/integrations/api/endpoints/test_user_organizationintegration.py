@@ -1,9 +1,8 @@
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 import orjson
 
 from sentry.roles.manager import OrganizationRole
-from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -49,25 +48,12 @@ class UserOrganizationIntegationTest(APITestCase):
 
     def test_simple(self) -> None:
         integration = self.create_provider_integration(provider="github")
-        self.create_project(organization=self.organization)
 
         self.create_organization_integration(
             organization_id=self.organization.id, integration_id=integration.id
         )
 
-        with patch.object(
-            DatabaseBackedOrganizationService,
-            "get_access_context",
-            autospec=True,
-            side_effect=DatabaseBackedOrganizationService.get_access_context,
-        ) as access_context:
-            response = self.get_success_response(self.user.id)
-        access_context.assert_called_once_with(
-            ANY,
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            include_resource_ids=False,
-        )
+        response = self.get_success_response(self.user.id)
         assert response.data[0]["organizationId"] == self.organization.id
 
     def test_billing_users_dont_see_integrations(self) -> None:

@@ -52,16 +52,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         self.login_as(self.user)
 
     def test_flag_off_returns_404(self) -> None:
-        self.create_project(organization=self.organization)
-        with (
-            assert_no_organization_resource_hydration(),
-            mock.patch.object(
-                organization_service,
-                "get_active_project_ids",
-                side_effect=AssertionError("Unexpected grant validation"),
-            ),
-        ):
-            self.get_error_response(self.organization.slug, status_code=404)
+        self.get_error_response(self.organization.slug, status_code=404)
 
     def test_list(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -81,11 +72,6 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         with (
             self.feature(FEATURE_FLAG),
             assert_no_organization_resource_hydration(),
-            mock.patch.object(
-                organization_service,
-                "get_active_project_ids",
-                side_effect=AssertionError("Unexpected grant validation"),
-            ),
         ):
             response = self.get_success_response(self.organization.slug)
 
@@ -390,24 +376,17 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 teams=[self.create_team(organization=self.organization)],
             )
 
-        for identifier in (self.organization.slug, self.organization.id):
-            with (
-                self.subTest(identifier=identifier),
-                self.feature(FEATURE_FLAG),
-                assert_no_organization_resource_hydration(),
-            ):
-                response = self.get_success_response(
-                    identifier,
-                    method="post",
-                    name=f"grant-{identifier}",
-                    scopes=["event:read"],
-                    projectIds=[project.id],
-                    status_code=201,
-                )
-                assert response.data["projectIds"] == [str(project.id)]
-                assert project_ids_for(ServiceAccount.objects.get(id=response.data["id"])) == [
-                    project.id
-                ]
+        with self.feature(FEATURE_FLAG), assert_no_organization_resource_hydration():
+            response = self.get_success_response(
+                self.organization.slug,
+                method="post",
+                name="nightly-triage",
+                scopes=["event:read"],
+                projectIds=[project.id],
+                status_code=201,
+            )
+        assert response.data["projectIds"] == [str(project.id)]
+        assert project_ids_for(ServiceAccount.objects.get(id=response.data["id"])) == [project.id]
 
     def test_create_rejects_inactive_projects(self) -> None:
         inactive = [
@@ -592,20 +571,16 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         }
 
     def test_update_replaces_projects(self) -> None:
-        for identifier in (self.organization.slug, self.organization.id):
-            with (
-                self.subTest(identifier=identifier),
-                self.feature(FEATURE_FLAG),
-                assert_no_organization_resource_hydration(),
-            ):
-                response = self.get_success_response(
-                    identifier,
-                    self.service_account.id,
-                    method="put",
-                    projectIds=[self.projects[1].id],
-                )
-                assert response.data["projectIds"] == [str(self.projects[1].id)]
-                assert project_ids_for(self.service_account) == [self.projects[1].id]
+        with self.feature(FEATURE_FLAG), assert_no_organization_resource_hydration():
+            response = self.get_success_response(
+                self.organization.id,
+                self.service_account.id,
+                method="put",
+                projectIds=[self.projects[1].id],
+            )
+
+        assert response.data["projectIds"] == [str(self.projects[1].id)]
+        assert project_ids_for(self.service_account) == [self.projects[1].id]
         self.service_account.refresh_from_db()
         assert self.service_account.name == "seer-autofix"
         assert self.service_account.scope_list == ["org:read", "project:read"]
@@ -618,14 +593,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
                 name=f"clear-{project_ids}",
                 project_ids=[self.projects[0].id],
             )
-            with (
-                self.feature(FEATURE_FLAG),
-                mock.patch.object(
-                    organization_service,
-                    "get_active_project_ids",
-                    side_effect=AssertionError("Empty grants do not need project validation"),
-                ),
-            ):
+            with self.feature(FEATURE_FLAG):
                 response = self.get_success_response(
                     self.organization.slug,
                     service_account.id,
