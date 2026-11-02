@@ -29,6 +29,7 @@ from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.features.base import ProjectFeature
+from sentry.features.frontend import ProjectCapability
 from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
@@ -263,7 +264,7 @@ def get_features_for_projects(
 
     for project in all_projects:
         if project.flags.has_releases:
-            features_by_project[project].append("releases")
+            features_by_project[project].append(ProjectCapability.RELEASES)
 
     return features_by_project
 

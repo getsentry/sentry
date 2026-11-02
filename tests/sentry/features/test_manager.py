@@ -1,7 +1,12 @@
+import os
+import subprocess
+import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, cast
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
@@ -14,6 +19,8 @@ from sentry.features.base import (
     ProjectFeature,
     SystemFeature,
 )
+from sentry.features.frontend import ClientFeature
+from sentry.issues.grouptype import registry
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -21,6 +28,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import json
+from tools.feature_flags_to_typescript import feature_flags_to_typescript
 
 FeatureEntity = Organization | RpcOrganization | User | RpcUser | AnonymousUser | None
 FeatureActor = User | RpcUser | AnonymousUser | None
@@ -795,3 +804,101 @@ class FeatureManagerTest(TestCase):
         manager.batch_has(["organizations:feature"], organization=test_org)
         handler.batch_has.assert_called_once()
         assert handler.batch_has.call_args.kwargs["skip_experiment_exposure"] is False
+
+
+def test_frontend_feature_types_scopes_and_exposure() -> None:
+    manager = features.FeatureManager()
+    manager.add("organizations:visible", OrganizationFeature, api_expose=True)
+    manager.add("organizations:private", OrganizationFeature)
+    manager.add("projects:project-only", ProjectFeature)
+    source = feature_flags_to_typescript(manager)
+    organization_type = source.split("export type OrganizationFeature =")[1].split(";")[0]
+    project_type = source.split("export type ProjectFeature =")[1].split(";")[0]
+    feature_type = source.split("export type FeatureName =")[1].split(";")[0]
+
+    assert '"visible"' in organization_type
+    assert '"private"' not in organization_type
+    assert '"project-only"' not in organization_type
+    assert '"project-only"' in project_type
+    assert '"releases"' in project_type
+    assert '"open-membership"' in organization_type
+    assert "RegisteredFeatureName" not in feature_type
+    assert "GlobalFeature" in feature_type
+    assert "GetsentryOrganizationFeature" in organization_type
+    assert "import type {GetsentryOrganizationFeature, GetsentryProjectFeature}" in source
+    assert "from './featureFlags.getsentry'" in source
+    assert "export const" not in source
+    assert "export function" not in source
+    assert "GetsentryProjectFeature" in project_type
+
+
+def test_frontend_feature_types_removing_registration_removes_name() -> None:
+    before = features.FeatureManager()
+    before.add("organizations:retired", OrganizationFeature, api_expose=True)
+    before.add("organizations:remaining", OrganizationFeature, api_expose=True)
+    assert '"retired"' in feature_flags_to_typescript(before)
+    assert "`organizations:${OrganizationFeature}`" in feature_flags_to_typescript(before)
+
+    after = features.FeatureManager()
+    after.add("organizations:remaining", OrganizationFeature, api_expose=True)
+    assert '"retired"' not in feature_flags_to_typescript(after)
+
+
+def test_frontend_feature_types_generation_is_deterministic() -> None:
+    first = features.FeatureManager()
+    first.add("organizations:second", OrganizationFeature, api_expose=True)
+    first.add("organizations:first", OrganizationFeature, api_expose=True)
+    second = features.FeatureManager()
+    second.add("organizations:first", OrganizationFeature, api_expose=True)
+    second.add("organizations:second", OrganizationFeature, api_expose=True)
+
+    assert feature_flags_to_typescript(first) == feature_flags_to_typescript(second)
+
+
+def test_frontend_feature_types_uninitialized_registry_is_rejected() -> None:
+    with pytest.raises(ValueError, match="feature registry is empty"):
+        feature_flags_to_typescript(features.FeatureManager())
+
+
+def test_frontend_feature_types_global_features_only_include_registered_client_features() -> None:
+    manager = features.FeatureManager()
+    manager.add(ClientFeature.CREATE_ORGANIZATION)
+    manager.add(ClientFeature.REGISTER)
+    manager.add("system:backend-only")
+    source = feature_flags_to_typescript(manager)
+    global_type = source.split("export type GlobalFeature =")[1].split(";")[0]
+
+    assert '"organizations:create"' in global_type
+    assert '"auth:register"' in global_type
+    assert '"system:backend-only"' not in global_type
+    assert '"relocation:enabled"' not in global_type
+
+
+def test_frontend_feature_types_client_features_are_registered() -> None:
+    assert set(ClientFeature).issubset(features.all())
+
+
+def test_frontend_feature_types_cli_initializes_dynamic_flags_without_local_config(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "flags.ts"
+    config = tmp_path / "sentry.conf.py"
+    config.write_text('raise AssertionError("local config must not affect generated flags")\n')
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tools.feature_flags_to_typescript",
+            "--output",
+            str(output),
+        ],
+        cwd=Path(__file__).resolve().parents[3],
+        env={**os.environ, "SENTRY_CONF": str(config)},
+        check=True,
+        capture_output=True,
+    )
+    group_type = next(group_type for group_type in registry.all() if not group_type.released)
+    visible_flag = next(iter(group_type.build_visible_feature_name()))
+
+    assert json.dumps(visible_flag.removeprefix("organizations:")) in output.read_text()
+    assert "`organizations:${OrganizationFeature}`" in output.read_text()
