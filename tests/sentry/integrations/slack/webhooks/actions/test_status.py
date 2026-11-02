@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.db import router
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
@@ -12,6 +15,7 @@ from sentry.integrations.slack.webhooks.action import (
     ARCHIVE_OPTIONS,
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
+    update_group,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -27,19 +31,43 @@ from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.testutils.cases import PerformanceIssueTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.identity import Identity
+from sentry.users.services.user.service import user_service
 from sentry.utils.samples import load_data
 
 from . import BaseEventTest
 
 pytestmark = [requires_snuba]
+
+
+class UpdateGroupTest(TestCase):
+    def test_rejects_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        group = self.group
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        user = user_service.get_user(user_id=member.id)
+        assert user is not None
+
+        with pytest.raises(PermissionDenied) as exc:
+            update_group(
+                group,
+                user,
+                {"status": "ignored", "substatus": "archived_forever"},
+                Request(self.make_request(user=member)),
+            )
+
+        assert exc.value.status_code == 403
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
 
 
 # Prevent flakiness from timestamp mismatch when building linking URL
@@ -357,6 +385,34 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
         assert self.group.substatus == GroupSubStatus.NEW
+
+    def test_archive_issue_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        identity = self.create_identity(
+            user=member, identity_provider=self.idp, external_id="slack-limited-user"
+        )
+
+        response = self.post_webhook_block_kit(
+            type="view_submission",
+            private_metadata=orjson.dumps(
+                {
+                    "issue": self.group.id,
+                    "orig_response_url": self.response_url,
+                    "channel_id": "C123",
+                }
+            ).decode(),
+            selected_option="ignored:archived_forever",
+            slack_user={"id": identity.external_id},
+        )
+
+        assert response.status_code == 200
+        self.group.refresh_from_db()
+        assert self.group.status == GroupStatus.UNRESOLVED
+        assert response.data["response_type"] == "ephemeral"
+        assert response.data["text"] == "You do not have access to this project."
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_forever_through_unfurl(self, mock_tags: MagicMock) -> None:
@@ -923,7 +979,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
-        workflow_id = create_notification_origin(self.rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
         assert workflow_id is not None
         callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
@@ -1237,6 +1293,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
+        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
+        assert workflow_id is not None
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
@@ -1249,8 +1307,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        workflow_id = create_notification_origin(self.rule).workflow_id
-        assert workflow_id is not None
         assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
 
     @patch("sentry.utils.metrics.backend.inner.incr")
@@ -1277,6 +1333,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.utils.metrics.backend.inner.incr")
     def test_rule_lookup_metric_with_rule(self, metrics_incr: MagicMock) -> None:
+        create_workflow_notification_origin_for_rule(self.rule)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         response = self.post_webhook_block_kit(

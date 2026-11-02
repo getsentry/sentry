@@ -68,27 +68,45 @@ resetMockDate();
 /**
  * Mocks
  */
-// jsdom does not lay out elements. Skip Popper's geometry work and the React
-// updates it schedules; overlay interactions still use the real component code.
-// Positioning tests can opt back in with jest.unmock('react-popper').
-jest.mock('react-popper', () => {
-  const update = () => Promise.resolve({});
-  const forceUpdate = () => {};
-  const usePopper: typeof import('react-popper').usePopper = (
-    _reference,
-    _popper,
-    options = {}
-  ) => ({
-    styles: {
-      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
-      arrow: {position: 'absolute'},
-    },
-    attributes: {},
-    state: null,
-    update,
-    forceUpdate,
-  });
-  return {...jest.requireActual('react-popper'), usePopper};
+// jsdom does not lay out elements. Skip Floating UI's geometry work and the
+// React updates it schedules; overlay interactions still use the real component
+// code. Positioning tests can opt back in with jest.unmock('@floating-ui/react-dom').
+jest.mock('@floating-ui/react-dom', () => {
+  const {useState} = jest.requireActual<typeof import('react')>('react');
+  const update = () => {};
+  const useFloating: typeof import('@floating-ui/react-dom').useFloating = ({
+    placement = 'bottom',
+    strategy = 'absolute',
+  } = {}) => {
+    const [refs] = useState(() => {
+      const reference: {current: any} = {current: null};
+      const floating: {current: HTMLElement | null} = {current: null};
+      return {
+        reference,
+        floating,
+        setReference: (node: unknown) => {
+          reference.current = node;
+        },
+        setFloating: (node: HTMLElement | null) => {
+          floating.current = node;
+        },
+      };
+    });
+
+    return {
+      x: 0,
+      y: 0,
+      placement,
+      strategy,
+      middlewareData: {},
+      isPositioned: false,
+      update,
+      refs,
+      elements: {reference: null, floating: null},
+      floatingStyles: {position: strategy, left: 0, top: 0},
+    };
+  };
+  return {...jest.requireActual('@floating-ui/react-dom'), useFloating};
 });
 
 jest.mock('lodash/debounce', () =>
@@ -143,8 +161,8 @@ beforeEach(() => {
   }
 });
 afterEach(() => {
-  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
-  if (require.resolve('sonner') in require.cache) {
+  // Avoid loading the toast module into tests that do not use it.
+  if (require.resolve('@sentry/scraps/toast') in require.cache) {
     const {toast} =
       jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
     act(() => void toast.dismiss());

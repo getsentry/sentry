@@ -539,6 +539,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/',
   },
   {
+    id: 'node-pi-durable',
+    name: 'Pi Durable',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/pi-durable/',
+  },
+  {
     id: 'php',
     name: 'PHP',
     type: 'language',

@@ -12,17 +12,19 @@ import rest_framework
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q, QuerySet
-from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
+from sentry.api.exceptions import UserRequired
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.auth.principal import has_user
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
@@ -203,7 +205,7 @@ def update_groups(
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
-    acting_user = user if user and user.is_authenticated else None
+    acting_user = user if user and has_user(user) else None
     data = data or request.data
 
     # so we won't have to requery for each group
@@ -217,7 +219,7 @@ def update_groups(
     organization = projects[0].organization if projects else None
 
     if not groups:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     serializer = validate_request(request, projects, data, user)
 
@@ -226,6 +228,10 @@ def update_groups(
         return Response(status=500)
 
     result = dict(serializer.validated_data)
+
+    # Bookmarks and subscriptions belong to a user; checked before any group changes.
+    if acting_user is None and ("isBookmarked" in result or "isSubscribed" in result):
+        raise UserRequired()
 
     discard = result.get("discard")
     if discard:
@@ -332,11 +338,15 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
+        except InvalidSearchQuery:
+            # Raised while building the Snuba query (e.g. `issue:` with an
+            # invalid short ID). This is a client error; don't report it.
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 
     if not group_list:
-        return Response({"detail": "No groups found"}, status=204)
+        return Response(status=204)
 
     return update_groups(request, group_list)
 
@@ -519,11 +529,6 @@ def process_group_resolution(
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ) -> None:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.workflow_engine.models.incident_groupopenperiod import (
-        update_incident_based_on_open_period_status_change,
-    )
-
     now = django_timezone.now()
     resolution = None
     if release:
@@ -532,7 +537,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -637,13 +642,6 @@ def process_group_resolution(
     group.status = GroupStatus.RESOLVED
     group.substatus = None
     group.resolved_at = now
-    if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send_robust(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["resolved_at", "status", "substatus"],
-        )
     remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
     result["inbox"] = None
 
@@ -683,8 +681,6 @@ def process_group_resolution(
             new_status=GroupStatus.RESOLVED,
             resolution_time=now,
         )
-        if group.issue_type == MetricIssue:
-            update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
 
 
 def merge_groups(

@@ -18,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import jwt
+from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION
 
 
 @control_silo_test
@@ -115,6 +116,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             {
                 "iss": self.client_key,
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             self.shared_secret,
         )
@@ -160,6 +162,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             {
                 "iss": self.client_key,
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             wrong_secret,
         )

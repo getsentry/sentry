@@ -33,6 +33,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -82,12 +83,19 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         elif status:
             queryset = queryset.none()
 
+        def serialize_keys(keys: list[ProjectKey]) -> list[ProjectKeySerializerResponse]:
+            # The queryset is filtered to `project`, which already has its organization
+            # loaded. Reuse it so building each key's DSNs doesn't load both again.
+            for key in keys:
+                key.set_cached_field_value("project", project)
+            return serialize(keys, request.user, request=request)
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             default_per_page=10,
-            on_results=lambda x: serialize(x, request.user, request=request),
+            on_results=serialize_keys,
         )
 
     @extend_schema(

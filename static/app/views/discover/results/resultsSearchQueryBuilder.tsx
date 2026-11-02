@@ -365,7 +365,7 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
           sort: '-count' as const,
           organization,
         });
-        return results.map(({value}) => value);
+        return results.map(({value}) => value).filter(defined);
       }
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {

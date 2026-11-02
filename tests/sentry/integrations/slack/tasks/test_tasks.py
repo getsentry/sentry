@@ -60,8 +60,17 @@ class SlackTasksTest(TestCase):
         )
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @responses.activate
-    def test_post_message_failure_sdk(self, mock_metrics: MagicMock) -> None:
+    def test_post_message_failure_sdk(
+        self, mock_api_call: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "invalid_auth"}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with self.tasks():
             post_message.apply_async(
                 kwargs={

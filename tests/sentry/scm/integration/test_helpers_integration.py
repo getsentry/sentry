@@ -1,10 +1,13 @@
+from unittest.mock import patch
+
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
+from sentry.scm.private.helpers import fetch_repository, fetch_service_provider, make_fetchers
 from sentry.testutils.cases import TestCase
 
 
@@ -127,6 +130,64 @@ class TestFetchRepository(TestCase):
         assert result is not None
         assert result["web_base_url"] == "https://acme-corp.ghe.com"
 
+    def _create_gitlab_repo(self, instance: str, metadata: dict[str, str]) -> RepositoryModel:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            name="GitLab Acme",
+            external_id=f"{instance}:acme",
+            metadata=metadata,
+        )
+        return self.create_repo(
+            project=self.project,
+            name="acme / widget",
+            provider="integrations:gitlab",
+            external_id=f"{instance}:42",
+            integration_id=integration.id,
+        )
+
+    def test_fetch_gitlab_repo_populates_web_base_url(self) -> None:
+        repo = self._create_gitlab_repo(
+            "gitlab.com",
+            {
+                "instance": "gitlab.com",
+                "domain_name": "gitlab.com/acme",
+                "base_url": "https://gitlab.com",
+            },
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["provider_name"] == "gitlab"
+        assert result["web_base_url"] == "https://gitlab.com"
+
+    def test_fetch_self_hosted_gitlab_repo_keeps_path_prefix(self) -> None:
+        repo = self._create_gitlab_repo(
+            "git.acme.com",
+            {
+                "instance": "git.acme.com",
+                "domain_name": "git.acme.com/acme",
+                "base_url": "https://git.acme.com/gitlab/",
+            },
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] == "https://git.acme.com/gitlab"
+
+    def test_fetch_gitlab_repo_without_base_url_web_base_url_is_none(self) -> None:
+        repo = self._create_gitlab_repo(
+            "git.acme.com",
+            {"instance": "git.acme.com", "domain_name": "git.acme.com/acme"},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert result["web_base_url"] is None
+
     def test_fetch_non_ghe_repo_web_base_url_is_none(self) -> None:
         repo = RepositoryModel.objects.create(
             organization_id=self.organization.id,
@@ -163,6 +224,54 @@ class TestFetchRepository(TestCase):
 
         assert result is not None
         assert result["installation_id"] == "inst_01example"
+
+    def test_fetch_gitlab_repo_populates_path_from_config(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="GitLab.org / GitLab FOSS",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:13083",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+            config={"path": "gitlab-org/gitlab-foss", "project_id": 13083},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        # Sentry's pinned sentry-scm may predate the `path` key, so read it untyped.
+        assert dict(result)["path"] == "gitlab-org/gitlab-foss"
+
+    def test_fetch_gitlab_repo_without_config_path_has_none_path(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="GitLab.org / GitLab FOSS",
+            provider="integrations:gitlab",
+            external_id="gitlab.example.com:13083",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert dict(result)["path"] is None
+
+    def test_fetch_non_gitlab_repo_has_no_path(self) -> None:
+        repo = RepositoryModel.objects.create(
+            organization_id=self.organization.id,
+            name="test-org/test-repo",
+            provider="integrations:github",
+            external_id="22222",
+            status=ObjectStatus.ACTIVE,
+            integration_id=1,
+            config={"path": "test-org/test-repo"},
+        )
+
+        result = fetch_repository(self.organization.id, repo.id)
+
+        assert result is not None
+        assert "path" not in result
 
 
 class TestFetchServiceProvider(TestCase):
@@ -313,3 +422,36 @@ class TestFetchServiceProvider(TestCase):
             ),
         ):
             assert fetch_service_provider(self.organization.id, repository) is None
+
+
+class TestMakeFetchers(TestCase):
+    def test_fetchers_fetch_the_integration_once(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-fetchers-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            integration_id=integration.id,
+        )
+        fetchers = make_fetchers()
+
+        with patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            repository = fetchers.fetch_repository(self.organization.id, repo.id)
+            assert repository is not None
+            provider = fetchers.fetch_provider(self.organization.id, repository)
+
+        assert isinstance(provider, GitHubProvider)
+        assert service.get_integration.call_count == 1

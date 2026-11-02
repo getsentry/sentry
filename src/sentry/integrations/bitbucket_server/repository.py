@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from django.core.cache import cache
-from django.urls import reverse
 
+from sentry.integrations.bitbucket_server.webhook_config import build_webhook_data
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -19,7 +19,6 @@ from sentry.plugins.providers.integration_repository import (
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration  # NOQA
@@ -70,28 +69,22 @@ class BitbucketServerRepositoryProvider(
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
         if repo.config.get("webhook_id"):
             return
-        installation = self.get_installation(repo.integration_id, repo.organization_id)
+        integration_id = repo.integration_id
+        if integration_id is None:
+            return
+        installation = self.get_installation(integration_id, repo.organization_id)
         client = installation.get_client()
         webhook_secret = secrets.token_hex(32)
         try:
             resp = client.create_hook(
                 repo.config["project"],
                 repo.config["repo"],
-                {
-                    "name": "sentry-bitbucket-server-repo-hook",
-                    "url": absolute_uri(
-                        reverse(
-                            "sentry-extensions-bitbucketserver-webhook",
-                            kwargs={
-                                "organization_id": organization.id,
-                                "integration_id": repo.integration_id,
-                            },
-                        )
-                    ),
-                    "active": True,
-                    "events": ["repo:refs_changed", "pr:merged"],
-                    "configuration": {"secret": webhook_secret},
-                },
+                build_webhook_data(
+                    organization_id=organization.id,
+                    integration_id=integration_id,
+                    secret=webhook_secret,
+                    active=True,
+                ),
             )
         except Exception as e:
             installation.raise_error(e)
@@ -100,7 +93,7 @@ class BitbucketServerRepositoryProvider(
             organization_id=organization.id,
             id=repo.id,
             config_updates={"webhook_id": webhook_id, "webhook_secret": webhook_secret},
-            expected_integration_id=repo.integration_id,
+            expected_integration_id=integration_id,
             expected_config={"webhook_id": None},
         ):
             repo.config["webhook_id"] = webhook_id

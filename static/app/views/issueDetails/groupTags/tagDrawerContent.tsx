@@ -45,15 +45,6 @@ export function TagDrawerContent({
     return detailedProject?.highlightTags ?? [];
   }, [detailedProject]);
 
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
   const displayTags = useMemo(() => {
     const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
     const orderedHighlightTags = highlightTags.sort(
@@ -66,10 +57,10 @@ export function TagDrawerContent({
       tag =>
         tag.key.includes(search) ||
         tag.name.includes(search) ||
-        tagValues[tag.key]?.includes(search)
+        tag.topValues.some(tv => tv.value?.includes(search))
     );
     return searchedTags;
-  }, [data, search, tagValues, highlightTagKeys]);
+  }, [data, search, highlightTagKeys]);
 
   if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;

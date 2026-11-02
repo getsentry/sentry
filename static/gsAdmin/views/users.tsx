@@ -1,15 +1,17 @@
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 const getRow = (row: any) => [
-  <td key="user">
+  <SimpleTable.RowCell key="user" overflow="visible">
     <Link to={`/_admin/users/${row.id}/`}>
       <UserBadge
         hideEmail
@@ -17,21 +19,20 @@ const getRow = (row: any) => [
         displayName={<Truncate maxLength={40} value={row.name} />}
       />
     </Link>
-  </td>,
-  <td key="email" style={{textAlign: 'center'}}>
-    {row.username}
-    <br />
-    {row.username !== row.email && row.email}
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="email" direction="column" gap="xs">
+    <Text>{row.username}</Text>
+    {row.username !== row.email && <Text>{row.email}</Text>}
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     {row.isActive ? 'Active' : 'Disabled'}
-  </td>,
-  <td key="joined" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="joined" justify="end">
     {moment(row.dateJoined).fromNow()}
-  </td>,
-  <td key="lastActive" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="lastActive" justify="end">
     {row.lastActive ? moment(row.lastActive).fromNow() : '—'}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function Users() {
@@ -43,19 +44,11 @@ export function Users() {
         path="/_admin/users/"
         endpoint="/users/"
         columns={[
-          <th key="user">User</th>,
-          <th key="email" style={{width: 100, textAlign: 'center'}}>
-            Email
-          </th>,
-          <th key="status" style={{width: 100, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="joined" style={{width: 200, textAlign: 'right'}}>
-            Joined
-          </th>,
-          <th key="lastActive" style={{width: 200, textAlign: 'right'}}>
-            Last Active
-          </th>,
+          {key: 'user', label: 'User'},
+          {key: 'email', label: 'Email', width: 100, align: 'center'},
+          {key: 'status', label: 'Status', width: 100, align: 'center'},
+          {key: 'joined', label: 'Joined', width: 200, align: 'right'},
+          {key: 'lastActive', label: 'Last Active', width: 200, align: 'right'},
         ]}
         columnsForRow={getRow}
         hasSearch

@@ -117,7 +117,45 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1m",
             )
             assert response.status_code == 400
-            assert response.json() == "error making request"
+            assert response.json() == "Too many buckets requested. Maximum is 10100"
+
+    def test_invalid_resolution(self) -> None:
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=30)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="3d",
+            )
+            assert response.status_code == 400
+            assert response.json().startswith("Invalid resolution. Must be one of: 15s, 30s,")
+
+    def test_default_resolution_for_short_range(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(minutes=30)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+            )
+            timeline = response.data[self.detector.id]
+            assert timeline[1][0] - timeline[0][0] == 15
+
+    def test_time_range_shorter_than_resolution(self) -> None:
+        with self.feature(self.features):
+            response = self.get_response(
+                self.organization.slug,
+                project=[self.project.id],
+                uptimeDetectorId=[str(self.detector.id)],
+                since=(datetime.now(timezone.utc) - timedelta(hours=1)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+                resolution="1d",
+            )
+            assert response.status_code == 400
+            assert response.json() == "Time range must be at least as long as the resolution"
 
     def test_too_many_detector_ids_limit(self) -> None:
         """Test that sending a large number of detector IDs produces a 400."""
@@ -237,7 +275,9 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             recovery_threshold=2,
         )
 
-        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+        # Keep the checks inside their 90 day retention. ClickHouse drops expired rows in
+        # a TTL merge, which can run as soon as they are inserted.
+        base_time = (MOCK_DATETIME - timedelta(hours=1)).replace(second=0, microsecond=0)
 
         test_scenarios = [
             # 2 OK checks before incident

@@ -45,7 +45,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -382,7 +382,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         assert origin.legacy_rule_id is not None
         assert origin.workflow_id is not None
 
@@ -459,7 +459,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_block_with_workflow_only(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        rule_origin = create_notification_origin(rule)
+        rule_origin = create_workflow_notification_origin_for_rule(rule)
         workflow_id = rule_origin.workflow_id
         assert workflow_id is not None
         origin = NotificationOrigin(
@@ -1323,7 +1323,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1331,7 +1331,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
         # filter users affected by env
         rule.update(environment_id=env.id)
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"

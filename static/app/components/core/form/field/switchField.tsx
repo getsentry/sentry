@@ -1,4 +1,4 @@
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch, type SwitchProps} from '@sentry/scraps/switch';
 

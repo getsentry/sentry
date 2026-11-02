@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ListField
+from rest_framework.serializers import CharField, ListField
 from sentry_sdk import traces
 
 from sentry import analytics, release_health
@@ -60,6 +60,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -192,9 +193,12 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
             (operator, negated) = handle_operator_negation(search_filter.operator)
+            django_op = OPERATOR_TO_DJANGO.get(operator)
+            if django_op is None:
+                raise InvalidSearchQuery(f"Invalid operator for search key '{SEMVER_BUILD_ALIAS}'")
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 search_filter.value.raw_value,
                 negated=negated,
             )
@@ -221,7 +225,10 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField(help_text="A list of project slugs that are involved in this release.")
+    projects = ListField(
+        child=CharField(),
+        help_text="A list of project slugs that are involved in this release.",
+    )
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
@@ -336,6 +343,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -936,7 +944,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -950,9 +958,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             scope.set_attribute("success_status", status)
-            data: ReleaseSerializerResponse = serialize(
-                release, request.user, no_snuba_for_release_creation=True
-            )
+            data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
         scope.set_attribute("failure_reason", "serializer_error")

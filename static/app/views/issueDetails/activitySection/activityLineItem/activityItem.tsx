@@ -16,6 +16,7 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
 
 import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
@@ -27,7 +28,11 @@ import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
-import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
+import {
+  getActorActivity,
+  type ActivityFeedItem,
+  type CollapsedSeerActivity,
+} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
 interface ActivityItem {
@@ -177,7 +182,7 @@ function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
 
 export function getActivityItem(params: GetActivityItemParams): ActivityItem {
   const activityItem = getActivityItemContent(params);
-  const source = getSentryAppSource(params.item.activity);
+  const source = getSentryAppSource(getActorActivity(params.item));
 
   return source ? {...activityItem, source} : activityItem;
 }
@@ -393,6 +398,28 @@ function getActivityItemContent({
         ) : undefined,
       };
     }
+    case GroupActivityType.UNLINK_EXTERNAL_ISSUE: {
+      const providerName = getIntegrationDisplayName(activity.data.provider);
+      return {
+        title: providerName
+          ? t('Unlinked %s issue', providerName)
+          : t('Unlinked external issue'),
+        details: activity.data.external_issue_key,
+      };
+    }
+    case GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE:
+      return {
+        title: t('Unlinked external issue'),
+        details: activity.data.web_url ? (
+          <ExternalIssueChip
+            label={activity.data.display_name}
+            location={activity.data.web_url}
+            provider={activity.data.service_type}
+          />
+        ) : (
+          activity.data.display_name
+        ),
+      };
     case GroupActivityType.CREATE_ISSUE:
       return {
         title:

@@ -38,6 +38,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {getExtractionPreview} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getMemoryPreview} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -136,6 +137,18 @@ export function MessagesPanel({
           if (message.role === 'evaluation') {
             return (
               <EvaluationTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            );
+          }
+
+          if (message.role === 'extraction') {
+            return (
+              <ExtractionTurn
                 key={message.id}
                 message={message}
                 node={nodeMap.get(message.nodeId)}
@@ -444,6 +457,52 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
         onSelect={selectEvaluation}
         tag={<ToolTag name={evaluator} hasError={node ? hasError(node) : false} />}
         preview={getEvaluationPreview(message.evaluation)}
+        meta={<AssistantMeta cost={cost} duration={message.duration} />}
+      />
+    </MessageRow>
+  );
+});
+
+// Standalone row for an extraction span, styled like an evaluation: the
+// extractor, the values it found and its cost and duration. Selecting it opens
+// the span detail with the source and every field.
+const ExtractionTurn = memo(function ExtractionTurnImpl({
+  message,
+  node,
+  isSelected,
+  onSelectNode,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+  node: AITraceSpanNode | undefined;
+  onSelectNode: (node: AITraceSpanNode) => void;
+}) {
+  const organization = useOrganization();
+  const cost = node
+    ? getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
+    : undefined;
+  const extractor =
+    (node &&
+      (getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL))) ||
+    t('extract');
+
+  const selectExtraction = () => {
+    trackAnalytics('conversations.message.click-extraction', {organization});
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <TranscriptSpanRow
+        node={node}
+        isSelected={isSelected}
+        ariaLabel={t('Select extraction %s', extractor)}
+        onSelect={selectExtraction}
+        tag={<ToolTag name={extractor} hasError={node ? hasError(node) : false} />}
+        preview={getExtractionPreview(message.extraction)}
         meta={<AssistantMeta cost={cost} duration={message.duration} />}
       />
     </MessageRow>

@@ -16,8 +16,7 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import is_considered_sudo
-from sentry.api.exceptions import SudoRequired
+from sentry.api.decorators import require_sudo
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -49,7 +48,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.ingest.legacy_filter_lists import set_list
+from sentry.ingest.legacy_filter_lists import clean_lines, set_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -338,6 +337,10 @@ E.g. `['release', 'environment']`""",
         allow_blank=True,
         allow_null=True,
         help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
+    )
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text="Apply source server (srcsrv) information from native debug files to symbolicated frames.",
     )
     scrubIPAddresses = serializers.BooleanField(
         required=False,
@@ -659,6 +662,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
     def _get_unresolved_count(self, project):
@@ -940,6 +944,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
+                ]
+        if result.get("enableNativeSourceServerMapping") is not None:
+            if project.update_option(
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
+            ):
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
                 ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
@@ -1257,7 +1269,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.RELEASES,
-                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
+                        clean_lines(
+                            FilterTypes.RELEASES,
+                            options[f"filters:{FilterTypes.RELEASES}"].split("\n"),
+                        ),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1266,9 +1281,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.ERROR_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.ERROR_MESSAGES,
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1282,9 +1297,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.LOG_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.LOG_MESSAGES,
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1298,9 +1313,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.TRACE_METRIC_NAMES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.TRACE_METRIC_NAMES,
+                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1371,8 +1386,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # In most cases we want to confirm password before deleting a project, but this isn't
         # necessary if we never received any events in the first place. This allows us to avoid
         # password confirmation in onboarding when undoing project creation.
-        if project.first_event is not None and not is_considered_sudo(request):
-            raise SudoRequired(request.user)
+        if project.first_event is not None:
+            require_sudo(request)
 
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION

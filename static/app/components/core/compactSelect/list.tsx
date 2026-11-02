@@ -5,11 +5,11 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
+import {ControlContext} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 import {defined} from 'sentry/utils/defined';
 
-import {ControlContext} from './controlContext';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
 import {SelectFilterContext} from './selectFilterContext';

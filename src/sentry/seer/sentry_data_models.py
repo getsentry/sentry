@@ -9,6 +9,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
+
 
 class Transaction(BaseModel):
     name: str
@@ -114,6 +116,11 @@ class EmptyResponse(BaseModel):
 
 class OrganizationSlugResponse(BaseModel):
     slug: str
+
+
+class CommitAuthorResponse(BaseModel):
+    # None when the viewer has no github.com identity Sentry can credit.
+    author: SeerCommitAuthor | None = None
 
 
 class ReferencedFixStatementsResponse(BaseModel):
@@ -263,6 +270,7 @@ class GetDsnResponse(BaseModel):
 
 
 class RepositoryDefinitionResponse(BaseModel):
+    repository_id: int
     organization_id: int
     integration_id: str | None
     provider: str | None

@@ -52,6 +52,9 @@ SEER_LAST_RUN_RECENCY_WINDOW = timedelta(days=30)
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not actors:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     include_none = False
     types_to_actors = defaultdict(list)
     for actor in actors:
@@ -174,6 +177,9 @@ def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
 def assigned_or_suggested_filter(
     owners: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
+    if not owners:
+        # my_teams for a caller with no teams; Q() would match every group
+        return Q(pk__in=[])
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
 
@@ -367,7 +373,7 @@ class ScalarCondition(Condition):
         # !has:field → operator is "=", value is "" → want records where field IS NULL
         if search_filter.value.raw_value == "" and search_filter.operator in ("=", "!="):
             django_operator = "__isnull"
-            value: bool | str | float | datetime | Sequence[float] | Sequence[str] = True
+            value: bool | str | float | datetime | Sequence[float] | Sequence[str] | None = True
         else:
             django_operator = self._get_operator(search_filter)
             value = search_filter.value.raw_value

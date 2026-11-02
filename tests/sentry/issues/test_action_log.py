@@ -86,6 +86,15 @@ class TestResolveActionSource(TestCase):
         )
         assert resolve_action_source(request) == "mcp:claude-code"
 
+    def test_mcp_legacy_claude_desktop_family_is_recorded_as_claude(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-desktop",
+            },
+        )
+        assert resolve_action_source(request) == "mcp:claude"
+
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(
             meta={

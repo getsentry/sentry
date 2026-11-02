@@ -20,6 +20,8 @@ import * as Storybook from 'sentry/stories';
 
 All field components are accessed via the `field` render prop inside `form.AppField`. They follow a consistent pattern: pass `value` and `onChange` from the field state, and wrap in a layout component. They are built on top of the form primitives [Input](./input.mdx), [Select](./select.mdx), [Slider](./slider.mdx), [Switch](./switch.mdx) etc.
 
+For display-only information such as creation dates, use [DisplayField](./displayField.mdx). It provides matching responsive layouts without registering a form value.
+
 ```jsx
 <form.AppField name="fieldName">
   {field => (
@@ -248,6 +250,33 @@ Boolean choice with a label and optional hint text. The hint aligns beneath the 
   )}
 </form.AppField>
 ```
+
+### Checkbox group
+
+Use `field.Checkbox.Group` for multiple selections stored as one string array.
+Put the layout inside the group so its label names the group rather than an individual input.
+Each `field.Checkbox.Item` has its own checkbox label. Use layout primitives to arrange the items.
+
+```jsx
+<form.AppField name="scopes">
+  {field => (
+    <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
+      <field.Layout.Stack label={t('Scopes')} required>
+        <field.Checkbox.Item value="read">{t('Read')}</field.Checkbox.Item>
+        <field.Checkbox.Item value="write">{t('Write')}</field.Checkbox.Item>
+      </field.Layout.Stack>
+    </field.Checkbox.Group>
+  )}
+</form.AppField>
+```
+
+The group handles validation status, focus, and auto-save. Pass `disabled` to the group
+to disable every item, or to an item to disable one option. A string passed to the group's
+`disabled` prop provides a tooltip with the reason.
+
+Validate the array in the schema, for example with `z.array(z.string()).min(1)`.
+Keep a single array field rather than a boolean field for every option, so selections
+without a rendered item are preserved.
 
 ## Switch
 

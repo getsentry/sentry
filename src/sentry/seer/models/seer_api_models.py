@@ -17,9 +17,7 @@ class BranchOverride(BaseModel):
 class SummarizeIssueScores(BaseModel):
     possible_cause_confidence: float | None = None
     possible_cause_novelty: float | None = None
-    is_fixable: bool | None = None
     fixability_score: float | None = None
-    fixability_score_version: int | None = None
 
 
 class SummarizeIssueResponse(BaseModel):

@@ -6,7 +6,7 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -35,8 +35,9 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         )
 
         notification_uuid = str(uuid.uuid4())
+        origin = create_workflow_notification_origin_for_rule(rule)
         notification = AlertRuleNotification(
-            Notification(event=event, rule=create_notification_origin(rule)),
+            Notification(event=event, rule=origin),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -55,7 +56,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
         assert (
@@ -84,8 +85,9 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification_uuid = str(uuid.uuid4())
+        origin = create_workflow_notification_origin_for_rule(rule)
         notification = AlertRuleNotification(
-            Notification(event=event, rule=create_notification_origin(rule)),
+            Notification(event=event, rule=origin),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -105,7 +107,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
         assert (

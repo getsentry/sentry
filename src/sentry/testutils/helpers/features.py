@@ -180,13 +180,13 @@ class FeatureContextManagerOrDecorator:
             # First, create pytest fixture for compatibility with pytest runs
             feature_names = self.feature_names
 
-            def _feature_fixture(self: object) -> Generator[None]:
+            def _feature_fixture() -> Generator[None]:
                 with Feature(feature_names):
                     yield
 
             name = f"{_feature_fixture.__name__}[{feature_names}]"
             _feature_fixture.__name__ = name
-            fixture = pytest.fixture(scope="class", autouse=True)(_feature_fixture)
+            fixture = pytest.fixture(scope="class", autouse=True)(staticmethod(_feature_fixture))
             setattr(func_or_cls, name, fixture)
 
             # Additionally, wrap each test method directly so it works when called manually

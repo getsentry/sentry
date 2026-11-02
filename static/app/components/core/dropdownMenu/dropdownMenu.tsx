@@ -4,24 +4,22 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {ControlContext, DropdownButton} from '@sentry/scraps/menu';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
-
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import {useOverlay} from 'sentry/utils/useOverlay';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
-import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
-import type {DropdownMenuListProps} from './list';
+import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
 
 export type {MenuItemProps};
 
 interface BaseDropdownMenuProps
   extends
     Omit<
-      DropdownMenuListProps,
+      DropdownMenuContentProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
@@ -53,10 +51,6 @@ interface BaseDropdownMenuProps
    * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
-  /**
-   * Maximum menu width
-   */
-  maxMenuHeight?: number;
   /**
    * Title for the current menu.
    */
@@ -133,9 +127,8 @@ function DropdownMenu({
   flipOptions,
   portalContainerRef,
   shouldApplyMinWidth,
-  maxMenuHeight,
   minMenuWidth,
-  // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
+  // This prop is from Floating UI and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
   ...props
 }: DropdownMenuProps) {
@@ -172,7 +165,7 @@ function DropdownMenu({
     triggerRef
   );
   // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
-  // Avoids the menu from focusing before popper has placed it in the correct position
+  // Avoids the menu from focusing before Floating UI has placed it in the correct position
   const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
   const {buttonProps} = useButton(
@@ -199,7 +192,6 @@ function DropdownMenu({
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
-            maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
           },
         }}
         overlayState={overlayState}

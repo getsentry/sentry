@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -175,6 +176,75 @@ describe('SpansTabContent', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+  });
+
+  it('keeps Save beside the search controls when the sidebar is collapsed', async () => {
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    const save = await screen.findByRole('button', {name: 'Save as'});
+    expect(screen.getByTestId('explore-span-toolbar')).not.toContainElement(save);
+    expect(screen.queryByRole('link', {name: /Compare/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Compare'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
+    localStorage.removeItem('explore-spans-toolbar');
+  });
+
+  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                JSON.stringify({yAxes: ['count(span.duration)']}),
+                JSON.stringify({
+                  yAxes: ['avg(span.duration)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  visible: false,
+                }),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+
+    act(() => {
+      router.navigate('/organizations/org-slug/explore/traces/');
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled()
+    );
+    expect(screen.getByRole('button', {name: 'Chart actions'})).toBeEnabled();
+    expect(await screen.findByText(/No spans found/)).toBeInTheDocument();
   });
 
   it('shows the spans table timeout message', async () => {

@@ -17,6 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -163,10 +164,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.seer_run_state_id == 99
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
         assert observed_contexts == [
-            ViewerContext(
-                organization_id=run.organization_id,
-                actor_type=ActorType.SYSTEM,
-            )
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=run.organization_id)
         ]
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -221,9 +219,10 @@ class HandleSeerRunCreateTest(TestCase):
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
+        assert isinstance(viewer_context, ViewerContext)
         assert viewer_context.organization_id == run.organization_id
-        assert viewer_context.user_id is None
-        assert viewer_context.actor_type == ActorType.SYSTEM
+        assert viewer_context.actor.actor_id is None
+        assert viewer_context.actor.type == ActorType.SYSTEM
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_happy_path_feature_run(self, mock_request: Mock) -> None:
@@ -255,10 +254,7 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert sent_body["referrer"] == "night_shift"
         assert observed_contexts == [
-            ViewerContext(
-                organization_id=run.organization_id,
-                actor_type=ActorType.SYSTEM,
-            )
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=run.organization_id)
         ]
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")

@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+
+import orjson
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notebooks.models import Notebook
+from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -18,23 +27,47 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
 )
-from sentry.notifications.platform.types import NotificationData
+from sentry.notifications.platform.tracking import (
+    NotificationLink,
+    NotificationTrackingContext,
+    record_sent,
+)
+from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.agent.client_models import PendingUserInput
+from sentry.seer.agent.client_models import (
+    PendingUserInput,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import (
+    SeerOperatorAutofixCache,
+    SeerOperatorInvestigationCache,
+)
+from sentry.seer.entrypoints.metrics import (
+    SlackEntrypointEventLifecycleMetric,
+    SlackEntrypointInteractionType,
+)
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
     investigation_entrypoint_registry,
 )
+from sentry.seer.entrypoints.slack.cache import SlackSeerAgentReply, SlackSeerAgentReplyCache
+from sentry.seer.entrypoints.slack.investigation_status import (
+    build_investigation_conclusion,
+    build_investigation_status,
+)
 from sentry.seer.entrypoints.slack.messaging import (
+    edit_thread_message,
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
@@ -47,7 +80,7 @@ from sentry.seer.entrypoints.types import (
     SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -55,6 +88,7 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
 
@@ -145,7 +179,8 @@ def _send_agent_write_approval(
     thread: SlackThreadDetails,
     data: SeerAgentWriteApproval,
     slack_user_id: str,
-) -> None:
+) -> str | None:
+    """Send the approval request only to the user. Returns its ts, or None if it wasn't sent."""
     from sentry.integrations.slack.integration import SlackIntegration
 
     integration = integration_service.get_integration(
@@ -158,8 +193,8 @@ def _send_agent_write_approval(
             "seer.entrypoint.slack.agent_write_approval.integration_not_found",
             extra={"integration_id": integration_id, "organization_id": organization_id},
         )
-        return
-    send_thread_update(
+        return None
+    return send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
         thread=thread,
         data=data,
@@ -614,72 +649,187 @@ class SlackAgentEntrypoint(
     @staticmethod
     def on_agent_update(
         cache_payload: SlackAgentCachePayload,
-        summary: str | None,
         run_id: int,
-        pending_user_input: PendingUserInput | None = None,
+        state: SeerRunState,
     ) -> None:
+        """Make the thread match the run: post its latest reply once, then keep PR links current."""
+        from sentry.integrations.slack.integration import SlackIntegration
+
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
-        thread = cache_payload["thread"]
-        approval = _agent_write_approval(pending_user_input)
-        if approval:
-            input_id, scopes = approval
-            data = SeerAgentWriteApproval(
-                run_id=run_id,
-                organization_id=organization_id,
-                input_id=input_id,
-                scopes=scopes,
-            )
-            slack_user_id = cache_payload.get("slack_user_id")
-            if slack_user_id:
-                # Keep this synchronous so mixed-version workers never deserialize the new source.
-                _send_agent_write_approval(
-                    integration_id=integration_id,
-                    organization_id=organization_id,
-                    thread=thread,
-                    data=data,
-                    slack_user_id=slack_user_id,
-                )
-                summary = (
-                    f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
-                    "I sent you a message."
-                )
-            else:
-                # Pre-deploy cache entries lack the recipient; never expose approval publicly.
-                logger.error(
-                    "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
-                    extra={"organization_id": organization_id, "run_id": run_id},
-                )
-                return
-
-        if (
-            approval is None
-            and pending_user_input is not None
-            and pending_user_input.input_type == "agent_write_approval"
-        ) or not summary:
-            response_data: SeerAgentError | SeerAgentResponse = SeerAgentError(
-                organization_id=organization_id,
-                error_message="Seer was unable to generate a response.",
-            )
-        else:
-            missing_scope_url = _get_missing_scope_settings_url(
-                integration_id=integration_id,
-                organization_id=organization_id,
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-            )
-            response_data = SeerAgentResponse(
-                run_id=run_id,
-                organization_id=organization_id,
-                summary=summary,
-                missing_scope_settings_url=missing_scope_url,
-            )
-        schedule_all_thread_updates(
-            threads=[thread],
+        integration = integration_service.get_integration(
             integration_id=integration_id,
             organization_id=organization_id,
-            data=response_data,
+            status=ObjectStatus.ACTIVE,
         )
+        if not integration:
+            logger.warning(
+                "seer.entrypoint.slack.agent_update.integration_not_found",
+                extra={"integration_id": integration_id, "organization_id": organization_id},
+            )
+            return
+        install = SlackIntegration(model=integration, organization_id=organization_id)
+
+        thread = cache_payload["thread"]
+
+        # The operator's per-run lock makes this read-then-write safe.
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+
+        next_reply = None
+        if state.status != "processing":
+            next_reply = _next_agent_reply(
+                cache_payload=cache_payload, state=state, replies=replies
+            )
+        if next_reply:
+            key, data = next_reply
+            message_ts = send_thread_update(install=install, thread=thread, data=data)
+            if message_ts:
+                reply = SlackSeerAgentReply(message_ts=message_ts)
+                if isinstance(data, SeerAgentResponse):
+                    reply["pr_status_hash"] = _hash_pr_status(data.repo_pr_states)
+                    reply["missing_scope_settings_url"] = data.missing_scope_settings_url
+                SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
+
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
+        latest = next(
+            (
+                answer
+                for answer in reversed(answers)
+                if "pr_status_hash" in replies.get(answer.id, {})
+            ),
+            None,
+        )
+        repo_pr_states = _get_repo_pr_states(state)
+        for answer in answers:
+            posted = replies.get(answer.id)
+            if posted is None or "pr_status_hash" not in posted:
+                continue
+            # Only the latest posted answer owns the thread's current PR status.
+            prs = repo_pr_states if answer is latest else []
+            status_hash = _hash_pr_status(prs)
+            if status_hash == posted["pr_status_hash"]:
+                continue
+            edit_thread_message(
+                install=install,
+                channel_id=thread["channel_id"],
+                message_ts=posted["message_ts"],
+                data=SeerAgentResponse(
+                    run_id=state.run_id,
+                    organization_id=organization_id,
+                    summary=answer.message.content or "",
+                    repo_pr_states=prs,
+                    missing_scope_settings_url=posted.get("missing_scope_settings_url"),
+                ),
+            )
+            SlackSeerAgentReplyCache.set(
+                run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
+            )
+
+
+def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
+    return [state.repo_pr_states[repo] for repo in sorted(state.repo_pr_states)]
+
+
+def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
+    payload = orjson.dumps(
+        [
+            pr.dict(
+                include={"repo_name", "pr_number", "pr_url", "pr_creation_status", "commit_sha"}
+            )
+            for pr in prs
+        ],
+        option=orjson.OPT_SORT_KEYS,
+    )
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _next_agent_reply(
+    *,
+    cache_payload: SlackAgentCachePayload,
+    state: SeerRunState,
+    replies: Mapping[str, SlackSeerAgentReply],
+) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
+    """The reply to post and its cache key, or None if the thread is up to date.
+
+    Sends and records the write approval DM when a new approval is pending.
+    """
+    organization_id = cache_payload["organization_id"]
+    integration_id = cache_payload["integration_id"]
+    thread = cache_payload["thread"]
+    pending_user_input = state.pending_user_input
+    error = SeerAgentError(
+        organization_id=organization_id,
+        error_message="Seer was unable to generate a response.",
+    )
+
+    if pending_user_input and pending_user_input.input_type == "agent_write_approval":
+        key = f"approval:{pending_user_input.id}"
+        if key in replies:
+            return None
+        approval = _agent_write_approval(pending_user_input)
+        if approval is None:
+            return key, error
+        slack_user_id = cache_payload.get("slack_user_id")
+        if not slack_user_id:
+            # Pre-deploy cache entries lack the recipient; never expose approval publicly.
+            logger.error(
+                "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
+                extra={"organization_id": organization_id, "run_id": state.run_id},
+            )
+            return None
+        input_id, scopes = approval
+        dm_key = f"approval_dm:{input_id}"
+        if dm_key not in replies:
+            # Keep this synchronous so mixed-version workers never deserialize the new source.
+            dm_ts = _send_agent_write_approval(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                thread=thread,
+                data=SeerAgentWriteApproval(
+                    run_id=state.run_id,
+                    organization_id=organization_id,
+                    input_id=input_id,
+                    scopes=scopes,
+                ),
+                slack_user_id=slack_user_id,
+            )
+            if not dm_ts:
+                # Slack refused the DM, so don't tell the user to look for it.
+                return key, error
+            # Record the DM before the thread reply, so a failed reply doesn't resend it.
+            SlackSeerAgentReplyCache.set(
+                run_id=state.run_id, key=dm_key, reply=SlackSeerAgentReply(message_ts=dm_ts)
+            )
+        summary = (
+            f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
+            "I sent you a message."
+        )
+        repo_pr_states: list[RepoPRState] = []
+    else:
+        turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
+        if turn is None or turn.answer is None:
+            # The run finished without ever answering.
+            key = "error"
+            return None if key in replies else (key, error)
+        key = turn.answer.id
+        if key in replies:
+            return None
+        summary = turn.answer.message.content or ""
+        repo_pr_states = _get_repo_pr_states(state)
+
+    return key, SeerAgentResponse(
+        run_id=state.run_id,
+        organization_id=organization_id,
+        summary=summary,
+        repo_pr_states=repo_pr_states,
+        missing_scope_settings_url=_get_missing_scope_settings_url(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            channel_id=thread["channel_id"],
+            thread_ts=thread["thread_ts"],
+        ),
+    )
 
 
 class SlackInvestigationEntrypoint(
@@ -732,7 +882,7 @@ class SlackInvestigationEntrypoint(
             ephemeral_user_id=self.slack_user_id,
         )
 
-    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+    def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         data = SeerInvestigationStarted(
             organization_id=self.organization.id,
             slack_user_id=self.slack_user_id,
@@ -764,7 +914,160 @@ class SlackInvestigationEntrypoint(
     def on_investigation_update(
         cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
     ) -> None:
-        pass
+        investigation_id = run.investigation_id
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.UPDATE_INVESTIGATION_STATUS,
+            integration_id=cache_payload["integration_id"],
+            organization_id=cache_payload["organization_id"],
+        ).capture() as lifecycle:
+            lifecycle.add_extras({"investigation_id": investigation_id})
+            lock = locks.get(
+                f"seer:investigation:slack:{investigation_id}",
+                duration=10,
+                name="investigation_entrypoint_slack",
+            )
+            try:
+                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+                    SlackInvestigationEntrypoint._update_investigation_status(
+                        run_id=run.id, lifecycle=lifecycle
+                    )
+            except UnableToAcquireLock as e:
+                lifecycle.record_halt(halt_reason=e)
+                # The holder may have read an older run, so retry once it lets go.
+                raise
+
+    @staticmethod
+    def _update_investigation_status(*, run_id: int, lifecycle: EventLifecycle) -> None:
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        try:
+            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                id=run_id
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            lifecycle.record_halt(halt_reason="run_not_found")
+            return
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key=str(SlackInvestigationEntrypoint.key),
+            investigation_id=run.investigation_id,
+        )
+        if cache_payload is None:
+            return
+
+        data, fingerprint = build_investigation_status(
+            investigation=run.investigation,
+            projection=run.projection,
+            phase=run.phase,
+            status=run.status,
+            updated_at=run.date_updated,
+        )
+        send_conclusion = (
+            run.status == InvestigationOrchestrationStatus.COMPLETED
+            and not cache_payload["final_sent"]
+        )
+        if fingerprint == cache_payload["last_sent_state"] and not send_conclusion:
+            return
+
+        organization_id = cache_payload["organization_id"]
+        integration = integration_service.get_integration(
+            integration_id=cache_payload["integration_id"],
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if integration is None:
+            lifecycle.record_halt(halt_reason="integration_not_found")
+            return
+
+        install = SlackIntegration(model=integration, organization_id=organization_id)
+        new_payload = cache_payload
+        if fingerprint != cache_payload["last_sent_state"]:
+            renderable, links = NotificationService.render_template(
+                data=data,
+                template=SeerInvestigationStatusTemplate(),
+                provider=provider_registry.get(NotificationProviderKey.SLACK),
+            )
+            status_message_ts = cache_payload["status_message_ts"]
+            try:
+                if status_message_ts:
+                    install.update_message(
+                        channel_id=cache_payload["channel_id"],
+                        message_ts=status_message_ts,
+                        renderable=renderable,
+                    )
+                else:
+                    response = install.send_threaded_message(
+                        channel_id=cache_payload["channel_id"],
+                        renderable=renderable,
+                        thread_ts=cache_payload["thread_ts"],
+                    )
+                    status_message_ts = response.get("ts") if response is not None else None
+            except (IntegrationError, IntegrationConfigurationError) as e:
+                lifecycle.record_halt(halt_reason=e)
+            else:
+                _record_status_sent(data=data, links=links)
+                new_payload = {
+                    **new_payload,
+                    "status_message_ts": status_message_ts,
+                    "last_sent_state": fingerprint,
+                }
+
+        if send_conclusion and SlackInvestigationEntrypoint._send_investigation_conclusion(
+            run=run, install=install, cache_payload=cache_payload
+        ):
+            new_payload = {**new_payload, "final_sent": True}
+
+        if new_payload != cache_payload:
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+                entrypoint_key=str(SlackInvestigationEntrypoint.key),
+                investigation_id=run.investigation_id,
+                cache_payload=new_payload,
+            )
+
+    @staticmethod
+    def _send_investigation_conclusion(
+        *,
+        run: InvestigationOrchestrationRun,
+        install: SlackIntegration,
+        cache_payload: SlackInvestigationCachePayload,
+    ) -> bool:
+        """Posts the report text in the thread. Returns False if Slack did not accept the message."""
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_CONCLUSION,
+            integration_id=cache_payload["integration_id"],
+            organization_id=cache_payload["organization_id"],
+        ).capture() as lifecycle:
+            lifecycle.add_extras({"investigation_id": run.investigation_id})
+            data = build_investigation_conclusion(run)
+            if data is None:
+                return True
+            try:
+                message_ts = send_thread_update(
+                    install=install,
+                    thread=SlackThreadDetails(
+                        thread_ts=cache_payload["thread_ts"], channel_id=cache_payload["channel_id"]
+                    ),
+                    data=data,
+                )
+            except IntegrationError as e:
+                lifecycle.record_halt(halt_reason=e)
+                return False
+            if message_ts is None:
+                lifecycle.record_halt(halt_reason="conclusion_not_sent")
+                return False
+            return True
+
+
+def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:
+    record_sent(
+        NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=SeerInvestigationStatusTemplate.category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        ),
+        links=links,
+    )
 
 
 def prepare_slack_thread_for_autofix_updates(

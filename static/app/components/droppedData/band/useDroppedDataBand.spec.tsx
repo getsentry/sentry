@@ -3,26 +3,31 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
 } from 'echarts';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {CHART_TOOLTIP_VIEWPORT_OFFSET} from 'sentry/components/charts/components/tooltip';
 import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/band/useDroppedDataBand';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no dropped events', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({chartRef, droppedData: {droppedEvents: []}})
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {dataset: DiscoverDatasets.SPANS, droppedEvents: []},
+      })
     );
 
     expect(result.current.droppedDataSeries).toBeNull();
@@ -42,7 +47,10 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+        },
       })
     );
 
@@ -52,18 +60,13 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
   });
 
-  it('ignores configured drops', () => {
+  it('ignores intentional drops', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [
-            DroppedEventFixture({
-              outcome: 'client_discard',
-              reason: 'before_send',
-              count: 10,
-            }),
-          ],
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10, tags: ['intentional']})],
         },
       })
     );
@@ -76,14 +79,15 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
-            DroppedEventFixture({start: 0, count: 0}),
-            DroppedEventFixture({start: 60_000, count: 1}),
+            OutcomeRowFixture({start: 0, count: 0}),
+            OutcomeRowFixture({start: 60_000, count: 1}),
           ],
           acceptedEvents: [
-            DroppedEventFixture({start: 0, count: 100}),
-            DroppedEventFixture({start: 60_000, count: 99}),
-            DroppedEventFixture({start: 120_000, count: 50}),
+            OutcomeRowFixture({start: 0, count: 100}),
+            OutcomeRowFixture({start: 60_000, count: 99}),
+            OutcomeRowFixture({start: 120_000, count: 50}),
           ],
         },
       })
@@ -92,7 +96,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries?.data).toEqual([
       expect.objectContaining({start: 0, ratio: 0}),
       expect.objectContaining({start: 60_000, ratio: 0.01}),
-      expect.objectContaining({start: 120_000, ratio: 0, accepted: {count: 50}}),
+      expect.objectContaining({start: 120_000, ratio: 0, accepted: 50}),
     ]);
   });
 
@@ -101,8 +105,9 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [DroppedEventFixture({start: 0, count: 0})],
-          acceptedEvents: [DroppedEventFixture({start: 0, count: 100})],
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start: 0, count: 0})],
+          acceptedEvents: [OutcomeRowFixture({start: 0, count: 100})],
         },
       })
     );
@@ -116,8 +121,9 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedEvents: [DroppedEventFixture({start: 0, count: 1})],
-          acceptedEvents: [DroppedEventFixture({start: 0, count: 1999})],
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start: 0, count: 1})],
+          acceptedEvents: [OutcomeRowFixture({start: 0, count: 1999})],
         },
       })
     );
@@ -131,8 +137,9 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [],
-          acceptedEvents: [DroppedEventFixture({count: 8000})],
+          acceptedEvents: [OutcomeRowFixture({count: 8000})],
         },
       })
     );
@@ -140,17 +147,46 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('inherits positioning from the chart tooltip', () => {
+  it('keeps the tooltip below the hovered bucket and inside the viewport', () => {
+    const chartLeft = 40;
+    const tipWidth = 200;
+    const anchorX = window.innerWidth - chartLeft - 10;
+
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
-        chartRef,
-        droppedData: {droppedEvents: [DroppedEventFixture({count: 10})]},
+        chartRef: {
+          current: {ele: {getBoundingClientRect: () => ({left: chartLeft})}},
+        } as unknown as React.RefObject<ReactEchartsRef | null>,
+        droppedData: {
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+        },
       })
     );
 
-    const tooltip = result.current.droppedDataSeries?.tooltip;
-    expect(tooltip?.trigger).toBe('item');
-    expect(tooltip).not.toHaveProperty('position');
+    const position = result.current.droppedDataSeries?.tooltip?.position;
+    if (typeof position !== 'function') {
+      throw new Error('Expected the dropped data tooltip to position itself');
+    }
+
+    const tooltip = document.createElement('div');
+    const arrow = document.createElement('div');
+    arrow.className = 'tooltip-arrow arrow-top';
+    tooltip.append(arrow);
+
+    const {left, top} = position(
+      [0, 0],
+      [],
+      tooltip,
+      {x: anchorX - 30, y: 170, width: 60, height: 10},
+      {contentSize: [tipWidth, 120], viewSize: [800, 300]}
+    ) as {left: number; top: number};
+
+    expect(top).toBe(188);
+    expect(chartLeft + left + tipWidth).toBe(
+      window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET
+    );
+    expect(arrow).toHaveStyle({left: `${anchorX - left}px`});
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {
@@ -158,10 +194,11 @@ describe('useDroppedDataBand', () => {
       useDroppedDataBand({
         chartRef,
         droppedData: {
+          dataset: DiscoverDatasets.SPANS,
           droppedEvents: [
-            DroppedEventFixture({start: 0, end: 60_000, count: 10}),
-            DroppedEventFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
-            DroppedEventFixture({start: 60_000, end: 120_000, count: 20}),
+            OutcomeRowFixture({start: 0, end: 60_000, count: 10}),
+            OutcomeRowFixture({start: 0, end: 60_000, count: 5, reason: 'quota'}),
+            OutcomeRowFixture({start: 60_000, end: 120_000, count: 20}),
           ],
         },
       })
@@ -213,14 +250,15 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(
-      dropped: DroppedEventsBucket[],
-      accepted: DroppedEventsBucket[] = []
-    ) {
+    function renderShapes(dropped: OutcomeRow[], accepted: OutcomeRow[] = []) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
-          droppedData: {droppedEvents: dropped, acceptedEvents: accepted},
+          droppedData: {
+            dataset: DiscoverDatasets.SPANS,
+            droppedEvents: dropped,
+            acceptedEvents: accepted,
+          },
         })
       );
 
@@ -245,7 +283,7 @@ describe('useDroppedDataBand', () => {
     }
 
     function bucket(minute: number, count = 10) {
-      return DroppedEventFixture({
+      return OutcomeRowFixture({
         start: minute * 60_000,
         end: (minute + 1) * 60_000,
         count,

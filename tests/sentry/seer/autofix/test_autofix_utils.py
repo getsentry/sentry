@@ -10,6 +10,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -24,12 +25,12 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
     add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
-    bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
     get_org_default_seer_automation_handoff,
     get_repo_url_path,
+    get_token_based_billing_project_repos,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
@@ -49,6 +50,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
 
@@ -269,18 +271,23 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         assert result is True
 
 
-class TestHasProjectConnectedRepos(TestCase):
+class HasProjectConnectedReposBaseTest(TestCase):
     """Test the has_project_connected_repos function."""
 
+    __test__ = False
+
     def setUp(self) -> None:
-        super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
 
     def test_returns_true_when_repos_exist(self):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/repo",
         )
@@ -295,6 +302,7 @@ class TestHasProjectConnectedRepos(TestCase):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/repo",
         )
@@ -308,6 +316,7 @@ class TestHasProjectConnectedRepos(TestCase):
         disabled_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="123",
             name="owner/disabled",
         )
@@ -316,6 +325,7 @@ class TestHasProjectConnectedRepos(TestCase):
         active_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="456",
             name="owner/active",
         )
@@ -328,6 +338,7 @@ class TestHasProjectConnectedRepos(TestCase):
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="789",
             name="owner/fk-repo",
         )
@@ -337,6 +348,57 @@ class TestHasProjectConnectedRepos(TestCase):
         )
 
         assert has_project_connected_repos(self.organization, self.project) is True
+
+
+class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
+    def test_returns_false_when_repo_has_no_seer_config(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is False
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
+    def test_returns_true_when_repo_has_no_seer_config(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is True
+
+    def test_returns_false_when_project_inactive(self) -> None:
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+            name="owner/repo",
+        )
+        self.create_project_repository(project=self.project, repository=repo)
+        self.project.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert has_project_connected_repos(self.organization, self.project) is False
 
 
 class TestDeduplicateRepositories(TestCase):
@@ -436,9 +498,6 @@ class TestDeduplicateRepositories(TestCase):
 
 
 class TestWritePreferencesToSentryDb(TestCase):
-    """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db
-    and bulk_write_preferences_to_sentry_db."""
-
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
@@ -464,7 +523,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ),
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
         assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
@@ -484,7 +543,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             organization_id=self.organization.id, project_id=self.project.id, repositories=[]
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
@@ -521,7 +580,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ],
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
         assert seer_repo.project_repository.repository_id == self.repo.id
@@ -562,7 +621,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, preference_to_replace)
+        write_preference_to_sentry_db(preference_to_replace)
 
         assert (
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
@@ -595,7 +654,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         repos = SeerProjectRepository.objects.filter(project_repository__project=self.project)
         assert len(repos) == 1
@@ -638,7 +697,7 @@ class TestWritePreferencesToSentryDb(TestCase):
             ],
         )
 
-        write_preference_to_sentry_db(self.project, preference)
+        write_preference_to_sentry_db(preference)
 
         repos = SeerProjectRepository.objects.filter(
             project_repository__project=self.project
@@ -681,7 +740,7 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         project_repos = SeerProjectRepository.objects.filter(
             project_repository__project=self.project
@@ -719,112 +778,13 @@ class TestWritePreferencesToSentryDb(TestCase):
                 ),
             ],
         )
-        write_preference_to_sentry_db(self.project, new_preference)
+        write_preference_to_sentry_db(new_preference)
 
         repos = list(SeerProjectRepository.objects.filter(project_repository__project=self.project))
         assert len(repos) == 1
         assert repos[0].project_repository.repository_id == self.repo.id
         assert repos[0].branch_name == "original"
         assert repos[0].instructions == "original instructions"
-
-    def test_bulk_write_multiple_projects(self) -> None:
-        project2 = self.create_project(organization=self.organization)
-        repo2 = self.create_repo(
-            project=project2,
-            provider="integrations:github",
-            external_id="ext456",
-            name="test-org/other-repo",
-        )
-
-        preferences = [
-            SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[
-                    SeerRepoDefinition(
-                        repository_id=self.repo.id,
-                        provider="github",
-                        owner="test-org",
-                        name="test-repo",
-                        external_id="ext123",
-                        branch_name="develop",
-                    ),
-                ],
-                automated_run_stopping_point="open_pr",
-            ),
-            SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=project2.id,
-                repositories=[
-                    SeerRepoDefinition(
-                        repository_id=repo2.id,
-                        provider="github",
-                        owner="test-org",
-                        name="other-repo",
-                        external_id="ext456",
-                        instructions="Be careful",
-                    ),
-                ],
-                automated_run_stopping_point="code_changes",
-            ),
-        ]
-
-        bulk_write_preferences_to_sentry_db([self.project, project2], preferences)
-
-        p1_repos = SeerProjectRepository.objects.filter(project_repository__project=self.project)
-        assert len(p1_repos) == 1
-        assert p1_repos[0].project_repository.repository_id == self.repo.id
-        assert p1_repos[0].branch_name == "develop"
-        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
-
-        p2_repos = SeerProjectRepository.objects.filter(project_repository__project=project2)
-        assert len(p2_repos) == 1
-        assert p2_repos[0].project_repository.repository_id == repo2.id
-        assert p2_repos[0].instructions == "Be careful"
-        assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
-
-    def test_bulk_write_replaces_per_project(self) -> None:
-        project2 = self.create_project(organization=self.organization)
-        repo2 = self.create_repo(
-            project=project2,
-            provider="integrations:github",
-            external_id="ext456",
-            name="test-org/other-repo",
-        )
-
-        self.create_seer_project_repository(
-            project=self.project, repository_id=self.repo.id, branch_name="project-1-branch"
-        )
-        self.create_seer_project_repository(
-            project=project2, repository_id=repo2.id, branch_name="project-2-branch"
-        )
-
-        bulk_write_preferences_to_sentry_db(
-            [self.project, project2],
-            [
-                SeerProjectPreference(
-                    organization_id=self.organization.id,
-                    project_id=self.project.id,
-                    repositories=[
-                        SeerRepoDefinition(
-                            repository_id=self.repo.id,
-                            provider="github",
-                            owner="test-org",
-                            name="test-repo",
-                            external_id="ext123",
-                            branch_name="new-branch",
-                        ),
-                    ],
-                ),
-            ],
-        )
-
-        # When bulk writing, existing repos for included projects are replaced,
-        # but repos for projects NOT in the preferences list are untouched.
-        p1_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
-        assert p1_repo.branch_name == "new-branch"
-        p2_repo = SeerProjectRepository.objects.get(project_repository__project=project2)
-        assert p2_repo.branch_name == "project-2-branch"
 
 
 class TestClearPreferenceAutomationHandoff(TestCase):
@@ -909,20 +869,124 @@ class TestClearPreferenceAutomationHandoff(TestCase):
         self._assert_handoff_options_cleared()
 
 
-class TestReadPreferenceFromSentryDb(TestCase):
-    def setUp(self):
+class TestGetTokenBasedBillingProjectRepos(TestCase):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+
+    def _create_project_repo(
+        self,
+        name: str,
+        project: Project | None = None,
+        provider: str = "integrations:github",
+        has_integration: bool = True,
+        has_external_id: bool = True,
+    ) -> ProjectRepository:
+        project = project or self.project
+        repo = self.create_repo(
+            project=project,
+            name=name,
+            provider=provider,
+            integration_id=self.integration.id if has_integration else None,
+            external_id=name if has_external_id else None,
+        )
+        return self.create_project_repository(project=project, repository=repo)
+
+    def test_returns_linked_repos_with_and_without_config(self) -> None:
+        configured = self._create_project_repo("owner/configured")
+        SeerProjectRepository.objects.create(project_repository=configured, branch_name="main")
+        unconfigured = self._create_project_repo("owner/unconfigured")
+
+        assert set(
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id]))
+        ) == {configured, unconfigured}
+
+    def test_excludes_inactive_repos(self) -> None:
+        project_repo = self._create_project_repo("owner/repo")
+        project_repo.repository.status = ObjectStatus.DISABLED
+        project_repo.repository.save()
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_unsupported_providers(self) -> None:
+        self._create_project_repo("owner/repo", provider="integrations:bitbucket")
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_repos_without_integration(self) -> None:
+        self._create_project_repo("owner/repo", has_integration=False)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_repos_without_external_id(self) -> None:
+        self._create_project_repo("owner/null-external-id", has_external_id=False)
+        empty_external_id_repo = self.create_repo(
+            project=self.project,
+            name="owner/empty-external-id",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="",
+        )
+        self.create_project_repository(project=self.project, repository=empty_external_id_repo)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_other_projects(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self._create_project_repo("owner/repo", project=other_project)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+    def test_excludes_other_organizations(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_repo = self.create_repo(
+            project=other_project,
+            name="owner/repo",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="123",
+        )
+        self.create_project_repository(project=self.project, repository=other_repo)
+
+        assert (
+            list(get_token_based_billing_project_repos(self.organization, [self.project.id])) == []
+        )
+
+
+class ReadPreferenceFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
         self.repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext123",
             name="test-org/test-repo",
         )
         self.repo2 = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext456",
             name="test-org/other-repo",
         )
@@ -1074,6 +1138,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         other_repo = self.create_repo(
             project=other_project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext789",
             name="test-org/other-project-repo",
         )
@@ -1104,6 +1169,7 @@ class TestReadPreferenceFromSentryDb(TestCase):
         bad_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext_bad",
             name="no-slash-repo",
         )
@@ -1136,22 +1202,60 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert result.repositories[0].name == "test-repo"
 
 
-class TestBulkReadPreferencesFromSentryDb(TestCase):
+class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
+    def test_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project, repository=self.repo)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result.repositories == []
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
+    """Runs the tests above under token-based billing, plus token-based billing only cases."""
+
+    def test_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project, repository=self.repo)
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].name == "test-repo"
+        assert result.repositories[0].branch_name is None
+        assert result.repositories[0].instructions is None
+        assert result.repositories[0].branch_overrides == []
+
+
+class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
     def setUp(self):
-        super().setUp()
         self.organization = self.create_organization()
         self.project1 = self.create_project(organization=self.organization)
         self.project2 = self.create_project(organization=self.organization)
         self.project3 = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
         self.repo = self.create_repo(
             project=self.project1,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext123",
             name="test-org/test-repo",
         )
         self.repo2 = self.create_repo(
             project=self.project1,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext456",
             name="test-org/other-repo",
         )
@@ -1258,6 +1362,7 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         project2_repo = self.create_repo(
             project=self.project2,
             provider="integrations:github",
+            integration_id=self.integration.id,
             external_id="ext_p2",
             name="test-org/p2-repo",
         )
@@ -1273,6 +1378,36 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
         assert len(result[self.project1.id].repositories) == 1
         assert result[self.project1.id].repositories[0].name == "test-repo"
         assert len(result[self.project2.id].repositories) == 0
+
+
+class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
+    def test_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project1, repository=self.repo)
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert result[self.project1.id].repositories == []
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
+    """Runs the tests above under token-based billing, plus token-based billing only cases."""
+
+    def test_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(project=self.project1, repository=self.repo)
+
+        result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
+        assert [(r.name, r.branch_name) for r in result[self.project1.id].repositories] == [
+            ("test-repo", None)
+        ]
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

@@ -37,10 +37,13 @@ type SlideOverPanelProps = {
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
+  height?: string;
   mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
+  /** Override placement to clear banners above the panel. */
+  topOffset?: string;
 };
 
 export function SlideOverPanel({
@@ -49,9 +52,11 @@ export function SlideOverPanel({
   ariaLabel,
   children,
   className,
+  height,
   position,
   panelWidth,
   ref,
+  topOffset,
 }: SlideOverPanelProps) {
   const theme = useTheme();
 
@@ -99,6 +104,8 @@ export function SlideOverPanel({
         id={id}
         mode={mode}
         top={contentTop}
+        topOffset={topOffset}
+        height={height}
         initial={collapsedStyle}
         animate={openStyle}
         exit={collapsedStyle}
@@ -127,16 +134,22 @@ export function SlideOverPanel({
 
 const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
-    ['initial', 'animate', 'exit', 'transition'].includes(prop) || isPropValid(prop),
+    ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
+    (prop !== 'height' && isPropValid(prop)),
 })<{
+  height?: string;
   mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   top?: string | number;
+  topOffset?: string;
 }>`
   position: fixed;
 
-  top: ${p => (p.position === 'left' || p.mode === 'passive' ? p.top : p.theme.space.xl)};
+  top: ${p =>
+    p.topOffset ??
+    (p.position === 'left' || p.mode === 'passive' ? p.top : p.theme.space.xl)};
+  height: ${p => p.height ?? 'auto'};
   right: ${p => (p.position === 'left' ? p.theme.space.xl : 0)};
   bottom: ${p => p.theme.space.xl};
   left: ${p => (p.position === 'left' ? 0 : p.theme.space.xl)};
@@ -159,7 +172,7 @@ const _SlideOverPanel = styled(motion.div, {
             position: sticky;
 
             width: 100%;
-            height: ${PANEL_HEIGHT};
+            height: ${p.height ?? PANEL_HEIGHT};
 
             right: 0;
             bottom: 0;
@@ -170,9 +183,11 @@ const _SlideOverPanel = styled(motion.div, {
               position: fixed;
 
               width: ${p.panelWidth ?? RIGHT_SIDE_PANEL_WIDTH};
-              height: ${p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%'};
+              height: ${
+                p.height ?? (p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%')
+              };
 
-              top: ${p.mode === 'passive' ? p.top : 0};
+              top: ${p.topOffset ?? (p.mode === 'passive' ? p.top : 0)};
               right: 0;
               bottom: 0;
               left: auto;
@@ -182,9 +197,11 @@ const _SlideOverPanel = styled(motion.div, {
 
               width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
               min-width: 450px;
-              height: ${p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%'};
+              height: ${
+                p.height ?? (p.mode === 'passive' ? `calc(100% - ${p.top})` : '100%')
+              };
 
-              top: ${p.mode === 'passive' ? p.top : 0};
+              top: ${p.topOffset ?? (p.mode === 'passive' ? p.top : 0)};
               right: auto;
               bottom: 0;
               left: auto;

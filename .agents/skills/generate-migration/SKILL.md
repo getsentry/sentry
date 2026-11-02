@@ -44,7 +44,7 @@ The exception to the above: a migration that **backfills or transforms data** is
 
 Set `app`, `migrate_from` (the migration just before yours), and `migrate_to` (yours). Seed pre-migration rows in `setup_before_migration(self, apps)` using the **historical** model registry (`apps.get_model("sentry", "MyModel")`) — not a direct `from sentry.models...` import, since the current model may not match the schema at `migrate_from`. Then assert the post-migration state.
 
-**Write exactly one `test_*` method.** `setUp` runs the full migrate-down → seed → migrate-up cycle on _every_ test method, so each extra method pays for another round trip with no added coverage. Cover multiple cases by seeding all of them in `setup_before_migration` and asserting each in the single test body.
+**Write exactly one `test_*` method.** `setUp` runs the full migrate-down → seed → migrate-up cycle on _every_ test method, so each extra method pays for another round trip with no added coverage. Cover multiple cases by seeding all of them in `setup_before_migration` and asserting each in the single test body, with `self.subTest()` per case. `TestMigrations` raises on a second test method unless the class sets `allow_multiple_tests = True`; set it only when the cases can't share one migration run. Don't use `SnubaTestCase` unless the migration reads from Snuba.
 
 ```python
 from sentry.testutils.cases import TestMigrations

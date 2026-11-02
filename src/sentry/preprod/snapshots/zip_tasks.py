@@ -2,14 +2,10 @@ from __future__ import annotations
 
 import logging
 import os
-import time
 from tempfile import NamedTemporaryFile
-from typing import IO, Any
+from typing import Any
 
 import orjson
-from objectstore_client import RequestError
-from objectstore_client.multipart import CompletePart, MultipartUpload
-from urllib3.exceptions import HTTPError
 
 from sentry.models.organization import Organization
 from sentry.preprod.snapshots.manifest import SnapshotManifest
@@ -28,9 +24,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
 logger = logging.getLogger(__name__)
-
-MULTIPART_PART_SIZE = 32 * 1024 * 1024
-MULTIPART_MAX_RETRIES = 3
 
 
 def _snapshot_page_url(organization: Organization, artifact_id: int) -> str:
@@ -66,45 +59,12 @@ def _send_archive_email(
     ).send_async([email])
 
 
-def _put_part_with_retry(upload: MultipartUpload, chunk: bytes, part_number: int) -> CompletePart:
-    for attempt in range(MULTIPART_MAX_RETRIES):
-        try:
-            return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
-        except (RequestError, HTTPError):
-            if attempt == MULTIPART_MAX_RETRIES - 1:
-                raise
-            time.sleep(2**attempt)
-    raise AssertionError("unreachable")
-
-
 def _archive_available(org_id: int, project_id: int, artifact_id: int) -> bool:
     try:
         session = get_snapshot_storage(project_id, org=org_id)
         return archive_exists(session, archive_object_key(artifact_id))
     except Exception:
         return False
-
-
-def _upload_archive_multipart(session: SnapshotStorage, key: str, tmp: IO[bytes]) -> None:
-    upload = session.initiate_multipart_upload(
-        key=key, compression="none", content_type="application/zip"
-    )
-    try:
-        parts: list[CompletePart] = []
-        part_number = 1
-        while True:
-            chunk = tmp.read(MULTIPART_PART_SIZE)
-            if not chunk:
-                break
-            parts.append(_put_part_with_retry(upload, chunk, part_number))
-            part_number += 1
-        upload.complete(parts)
-    except Exception:
-        try:
-            upload.abort()
-        except (RequestError, HTTPError):
-            logger.warning("preprod_snapshot_zip.archive_abort_failed", extra={"key": key})
-        raise
 
 
 @instrumented_task(
@@ -196,7 +156,17 @@ def build_snapshot_images_zip(
                         "archive_size_bytes": archive_size_bytes,
                     },
                 )
-                _upload_archive_multipart(session, key, tmp)
+                session.put(
+                    tmp,
+                    key=key,
+                    content_type="application/zip",
+                    # A `zip` is already compressed, so it would likely be not beneficial to compress it again.
+                    compress="none",
+                    # Force this `put` to use a resumable upload, overriding the default threshold.
+                    # This already incorporates retries with exponential backoffs and allows the client to retry
+                    # from the persisted offset when the upload fails midway through.
+                    resumable_threshold_bytes=0,
+                )
                 logger.info(
                     "preprod_snapshot_zip.upload_completed",
                     extra={

@@ -39,6 +39,7 @@ from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -106,6 +107,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -306,7 +308,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 data.update({"owners": owners})
 
             if "forecast" in expand:
-                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                fetched_forecast = EscalatingGroupForecast.fetch(group)
                 if fetched_forecast:
                     fetched_forecast_dict = fetched_forecast.to_dict()
                     data.update(
@@ -565,7 +567,7 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
                 project_id=group.project.id,
                 group_id=group.id,
                 client=f"mcp - {client_family}",
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
         if features.has("organizations:mcp-issue-view-attribution", group.project.organization):

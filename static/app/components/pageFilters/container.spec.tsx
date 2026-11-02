@@ -693,6 +693,71 @@ describe('PageFiltersContainer', () => {
         })
       );
     });
+
+    describe('when a range starts less than a day before the window', () => {
+      const start = moment()
+        .utc()
+        .subtract(30, 'days')
+        .subtract(3, 'hours')
+        .format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().utc().subtract(20, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      it('keeps the range when it is loaded from the URL', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {start, end},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+      });
+
+      it('keeps the range when the mounted route changes to it', async () => {
+        const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/test/',
+              query: {statsPeriod: '30d'},
+            },
+            route: '/organizations/:orgId/test/',
+          },
+        });
+
+        await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+
+        act(() => {
+          router.navigate({
+            pathname: '/organizations/org-slug/test/',
+            search: `start=${start}&end=${end}`,
+          });
+        });
+
+        await waitFor(() =>
+          expect(PageFiltersStore.getState().selection.datetime).toEqual({
+            period: null,
+            utc: null,
+            start: getUtcToLocalDateObject(start),
+            end: getUtcToLocalDateObject(end),
+          })
+        );
+        expect(router.location.query).toEqual({start, end});
+        expect(PageFiltersStore.getState().adjustments).toEqual({});
+      });
+    });
   });
 
   describe('maxDateRange param', () => {

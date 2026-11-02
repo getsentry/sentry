@@ -30,7 +30,11 @@ class AuthOrganizationChannelLoginTest(TestCase):
         ]
 
     def test_redirect_for_logged_in_user_with_different_active_org(self) -> None:
-        self.login_as(self.user)  # log in to "test org"
+        self.login_as(self.user)
+        # Without an active org in the session, the view falls back to the first of the user's
+        # orgs in whatever order Postgres returns them, which can be "another org".
+        self.session["activeorg"] = self.organization.slug
+        self.save_session()
         another_org = self.create_organization(name="another org", owner=self.user)
         self.create_auth_provider("another-fly-org", another_org.id)
         path = reverse("sentry-auth-channel", args=["fly", "another-fly-org"])

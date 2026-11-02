@@ -163,16 +163,15 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         sg = response.data["data"][0]
         assert sg["assignees"] == []
 
+    @patch.object(organization_supergroups_by_group, "_MAX_GROUPS_FOR_FETCH", 1)
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_skips_fanout_over_threshold(self, mock_seer):
-        threshold = organization_supergroups_by_group._MAX_GROUPS_FOR_FETCH
-        fake_group_ids = list(range(10_000_000, 10_000_000 + threshold))
         mock_seer.return_value = mock_seer_response(
             {
                 "data": [
                     {
                         "id": 1,
-                        "group_ids": [self.resolved_group.id, *fake_group_ids],
+                        "group_ids": [self.resolved_group.id, self.unresolved_group.id],
                         "title": "too big",
                     }
                 ]
@@ -266,3 +265,93 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
 
         sg = response.data["data"][0]
         assert sg["assignees"] == []
+
+    def _login_as_restricted_member(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member_user = self.create_user()
+        member_team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization,
+            user=member_user,
+            role="member",
+            teams=[member_team],
+        )
+        self.project.add_team(member_team)
+        self.login_as(member_user)
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_strips_inaccessible_groups_from_seer_response(self, mock_seer):
+        other_project = self.create_project(organization=self.organization)
+        inaccessible_group = self.create_group(project=other_project)
+        inaccessible_only_group = self.create_group(project=other_project)
+        GroupAssignee.objects.assign(inaccessible_group, self.create_user())
+
+        mock_seer.return_value = mock_seer_response(
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "group_ids": [self.unresolved_group.id, inaccessible_group.id],
+                        "project_ids": [self.project.id, other_project.id],
+                        "title": "mixed",
+                    },
+                    {
+                        "id": 2,
+                        "group_ids": [inaccessible_only_group.id],
+                        "project_ids": [other_project.id],
+                        "title": "hidden",
+                    },
+                ]
+            }
+        )
+        self._login_as_restricted_member()
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[self.unresolved_group.id],
+            )
+
+        assert response.data["meta"] == {"estimated": False}
+        assert len(response.data["data"]) == 1
+        sg = response.data["data"][0]
+        assert sg["id"] == 1
+        assert sg["group_ids"] == [self.unresolved_group.id]
+        assert sg["project_ids"] == [self.project.id]
+        assert sg["assignees"] == []
+
+    @patch.object(organization_supergroups_by_group, "_MAX_GROUPS_FOR_FETCH", 1)
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_strips_inaccessible_groups_over_threshold(self, mock_seer):
+        other_project = self.create_project(organization=self.organization)
+        inaccessible_group = self.create_group(project=other_project)
+
+        mock_seer.return_value = mock_seer_response(
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "group_ids": [
+                            self.unresolved_group.id,
+                            self.resolved_group.id,
+                            inaccessible_group.id,
+                        ],
+                        "project_ids": [self.project.id, other_project.id],
+                        "title": "too big",
+                    }
+                ]
+            }
+        )
+        self._login_as_restricted_member()
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[self.unresolved_group.id],
+            )
+
+        assert response.data["meta"] == {"estimated": True}
+        sg = response.data["data"][0]
+        assert sg["group_ids"] == [self.unresolved_group.id, self.resolved_group.id]
+        assert sg["project_ids"] == [self.project.id]

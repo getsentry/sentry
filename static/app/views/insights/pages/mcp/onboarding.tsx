@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -42,7 +41,7 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanWaiter} from 'sentry/views/insights/pages/onboardingUtils';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -61,47 +60,12 @@ function useOnboardingProject() {
   return selectedProject[0];
 }
 
-function useAiSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: 'span.name:"gen_ai.*"',
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    'api.insights.mcp.onboarding'
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
-
 function WaitingIndicator({project}: {project: Project}) {
-  const spanRequest = useAiSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: 'span.name:"gen_ai.*"',
+    referrer: 'api.insights.mcp.onboarding',
+  });
   const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);
 
@@ -164,11 +128,11 @@ function OnboardingPanel({
               <Flex justify="between" radius="md" padding="3xl">
                 <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Monitor MCP Servers')}</Title>
-                  <SubTitle>
+                  <Container marginBottom="md">
                     {t(
                       'Monitor MCP server connections, resource access, tool executions, and errors across your entire pipeline—from client requests to server responses.'
                     )}
-                  </SubTitle>
+                  </Container>
                   <BulletList>
                     <li>
                       {t(
@@ -194,15 +158,15 @@ function OnboardingPanel({
               <Divider />
 
               <Body>
-                <Setup>{children}</Setup>
-                <Preview>
+                <Container padding="3xl">{children}</Container>
+                <Container padding="3xl">
                   <BodyTitle>{t('Preview MCP Insights')}</BodyTitle>
                   <Arcade
                     src="https://demo.arcade.software/dMIA7maXWbgcaAGP79ah?embed"
                     loading="lazy"
                     allowFullScreen
                   />
-                </Preview>
+                </Container>
               </Body>
             </div>
           </TabSelectionScope>
@@ -391,10 +355,6 @@ const PulsingIndicator = styled('div')`
   flex-shrink: 0;
 `;
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -408,10 +368,6 @@ const BulletList = styled('ul')`
   li {
     margin-bottom: ${p => p.theme.space.md};
   }
-`;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -445,10 +401,6 @@ const Divider = styled('hr')`
   border: none;
   margin-top: 0;
   margin-bottom: 0;
-`;
-
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Arcade = styled('iframe')`

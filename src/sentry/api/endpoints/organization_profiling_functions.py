@@ -7,6 +7,7 @@ from typing import Any
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -25,7 +26,6 @@ from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
@@ -205,7 +205,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
         trending_functions = get_trends_data(stats_data)
 
         all_trending_functions_count = len(trending_functions)
-        set_span_attribute("profiling.top_functions", all_trending_functions_count)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("profiling.top_functions", all_trending_functions_count)
 
         # Profiling functions have a resolution of ~10ms. To increase the confidence
         # of the results, the caller can specify a min threshold for the trend difference.
@@ -218,9 +220,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             ]
 
         filtered_trending_functions_count = all_trending_functions_count - len(trending_functions)
-        set_span_attribute(
-            "profiling.top_functions.below_threshold", filtered_trending_functions_count
-        )
+        if span:
+            span.set_attribute(
+                "profiling.top_functions.below_threshold", filtered_trending_functions_count
+            )
 
         # Make sure to sort the results so that it's in order of largest change
         # to smallest change (ASC/DESC depends on the trend type)

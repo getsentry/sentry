@@ -5,11 +5,20 @@ import {IconHide} from '@sentry/icons/hide';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {Badge} from '@sentry/scraps/badge';
+import {
+  CompositeSelect,
+  TriggerLabel,
+  type SelectKey,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -22,28 +31,49 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
+  createChartGroup,
+  groupVisualizes,
   isVisualizeEquation,
   isVisualizeFunction,
   MAX_VISUALIZES,
+  serializeVisualizes,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {
+  SHARED_CHART_AGGREGATE_REGIONS,
+  SHARED_CHART_AGGREGATES,
+  hasMultiAggregateCharts,
+} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
@@ -58,69 +88,63 @@ export function ToolbarVisualize({
   setVisualizes,
   visualizes,
 }: ToolbarVisualizeProps) {
-  const addChart = useCallback(() => {
-    const newVisualizes = [
-      ...visualizes,
-      new VisualizeFunction(DEFAULT_VISUALIZATION),
-    ].map(visualize => visualize.serialize());
-    setVisualizes(newVisualizes);
-  }, [setVisualizes, visualizes]);
+  const formulas = useDatasetFormulas('spans');
 
-  const addEquation = useCallback(() => {
-    const newVisualizes = [...visualizes, new VisualizeEquation(EQUATION_PREFIX)].map(
-      visualize => visualize.serialize()
-    );
-    setVisualizes(newVisualizes);
-  }, [setVisualizes, visualizes]);
+  // Each row in the toolbar is one chart, which can plot several aggregates.
+  const charts = useMemo(
+    () => groupVisualizes(visualizes).map(group => group.visualizes),
+    [visualizes]
+  );
 
-  const replaceOverlay = (group: number, newVisualize: Visualize) => {
-    const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === group) {
-        return newVisualize.serialize();
-      }
-      return visualize.serialize();
-    });
-    setVisualizes(newVisualizes);
-  };
-
-  const toggleVisibility = (group: number) => {
-    const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === group) {
-        visualize = visualize.replace({visible: !visualize.visible});
-      }
-      return visualize.serialize();
-    });
-    setVisualizes(newVisualizes);
-  };
-
-  const setVisualizesWithOp = useCallback(
-    (columns: Visualize[]) => {
-      setVisualizes(columns.map(v => v.serialize()));
+  const setCharts = useCallback(
+    (newCharts: Visualize[][]) => {
+      setVisualizes(serializeVisualizes(newCharts.flat()));
     },
     [setVisualizes]
   );
 
+  const addChart = useCallback(() => {
+    setCharts([...charts, [new VisualizeFunction(DEFAULT_VISUALIZATION)]]);
+  }, [charts, setCharts]);
+
+  const addEquation = useCallback(() => {
+    setCharts([...charts, [new VisualizeEquation(EQUATION_PREFIX)]]);
+  }, [charts, setCharts]);
+
+  const replaceChart = (index: number, newChart: Visualize[]) => {
+    setCharts(charts.map((chart, i) => (i === index ? newChart : chart)));
+  };
+
+  const toggleVisibility = (index: number) => {
+    setCharts(
+      charts.map((chart, i) =>
+        i === index
+          ? chart.map(visualize => visualize.replace({visible: !visualize.visible}))
+          : chart
+      )
+    );
+  };
+
   return (
-    <DragNDropContext columns={[...visualizes]} setColumns={setVisualizesWithOp}>
+    <DragNDropContext columns={charts} setColumns={setCharts}>
       {({editableColumns, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-visualizes">
           <ToolbarVisualizeHeader />
           {editableColumns.map((column, i) => {
-            const visualize = column.column;
-            const isOnlyVisualize = editableColumns.length === 1;
-            const canReset = isOnlyVisualize && !isDefaultVisualize(visualize);
-            const onDelete = isOnlyVisualize
+            const chart = column.column;
+            const visualize = chart[0]!;
+            const isOnlyChart = editableColumns.length === 1;
+            const canReset = isOnlyChart && !isDefaultChart(chart);
+            const onDelete = isOnlyChart
               ? canReset
-                ? () => replaceOverlay(i, new VisualizeFunction(DEFAULT_VISUALIZATION))
+                ? () => replaceChart(i, [new VisualizeFunction(DEFAULT_VISUALIZATION)])
                 : undefined
               : () => deleteColumnAtIndex(i);
 
             const rowProps = {
-              dragColumnId: isOnlyVisualize ? undefined : column.id,
+              dragColumnId: isOnlyChart ? undefined : column.id,
               onDelete,
               deleteLabel: canReset ? t('Clear Visualize') : undefined,
-              onReplace: (newVisualize: Visualize) => replaceOverlay(i, newVisualize),
-              visualize,
               label: (
                 <VisualizeLabel
                   index={i}
@@ -131,9 +155,21 @@ export function ToolbarVisualize({
             };
 
             return isVisualizeEquation(visualize) ? (
-              <VisualizeEquationInput key={column.uniqueId} {...rowProps} />
+              <VisualizeEquationInput
+                key={column.uniqueId}
+                {...rowProps}
+                visualize={visualize}
+                onReplace={newVisualize => replaceChart(i, [newVisualize])}
+              />
             ) : (
-              <ToolbarVisualizeItem key={column.uniqueId} {...rowProps} />
+              <ToolbarVisualizeItem
+                key={column.uniqueId}
+                {...rowProps}
+                formulas={formulas}
+                visualizes={chart}
+                onReplace={newChart => replaceChart(i, newChart)}
+                maxAggregates={MAX_VISUALIZES - (visualizes.length - chart.length)}
+              />
             );
           })}
           <ToolbarFooter>
@@ -155,9 +191,19 @@ export function ToolbarVisualize({
 }
 
 interface VisualizeDropdownProps {
+  formulas: readonly SavedFormula[];
   label: ReactNode;
-  onReplace: (visualize: Visualize) => void;
-  visualize: Visualize;
+  /**
+   * The most aggregates this chart can plot without exceeding the limit on
+   * aggregates across all charts.
+   */
+  maxAggregates: number;
+  onReplace: (visualizes: Visualize[]) => void;
+  /**
+   * The visualizes plotted on this chart. They share the same arguments and
+   * filter, only the aggregate differs.
+   */
+  visualizes: Visualize[];
   deleteLabel?: string;
   dragColumnId?: number;
   onDelete?: () => void;
@@ -165,12 +211,16 @@ interface VisualizeDropdownProps {
 
 function ToolbarVisualizeItem({
   dragColumnId,
+  formulas,
   label,
+  maxAggregates,
   onDelete,
   deleteLabel,
   onReplace,
-  visualize,
+  visualizes,
 }: VisualizeDropdownProps) {
+  const visualize = visualizes[0]!;
+  const organization = useOrganization();
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
@@ -186,96 +236,128 @@ function ToolbarVisualizeItem({
     'boolean'
   );
 
-  const aggregateOptions = useMemo(
-    () =>
-      ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
-        return {
-          label: aggregate,
-          value: aggregate,
-          textValue: aggregate,
-        };
-      }),
-    []
-  );
-
   // The dropdowns operate on the base aggregate, with the `_if` combinator and its
   // filter argument stripped off.
   const parsedFunction = useMemo(
     () => parseConditionalAggregate(visualize.yAxis),
     [visualize.yAxis]
   );
+  const formula = findFormula(formulas, parsedFunction?.name);
+
+  const selectedAggregates = useMemo(
+    () =>
+      visualizes
+        .map(v => parseConditionalAggregate(v.yAxis)?.name)
+        .filter((name): name is string => defined(name)),
+    [visualizes]
+  );
 
   const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
 
   const filter = parsedFunction?.filter ?? '';
 
-  const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
-          oldAggregate: parsedFunction?.name,
-          oldArguments: parsedFunction?.arguments,
-        });
-        onReplace(
-          visualize.replace({
-            yAxis: supportsConditionalAggregateFilter(option.value)
+  const onChangeAggregates = useCallback(
+    (newAggregates: string[]) => {
+      // Clearing the selection falls back to the default aggregate, like the
+      // Metrics aggregate picker, so a chart always plots something.
+      const aggregates = newAggregates.length
+        ? newAggregates
+        : [DEFAULT_VISUALIZATION_AGGREGATE];
+      // Formulas are picked on their own, never alongside other aggregates.
+      const newFormula =
+        aggregates.length === 1 ? findFormula(formulas, aggregates[0]) : undefined;
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, DEFAULT_VISUALIZATION_FIELD);
+        if (formulaYAxis) {
+          onReplace([visualize.replace({yAxis: formulaYAxis, chartGroup: null})]);
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const previous = formula
+        ? parseConditionalAggregate(DEFAULT_VISUALIZATION)
+        : parsedFunction;
+      const chartGroup =
+        aggregates.length > 1 ? (visualize.chartGroup ?? createChartGroup()) : null;
+      onReplace(
+        aggregates.map(aggregate => {
+          const yAxis = updateVisualizeAggregate({
+            newAggregate: aggregate,
+            oldAggregate: previous?.name,
+            oldArguments: previous?.arguments,
+          });
+          return visualize.replace({
+            yAxis: supportsConditionalAggregateFilter(aggregate)
               ? applyConditionalFilter(yAxis, filter)
               : yAxis,
-          })
-        );
-      }
+            chartGroup,
+          });
+        })
+      );
     },
-    [filter, onReplace, parsedFunction, visualize]
+    [filter, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        onReplace(
-          visualize.replace({
+    (index: number, value: string) => {
+      onReplace(
+        visualizes.map(v => {
+          const parsed = parseConditionalAggregate(v.yAxis);
+          const args = cloneDeep(parsed?.arguments) ?? [];
+          args[index] = value;
+          return v.replace({
             yAxis: buildConditionalAggregate({
-              name: parsedFunction?.name ?? '',
+              name: parsed?.name ?? '',
               arguments: args,
               filter,
             }),
-          })
-        );
-      }
+          });
+        })
+      );
     },
-    [filter, onReplace, parsedFunction, visualize]
+    [filter, onReplace, visualizes]
   );
 
   const onFilterSearch = useCallback(
     (newFilter: string) => {
-      if (!parsedFunction) {
-        return;
-      }
       onReplace(
-        visualize.replace({
-          yAxis: buildConditionalAggregate({
-            name: parsedFunction.name,
-            arguments: parsedFunction.arguments,
-            filter: newFilter,
-          }),
+        visualizes.map(v => {
+          const parsed = parseConditionalAggregate(v.yAxis);
+          if (!parsed) {
+            return v;
+          }
+          return v.replace({
+            yAxis: buildConditionalAggregate({
+              name: parsed.name,
+              arguments: parsed.arguments,
+              filter: newFilter,
+            }),
+          });
         })
       );
     },
-    [onReplace, parsedFunction, visualize]
+    [onReplace, visualizes]
   );
 
+  const onChangeAggregate = useCallback(
+    (option: SelectOption<SelectKey>) => {
+      if (typeof option.value === 'string') {
+        onChangeAggregates([option.value]);
+      }
+    },
+    [onChangeAggregates]
+  );
+
+  const multiAggregateCharts = hasMultiAggregateCharts(organization);
   const showFilterSearchBar = supportsConditionalAggregateFilter(
     parsedFunction?.name ?? ''
   );
@@ -283,9 +365,21 @@ function ToolbarVisualizeItem({
   return (
     <ToolbarVisualizeDropdown
       dragColumnId={dragColumnId}
-      aggregateOptions={aggregateOptions}
-      fieldOptions={fieldOptions}
+      aggregateSelect={
+        multiAggregateCharts ? (
+          <AggregateMultiSelect
+            formulas={formulas}
+            maxAggregates={maxAggregates}
+            onChange={onChangeAggregates}
+            value={selectedAggregates}
+          />
+        ) : undefined
+      }
+      aggregateOptions={AGGREGATE_OPTIONS}
       onChangeAggregate={onChangeAggregate}
+      fieldOptions={fieldOptions}
+      formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
+      formulas={formulas}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
       deleteLabel={deleteLabel}
@@ -306,6 +400,162 @@ function ToolbarVisualizeItem({
       }
     />
   );
+}
+
+const AGGREGATE_OPTIONS: Array<SelectOption<string>> =
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
+    label: aggregate,
+    value: aggregate,
+    textValue: aggregate,
+  }));
+
+const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
+  aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)
+);
+
+interface AggregateMultiSelectProps {
+  formulas: readonly SavedFormula[];
+  maxAggregates: number;
+  onChange: (aggregates: string[]) => void;
+  value: string[];
+}
+
+function AggregateMultiSelect({
+  formulas,
+  maxAggregates,
+  onChange,
+  value,
+}: AggregateMultiSelectProps) {
+  const selected = new Set(value);
+  const multiSelectValue = SHARED_CHART_AGGREGATES.filter(aggregate =>
+    selected.has(aggregate)
+  );
+  const singleSelectValue = SINGLE_SELECT_AGGREGATES.find(aggregate =>
+    selected.has(aggregate)
+  );
+  const selectedFormula = formulas.find(formula => selected.has(formula.name));
+  const isDefaultSelection =
+    value.length === 1 && value[0] === DEFAULT_VISUALIZATION_AGGREGATE;
+
+  const toOption = (aggregate: string): SelectOption<string> => ({
+    label: aggregate,
+    value: aggregate,
+    textValue: aggregate,
+    trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+  });
+
+  const onChangeRegion = (
+    regionAggregates: readonly string[],
+    options: Array<SelectOption<string>>
+  ) => {
+    // Like the Metrics aggregate picker, picking in one region replaces the
+    // selection made in any other region. The order is fixed so the legend
+    // doesn't depend on the order aggregates were clicked in.
+    const regionSelection = new Set(options.map(option => option.value));
+    onChange(regionAggregates.filter(aggregate => regionSelection.has(aggregate)));
+  };
+
+  return (
+    <AggregateCompositeSelect
+      fullWidth={defined(selectedFormula)}
+      menuHeaderTrailingItems={
+        isDefaultSelection
+          ? undefined
+          : () => <CompositeSelect.ClearButton onClick={() => onChange([])} />
+      }
+      trigger={triggerProps => (
+        <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
+          <TriggerLabel>
+            {selectedFormula
+              ? stripNamePrefix(selectedFormula.name)
+              : (value[0] ?? t('None'))}
+          </TriggerLabel>
+          {value.length > 1 && (
+            <Badge variant="muted" style={{marginLeft: 4, flexShrink: 0, top: 'auto'}}>
+              {`+${value.length - 1}`}
+            </Badge>
+          )}
+        </OverlayTrigger.Button>
+      )}
+    >
+      {[
+        ...SHARED_CHART_AGGREGATE_REGIONS.map(region => {
+          const regionValue = multiSelectValue.filter(aggregate =>
+            region.aggregates.includes(aggregate)
+          );
+          // Picking in another region replaces the selection, so only the
+          // region's own selection counts towards the limit.
+          const isAtLimit = regionValue.length >= maxAggregates;
+          return (
+            <CompositeSelect.Region
+              key={region.key}
+              label={region.label}
+              multiple
+              options={region.aggregates.map(aggregate => {
+                const disabled = isAtLimit && !selected.has(aggregate);
+                return {
+                  ...toOption(aggregate),
+                  disabled,
+                  tooltip: disabled
+                    ? tn(
+                        'You can plot at most %s aggregate',
+                        'You can plot at most %s aggregates',
+                        MAX_VISUALIZES
+                      )
+                    : undefined,
+                };
+              })}
+              value={regionValue}
+              onChange={options => onChangeRegion(region.aggregates, options)}
+            />
+          );
+        }),
+        <CompositeSelect.Region
+          key="other"
+          label={t('Other')}
+          options={SINGLE_SELECT_AGGREGATES.map(toOption)}
+          value={singleSelectValue}
+          onChange={option => onChange([option.value])}
+        />,
+        ...(formulas.length
+          ? [
+              <CompositeSelect.Region
+                key="formulas"
+                label={t('Formulas')}
+                options={formulas.map(formula => ({
+                  label: stripNamePrefix(formula.name),
+                  value: formula.name,
+                  textValue: formula.name,
+                  details: formula.description,
+                  disabled:
+                    buildFormulaYAxis(formula, DEFAULT_VISUALIZATION_FIELD) === null,
+                  trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+                }))}
+                value={selectedFormula?.name}
+                onChange={option => onChange([option.value])}
+              />,
+            ]
+          : []),
+      ]}
+    </AggregateCompositeSelect>
+  );
+}
+
+const AggregateCompositeSelect = styled(CompositeSelect, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  ${p =>
+    p.fullWidth
+      ? 'flex: 1 1; min-width: 0; width: 100%;'
+      : 'width: 100px; flex-shrink: 0;'}
+
+  > button {
+    width: 100%;
+  }
+`;
+
+function isDefaultChart(visualizes: Visualize[]): boolean {
+  return visualizes.length === 1 && isDefaultVisualize(visualizes[0]!);
 }
 
 function isDefaultVisualize(visualize: Visualize): boolean {

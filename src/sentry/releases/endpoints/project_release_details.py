@@ -4,13 +4,13 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.api.serializers.types import ReleaseSerializerResponse
@@ -133,6 +133,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             scope.set_tag("failure_reason", "Release.DoesNotExist")
             scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         serializer = ReleaseSerializer(data=request.data, partial=True)
 
@@ -175,10 +176,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 data={"version": release.version},
                 datetime=release.date_released,
             )
-        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        body: ReleaseSerializerResponse = serialize(
-            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-        )
+        body: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
         return Response(body)
 
     @extend_schema(
@@ -206,6 +204,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         try:
             release.safe_delete()

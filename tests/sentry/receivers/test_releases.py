@@ -4,10 +4,14 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.buffer.base import Buffer
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     PullRequestClosedAction,
@@ -30,6 +34,7 @@ from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.receivers.releases import _capture_pull_request_link
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -40,7 +45,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 class InvalidateReleaseCacheTest(TestCase):
@@ -349,10 +354,9 @@ class ResolvedInCommitTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
         assert captured_contexts == [
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=user.id),
                 organization_id=group.organization.id,
                 project_id=group.project_id,
-                user_id=user.id,
-                actor_type=ActorType.USER,
             )
         ]
 
@@ -431,6 +435,101 @@ class ResolvedInPullRequestTest(TestCase):
             author=author,
         )
 
+    @patch("sentry.receivers.releases.SCMIntegrationInteractionEvent")
+    @receivers_raise_on_send()
+    def test_link_records_lifecycle_outcome(self, mock_lifecycle_event: MagicMock) -> None:
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+
+        self._create_resolving_pull_request(group, repo, author)
+
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.LINK_ISSUE_TO_PR,
+            provider_key="github",
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
+
+    @receivers_raise_on_send()
+    def test_link_race_records_halt(self) -> None:
+        group = self.create_group()
+        pull_request_id = 123
+        GroupLink.objects.create(
+            group=group,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request_id,
+        )
+        event = MagicMock()
+
+        with _capture_pull_request_link(
+            event,
+            group_id=group.id,
+            pull_request_id=pull_request_id,
+        ):
+            MagicMock(side_effect=IntegrityError)()
+
+        lifecycle = event.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_called_once_with(
+            SCMResolutionHaltReason.GROUP_LINK_ALREADY_EXISTS
+        )
+        lifecycle.record_success.assert_not_called()
+
+    @receivers_raise_on_send()
+    def test_non_duplicate_integrity_error_records_failure_and_is_suppressed(self) -> None:
+        group = self.create_group()
+        event = MagicMock()
+        error = IntegrityError()
+
+        with _capture_pull_request_link(
+            event,
+            group_id=group.id,
+            pull_request_id=123,
+        ):
+            MagicMock(side_effect=error)()
+
+        lifecycle = event.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_not_called()
+        lifecycle.record_failure.assert_called_once_with(error)
+        lifecycle.record_success.assert_not_called()
+
+    @receivers_raise_on_send()
+    def test_existing_link_does_not_record_another_attempt(self) -> None:
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=group.organization,
+            external_id="github:1",
+            provider="github",
+        )
+        repo = self.create_repo(
+            project=group.project,
+            provider="integrations:github",
+            integration_id=integration.id,
+        )
+        author = self._create_pull_request_author("newdev", group.organization.id)
+        pull_request = self._create_resolving_pull_request(group, repo, author)
+
+        with patch(
+            "sentry.receivers.releases.SCMIntegrationInteractionEvent"
+        ) as mock_lifecycle_event:
+            pull_request.save()
+
+        mock_lifecycle_event.assert_not_called()
+
     @receivers_raise_on_send()
     def test_matching_external_actor_sets_activity_user(self) -> None:
         group = self.create_group()
@@ -488,10 +587,9 @@ class ResolvedInPullRequestTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
         assert captured_contexts == [
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=user.id),
                 organization_id=group.organization.id,
                 project_id=group.project_id,
-                user_id=user.id,
-                actor_type=ActorType.USER,
             )
         ]
 
@@ -584,7 +682,6 @@ class ProjectHasReleasesReceiverTest(TestCase):
         )
 
 
-@with_feature("organizations:pr-lifecycle-activity")
 class PullRequestLifecycleSignalTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -632,22 +729,6 @@ class PullRequestLifecycleSignalTest(TestCase):
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
         }
-
-    @with_feature({"organizations:pr-lifecycle-activity": False})
-    def test_flag_disabled_still_emits_closed_activity(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.CLOSED)
-
-        assert Activity.objects.filter(
-            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
-        ).exists()
-
-    @with_feature({"organizations:pr-lifecycle-activity": False})
-    def test_flag_disabled_does_not_emit_merged_activity(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.MERGED)
-
-        assert not Activity.objects.filter(
-            group=self.group, type=ActivityType.PULL_REQUEST_MERGED.value
-        ).exists()
 
     def test_open_sibling_pr_counts_as_remaining(self) -> None:
         self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)

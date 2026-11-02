@@ -24,7 +24,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: t('Issue Alert Notifications'),
     description: t(
-      "Notifications from Alert Rules that your team has setup. You'll always receive notifications from Alerts configured to be sent directly to you."
+      'Notifications from Issue Alert rules, including rules set up to notify you directly. Metric alerts sent directly to you are always delivered.'
     ),
     type: 'select',
     options: [

@@ -7,14 +7,10 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  GEN_AI_DATA_COLLECTION_SNIPPET,
-  getJsDataCollectionDocsLink,
-  getDataCollectionStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
+import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -22,7 +18,9 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
+  getSdkImportSpecifier,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
@@ -36,6 +34,7 @@ const INTEGRATION_MIN_VERSIONS: Partial<Record<AgentIntegration, string>> = {
   [AgentIntegration.CLOUDFLARE_AGENTS]: CLOUDFLARE_AGENTS_MIN_VERSION,
   [AgentIntegration.EVE]: '11.0.0',
   [AgentIntegration.MASTRA]: '11.0.0',
+  [AgentIntegration.PI]: '11.6.0',
 };
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
@@ -61,58 +60,25 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
 }
 
 /**
+ * The Sentry SDK package for the selected runtime. The Node runtime keeps the
+ * platform's own package.
+ */
+function getRuntimePackageName(
+  params: DocsParams,
+  packageName: `@sentry/${string}`
+): `@sentry/${string}` {
+  const deploymentTarget = getDeploymentTarget(params);
+  return deploymentTarget === DeploymentTarget.NODE
+    ? packageName
+    : DEPLOYMENT_TARGET_PACKAGE_NAMES[deploymentTarget];
+}
+
+/**
  * The minimum SDK version required for the selected integration. Integrations
  * without a specific requirement use the caller's platform default.
  */
 export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
   return INTEGRATION_MIN_VERSIONS[getAgentIntegration(params)] ?? fallback;
-}
-
-// On Cloudflare the options live in the `defineCloudflareOptions` callback, not in `Sentry.init`
-const CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `export default defineCloudflareOptions((env) => ({
-  // ...
-  dataCollection: {
-    genAI: { inputs: false, outputs: false },
-  },
-}));`;
-
-// Flue on Cloudflare has no `defineCloudflareOptions` file; the blueprint
-// generates a `sentry.ts` that holds the Sentry options.
-const FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `// In the Sentry options of the blueprint-generated sentry.ts
-dataCollection: {
-  genAI: { inputs: false, outputs: false },
-},`;
-
-function getGenAiDataCollectionSnippet(params: DocsParams): string {
-  if (getDeploymentTarget(params) !== DeploymentTarget.CLOUDFLARE) {
-    return GEN_AI_DATA_COLLECTION_SNIPPET;
-  }
-  return getAgentIntegration(params) === AgentIntegration.FLUE
-    ? FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET
-    : CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET;
-}
-
-/**
- * The data collection step for agent monitoring, leading with generative AI
- * content. Returns no step for Eve, which never configures the Sentry SDK.
- */
-export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
-  if (getAgentIntegration(params) === AgentIntegration.EVE) {
-    return [];
-  }
-
-  return [
-    getDataCollectionStep({
-      // GuidedSteps surfaces drop collapsible steps, so this must be a plain step.
-      collapsible: false,
-      // Shared across platforms, so resolve the link from the project's platform.
-      docsLink: getJsDataCollectionDocsLink(params.platformKey),
-      description: t(
-        'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
-      ),
-      code: getGenAiDataCollectionSnippet(params),
-    }),
-  ];
 }
 
 const getCloudflareViteConfigSnippet =
@@ -798,10 +764,11 @@ export function getInstallStep(
     return eveFrameworkOnboarding.install(params);
   }
 
-  const resolvedPackageName =
-    getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
-      ? '@sentry/cloudflare'
-      : packageName;
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.install(params);
+  }
+
+  const resolvedPackageName = getRuntimePackageName(params, packageName);
   const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
@@ -1022,6 +989,10 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
     return eveFrameworkOnboarding.verify(params);
   }
 
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.verify(params);
+  }
+
   // The Agents SDK only produces spans once the wrapped agent runs, so there's
   // no standalone snippet to verify - trigger the agent instead.
   if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
@@ -1206,10 +1177,6 @@ const text = lastMessage.content;`,
   ];
 }
 
-/**
- * The configure steps without the data collection step; the factory appends it
- * once around these, so no branch can miss or repeat it.
- */
 function getAgentConfigureSteps(
   params: DocsParams,
   {
@@ -1236,6 +1203,10 @@ function getAgentConfigureSteps(
     return eveFrameworkOnboarding.configure(params);
   }
 
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.configure(params);
+  }
+
   return getConfigureStep({
     params,
     integration: selected,
@@ -1244,6 +1215,15 @@ function getAgentConfigureSteps(
   });
 }
 
+/**
+ * Integrations whose setup comes from their framework onboarding.
+ */
+const FRAMEWORK_ONBOARDINGS: Partial<Record<AgentIntegration, OnboardingConfig>> = {
+  [AgentIntegration.EVE]: eveFrameworkOnboarding,
+  [AgentIntegration.MASTRA]: mastraFrameworkOnboarding,
+  [AgentIntegration.PI]: piFrameworkOnboarding,
+};
+
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
@@ -1251,11 +1231,17 @@ export const agentMonitoring = ({
   configFileName?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
+  sdkImportSpecifier: params =>
+    // Framework integrations install their own SDK package.
+    FRAMEWORK_ONBOARDINGS[getAgentIntegration(params)]?.sdkImportSpecifier?.(params) ??
+    getSdkImportSpecifier(getRuntimePackageName(params, packageName)),
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
       minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
-      packageName={packageName}
+      // Projects can send events with their platform's SDK or, once they pick
+      // another runtime, with that runtime's SDK.
+      packageName={[packageName, getRuntimePackageName(params, packageName)]}
     />
   ),
   install: params =>
@@ -1263,9 +1249,6 @@ export const agentMonitoring = ({
       packageName,
       minVersion: MIN_REQUIRED_VERSION,
     }),
-  configure: params => [
-    ...getAgentConfigureSteps(params, {packageName, configFileName}),
-    ...getAgentDataCollectionStep(params),
-  ],
+  configure: params => getAgentConfigureSteps(params, {packageName, configFileName}),
   verify: getVerifyStep,
 });

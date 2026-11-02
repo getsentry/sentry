@@ -1,9 +1,12 @@
 from typing import Any, cast
+from unittest import mock
 
 import pytest
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.shim import (
+    SENTRY_EVENT_SERIALIZED_TAGS,
     build_shim_event_data,
     make_compatible,
 )
@@ -214,6 +217,8 @@ class TestBuildShimEventData:
     def test_excludes_attributes_used_elsewhere_in_the_event_from_tags(self) -> None:
         segment_span = build_segment_span(
             attributes={
+                # This is the only attribute which should be kept as a tag, as the rest are used in
+                # other places in the event
                 "dog.name": {"value": "maisey", "type": "string"},
                 # These end up at the top level of the event
                 "sentry.segment.name": {"value": "/dogpark", "type": "string"},
@@ -221,18 +226,22 @@ class TestBuildShimEventData:
                 # These end up in `event["contexts"]`
                 "sentry.profile_id": {"value": "11211231415908", "type": "string"},
                 "browser.name": {"value": "chrome", "type": "string"},
+                "resource.os.name": {"value": "OSX", "type": "string"},
                 # These end up in `event["user"]`
                 "user.id": {"value": "1231908", "type": "string"},
                 "user.geo.city": {"value": "Boston", "type": "string"},
                 # These end up in `event["sdk"]`
                 "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
                 "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
-                # These end up in `event["request"]`
+                # These end up in various parts of `event["request"]`
+                "url.domain": {"value": "dogs.are.great", "type": "string"},
                 "url.query": {"value": "dogs=great", "type": "string"},
                 "http.request.body.data": {
                     "value": '{"so": "much", "fur": "everywhere"}',
                     "type": "string",
                 },
+                "http.request.header.content-type": {"value": "application/json", "type": "string"},
+                "user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"},
             }
         )
 
@@ -402,6 +411,128 @@ class TestBuildShimEventData:
         assert event["request"]["url"] == "/dogpark"
 
     @pytest.mark.parametrize(
+        ("additional_server_attributes", "expected_url"),
+        (
+            (  # HTTP with default port
+                {
+                    "url.scheme": {"value": "http", "type": "string"},
+                    "server.port": {"value": 80, "type": "integer"},
+                },
+                "http://dogs.are.great/dogpark",
+            ),
+            (  # HTTP with non-default port
+                {
+                    "url.scheme": {"value": "http", "type": "string"},
+                    "server.port": {"value": 8080, "type": "integer"},
+                },
+                "http://dogs.are.great:8080/dogpark",
+            ),
+            (  # HTTPS with default port
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 443, "type": "integer"},
+                },
+                "https://dogs.are.great/dogpark",
+            ),
+            (  # HTTPS with non-default port
+                {
+                    "url.scheme": {"value": "https", "type": "string"},
+                    "server.port": {"value": 8443, "type": "integer"},
+                },
+                "https://dogs.are.great:8443/dogpark",
+            ),
+            (  # IPV6 without brackets
+                {
+                    "server.address": {"value": "::1", "type": "string"},
+                },
+                "http://[::1]/dogpark",
+            ),
+            (  # IPV6 with brackets
+                {
+                    "server.address": {"value": "[::1]", "type": "string"},
+                },
+                "http://[::1]/dogpark",
+            ),
+            (  # IPV6 with port
+                {
+                    "server.address": {"value": "::1", "type": "string"},
+                    "server.port": {"value": 8080, "type": "integer"},
+                },
+                "http://[::1]:8080/dogpark",
+            ),
+            (  # No scheme or port
+                {},
+                "http://dogs.are.great/dogpark",
+            ),
+            (  # No host
+                {
+                    "server.address": {"value": "", "type": "string"},
+                },
+                "/dogpark",
+            ),
+        ),
+        ids=repr,
+    )
+    def test_reconstructs_full_url(
+        self, additional_server_attributes: Attributes, expected_url: str
+    ) -> None:
+        # OTel spans
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "server.address": {"value": "dogs.are.great", "type": "string"},
+                **additional_server_attributes,
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == expected_url
+
+    def test_reconstructs_request_headers(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                # Header with dedicated attribute name
+                "user_agent.original": {"value": "Mozilla/5.0 (Dogs)", "type": "string"},
+                # Same header, keyed using the catch-all header attribute convention (should get
+                # dropped as a duplicate)
+                "http.request.header.user-agent": {
+                    "value": ["Mozilla/5.0 (Dogs)"],
+                    "type": "array",
+                },
+                # Single-element array value (should get pulled out of the array)
+                "http.request.header.referer": {
+                    "value": ["https://dogs.are.great/"],
+                    "type": "array",
+                },
+                # Multiple-element array value (should get joined into a single string)
+                "http.request.header.accept-encoding": {
+                    "value": ["gzip", "br"],
+                    "type": "array",
+                },
+                # String value (should be used as is)
+                "http.request.header.content-type": {
+                    "value": "application/json",
+                    "type": "string",
+                },
+                # Empty value (should be ignored)
+                "http.request.header.x-empty": {
+                    "value": [],
+                    "type": "array",
+                },
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["headers"] == [
+            ["User-Agent", "Mozilla/5.0 (Dogs)"],
+            ["Referer", "https://dogs.are.great/"],
+            ["Accept-Encoding", "gzip, br"],
+            ["Content-Type", "application/json"],
+        ]
+
+    @pytest.mark.parametrize(
         "body",
         (
             "dogs are great!",  # Not valid JSON
@@ -428,6 +559,80 @@ class TestBuildShimEventData:
 
         # Invalid request body was dropped, but the rest of the request data made it through
         assert event["request"] == {"url": "/dogpark", "method": "GET"}
+
+    def test_reinflates_serialized_values(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: {
+                    "value": '{"num_dogs": 2, "co_best_dogs": ["maisey", "charlie"]}',
+                    "type": "string",
+                },
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_BREADCRUMBS: {
+                    "value": '{"values": [{"type": "default", "message": "dogs are great!"}]}',
+                    "type": "string",
+                },
+                ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_CONTEXTS: {
+                    "value": (
+                        "{"
+                        + '"browser": {"name": "Chrome", "version": "120", "type": "browser"}, '
+                        + '"response": {"status_code": 200, "type": "response"}'
+                        + "}"
+                    ),
+                    "type": "string",
+                },
+                SENTRY_EVENT_SERIALIZED_TAGS: {  # Not yet in sentry-conventions
+                    "value": '{"dog.name": "charlie", "dog.type": "goofy"}',
+                    "type": "string",
+                },
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+        contexts = event["contexts"]
+
+        assert event["extra"] == {"num_dogs": 2, "co_best_dogs": ["maisey", "charlie"]}
+        assert event["breadcrumbs"] == {
+            "values": [{"type": "default", "message": "dogs are great!"}]
+        }
+        assert contexts["browser"] == {"name": "Chrome", "version": "120", "type": "browser"}
+        assert contexts["response"] == {"status_code": 200, "type": "response"}
+        # Context types the serialized value doesn't include are still rederived from attributes
+        assert contexts["profile"] == {
+            "profile_id": "dbae2b82559649a1a34a2878134a007b",
+            "type": "profile",
+        }
+        assert contexts["trace"]["trace_id"] == segment_span["trace_id"]
+
+    def test_handles_malformed_serialized_values(self) -> None:
+        # Unlike a request body, which legitimately isn't always JSON, these are written by Relay
+        # and should always parse - so failing to is worth reporting rather than skipping quietly.
+        segment_span = build_segment_span(
+            attributes={
+                # Not valid JSON
+                "sentry.event.serialized_extra": {"value": "adopt don't shop", "type": "string"},
+                # This should parse just fine
+                "sentry.event.serialized_breadcrumbs": {
+                    "value": '{"values": [{"type": "default", "message": "dogs are great!"}]}',
+                    "type": "string",
+                },
+            }
+        )
+
+        with mock.patch(
+            "sentry.spans.consumers.process_segments.shim.logger.exception"
+        ) as mock_logger_exception:
+            event = build_shim_event_data(segment_span, [segment_span])
+
+            # The unparseable `extra` value was skipped, but the `breadcrumbs` value still came
+            # through
+            assert "extra" not in event
+            assert event["breadcrumbs"] == {
+                "values": [{"type": "default", "message": "dogs are great!"}]
+            }
+            mock_logger_exception.assert_called_with(
+                "Failed to parse serialized 'extra' attribute for shim transaction event",
+                extra={"span_id": segment_span["span_id"]},
+            )
 
     def test_adds_top_level_fields_to_spans(self) -> None:
         # In the transaction event protocol these lived at the top level of each span rather than

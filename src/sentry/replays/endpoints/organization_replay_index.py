@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import TypedDict, cast
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -57,6 +58,9 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
             return Response({"data": []}, status=200)
+
+        # Replays can't occur in the future, and far-future ends overflow when the query pads them.
+        filter_params["end"] = min(filter_params["end"], timezone.now())
 
         query_params = self.get_query_params_with_project_slug_precedence(request)
 

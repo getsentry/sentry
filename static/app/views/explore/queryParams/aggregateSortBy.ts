@@ -1,17 +1,14 @@
-import type {Location} from 'history';
-
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
-export function getAggregateSortBysFromLocation(
-  location: Location,
-  key: string,
+export function getAggregateSortBys(
+  rawSortBys: readonly string[],
   aggregateFields: AggregateField[]
 ): Sort[] | null {
-  const sortBys = decodeSorts(location.query?.[key]);
+  const sortBys = decodeSorts([...rawSortBys]);
 
   if (sortBys.length > 0) {
     if (sortBys.every(sort => validateAggregateSort(sort, aggregateFields))) {

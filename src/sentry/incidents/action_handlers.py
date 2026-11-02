@@ -1,25 +1,18 @@
 from __future__ import annotations
 
-import abc
 import logging
 from typing import Any
-from urllib.parse import urlencode
 
 import orjson
-import sentry_sdk
 from django.conf import settings
-from django.urls import reverse
 
-from sentry import analytics, features
-from sentry.analytics.events.alert_sent import AlertSentEvent
+from sentry import features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
-    AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -27,7 +20,6 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     OpenPeriodContext,
 )
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics import format_mri_field, is_mri_field
@@ -41,89 +33,8 @@ from sentry.utils.email import MessageBuilder
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 EMAIL_STATUS_DISPLAY = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-
-
-class ActionHandler(metaclass=abc.ABCMeta):
-    @property
-    @abc.abstractmethod
-    def provider(self) -> str:
-        raise NotImplementedError
-
-    def record_alert_sent_analytics(
-        self,
-        organization_id: int,
-        project_id: int,
-        alert_id: int,
-        external_id: int | str | None = None,
-        notification_uuid: str | None = None,
-    ) -> None:
-        try:
-            analytics.record(
-                AlertSentEvent(
-                    organization_id=organization_id,
-                    project_id=project_id,
-                    provider=self.provider,
-                    alert_id=alert_id,
-                    alert_type="metric_alert",
-                    external_id=str(external_id) if external_id is not None else "",
-                    notification_uuid=notification_uuid or "",
-                )
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
-
-class DefaultActionHandler(ActionHandler):
-    pass
-
-
-@AlertRuleTriggerAction.register_type(
-    "email",
-    AlertRuleTriggerAction.Type.EMAIL,
-    [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
-)
-class EmailActionHandler(ActionHandler):
-    @property
-    def provider(self) -> str:
-        return "email"
-
-
-@AlertRuleTriggerAction.register_type(
-    IntegrationProviderSlug.PAGERDUTY.value,
-    AlertRuleTriggerAction.Type.PAGERDUTY,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider=IntegrationProviderSlug.PAGERDUTY.value,
-)
-class PagerDutyActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return IntegrationProviderSlug.PAGERDUTY.value
-
-
-@AlertRuleTriggerAction.register_type(
-    "opsgenie",
-    AlertRuleTriggerAction.Type.OPSGENIE,
-    [AlertRuleTriggerAction.TargetType.SPECIFIC],
-    integration_provider="opsgenie",
-)
-class OpsgenieActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "opsgenie"
-
-
-@AlertRuleTriggerAction.register_type(
-    "sentry_app",
-    AlertRuleTriggerAction.Type.SENTRY_APP,
-    [AlertRuleTriggerAction.TargetType.SENTRY_APP],
-)
-class SentryAppActionHandler(DefaultActionHandler):
-    @property
-    def provider(self) -> str:
-        return "sentry_app"
 
 
 def generate_incident_trigger_email_context(
@@ -140,6 +51,10 @@ def generate_incident_trigger_email_context(
 ) -> dict[str, Any]:
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
+    group = metric_issue_context.group
+    if group is None:
+        raise ValueError("Metric alert emails require a group")
+
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = (
@@ -149,6 +64,7 @@ def generate_incident_trigger_email_context(
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
+        "openPeriod": str(metric_issue_context.open_period_identifier),
     }
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
@@ -203,32 +119,7 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    # lookup the incident_id from the open_period_identifier
-    try:
-        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
-            group_open_period_id=metric_issue_context.open_period_identifier
-        )
-        incident_identifier = incident_group_open_period.incident_identifier
-    except IncidentGroupOpenPeriod.DoesNotExist:
-        # the corresponding metric detector was not dual written
-        incident_identifier = get_fake_id_from_object_id(
-            metric_issue_context.open_period_identifier
-        )
-
-    alert_link = organization.absolute_url(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": organization.slug,
-                "incident_id": incident_identifier,
-            },
-        ),
-        query=urlencode(alert_link_params),
-    )
-    # We don't have user muting for workflows in the new workflow engine system
-    # so we don't need to show the snooze alert url
-    snooze_alert_url = None
-    snooze_alert = False
+    alert_link = group.get_absolute_url(params=alert_link_params)
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
@@ -251,8 +142,6 @@ def generate_incident_trigger_email_context(
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
-        "snooze_alert": snooze_alert,
-        "snooze_alert_url": snooze_alert_url,
     }
 
 

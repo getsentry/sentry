@@ -135,6 +135,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert obj["id"] == obj["span_id"]
         assert meta["dataset"] == "spans"
 
+    def test_high_accuracy_flex_time_order_by_timestamp(self) -> None:
+        older = self.create_span({"description": "older"}, start_ts=self.ten_mins_ago)
+        newer = self.create_span({"description": "newer"}, start_ts=self.nine_mins_ago)
+        self.store_spans([older, newer])
+
+        response = self.do_request(
+            {
+                "field": ["id", "timestamp", "span.description"],
+                "query": "",
+                "orderby": ["-timestamp", "-id"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [row["span.description"] for row in response.data["data"]] == ["newer", "older"]
+
     def test_sentry_tags_vs_tags(self) -> None:
         self.store_spans(
             [
@@ -7827,3 +7846,100 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 400, response.content
         assert "Unknown function formula.altisaur" in response.data["detail"]
+
+    def test_boolean_search_term_by_itself(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "OR",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    def test_single_term_wrapped_in_brackets(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "(span.description:foo)",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "span.status": "success",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_chained_or_statements(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+            for _ in range(50)
+        ]
+        traces = [f"trace:{span['trace_id']}" for span in spans]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": f"({' OR '.join(traces)})",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Maximum Number Of Boolean Conditions" in response.data["detail"].title()
+
+    def test_has_filter_on_span_id(self) -> None:
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            )
+        ]
+        self.store_spans(spans)
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "has:span_id",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["description"] == "foo"

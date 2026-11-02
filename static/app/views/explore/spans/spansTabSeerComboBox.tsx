@@ -22,6 +22,7 @@ import {
   resolveSeerProjectSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -36,6 +37,7 @@ export function SpansTabSeerComboBox() {
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const currFields = useQueryParamsFields();
+  const [caseInsensitive] = useCaseInsensitivity();
   const organization = useOrganization();
   const {projects} = useProjects();
   const analyticsArea = useAnalyticsArea();
@@ -105,6 +107,7 @@ export function SpansTabSeerComboBox() {
         mode: seerQuery.mode,
         interval: seerQuery.interval,
         field: fields,
+        caseInsensitive,
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
 
@@ -134,6 +137,7 @@ export function SpansTabSeerComboBox() {
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
+      caseInsensitive,
       currFields,
       navigate,
       organization,

@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconClose} from '@sentry/icons/close';
 import {IconGithub} from '@sentry/icons/github';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
@@ -35,10 +36,11 @@ const SOURCE_BADGE_SIZE = 14;
 
 /**
  * - `processed`: the iteration it drove has finished and its changes are pushed.
+ * - `error`: the iteration or its push failed.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
  */
-type FeedbackStatus = 'processed' | 'in_progress' | 'queued';
+type FeedbackStatus = 'processed' | 'error' | 'in_progress' | 'queued';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -101,6 +103,7 @@ type ParsedFeedback =
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
   status: FeedbackStatus;
+  errorCode?: string | null;
 };
 
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
@@ -175,7 +178,8 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
  * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing); everything earlier is pushed.
+ * still running (when the section is processing). Only the latest iteration can
+ * use the run's current push error; earlier feedback keeps its processed state.
  * Feedback submitted mid-run that hasn't been folded into a block yet is
  * appended as `queued`. The list is returned newest-first.
  */
@@ -194,6 +198,17 @@ export function usePrIterationFeedback(
       return [];
     }
 
+    const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
+    const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
+    const errorCode = pushErrors.find(
+      repo => repo.pr_creation_error_code === 'branch_moved'
+    )?.pr_creation_error_code;
+    const inProgress =
+      section.status === 'processing' ||
+      autofix.runState?.status === 'processing' ||
+      autofix.runState?.status === 'awaiting_user_input' ||
+      repoStates.some(repo => repo.pr_creation_status === 'creating');
+
     return section.blocks.flatMap((block, blockIndex) => {
       if (!isPrIterationBlock(block)) {
         return [];
@@ -207,18 +222,23 @@ export function usePrIterationFeedback(
         return [];
       }
 
-      const status: FeedbackStatus =
-        section.status === 'processing' && blockIndex >= currentStepStart
-          ? 'in_progress'
-          : 'processed';
+      let status: FeedbackStatus = 'processed';
+      if (blockIndex >= currentStepStart) {
+        if (inProgress) {
+          status = 'in_progress';
+        } else if (section.status === 'error' || pushErrors.length > 0) {
+          status = 'error';
+        }
+      }
 
       return parseFeedback(value).map(parsed => ({
         ...parsed,
         iterationIndex: Number(iterationIndex),
         status,
+        errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, currentStepStart, enabled]);
+  }, [section.blocks, section.status, autofix.runState, currentStepStart, enabled]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -455,7 +475,7 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
       </Cell>
       {/* Status icon sits at the far right, after the timestamp. */}
       <Cell>
-        <FeedbackStatusIcon status={item.status} />
+        <FeedbackStatusIcon status={item.status} errorCode={item.errorCode} />
       </Cell>
     </Grid>
   );
@@ -772,10 +792,37 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
   );
 }
 
-// Source-agnostic: the same three status glyphs regardless of where the
-// iteration came from.
-function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
+// Source-agnostic: the same status glyphs regardless of where the iteration came from.
+function FeedbackStatusIcon({
+  status,
+  errorCode,
+}: {
+  status: FeedbackStatus;
+  errorCode?: string | null;
+}) {
   switch (status) {
+    case 'error':
+      return (
+        <Tooltip
+          title={
+            errorCode === 'branch_moved'
+              ? t(
+                  'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
+                )
+              : t('Changes from this feedback could not be pushed')
+          }
+          skipWrapper
+        >
+          <Flex
+            align="center"
+            justify="center"
+            role="img"
+            aria-label={t('Feedback failed')}
+          >
+            <IconClose variant="danger" />
+          </Flex>
+        </Tooltip>
+      );
     case 'processed':
       return (
         <Tooltip title={t('Changes from this feedback have been pushed')} skipWrapper>

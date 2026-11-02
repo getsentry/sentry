@@ -1,6 +1,11 @@
 import datetime
+from unittest.mock import patch
+
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.read_metrics import ActivityReadResult
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -11,34 +16,128 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
 pytestmark = [requires_snuba]
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNoteTest(APITestCase):
+    @with_feature({"projects:issue-action-log-activity": False})
     def test_simple(self) -> None:
         group = self.group
-
-        activity = Activity.objects.create(
+        activity = self.create_group_activity(
             group=group,
-            project=group.project,
             type=ActivityType.NOTE.value,
             user_id=self.user.id,
             data={"text": "hello world"},
         )
-
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
         assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": True})
+    def test_simple_with_action_log_activity(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": False})
+    def test_organization_scoped(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": True})
+    def test_organization_scoped_with_action_log_activity(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read:
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
@@ -63,6 +162,13 @@ class GroupNoteTest(APITestCase):
             user_id=self.user.id,
             data={"text": "Yeah we should probably look into this"},
             datetime=now - datetime.timedelta(days=66),
+        )
+        self.create_group_action_log_entry(
+            group=group1,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note1.id, "text": note1.data["text"]},
+            idempotency_key=activity_action_idempotency_key(note1),
+            source="api",
         )
 
         project2 = self.create_project()
@@ -101,55 +207,149 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["data"]["text"] == note2.data["text"]
         assert response.data[1]["id"] == str(note1.id)
         assert response.data[1]["data"]["text"] == note1.data["text"]
+        assert response.data[1]["source"] == "api"
         assert response.data[2]["id"] == str(note4.id)
         assert response.data[2]["data"]["text"] == note4.data["text"]
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @action_log_activity_enabled()
-    def test_reads_from_gale(self) -> None:
-        group = self.group
+        first_page = self.client.get(url, {"per_page": 2}, format="json")
+        next_url = next(
+            href
+            for href, attrs in parse_link_header(first_page["Link"]).items()
+            if attrs["rel"] == "next"
+        )
+        second_page = self.client.get(next_url, format="json")
+        assert [row["id"] for row in second_page.data] == [str(note4.id), str(note3.id)]
+        previous_url = next(
+            href
+            for href, attrs in parse_link_header(second_page["Link"]).items()
+            if attrs["rel"] == "previous"
+        )
+        assert self.client.get(previous_url, format="json").data == first_page.data
 
+    def test_normalizes_legacy_mcp_source_in_comments_and_activity(self) -> None:
+        self.login_as(user=self.user)
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "hello world"}
+        )
         entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id},
+            idempotency_key=activity_action_idempotency_key(note),
+            source="mcp:claude-desktop",
+        )
+
+        # Comment reads enrich from the log even when activity reads are disabled.
+        with self.feature({"projects:issue-action-log-activity": False}):
+            comments = self.client.get(f"/api/0/issues/{self.group.id}/comments/", format="json")
+        with action_log_activity_enabled():
+            activity = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/activities/",
+                format="json",
+            )
+
+        assert comments.status_code == activity.status_code == 200
+        assert comments.data[0]["source"] == "mcp:claude"
+        activity_note = next(item for item in activity.data["activity"] if item["type"] == "note")
+        assert activity_note == comments.data[0]
+        entry.refresh_from_db()
+        assert entry.source == "mcp:claude-desktop"
+
+    def test_reads_activity_with_gale_source(self) -> None:
+        group = self.group
+        note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "current text", "external_id": "remote-comment", "mentions": []},
+        )
+        app = self.create_sentry_app(name="Comment Author")
+        app_note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=app.proxy_user_id,
+            data={"text": "app comment"},
+        )
+        self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 123, "text": "hello world"},
+            data={"comment_id": note.id, "text": "stale text"},
+            idempotency_key=activity_action_idempotency_key(note),
+            source="mcp:claude-code",
+        )
+        new_note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "new comment"}
+        )
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": new_note.id},
+            idempotency_key=activity_action_idempotency_key(new_note),
+            source="api",
+        )
+        # The same key in another group must not supply this note's source.
+        self.create_group_action_log_entry(
+            group=self.create_group(),
+            type=GroupActionType.COMMENT,
+            data={"comment_id": app_note.id},
+            idempotency_key=activity_action_idempotency_key(app_note),
+            source="api",
         )
 
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
+        with action_log_activity_enabled():
+            response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(entry.id)
-        assert response.data[0]["commentId"] == "123"
-        assert response.data[0]["type"] == "note"
-        assert response.data[0]["user"]["id"] == str(self.user.id)
-        assert response.data[0]["data"]["text"] == "hello world"
-        assert response.data[0]["data"]["comment_id"] == 123
+        assert len(response.data) == 3
+        rows = {row["commentId"]: row for row in response.data}
+        result = rows[str(note.id)]
+        assert result["id"] == str(note.id)
+        assert result["type"] == "note"
+        assert result["user"]["id"] == str(self.user.id)
+        assert result["dateCreated"] == note.datetime
+        assert result["data"] == {
+            "text": "current text",
+            "external_id": "remote-comment",
+            "comment_id": note.id,
+        }
+        assert result["source"] == "mcp:claude-code"
+        assert rows[str(new_note.id)]["id"] == str(new_note.id)
+        assert rows[str(new_note.id)]["data"]["text"] == "new comment"
+        assert rows[str(new_note.id)]["source"] == "api"
+        assert rows[str(app_note.id)]["sentry_app"]["id"] == str(app.id)
+        assert rows[str(app_note.id)]["source"] is None
 
-    @action_log_activity_enabled()
-    def test_reads_from_gale_with_edits(self) -> None:
+    def test_reads_current_state_despite_stale_gale(self) -> None:
         group = self.group
-
-        unedited = self.create_group_action_log_entry(
+        edited_note = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            data={"text": "latest edit"},
+        )
+        deleted_note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "deleted comment"}
+        )
+        self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
-            actor_type=GroupActorType.USER,
-            actor_id=self.user.id,
-            data={"comment_id": 1, "text": "unedited comment"},
+            data={"comment_id": deleted_note.id, "text": "deleted comment"},
+            idempotency_key=activity_action_idempotency_key(deleted_note),
         )
+        deleted_note.delete()
         edited = self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 2, "text": "stale text"},
+            data={"comment_id": edited_note.id, "text": "stale text"},
+            idempotency_key=activity_action_idempotency_key(edited_note),
         )
-        # two edits of the same comment; only the latest text should win
         self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT_EDIT,
@@ -157,37 +357,94 @@ class GroupNoteTest(APITestCase):
             actor_id=self.user.id,
             data={"comment_id": edited.id, "text": "first edit"},
         )
-        self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.COMMENT_EDIT,
-            actor_type=GroupActorType.USER,
-            actor_id=self.user.id,
-            data={"comment_id": edited.id, "text": "latest edit"},
+        self.create_group_activity(group=group, type=ActivityType.SET_RESOLVED.value)
+        self.create_group_activity(
+            group=self.create_group(), type=ActivityType.NOTE.value, data={"text": "other issue"}
         )
 
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.get(url, format="json")
+        with action_log_activity_enabled():
+            response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-        # edits collapse into the original comment, so there is one row per comment
-        assert len(response.data) == 2
-        unedited_id = str(unedited.id)
-        edited_id = str(edited.id)
-        rows_by_id = {row["id"]: row for row in response.data}
-        assert set(rows_by_id) == {unedited_id, edited_id}
+        assert len(response.data) == 1
+        assert response.data[0]["commentId"] == str(edited_note.id)
+        assert response.data[0]["data"]["text"] == "latest edit"
 
-        # the edited comment keeps type "note" and shows the latest edit text
-        assert rows_by_id[edited_id]["type"] == "note"
-        assert rows_by_id[edited_id]["commentId"] == "2"
-        assert rows_by_id[edited_id]["data"]["text"] == "latest edit"
-        # the unedited comment is unaffected
-        assert rows_by_id[unedited_id]["data"]["text"] == "unedited comment"
-        assert rows_by_id[unedited_id]["commentId"] == "1"
+    def test_pagination_with_tied_timestamps(self) -> None:
+        now = datetime.datetime.now(datetime.UTC)
+        notes = [
+            self.create_group_activity(
+                group=self.group,
+                type=ActivityType.NOTE.value,
+                data={"text": "comment"},
+                datetime=timestamp,
+            )
+            for timestamp in (now, now, now, now - datetime.timedelta(days=1))
+        ]
+        self.login_as(user=self.user)
+        connection = connections[router.db_for_read(GroupActionLogEntry)]
+        with CaptureQueriesContext(connection) as queries:
+            first_page = self.client.get(
+                f"/api/0/issues/{self.group.id}/comments/", {"per_page": 2}, format="json"
+            )
+        assert first_page.status_code == 200
+        first_ids = {row["id"] for row in first_page.data}
+        assert len(first_ids) == 2
+        log_queries = [q["sql"] for q in queries if 'FROM "sentry_groupactionlogentry"' in q["sql"]]
+        assert len(log_queries) == 1
+        assert all(f"'activity:{note_id}'" in log_queries[0] for note_id in first_ids)
+        remaining_ids = {str(note.id) for note in notes} - first_ids
+        assert all(f"'activity:{note_id}'" not in log_queries[0] for note_id in remaining_ids)
+
+        next_url = next(
+            href
+            for href, attrs in parse_link_header(first_page["Link"]).items()
+            if attrs["rel"] == "next"
+        )
+        second_page = self.client.get(next_url, format="json")
+        assert second_page.status_code == 200
+        assert {row["id"] for row in second_page.data} == remaining_ids
+
+    def test_empty_page_skips_gale_lookup(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+        assert response.status_code == 200
+        assert response.data == []
+        assert not [q for q in queries if 'FROM "sentry_groupactionlogentry"' in q["sql"]]
 
 
 class GroupNoteCreateTest(APITestCase):
+    def test_outbox_failure_rolls_back_comment_and_subscription(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+        initial_count = group.num_comments
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            patch("sentry.models.activity.in_test_environment", return_value=False),
+            patch(
+                "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                side_effect=RuntimeError("enqueue failed"),
+            ),
+            patch("sentry.issues.comments._sync_comment") as sync,
+            patch("sentry.issues.comments.comment_created.send_robust") as webhook,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            response = self.client.post(
+                f"/api/0/issues/{group.id}/comments/", data={"text": "rollback"}, format="json"
+            )
+            assert response.status_code == 500
+        assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()
+        assert not GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+        group.refresh_from_db()
+        assert group.num_comments == initial_count
+        sync.assert_not_called()
+        webhook.assert_not_called()
+
     def test_simple(self) -> None:
         group = self.group
 
@@ -203,6 +460,7 @@ class GroupNoteCreateTest(APITestCase):
 
         activity = Activity.objects.get(id=response.data["id"])
         assert response.data["commentId"] == str(activity.id)
+        assert response.data["source"] == "web"
         assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
@@ -210,8 +468,24 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
 
-    @action_log_activity_enabled()
-    def test_returns_gale(self) -> None:
+        # API duplicate protection expires after one hour.
+        activity.update(datetime=activity.datetime - datetime.timedelta(hours=2))
+        response = self.client.post(url, format="json", data={"text": "hello world"})
+        assert response.status_code == 201, response.content
+        assert response.data["commentId"] != str(activity.id)
+
+    def test_returns_activity_with_gale_source(self) -> None:
+        with action_log_activity_enabled():
+            self._assert_returns_activity_with_gale_source()
+
+    def test_returns_activity_with_gale_source_without_gal_serving(self) -> None:
+        with (
+            action_log_activity_enabled(),
+            self.feature({"projects:issue-action-log-activity": False}),
+        ):
+            self._assert_returns_activity_with_gale_source()
+
+    def _assert_returns_activity_with_gale_source(self) -> None:
         group = self.group
 
         self.login_as(user=self.user)
@@ -233,13 +507,31 @@ class GroupNoteCreateTest(APITestCase):
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
 
-        assert response.data["id"] == str(entry.id)
+        assert response.data["id"] == str(activity.id)
         assert response.data["commentId"] == str(activity.id)
         assert response.data["type"] == "note"
         assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id
+
+        assert entry.data == {"comment_id": activity.id, "text": None, "mentions": None}
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_returns_null_source_without_action_log_entry(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            f"/api/0/issues/{self.group.id}/comments/",
+            data={"text": "hello world"},
+            format="json",
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="claude-code",
+        )
+
+        assert response.status_code == 201, response.content
+        assert response.data["source"] is None
+        assert response.data["id"] == response.data["commentId"]
+        assert response.data["data"]["comment_id"] == int(response.data["commentId"])
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

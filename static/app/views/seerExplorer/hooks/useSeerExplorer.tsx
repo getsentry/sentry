@@ -114,29 +114,21 @@ export const useSeerExplorer = () => {
   const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
   const timezone = useTimezone();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
-    'seer-explorer.override.ctx-eng',
-    true
-  );
-  type CodeModeValue = 'off' | 'on' | 'only';
+  type CodeModeValue = 'off' | 'only';
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<CodeModeValue>(
       'seer-explorer.override.code-mode',
       (storedValue?: unknown): CodeModeValue => {
-        if (storedValue === 'off' || storedValue === 'on' || storedValue === 'only') {
+        if (storedValue === 'off' || storedValue === 'only') {
           return storedValue;
         }
-        // Migrate legacy boolean values
-        if (storedValue === true) {
-          return 'on';
-        }
+        // Migrate the legacy boolean
         if (storedValue === false) {
           return 'off';
         }
-        // Matches the server's own default for a flagged org. This value is sent on every
-        // request, so it is not really an override until someone picks one — leaving it at
-        // 'on' meant the server's default branch could never be reached from the UI, and
-        // flagged orgs kept getting Code Mode alongside the classic tools.
+        // Everything else, including the retired 'on' and its legacy `true`, gets the server's own
+        // default for a flagged org. This value is sent on every request, so it is not really an
+        // override until someone picks one.
         return 'only';
       }
     );
@@ -263,8 +255,7 @@ export const useSeerExplorer = () => {
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
-      overrideCodeModeEnable: 'off' | 'on' | 'only';
-      overrideCtxEngEnable: boolean;
+      overrideCodeModeEnable: 'off' | 'only';
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
       /** The pending prompt this send took from chat state, put back if it fails. */
@@ -294,7 +285,6 @@ export const useSeerExplorer = () => {
           page_name: params.pageName,
           page_location: params.pageLocation,
           sent_at: params.sentAt,
-          override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
           chat_prompt: params.chatPrompt?.text,
@@ -395,63 +385,6 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {mutate: createPRMutate} = useMutation<
-    SeerExplorerUpdateResponse,
-    RequestError,
-    {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
-  >({
-    mutationFn: async params => {
-      setHasSentInterrupt(false);
-
-      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          prev =>
-            prev?.session
-              ? {
-                  ...prev,
-                  session: {
-                    ...prev.session,
-                    failure_reason: null,
-                    status: 'processing',
-                    updated_at: new Date().toISOString(),
-                  },
-                }
-              : prev
-        );
-      }
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'create_pr',
-            repo_name: params.repoName,
-          },
-        },
-      });
-    },
-    onSuccess: (_, params) => {
-      // invalidate the query so fresh data is fetched
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
-    },
-    onError: (e, params) => {
-      addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to create PR'
-      );
-      // Clear optimistic processing status
-      queryClient.invalidateQueries({
-        queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-      });
-    },
-  });
-
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
@@ -511,7 +444,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null) => {
       if (newRunId === runId) {
         return;
       }
@@ -527,19 +460,14 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
-
-      onSuccess?.();
     },
     [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(
-    ({onSuccess}: {onSuccess?: () => void} = {}) => {
-      switchToRun(null, {onSuccess});
-    },
-    [switchToRun]
-  );
+  const startNewSession = useCallback(() => {
+    switchToRun(null);
+  }, [switchToRun]);
 
   const sendMessage = useCallback(
     (
@@ -573,7 +501,7 @@ export const useSeerExplorer = () => {
 
       const {snapshot, screenshot} = capturePageContext({
         route: pageName,
-        allowStructured: overrideCtxEngEnable,
+        allowStructured: true,
       });
 
       trackAnalytics('seer.explorer.message_sent', {
@@ -638,7 +566,6 @@ export const useSeerExplorer = () => {
         ],
         screenshot,
         overrideBashModeEnabled,
-        overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
     },
@@ -651,7 +578,6 @@ export const useSeerExplorer = () => {
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
-      overrideCtxEngEnable,
       overrideCodeModeEnable,
       pendingChatPrompt,
       sendMessageMutate,
@@ -682,16 +608,6 @@ export const useSeerExplorer = () => {
       );
     },
     [orgSlug, runId, userInputMutate]
-  );
-
-  const createPR = useCallback(
-    (repoName?: string) => {
-      if (!orgSlug || !runId) {
-        return;
-      }
-      createPRMutate({orgSlug, runId, repoName});
-    },
-    [orgSlug, runId, createPRMutate]
   );
 
   // Detect PR creation errors and show error messages
@@ -839,11 +755,8 @@ export const useSeerExplorer = () => {
     interruptRun,
     hasSentInterrupt,
     respondToUserInput,
-    createPR,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    overrideCtxEngEnable,
-    setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   };

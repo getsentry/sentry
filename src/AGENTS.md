@@ -66,6 +66,36 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
+### Request Principals
+
+`request.user` is whoever is calling: a user, an agent acting for one, a service account, or anonymous. Don't assume a `User`, and don't read `request.user.id`. Use `sentry.auth.principal`:
+
+- `acting_user_id(request.user)`: the user behind the call (an agent's is the user it acts for), or None. Handle None.
+- `has_user(request.user)`: whether there is one; narrows to `User | RpcUser`.
+- `acting_user(request.user)`: the same user as an object, or None; for APIs that take a user (e.g. `as_user=`).
+- `is_acting_user(request.user, obj.user_id)`: "is this mine?"; False when there is no user.
+- `owned_by_acting_user(request.user)`: a `Q` for "mine" (`filter`) or "not mine" (`exclude`); matches nothing when there is no user.
+- `request.access.role`: the caller's org role, or None without a membership. Don't look up its `OrganizationMember` by user id.
+- `require_user(request)`: the user, or `UserRequired` (403) if there is none. For one user-only path in a shared endpoint.
+- `requires_user = True` on an endpoint: the same check for the whole endpoint.
+- `set_request_principal(request, user, auth)`: the only place `request.user` and `request.auth` are set.
+
+A service account is a `ServiceAccountPrincipal`: no user; its access is `request.access`. Personal state (bookmarks, "is this mine?") needs a user; "who did this" fields record None. Never look rows up by a possibly-None user id: `filter(user_id=None)` matches rows with no user (S032).
+
+Query "mine" and "not mine" with `owned_by_acting_user`, never `user_id=request.user.id`:
+
+```python
+from sentry.auth.principal import owned_by_acting_user
+
+starred = GroupSearchViewStarred.objects.filter(owned_by_acting_user(request.user), organization=org)
+others = views.exclude(owned_by_acting_user(request.user))
+visible = queries.filter(Exists(on_my_projects) | owned_by_acting_user(request.user, "created_by_id"))
+```
+
+- Pass the column when it isn't `user_id`. It's a `Q`, so it combines with `|`, `&` and other filters.
+- With no user, `filter` matches nothing and `exclude` matches everything: service accounts and tokens see shared rows and no personal state, with no branch at the call site.
+- For one row use `is_acting_user(request.user, obj.user_id)`. To write personal state, use `require_user(request).id`.
+
 ### Permissions
 
 ```python
