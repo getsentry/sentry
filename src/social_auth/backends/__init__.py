@@ -320,7 +320,7 @@ class BaseAuth:
             <backend name in uppercase>_REQUEST_TOKEN_EXTRA_ARGUMENTS.
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
-        return setting(backend_name + "_REQUEST_TOKEN_EXTRA_ARGUMENTS", {})
+        return dict(setting(backend_name + "_REQUEST_TOKEN_EXTRA_ARGUMENTS", {}))
 
     def auth_extra_arguments(self):
         """Return extra arguments needed on auth process, setting is per
@@ -329,7 +329,7 @@ class BaseAuth:
         The defaults can be overridden by GET parameters.
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
-        extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
+        extra_arguments = dict(setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {}))
         for key, value in extra_arguments.items():
             if key in self.data:
                 extra_arguments[key] = self.data[key]
