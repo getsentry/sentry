@@ -533,7 +533,6 @@ const acronyms = [
 const uiCopyScope =
   'Inspect only hardcoded English in the FIRST argument of t or tct and the FIRST TWO text arguments of tn imported from sentry/locale, including aliases. Calls to unrelated or locally shadowed helpers do not count. Ignore all other arguments, even if they contain English strings. Ignore unwrapped strings, code, URLs, identifiers, search keywords, and user data. Labels, headings, placeholders, productName fields, and body messages can be UI copy. In tct, [link:text] and [strong:text] display text; [code:text] displays code. In a diff, imports may be omitted; only changed literals count.';
 
-// Proposed sentence-case guidance for copy review; the MDX currently requires title case.
 const voice = {
   files: ['static/app/**/*.ts*'],
   ignores: [
