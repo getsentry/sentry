@@ -67,6 +67,24 @@ describe('widget transformation persistence', () => {
     expect(convertWidgetToQueryParams(widget)).not.toHaveProperty('transformations');
   });
 
+  it('saves pipelines for equations', () => {
+    const widget = convertBuilderStateToWidget({
+      dataset: WidgetType.SPANS,
+      displayType: DisplayType.LINE,
+      yAxis: [
+        {kind: 'function', function: ['count', '']},
+        {kind: 'equation', field: 'count() * 2'},
+      ],
+      transformations: [{'1': ['smooth(sma,3)']}],
+    });
+    expect(widget.queries[0]).toEqual(
+      expect.objectContaining({
+        aggregates: ['count()', 'equation|count() * 2'],
+        transformations: {'1': ['smooth(sma,3)']},
+      })
+    );
+  });
+
   it('keeps transformations aligned when blank equations are excluded from saving', () => {
     const widget = convertBuilderStateToWidget({
       dataset: WidgetType.SPANS,

@@ -236,6 +236,92 @@ describe('Visualize', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('edits transformations for span equation series', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count(span.duration)', 'equation|count(span.duration) * 2'],
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    const addButtons = await screen.findAllByRole('button', {
+      name: 'Add Transformation',
+    });
+    expect(addButtons).toHaveLength(2);
+    await userEvent.click(addButtons[1]!);
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"1":["smooth(sma,3)"]}]');
+    });
+  });
+
+  it('keeps separate transformations for metric series and equation modes', async () => {
+    organization.features.push('explore-interpolation-and-smoothing');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <TraceMetricsVisualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+              yAxis: ['sum(value,alpha_metric,counter,none)'],
+              transformations: '[{"0":["fill(zero)"]}]',
+            },
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Series'}));
+    expect(await screen.findByRole('button', {name: 'Fill method'})).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["fill(zero)"]}]');
+    });
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+    expect(
+      await screen.findByRole('button', {name: 'Smoothing method'})
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.transformations).toBe('[{"0":["smooth(sma,3)"]}]');
+    });
+  });
+
   it('restores per-filter transformations after switching through metric equation mode', async () => {
     organization.features.push('explore-interpolation-and-smoothing');
     MockApiClient.addMockResponse({
@@ -267,8 +353,8 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Fill method'})).toHaveTextContent('Zero');
     await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
     expect(
-      screen.queryByRole('button', {name: 'Add Transformation'})
-    ).not.toBeInTheDocument();
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('group', {name: 'Transformation 1'})
     ).not.toBeInTheDocument();

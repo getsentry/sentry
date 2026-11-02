@@ -383,6 +383,35 @@ describe('utils', () => {
       expect(params).toHaveProperty(['transformations[1]'], ['fill(zero)']);
     });
 
+    it('sends pipelines for equation y-axes', () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        queries: [
+          WidgetQueryFixture({
+            aggregates: ['count()', 'equation|count() * 2'],
+            columns: [],
+            transformations: {'1': ['smooth(sma,3)']},
+          }),
+        ],
+      });
+
+      const params = getTimeseriesRequestQuery(
+        widget,
+        0,
+        PageFiltersFixture(),
+        DiscoverDatasets.SPANS,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      expect(params.yAxis).toEqual(['count()', 'equation|count() * 2']);
+      expect(params).toHaveProperty(['transformations[1]'], ['smooth(sma,3)']);
+    });
+
     it('drops repeated y-axes only when their pipelines also match', () => {
       const widget = WidgetFixture({
         widgetType: WidgetType.SPANS,
