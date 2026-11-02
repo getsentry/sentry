@@ -5,7 +5,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from time import time
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -22,6 +22,7 @@ from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.types import GroupActionLogPayload
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.models.activity import Activity
@@ -716,7 +717,10 @@ def test_finish_reprocessing_moves_gal_feed(
             type=ActivityType.REPROCESS.value,
             data={"eventCount": 7, "oldGroupId": old_group.id, "newGroupId": new_group.id},
         )
-        payload = GroupActionLogOutbox.objects.get(shard_identifier=old_group.id).payload
+        payload = cast(
+            GroupActionLogPayload,
+            GroupActionLogOutbox.objects.get(shard_identifier=old_group.id).payload,
+        )
     entries = GroupActionLogEntry.objects.filter(idempotency_key=f"activity:{activity.id}")
     original_identity = set(entries.values_list("id", "date_added", "actor_id", "source"))
 
