@@ -39,7 +39,7 @@ jobs:
           whole="src/sentry/flags/endpoints/logs.py src/sentry/api/serializers/models/exporteddata.py src/sentry/core/endpoints/organization_details.py src/sentry/core/endpoints/organization_environments.py src/sentry/api/endpoints/organization_weekly_report_project_exclusions.py"
           probe() {
             name=$1; shift
-            out=$(pnpm exec decision-model-linter --format json "$@" 2>"$RUNNER_TEMP/$name.err"); code=$?
+            code=0; out=$(pnpm exec decision-model-linter --format json "$@" 2>"$RUNNER_TEMP/$name.err") || code=$?
             echo "PROBE_EXIT $name $code"; sed "s/^/PROBE_ERR $name /" "$RUNNER_TEMP/$name.err"
             echo "PROBE_JSON $name $(echo "$out" | jq -c .)"
           }
