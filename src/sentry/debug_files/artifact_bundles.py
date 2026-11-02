@@ -23,6 +23,7 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
@@ -110,6 +111,10 @@ def index_artifact_bundles_for_release(
                 continue
 
             index_urls_in_bundle(organization_id, artifact_bundle, archive)
+        except File.DoesNotExist:
+            # The backing file was deleted (e.g. by a cleanup job) before this indexing task ran.
+            # This is an expected race condition; skip silently rather than reporting as an error.
+            metrics.incr("artifact_bundle_indexing.bundle_file_deleted")
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
