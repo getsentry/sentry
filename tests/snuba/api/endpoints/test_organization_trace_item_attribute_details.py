@@ -139,6 +139,24 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.data["attributeSource"] == {"source_type": "user"}
         assert response.data["datasets"] == ["spans"]
 
+    def test_returns_padded_attribute_when_its_name_has_surrounding_whitespace(self) -> None:
+        self._store_span({"cart ": "padded", "cart": "plain"})
+
+        response = self.do_request(query={"attributeName": "cart ", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "cart "
+
+    def test_returns_sentry_attribute_when_a_user_attribute_shares_its_name(self) -> None:
+        self._store_span({"severity": "custom"})
+        self._store_log()
+
+        response = self.do_request(query={"attributeName": "severity", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["attributeSource"] == {"source_type": "sentry"}
+        assert response.data["datasets"] == ["logs"]
+
     def test_returns_log_message_parameter_when_requested_by_its_public_alias(self) -> None:
         self._store_log({"sentry.message.parameter.0": {"string_value": "laptop"}})
 
