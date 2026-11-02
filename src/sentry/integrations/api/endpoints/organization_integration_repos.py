@@ -111,7 +111,6 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             search = request.GET.get("search")
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
-            user_facing_error = None
             with install.record_event(
                 SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
             ).capture() as lifecycle:
@@ -129,10 +128,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     )
                 except (IntegrationError, IdentityNotValid) as e:
                     lifecycle.record_halt(e, create_issue=False)
-                    user_facing_error = e
-
-            if user_facing_error is not None:
-                return self.respond({"detail": str(user_facing_error)}, status=400)
+                    return self.respond({"detail": str(e)}, status=400)
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 
