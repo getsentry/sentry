@@ -891,9 +891,7 @@ class MultiTraceMetricFormulaDefinition(FormulaDefinition):
     """
     A formula over several trace metrics at once.
 
-    Unlike `TraceMetricFormulaDefinition` the metric is not an argument of the function. Instead
-    `trace_metrics_resolver` derives the metrics the formula reads from its resolved arguments, so
-    the query level metric filter can include every one of them.
+    Uses `trace_metrics_resolver` to derive the metrics the formula reads.
     """
 
     trace_metrics_resolver: Callable[[ResolvedArguments], frozenset[TraceMetric]]
