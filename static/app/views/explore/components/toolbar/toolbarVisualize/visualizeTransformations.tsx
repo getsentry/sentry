@@ -1,5 +1,6 @@
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -13,6 +14,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   exploreAnalyticsEventMap,
   type ExploreAnalyticsEventParameters,
+  type TransformationAnalyticsSource,
 } from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -139,6 +141,7 @@ interface Props {
     | TraceItemDataset.LOGS
     | TraceItemDataset.TRACEMETRICS;
   transformations: readonly string[];
+  analyticsSource?: TransformationAnalyticsSource;
 }
 
 interface TransformationRowsProps extends Props {
@@ -150,6 +153,7 @@ export function VisualizeTransformationRows({
   onChange,
   traceItemDataset,
   layout = 'stacked',
+  analyticsSource = 'explore',
 }: TransformationRowsProps) {
   const organization = useOrganization();
 
@@ -163,6 +167,7 @@ export function VisualizeTransformationRows({
             transformation={transformation}
             index={index}
             traceItemDataset={traceItemDataset}
+            analyticsSource={analyticsSource}
             layout={layout}
             onChange={value =>
               onChange(transformations.toSpliced(index, 1, formatTransformation(value)))
@@ -174,6 +179,7 @@ export function VisualizeTransformationRows({
               }
               const analyticsParams = {
                 organization,
+                source: analyticsSource,
                 traceItemDataset,
                 transformation_index: index,
               };
@@ -218,11 +224,17 @@ export function VisualizeTransformationRows({
   ) : null;
 }
 
+interface AddTransformationButtonProps extends Props {
+  iconOnly?: boolean;
+}
+
 export function AddTransformationButton({
   transformations,
   onChange,
   traceItemDataset,
-}: Props) {
+  iconOnly = false,
+  analyticsSource = 'explore',
+}: AddTransformationButtonProps) {
   const organization = useOrganization();
   const kindOptions = KIND_OPTIONS.map(option => ({
     ...option,
@@ -234,19 +246,31 @@ export function AddTransformationButton({
       options={kindOptions}
       disabled={transformations.length >= KIND_OPTIONS.length}
       value={undefined}
-      trigger={props => (
-        <OverlayTrigger.Button
-          {...props}
-          variant="transparent"
-          size="zero"
-          icon={<IconAdd />}
-        >
-          {t('Add Transformation')}
-        </OverlayTrigger.Button>
-      )}
+      trigger={props =>
+        iconOnly ? (
+          <OverlayTrigger.IconButton
+            {...props}
+            variant="transparent"
+            size="zero"
+            icon={<IconSettings />}
+            aria-label={t('Add Transformation')}
+            tooltipProps={{title: t('Add Transformation')}}
+          />
+        ) : (
+          <OverlayTrigger.Button
+            {...props}
+            variant="transparent"
+            size="zero"
+            icon={<IconAdd />}
+          >
+            {t('Add Transformation')}
+          </OverlayTrigger.Button>
+        )
+      }
       onChange={({value}) => {
         trackAnalytics('explore.visualize.transformation.added', {
           organization,
+          source: analyticsSource,
           traceItemDataset,
           transformation_index: transformations.length,
           transformation_type: value,
@@ -263,6 +287,7 @@ export function AddTransformationButton({
 }
 
 interface TransformationRowProps {
+  analyticsSource: TransformationAnalyticsSource;
   index: number;
   layout: TransformationLayout;
   onChange: (value: Transformation) => void;
@@ -273,6 +298,7 @@ interface TransformationRowProps {
 }
 
 function TransformationRow({
+  analyticsSource,
   index,
   layout,
   onChange,
@@ -282,7 +308,11 @@ function TransformationRow({
   transformation,
 }: TransformationRowProps) {
   const organization = useOrganization();
-  const analyticsParams = {traceItemDataset, transformation_index: index};
+  const analyticsParams = {
+    source: analyticsSource,
+    traceItemDataset,
+    transformation_index: index,
+  };
   const removalAnalyticsParams = {
     ...analyticsParams,
     transformation_type: transformation?.kind ?? 'unsupported',
@@ -374,6 +404,7 @@ function TransformationRow({
           {layout === 'inline' && transformation?.kind === 'smooth' ? (
             <SmoothingSettings
               transformation={transformation}
+              analyticsSource={analyticsSource}
               index={index}
               traceItemDataset={traceItemDataset}
               layout={layout}
@@ -385,6 +416,7 @@ function TransformationRow({
       {layout === 'stacked' && transformation?.kind === 'smooth' ? (
         <SmoothingSettings
           transformation={transformation}
+          analyticsSource={analyticsSource}
           index={index}
           traceItemDataset={traceItemDataset}
           layout={layout}
@@ -396,6 +428,7 @@ function TransformationRow({
 }
 
 interface SmoothingSettingsProps {
+  analyticsSource: TransformationAnalyticsSource;
   index: number;
   layout: TransformationLayout;
   onChange: (value: SmoothTransformation) => void;
@@ -404,6 +437,7 @@ interface SmoothingSettingsProps {
 }
 
 function SmoothingSettings({
+  analyticsSource,
   index,
   layout,
   onChange,
@@ -411,7 +445,11 @@ function SmoothingSettings({
   transformation,
 }: SmoothingSettingsProps) {
   const organization = useOrganization();
-  const analyticsParams = {traceItemDataset, transformation_index: index};
+  const analyticsParams = {
+    source: analyticsSource,
+    traceItemDataset,
+    transformation_index: index,
+  };
   const windowLabel =
     transformation.method === 'asap' ? t('Max Window Size') : t('Window Size');
   return (
