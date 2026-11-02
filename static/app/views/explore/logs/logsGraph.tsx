@@ -460,6 +460,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
 
     return [
       getSaveAsAlertMenuItem({
+        disabled: hasTransformations,
         to: getAlertsUrl({
           project,
           query: search.formatString(),
@@ -556,6 +557,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     projects,
     search,
     visualize,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -571,16 +573,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {
-                  title: t(
-                    'Dashboard widgets and monitors do not support transformations yet.'
-                  ),
-                }
-              : undefined
-          }
         />
       )}
       position="bottom-end"

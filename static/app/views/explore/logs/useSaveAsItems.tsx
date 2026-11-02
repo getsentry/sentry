@@ -246,7 +246,7 @@ export function useSaveAsItems({
       ),
       textValue: t('Dashboard widget'),
       children: dashboardsUrls,
-      disabled: hasTransformations || !dashboardsUrls || dashboardsUrls.length === 0,
+      disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       submenu: true,
     };
   }, [
@@ -259,7 +259,6 @@ export function useSaveAsItems({
     sortBys,
     location,
     visualizes,
-    hasTransformations,
   ]);
 
   return useMemo(() => {

@@ -56,6 +56,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           disabled:
+            hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
@@ -106,6 +107,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           alertsUrls,
+          disabled: hasTransformations,
           submenu: true,
           label: getCreateAlertForLabel(),
         })
@@ -149,6 +151,7 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -164,16 +167,6 @@ export function ChartContextMenu({
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {
-                  title: t(
-                    'Dashboard widgets and monitors do not support transformations yet.'
-                  ),
-                }
-              : undefined
-          }
         />
       )}
       position="bottom-end"

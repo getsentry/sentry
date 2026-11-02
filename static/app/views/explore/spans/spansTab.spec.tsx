@@ -67,7 +67,9 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg();
+  const {organization, project} = initializeOrg({
+    organization: {features: ['dashboards-edit']},
+  });
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -229,16 +231,20 @@ describe('SpansTabContent', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Save as'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Create a Monitor'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
     expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
-    expect(screen.getByRole('menuitemradio', {name: 'Dashboard widget'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
       'aria-disabled',
       'true'

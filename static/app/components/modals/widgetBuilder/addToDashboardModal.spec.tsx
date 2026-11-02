@@ -398,6 +398,82 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  it.each(['Open in Widget Builder', 'Add + Stay on this Page'])(
+    'preserves transformation pipelines through %s',
+    async action => {
+      const update = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: {},
+      });
+      const {router} = render(
+        <AddToDashboardModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => {}}
+          organization={initialData.organization}
+          widgets={[
+            {
+              ...widget,
+              widgetType: WidgetType.SPANS,
+              queries: [
+                {
+                  name: '',
+                  aggregates: ['count(span.duration)'],
+                  columns: [],
+                  fields: [],
+                  conditions: '',
+                  orderby: '',
+                  transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                },
+              ],
+            },
+          ]}
+          selection={defaultSelection}
+          location={LocationFixture()}
+        />
+      );
+
+      await selectEvent.select(
+        await screen.findByText('Select Dashboard'),
+        'Test Dashboard'
+      );
+      await userEvent.click(screen.getByRole('button', {name: action}));
+
+      if (action === 'Open in Widget Builder') {
+        expect(router.location.pathname).toBe(
+          '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
+        );
+        expect(router.location.query.transformations).toBe(
+          '[{"0":["fill(locf)","smooth(sma,5)"]}]'
+        );
+      } else {
+        await waitFor(() =>
+          expect(update).toHaveBeenCalledWith(
+            '/organizations/org-slug/dashboards/1/',
+            expect.objectContaining({
+              data: expect.objectContaining({
+                widgets: [
+                  expect.objectContaining({
+                    widgetType: WidgetType.SPANS,
+                    queries: [
+                      expect.objectContaining({
+                        aggregates: ['count(span.duration)'],
+                        transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            })
+          )
+        );
+      }
+    }
+  );
+
   it('updates the selected dashboard with the widget when clicking Add + Stay in Discover', async () => {
     const dashboardDetailGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',
