@@ -1223,7 +1223,8 @@ class ServiceAccountAccessTest(TestCase):
 
         result = self._access()
 
-        assert result.has_global_access
+        # Org-wide access would also cover team and member actions, so it stays off.
+        assert not result.has_global_access
         assert not result.has_open_membership
         assert result.has_project_access(self.unlinked)
         assert result.has_project_access(later)

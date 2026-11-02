@@ -798,6 +798,9 @@ class ServiceAccountAccess(DbAccess):
     in the org. Without it, it reaches only the active projects linked to the
     account. It never reaches teams. Open membership is a setting for people, so
     it doesn't apply.
+
+    `has_global_access` stays False even with `all_projects`: callers read it as
+    org-wide access, including team and member actions, not only projects.
     """
 
     def __init__(
@@ -810,11 +813,8 @@ class ServiceAccountAccess(DbAccess):
     ) -> None:
         self._service_account_id = service_account_id
         self._organization_id = organization_id
-        super().__init__(
-            sso_is_valid=True,
-            has_global_access=all_projects,
-            scopes=frozenset(scopes),
-        )
+        self._all_projects = all_projects
+        super().__init__(sso_is_valid=True, scopes=frozenset(scopes))
 
     def has_team_access(self, team: Team) -> bool:
         return False
@@ -825,7 +825,7 @@ class ServiceAccountAccess(DbAccess):
             or project.status != ObjectStatus.ACTIVE
         ):
             return False
-        return self.has_global_access or project.id in self.accessible_project_ids
+        return self._all_projects or project.id in self.accessible_project_ids
 
     @cached_property
     def project_ids_with_team_membership(self) -> frozenset[int]:
@@ -839,7 +839,7 @@ class ServiceAccountAccess(DbAccess):
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
-        if self.has_global_access:
+        if self._all_projects:
             return frozenset(
                 Project.objects.filter(
                     organization_id=self._organization_id, status=ObjectStatus.ACTIVE

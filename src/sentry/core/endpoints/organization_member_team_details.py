@@ -340,8 +340,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        # `all_projects` sets has_global_access, which below would let an org:read account
-        # add anyone to any team. Service accounts reach projects only, never teams.
+        # Service accounts reach projects only, never teams, so they can't change team
+        # membership, even with `all_projects`.
         if is_service_account_auth(request.auth):
             return Response(
                 {"detail": "Service accounts can't change team membership."}, status=403
