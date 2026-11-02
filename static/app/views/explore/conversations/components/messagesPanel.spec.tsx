@@ -288,6 +288,70 @@ describe('MessagesPanel', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders standalone tool metadata once without an assistant footer', async () => {
+    const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
+    const node = {
+      ...tool,
+      attributes: {...tool.attributes, [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: 0.04},
+    };
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        messages={[
+          {
+            id: 'tool-tool-1',
+            role: 'assistant',
+            content: '',
+            timestamp: 1000.017,
+            nodeId: 'tool-1',
+            duration: 0.017,
+            toolCalls: [
+              {name: 'search', nodeId: 'tool-1', hasError: false, duration: 0.017},
+            ],
+          },
+        ]}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+    expect(screen.getAllByText('17.00ms')).toHaveLength(1);
+    expect(screen.queryByText('$0.04')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Select tool call search'}));
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node);
+  });
+
+  it('retains assistant metadata when tool calls belong to a generation', () => {
+    const generation = createMockNode({
+      id: 'generation',
+      attributes: {[SpanFields.GEN_AI_COST_TOTAL_TOKENS]: 0.04},
+    });
+    const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
+    render(
+      <MessagesPanel
+        nodes={[generation, tool] as any}
+        messages={[
+          {
+            id: 'assistant-generation',
+            role: 'assistant',
+            content: 'answer',
+            timestamp: 1003,
+            nodeId: 'generation',
+            duration: 3,
+            toolCalls: [
+              {name: 'search', nodeId: 'tool-1', hasError: false, duration: 0.017},
+            ],
+          },
+        ]}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+    expect(screen.getByText('answer')).toBeInTheDocument();
+    expect(screen.getByText('17.00ms')).toBeInTheDocument();
+    expect(screen.getByText('3.00s')).toBeInTheDocument();
+    expect(screen.getByText('$0.04')).toBeInTheDocument();
+  });
+
   it('links to docs in a dismissible alert when inputs/outputs were not captured', async () => {
     const node = createMockNode({id: 'span-1'});
 
