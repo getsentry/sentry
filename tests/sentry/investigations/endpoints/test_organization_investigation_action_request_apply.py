@@ -165,7 +165,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
     def apply_url(self, action_request_id: int | str, investigation_id: int | None = None) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-action-request-apply",
+            "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation_id or self.investigation.id,
@@ -275,7 +275,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
     def details_request(self) -> dict[str, Any]:
         response = self.client.get(
             reverse(
-                "sentry-api-0-organization-investigation-details",
+                "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
@@ -797,7 +797,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             self.user.update(name="Renamed after the apply")
         details = self.client.get(
             reverse(
-                "sentry-api-0-organization-investigation-details",
+                "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
@@ -866,7 +866,7 @@ class SharedApplyPathTest(APITestCase):
 
     def post(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-apply",
+            "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -877,7 +877,7 @@ class SharedApplyPathTest(APITestCase):
 
     def recheck(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-recheck",
+            "sentry-api-0-organization-notebook-action-request-recheck",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -1183,7 +1183,7 @@ class SharedApplyPathTest(APITestCase):
         assert self.action_request.followup_request_id == command.request_id
         details = self.client.get(
             reverse(
-                "sentry-api-0-organization-investigation-details",
+                "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
@@ -1217,7 +1217,7 @@ class SharedApplyPathTest(APITestCase):
             assert self.action_request.followup_request_id is None
             details = self.client.get(
                 reverse(
-                    "sentry-api-0-organization-investigation-details",
+                    "sentry-api-0-organization-notebook-details",
                     kwargs={
                         "organization_id_or_slug": self.organization.slug,
                         "investigation_id": self.investigation.id,
@@ -1277,7 +1277,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
 
         response = self.client.post(
             reverse(
-                "sentry-api-0-organization-investigation-action-request-apply",
+                "sentry-api-0-organization-notebook-action-request-apply",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
@@ -1309,7 +1309,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
 
         response = self.client.post(
             reverse(
-                "sentry-api-0-organization-investigation-action-request-recheck",
+                "sentry-api-0-organization-notebook-action-request-recheck",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
@@ -1325,7 +1325,7 @@ class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
         ).exists()
         details = self.client.get(
             reverse(
-                "sentry-api-0-organization-investigation-details",
+                "sentry-api-0-organization-notebook-details",
                 kwargs={
                     "organization_id_or_slug": self.organization.slug,
                     "investigation_id": self.investigation.id,
