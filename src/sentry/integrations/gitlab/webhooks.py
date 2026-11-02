@@ -818,7 +818,7 @@ class GitlabWebhookEndpoint(Endpoint):
             logger.warning("gitlab.webhook.missing-webhook-secret", extra=extra)
             return HttpResponse(status=409, reason=GITLAB_WEBHOOK_SECRET_INVALID_ERROR)
 
-        if not constant_time_compare(secret, webhook_secret):
+        if secret != webhook_secret:
             # Summary and potential workaround mentioned here:
             # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
             extra["webhook.reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR

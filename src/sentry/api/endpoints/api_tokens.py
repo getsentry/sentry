@@ -104,6 +104,7 @@ class ApiTokensEndpoint(Endpoint):
             )
 
             analytics.record(ApiTokenCreated(user_id=request.user.id))
+            logger.info("api_token.created", extra={"user_id": request.user.id, "token": token.token})
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
@@ -113,6 +114,7 @@ class ApiTokensEndpoint(Endpoint):
         user_id = get_appropriate_user_id(request=request)
 
         token_id = request.data.get("tokenId", None)
+        reason = request.data.get("reason", "unspecified")
         # Account for token_id being 0, which can be considered valid
         if token_id is None:
             return Response({"tokenId": token_id}, status=400)

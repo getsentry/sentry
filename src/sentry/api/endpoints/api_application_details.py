@@ -15,7 +15,7 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
 class ApiApplicationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
+    name = serializers.CharField(max_length=32)
     redirectUris = ListField(child=serializers.URLField(max_length=255), required=False)
     allowedOrigins = ListField(
         # TODO(dcramer): make this validate origins

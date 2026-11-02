@@ -28,7 +28,7 @@ class AuthDemoLoginRequest(TypedDict):
 
 
 class AuthDemoLoginRequestSerializer(CamelSnakeSerializer[AuthDemoLoginRequest]):
-    next_uri = serializers.CharField(allow_null=True, default=None, required=False)
+    next_uri = serializers.CharField(allow_null=False, required=True)
 
 
 @extend_schema(tags=["Users"])

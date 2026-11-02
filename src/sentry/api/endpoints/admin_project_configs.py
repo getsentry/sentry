@@ -89,7 +89,9 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         The project config for all projectKeys of the provided projectId is recalculated
         in a sync manner and stored in the cache subsequently.
         """
-        project_id = request.data.get("projectId")
+        serializer = AdminProjectConfigSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project_id = serializer.validated_data.get("projectId")
 
         if not project_id:
             return Response({"error": "Missing projectId parameter"}, status=400)

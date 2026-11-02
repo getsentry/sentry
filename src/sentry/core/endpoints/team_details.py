@@ -44,6 +44,11 @@ class TeamDetailsSerializer(CamelSnakeModelSerializer):
         max_length=DEFAULT_SLUG_MAX_LENGTH,
         help_text="Uniquely identifies a team. This is must be available.",
     )
+    memberIds = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        help_text="The organization member IDs that should belong to the team.",
+    )
 
     class Meta:
         model = Team
@@ -144,6 +149,19 @@ class TeamDetailsEndpoint(TeamEndpoint):
         serializer = TeamDetailsSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
+
+            if "memberIds" in serializer.validated_data:
+                wanted = set(serializer.validated_data["memberIds"])
+                current = set(
+                    OrganizationMemberTeam.objects.filter(team=team).values_list(
+                        "organizationmember_id", flat=True
+                    )
+                )
+                OrganizationMemberTeam.objects.filter(
+                    team=team, organizationmember_id__in=current - wanted
+                ).delete()
+                for member_id in wanted - current:
+                    OrganizationMemberTeam.objects.create(team=team, organizationmember_id=member_id)
 
             data = team.get_audit_log_data()
             self.create_audit_entry(

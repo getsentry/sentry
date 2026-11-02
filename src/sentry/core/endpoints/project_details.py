@@ -8,21 +8,21 @@ from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
-from rest_framework.request import Request
+from rest_framework.req import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
 from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.proj import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import is_considered_sudo
 from sentry.api.exceptions import SudoRequired
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
+from sentry.api.serializers.models.proj import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
@@ -59,7 +59,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models.group import Group, GroupStatus
-from sentry.models.project import Project
+from sentry.models.proj import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
@@ -106,34 +106,34 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
 
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField(
-        help_text="Enables starring the project within the projects tab. Can be updated with **`project:read`** permission.",
+        help_text="Enables starring the proj within the projects tab. Can be updated with **`proj:read`** permission.",
         required=False,
     )
     autofixAutomationTuning = serializers.ChoiceField(
         choices=[item.value for item in AutofixAutomationTuningSettings],
         required=False,
-        help_text="How aggressively Seer runs Autofix on new issues. Can be updated with **`project:read`** permission.",
+        help_text="How aggressively Seer runs Autofix on new issues. Can be updated with **`proj:read`** permission.",
     )
     seerScannerAutomation = serializers.BooleanField(
         required=False,
-        help_text="Let Seer scan new issues automatically. Can be updated with **`project:read`** permission.",
+        help_text="Let Seer scan new issues automatically. Can be updated with **`proj:read`** permission.",
     )
     seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
-        help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
+        help_text="Enable preprod size status checks. Can be updated with **`proj:read`** permission.",
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(
         required=False,
-        help_text="Rules controlling when preprod size status checks fail. Can be updated with **`project:read`** permission.",
+        help_text="Rules controlling when preprod size status checks fail. Can be updated with **`proj:read`** permission.",
     )
     preprodSizePrCommentsEnabled = serializers.BooleanField(
-        help_text="Enable preprod size PR comments. Can be updated with **`project:read`** permission.",
+        help_text="Enable preprod size PR comments. Can be updated with **`proj:read`** permission.",
         required=False,
     )
     preprodSizePrCommentsRules = serializers.JSONField(
         required=False,
-        help_text="Rules controlling which preprod size changes are posted as PR comments. Can be updated with **`project:read`** permission.",
+        help_text="Rules controlling which preprod size changes are posted as PR comments. Can be updated with **`proj:read`** permission.",
     )
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(
         required=False,
@@ -158,17 +158,17 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSizeEnabledByCustomer = serializers.BooleanField(
         required=False,
         allow_null=True,
-        help_text="Enable preprod size analysis. Can be updated with **`project:read`** permission.",
+        help_text="Enable preprod size analysis. Can be updated with **`proj:read`** permission.",
     )
     preprodDistributionEnabledByCustomer = serializers.BooleanField(
         required=False,
         allow_null=True,
-        help_text="Enable preprod build distribution. Can be updated with **`project:read`** permission.",
+        help_text="Enable preprod build distribution. Can be updated with **`proj:read`** permission.",
     )
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
         required=False,
         allow_null=True,
-        help_text="Post preprod distribution updates as PR comments. Can be updated with **`project:read`** permission.",
+        help_text="Post preprod distribution updates as PR comments. Can be updated with **`proj:read`** permission.",
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(
         required=False,
@@ -198,42 +198,42 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSizeEnabledQuery = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="Query selecting which preprod builds are size-analyzed. Can be updated with **`project:read`** permission.",
+        help_text="Query selecting which preprod builds are size-analyzed. Can be updated with **`proj:read`** permission.",
     )
     preprodDistributionEnabledQuery = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="Query selecting which preprod builds are distributed. Can be updated with **`project:read`** permission.",
+        help_text="Query selecting which preprod builds are distributed. Can be updated with **`proj:read`** permission.",
     )
 
 
 @sentry_schema_serializer(
     omit_from_public_schema={
-        "options": "Legacy writer for raw project option keys, kept for backward compatibility; "
+        "options": "Legacy writer for raw proj option keys, kept for backward compatibility; "
         "the typed fields on this serializer are the public surface.",
         "seerNightshiftTweaks": "Experimental Seer internals with no stable shape.",
     }
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
     name = serializers.CharField(
-        help_text="The name for the project",
+        help_text="The name for the proj",
         max_length=200,
         required=False,
     )
     slug = SentrySerializerSlugField(
-        help_text="Uniquely identifies a project and is used for the interface.",
+        help_text="Uniquely identifies a proj and is used for the interface.",
         max_length=PROJECT_SLUG_MAX_LENGTH,
         required=False,
     )
     platform = serializers.CharField(
-        help_text="The platform for the project",
+        help_text="The platform for the proj",
         required=False,
         allow_null=True,
         allow_blank=True,
     )
 
     subjectPrefix = serializers.CharField(
-        help_text="Custom prefix for emails from this project.",
+        help_text="Custom prefix for emails from this proj.",
         max_length=200,
         allow_blank=True,
         required=False,
@@ -261,7 +261,7 @@ E.g. `{'user': ['id', 'email']}`""",
     highlightTags = ListField(
         child=serializers.CharField(),
         required=False,
-        help_text="""A list of strings with tag keys to highlight on this project's issues.
+        help_text="""A list of strings with tag keys to highlight on this proj's issues.
 E.g. `['release', 'environment']`""",
     )
     digestsMinDelay = serializers.IntegerField(
@@ -295,7 +295,7 @@ E.g. `['release', 'environment']`""",
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="Environment selected by default when viewing this project.",
+        help_text="Environment selected by default when viewing this proj.",
     )
     dataScrubber = serializers.BooleanField(
         required=False,
@@ -388,12 +388,12 @@ E.g. `['release', 'environment']`""",
     allowedDomains = EmptyListField(
         child=OriginField(allow_blank=True),
         required=False,
-        help_text="Origins permitted to send events to this project. Use `*` to allow any.",
+        help_text="Origins permitted to send events to this proj. Use `*` to allow any.",
     )
 
     copy_from_project = serializers.IntegerField(
         required=False,
-        help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
+        help_text="ID of a proj whose settings, teams, and keys should be copied into this one.",
     )
     targetSampleRate = serializers.FloatField(
         required=False,
@@ -432,12 +432,12 @@ E.g. `['release', 'environment']`""",
         max_delay = (
             data["digestsMaxDelay"]
             if "digestsMaxDelay" in data
-            else self.context["project"].get_option("digests:mail:maximum_delay")
+            else self.context["proj"].get_option("digests:mail:maximum_delay")
         )
         min_delay = (
             data["digestsMinDelay"]
             if "digestsMinDelay" in data
-            else self.context["project"].get_option("digests:mail:minimum_delay")
+            else self.context["proj"].get_option("digests:mail:minimum_delay")
         )
 
         if min_delay is not None and max_delay and max_delay is not None and min_delay > max_delay:
@@ -458,20 +458,20 @@ E.g. `['release', 'environment']`""",
     def validate_slug(self, slug: str) -> str:
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
-        project = self.context["project"]
+        proj = self.context["proj"]
         other = (
-            Project.objects.filter(slug=slug, organization=project.organization)
-            .exclude(id=project.id)
+            Project.objects.filter(slug=slug, organization=proj.organization)
+            .exclude(id=proj.id)
             .first()
         )
         if other is not None:
             raise serializers.ValidationError(
-                "Another project (%s) is already using that slug" % other.name
+                "Another proj (%s) is already using that slug" % other.name
             )
         return slug
 
     def validate_relayPiiConfig(self, value):
-        organization = self.context["project"].organization
+        organization = self.context["proj"].organization
         return validate_pii_config_update(organization, value)
 
     def validate_builtinSymbolSources(self, value):
@@ -483,14 +483,14 @@ E.g. `['release', 'environment']`""",
 
         from sentry import features
 
-        organization = self.context["project"].organization
-        request = self.context["request"]
+        organization = self.context["proj"].organization
+        req = self.context["req"]
 
         try:
             # We should really only grab and parse if there are sources in sources_json whose
             # secrets are set to {"hidden-secret":true}
             orig_sources = parse_sources(
-                self.context["project"].get_option("sentry:symbol_sources"),
+                self.context["proj"].get_option("sentry:symbol_sources"),
                 filter_appconnect=True,
             )
             sources = parse_backfill_sources(sources_json.strip(), orig_sources)
@@ -504,7 +504,7 @@ E.g. `['release', 'environment']`""",
             return orjson.dumps(sources).decode() if sources else ""
 
         if any(s.get("type") == "azure" for s in added_or_modified_sources) and not features.has(
-            "organizations:azure-symbol-sources", organization, actor=request.user
+            "organizations:azure-symbol-sources", organization, actor=req.user
         ):
             raise serializers.ValidationError("Azure symbol sources are not enabled.")
 
@@ -520,7 +520,7 @@ E.g. `['release', 'environment']`""",
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
-            "organizations:custom-symbol-sources", organization, actor=request.user
+            "organizations:custom-symbol-sources", organization, actor=req.user
         )
 
         if not has_sources:
@@ -565,21 +565,21 @@ E.g. `['release', 'environment']`""",
     def validate_copy_from_project(self, other_project_id):
         try:
             other_project = Project.objects.filter(
-                id=other_project_id, organization_id=self.context["project"].organization_id
+                id=other_project_id, organization_id=self.context["proj"].organization_id
             ).prefetch_related("teams")[0]
         except IndexError:
             raise serializers.ValidationError("Project to copy settings from not found.")
 
-        request = self.context["request"]
-        if not request.access.has_project_access(other_project):
+        req = self.context["req"]
+        if not req.access.has_project_access(other_project):
             raise serializers.ValidationError(
-                "Project settings cannot be copied from a project you do not have access to."
+                "Project settings cannot be copied from a proj you do not have access to."
             )
 
         for project_team in other_project.projectteam_set.all():
-            if not request.access.has_team_scope(project_team.team, "team:write"):
+            if not req.access.has_team_scope(project_team.team, "team:write"):
                 raise serializers.ValidationError(
-                    "Project settings cannot be copied from a project with a team you do not have write access to."
+                    "Project settings cannot be copied from a proj with a team you do not have write access to."
                 )
 
         return other_project_id
@@ -598,8 +598,8 @@ E.g. `['release', 'environment']`""",
         return validate_pii_selectors(value)
 
     def validate_targetSampleRate(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
+        organization = self.context["proj"].organization
+        actor = self.context["req"].user
         if not has_custom_dynamic_sampling(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
@@ -610,13 +610,13 @@ E.g. `['release', 'environment']`""",
             != DynamicSamplingMode.PROJECT.value
         ):
             raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
+                "Must enable Manual Mode to configure proj sample rates."
             )
 
         return value
 
     def validate_tempestFetchScreenshots(self, value):
-        organization = self.context["project"].organization
+        organization = self.context["proj"].organization
         if not has_tempest_access(organization):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
@@ -636,11 +636,11 @@ E.g. `['release', 'environment']`""",
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin"],
-        "POST": ["project:write", "project:admin"],
+        "GET": ["proj:read", "proj:write", "proj:admin"],
+        "POST": ["proj:write", "proj:admin"],
         # PUT checks for permissions based on fields
-        "PUT": ["project:read", "project:write", "project:admin"],
-        "DELETE": ["project:admin"],
+        "PUT": ["proj:read", "proj:write", "proj:admin"],
+        "DELETE": ["proj:admin"],
     }
 
 
@@ -665,10 +665,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
-    def _get_unresolved_count(self, project):
-        queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
+    def _get_unresolved_count(self, proj):
+        queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, proj=proj)
 
-        resolve_age = project.get_option("sentry:resolve_age", None)
+        resolve_age = proj.get_option("sentry:resolve_age", None)
         if resolve_age:
             queryset = queryset.filter(
                 last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
@@ -680,7 +680,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         operation_id="getProject",
         summary="Retrieve a Project",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=None,
+        req=None,
         responses={
             200: DetailedProjectSerializer,
             403: RESPONSE_FORBIDDEN,
@@ -689,29 +689,29 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         examples=ProjectExamples.DETAILED_PROJECT,
     )
     def get(
-        self, request: Request, project: Project
+        self, req: Request, proj: Project
     ) -> Response[_ProjectDetailsResponse] | Response[ValidationErrorResponse]:
         """
-        Return details on an individual project.
+        Return details on an individual proj.
         """
-        collapse = request.GET.getlist("collapse", [])
+        collapse = req.GET.getlist("collapse", [])
         data: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer(collapse=collapse)
+            proj, req.user, DetailedProjectSerializer(collapse=collapse)
         )
 
         # TODO: should switch to expand and move logic into the serializer
-        include = set(filter(bool, request.GET.get("include", "").split(",")))
+        include = set(filter(bool, req.GET.get("include", "").split(",")))
         if "stats" in include:
-            data["stats"] = {"unresolved": self._get_unresolved_count(project)}
+            data["stats"] = {"unresolved": self._get_unresolved_count(proj)}
 
-        expand = request.GET.getlist("expand", [])
+        expand = req.GET.getlist("expand", [])
         if "hasAlertIntegration" in expand:
-            data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
+            data["hasAlertIntegrationInstalled"] = has_alert_integration(proj)
 
         # Dynamic Sampling Logic
-        if has_dynamic_sampling(project.organization):
+        if has_dynamic_sampling(proj.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
-                data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
+                data=get_user_biases(proj.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
@@ -730,7 +730,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
-        request=ProjectAdminSerializer,
+        req=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
             403: RESPONSE_FORBIDDEN,
@@ -739,7 +739,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         examples=ProjectExamples.DETAILED_PROJECT,
     )
     def put(
-        self, request: Request, project
+        self, req: Request, proj
     ) -> (
         Response[_ProjectDetailsResponse]
         | Response[None]
@@ -747,9 +747,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         | Response[ValidationErrorResponse]
     ):
         """
-        Update various attributes and configurable settings for the given project.
+        Update various attributes and configurable settings for the given proj.
 
-        Note that solely having the **`project:read`** scope restricts updatable settings to
+        Note that solely having the **`proj:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
         `preprodSizePrCommentsEnabled`, `preprodSizePrCommentsRules`,
@@ -757,14 +757,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
         and `preprodDistributionPrCommentsEnabledByCustomer`.
         """
-        if not request.user.is_authenticated:
+        if not req.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        old_data = serialize(project, request.user, DetailedProjectSerializer())
-        has_elevated_scopes = request.access and (
-            request.access.has_scope("project:write")
-            or request.access.has_scope("project:admin")
-            or request.access.has_any_project_scope(project, ["project:write", "project:admin"])
+        old_data = serialize(proj, req.user, DetailedProjectSerializer())
+        has_elevated_scopes = req.access and (
+            req.access.has_scope("proj:write")
+            or req.access.has_scope("proj:admin")
+            or req.access.has_any_project_scope(proj, ["proj:write", "proj:admin"])
         )
 
         if has_elevated_scopes:
@@ -773,13 +773,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             serializer_cls = ProjectMemberSerializer
 
         serializer = serializer_cls(
-            data=request.data, partial=True, context={"project": project, "request": request}
+            data=req.data, partial=True, context={"proj": proj, "req": req}
         )
         serializer.is_valid()
 
         result = serializer.validated_data
 
-        if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
+        if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(proj.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
@@ -789,7 +789,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_elevated_scopes:
             for key in ProjectAdminSerializer().fields.keys():
-                if request.data.get(key) and not result.get(key):
+                if req.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": "You do not have permission to perform this action."},
                         status=403,
@@ -799,105 +799,105 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         old_slug = None
         if result.get("slug"):
-            old_slug = project.slug
-            project.slug = result["slug"]
+            old_slug = proj.slug
+            proj.slug = result["slug"]
             changed = True
-            changed_proj_settings["new_slug"] = project.slug
+            changed_proj_settings["new_slug"] = proj.slug
             changed_proj_settings["old_slug"] = old_slug
 
         if result.get("name"):
-            project.name = result["name"]
+            proj.name = result["name"]
             changed = True
-            changed_proj_settings["new_project"] = project.name
+            changed_proj_settings["new_project"] = proj.name
 
         if result.get("platform"):
-            project.platform = result["platform"]
+            proj.platform = result["platform"]
             changed = True
 
         if changed:
-            project.save()
+            proj.save()
             if old_slug:
-                ProjectRedirect.record(project, old_slug)
+                ProjectRedirect.record(proj, old_slug)
 
         if result.get("isBookmarked"):
             try:
                 with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
+                    ProjectBookmark.objects.create(project_id=proj.id, user_id=req.user.id)
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+            ProjectBookmark.objects.filter(project_id=proj.id, user_id=req.user.id).delete()
 
         if result.get("digestsMinDelay"):
-            project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
+            proj.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):
-            project.update_option("digests:mail:maximum_delay", result["digestsMaxDelay"])
+            proj.update_option("digests:mail:maximum_delay", result["digestsMaxDelay"])
         if result.get("subjectPrefix") is not None:
-            if project.update_option("mail:subject_prefix", result["subjectPrefix"]):
+            if proj.update_option("mail:subject_prefix", result["subjectPrefix"]):
                 changed_proj_settings["mail:subject_prefix"] = result["subjectPrefix"]
         if result.get("subjectTemplate"):
-            project.update_option("mail:subject_template", result["subjectTemplate"])
+            proj.update_option("mail:subject_template", result["subjectTemplate"])
         if result.get("scrubIPAddresses") is not None:
-            if project.update_option("sentry:scrub_ip_address", result["scrubIPAddresses"]):
+            if proj.update_option("sentry:scrub_ip_address", result["scrubIPAddresses"]):
                 changed_proj_settings["sentry:scrub_ip_address"] = result["scrubIPAddresses"]
         if result.get("groupingEnhancements") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:grouping_enhancements", result["groupingEnhancements"]
             ):
                 changed_proj_settings["sentry:grouping_enhancements"] = result[
                     "groupingEnhancements"
                 ]
         if result.get("fingerprintingRules") is not None:
-            if project.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
+            if proj.update_option("sentry:fingerprinting_rules", result["fingerprintingRules"]):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
         if result.get("securityToken") is not None:
-            if project.update_option("sentry:token", result["securityToken"]):
+            if proj.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
         if result.get("securityTokenHeader") is not None:
-            if project.update_option("sentry:token_header", result["securityTokenHeader"]):
+            if proj.update_option("sentry:token_header", result["securityTokenHeader"]):
                 changed_proj_settings["sentry:token_header"] = result["securityTokenHeader"]
         if result.get("verifySSL") is not None:
-            if project.update_option("sentry:verify_ssl", result["verifySSL"]):
+            if proj.update_option("sentry:verify_ssl", result["verifySSL"]):
                 changed_proj_settings["sentry:verify_ssl"] = result["verifySSL"]
         if result.get("dataScrubber") is not None:
-            if project.update_option("sentry:scrub_data", result["dataScrubber"]):
+            if proj.update_option("sentry:scrub_data", result["dataScrubber"]):
                 changed_proj_settings["sentry:scrub_data"] = result["dataScrubber"]
         if result.get("dataScrubberDefaults") is not None:
-            if project.update_option("sentry:scrub_defaults", result["dataScrubberDefaults"]):
+            if proj.update_option("sentry:scrub_defaults", result["dataScrubberDefaults"]):
                 changed_proj_settings["sentry:scrub_defaults"] = result["dataScrubberDefaults"]
         if result.get("sensitiveFields") is not None:
-            if project.update_option("sentry:sensitive_fields", result["sensitiveFields"]):
+            if proj.update_option("sentry:sensitive_fields", result["sensitiveFields"]):
                 changed_proj_settings["sentry:sensitive_fields"] = result["sensitiveFields"]
         if result.get("safeFields") is not None:
-            if project.update_option("sentry:safe_fields", result["safeFields"]):
+            if proj.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
         if result.get("highlightContext") is not None:
-            if project.update_option("sentry:highlight_context", result["highlightContext"]):
+            if proj.update_option("sentry:highlight_context", result["highlightContext"]):
                 changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
         if result.get("highlightTags") is not None:
-            if project.update_option("sentry:highlight_tags", result["highlightTags"]):
+            if proj.update_option("sentry:highlight_tags", result["highlightTags"]):
                 changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
         if "storeCrashReports" in result:
-            if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
+            if proj.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
                 if result["storeCrashReports"] is None:
-                    project.delete_option("sentry:store_crash_reports")
+                    proj.delete_option("sentry:store_crash_reports")
                 else:
-                    project.update_option("sentry:store_crash_reports", result["storeCrashReports"])
+                    proj.update_option("sentry:store_crash_reports", result["storeCrashReports"])
         if result.get("relayPiiConfig") is not None:
-            if project.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
+            if proj.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
                 changed_proj_settings["sentry:relay_pii_config"] = (
                     result["relayPiiConfig"].strip() or None
                 )
         if result.get("builtinSymbolSources") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:builtin_symbol_sources", result["builtinSymbolSources"]
             ):
                 changed_proj_settings["sentry:builtin_symbol_sources"] = result[
                     "builtinSymbolSources"
                 ]
         if result.get("symbolSources") is not None:
-            if project.update_option("sentry:symbol_sources", result["symbolSources"]):
+            if proj.update_option("sentry:symbol_sources", result["symbolSources"]):
                 # Redact secrets so they don't get logged directly to the Audit Log
                 sources_json = result["symbolSources"] or None
                 try:
@@ -908,45 +908,45 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:symbol_sources"] = redacted_sources
         if "defaultEnvironment" in result:
             if result["defaultEnvironment"] is None:
-                project.delete_option("sentry:default_environment")
+                proj.delete_option("sentry:default_environment")
             else:
-                project.update_option("sentry:default_environment", result["defaultEnvironment"])
+                proj.update_option("sentry:default_environment", result["defaultEnvironment"])
         # resolveAge can be None
         if "resolveAge" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:resolve_age",
                 0 if result.get("resolveAge") is None else int(result["resolveAge"]),
             ):
                 changed_proj_settings["sentry:resolve_age"] = result["resolveAge"]
         if result.get("scrapeJavaScript") is not None:
-            if project.update_option("sentry:scrape_javascript", result["scrapeJavaScript"]):
+            if proj.update_option("sentry:scrape_javascript", result["scrapeJavaScript"]):
                 changed_proj_settings["sentry:scrape_javascript"] = result["scrapeJavaScript"]
         if result.get("enableAutoReleaseCreation") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:enable_auto_release_creation", result["enableAutoReleaseCreation"]
             ):
                 changed_proj_settings["sentry:enable_auto_release_creation"] = result[
                     "enableAutoReleaseCreation"
                 ]
         if result.get("allowedDomains"):
-            if project.update_option("sentry:origins", result["allowedDomains"]):
+            if proj.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
         if result.get("tempestFetchScreenshots") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:tempest_fetch_screenshots", result["tempestFetchScreenshots"]
             ):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
         if result.get("scmSourceContextEnabled") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:scm_source_context_enabled", result["scmSourceContextEnabled"]
             ):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
                 ]
         if result.get("enableNativeSourceServerMapping") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:enable_native_source_server_mapping",
                 result["enableNativeSourceServerMapping"],
             ):
@@ -954,7 +954,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "enableNativeSourceServerMapping"
                 ]
         if result.get("targetSampleRate") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
             ):
                 changed_proj_settings["sentry:target_sample_rate"] = round(
@@ -962,34 +962,34 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
-            if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
+            if proj.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
 
         if result.get("autofixAutomationTuning") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
             ):
                 changed_proj_settings["sentry:autofix_automation_tuning"] = result[
                     "autofixAutomationTuning"
                 ]
         if result.get("seerScannerAutomation") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:seer_scanner_automation", result["seerScannerAutomation"]
             ):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
         if "seerNightshiftTweaks" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:seer_nightshift_tweaks", result["seerNightshiftTweaks"]
             ):
                 changed_proj_settings["sentry:seer_nightshift_tweaks"] = result[
                     "seerNightshiftTweaks"
                 ]
         if result.get("preprodSizeStatusChecksEnabled") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_status_checks_enabled",
                 result["preprodSizeStatusChecksEnabled"],
             ):
@@ -997,7 +997,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSizeStatusChecksEnabled"
                 ]
         if result.get("preprodSizeStatusChecksRules") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_status_checks_rules",
                 result["preprodSizeStatusChecksRules"],
             ):
@@ -1005,7 +1005,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSizeStatusChecksRules"
                 ]
         if result.get("preprodSizePrCommentsEnabled") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_pr_comments_enabled",
                 result["preprodSizePrCommentsEnabled"],
             ):
@@ -1013,7 +1013,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSizePrCommentsEnabled"
                 ]
         if result.get("preprodSizePrCommentsRules") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_pr_comments_rules",
                 result["preprodSizePrCommentsRules"],
             ):
@@ -1022,14 +1022,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ]
 
         if "preprodSizeEnabledByCustomer" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_enabled_by_customer", result["preprodSizeEnabledByCustomer"]
             ):
                 changed_proj_settings["sentry:preprod_size_enabled_by_customer"] = result[
                     "preprodSizeEnabledByCustomer"
                 ]
         if "preprodSizeEnabledQuery" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_size_enabled_query",
                 coerce_to_string_or_none(result["preprodSizeEnabledQuery"]),
             ):
@@ -1037,7 +1037,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSizeEnabledQuery"
                 ]
         if "preprodDistributionEnabledByCustomer" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_distribution_enabled_by_customer",
                 result["preprodDistributionEnabledByCustomer"],
             ):
@@ -1045,7 +1045,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodDistributionEnabledByCustomer"
                 ]
         if "preprodDistributionEnabledQuery" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_distribution_enabled_query",
                 coerce_to_string_or_none(result["preprodDistributionEnabledQuery"]),
             ):
@@ -1053,7 +1053,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodDistributionEnabledQuery"
                 ]
         if result.get("preprodSnapshotStatusChecksEnabled") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_status_checks_enabled",
                 result["preprodSnapshotStatusChecksEnabled"],
             ):
@@ -1061,7 +1061,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSnapshotStatusChecksEnabled"
                 ]
         if result.get("preprodSnapshotStatusChecksFailOnAdded") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_status_checks_fail_on_added",
                 result["preprodSnapshotStatusChecksFailOnAdded"],
             ):
@@ -1069,7 +1069,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotStatusChecksFailOnAdded"]
                 )
         if result.get("preprodSnapshotStatusChecksFailOnRemoved") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_status_checks_fail_on_removed",
                 result["preprodSnapshotStatusChecksFailOnRemoved"],
             ):
@@ -1077,7 +1077,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotStatusChecksFailOnRemoved"]
                 )
         if result.get("preprodSnapshotStatusChecksFailOnChanged") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_status_checks_fail_on_changed",
                 result["preprodSnapshotStatusChecksFailOnChanged"],
             ):
@@ -1085,7 +1085,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotStatusChecksFailOnChanged"]
                 )
         if result.get("preprodSnapshotStatusChecksFailOnRenamed") is not None:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_status_checks_fail_on_renamed",
                 result["preprodSnapshotStatusChecksFailOnRenamed"],
             ):
@@ -1093,7 +1093,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotStatusChecksFailOnRenamed"]
                 )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",
                 result["preprodDistributionPrCommentsEnabledByCustomer"],
             ):
@@ -1101,7 +1101,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:preprod_distribution_pr_comments_enabled_by_customer"
                 ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
         if "preprodSnapshotPrCommentsEnabled" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_pr_comments_enabled",
                 result["preprodSnapshotPrCommentsEnabled"],
             ):
@@ -1109,7 +1109,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSnapshotPrCommentsEnabled"
                 ]
         if "preprodSnapshotPrCommentsPostOnAdded" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_pr_comments_post_on_added",
                 result["preprodSnapshotPrCommentsPostOnAdded"],
             ):
@@ -1117,7 +1117,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "preprodSnapshotPrCommentsPostOnAdded"
                 ]
         if "preprodSnapshotPrCommentsPostOnRemoved" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_pr_comments_post_on_removed",
                 result["preprodSnapshotPrCommentsPostOnRemoved"],
             ):
@@ -1125,7 +1125,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotPrCommentsPostOnRemoved"]
                 )
         if "preprodSnapshotPrCommentsPostOnChanged" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_pr_comments_post_on_changed",
                 result["preprodSnapshotPrCommentsPostOnChanged"],
             ):
@@ -1133,7 +1133,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     result["preprodSnapshotPrCommentsPostOnChanged"]
                 )
         if "preprodSnapshotPrCommentsPostOnRenamed" in result:
-            if project.update_option(
+            if proj.update_option(
                 "sentry:preprod_snapshot_pr_comments_post_on_renamed",
                 result["preprodSnapshotPrCommentsPostOnRenamed"],
             ):
@@ -1142,132 +1142,132 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
-                project.delete_option("sentry:debug_files_role")
+                proj.delete_option("sentry:debug_files_role")
                 changed_proj_settings["sentry:debug_files_role"] = None
             else:
-                if project.update_option("sentry:debug_files_role", result["debugFilesRole"]):
+                if proj.update_option("sentry:debug_files_role", result["debugFilesRole"]):
                     changed_proj_settings["sentry:debug_files_role"] = result["debugFilesRole"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
             if "sentry:origins" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:origins", clean_newline_inputs(options["sentry:origins"])
                 )
             if "sentry:resolve_age" in options:
-                project.update_option("sentry:resolve_age", int(options["sentry:resolve_age"]))
+                proj.update_option("sentry:resolve_age", int(options["sentry:resolve_age"]))
             if "sentry:scrub_data" in options:
-                project.update_option("sentry:scrub_data", bool(options["sentry:scrub_data"]))
+                proj.update_option("sentry:scrub_data", bool(options["sentry:scrub_data"]))
             if "sentry:scrub_defaults" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:scrub_defaults", bool(options["sentry:scrub_defaults"])
                 )
             if "sentry:safe_fields" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:safe_fields",
                     [s.strip().lower() for s in options["sentry:safe_fields"]],
                 )
             if "sentry:store_crash_reports" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:store_crash_reports",
                     convert_crashreport_count(
                         options["sentry:store_crash_reports"], allow_none=True
                     ),
                 )
             if "sentry:relay_pii_config" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:relay_pii_config",
                     options["sentry:relay_pii_config"].strip() or None,
                 )
             if "sentry:sensitive_fields" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:sensitive_fields",
                     [s.strip().lower() for s in options["sentry:sensitive_fields"]],
                 )
             if "sentry:scrub_ip_address" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:scrub_ip_address", bool(options["sentry:scrub_ip_address"])
                 )
             if "sentry:grouping_config" in options:
-                project.update_option("sentry:grouping_config", options["sentry:grouping_config"])
+                proj.update_option("sentry:grouping_config", options["sentry:grouping_config"])
             if "sentry:fingerprinting_rules" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:fingerprinting_rules", options["sentry:fingerprinting_rules"]
                 )
             if "mail:subject_prefix" in options:
-                project.update_option("mail:subject_prefix", options["mail:subject_prefix"])
+                proj.update_option("mail:subject_prefix", options["mail:subject_prefix"])
             if "sentry:default_environment" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:default_environment", options["sentry:default_environment"]
                 )
             if "sentry:csp_ignored_sources_defaults" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:csp_ignored_sources_defaults",
                     bool(options["sentry:csp_ignored_sources_defaults"]),
                 )
             if "sentry:csp_ignored_sources" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:csp_ignored_sources",
                     clean_newline_inputs(options["sentry:csp_ignored_sources"]),
                 )
             if "sentry:blacklisted_ips" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["sentry:blacklisted_ips"]),
                 )
             if "feedback:branding" in options:
-                project.update_option(
+                proj.update_option(
                     "feedback:branding", "1" if options["feedback:branding"] else "0"
                 )
             if "sentry:replay_rage_click_issues" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
                 )
             if "sentry:replay_hydration_error_issues" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:replay_hydration_error_issues",
                     bool(options["sentry:replay_hydration_error_issues"]),
                 )
             if "sentry:feedback_user_report_notifications" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:feedback_user_report_notifications",
                     bool(options["sentry:feedback_user_report_notifications"]),
                 )
             if "sentry:feedback_ai_spam_detection" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
                 )
             if "sentry:toolbar_allowed_origins" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:toolbar_allowed_origins",
                     clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
                 )
             if "sentry:relay_automatic_json_expansion" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:relay_automatic_json_expansion",
                     bool(options["sentry:relay_automatic_json_expansion"]),
                 )
             if "filters:react-hydration-errors" in options:
-                project.update_option(
+                proj.update_option(
                     "filters:react-hydration-errors",
                     "1" if bool(options["filters:react-hydration-errors"]) else "0",
                 )
             if "filters:chunk-load-error" in options:
-                project.update_option(
+                proj.update_option(
                     "filters:chunk-load-error",
                     "1" if bool(options["filters:chunk-load-error"]) else "0",
                 )
             if "filters:blacklisted_ips" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
             if f"filters:{FilterTypes.RELEASES}" in options:
-                if features.has("projects:custom-inbound-filters", project, actor=request.user):
+                if features.has("projects:custom-inbound-filters", proj, actor=req.user):
                     set_list(
-                        project,
+                        proj,
                         FilterTypes.RELEASES,
                         clean_lines(
                             FilterTypes.RELEASES,
@@ -1277,9 +1277,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
-                if features.has("projects:custom-inbound-filters", project, actor=request.user):
+                if features.has("projects:custom-inbound-filters", proj, actor=req.user):
                     set_list(
-                        project,
+                        proj,
                         FilterTypes.ERROR_MESSAGES,
                         clean_lines(
                             FilterTypes.ERROR_MESSAGES,
@@ -1290,12 +1290,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.LOG_MESSAGES}" in options:
                 if features.has(
-                    "projects:custom-inbound-filters", project, actor=request.user
+                    "projects:custom-inbound-filters", proj, actor=req.user
                 ) and features.has(
-                    "organizations:ourlogs-ingestion", project.organization, actor=request.user
+                    "organizations:ourlogs-ingestion", proj.organization, actor=req.user
                 ):
                     set_list(
-                        project,
+                        proj,
                         FilterTypes.LOG_MESSAGES,
                         clean_lines(
                             FilterTypes.LOG_MESSAGES,
@@ -1306,12 +1306,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.TRACE_METRIC_NAMES}" in options:
                 if features.has(
-                    "projects:custom-inbound-filters", project, actor=request.user
+                    "projects:custom-inbound-filters", proj, actor=req.user
                 ) and features.has(
-                    "organizations:tracemetrics-ingestion", project.organization, actor=request.user
+                    "organizations:tracemetrics-ingestion", proj.organization, actor=req.user
                 ):
                     set_list(
-                        project,
+                        proj,
                         FilterTypes.TRACE_METRIC_NAMES,
                         clean_lines(
                             FilterTypes.TRACE_METRIC_NAMES,
@@ -1321,39 +1321,39 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if "copy_from_project" in result:
-                if not project.copy_settings_from(result["copy_from_project"]):
-                    return Response({"detail": "Copy project settings failed."}, status=409)
+                if not proj.copy_settings_from(result["copy_from_project"]):
+                    return Response({"detail": "Copy proj settings failed."}, status=409)
 
             if "sentry:dynamic_sampling_biases" in changed_proj_settings:
                 self.dynamic_sampling_biases_audit_log(
-                    project,
-                    request,
+                    proj,
+                    req,
                     old_data.get("dynamicSamplingBiases"),
                     result.get("dynamicSamplingBiases"),
                 )
                 if len(changed_proj_settings) == 1:
                     body_partial: _ProjectDetailsResponse = serialize(
-                        project, request.user, DetailedProjectSerializer()
+                        proj, req.user, DetailedProjectSerializer()
                     )
                     return Response(body_partial)
 
             if "sentry:uptime_autodetection" in options:
-                project.update_option(
+                proj.update_option(
                     "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
                 )
 
         self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=project.id,
+            req=req,
+            organization=proj.organization,
+            target_object=proj.id,
             event=audit_log.get_event_id("PROJECT_EDIT"),
-            data={**changed_proj_settings, **project.get_audit_log_data()},
+            data={**changed_proj_settings, **proj.get_audit_log_data()},
         )
 
         body: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer()
+            proj, req.user, DetailedProjectSerializer()
         )
-        if not has_dynamic_sampling(project.organization):
+        if not has_dynamic_sampling(proj.organization):
             body["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually
@@ -1370,65 +1370,65 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project: Project) -> Response[None] | Response[str]:
+    def delete(self, req: Request, proj: Project) -> Response[None] | Response[str]:
         """
-        Schedules a project for deletion.
+        Schedules a proj for deletion.
 
         Deletion happens asynchronously and therefore is not immediate. However once deletion has
-        begun the state of a project changes and will be hidden from most public views.
+        begun the state of a proj changes and will be hidden from most public views.
         """
-        if project.is_internal_project():
+        if proj.is_internal_project():
             return Response(
                 '{"error": "Cannot remove projects internally used by Sentry."}',
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # In most cases we want to confirm password before deleting a project, but this isn't
+        # In most cases we want to confirm password before deleting a proj, but this isn't
         # necessary if we never received any events in the first place. This allows us to avoid
-        # password confirmation in onboarding when undoing project creation.
-        if project.first_event is not None and not is_considered_sudo(request):
-            raise SudoRequired(request.user)
+        # password confirmation in onboarding when undoing proj creation.
+        if proj.first_event is not None and not is_considered_sudo(req):
+            raise SudoRequired(req.user)
 
-        updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
+        updated = Project.objects.filter(id=proj.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = CellScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = CellScheduledDeletion.schedule(proj, days=0, actor=req.user)
 
             common_audit_data = {
-                "organization": project.organization,
-                "target_object": project.id,
+                "organization": proj.organization,
+                "target_object": proj.id,
                 "transaction_id": scheduled.id,
             }
 
-            if request.data.get("origin"):
+            if req.data.get("origin"):
                 self.create_audit_entry(
                     **common_audit_data,
-                    request=request,
+                    req=req,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
                     data={
-                        **project.get_audit_log_data(),
-                        "origin": request.data.get("origin"),
+                        **proj.get_audit_log_data(),
+                        "origin": req.data.get("origin"),
                     },
                 )
             else:
                 self.create_audit_entry(
                     **common_audit_data,
-                    request=request,
+                    req=req,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
-                    data={**project.get_audit_log_data()},
+                    data={**proj.get_audit_log_data()},
                 )
 
-            project.rename_on_pending_deletion()
+            proj.rename_on_pending_deletion()
 
-            # Tell seer to delete all the project's grouping records
-            if project.get_option("sentry:similarity_backfill_completed"):
-                call_seer_delete_project_grouping_records.apply_async(args=[project.id])
+            # Tell seer to delete all the proj's grouping records
+            if proj.get_option("sentry:similarity_backfill_completed"):
+                call_seer_delete_project_grouping_records.apply_async(args=[proj.id])
 
         return Response(status=204)
 
     def dynamic_sampling_biases_audit_log(
-        self, project, request, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
+        self, proj, req, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
     ):
         """
         Compares the previous and next dynamic sampling biases object, triggering audit logs according to the changes.
@@ -1458,12 +1458,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 old_bias is not None and new_bias["active"] != old_bias["active"]
             ):
                 self.create_audit_entry(
-                    request=request,
-                    organization=project.organization,
-                    target_object=project.id,
+                    req=req,
+                    organization=proj.organization,
+                    target_object=proj.id,
                     event=audit_log.get_event_id(
                         "SAMPLING_BIAS_ENABLED" if new_bias["active"] else "SAMPLING_BIAS_DISABLED"
                     ),
-                    data={**project.get_audit_log_data(), "name": bias_id},
+                    data={**proj.get_audit_log_data(), "name": bias_id},
                 )
                 return

@@ -65,8 +65,8 @@ class ExportedDataSerializer(Serializer):
             file_name = file.name
 
         return {
-            "id": obj.id,
             "user": attrs.get("user"),
+            "id": obj.id,
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,

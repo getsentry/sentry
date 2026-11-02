@@ -14,7 +14,7 @@ from sentry.models.search_common import SearchType
 
 class RecentSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=False, allow_blank=True)
 
 
 class OrganizationRecentSearchPermission(OrganizationPermission):

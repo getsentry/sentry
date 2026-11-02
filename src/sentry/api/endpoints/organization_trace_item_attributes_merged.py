@@ -82,7 +82,7 @@ class OrganizationTraceItemAttributesMergedEndpointSerializer(serializers.Serial
     substringMatch = serializers.CharField(required=False, source="substring_match")
     search = serializers.CharField(required=False, allow_blank=True)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
-    sort = serializers.ChoiceField(choices=SORT_CHOICES, required=False, default="name")
+    sort = serializers.ChoiceField(choices=SORT_CHOICES, required=False, default="-count")
 
 
 def search_merged_attributes(

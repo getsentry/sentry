@@ -53,7 +53,7 @@ class OrganizationWeeklyReportProjectExclusionsEndpoint(OrganizationEndpoint):
             isinstance(pid, int) for pid in project_ids
         ):
             return Response(
-                {"detail": "projectIds must be a list of integers"},
+                {"detail": "projectIds must be a list of integer project IDs"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

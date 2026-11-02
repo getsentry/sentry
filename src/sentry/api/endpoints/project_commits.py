@@ -43,10 +43,5 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         if query:
             queryset = queryset.filter(key__istartswith=query)
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by=("key", "-date_added") if query else "-date_added",
-            on_results=lambda x: serialize(x, request.user),
-            paginator_cls=OffsetPaginator,
-        )
+        queryset = queryset.order_by(*(("key", "-date_added") if query else ("-date_added",)))
+        return Response(serialize(list(queryset), request.user))

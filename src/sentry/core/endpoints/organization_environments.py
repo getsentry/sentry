@@ -71,4 +71,5 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
             )
             .order_by("name")
         )
-        return Response(serialize(list(queryset), request.user, EnvironmentSerializer()))
+        environments = list(queryset)
+        return Response(serialize(environments, request.user, EnvironmentSerializer()))

@@ -43,6 +43,7 @@ class AuthLoginRequestSerializer(CamelSnakeSerializer[AuthLoginRequest]):
     username = serializers.CharField(allow_blank=True)
     password = serializers.CharField(allow_blank=True, trim_whitespace=False)
     org_slug = serializers.CharField(allow_null=True, default=None, required=False)
+    remember_me = serializers.BooleanField(required=False, default=False)
 
 
 @extend_schema(tags=["Users"])

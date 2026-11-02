@@ -28,6 +28,10 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         :auth: required
         """
         provider_list = []
+        selected = request.GET.get("selectedProject")
+        if selected:
+            project = Project.objects.get(id=selected, organization_id=organization.id)
+            provider_list.append({"key": "project", "name": project.slug, "requiredFeature": None})
         for k, v in manager:
             if not v.is_partner and k != ChannelName.FLY_NON_PARTNER.value:
                 provider_list.append(

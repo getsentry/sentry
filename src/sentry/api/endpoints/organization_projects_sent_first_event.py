@@ -32,4 +32,8 @@ class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
         """
         projects = self.get_projects(request, organization)
         seen_first_event = any(p.first_event for p in projects)
+        anchor_id = request.GET.get("anchorProject")
+        if anchor_id:
+            anchor = Project.objects.get(id=anchor_id)
+            seen_first_event = seen_first_event or bool(anchor.first_event)
         return Response(serialize({"sentFirstEvent": seen_first_event}, request.user))
