@@ -1,6 +1,13 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {usePullRequestDiffs} from 'sentry/views/seerExplorer/hooks/usePullRequestDiffs';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -54,7 +61,7 @@ describe('usePullRequestDiffs', () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith(
       '/organizations/org-slug/repos/pull-request-files/',
-      expect.objectContaining({query: {repo: REPO, number: 42}})
+      expect.objectContaining({query: {repo: REPO, number: 42, commit_sha: 'abc123'}})
     );
 
     act(() =>
@@ -66,6 +73,44 @@ describe('usePullRequestDiffs', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(result.current.diffs).toEqual({[REPO]: {status: 'success', files}})
+    );
+  });
+
+  it("doesn't show the old diff after a push made while unmounted", async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/pull-request-files/',
+      body: {files: []},
+    });
+    function Diffs({commitSha}: {commitSha: string}) {
+      const diffs = usePullRequestDiffs({
+        enabled: true,
+        organizationSlug: 'org-slug',
+        repoPRStates: {[REPO]: {...prState, commit_sha: commitSha}},
+      });
+      return <div>{diffs[REPO]?.status}</div>;
+    }
+    // One render keeps one query client across the remount.
+    function Panel() {
+      const [commitSha, setCommitSha] = useState<string | null>('abc123');
+      return (
+        <Fragment>
+          <button onClick={() => setCommitSha(null)}>Close</button>
+          <button onClick={() => setCommitSha('def456')}>Reopen after a push</button>
+          {commitSha && <Diffs commitSha={commitSha} />}
+        </Fragment>
+      );
+    }
+    render(<Panel />);
+    expect(await screen.findByText('success')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reopen after a push'}));
+
+    // The diff cached before the push is still fresh, but lacks the pushed edits.
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    expect(request).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/repos/pull-request-files/',
+      expect.objectContaining({query: {repo: REPO, number: 42, commit_sha: 'def456'}})
     );
   });
 

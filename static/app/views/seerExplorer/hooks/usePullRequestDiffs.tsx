@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {useQueries, useQueryClient, type UseQueryResult} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
+import {useQueries, type UseQueryResult} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {
@@ -52,7 +52,14 @@ export function usePullRequestDiffs({
           '/organizations/$organizationIdOrSlug/repos/pull-request-files/',
           {
             path: {organizationIdOrSlug: organizationSlug},
-            query: {repo: state.repo_name, number: state.pr_number},
+            // The endpoint ignores `commit_sha`. It keys the cache by Seer's last push, so a
+            // push, even one made while this was unmounted, never shows the old diff: it lacks
+            // the pushed edits, which have already left the unpushed changes.
+            query: {
+              repo: state.repo_name,
+              number: state.pr_number,
+              commit_sha: state.commit_sha ?? undefined,
+            },
             staleTime: 60_000,
           }
         ),
@@ -60,21 +67,6 @@ export function usePullRequestDiffs({
       })),
     [states, organizationSlug, enabled]
   );
-
-  // Seer's pushes change the PR, so fetch its diff again after each one. Reset rather than
-  // invalidate: the cached diff lacks the pushed edits, which have already left the unpushed
-  // changes, so showing it until the refetch lands would drop them.
-  const queryClient = useQueryClient();
-  const pushedCommits = useRef(new Map<string, string | null>());
-  useEffect(() => {
-    states.forEach((state, index) => {
-      const previous = pushedCommits.current.get(state.repo_name);
-      if (previous !== undefined && previous !== state.commit_sha) {
-        queryClient.resetQueries({queryKey: queries[index]!.queryKey});
-      }
-      pushedCommits.current.set(state.repo_name, state.commit_sha);
-    });
-  }, [states, queries, queryClient]);
 
   return useQueries({queries, combine});
 }
