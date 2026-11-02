@@ -299,6 +299,7 @@ export function MetricQueryRows({
           analyticsSource="dashboards"
           transformations={plottedTransformations}
           layout="inline"
+          size="sm"
           onChange={setPlottedTransformations}
         />
       )}

@@ -987,6 +987,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                   analyticsSource="dashboards"
                                   transformations={fieldTransformations}
                                   layout="inline"
+                                  size="sm"
                                   onChange={setFieldTransformations}
                                 />
                               )}

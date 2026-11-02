@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconSettings} from '@sentry/icons/settings';
@@ -23,6 +24,7 @@ import type {TraceItemDataset} from 'sentry/views/explore/types';
 type FillMethod = 'zero' | 'locf' | 'linear';
 type SmoothMethod = 'sma' | 'ema' | 'asap';
 type TransformationLayout = 'stacked' | 'inline';
+type TransformationControlSize = 'sm' | 'md';
 type Transformation =
   | {kind: 'fill'; method: FillMethod}
   | {kind: 'smooth'; method: 'sma'; window: number}
@@ -146,6 +148,7 @@ interface Props {
 
 interface TransformationRowsProps extends Props {
   layout?: TransformationLayout;
+  size?: TransformationControlSize;
 }
 
 export function VisualizeTransformationRows({
@@ -153,6 +156,7 @@ export function VisualizeTransformationRows({
   onChange,
   traceItemDataset,
   layout = 'stacked',
+  size = 'md',
   analyticsSource = 'explore',
 }: TransformationRowsProps) {
   const organization = useOrganization();
@@ -169,6 +173,7 @@ export function VisualizeTransformationRows({
             traceItemDataset={traceItemDataset}
             analyticsSource={analyticsSource}
             layout={layout}
+            size={size}
             onChange={value =>
               onChange(transformations.toSpliced(index, 1, formatTransformation(value)))
             }
@@ -293,6 +298,7 @@ interface TransformationRowProps {
   onChange: (value: Transformation) => void;
   onRemove: () => void;
   onTypeChange: (kind: Transformation['kind']) => void;
+  size: TransformationControlSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: Transformation | null;
 }
@@ -304,6 +310,7 @@ function TransformationRow({
   onChange,
   onRemove,
   onTypeChange,
+  size,
   traceItemDataset,
   transformation,
 }: TransformationRowProps) {
@@ -337,8 +344,9 @@ function TransformationRow({
         />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
-            <PageFilterBar condensed>
+            <TransformationSelectBar condensed size={size}>
               <CompactSelect
+                size={size}
                 options={KIND_OPTIONS}
                 value={transformation.kind}
                 trigger={props => (
@@ -351,6 +359,7 @@ function TransformationRow({
               />
               {transformation.kind === 'fill' ? (
                 <CompactSelect
+                  size={size}
                   options={FILL_OPTIONS}
                   menuWidth={320}
                   value={transformation.method}
@@ -371,6 +380,7 @@ function TransformationRow({
                 />
               ) : (
                 <CompactSelect
+                  size={size}
                   options={SMOOTH_OPTIONS}
                   menuWidth={320}
                   value={transformation.method}
@@ -397,7 +407,7 @@ function TransformationRow({
                   }}
                 />
               )}
-            </PageFilterBar>
+            </TransformationSelectBar>
           ) : (
             <Text size="sm">{t('Unsupported transformation')}</Text>
           )}
@@ -408,6 +418,7 @@ function TransformationRow({
               index={index}
               traceItemDataset={traceItemDataset}
               layout={layout}
+              size={size}
               onChange={onChange}
             />
           ) : null}
@@ -420,6 +431,7 @@ function TransformationRow({
           index={index}
           traceItemDataset={traceItemDataset}
           layout={layout}
+          size={size}
           onChange={onChange}
         />
       ) : null}
@@ -432,6 +444,7 @@ interface SmoothingSettingsProps {
   index: number;
   layout: TransformationLayout;
   onChange: (value: SmoothTransformation) => void;
+  size: TransformationControlSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: SmoothTransformation;
 }
@@ -441,6 +454,7 @@ function SmoothingSettings({
   index,
   layout,
   onChange,
+  size,
   traceItemDataset,
   transformation,
 }: SmoothingSettingsProps) {
@@ -463,6 +477,7 @@ function SmoothingSettings({
           {windowLabel}
         </Text>
         <CompactSelect
+          size={size}
           options={WINDOW_OPTIONS}
           value={transformation.window}
           clearable={transformation.method === 'asap'}
@@ -503,6 +518,7 @@ function SmoothingSettings({
             {t('Smoothing Weight')}
           </Text>
           <CompactSelect
+            size={size}
             options={FACTOR_OPTIONS}
             value={transformation.factor}
             clearable
@@ -528,3 +544,9 @@ function SmoothingSettings({
     </Flex>
   );
 }
+
+const TransformationSelectBar = styled(PageFilterBar, {
+  shouldForwardProp: prop => prop !== 'size',
+})<{size: TransformationControlSize}>`
+  height: ${p => p.theme.form[p.size].height};
+`;
