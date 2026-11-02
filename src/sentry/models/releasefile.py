@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Self
+from typing import IO, ClassVar, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -34,6 +34,20 @@ from sentry.utils.urls import urlsplit_best_effort
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
+
+
+def _load_json_object(data: str | bytes) -> dict[str, object]:
+    raw = json.loads(data)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
+
+
+def _load_json_object_from_file(fp: IO[bytes]) -> dict[str, object]:
+    raw = json.load(fp)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
 
 
 ARTIFACT_INDEX_FILENAME = "artifact-index.json"
@@ -157,9 +171,13 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
         files = self.manifest.get("files", {})
-        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+        if not isinstance(files, dict):
+            raise ValueError("expected manifest files to be a JSON object")
+        self.artifact_count = len(files)
+        self._entries_by_url = {
+            cast(str, entry["url"]): (path, entry) for path, entry in files.items()
+        }
 
     def __enter__(self):
         return self
@@ -177,9 +195,8 @@ class ReleaseArchive:
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
-    def _read_manifest(self) -> dict:
-        manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+    def _read_manifest(self) -> dict[str, object]:
+        return _load_json_object(self.read("manifest.json"))
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
         """Return file-like object and headers.
@@ -244,7 +261,7 @@ class _ArtifactIndexGuard:
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self) -> dict | None:
+    def readable_data(self) -> dict[str, object] | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
@@ -253,7 +270,7 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return json.load(fp)
+                return _load_json_object_from_file(fp)
 
     @contextmanager
     def writable_data(self, create: bool, initial_artifact_count=None):
@@ -286,7 +303,7 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
+                    raw_data = _load_json_object_from_file(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
