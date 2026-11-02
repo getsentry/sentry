@@ -94,5 +94,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
             serialize(
                 prev_release_with_commits[0],
                 request.user,
+                # sentry-cli only reads lastCommit, skip the Snuba lookup for first/last seen
+                no_snuba_for_release_creation=True,
             )
         )
