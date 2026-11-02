@@ -384,7 +384,16 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            name="SCIMMemberReplace",
+            fields={
+                "sentryOrgRole": serializers.ChoiceField(
+                    help_text="""The organization role of the member. If unspecified, a role
+                    previously set through SCIM is reset to the organization's default role. The
+                    options are:""",
+                    choices=[role for role in ROLE_CHOICES if role[0] != "owner"],
+                    required=False,
+                ),
+            },
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
