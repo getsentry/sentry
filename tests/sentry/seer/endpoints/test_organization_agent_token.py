@@ -624,6 +624,7 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
+    "OrganizationMemberTeamDetails_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ProjectTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamDetails": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,

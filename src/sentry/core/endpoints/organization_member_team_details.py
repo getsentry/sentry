@@ -44,6 +44,7 @@ from sentry.models.team import Team
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.utils import metrics
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
@@ -338,6 +339,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        # `all_projects` sets has_global_access, which below would let an org:read account
+        # add anyone to any team. Service accounts reach projects only, never teams.
+        if is_service_account_auth(request.auth):
+            return Response(
+                {"detail": "Service accounts can't change team membership."}, status=403
+            )
 
         if not organization_roles.get(member.role).is_team_roles_allowed:
             return Response(
