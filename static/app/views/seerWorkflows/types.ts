@@ -2,6 +2,7 @@ export type WorkflowStrategy =
   | 'agentic_triage'
   | 'agentic_triage_v2'
   | 'breached_metrics'
+  | 'breached_metric_investigation'
   | 'duplicate_monitors';
 
 type SeerWorkflowError = {

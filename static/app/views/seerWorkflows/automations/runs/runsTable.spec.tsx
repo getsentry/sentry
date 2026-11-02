@@ -5,12 +5,6 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {RunsTable} from 'sentry/views/seerWorkflows/automations/runs/runsTable';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
-// TEMPORARY: exercise the runs API instead of placeholder runs
-jest.mock('sentry/views/seerWorkflows/automations/runs/placeholderRuns', () => ({
-  ...jest.requireActual('sentry/views/seerWorkflows/automations/runs/placeholderRuns'),
-  USE_PLACEHOLDER_RUNS: false,
-}));
-
 function makeRun(overrides: Partial<SeerAutomationRun>): SeerAutomationRun {
   return {
     id: '1',

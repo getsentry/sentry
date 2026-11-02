@@ -21,6 +21,12 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
       'Monitors backend metrics and investigates why certain key metrics were breached.'
     ),
   },
+  breached_metric_investigation: {
+    label: t('Breached metrics'),
+    description: t(
+      'Monitors backend metrics and investigates why certain key metrics were breached.'
+    ),
+  },
   duplicate_monitors: {
     label: t('Duplicate monitors'),
   },
