@@ -919,6 +919,8 @@ export function SeerExplorerContent({
             )}
             <InputSection
               enabled={!readOnly && !showLoadError}
+              // The shortcuts listen on the document, which `inert` doesn't stop.
+              shortcutsEnabled={!openChanges}
               disabledPlaceholder={
                 showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
               }

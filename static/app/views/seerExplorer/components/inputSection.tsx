@@ -57,6 +57,8 @@ interface InputSectionProps {
   questionActions?: QuestionActions;
   runChanges?: RepoChanges[];
   runId?: SeerExplorerRunId | null;
+  /** Whether the approval and question shortcuts listen. Off while a view covers the chat. */
+  shortcutsEnabled?: boolean;
 }
 
 export function InputSection({
@@ -79,6 +81,7 @@ export function InputSection({
   questionActions,
   runChanges,
   runId,
+  shortcutsEnabled = true,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // With ask-seer-create-pr the agent opens PRs, so show links to them.
@@ -97,7 +100,7 @@ export function InputSection({
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
-    if (!enabled || !fileApprovalActions) {
+    if (!enabled || !shortcutsEnabled || !fileApprovalActions) {
       return;
     }
 
@@ -121,11 +124,11 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, fileApprovalActions]);
+  }, [enabled, shortcutsEnabled, fileApprovalActions]);
 
   // Handle keyboard shortcuts for questions
   useEffect(() => {
-    if (!enabled || !questionActions) {
+    if (!enabled || !shortcutsEnabled || !questionActions) {
       return;
     }
 
@@ -161,7 +164,7 @@ export function InputSection({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [enabled, questionActions]);
+  }, [enabled, shortcutsEnabled, questionActions]);
 
   // Render disabled input element if not enabled
   if (!enabled) {
