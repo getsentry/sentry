@@ -7,6 +7,9 @@ says what the schedule is for (for SEER_WORKFLOW, a SeerWorkflowConfig id). When
 come due, the action registered for their trigger type is called with a batch of runs.
 Actions should do nothing more than schedule a task or publish a Kafka message per run;
 see `TriggerAction` for the contract.
+
+Runs are never handed off before their scheduled time, and normally within 20 seconds of it,
+but can be arbitrarily late while Cadence is behind. See "Timing" in README.md.
 """
 
 from __future__ import annotations

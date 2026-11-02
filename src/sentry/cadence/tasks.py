@@ -24,6 +24,8 @@ TICK_BATCH_SIZE = 500
 TICK_MAX_BATCHES = 20
 
 
+# TODO: Pick a more appropriate namespace. A backlog of unrelated issues tasks delays the
+# tick, and with it every schedule.
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_tick",
     namespace=issues_tasks,

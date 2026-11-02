@@ -79,6 +79,33 @@ To add a trigger type, add it to `ScheduledTriggerType` and register its action.
 action before anything creates schedules of the new type: runs of a type with no action are
 lost.
 
+## Timing
+
+What Cadence promises about when a run's action is called, relative to the run's
+`scheduled_for`:
+
+- **Never early.** An action is never called for a run before its `scheduled_for`, as
+  measured by the clock of the worker running the tick.
+- **Normally within 20 seconds.** The target is a p99 `cadence.trigger.dispatch_lag` under 20
+  seconds. The tick runs every 10 seconds, so most runs are handed off up to 10 seconds after
+  `scheduled_for`, plus the time to claim and dispatch them.
+- **No upper bound when Cadence is behind.** A run can be arbitrarily late when:
+  - the tick is disabled (`cadence.tick.enabled`) or not running,
+  - the tick task is waiting in its taskbroker queue, which it shares with other tasks,
+  - more runs are due at once than a tick claims (up to 10,000); the rest wait for later
+    ticks.
+
+  A run that came due while Cadence was behind is still delivered once, when Cadence catches
+  up, with its original `scheduled_for`. Occurrences that passed in the meantime are skipped,
+  not caught up. If a very late run should be handled differently, compare `scheduled_for`
+  with the current time.
+
+These cover only the hand-off, when the action is called. When the handed-off work runs,
+such as when a scheduled task is picked up, depends on the consumer and isn't covered.
+
+`scheduled_for` already includes the jitter added to interval schedules, so jitter is part of
+the schedule, not lateness.
+
 ## How it works
 
 `ScheduledTrigger` rows store each schedule and its `next_run_at`. Every 10 seconds the
@@ -86,7 +113,8 @@ lost.
 overlapping ticks split the work), moves each row's `next_run_at` forward, commits, and then
 calls each trigger type's action with that type's runs.
 
-- Runs missed while the tick was behind or disabled are skipped, not caught up.
+- A trigger that fell behind runs once, late, and then resumes its schedule; occurrences it
+  missed are skipped, not caught up (see "Timing").
 - A failing action is logged and counted, and doesn't affect other trigger types.
 - A row that can't be scheduled (an unknown trigger type, or a stored schedule that no longer
   parses) is logged and unscheduled, so it can't block other rows.
