@@ -53,20 +53,22 @@ export function EventDrawerContainer({children}: {children: React.ReactNode}) {
 
 interface EventNavigatorProps {
   /**
-   * Controls for the drawer content, such as pickers, filters, sorting, and
-   * secondary actions. Always aligned to the right.
+   * The drawer's main control: its search, or its main filter or selector when
+   * it has no search. Fills the space on the left; content keeps its natural
+   * width unless it stretches itself.
    */
-  actions?: React.ReactNode;
+  leadingItems?: React.ReactNode;
   /**
-   * Search for the drawer content. Fills the space to the left of the actions.
+   * Secondary controls and actions, such as sorting, pickers, export, or links
+   * to another view. Always right-aligned, even when they are the only control.
    */
-  search?: React.ReactNode;
+  trailingItems?: React.ReactNode;
 }
 
 /**
  * The toolbar between the drawer header and the drawer body.
  */
-export function EventNavigator({search, actions}: EventNavigatorProps) {
+export function EventNavigator({leadingItems, trailingItems}: EventNavigatorProps) {
   return (
     <Flex
       align="center"
@@ -77,14 +79,14 @@ export function EventNavigator({search, actions}: EventNavigatorProps) {
       borderBottom="primary"
       flexShrink={0}
     >
-      {search ? (
+      {leadingItems ? (
         <Container flex="1" minWidth="0">
-          {search}
+          {leadingItems}
         </Container>
       ) : null}
-      {actions ? (
+      {trailingItems ? (
         <Flex align="center" gap="md" flexShrink={0} marginLeft="auto">
-          {actions}
+          {trailingItems}
         </Flex>
       ) : null}
     </Flex>

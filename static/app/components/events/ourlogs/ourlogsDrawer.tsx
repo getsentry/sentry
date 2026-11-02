@@ -100,8 +100,10 @@ export function OurlogsDrawer({
           />
         </DrawerHeader>
         <EventNavigator
-          search={<TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />}
-          actions={
+          leadingItems={
+            <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
+          }
+          trailingItems={
             exploreUrl ? (
               <LinkButton size="sm" to={exploreUrl} openInNewTab>
                 {t('Open in Explore')}

@@ -38,7 +38,7 @@ export function MetricsDrawer({event}: MetricsIssueDrawerProps) {
         />
       </DrawerHeader>
       <EventNavigator
-        search={
+        leadingItems={
           <SearchQueryBuilder
             placeholder={t('Search application metrics for this trace')}
             filterKeys={{}}

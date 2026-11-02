@@ -44,7 +44,7 @@ export function TagsDistributionDrawer({
     <Fragment>
       {tagKey ? (
         <EventNavigator
-          actions={
+          trailingItems={
             <TagExportDropdown
               organization={organization}
               project={project}
@@ -55,7 +55,7 @@ export function TagsDistributionDrawer({
         />
       ) : (
         <EventNavigator
-          search={
+          leadingItems={
             <GroupDistributionsSearchInput
               includeFeatureFlagsTab={includeFeatureFlagsTab}
               search={search}
@@ -68,7 +68,7 @@ export function TagsDistributionDrawer({
               }}
             />
           }
-          actions={
+          trailingItems={
             includeFeatureFlagsTab ? (
               <Fragment>
                 <TagFlagPicker setTab={setTab} tab={DrawerTab.TAGS} />

@@ -72,55 +72,55 @@ function ReleasesDrawerContent({
   return (
     <Fragment>
       <EventNavigator
-        actions={
-          <Fragment>
-            {releaseProjects.length > 1 ? (
-              <CompactSelect
-                size="sm"
-                value={projectId}
-                options={releaseProjects.map(releaseProject => ({
-                  value: String(releaseProject.id),
-                  label: releaseProject.slug,
-                  leadingItems: <ProjectAvatar project={releaseProject} size={16} />,
-                }))}
-                onChange={option => {
-                  navigate(
-                    {
-                      pathname: location.pathname,
-                      query: {
-                        ...location.query,
-                        [ReleasesDrawerFields.RELEASE_PROJECT_ID]: option.value,
-                      },
-                    },
-                    {replace: true}
-                  );
-                }}
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
-                )}
-              />
-            ) : null}
-            <LinkButton
+        leadingItems={
+          releaseProjects.length > 1 ? (
+            <CompactSelect
               size="sm"
-              to={normalizeUrl({
-                pathname: makeReleasesPathname({
-                  path: `/${encodeURIComponent(release)}/`,
-                  organization,
-                }),
-                query: {
-                  project: projectId,
-                },
-              })}
-              onClick={() => {
-                trackAnalytics('releases.drawer_view_full_details', {
-                  organization: organization.id,
-                  project_id: String(projectId),
-                });
+              value={projectId}
+              options={releaseProjects.map(releaseProject => ({
+                value: String(releaseProject.id),
+                label: releaseProject.slug,
+                leadingItems: <ProjectAvatar project={releaseProject} size={16} />,
+              }))}
+              onChange={option => {
+                navigate(
+                  {
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: option.value,
+                    },
+                  },
+                  {replace: true}
+                );
               }}
-            >
-              {t('View Full Details')}
-            </LinkButton>
-          </Fragment>
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
+              )}
+            />
+          ) : null
+        }
+        trailingItems={
+          <LinkButton
+            size="sm"
+            to={normalizeUrl({
+              pathname: makeReleasesPathname({
+                path: `/${encodeURIComponent(release)}/`,
+                organization,
+              }),
+              query: {
+                project: projectId,
+              },
+            })}
+            onClick={() => {
+              trackAnalytics('releases.drawer_view_full_details', {
+                organization: organization.id,
+                project_id: String(projectId),
+              });
+            }}
+          >
+            {t('View Full Details')}
+          </LinkButton>
         }
       />
 

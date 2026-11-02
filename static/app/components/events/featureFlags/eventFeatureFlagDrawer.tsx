@@ -91,7 +91,7 @@ export function EventFeatureFlagDrawer({
           }}
         />
       </DrawerHeader>
-      <EventNavigator search={searchInput} actions={actions} />
+      <EventNavigator leadingItems={searchInput} trailingItems={actions} />
       <EventDrawerBody>
         <KeyValueColumns columnCount={1} maxKeyWidth="70%">
           {() => [

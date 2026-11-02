@@ -67,7 +67,7 @@ export function ActivityDrawer() {
         />
       </DrawerHeader>
       <EventNavigator
-        actions={
+        leadingItems={
           <SegmentedControl
             size="sm"
             aria-label={t('Filter activity')}
