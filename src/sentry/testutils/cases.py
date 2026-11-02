@@ -2039,9 +2039,13 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        if not isinstance(value, list):
-            value = [value]
-        for subvalue in value:
+        span_values: Sequence[dict[str, int] | int]
+        if isinstance(value, list):
+            span_values = value
+        else:
+            span_values = [value]
+
+        for subvalue in span_values:
             self.store_metric(
                 org_id,
                 project,
