@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-from uuid import UUID, uuid4, uuid5
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -11,12 +10,12 @@ from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.investigations.contracts import ActionRequestItem
-from sentry.investigations.models import (
-    InvestigationOrchestrationCommand,
-    InvestigationOrchestrationCommandStatus,
-    InvestigationOrchestrationPhase,
-    InvestigationOrchestrationRun,
+from sentry.notebooks.contracts import ActionRequestItem
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestAnchorType,
+    NotebookActionRequestState,
 )
 from sentry.notebooks.services.action_kinds import get_action_kind, shared_cannot_apply_reason
 from sentry.notebooks.services.action_kinds.base import (
@@ -29,28 +28,11 @@ from sentry.notebooks.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
     CannotApplyReason,
-    FollowUpCommand,
     SettingValue,
 )
-from sentry.investigations.services.orchestration import (
-    accept_orchestration_command,
-    command_can_be_requeued,
-    command_can_be_resent,
-    rebuild_orchestration_source,
-)
-from sentry.investigations.telemetry import (
-    record_action_request_applied,
-    record_action_request_suggested,
-)
-from sentry.notebooks.models import (
-    Notebook,
-    NotebookActionRequest,
-    NotebookActionRequestAnchorType,
-    NotebookActionRequestState,
-)
+from sentry.notebooks.services.producer import NotebookProducerRun, get_producer
 
 logger = logging.getLogger(__name__)
-
 _OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
 

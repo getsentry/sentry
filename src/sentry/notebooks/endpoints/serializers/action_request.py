@@ -4,31 +4,20 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, cast, override
-from uuid import UUID
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.auth.access import Access
-from sentry.investigations.models import (
-    InvestigationOrchestrationCommand,
-    InvestigationOrchestrationCommandStatus,
-    InvestigationOrchestrationRerun,
-)
-from sentry.investigations.seer_client import CommandRejectionCode
-from sentry.investigations.services.action_kinds import (
-    AppliedDetails,
-    get_action_kind,
-    shared_cannot_apply_reason,
-)
-from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
-from sentry.investigations.services.orchestration import follow_up_can_be_retried
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
     NotebookActionRequestAnchorType,
     NotebookBlock,
 )
+from sentry.notebooks.services.action_kinds import get_action_kind, shared_cannot_apply_reason
+from sentry.notebooks.services.action_kinds.base import ActionRequestError, CannotApplyReason
+from sentry.notebooks.services.producer import get_producer
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser

@@ -1,3 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
+
+from rest_framework import serializers
+
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.models import NotebookStatus
+
+
 class InvestigationUpdateValidator(StrictCamelSnakeValidator):
     investigation_version = serializers.IntegerField(
         min_value=1,

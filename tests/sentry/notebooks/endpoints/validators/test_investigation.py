@@ -1,3 +1,12 @@
+from __future__ import annotations
+
+from typing import Any
+
+from rest_framework import serializers
+
+from sentry.notebooks.endpoints.validators import InvestigationUpdateValidator
+
+
 
 
 class TestInvestigationUpdateValidator:

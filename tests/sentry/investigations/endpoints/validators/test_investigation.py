@@ -11,7 +11,6 @@ from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
     InvestigationOrchestrationCommandValidator,
     InvestigationOrchestrationEventValidator,
-    InvestigationUpdateValidator,
 )
 
 

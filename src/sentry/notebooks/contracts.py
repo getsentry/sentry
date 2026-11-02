@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, Literal, TypedDict, cast
 
 import orjson
 from django.utils.dateparse import parse_datetime
@@ -183,6 +183,8 @@ def validate_text_result(value: Any) -> dict[str, Any]:
     serializer = InvestigationTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
+
+
 class ActionRequestAnchor(TypedDict):
     type: Literal["block", "hypothesis"]
     id: str

@@ -13,25 +13,22 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-)
-from sentry.investigations.endpoints.validators import (
-    InvestigationDeleteValidator,
-    InvestigationUpdateValidator,
-)
-from sentry.investigations.services import (
-    archive_investigation_with_orchestration,
-    update_investigation_with_orchestration,
-)
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationEndpoint,
     organization_project_ids,
     service_error,
 )
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+)
+from sentry.notebooks.endpoints.validators import (
+    InvestigationDeleteValidator,
+    InvestigationUpdateValidator,
+)
 from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services.producer import get_producer
 
 
 @extend_schema(tags=["Investigations"])

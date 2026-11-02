@@ -14,8 +14,6 @@ from sentry.notebooks.endpoints.serializers.action_request import (
     InvestigationActionRequestSerializer,
     InvestigationActionRequestSerializerResponse,
 )
-from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.action_requests import STALE
 from sentry.notebooks.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -32,6 +30,8 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSourceType,
 )
+from sentry.notebooks.services.action_requests import STALE
+from sentry.notebooks.services.producer import get_producer
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType

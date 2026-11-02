@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal, TypedDict, cast, get_args
+from typing import Any, Literal, cast, get_args
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -16,6 +16,10 @@ from sentry.investigations.models.orchestration import (
 )
 from sentry.notebooks.contracts import (
     MAX_MARKDOWN_CHARS,
+    ActionPayloadSerializer,
+    ActionRequestItem,
+    RelaxedContractSerializer,
+    StrictCharField,
     StrictContractSerializer,
     json_byte_size,
     validate_query_result,
@@ -534,8 +538,6 @@ class MetadataCompletedPayloadSerializer(_ReportRevisionMixin):
     summary = StrictCharField(max_length=255)
     summaryDescription = StrictCharField(max_length=MAX_SUMMARY_DESCRIPTION_CHARS)
     title = StrictCharField(required=False, max_length=255)
-
-
 
 
 def _payload_serializer(action: Any) -> type[ActionPayloadSerializer] | None:

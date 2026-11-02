@@ -9,7 +9,6 @@ from sentry.investigations.endpoints.validators.orchestration import (
     validate_agentic_source,
 )
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.notebooks.models import NotebookStatus
 
 
 class InvestigationCreateValidator(StrictCamelSnakeValidator):

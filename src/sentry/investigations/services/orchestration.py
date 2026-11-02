@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, get_args
+from typing import Any
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -20,7 +20,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds.base import FollowUpCommandType
 from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,

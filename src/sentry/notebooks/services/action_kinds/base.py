@@ -4,15 +4,16 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from rest_framework.request import Request
 
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
-from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.notebooks.contracts import ActionPayloadSerializer
 from sentry.notebooks.models import Notebook, NotebookActionRequest
+
+    from sentry.notebooks.services.producer import NotebookProducerRun
 
 
 class CannotApplyReason(StrEnum):
@@ -81,8 +82,6 @@ class ApplyContext:
 
 
 FollowUpCommandType = Literal["recheck_action_requests", "rerun_after_connection"]
-
-
 class FollowUpCommand(TypedDict):
     """A command Sentry sends Seer for an action request."""
 
