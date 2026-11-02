@@ -11,6 +11,7 @@ from drf_spectacular.settings import spectacular_settings
 from drf_spectacular.utils import extend_schema
 from drf_spectacular.validation import validate_schema
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,12 +26,14 @@ from sentry.apidocs.hooks import (
 )
 from sentry.apidocs.internal import (
     PATH_ALIASES_EXTENSION,
+    PERMISSIONS_EXTENSION,
     PUBLISH_STATUS_EXTENSION,
     UNDOCUMENTED_EXTENSION,
     InternalGenerator,
 )
 from sentry.apidocs.internal.generator import (
     InternalEndpointEnumerator,
+    _Admitted,
     _build,
     _internal_build,
     internal_postprocessing_hook,
@@ -49,11 +52,30 @@ NOTES_REGEX = (
 PREFIX = "/api/0/organizations/{organization_id_or_slug}"
 
 
-def _endpoint(path: str, status: ApiPublishStatus) -> tuple[Any, Any, str, Any]:
+class Scoped(BasePermission):
+    pass
+
+
+class Impersonated(BasePermission):
+    pass
+
+
+class Staff(BasePermission):
+    pass
+
+
+def _endpoint(
+    path: str, status: ApiPublishStatus, permission_classes: tuple[Any, ...] = ()
+) -> tuple[Any, Any, str, Any]:
     view_class = type(
         "FakeEndpoint",
         (),
-        {"owner": ApiOwner.CRONS, "publish_status": {"GET": status}, "servers": None},
+        {
+            "owner": ApiOwner.CRONS,
+            "publish_status": {"GET": status},
+            "servers": None,
+            "permission_classes": permission_classes,
+        },
     )
     callback = type("FakeCallback", (), {"view_class": view_class})
     return (path, path, "GET", callback)
@@ -128,7 +150,7 @@ class TestPreprocessing:
     def test_admits_every_method_and_records_its_status(self, _write: Any) -> None:
         with _internal_build():
             filtered = internal_preprocessing_hook(ENDPOINTS)
-            publish_status = _build().publish_status
+            publish_status = {key: admitted.status for key, admitted in _build().admitted.items()}
 
         assert [path for path, *_ in filtered] == [
             "/api/0/public/",
@@ -156,6 +178,17 @@ class TestPreprocessing:
 
         assert [path for path, *_ in filtered] == [f"{PREFIX}/issues/{{issue_id}}/"]
 
+    def test_records_the_classes_composed_permissions_guard_on(self, _write: Any) -> None:
+        endpoint = _endpoint(
+            "/api/0/tokens/", ApiPublishStatus.PRIVATE, (Scoped & ~Impersonated, Staff | Scoped)
+        )
+
+        with _internal_build():
+            internal_preprocessing_hook([endpoint])
+            admitted = _build().admitted[("/api/0/tokens/", "get")]
+
+        assert admitted.permissions == ("Impersonated", "Scoped", "Staff")
+
 
 class TestPostprocessing:
     def test_stamps_status_and_skips_reference_checks_on_unpublished(self) -> None:
@@ -169,14 +202,23 @@ class TestPostprocessing:
         }
 
         with _internal_build():
-            _build().publish_status = {
-                ("/api/0/public/", "get"): ApiPublishStatus.PUBLIC,
-                ("/api/0/private/", "get"): ApiPublishStatus.PRIVATE,
+            _build().admitted = {
+                ("/api/0/public/", "get"): _Admitted(ApiPublishStatus.PUBLIC, ("Scoped",)),
+                ("/api/0/private/", "get"): _Admitted(ApiPublishStatus.PRIVATE, ()),
             }
             processed = internal_postprocessing_hook(result, None)
 
-        assert processed["paths"]["/api/0/public/"]["get"][PUBLISH_STATUS_EXTENSION] == "public"
-        assert processed["paths"]["/api/0/private/"]["get"][PUBLISH_STATUS_EXTENSION] == "private"
+        public = processed["paths"]["/api/0/public/"]["get"]
+        private = processed["paths"]["/api/0/private/"]["get"]
+        assert (public[PUBLISH_STATUS_EXTENSION], public[PERMISSIONS_EXTENSION]) == (
+            "public",
+            ["Scoped"],
+        )
+        # An empty list records that the view declares none, unlike an absent extension.
+        assert (private[PUBLISH_STATUS_EXTENSION], private[PERMISSIONS_EXTENSION]) == (
+            "private",
+            [],
+        )
 
     def test_still_checks_published_operations(self) -> None:
         result = {
@@ -185,7 +227,7 @@ class TestPostprocessing:
         }
 
         with _internal_build(), pytest.raises(SentryApiBuildError):
-            _build().publish_status = {("/api/0/public/", "get"): ApiPublishStatus.PUBLIC}
+            _build().admitted = {("/api/0/public/", "get"): _Admitted(ApiPublishStatus.PUBLIC, ())}
             internal_postprocessing_hook(result, None)
 
     def test_stamps_path_aliases(self) -> None:
@@ -198,7 +240,7 @@ class TestPostprocessing:
 
         with _internal_build():
             _build().path_aliases[notes] = [notes, comments]
-            _build().publish_status = {(notes, "get"): ApiPublishStatus.PRIVATE}
+            _build().admitted = {(notes, "get"): _Admitted(ApiPublishStatus.PRIVATE, ())}
             processed = internal_postprocessing_hook(result, None)
 
         assert processed["paths"][notes]["get"][PATH_ALIASES_EXTENSION] == [notes, comments]
@@ -212,6 +254,7 @@ class TestPostprocessing:
         operation = custom_postprocessing_hook(result, None)["paths"]["/api/0/public/"]["get"]
 
         assert PUBLISH_STATUS_EXTENSION not in operation
+        assert PERMISSIONS_EXTENSION not in operation
         assert PATH_ALIASES_EXTENSION not in operation
 
 
@@ -253,7 +296,7 @@ class BoxPatchSerializer(serializers.Serializer[Any]):
 
 class BoxEndpoint(Endpoint):
     owner = ApiOwner.CRONS
-    permission_classes = ()
+    permission_classes = (Scoped,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PUBLIC,
@@ -310,6 +353,7 @@ def test_internal_build_end_to_end(_write: Any) -> None:
         "delete": "private",
     }
     assert operations["get"][PATH_ALIASES_EXTENSION] == ["/api/0/box/items/", "/api/0/box/things/"]
+    assert operations["get"][PERMISSIONS_EXTENSION] == ["Scoped"]
     # Read from the annotation, and closed: a TypedDict lists every key it carries.
     assert _json_schema(operations["get"], "200") == {"$ref": "#/components/schemas/BoxItem"}
     assert schema["components"]["schemas"]["BoxItem"] == {
@@ -347,6 +391,7 @@ def test_published_build_of_the_same_routes_is_unchanged(_write: Any) -> None:
     (operations,) = schema["paths"].values()
     assert list(operations) == ["put"]
     assert PUBLISH_STATUS_EXTENSION not in operations["put"]
+    assert PERMISSIONS_EXTENSION not in operations["put"]
     declared_item = schema["components"]["schemas"]["BoxDeclaredItem"]
     assert "additionalProperties" not in declared_item
     assert declared_item["properties"].keys() == {"name"}
