@@ -1877,6 +1877,40 @@ describe('useWidgetBuilderState', () => {
     });
   });
 
+  describe('linkedDashboards', () => {
+    it('keeps the valid linked dashboards when the URL has a malformed one', () => {
+      const {result} = renderWidgetBuilderState({
+        linkedDashboards: [
+          '{"dashboardId":5,"field":"project"}',
+          'not json',
+          '{"dashboardId":"6","field":"transaction"}',
+        ],
+      });
+
+      expect(result.current.state.linkedDashboards).toEqual([
+        {dashboardId: '5', field: 'project'},
+        {dashboardId: '6', field: 'transaction'},
+      ]);
+    });
+
+    it('keeps the valid linked dashboards when SET_STATE has a malformed one', () => {
+      const {result} = renderWidgetBuilderState();
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            linkedDashboards: ['not json', '{"dashboardId":6,"field":"transaction"}'],
+          },
+        });
+      });
+
+      expect(result.current.state.linkedDashboards).toEqual([
+        {dashboardId: '6', field: 'transaction'},
+      ]);
+    });
+  });
+
   describe('selectedAggregate', () => {
     it('can decode and update selectedAggregate', () => {
       const {result} = renderWidgetBuilderState({

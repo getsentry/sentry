@@ -51,6 +51,7 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {deserializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/linkedDashboards';
 import {
   serializeFields,
   serializeLinkedDashboards,
@@ -1444,21 +1445,6 @@ function deserializeFields(fields: string[]): Column[] {
   });
 }
 
-function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
-  return linkedDashboards
-    .map(linkedDashboard => {
-      const maybeLinkedDashboard = JSON.parse(linkedDashboard);
-      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.field) {
-        return {
-          dashboardId: maybeLinkedDashboard.dashboardId,
-          field: maybeLinkedDashboard.field,
-        } satisfies LinkedDashboard;
-      }
-      return;
-    })
-    .filter(defined);
-}
-
 function deserializeSorts(dataset?: WidgetType) {
   return function (sorts: Sort[]): Sort[] {
     return sorts.map(sort => {
@@ -1557,7 +1543,7 @@ const parseAsQueries = createMultiParser({
 const parseAsStringList = parseAsNativeArrayOf(parseAsString).withDefault([]);
 
 const parseAsLinkedDashboards = createMultiParser({
-  parse: (values: readonly string[]) => deserializeLinkedDashboards([...values]),
+  parse: deserializeLinkedDashboards,
   serialize: serializeLinkedDashboards,
   eq: bothEmpty,
 }).withDefault([]);
