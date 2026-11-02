@@ -29,7 +29,6 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.action_log.activity import refresh_activity_payload
 from sentry.issues.action_log.types import GroupActionLogPayload
 from sentry.issues.derived.processing import ProcessingStrategy, trigger_group_log_processing
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -53,6 +52,7 @@ from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_age
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
+from sentry.utils.action_log.activity_translator import refresh_activity_payload
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
     Actor,

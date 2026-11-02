@@ -6,7 +6,6 @@ from django.db.models import Q
 from django.db.models.functions import Coalesce
 
 from sentry import features
-from sentry.issues.action_log.activity import sync_activity_log_entry
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release, ReleaseStatus
@@ -14,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import sync_activity_log_entry
 
 
 @instrumented_task(
@@ -115,9 +115,10 @@ def _clear_finalized_resolutions(release: Release) -> None:
 
 def _update_resolution_activities(resolutions: Sequence[GroupResolution], release: Release) -> None:
     for resolution in resolutions:
-        with transaction.atomic(using=router.db_for_write(Activity)):
+        # Reuse the finalized-order transaction without a savepoint per activity.
+        with transaction.atomic(using=router.db_for_write(Activity), savepoint=False):
             activity = (
-                Activity.objects.select_for_update()
+                Activity.objects.select_for_update(no_key=True)
                 .filter(
                     group=resolution.group_id,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,

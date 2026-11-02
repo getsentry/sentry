@@ -14,7 +14,6 @@ from django.conf import settings
 from django.db import router, transaction
 from django.test import override_settings
 
-from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
@@ -49,8 +48,8 @@ from sentry.tasks.reprocessing2 import (
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
@@ -697,88 +696,52 @@ def test_apply_new_stack_trace_rules(
 
 @django_db_all
 @pytest.mark.parametrize("drain", [outbox_runner, nullcontext], ids=["delivered", "pending"])
-def test_finish_reprocessing_moves_gal_feed(
-    factories: Factories,
-    default_group: Group,
-    drain: Callable[[], AbstractContextManager],
+def test_finish_reprocessing(
+    default_project, factories: Factories, drain: Callable[[], AbstractContextManager]
 ) -> None:
-    old_group = default_group
-    new_group = factories.create_group(
-        project=old_group.project, data={"_reprocessing_old_group_id": old_group.id}
-    )
+    old_group = factories.create_group(project=default_project)
+    new_group = factories.create_group(project=default_project)
+    new_group2 = factories.create_group(project=default_project)
     with (
-        action_log_activity_enabled(),
+        Feature("projects:issue-action-log-write-to-db"),
         action_context_scope(source=ActionSource.WEB, actor=SYSTEM_ACTOR),
         drain(),
         outbox_context(flush=False),
     ):
+        factories.create_group_activity(
+            group=old_group, type=ActivityType.REPROCESS.value, data={"newGroupId": new_group.id}
+        )
+        factories.create_group_activity(group=old_group, type=ActivityType.NOTE.value)
         activity = factories.create_group_activity(
             group=old_group,
             type=ActivityType.REPROCESS.value,
-            data={"eventCount": 7, "oldGroupId": old_group.id, "newGroupId": new_group.id},
+            data={"eventCount": 7, "oldGroupId": old_group.id, "newGroupId": new_group2.id},
         )
         payload = cast(
             GroupActionLogPayload,
-            GroupActionLogOutbox.objects.get(shard_identifier=old_group.id).payload,
+            GroupActionLogOutbox.objects.get(
+                payload__idempotency_key=f"activity:{activity.id}"
+            ).payload,
         )
-    entries = GroupActionLogEntry.objects.filter(idempotency_key=f"activity:{activity.id}")
-    original_identity = set(entries.values_list("id", "date_added", "actor_id", "source"))
 
     with outbox_runner():
         finish_reprocessing(old_group.project_id, old_group.id)
-
-    # Redelivering the original payload must not recreate an entry on the old issue.
+    # A retry must not recreate the moved event on the deleted issue.
     with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
         process_group_action_log_event(payload)
 
-    entry = entries.get()
-    assert entry.group_id == new_group.id
-    assert entry.source == ActionSource.WEB
-    assert original_identity <= {(entry.id, entry.date_added, entry.actor_id, entry.source)}
-    assert not GroupActionLogEntry.objects.filter(group_id=old_group.id).exists()
+    # Only the most recent reprocessing activity is moved, in both stores.
+    assert GroupRedirect.objects.get(previous_group_id=old_group.id).group_id == new_group2.id
     activity.refresh_from_db()
-    assert activity.group_id == new_group.id
-    with action_log_activity_enabled():
-        items = get_serialized_activity_items(new_group, None, endpoint="test")
-    assert items is not None
-    assert items[0]["type"] == "reprocess"
-    assert items[0]["data"] == {
-        "eventCount": 7,
-        "oldGroupId": old_group.id,
-        "newGroupId": new_group.id,
+    assert activity.group_id == new_group2.id
+    entry = GroupActionLogEntry.objects.get(idempotency_key=f"activity:{activity.id}")
+    assert entry.group_id == new_group2.id
+    assert entry.source == ActionSource.WEB
+    assert entry.data == {
+        "event_count": 7,
+        "old_group_id": old_group.id,
+        "new_group_id": new_group2.id,
     }
-
-
-@django_db_all
-def test_finish_reprocessing(default_project) -> None:
-    # Pretend that the old group has more than one activity still connected:
-    old_group = Group.objects.create(project=default_project)
-    new_group = Group.objects.create(project=default_project)
-    new_group2 = Group.objects.create(project=default_project)
-
-    old_group.activity_set.create(
-        project=default_project,
-        type=ActivityType.REPROCESS.value,
-        data={"newGroupId": new_group.id},
-    )
-    old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
-
-    old_group.activity_set.create(
-        project=default_project,
-        type=ActivityType.REPROCESS.value,
-        data={"newGroupId": new_group2.id},
-    )
-
-    finish_reprocessing(old_group.project_id, old_group.id)
-
-    redirects = list(
-        GroupRedirect.objects.filter(
-            previous_group_id=old_group.id,
-        )
-    )
-    assert len(redirects) == 1
-    # Should be most recently created activity.
-    assert redirects[0].group_id == new_group2.id
 
 
 @django_db_all

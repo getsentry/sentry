@@ -16,7 +16,6 @@ from sentry.issues.action_log import (
     GroupActorType,
     action_context_scope,
 )
-from sentry.issues.action_log.activity import sync_activity_log_entry
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
@@ -30,6 +29,7 @@ from sentry.taskworker.namespaces import issues_reprocessing_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import sync_activity_log_entry
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
 
 # Identifies this task in the self-chain idempotency guard.
@@ -323,7 +323,7 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
         activities = (
-            Activity.objects.select_for_update()
+            Activity.objects.select_for_update(no_key=True)
             .filter(group_id=group_id, type=ActivityType.REPROCESS.value)
             .order_by("-datetime")
         )
