@@ -249,8 +249,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         """
         Create a new custom view for the current organization member.
         """
-        creator = get_creator_reference(request)
-        if not any(creator.values()):
+        if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if not features.has("organizations:issue-views", organization, actor=request.user):
@@ -273,6 +272,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             self.check_object_permissions(request, project)
 
         # Create the new view
+        creator = get_creator_reference(request)
         view = GroupSearchView.objects.create(
             organization=organization,
             user_id=creator["created_by_id"],
