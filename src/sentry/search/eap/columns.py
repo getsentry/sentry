@@ -297,7 +297,7 @@ class ResolvedTraceMetricFormula(ResolvedFormula):
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedMultiTraceMetricFormula(ResolvedFormula):
-    """A formula that reads from several trace metrics at once, such as the web vital scores."""
+    """A formula that reads from several trace metrics at once."""
 
     trace_metrics: frozenset[TraceMetric]
 
