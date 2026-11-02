@@ -5278,15 +5278,23 @@ describe('SearchQueryBuilder', () => {
         }
       );
 
-      it.each(['', '7', '123456', 'invalid'])(
-        'removes a new numeric filter while editing %j',
-        async value => {
+      it.each([
+        ['', 'mouse'],
+        ['7', 'mouse'],
+        ['123456', 'mouse'],
+        ['invalid', 'mouse'],
+        ['7', 'touch'],
+      ])(
+        'removes a new numeric filter while editing %j using %s',
+        async (value, pointerType) => {
           const onChange = jest.fn();
+          const onSearch = jest.fn();
           render(
             <SearchQueryBuilder
               {...defaultProps}
               initialQuery="browser.name:Firefox"
               onChange={onChange}
+              onSearch={onSearch}
             />
           );
           await userEvent.click(getLastInput());
@@ -5295,25 +5303,67 @@ describe('SearchQueryBuilder', () => {
             await userEvent.keyboard(value);
           }
 
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Remove filter: timesSeen', hidden: true})
-          );
+          const removeButton = screen.getByRole('button', {
+            name: 'Remove filter: timesSeen',
+            hidden: true,
+          });
+          if (pointerType === 'touch') {
+            await userEvent.pointer([
+              {keys: '[TouchA>]', target: removeButton},
+              {keys: '[/TouchA]', target: removeButton},
+            ]);
+          } else {
+            await userEvent.click(removeButton);
+          }
 
           expect(
             screen.getByRole('row', {name: 'browser.name:Firefox'})
           ).toBeInTheDocument();
-          if (value === 'invalid') {
-            expect(onChange).not.toHaveBeenCalled();
-          } else {
-            expect(onChange).toHaveBeenLastCalledWith(
-              'browser.name:Firefox',
-              expect.anything()
-            );
-          }
+          expect(onChange.mock.calls.map(([query]) => query)).toEqual([]);
+          expect(onSearch.mock.calls.map(([query]) => query)).toEqual([]);
           expect(getLastInput()).toHaveValue('');
           expect(
             screen.queryByRole('button', {name: 'Remove filter: timesSeen'})
           ).not.toBeInTheDocument();
+        }
+      );
+
+      it.each(['', '7', '123456', 'invalid'])(
+        'removes an existing numeric filter without submitting the edit %j',
+        async value => {
+          const onChange = jest.fn();
+          const onSearch = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="timesSeen:>100 browser.name:Firefox"
+              onChange={onChange}
+              onSearch={onSearch}
+            />
+          );
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+          );
+          await userEvent.clear(
+            screen.getByRole('combobox', {name: 'Edit filter value'})
+          );
+          if (value) {
+            await userEvent.keyboard(value);
+          }
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Remove filter: timesSeen', hidden: true})
+          );
+
+          expect(onChange.mock.calls.map(([query]) => query)).toEqual([
+            'browser.name:Firefox',
+          ]);
+          expect(onSearch.mock.calls.map(([query]) => query)).toEqual([
+            'browser.name:Firefox',
+          ]);
+          expect(
+            screen.getByRole('row', {name: 'browser.name:Firefox'})
+          ).toBeInTheDocument();
         }
       );
 
@@ -5367,46 +5417,49 @@ describe('SearchQueryBuilder', () => {
         }
       );
 
-      it('keeps the edit when a clear press is canceled and commits it on ordinary blur', async () => {
-        const onChange = jest.fn();
-        const onSearch = jest.fn();
-        render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            initialQuery="browser.name:Firefox"
-            onChange={onChange}
-            onSearch={onSearch}
-          />
-        );
-        await userEvent.click(getLastInput());
-        await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
-        await userEvent.keyboard('7');
-        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
-        const clearButton = screen.getByRole('button', {
-          name: 'Clear search query',
-          hidden: true,
-        });
+      it.each(['Clear search query', 'Remove filter: timesSeen'])(
+        'keeps the edit when pressing %s is canceled and commits it on ordinary blur',
+        async actionLabel => {
+          const onChange = jest.fn();
+          const onSearch = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:Firefox"
+              onChange={onChange}
+              onSearch={onSearch}
+            />
+          );
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+          await userEvent.keyboard('7');
+          const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+          const actionButton = screen.getByRole('button', {
+            name: actionLabel,
+            hidden: true,
+          });
 
-        await userEvent.pointer({keys: '[MouseLeft>]', target: clearButton});
+          await userEvent.pointer({keys: '[MouseLeft>]', target: actionButton});
 
-        expect(onChange).not.toHaveBeenCalled();
-        expect(onSearch).not.toHaveBeenCalled();
-        expect(input).toHaveFocus();
+          expect(onChange).not.toHaveBeenCalled();
+          expect(onSearch).not.toHaveBeenCalled();
+          expect(input).toHaveFocus();
 
-        await userEvent.pointer({keys: '[/MouseLeft]', target: input});
+          await userEvent.pointer({keys: '[/MouseLeft]', target: input});
 
-        expect(input).toHaveValue('7');
-        await userEvent.click(document.body);
+          expect(input).toHaveValue('7');
+          await userEvent.click(document.body);
 
-        expect(onChange).toHaveBeenLastCalledWith(
-          'browser.name:Firefox timesSeen:>7',
-          expect.anything()
-        );
-        expect(onSearch).toHaveBeenLastCalledWith(
-          'browser.name:Firefox timesSeen:>7',
-          expect.anything()
-        );
-      });
+          expect(onChange).toHaveBeenLastCalledWith(
+            'browser.name:Firefox timesSeen:>7',
+            expect.anything()
+          );
+          expect(onSearch).toHaveBeenLastCalledWith(
+            'browser.name:Firefox timesSeen:>7',
+            expect.anything()
+          );
+        }
+      );
 
       it.each(['Backspace', 'Delete'])(
         'clears the query with Ctrl+%s from a blank numeric input',
