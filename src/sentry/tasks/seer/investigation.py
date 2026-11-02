@@ -51,15 +51,13 @@ from sentry.investigations.services.orchestration_events import (
     schedule_investigation_updates,
     synchronize_orchestration_projection,
 )
-from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookBlockExecution
+from sentry.notebooks.models import Notebook
 from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.users.services.user.service import user_service
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
@@ -579,8 +577,6 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             return
 
         _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
-
-
 
 
 class TelemetryNotConnectedYet(Exception):

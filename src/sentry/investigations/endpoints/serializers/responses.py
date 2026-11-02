@@ -237,8 +237,6 @@ class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
 
 
-
-
 class InvestigationActionRequestApplyResponse(TypedDict):
     actionRequest: InvestigationActionRequestSerializerResponse
 

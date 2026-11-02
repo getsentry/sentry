@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest import mock
@@ -28,7 +27,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
     _reconcile_command_version_conflict,
-    dispatch_investigation_execution,
     dispatch_investigation_orchestration_commands,
     dispatch_investigation_orchestration_create,
 )

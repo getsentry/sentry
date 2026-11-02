@@ -11,7 +11,6 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
 from sentry.models.organization import Organization
 from sentry.notebooks.agent import (
     cancel_investigation_executions_after_failure,
@@ -23,6 +22,7 @@ from sentry.notebooks.endpoints.base import (
     require_authenticated_user,
     service_error,
 )
+from sentry.notebooks.endpoints.serializers.responses import InvestigationExecutionResponse
 from sentry.notebooks.endpoints.validators import BlockExecutionStartValidator
 from sentry.notebooks.models import (
     Notebook,

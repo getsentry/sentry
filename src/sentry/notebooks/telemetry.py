@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 import sentry_sdk
+from django.utils import timezone
 
 from sentry.notebooks.models import Notebook, NotebookBlockExecution
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 def record_count(name: str, attributes: dict[str, str]) -> None:

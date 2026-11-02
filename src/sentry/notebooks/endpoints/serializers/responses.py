@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class InvestigationViewerResponse(TypedDict):
@@ -29,6 +29,7 @@ class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
     pendingUserInput: dict[str, Any] | None
     partialMarkdown: str | None
     error: Any
+
 
 class InvestigationTitlePreviewResponse(TypedDict):
     status: str | None

@@ -1,18 +1,7 @@
 from __future__ import annotations
 
-import logging
-
-from django.utils import timezone
-
-from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookBlockExecution
-from sentry.notebooks.telemetry import (
-    execution_attributes,
-    investigation_attributes,
-    record_count,
-    record_duration,
-)
-
-logger = logging.getLogger(__name__)
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.telemetry import investigation_attributes, record_count
 
 
 def _action_request_attributes(action_request: NotebookActionRequest) -> dict[str, str]:

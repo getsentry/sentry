@@ -1,11 +1,24 @@
+from __future__ import annotations
+
+import logging
+
 from sentry.notebooks.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
 )
+from sentry.notebooks.models import NotebookBlockExecution
 from sentry.notebooks.services import (
     mark_block_execution_dispatch_failed,
     mark_block_execution_dispatch_started,
 )
+from sentry.notebooks.telemetry import record_execution_failed
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
+
+
 @instrumented_task(
     name="sentry.tasks.seer.investigation.dispatch_investigation_execution",
     namespace=seer_tasks,

@@ -1,9 +1,18 @@
+from __future__ import annotations
+
+from datetime import timedelta
+from unittest import mock
+
+from django.utils import timezone
+
 from sentry.notebooks.models import (
     NotebookBlockExecution,
     NotebookBlockExecutionStatus,
     NotebookBlockKind,
 )
 from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.notebooks.tasks import dispatch_investigation_execution
+from sentry.testutils.cases import TestCase
 
 
 class InvestigationAutoRunTest(TestCase):

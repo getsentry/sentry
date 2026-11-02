@@ -5,10 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.investigations.telemetry import (
-    record_execution_completed,
-    record_investigation_completed,
-)
 from sentry.notebooks.agent import (
     _maybe_start_title_generation,
     _parse_completion_metadata,
@@ -22,6 +18,10 @@ from sentry.notebooks.models import NotebookBlockExecutionStatus
 from sentry.notebooks.services.notebooks import (
     DEFAULT_INVESTIGATION_TITLE,
     default_investigation_title,
+)
+from sentry.notebooks.telemetry import (
+    record_execution_completed,
+    record_investigation_completed,
 )
 from sentry.seer.agent.client_models import (
     MemoryBlock,
