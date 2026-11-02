@@ -104,6 +104,17 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     resetMockDate();
   });
 
+  function mockBillingMembers(
+    response: Parameters<typeof MockApiClient.addMockResponse>[0]
+  ) {
+    return MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/members/`,
+      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
+      ...response,
+    });
+  }
+
   function assertLocalStorageStateAfterAutoOpen() {
     expect(
       localStorage.getItem(`billing-status-last-shown-categories-${organization.id}`)
@@ -292,14 +303,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should list billing members who receive the quota request', async () => {
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/members/`,
+    mockBillingMembers({
       body: [
         MemberFixture({id: '1', email: 'owner@example.com'}),
         MemberFixture({id: '2', email: 'billing@example.com'}),
       ],
-      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
     });
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -317,13 +325,10 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should list three billing members and count the rest', async () => {
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/members/`,
+    mockBillingMembers({
       body: [1, 2, 3, 4, 5].map(n =>
         MemberFixture({id: String(n), email: `billing${n}@example.com`})
       ),
-      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
     });
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -355,11 +360,8 @@ describe('PrimaryNavigationQuotaExceeded', () => {
 
   it('should not name recipients while billing members load', async () => {
     let releaseMembers!: () => void;
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/members/`,
+    mockBillingMembers({
       body: [MemberFixture({id: '1', email: 'owner@example.com'})],
-      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
       asyncDelay: new Promise<void>(resolve => {
         releaseMembers = resolve;
       }),
@@ -377,12 +379,9 @@ describe('PrimaryNavigationQuotaExceeded', () => {
   });
 
   it('should not name recipients when billing members fail to load', async () => {
-    const membersMock = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/members/`,
+    const membersMock = mockBillingMembers({
       statusCode: 403,
       body: {detail: 'You do not have permission to perform this action.'},
-      match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
     });
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -766,6 +765,7 @@ describe('PrimaryNavigationQuotaExceeded', () => {
         `billing-status-last-shown-categories-${organization.id}`,
         JSON.stringify('errors-sizeAnalyses')
       );
+      mockBillingMembers({body: [MemberFixture({id: '1', email: 'owner@example.com'})]});
 
       render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -791,42 +791,6 @@ describe('PrimaryNavigationQuotaExceeded', () => {
         screen.getByText(
           /You have used up your quota for errors. Monitoring and new data are paused until your quota resets./
         )
-      ).toBeInTheDocument();
-    });
-
-    it('should list billing members when mixed categories are exceeded', async () => {
-      const newSub = SubscriptionFixture({organization, plan: 'am3_business'});
-      newSub.categories.sizeAnalyses = MetricHistoryFixture({
-        category: DataCategory.SIZE_ANALYSIS,
-        reserved: 100,
-        prepaid: 100,
-        usageExceeded: true,
-        order: 20,
-      });
-      newSub.categories.errors!.usageExceeded = true;
-      for (const key of Object.keys(newSub.categories) as Array<
-        keyof typeof newSub.categories
-      >) {
-        if (key !== 'sizeAnalyses' && key !== 'errors' && newSub.categories[key]) {
-          newSub.categories[key].usageExceeded = false;
-        }
-      }
-      SubscriptionStore.set(organization.slug, newSub);
-      localStorage.setItem(
-        `billing-status-last-shown-categories-${organization.id}`,
-        JSON.stringify('errors-sizeAnalyses')
-      );
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: `/organizations/${organization.slug}/members/`,
-        body: [MemberFixture({id: '1', email: 'owner@example.com'})],
-        match: [MockApiClient.matchQuery({query: BILLING_MEMBERS_QUERY})],
-      });
-      render(<PrimaryNavigationQuotaExceeded organization={organization} />);
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
-      expect(
-        await screen.findByText('Size Analysis Builds - Quota Exceeded')
       ).toBeInTheDocument();
       expect(
         await screen.findByRole('link', {name: 'owner@example.com'})
