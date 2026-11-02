@@ -49,7 +49,8 @@ jobs:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: acceptance
-    runs-on: ubuntu-26.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -126,6 +127,24 @@ jobs:
       # than later ones, which is consistent with a cold disk and font cache.
       # Launch it once here, while webpack builds, so the test workers don't
       # pay that.
+      # Arm runner images have no Google Chrome or chromedriver. Use the Chromium
+      # snap behind wrappers with the names the steps below look for. Wrappers,
+      # not symlinks: snap picks the app from argv[0].
+      - name: Install Chromium (Arm)
+        if: runner.arch == 'ARM64'
+        run: |
+          # The snap store intermittently times out (HTTP 408), so retry.
+          for attempt in 1 2 3 4 5; do
+            sudo snap install chromium && break
+            [ "$attempt" -lt 5 ] || exit 1
+            sleep $((attempt * 10))
+          done
+          printf '#!/bin/sh\nexec /snap/bin/chromium "$@"\n' | sudo tee /usr/local/bin/google-chrome >/dev/null
+          printf '#!/bin/sh\nexec /snap/bin/chromium.chromedriver "$@"\n' | sudo tee /usr/local/bin/chromedriver >/dev/null
+          sudo chmod 755 /usr/local/bin/google-chrome /usr/local/bin/chromedriver
+          google-chrome --version
+          chromedriver --version
+
       - name: Warm up Chrome in the background
         run: |
           if command -v google-chrome && command -v chromedriver; then

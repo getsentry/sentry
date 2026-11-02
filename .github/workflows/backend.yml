@@ -187,10 +187,18 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
 
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
       - name: Calculate test shards
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
+          SELECTED_TESTS_FILE: .artifacts/selected-tests.txt
           SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -203,7 +211,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-26.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -279,10 +288,14 @@ jobs:
 
       - name: Download odiff binary
         run: |
+          case "$(uname -m)" in
+            aarch64) odiff=odiff-linux-arm64 ;;
+            *) odiff=odiff-linux-x64 ;;
+          esac
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
+          sudo install -m 755 "$odiff" /usr/local/bin/odiff
+          rm "$odiff"
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
