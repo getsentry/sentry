@@ -6,6 +6,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
@@ -14,7 +15,7 @@ const FEATURES = [
   'dashboards-edit',
   'discover-query',
   'dashboards-prebuilt-insights-dashboards',
-];
+] satisfies FeatureName[];
 
 describe('Dashboards > Detail', () => {
   const mockUnauthorizedOrg = OrganizationFixture({

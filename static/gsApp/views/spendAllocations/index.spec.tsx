@@ -18,6 +18,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {SpendAllocationsRoot} from 'getsentry/views/spendAllocations/index';
@@ -33,7 +34,7 @@ describe('SpendAllocations feature enable flow', () => {
   beforeEach(() => {
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     subscription = SubscriptionFixture({
@@ -152,7 +153,7 @@ describe('enabled Spend Allocations page', () => {
   beforeEach(() => {
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     organization.access = [
@@ -324,7 +325,7 @@ describe('enabled Spend Allocations page without root', () => {
   beforeEach(() => {
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     organization.access = [
@@ -432,7 +433,7 @@ describe('POST Create spend allocation', () => {
     ];
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     subscription = SubscriptionFixture({
@@ -519,7 +520,7 @@ describe('Disable Submit button in Spend Allocation', () => {
     ];
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     subscription = SubscriptionFixture({
@@ -563,7 +564,7 @@ describe('DELETE spend allocation', () => {
   beforeEach(() => {
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     subscription = SubscriptionFixture({
@@ -642,7 +643,7 @@ describe('PUT edit spend allocation', () => {
     ];
     organization = initializeOrg({
       organization: {
-        features: ['spend-allocations'],
+        features: ['spend-allocations'] satisfies FeatureName[],
       },
     }).organization;
     subscription = SubscriptionFixture({

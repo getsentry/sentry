@@ -1,3 +1,4 @@
+import {expectTypeOf} from 'expect-type';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,13 +8,31 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import Feature from 'sentry/components/acl/feature';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {
+  FeatureName,
+  GlobalFeature,
+  OrganizationFeature,
+  ProjectFeature,
+} from 'sentry/types/featureFlags.generated';
 
 describe('Feature', () => {
+  it('accepts only registered names in their corresponding scope', () => {
+    expectTypeOf<'dashboards-import'>().toMatchTypeOf<OrganizationFeature>();
+    expectTypeOf<'custom-inbound-filters'>().toMatchTypeOf<ProjectFeature>();
+    expectTypeOf<'organizations:create'>().toMatchTypeOf<GlobalFeature>();
+    expectTypeOf<'retired-feature'>().not.toMatchTypeOf<OrganizationFeature>();
+    expectTypeOf<string>().not.toMatchTypeOf<OrganizationFeature>();
+    expectTypeOf<'custom-inbound-filters'>().not.toMatchTypeOf<OrganizationFeature>();
+    expectTypeOf<'dashboards-import'>().not.toMatchTypeOf<GlobalFeature>();
+    expectTypeOf<'retired-feature'>().not.toMatchTypeOf<
+      React.ComponentProps<typeof Feature>['features']
+    >();
+  });
   const organization = OrganizationFixture({
-    features: ['org-foo', 'org-bar', 'bar'],
+    features: ['dashboards-basic', 'dashboards-edit', 'advanced-search'],
   });
   const project = ProjectFixture({
-    features: ['project-foo', 'project-bar'],
+    features: ['custom-inbound-filters', 'rate-limits'],
   });
 
   function WrappedFeature(props: React.ComponentProps<typeof Feature>) {
@@ -27,7 +46,10 @@ describe('Feature', () => {
     });
 
     it('has features', () => {
-      const features = ['org-foo', 'project-foo'];
+      const features = [
+        'dashboards-basic',
+        'custom-inbound-filters',
+      ] satisfies FeatureName[];
 
       render(<WrappedFeature features={features}>{childrenMock}</WrappedFeature>, {
         organization,
@@ -43,7 +65,11 @@ describe('Feature', () => {
     });
 
     it('has features when requireAll is false', () => {
-      const features = ['org-foo', 'project-foo', 'apple'];
+      const features = [
+        'dashboards-basic',
+        'custom-inbound-filters',
+        'data-forwarding',
+      ] satisfies FeatureName[];
 
       render(
         <WrappedFeature features={features} requireAll={false}>
@@ -62,15 +88,18 @@ describe('Feature', () => {
     });
 
     it('has no features', () => {
-      render(<WrappedFeature features="org-baz">{childrenMock}</WrappedFeature>, {
-        organization,
-      });
+      render(
+        <WrappedFeature features="dashboards-import">{childrenMock}</WrappedFeature>,
+        {
+          organization,
+        }
+      );
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         organization,
         project,
-        features: ['org-baz'],
+        features: ['dashboards-import'] satisfies FeatureName[],
         renderDisabled: false,
       });
     });
@@ -78,7 +107,7 @@ describe('Feature', () => {
     it('calls render function when no features', () => {
       const noFeatureRenderer = jest.fn(() => null);
       render(
-        <WrappedFeature features="org-baz" renderDisabled={noFeatureRenderer}>
+        <WrappedFeature features="dashboards-import" renderDisabled={noFeatureRenderer}>
           {childrenMock}
         </WrappedFeature>,
         {organization}
@@ -90,14 +119,14 @@ describe('Feature', () => {
         children: childrenMock,
         organization,
         project,
-        features: ['org-baz'],
+        features: ['dashboards-import'] satisfies FeatureName[],
       });
     });
 
     it('can specify org from props', () => {
-      const customOrg = OrganizationFixture({features: ['org-bazar']});
+      const customOrg = OrganizationFixture({features: ['dashboards-starred']});
       render(
-        <WrappedFeature organization={customOrg} features="org-bazar">
+        <WrappedFeature organization={customOrg} features="dashboards-starred">
           {childrenMock}
         </WrappedFeature>,
         {organization}
@@ -107,15 +136,15 @@ describe('Feature', () => {
         hasFeature: true,
         organization: customOrg,
         project,
-        features: ['org-bazar'],
+        features: ['dashboards-starred'] satisfies FeatureName[],
         renderDisabled: false,
       });
     });
 
     it('can specify project from props', () => {
-      const customProject = ProjectFixture({features: ['project-baz']});
+      const customProject = ProjectFixture({features: ['discard-groups']});
       render(
-        <WrappedFeature project={customProject} features="project-baz">
+        <WrappedFeature project={customProject} features="discard-groups">
           {childrenMock}
         </WrappedFeature>,
         {organization}
@@ -125,13 +154,16 @@ describe('Feature', () => {
         hasFeature: true,
         organization,
         project: customProject,
-        features: ['project-baz'],
+        features: ['discard-groups'] satisfies FeatureName[],
         renderDisabled: false,
       });
     });
 
     it('handles no org/project', () => {
-      const features = ['org-foo', 'project-foo'];
+      const features = [
+        'dashboards-basic',
+        'custom-inbound-filters',
+      ] satisfies FeatureName[];
       render(<WrappedFeature features={features}>{childrenMock}</WrappedFeature>, {
         organization,
       });
@@ -149,7 +181,9 @@ describe('Feature', () => {
 
     it('handles features prefixed with org/project', () => {
       render(
-        <WrappedFeature features="organizations:org-bar">{childrenMock}</WrappedFeature>,
+        <WrappedFeature features="organizations:dashboards-edit">
+          {childrenMock}
+        </WrappedFeature>,
         {
           organization,
         }
@@ -159,19 +193,22 @@ describe('Feature', () => {
         hasFeature: true,
         organization,
         project,
-        features: ['organizations:org-bar'],
+        features: ['organizations:dashboards-edit'] satisfies FeatureName[],
         renderDisabled: false,
       });
 
-      render(<WrappedFeature features="projects:bar">{childrenMock}</WrappedFeature>, {
-        organization,
-      });
+      render(
+        <WrappedFeature features="projects:releases">{childrenMock}</WrappedFeature>,
+        {
+          organization,
+        }
+      );
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         organization,
         project,
-        features: ['projects:bar'],
+        features: ['projects:releases'] satisfies FeatureName[],
         renderDisabled: false,
       });
     });
@@ -194,7 +231,7 @@ describe('Feature', () => {
         hasFeature: true,
         organization,
         project,
-        features: ['organizations:create'],
+        features: ['organizations:create'] satisfies FeatureName[],
         renderDisabled: false,
       });
     });
@@ -203,7 +240,10 @@ describe('Feature', () => {
   describe('no children', () => {
     it('should display renderDisabled with no feature', () => {
       render(
-        <WrappedFeature features="nope" renderDisabled={() => <span>disabled</span>}>
+        <WrappedFeature
+          features="data-forwarding"
+          renderDisabled={() => <span>disabled</span>}
+        >
           <div>The Child</div>
         </WrappedFeature>,
         {organization}
@@ -213,7 +253,10 @@ describe('Feature', () => {
 
     it('should display be empty when on', () => {
       render(
-        <WrappedFeature features="org-bar" renderDisabled={() => <span>disabled</span>}>
+        <WrappedFeature
+          features="dashboards-edit"
+          renderDisabled={() => <span>disabled</span>}
+        >
           <div>The Child</div>
         </WrappedFeature>,
         {organization}
@@ -225,7 +268,7 @@ describe('Feature', () => {
   describe('as React node', () => {
     it('has features', () => {
       render(
-        <WrappedFeature features="org-bar">
+        <WrappedFeature features="dashboards-edit">
           <div>The Child</div>
         </WrappedFeature>,
         {organization}
@@ -236,7 +279,7 @@ describe('Feature', () => {
 
     it('has no features', () => {
       render(
-        <WrappedFeature features="org-baz">
+        <WrappedFeature features="dashboards-import">
           <div>The Child</div>
         </WrappedFeature>,
         {organization}
@@ -247,7 +290,7 @@ describe('Feature', () => {
 
     it('renders a default disabled component', () => {
       render(
-        <WrappedFeature features="org-baz" renderDisabled>
+        <WrappedFeature features="dashboards-import" renderDisabled>
           <div>The Child</div>
         </WrappedFeature>,
         {organization}
@@ -261,7 +304,7 @@ describe('Feature', () => {
       const noFeatureRenderer = jest.fn(() => null);
       const children = <div>The Child</div>;
       render(
-        <WrappedFeature features="org-baz" renderDisabled={noFeatureRenderer}>
+        <WrappedFeature features="dashboards-import" renderDisabled={noFeatureRenderer}>
           {children}
         </WrappedFeature>,
         {organization}
@@ -274,7 +317,7 @@ describe('Feature', () => {
         children,
         organization,
         project,
-        features: ['org-baz'],
+        features: ['dashboards-import'] satisfies FeatureName[],
       });
     });
   });
@@ -290,7 +333,10 @@ describe('Feature', () => {
     it('uses overrideName if provided', () => {
       const children = <div>The Child</div>;
       render(
-        <WrappedFeature features="org-bazar" overrideName="feature-disabled:sso-basic">
+        <WrappedFeature
+          features="dashboards-starred"
+          overrideName="feature-disabled:sso-basic"
+        >
           {children}
         </WrappedFeature>,
         {organization}
@@ -303,7 +349,7 @@ describe('Feature', () => {
         children,
         organization,
         project,
-        features: ['org-bazar'],
+        features: ['dashboards-starred'] satisfies FeatureName[],
       });
     });
   });

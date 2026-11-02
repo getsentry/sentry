@@ -5,15 +5,16 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Table} from 'sentry/views/performance/table';
 
-const FEATURES = ['performance-view'];
+const FEATURES: OrganizationFeature[] = ['performance-view'];
 
-const initializeData = (settings = {}, features: string[] = []) => {
+const initializeData = (settings = {}, features: OrganizationFeature[] = []) => {
   const projects = [
     ProjectFixture({id: '1', slug: '1'}),
     ProjectFixture({id: '2', slug: '2'}),

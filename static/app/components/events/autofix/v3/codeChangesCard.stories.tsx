@@ -11,6 +11,7 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import * as Storybook from 'sentry/stories';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {User} from 'sentry/types/user';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -496,7 +497,10 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
  */
 function FeatureWrapper({children}: {children: ReactNode}) {
   const organization = useOrganization();
-  const features = [...organization.features, PR_ITERATION_FEATURE];
+  const features: OrganizationFeature[] = [
+    ...organization.features,
+    PR_ITERATION_FEATURE,
+  ];
 
   return (
     <OrganizationContext.Provider value={{...organization, features}}>

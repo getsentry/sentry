@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -14,11 +15,15 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 type Data = {
-  features?: string[];
+  features?: OrganizationFeature[];
 };
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
-  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  const features = [
+    'discover-basic',
+    'performance-view',
+    ...additionalFeatures,
+  ] satisfies FeatureName[];
   const organization = OrganizationFixture({
     features,
   });

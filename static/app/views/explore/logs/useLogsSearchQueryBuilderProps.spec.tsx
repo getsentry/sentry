@@ -4,6 +4,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldKind} from 'sentry/utils/fields';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -41,7 +42,9 @@ const validationBody: EventValidationData = {
   valid: false,
 };
 
-const arrayFeatures = {features: ['trace-item-array-query-support']};
+const arrayFeatures = {
+  features: ['trace-item-array-query-support'] satisfies FeatureName[],
+};
 
 describe('useLogsSearchQueryBuilderProps', () => {
   beforeEach(() => {

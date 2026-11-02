@@ -259,7 +259,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['autofix'],
+          features: [],
         },
       }
     );
