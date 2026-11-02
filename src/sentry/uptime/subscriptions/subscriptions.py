@@ -209,8 +209,14 @@ def update_uptime_subscription(
     elif new_response_capture_enabled and not subscription.response_capture_enabled:
         new_capture_response_on_failure = True
 
+    # Editing a disabled monitor must not publish it, or the checker runs it while its detector
+    # stays disabled. enable_uptime_detector publishes the latest config on re-enable.
+    # Callers pass a cached instance, and a rolled-back disable can leave DISABLED in the cache.
+    subscription.refresh_from_db(fields=["status"])
+    is_disabled = subscription.status == UptimeSubscription.Status.DISABLED.value
+
     subscription.update(
-        status=UptimeSubscription.Status.UPDATING.value,
+        status=subscription.status if is_disabled else UptimeSubscription.Status.UPDATING.value,
         url=url,
         url_domain=result.domain,
         url_domain_suffix=result.suffix,
@@ -229,7 +235,8 @@ def update_uptime_subscription(
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
 
     def commit_tasks():
-        update_remote_uptime_subscription.delay(subscription.id)
+        if not is_disabled:
+            update_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
         if interval_updated:
             last_interval_change_key = build_last_interval_change_timestamp_key(detector)
@@ -520,7 +527,13 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         # and remove the remote subscription.
         if not has_active_subscription:
             uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
-            delete_remote_uptime_subscription.delay(uptime_subscription.id)
+            # Callers such as billing rollover disable detectors inside a longer outer
+            # transaction. Queued before commit, the task can still read ACTIVE, skip the
+            # removal, and leave the checker running a disabled monitor indefinitely.
+            transaction.on_commit(
+                lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+                using=router.db_for_write(UptimeSubscription),
+            )
 
 
 def ensure_uptime_seat(detector: Detector) -> None:

@@ -630,6 +630,27 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
             return
 
+        try:
+            detector = _get_detector_for_subscription(subscription)
+        except Detector.DoesNotExist:
+            # Nothing to do if there's an orphaned uptime subscription
+            delete_uptime_subscription(subscription)
+            return
+
+        if not detector.enabled:
+            # A DISABLED subscription has no enabled detectors left, so any result means the
+            # checker missed the removal. Remove it again; an ACTIVE subscription may still be
+            # serving another detector. This runs before the shadow-region check so a stranded
+            # shadow config gets removed too.
+            if subscription.status == UptimeSubscription.Status.DISABLED.value:
+                send_uptime_config_deletion(result["region"], result["subscription_id"])
+                metrics.incr(
+                    "uptime.result_processor.disabled_subscription_config_removed",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
+            return
+
         # Discard shadow mode region results
         if is_shadow_region_result(result, subscription_regions):
             metrics.incr(
@@ -639,18 +660,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        try:
-            detector = _get_detector_for_subscription(subscription)
-        except Detector.DoesNotExist:
-            # Nothing to do if there's an orphaned uptime subscription
-            delete_uptime_subscription(subscription)
-            return
-
         organization = detector.linked_project.organization
-
-        # Nothing to do if this subscription is disabled.
-        if not detector.enabled:
-            return
 
         # Nothing to do if the feature isn't enabled
         if not features.has("organizations:uptime", organization):
