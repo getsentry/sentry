@@ -5,6 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {defined} from '@sentry/scraps/defined';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text/text';
@@ -191,7 +192,7 @@ function TooltipHeader({children, leadingItems, trailingItems}: TooltipHeaderPro
           {children}
         </Text>
       </Flex>
-      {trailingItems !== undefined && trailingItems !== null && (
+      {defined(trailingItems) && (
         <Text bold align="right" wrap="nowrap">
           {trailingItems}
         </Text>
@@ -305,7 +306,7 @@ function TooltipFooter({children, leadingItems, trailingItems}: TooltipFooterPro
           {children}
         </Text>
       </Flex>
-      {trailingItems !== undefined && trailingItems !== null && (
+      {defined(trailingItems) && (
         <Text variant="muted" align="right" wrap="nowrap">
           {trailingItems}
         </Text>
