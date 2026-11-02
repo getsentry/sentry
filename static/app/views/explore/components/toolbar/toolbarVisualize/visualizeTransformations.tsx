@@ -345,7 +345,7 @@ function TransformationRow({
         />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
-            <PageFilterBar condensed css={theme => ({height: theme.form[size].height})}>
+            <PageFilterBar condensed size={size}>
               <CompactSelect
                 size={size}
                 options={KIND_OPTIONS}
