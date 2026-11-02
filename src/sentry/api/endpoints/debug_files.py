@@ -738,6 +738,14 @@ def batch_assemble(
             )
             continue
 
+        shader_group = file.get("shader_group")
+        if (
+            shader_group
+            and debug_file.file_type == "dxil"
+            and not (debug_file.data or {}).get("shader_group")
+        ):
+            debug_file.update(data={**(debug_file.data or {}), "shader_group": shader_group})
+
         file_response[checksum] = {
             "state": ChunkFileState.OK,
             "detail": None,
