@@ -5,24 +5,10 @@ import {IconRefresh} from '@sentry/icons/refresh';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import {ReplayPlayPauseButton as NewReplayPlayPauseButton} from 'sentry/components/replays/player/replayPlayPauseButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function ReplayPlayPauseButton({
-  isLoading,
-  ...props
-}: Partial<ButtonProps> & {isLoading?: boolean}) {
-  const organization = useOrganization();
-  if (organization.features.includes('replay-new-context')) {
-    return <NewReplayPlayPauseButton {...props} />;
-  }
-
-  return <OriginalReplayPlayPauseButton isLoading={isLoading} {...props} />;
-}
-
-function OriginalReplayPlayPauseButton(
+export function ReplayPlayPauseButton(
   props: Partial<ButtonProps> & {isLoading?: boolean}
 ) {
   const {isFinished, isPlaying, restart, togglePlayPause} = useReplayContext();

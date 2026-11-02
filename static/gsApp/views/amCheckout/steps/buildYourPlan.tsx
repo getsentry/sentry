@@ -51,7 +51,6 @@ function PlanSubstep({
   activePlan,
   formData,
   subscription,
-  organization,
   onUpdate,
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
@@ -108,10 +107,7 @@ function PlanSubstep({
       >
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
-          const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
-            subscription,
-            organization
-          );
+          const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(subscription);
           const basePrice = formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);

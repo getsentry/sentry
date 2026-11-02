@@ -452,9 +452,6 @@ export const hasPerformance = (plan?: Plan) => {
   );
 };
 
-export const hasPartnerMigrationFeature = (organization: Organization) =>
-  organization.features.includes('partner-billing-migration');
-
 export const hasActiveVCFeature = (organization: Organization) =>
   organization.features.includes('vc-marketplace-active-customer');
 
@@ -542,13 +539,8 @@ export const displayPlanName = (plan?: Plan | null) => {
   return plan?.isEnterprise ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
-export const isNewPayingCustomer = (
-  subscription: Subscription,
-  organization: Organization
-) =>
-  subscription.isFree ||
-  subscription.onTrialPlan ||
-  hasPartnerMigrationFeature(organization);
+export const isNewPayingCustomer = (subscription: Subscription) =>
+  subscription.isFree || subscription.onTrialPlan;
 
 /**
  * Get the number of days left on trial

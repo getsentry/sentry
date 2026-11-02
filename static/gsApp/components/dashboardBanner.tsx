@@ -16,12 +16,7 @@ type Props = {
   organization: Organization;
 };
 
-export function DashboardBanner({organization}: Props) {
-  // No upsell if the user can edit dashboards
-  if (organization.features.includes('organizations:dashboards-edit')) {
-    return null;
-  }
-
+export function DashboardBanner(_props: Props) {
   return (
     <StyledBanner
       title={t('Customize Dashboards')}

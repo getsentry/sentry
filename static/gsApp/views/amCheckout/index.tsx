@@ -47,7 +47,6 @@ import type {
 } from 'getsentry/types';
 import {
   hasActiveVCFeature,
-  hasPartnerMigrationFeature,
   hasPerformance,
   isBizPlanFamily,
   isNewPayingCustomer,
@@ -272,7 +271,6 @@ function AMCheckout(props: Props) {
           getBucket({
             events: value,
             buckets: plan.planCategories[category as DataCategory],
-            shouldMinimize: hasPartnerMigrationFeature(organization),
           }).events,
         ])
       );
@@ -389,7 +387,7 @@ function AMCheckout(props: Props) {
           }, {}),
       };
 
-      if (isNewPayingCustomer(subscription, organization)) {
+      if (isNewPayingCustomer(subscription)) {
         data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
           ? PAYG_BUSINESS_DEFAULT
           : PAYG_TEAM_DEFAULT;
@@ -401,7 +399,7 @@ function AMCheckout(props: Props) {
 
       return getValidData(initialPlan, data);
     },
-    [subscription, organization, getInitialPlan, canComparePrices, getValidData]
+    [subscription, getInitialPlan, canComparePrices, getValidData]
   );
 
   const getFormDataForPreview = useCallback((data: CheckoutFormData) => {

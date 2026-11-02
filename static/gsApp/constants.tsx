@@ -232,6 +232,6 @@ export const BILLED_DATA_CATEGORY_INFO = {
   [DataCategoryExact.INSTALLABLE_BUILD]: {
     ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.INSTALLABLE_BUILD],
     shortenedUnitName: t('install'),
-    adminOnlyProductTrialFeature: 'expose-category-installable-build',
+    adminOnlyProductTrialFeature: false,
   },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

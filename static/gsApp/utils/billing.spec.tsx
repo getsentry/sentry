@@ -1011,7 +1011,7 @@ describe('isNewPayingCustomer', () => {
   it('returns true for customer on free plan', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization, isFree: true});
-    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+    expect(isNewPayingCustomer(subscription)).toBe(true);
   });
 
   it('returns true for customer on trial plan', () => {
@@ -1021,17 +1021,7 @@ describe('isNewPayingCustomer', () => {
       plan: 'am3_t',
       isFree: false,
     });
-    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
-  });
-
-  it('returns true for customer with partner migration feature', () => {
-    const organization = OrganizationFixture({features: ['partner-billing-migration']});
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_team',
-      isFree: false,
-    });
-    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+    expect(isNewPayingCustomer(subscription)).toBe(true);
   });
 
   it('returns false for customer on plan trial', () => {
@@ -1042,7 +1032,7 @@ describe('isNewPayingCustomer', () => {
       trialPlan: 'am3_team',
       isFree: false,
     });
-    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
+    expect(isNewPayingCustomer(subscription)).toBe(false);
   });
 
   it('returns false for paying customer', () => {
@@ -1052,7 +1042,7 @@ describe('isNewPayingCustomer', () => {
       plan: 'am3_team',
       isFree: false,
     });
-    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
+    expect(isNewPayingCustomer(subscription)).toBe(false);
   });
 });
 
