@@ -138,7 +138,7 @@ class BaseTeamSerializerResponse(TypedDict):
     isMember: bool
     teamRole: str | None
     flags: dict[str, Any]
-    access: frozenset[str]  # scopes granted by teamRole
+    access: list[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -313,7 +313,7 @@ class BaseTeamSerializer(Serializer):
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
             "flags": {"idp:provisioned": bool(obj.idp_provisioned)},
-            "access": attrs["access"],
+            "access": sorted(attrs["access"]),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
