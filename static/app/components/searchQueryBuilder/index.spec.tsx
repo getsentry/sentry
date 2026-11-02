@@ -6577,6 +6577,24 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('matches the spans suggestion by its label or underlying key', async () => {
+        render(<SearchQueryBuilder {...spanCountProps} initialQuery="count():>100" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+
+        await userEvent.keyboard('span.duration');
+        expect(await screen.findByRole('option', {name: 'spans'})).toBeInTheDocument();
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('spans');
+        expect(await screen.findByRole('option', {name: 'spans'})).toBeInTheDocument();
+      });
+
       it('resolves a typed spans parameter to span.duration', async () => {
         render(<SearchQueryBuilder {...spanCountProps} initialQuery="count():>100" />);
 

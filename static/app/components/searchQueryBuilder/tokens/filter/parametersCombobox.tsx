@@ -197,7 +197,12 @@ function useParameterSuggestions({
           )
           .map(([col, definition]) =>
             defaultLabel && col.key === defaultValue
-              ? {value: col.key, label: defaultLabel, textValue: defaultLabel}
+              ? // Keep the underlying key searchable alongside the label
+                {
+                  value: col.key,
+                  label: defaultLabel,
+                  textValue: `${defaultLabel} ${col.key}`,
+                }
               : {value: col.key, label: getKeyLabel(col, definition)}
           );
       }
