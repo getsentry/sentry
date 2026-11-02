@@ -1,13 +1,17 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {useApi} from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import type {WizardSession} from 'sentry/views/setupWizard/types';
 import {useSetupWizardCompletedAnalytics} from 'sentry/views/setupWizard/utils/setupWizardAnalytics';
 
 export function WaitingForWizardToConnect({
@@ -17,38 +21,51 @@ export function WaitingForWizardToConnect({
   hash: string;
   organizations: OrganizationSummary[];
 }) {
-  const api = useApi();
-  const closeTimeoutRef = useRef<number | undefined>(undefined);
-  const [finished, setFinished] = useState(false);
-
+  const session = useQuery({
+    ...apiOptions.as<WizardSession>()('/wizard/$wizardHash/session/', {
+      path: {wizardHash: hash},
+      staleTime: 0,
+    }),
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: query =>
+      query.state.data?.json.status === 'selected' ? 1000 : false,
+  });
+  const finished = session.data?.status === 'completed';
   const trackWizardCompleted = useSetupWizardCompletedAnalytics(organizations);
 
   useEffect(() => {
-    return () => {
-      if (closeTimeoutRef.current) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const checkFinished = useCallback(async () => {
-    if (finished) {
+    if (!finished) {
       return;
     }
-    try {
-      await api.requestPromise(`/wizard/${hash}/`);
-    } catch {
-      setFinished(true);
-      window.clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
-      trackWizardCompleted();
-    }
-  }, [api, hash, trackWizardCompleted, finished]);
+
+    trackWizardCompleted();
+    const closeTimeout = window.setTimeout(() => window.close(), 10000);
+    return () => window.clearTimeout(closeTimeout);
+  }, [finished, trackWizardCompleted]);
 
   useEffect(() => {
-    const pollingInterval = window.setInterval(checkFinished, 1000);
-    return () => window.clearInterval(pollingInterval);
-  }, [checkFinished]);
+    if (session.data?.status === 'unauthenticated') {
+      testableWindowLocation.assign(session.data.redirectUrl);
+    }
+  }, [session.data]);
+
+  if (session.isError) {
+    return (
+      <LoadingError
+        message={t('Failed to load wizard session')}
+        onRetry={session.refetch}
+      />
+    );
+  }
+
+  if (session.data?.status === 'expired') {
+    return (
+      <LoadingError
+        message={t('This setup session has expired. Run the wizard again.')}
+      />
+    );
+  }
 
   return finished ? (
     <Flex align="center" gap="2xl">

@@ -71,7 +71,8 @@ type ParamKeys =
   | 'traceSlug'
   | 'userId'
   | 'viewId'
-  | 'widgetIndex';
+  | 'widgetIndex'
+  | 'wizardHash';
 
 /**
  * Get params from the current route. Param availability depends on the current route.
