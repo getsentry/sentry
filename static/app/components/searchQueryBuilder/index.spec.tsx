@@ -5485,6 +5485,44 @@ describe('SearchQueryBuilder', () => {
             expect(mockOnChange).not.toHaveBeenCalled();
           }
         );
+
+        it.each([
+          ['', []],
+          ['browser.name:firefox', ['']],
+        ])(
+          'clears the query "%s" without committing the placeholder value',
+          async (initialQuery, expectedChanges) => {
+            const mockOnChange = jest.fn();
+            const user = userEvent.setup();
+            render(
+              <SearchQueryBuilder
+                {...durationProps}
+                initialQuery={initialQuery}
+                onChange={mockOnChange}
+              />
+            );
+            await addDurationFilter();
+
+            const clearButton = screen.getByRole('button', {
+              name: 'Clear search query',
+              hidden: true,
+            });
+            // Hold the press long enough for focus to settle outside the filter
+            await user.pointer({keys: '[MouseLeft>]', target: clearButton});
+            await act(() => new Promise(resolve => setTimeout(resolve, 10)));
+            await user.pointer({keys: '[/MouseLeft]', target: clearButton});
+
+            await waitFor(() => {
+              expect(
+                screen.queryByRole('row', {name: /^duration:/})
+              ).not.toBeInTheDocument();
+            });
+            expect(getLastInput()).toHaveFocus();
+            expect(mockOnChange.mock.calls.map(([query]) => query)).toEqual(
+              expectedChanges
+            );
+          }
+        );
       });
 
       it('pre-fills input with current value when editing', async () => {

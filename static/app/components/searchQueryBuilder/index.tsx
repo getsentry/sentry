@@ -285,7 +285,7 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {clearSearchQuery, query} = useSearchQueryBuilderState();
+  const {clearSearchQuery, pendingFilterKey, query} = useSearchQueryBuilderState();
   const {disabled, caseInsensitive, onCaseInsensitiveClick} =
     useSearchQueryBuilderConfig();
 
@@ -320,6 +320,15 @@ function ActionButtons({
           size="zero"
           icon={<IconClose />}
           variant="transparent"
+          onPointerDown={e => {
+            // Clear on press while a filter has no value. Otherwise focus leaves
+            // the filter first, which commits its placeholder value and runs a
+            // search before the query is cleared.
+            if (pendingFilterKey && e.button === 0) {
+              e.preventDefault();
+              clearSearchQuery();
+            }
+          }}
           onClick={() => clearSearchQuery()}
         />
       )}
