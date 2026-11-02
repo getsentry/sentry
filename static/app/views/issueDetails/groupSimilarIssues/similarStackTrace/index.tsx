@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -38,10 +38,10 @@ const EMPTY_SET: ReadonlySet<string> = new Set();
 export function SimilarStackTrace({project}: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
-  const [{query: issueQuery, similarityEmbeddings}] = useQueryStates({
-    query: parseAsString,
-    similarityEmbeddings: parseAsBooleanLiteral,
-  });
+  const [similarityEmbeddings] = useQueryState(
+    'similarityEmbeddings',
+    parseAsBooleanLiteral
+  );
   const organization = useOrganization();
   const params = useParams<{groupId: string; orgId: string}>();
   const navigate = useNavigate();
@@ -97,14 +97,13 @@ export function SimilarStackTrace({project}: Props) {
   } = useMutation<
     {merge?: {parent?: string}} | undefined,
     Error,
-    {ids: string[]; projectSlug: string; query?: string}
+    {ids: string[]; projectSlug: string}
   >({
-    mutationFn: ({ids, projectSlug, query}) =>
+    mutationFn: ({ids, projectSlug}) =>
       mergeGroups(api, {
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [...ids, params.groupId],
-        query,
       }),
     onSuccess: data => {
       if (data?.merge?.parent && data.merge.parent !== params.groupId) {
@@ -150,9 +149,8 @@ export function SimilarStackTrace({project}: Props) {
     mergeMutate({
       ids: Array.from(checkedIds),
       projectSlug: firstIssue.issue.project.slug,
-      query: issueQuery ?? undefined,
     });
-  }, [checkedIds, similar, filtered, issueQuery, mergeMutate]);
+  }, [checkedIds, similar, filtered, mergeMutate]);
 
   const {data: event, isPending: isEventPending} = useGroupEvent({
     groupId: params.groupId,
