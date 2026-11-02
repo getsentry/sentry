@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus, ScheduleType
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -240,7 +241,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
-            monitor_config=config,
+            checkin_config_id=get_checkin_config_id(config),
         )
         # Mutating the monitor config to test that the check-in config is used
         monitor.config = {
