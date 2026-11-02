@@ -222,6 +222,8 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
             on_results=lambda runs: serialize_workflow_runs(
                 runs,
+                # TODO(telkins): Align automation and investigation access checks instead of
+                # returning empty outputs for otherwise visible runs.
                 include_investigations=has_investigations_access(organization, actor=request.user),
             ),
         )
