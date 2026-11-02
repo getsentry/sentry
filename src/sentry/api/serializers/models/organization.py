@@ -67,6 +67,7 @@ from sentry.dynamic_sampling.utils import (
     is_organization_mode_sampling,
     is_project_mode_sampling,
 )
+from sentry.features.frontend import OrganizationCapability
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.authprovider import AuthProvider
@@ -510,13 +511,13 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     feature_set.remove("onboarding")
 
         # Include api-keys feature if they previously had any api-keys
-        if "api-keys" not in feature_set and attrs["has_api_key"]:
-            feature_set.add("api-keys")
+        if OrganizationCapability.API_KEYS not in feature_set and attrs["has_api_key"]:
+            feature_set.add(OrganizationCapability.API_KEYS)
 
         if getattr(obj.flags, "allow_joinleave"):
-            feature_set.add("open-membership")
+            feature_set.add(OrganizationCapability.OPEN_MEMBERSHIP)
         if not getattr(obj.flags, "disable_shared_issues"):
-            feature_set.add("shared-issues")
+            feature_set.add(OrganizationCapability.SHARED_ISSUES)
 
         return sorted(feature_set)
 
