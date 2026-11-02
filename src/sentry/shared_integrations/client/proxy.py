@@ -108,12 +108,6 @@ def get_proxy_url() -> str:
     return urljoin(settings.SENTRY_CONTROL_ADDRESS, PROXY_BASE_PATH)
 
 
-# Retries sleep inside the request thread. Upstream rate limits can send a Retry-After of an
-# hour or more, which would hold a web worker thread for that long, so we ignore Retry-After
-# and cap any backoff sleep.
-MAX_RETRY_SLEEP_SECONDS = 60
-
-
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
@@ -164,6 +158,10 @@ class IntegrationProxyClient(ApiClient):
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
+        # Default settings for these in urllib3 are way too high, so make
+        # them option configurable for us to tune them.
+        max_retry_sleep = options.get("hybridcloud.integrationproxy.retry_max_sleep")
+        respect_retry_after = options.get("hybridcloud.integrationproxy.respect_retry_after")
         if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
@@ -174,19 +172,17 @@ class IntegrationProxyClient(ApiClient):
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
-                    respect_retry_after_header=False,
-                    backoff_max=MAX_RETRY_SLEEP_SECONDS,
-                    retry_after_max=MAX_RETRY_SLEEP_SECONDS,
+                    respect_retry_after_header=respect_retry_after,
+                    backoff_max=max_retry_sleep,
+                    retry_after_max=max_retry_sleep,
                 ),
             )
-        # Same retry count as the urllib3 default (Retry(3)) we used to fall back to, but
-        # without honoring Retry-After: a 413/429/503 goes straight back to the caller.
         return build_session(
             max_retries=Retry(
                 total=3,
-                respect_retry_after_header=False,
-                backoff_max=MAX_RETRY_SLEEP_SECONDS,
-                retry_after_max=MAX_RETRY_SLEEP_SECONDS,
+                respect_retry_after_header=respect_retry_after,
+                backoff_max=max_retry_sleep,
+                retry_after_max=max_retry_sleep,
             )
         )
 
