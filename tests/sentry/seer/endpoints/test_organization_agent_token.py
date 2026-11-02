@@ -590,15 +590,16 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
 
-# Oracle: an owner token with the account's scopes. The account is linked to the project
-# in an open-membership org, so it should reach everything the owner does. User-global
-# routes must deny it, since it has no user.
+# Oracle: an owner token with the account's scopes. The account has `all_projects`, so it
+# should reach every project the owner does. User-global routes must deny it, since it has
+# no user.
 SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRANTABLE_SCOPES)
 
 
 class ServiceAccountGap(StrEnum):
     CONTROL_SILO = "service account auth is cell-only"
     NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
+    NO_TEAM_ACCESS = "service accounts reach no teams in v1"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
@@ -620,6 +621,16 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "OrganizationMemberDetails_put": ServiceAccountGap.NO_MEMBERSHIP,
     "OrganizationMemberIndex_post": ServiceAccountGap.NO_MEMBERSHIP,
     "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
+    "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ProjectTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamDetails": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamMembers": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamProjects": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamProjects_post": ServiceAccountGap.NO_TEAM_ACCESS,
 }
 
 # Rows that act on the caller as a person (saved views, stars, a personal team), so a
@@ -628,6 +639,7 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
         "OrganizationGroupSearchViews",
         "OrganizationGroupSearchViews_post",
+        "OrganizationMemberTeamDetails_post",
         "OrganizationProjects_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
@@ -2217,7 +2229,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             organization=self.org,
             name="permission-matrix",
             scope_list=sorted(SERVICE_ACCOUNT_SCOPES),
-            project_ids=[self.project.id],
+            all_projects=True,
         )
         self._service_account_context = encode_viewer_context(
             ViewerContext(

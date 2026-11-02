@@ -122,7 +122,7 @@ class ServiceAccount(ReplicatedControlModel):
 @control_silo_model
 class ServiceAccountProject(DefaultFieldsModel, ControlOutboxProducingModel):
     """
-    A project a service account can access when its org doesn't have open membership.
+    A project a service account can access when it doesn't have `all_projects`.
     Projects live in the cell, so the link is a hybrid cloud foreign key and the row is
     removed by the tombstone cascade after the project is deleted.
 
