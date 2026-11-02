@@ -138,7 +138,10 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[RepositoryInfo]:
+    def get_repositories(
+        self,
+        query: str | None = None,
+    ) -> list[RepositoryInfo]:
         raise NotImplementedError
 
     @property

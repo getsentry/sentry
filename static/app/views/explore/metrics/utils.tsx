@@ -9,6 +9,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
+  FractionUnit,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -351,7 +352,7 @@ export function isCompleteTraceMetric(traceMetric: TraceMetric): boolean {
 
 const DURATION_UNIT_VALUES = new Set<string>(Object.values(DurationUnit));
 const SIZE_UNIT_VALUES = new Set<string>(Object.values(SizeUnit));
-const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
+const FRACTION_UNIT_VALUES = new Set<string>(Object.values(FractionUnit));
 
 /**
  * Maps a metric unit (from TraceMetric.unit) to the ColumnType and
@@ -374,7 +375,7 @@ export function mapMetricUnitToFieldType(metricUnit: string | null | undefined):
   if (SIZE_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'size', unit: metricUnit};
   }
-  if (PERCENTAGE_UNIT_VALUES.has(metricUnit)) {
+  if (FRACTION_UNIT_VALUES.has(metricUnit)) {
     return {fieldType: 'percentage', unit: metricUnit};
   }
   return {fieldType: 'number', unit: undefined};
