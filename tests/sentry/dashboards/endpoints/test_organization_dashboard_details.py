@@ -821,6 +821,43 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 403
 
+    def test_api_key_cannot_delete_restricted_dashboard_without_creator(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=None,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
+
+    def test_api_key_cannot_delete_restricted_dashboard_via_pending_invite(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.create_user().id,
+            organization=self.organization,
+        )
+        team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization, email="invited@example.com", teams=[team]
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
+
     def test_delete_dashboard_with_edit_permissions_disabled(self) -> None:
         creator = self.create_user()
         dashboard = Dashboard.objects.create(
