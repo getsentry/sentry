@@ -5,7 +5,6 @@ import {defined} from 'sentry/utils/defined';
 import type {LinkedDashboard} from 'sentry/views/dashboards/types';
 
 const linkedDashboardSchema = z.object({
-  // Saved widgets from the API carry numeric ids, despite the `LinkedDashboard` type.
   dashboardId: z.union([z.string(), z.number()]).refine(Boolean).transform(String),
   field: z.string().min(1),
 });
