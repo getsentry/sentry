@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import Protocol, TypedDict, cast
 
 import sentry_sdk
+from django.db import router, transaction
 from django.db.models.signals import post_save
 
 from sentry import analytics
@@ -102,6 +104,8 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.javascript import has_sourcemap
+
+logger = logging.getLogger(__name__)
 
 UNKNOWN_DEFAULT_USER_ID = "unknown"
 
@@ -226,9 +230,23 @@ def record_user_feedback(project: Project, **kwargs: object) -> None:
 
 @project_created.connect(weak=False)
 def record_project_created(project: Project, **kwargs: object) -> None:
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id, feature_slug="first_project", complete=True
-    )
+    organization_id = project.organization_id
+
+    # Projects are often created inside a transaction. Record after commit so
+    # the Redis cache calls do not run inside it. A failure must not fail an
+    # already-committed project or prevent other commit callbacks running.
+    def on_commit() -> None:
+        try:
+            FeatureAdoption.objects.record(
+                organization_id=organization_id, feature_slug="first_project", complete=True
+            )
+        except Exception:
+            logger.exception(
+                "feature_adoption.first_project_failed",
+                extra={"organization_id": organization_id},
+            )
+
+    transaction.on_commit(on_commit, router.db_for_write(FeatureAdoption))
 
 
 @member_joined.connect(weak=False)
