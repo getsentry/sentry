@@ -2166,7 +2166,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             ),
             (
                 {"max_values": {"max1": "100", "max2": 200}},
-                "Maximum values must be integers.",
+                "Maximum values must be numbers.",
             ),
             (
                 {"max_values": {"max1": 100, "max2": 200}, "unit": 5},
@@ -2198,6 +2198,30 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 response = self.do_request("put", self.url(self.dashboard.id), data=data)
                 assert response.status_code == 400, response.data
                 assert message in str(response.data)
+
+    def test_update_widget_with_decimal_thresholds(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Big Number with Decimal Thresholds",
+                    "displayType": "big_number",
+                    "thresholds": {"max_values": {"max1": 0.1, "max2": 0.25}, "unit": None},
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
 
     def test_update_widget_with_invalid_threshold_time_window(self) -> None:
         data = {
