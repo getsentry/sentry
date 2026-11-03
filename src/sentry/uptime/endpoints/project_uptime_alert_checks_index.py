@@ -239,7 +239,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return None
 
         try:
-            return json.loads(raw)
+            return cast("Assertion", json.loads(raw))
         except (TypeError, ValueError):
             return None
 

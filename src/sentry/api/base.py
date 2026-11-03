@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, Never, Protocol, TypedDict, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -44,7 +44,7 @@ from sentry.api.exceptions import (
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.auth.principal import RequestPrincipal, has_user, set_request_principal
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user, set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -58,7 +58,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cursors import Cursor
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     absolute_uri,
@@ -70,6 +70,8 @@ from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 if TYPE_CHECKING:
     from rest_framework.views import AsView, GenericView
+
+    from sentry.models.auditlogentry import AuditLogEntry
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -142,7 +144,11 @@ def _with_endpoint_scope_declaration(
     return wrapper
 
 
-def allow_cors_options(func):
+class _CorsView(Protocol):
+    def _allowed_methods(self) -> list[str]: ...
+
+
+def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
 
@@ -155,7 +161,10 @@ def allow_cors_options(func):
     """
 
     @functools.wraps(func)
-    def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
+    def allow_cors_options_wrapper(
+        self: _CorsView, request: Request, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        response: HttpResponse
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -233,8 +242,13 @@ class BaseEndpointMixin(abc.ABC):
 
     @abc.abstractmethod
     def create_audit_entry(
-        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
-    ):
+        self,
+        request: Request,
+        transaction_id: int | str | None = None,
+        *,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> AuditLogEntry:
         pass
 
     @abc.abstractmethod
@@ -244,18 +258,18 @@ class BaseEndpointMixin(abc.ABC):
     @abc.abstractmethod
     def paginate(
         self,
-        request,
-        on_results=None,
-        paginator=None,
-        paginator_cls=Paginator,
+        request: Request,
+        on_results: Callable[..., object] | None = None,
+        paginator: Any = None,
+        paginator_cls: type[Any] = Paginator,
         default_per_page: int | None = None,
         max_per_page: int | None = None,
-        cursor_cls=Cursor,
-        response_cls=Response,
-        response_kwargs=None,
-        count_hits=None,
-        **paginator_kwargs,
-    ):
+        cursor_cls: type[Cursor] = Cursor,
+        response_cls: type[Response] = Response,
+        response_kwargs: Mapping[str, Any] | None = None,
+        count_hits: bool | None = None,
+        **paginator_kwargs: Any,
+    ) -> Response:
         pass
 
 
@@ -273,7 +287,8 @@ class Endpoint(APIView):
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     # Non-safe methods that a client may resend after a timeout or 5xx without
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
-    idempotent_methods: frozenset[HTTP_METHOD_NAME] = frozenset()
+    # None means undeclared, which the schema build rejects for published writes.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
@@ -323,10 +338,14 @@ class Endpoint(APIView):
         if self.requires_user and principal.is_authenticated and not has_user(principal):
             raise UserRequired()
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def permission_denied(self, request, message=None, code=None):
+    def permission_denied(
+        self, request: Request, message: str | None = None, code: str | None = None
+    ) -> Never:
         """
         Raise a specific superuser exception if the user can become superuser
         and the only permission class is SuperuserPermission. Otherwise, raises
@@ -440,8 +459,13 @@ class Endpoint(APIView):
         return response
 
     def create_audit_entry(
-        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
-    ):
+        self,
+        request: Request,
+        transaction_id: int | str | None = None,
+        *,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> AuditLogEntry:
         return create_audit_entry(request, transaction_id, audit_logger, data=data, **kwargs)
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
@@ -468,7 +492,7 @@ class Endpoint(APIView):
     @csrf_exempt
     @allow_cors_options
     @_with_endpoint_scope_declaration
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
@@ -595,11 +619,13 @@ class Endpoint(APIView):
                         raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
-    def add_cors_headers(self, request: Request, response):
+    def add_cors_headers(self, request: Request, response: Response) -> None:
         response["Access-Control-Allow-Origin"] = request.META["HTTP_ORIGIN"]
         response["Access-Control-Allow-Methods"] = ", ".join(self.http_method_names)
 
-    def add_cursor_headers(self, request: Request, response, cursor_result):
+    def add_cursor_headers(
+        self, request: Request, response: Response, cursor_result: CursorResult[Any]
+    ) -> None:
         if cursor_result.hits is not None:
             response["X-Hits"] = cursor_result.hits
         if cursor_result.max_hits is not None:
@@ -614,12 +640,12 @@ class Endpoint(APIView):
     def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
-    def respond_with_text(self, text):
+    def respond_with_text(self, text: str) -> Response:
         return self.respond({"text": text})
 
     def get_per_page(
         self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
-    ):
+    ) -> int:
         default_per_page = default_per_page or PAGINATION_DEFAULT_PER_PAGE
         max_per_page = max_per_page or 100
 
@@ -632,7 +658,9 @@ class Endpoint(APIView):
         except ValueError as e:
             raise ParseError(detail=str(e))
 
-    def get_cursor_from_request(self, request: Request, cursor_cls=Cursor):
+    def get_cursor_from_request(
+        self, request: Request, cursor_cls: type[Cursor] = Cursor
+    ) -> Cursor | None:
         try:
             return get_cursor(request.GET.get(self.cursor_name), cursor_cls)
         except ValueError as e:
@@ -640,18 +668,18 @@ class Endpoint(APIView):
 
     def paginate(
         self,
-        request,
-        on_results=None,
-        paginator=None,
-        paginator_cls=Paginator,
+        request: Request,
+        on_results: Callable[..., object] | None = None,
+        paginator: Any = None,
+        paginator_cls: type[Any] = Paginator,
         default_per_page: int | None = None,
         max_per_page: int | None = None,
-        cursor_cls=Cursor,
-        response_cls=Response,
-        response_kwargs=None,
-        count_hits=None,
-        **paginator_kwargs,
-    ):
+        cursor_cls: type[Cursor] = Cursor,
+        response_cls: type[Response] = Response,
+        response_kwargs: Mapping[str, Any] | None = None,
+        count_hits: bool | None = None,
+        **paginator_kwargs: Any,
+    ) -> Response:
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
@@ -710,7 +738,10 @@ class StatsArgsDict(TypedDict):
 
 class StatsMixin:
     def _parse_args(
-        self, request: Request, environment_id=None, restrict_rollups=True
+        self,
+        request: Request,
+        environment_id: int | None = None,
+        restrict_rollups: bool = True,
     ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
@@ -761,7 +792,7 @@ class StatsMixin:
             "start": start,
             "end": end,
             "rollup": resolution,
-            "environment_ids": environment_id and [environment_id],
+            "environment_ids": cast("list[int]", environment_id and [environment_id]),
         }
 
     def _parse_resolution(self, value: str) -> int:
@@ -778,11 +809,13 @@ class StatsMixin:
 
 
 class ReleaseAnalyticsMixin:
-    def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
+    def track_set_commits_local(
+        self, request: Request, organization_id: int, project_ids: list[int] | None = None
+    ) -> None:
         try:
             analytics.record(
                 ReleaseSetCommitsLocalEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization_id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),

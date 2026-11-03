@@ -463,7 +463,7 @@ def block_execution_needs_dispatch(execution: NotebookBlockExecution) -> bool:
         return True
     return (
         execution.status == NotebookBlockExecutionStatus.RUNNING
-        and execution.seer_run_id is None
+        and not execution.seer_run_id
         and (
             execution.started_at is None
             or execution.started_at <= timezone.now() - DISPATCH_CLAIM_TIMEOUT

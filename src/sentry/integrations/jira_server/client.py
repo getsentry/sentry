@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
@@ -21,6 +22,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -63,7 +66,7 @@ class JiraServerClient(ApiClient):
         integration: RpcIntegration | Integration,
         identity: RpcIdentity,
         logging_context: Any | None = None,
-    ):
+    ) -> None:
         self.base_url = integration.metadata["base_url"]
         self.identity = identity
         super().__init__(
@@ -78,7 +81,7 @@ class JiraServerClient(ApiClient):
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         return self.authorize_request(prepared_request=prepared_request)
 
-    def authorize_request(self, prepared_request: PreparedRequest):
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """Jira Server authorizes with RSA-signed OAuth1 scheme"""
         if not self.identity:
             return prepared_request
@@ -103,10 +106,10 @@ class JiraServerClient(ApiClient):
     def user_query_param(self) -> str:
         return "username"
 
-    def get_issue(self, issue_id):
-        return self.get(self.ISSUE_URL % (issue_id,))
+    def get_issue(self, issue_id: str) -> MappingApiResponse:
+        return self.get_mapping(self.ISSUE_URL % (issue_id,))
 
-    def search_issues(self, query):
+    def search_issues(self, query: str) -> dict[str, object]:
         issue_key = parse_jira_issue_key(query, self.base_url)
         if issue_key is not None:
             # the key pattern cannot contain a quote, so it needs no escaping
@@ -114,31 +117,44 @@ class JiraServerClient(ApiClient):
         else:
             q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
-        return self.get(
-            self.SEARCH_URL,
-            params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
+        return cast(
+            dict[str, object],
+            self.get(
+                self.SEARCH_URL,
+                params={"jql": jql, "startAt": 0, "maxResults": 20, "fields": "summary"},
+            ),
         )
 
-    def create_comment(self, issue_key, comment):
-        return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
+    def create_comment(self, issue_key: int | str, comment: str) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.post(self.COMMENTS_URL % issue_key, data={"body": comment}),
+        )
 
-    def update_comment(self, issue_key, comment_id, comment):
-        return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
+    def update_comment(
+        self, issue_key: int | str, comment_id: str, comment: str
+    ) -> dict[str, object]:
+        return cast(
+            dict[str, object],
+            self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment}),
+        )
 
-    def get_projects_list(self, cached: bool = True):
+    def get_projects_list(self, cached: bool = True) -> SequenceApiResponse:
         if not cached:
-            return self.get(self.PROJECT_URL)
-        return self.get_cached(self.PROJECT_URL)
+            return self.get_sequence(self.PROJECT_URL)
+        return self.get_cached_sequence(self.PROJECT_URL)
 
-    def get_issue_types(self, project_id):
-        # Get a list of issue types for the given project
-        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
+    def get_issue_types(self, project_id: str | int) -> MappingApiResponse:
+        # Get the issue types for the given project, wrapped in a values list.
+        return self.get_cached_mapping(self.ISSUE_TYPES_URL % (project_id))
 
-    def get_issue_fields(self, project_id, issue_type_id):
+    def get_issue_fields(
+        self, project_id: str | int, issue_type_id: str | int
+    ) -> MappingApiResponse:
         # Get a list of fields for the issue type and project
-        return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
+        return self.get_cached_mapping(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
-    def get_project_key_for_id(self, project_id) -> str:
+    def get_project_key_for_id(self, project_id: str) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
@@ -147,10 +163,10 @@ class JiraServerClient(ApiClient):
                 return project["key"]
         return ""
 
-    def get_versions(self, project):
-        return self.get_cached(self.VERSIONS_URL % project)
+    def get_versions(self, project: str) -> list[dict[str, object]]:
+        return cast(list[dict[str, object]], self.get_cached(self.VERSIONS_URL % project))
 
-    def get_priorities(self):
+    def get_priorities(self) -> SequenceApiResponse:
         """
         XXX(schew2381): There is an existing bug where we fetch and show all project priorities instead of scoping
         them to the selected project. This is fine when manually creating a Jira Server issue b/c we surface that
@@ -166,60 +182,68 @@ class JiraServerClient(ApiClient):
         https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme-getAssignedPriorityScheme
 
         """
-        return self.get_cached(self.PRIORITIES_URL)
+        return self.get_cached_sequence(self.PRIORITIES_URL)
 
-    def search_users_for_project(self, project, username):
+    def search_users_for_project(self, project: str, username: str) -> list[dict[str, object]]:
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
-        return self.get_cached(
-            self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
+        return cast(
+            list[dict[str, object]],
+            self.get_cached(
+                self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
+            ),
         )
 
-    def search_users_for_issue(self, issue_key, email):
-        return self.get_cached(
+    def search_users_for_issue(self, issue_key: str, email: str) -> SequenceApiResponse:
+        return self.get_cached_sequence(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: str) -> dict[str, object]:
         user_id_get_param = self.user_id_get_param()
-        return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
+        return cast(
+            dict[str, object],
+            self.get_cached(self.USER_URL, params={user_id_get_param: user_id}),
+        )
 
-    def create_issue(self, raw_form_data):
+    def create_issue(self, raw_form_data: Mapping[str, object]) -> MappingApiResponse:
         data = {"fields": raw_form_data}
-        return self.post(self.CREATE_URL, data=data)
+        return self.post_mapping(self.CREATE_URL, data=data)
 
-    def get_server_info(self):
-        return self.get(self.SERVER_INFO_URL)
+    def get_server_info(self) -> MappingApiResponse:
+        return self.get_mapping(self.SERVER_INFO_URL)
 
-    def get_valid_statuses(self):
-        return self.get_cached(self.STATUS_URL)
+    def get_valid_statuses(self) -> SequenceApiResponse:
+        return self.get_cached_sequence(self.STATUS_URL)
 
-    def get_transitions(self, issue_key):
-        return self.get(self.TRANSITION_URL % issue_key)["transitions"]
+    def get_transitions(self, issue_key: str) -> SequenceApiResponse:
+        return cast(
+            SequenceApiResponse, self.get_mapping(self.TRANSITION_URL % issue_key)["transitions"]
+        )
 
-    def transition_issue(self, issue_key, transition_id):
-        return self.post(
+    def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
+        return self.post_mapping(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
-    def assign_issue(self, key, name_or_account_id):
+    def assign_issue(self, key: str, name_or_account_id: str) -> MappingApiResponse:
         user_id_field = self.user_id_field()
-        return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+        return self.put_mapping(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
-    def set_issue_property(self, issue_key, badge_num):
+    def set_issue_property(self, issue_key: str, badge_num: int) -> MappingApiResponse:
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
-        return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
+        return self.put_mapping(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_field_autocomplete(self, name, value):
+    def get_field_autocomplete(self, name: str, value: str) -> MappingApiResponse:
         if name.startswith(CUSTOMFIELD_PREFIX):
             # Transform `customfield_0123` into `cf[0123]`
             cf_id = name[len(CUSTOMFIELD_PREFIX) :]
             jql_name = f"cf[{cf_id}]"
         else:
             jql_name = name
-        return self.get_cached(
+        return self.get_cached_mapping(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
 
@@ -240,13 +264,15 @@ class JiraServerSetupClient(ApiClient):
     LEGACY_WEBHOOK_URL = "/rest/webhooks/1.0/webhook"
 
     @control_silo_function
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
+    def __init__(
+        self, base_url: str, consumer_key: str, private_key: str, verify_ssl: bool = True
+    ) -> None:
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
         self.verify_ssl = verify_ssl
 
-    def get_request_token(self):
+    def get_request_token(self) -> dict[str, str]:
         """
         Step 1 of the oauth flow.
         Get a request token that we can have the user verify.
@@ -255,14 +281,16 @@ class JiraServerSetupClient(ApiClient):
         resp = self.post(url, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def get_authorize_url(self, request_token):
+    def get_authorize_url(self, request_token: Mapping[str, str]) -> str:
         """
         Step 2 of the oauth flow.
         Get a URL that the user can verify our request token at.
         """
         return self.authorize_url.format(self.base_url, request_token["oauth_token"])
 
-    def get_access_token(self, request_token, verifier):
+    def get_access_token(
+        self, request_token: Mapping[str, str], verifier: str | None
+    ) -> dict[str, str]:
         """
         Step 3 of the oauth flow.
         Use the verifier and request token from step 1 to get an access token.
@@ -283,7 +311,9 @@ class JiraServerSetupClient(ApiClient):
         resp = self.post(url, auth=auth, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def create_issue_webhook(self, external_id, secret, credentials):
+    def create_issue_webhook(
+        self, external_id: str, secret: str, credentials: Mapping[str, str]
+    ) -> dict[str, object]:
         auth = OAuth1(
             client_key=credentials["consumer_key"],
             rsa_key=credentials["private_key"],
@@ -312,7 +342,7 @@ class JiraServerSetupClient(ApiClient):
             webhook_url = self.WEBHOOK_URL
 
             # Query the server version to determine which webhook endpoint to use
-            server_info = self.get(self.SERVER_INFO_URL, auth=auth)
+            server_info = self.get_mapping(self.SERVER_INFO_URL, auth=auth)
             server_version = server_info.get("version")
             server_major_version = server_version.split(".")[0] if server_version else None
             lifecycle.add_extra("server_major_version", server_major_version)
@@ -323,9 +353,9 @@ class JiraServerSetupClient(ApiClient):
                 # Fallback to legacy webhook endpoint if we encounter an error
                 webhook_url = self.LEGACY_WEBHOOK_URL
 
-            return self.post(webhook_url, auth=auth, data=data)
+            return cast(dict[str, object], self.post(webhook_url, auth=auth, data=data))
 
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
         """
         Add OAuth1 RSA signatures.
         """

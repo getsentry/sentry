@@ -655,7 +655,9 @@ class PlaceholderTitleTest(TestCase):
         (None, None, None),
     ],
 )
-def test_get_updated_group_title(existing_title, incoming_title, expected_title) -> None:
+def test_get_updated_group_title(
+    existing_title: str | None, incoming_title: str | None, expected_title: str | None
+) -> None:
     existing_data = {"title": existing_title} if existing_title is not None else {}
     incoming_data = {"title": incoming_title} if incoming_title is not None else {}
 
@@ -709,7 +711,7 @@ class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
     def test_adds_correct_tags_to_avg_calculations_per_event_metrics(
         self, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         project = self.project
 
         in_transition_cases: list[Any] = [
@@ -765,7 +767,7 @@ def test_records_hash_comparison_metric(
     secondary_hashes: list[str],
     expected_tag: str,
     default_project: Project,
-):
+) -> None:
     project = default_project
     project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
     project.update_option("sentry:secondary_grouping_config", NO_MSG_PARAM_CONFIG)

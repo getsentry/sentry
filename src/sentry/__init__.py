@@ -11,7 +11,7 @@ except importlib.metadata.PackageNotFoundError:
     VERSION = "unknown"
 
 
-def _get_git_revision(path):
+def _get_git_revision(path: str) -> str | None:
     if not os.path.exists(os.path.join(path, ".git")):
         return None
     try:
@@ -22,7 +22,7 @@ def _get_git_revision(path):
     return revision.strip().decode("utf-8")
 
 
-def get_revision():
+def get_revision() -> str | None:
     """
     :returns: Revision number of this branch/checkout, if available. None if
         no revision number can be determined.
@@ -37,13 +37,13 @@ def get_revision():
     return None
 
 
-def get_version():
+def get_version() -> str:
     if __build__:
         return f"{__version__}.{__build__}"
     return __version__
 
 
-def is_docker():
+def is_docker() -> bool:
     # One of these environment variables are guaranteed to exist
     # from our official docker images.
     # SENTRY_VERSION is from a tagged release, and SENTRY_BUILD is from a

@@ -1,10 +1,13 @@
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
     GetTracesResponse,
     TraceAttribute,
@@ -12,6 +15,7 @@ from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
+from sentry.models.project import Project
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -35,14 +39,14 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
     def double_write_segment(
         self,
         *,
-        project,
-        trace_id,
-        transaction_id,
-        span_id,
-        timestamp,
-        duration,
-        **kwargs,
-    ):
+        project: Project,
+        trace_id: str,
+        transaction_id: str,
+        span_id: str,
+        timestamp: datetime,
+        duration: int,
+        **kwargs: Any,
+    ) -> None:
         kwargs.setdefault("measurements", {})
         if "lcp" not in kwargs["measurements"]:
             kwargs["measurements"]["lcp"] = duration
@@ -60,6 +64,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             spans=[],
             event_id=transaction_id,
         )
+        assert data is not None
 
         for measurement, value in kwargs.get("measurements", {}).items():
             data["measurements"][measurement] = {"value": value}
@@ -87,7 +92,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             **kwargs,
         )
 
-    def create_mock_traces(self):
+    def create_mock_traces(
+        self,
+    ) -> tuple[Project, Project, str, str, str, list[int], list[str]]:
         project_1 = self.create_project()
         project_2 = self.create_project()
 
@@ -246,6 +253,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         )
 
         error_data = load_data("javascript", timestamp=timestamps[0])
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id_1,
@@ -264,7 +272,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             span_ids,
         )
 
-    def do_request(self, query, features=None, **kwargs):
+    def do_request(
+        self, query: dict[str, Any], features: Sequence[str] | None = None, **kwargs: Any
+    ) -> Response:
         if features is None:
             features = [
                 "organizations:visibility-explore-view",
@@ -273,7 +283,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         query["dataset"] = "spans"
 
         with self.feature(features):
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 reverse(
                     self.view,
                     kwargs={"organization_id_or_slug": self.organization.slug},
@@ -282,6 +292,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 format="json",
                 **kwargs,
             )
+            return response
 
     def test_no_feature(self) -> None:
         response = self.do_request({}, features=[])
@@ -1046,7 +1057,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             span_ids,
         ) = self.create_mock_traces()
 
-        expected = [
+        expected: list[dict[str, Any]] = [
             {
                 "trace": trace_id_1,
                 "numErrors": 1,
@@ -2454,7 +2465,9 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         ),
     ],
 )
-def test_process_breakdowns(data, traces_range, expected) -> None:
+def test_process_breakdowns(
+    data: list[dict[str, Any]], traces_range: dict[str, Any], expected: object
+) -> None:
     traces_range = {
         trace: {
             "start": trace_start,

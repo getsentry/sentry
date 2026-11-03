@@ -1,4 +1,6 @@
+from collections.abc import MutableMapping
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from django.utils import timezone
@@ -7,7 +9,7 @@ from sentry.constants import MAX_CULPRIT_LENGTH, MAX_VERSION_LENGTH
 from sentry.event_manager import EventManager
 
 
-def validate_and_normalize(data):
+def validate_and_normalize(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     manager = EventManager(data)
     manager.normalize()
     return manager.get_data()

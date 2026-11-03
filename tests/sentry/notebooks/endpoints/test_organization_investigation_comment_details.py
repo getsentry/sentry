@@ -25,7 +25,7 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
 
     def url(self, comment_id: int | str) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-comment-details",
+            "sentry-api-0-organization-notebook-comment-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

@@ -53,7 +53,8 @@ RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
 
 
-def get_relocation_size_category(size: int) -> str:
+def get_relocation_size_category(size: int | None) -> str:
+    assert size is not None
     if size < RELOCATION_FILE_SIZE_SMALL:
         return "small"
     elif size < RELOCATION_FILE_SIZE_MEDIUM:

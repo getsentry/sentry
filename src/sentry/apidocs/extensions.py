@@ -1,4 +1,5 @@
-from typing import Any, get_type_hints
+from collections.abc import Callable
+from typing import Any, cast, get_type_hints
 
 from drf_spectacular.extensions import (
     OpenApiAuthenticationExtension,
@@ -15,7 +16,17 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.conf.server import GRANULAR_SCOPES
 
 
-class TokenAuthExtension(OpenApiAuthenticationExtension):
+class _TypedExtension:
+    """Typed adapter for drf-spectacular's unannotated extension base class."""
+
+    def __init__(self, target: object) -> None:
+        cast("Callable[..., None]", super().__init__)(target)
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        cast("Callable[..., None]", super().__init_subclass__)(**kwargs)
+
+
+class TokenAuthExtension(_TypedExtension, OpenApiAuthenticationExtension):
     """
     Extension that adds what scopes are needed to access an endpoint to the
     OpenAPI Schema.
@@ -39,7 +50,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
         return {"type": "http", "scheme": "bearer"}
 
 
-class SentryResponseSerializerExtension(OpenApiSerializerExtension):
+class SentryResponseSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     """
     This extension will register any Sentry Response Serializer as a component that can be used
     in an OpenAPI schema. To have the serializer schema be mapped, you must type the
@@ -51,7 +62,8 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
     match_subclasses = True
 
     def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str | None:
-        return self.target.__name__
+        name = self.target.__name__
+        return name
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         type_hints = get_type_hints(self.target.serialize)
@@ -61,7 +73,7 @@ class SentryResponseSerializerExtension(OpenApiSerializerExtension):
         return resolve_type_hint(type_hints["return"])
 
 
-class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
+class SentryInlineResponseSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     """
     This extension is used for the `inline_sentry_response_serializer` utils function
     and will simply resolve the type passed into the function to an OpenAPI schema.
@@ -72,24 +84,26 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
     match_subclasses = True
 
     def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str | None:
-        return self.target.__name__
+        name = self.target.__name__
+        return name
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)
 
 
-class SentryAppIssueActionSerializerExtension(OpenApiSerializerExtension):
+class SentryAppIssueActionSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     target_class = "sentry.sentry_apps.api.endpoints.installation_external_issue_actions.SentryAppInstallationExternalIssueActionsSerializer"
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
-        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        map_serializer = cast("Callable[..., dict[str, Any]]", auto_schema._map_serializer)
+        schema = map_serializer(self.target, direction, bypass_extensions=True)
         schema["properties"]["action"]["enum"] = ["link", "create"]
         # Apps define additional form fields at the top level of the request.
         schema["additionalProperties"] = True
         return schema
 
 
-class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
+class RestrictedJsonFieldExtension(_TypedExtension, OpenApiSerializerFieldExtension):
     """
     This extension restricts Sentry's use of the JSONField to mimic a DictField.
     It comes from a change in drf-spectacular because rest_framework's JSONField actually accepts
@@ -102,22 +116,23 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 
     target_class = "rest_framework.fields.JSONField"
 
-    def map_serializer_field(self, auto_schema, direction):
-        return build_basic_type(OpenApiTypes.OBJECT)
+    def map_serializer_field(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, str]:
+        return cast(dict[str, str], build_basic_type(OpenApiTypes.OBJECT))
 
 
 # TODO: extension to do default error codes on responses.
 # https://github.com/tfranzel/drf-spectacular/issues/334
 
 
-class InvestigationRequestSerializerExtension(OpenApiSerializerExtension):
+class InvestigationRequestSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     """Expose the wire names without changing opaque JSON keys or runtime validation."""
 
     target_class = "sentry.notebooks.endpoints.validators.base.StrictCamelSnakeValidator"
     match_subclasses = True
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
-        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        map_serializer = cast("Callable[..., dict[str, Any]]", auto_schema._map_serializer)
+        schema = map_serializer(self.target, direction, bypass_extensions=True)
         schema["properties"] = {
             snake_to_camel_case(name): field for name, field in schema["properties"].items()
         }

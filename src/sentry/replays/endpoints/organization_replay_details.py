@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -31,7 +31,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.replays.endpoints.organization_replay_endpoint import OrganizationReplayEndpoint
 from sentry.replays.lib.eap import read as eap_read
-from sentry.replays.lib.eap.snuba_transpiler import RequestMeta, Settings
+from sentry.replays.lib.eap.snuba_transpiler import QueryResult, RequestMeta, Settings
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.validators import ReplayValidator, validate_fields
@@ -103,7 +103,9 @@ def _query_replay_urls_eap(
     return urls
 
 
-def _normalize_eap_response(data: list[dict]) -> list[dict]:
+def _normalize_eap_response(
+    data: list[dict[str, bool | float | int | str | None]],
+) -> list[dict[str, bool | float | int | str | None]]:
     """Normalize EAP response data for frontend compatibility.
 
     - Convert float timestamps to ISO strings
@@ -133,7 +135,7 @@ def query_replay_instance_eap(
     organization_id: int,
     request_user_id: int | None,
     referrer: str = "replays.query.details_query",
-):
+) -> QueryResult:
     # EAP stores replay_id in hex without dashes
     replay_ids_no_dashes = [replay_id.replace("-", "") for replay_id in replay_ids]
 
@@ -278,14 +280,17 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
             if features.has(
                 "organizations:replay-details-eap-query", organization, actor=request.user
             ):
-                snuba_response = query_replay_instance_eap(
-                    project_ids=project_ids,
-                    replay_ids=[replay_id],
-                    start=filter_params["start"],
-                    end=filter_params["end"],
-                    organization_id=organization.id,
-                    request_user_id=acting_user_id(request.user),
-                )["data"]
+                snuba_response = cast(
+                    list[dict[str, Any]],
+                    query_replay_instance_eap(
+                        project_ids=project_ids,
+                        replay_ids=[replay_id],
+                        start=filter_params["start"],
+                        end=filter_params["end"],
+                        organization_id=organization.id,
+                        request_user_id=acting_user_id(request.user),
+                    )["data"],
+                )
 
                 if snuba_response:
                     urls = _query_replay_urls_eap(
@@ -297,13 +302,16 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     )
                     snuba_response[0]["urls_sorted"] = urls
             else:
-                snuba_response = query_replay_instance(
-                    project_id=project_ids,
-                    replay_id=replay_id,
-                    start=filter_params["start"],
-                    end=filter_params["end"],
-                    organization=organization,
-                    request_user_id=acting_user_id(request.user),
+                snuba_response = cast(
+                    list[dict[str, Any]],
+                    query_replay_instance(
+                        project_id=project_ids,
+                        replay_id=replay_id,
+                        start=filter_params["start"],
+                        end=filter_params["end"],
+                        organization=organization,
+                        request_user_id=acting_user_id(request.user),
+                    ),
                 )
 
         replay_data = process_raw_response(

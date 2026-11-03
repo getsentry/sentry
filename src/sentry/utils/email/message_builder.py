@@ -72,8 +72,8 @@ def inline_css(value: str) -> str:
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
-    return html
+    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None)
+    return html.decode("utf-8")
 
 
 def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:
@@ -195,14 +195,26 @@ class MessageBuilder:
                 subject = f"Re: {subject}"
 
         if isinstance(reference, Group):
-            thread, created = GroupEmailThread.objects.get_or_create(
-                email=to,
-                group=reference,
-                defaults={"project": reference.project, "msgid": message_id},
-            )
-            if not created:
-                headers.setdefault("In-Reply-To", thread.msgid)
-                headers.setdefault("References", thread.msgid)
+            if GroupEmailThread.can_track_email(to):
+                thread, created = GroupEmailThread.objects.get_or_create(
+                    email=to,
+                    group=reference,
+                    defaults={"project": reference.project, "msgid": message_id},
+                )
+                if not created:
+                    headers.setdefault("In-Reply-To", thread.msgid)
+                    headers.setdefault("References", thread.msgid)
+            else:
+                # Email is too long for GroupEmailThread.email; send without threading.
+                metrics.incr(
+                    "mail.group_email_thread.skipped_long_email",
+                    tags={"source": "message_builder"},
+                    sample_rate=1.0,
+                )
+                logger.warning(
+                    "mail.group_email_thread.skipped_long_email",
+                    extra={"group_id": reference.id, "email_length": len(to)},
+                )
 
         msg = EmailMultiAlternatives(
             subject=subject.splitlines()[0],

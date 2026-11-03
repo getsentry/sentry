@@ -1,5 +1,7 @@
 __all__ = ("Http",)
 
+from collections.abc import Mapping
+from typing import Any, Self
 from urllib.parse import parse_qsl
 
 from django.utils.translation import gettext as _
@@ -10,14 +12,14 @@ from sentry.utils.safe import get_path, safe_urlencode
 from sentry.web.helpers import render_to_string
 
 
-def format_headers(value):
+def format_headers(value: Any) -> tuple[list[tuple[str, str]], str | None] | tuple[()]:
     if not value:
         return ()
 
     if isinstance(value, dict):
         value = value.items()
 
-    result = []
+    result: list[tuple[str, str]] = []
     cookie_header = None
     for k, v in value:
         # If a header value is a list of header,
@@ -36,7 +38,7 @@ def format_headers(value):
     return result, cookie_header
 
 
-def format_cookies(value):
+def format_cookies(value: Any) -> list[tuple[str | bytes, str | bytes]] | tuple[()]:
     if not value:
         return ()
 
@@ -49,7 +51,7 @@ def format_cookies(value):
     return [(fix_broken_encoding(k.strip()), fix_broken_encoding(v)) for k, v in value]
 
 
-def fix_broken_encoding(value):
+def fix_broken_encoding(value: str | bytes) -> str | bytes:
     """
     Strips broken characters that can't be represented at all
     in utf8. This prevents our parsers from breaking elsewhere.
@@ -99,7 +101,7 @@ class Http(Interface):
     FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         data.setdefault("query_string", [])
         for key in (
             "api_target",
@@ -116,7 +118,7 @@ class Http(Interface):
 
         return super().to_python(data)
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "apiTarget": self.api_target,
@@ -133,7 +135,7 @@ class Http(Interface):
         )
 
     @property
-    def full_url(self):
+    def full_url(self) -> str | None:
         url = self.url
         if url:
             if self.query_string:
@@ -142,7 +144,7 @@ class Http(Interface):
                 url = url + "#" + self.fragment
         return url
 
-    def to_email_html(self, event, **kwargs):
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:
         return render_to_string(
             "sentry/partial/interfaces/http_email.html",
             {
@@ -155,10 +157,12 @@ class Http(Interface):
             },
         )
 
-    def get_title(self):
+    def get_title(self) -> str:
         return _("Request")
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
         if is_public:
             return {}
 
@@ -184,7 +188,12 @@ class Http(Interface):
         }
         return data
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         if is_public:
             return None
 
