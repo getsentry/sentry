@@ -3,9 +3,11 @@ from datetime import timedelta
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry.api.conditional_get import MAX_AGE_OPTION_NAME, OPTION_NAME
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -85,6 +87,32 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.status_code == 200, response.content
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
+
+    @override_options(
+        {
+            OPTION_NAME: True,
+            MAX_AGE_OPTION_NAME: ["OrganizationEventDetailsEndpoint"],
+        }
+    )
+    def test_listed_endpoint_is_browser_cacheable(self) -> None:
+        url = reverse(
+            "sentry-api-0-organization-event-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "event_id": "a" * 32,
+            },
+        )
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(url, format="json")
+            live_response = self.client.get(url, {"averageColumn": "span.self_time"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response["Cache-Control"] == "private, max-age=300"
+        assert "Origin" in response["Vary"]
+        assert live_response.status_code == 200, live_response.content
+        assert live_response["Cache-Control"] == "private, no-cache"
 
     def test_simple_with_id(self) -> None:
         url = reverse(

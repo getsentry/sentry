@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,7 +10,7 @@ class BackfillCustomInboundFilterDataTypeTest(TestMigrations):
     migrate_from = "1185_backfill_release_new_id"
     migrate_to = "1186_backfill_custominboundfilter_data_type"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         CustomInboundFilter = apps.get_model("sentry", "CustomInboundFilter")
 
         self.log = CustomInboundFilter.objects.create(
@@ -42,7 +43,7 @@ class BackfillCustomInboundFilterDataTypeTest(TestMigrations):
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         for custom_filter in (
             self.log,
             self.metric,

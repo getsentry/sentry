@@ -7,20 +7,27 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 
 
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("test@test.com")
 
-    def check_results(self, expected, search_type, query=None):
+    def check_results(
+        self, expected: list[RecentSearch], search_type: SearchType, query: str | None = None
+    ) -> None:
         self.login_as(user=self.user)
         kwargs = {}
         if query:
@@ -191,11 +198,11 @@ class RecentSearchesCreateTest(APITestCase):
     method = "post"
 
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization()
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         user = self.create_user("test@test.com")
         self.create_team(members=[user], organization=self.organization)
         return user
@@ -226,3 +233,49 @@ class RecentSearchesCreateTest(APITestCase):
                 query=query,
                 last_seen=the_date,
             ).exists()
+
+
+@with_feature("organizations:granular-permission-scopes")
+class RecentSearchesScopeTest(APITestCase):
+    endpoint = "sentry-api-0-organization-recent-searches"
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_list(self) -> None:
+        self._use_token(["user_preference:read"])
+        self.get_success_response(self.organization.slug, type=SearchType.ISSUE.value)
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["user_preference:read"])
+        self.get_error_response(
+            self.organization.slug,
+            method="post",
+            type=SearchType.ISSUE.value,
+            query="is:unresolved",
+            status_code=403,
+        )
+        assert not RecentSearch.objects.filter(user_id=self.user.id).exists()
+
+    def test_write_scope_can_create(self) -> None:
+        self._use_token(["user_preference:write"])
+        self.get_success_response(
+            self.organization.slug,
+            method="post",
+            type=SearchType.ISSUE.value,
+            query="is:unresolved",
+            status_code=201,
+        )
+        assert RecentSearch.objects.filter(
+            organization=self.organization, user_id=self.user.id, query="is:unresolved"
+        ).exists()
+
+    def test_write_scope_cannot_list(self) -> None:
+        # Write does not imply read.
+        self._use_token(["user_preference:write"])
+        self.get_error_response(
+            self.organization.slug, type=SearchType.ISSUE.value, status_code=403
+        )

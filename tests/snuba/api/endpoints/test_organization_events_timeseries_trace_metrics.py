@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import (
@@ -31,7 +33,9 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_simple(self) -> None:
@@ -363,7 +367,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["meta"]["valueType"] == "rate"
         assert timeseries["meta"]["valueUnit"] == "1/minute"
 
-    def test_aggregate_with_unit_filters_for_correct_items(self):
+    def test_aggregate_with_unit_filters_for_correct_items(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
@@ -400,7 +404,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # only the metrics with a unit of millisecond should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 2
 
-    def test_aggregate_with_placeholder_unit_returns_metrics_for_all_unit_types(self):
+    def test_aggregate_with_placeholder_unit_returns_metrics_for_all_unit_types(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
@@ -440,7 +444,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # all metrics should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 4
 
-    def test_aggregate_with_explicit_none_unit_returns_metrics_for_no_unit_items(self):
+    def test_aggregate_with_explicit_none_unit_returns_metrics_for_no_unit_items(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_count", 1, "counter", timestamp=self.start),
             self.create_trace_metric(
@@ -480,7 +484,7 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         # only the metrics with a unit of none should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 1
 
-    def test_equation_where_one_term_has_no_data(self):
+    def test_equation_where_one_term_has_no_data(self) -> None:
         trace_metrics = []
         for hour in range(5):
             trace_metrics.append(

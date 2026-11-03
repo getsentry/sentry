@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -36,7 +37,7 @@ def test_missing_sample_returns_none() -> None:
     assert data is None
 
 
-def test_sample_as_directory_raises_exception(tmp_path) -> None:
+def test_sample_as_directory_raises_exception(tmp_path: Path) -> None:
     # override DATA_ROOT to a tmp directory
     with mock.patch("sentry.utils.samples.DATA_ROOT", tmp_path):
         # create a directory ending with `.json`
@@ -56,7 +57,7 @@ class TestConsoleSamples:
     @pytest.mark.parametrize("platform", list(CONSOLES))
     def test_console_platforms_trigger_screenshot_attachment(
         self, default_project: Project, platform: str
-    ):
+    ) -> None:
         with mock.patch(
             "sentry.utils.samples.create_console_screenshot_attachment"
         ) as mock_attachment:
@@ -64,7 +65,9 @@ class TestConsoleSamples:
             assert event is not None
             mock_attachment.assert_called_once_with(event, default_project, platform)
 
-    def test_non_console_platforms_skip_screenshot_attachment(self, default_project):
+    def test_non_console_platforms_skip_screenshot_attachment(
+        self, default_project: Project
+    ) -> None:
         with mock.patch(
             "sentry.utils.samples.create_console_screenshot_attachment"
         ) as mock_attachment:
@@ -89,7 +92,7 @@ class TestConsoleSamples:
     #     assert attachment.name == "screenshot.png"
     #     assert attachment.size > 0
 
-    def test_screenshot_attachment_handles_error_gracefully(self, default_project):
+    def test_screenshot_attachment_handles_error_gracefully(self, default_project: Project) -> None:
         with mock.patch("sentry.utils.samples.load_console_screenshot") as mock_load:
             mock_load.return_value = None
             event = create_sample_event(default_project, platform="xbox")
@@ -101,7 +104,9 @@ class TestConsoleSamples:
             )
             assert not attachments.exists()
 
-    def test_screenshot_attachment_handles_database_error_gracefully(self, default_project):
+    def test_screenshot_attachment_handles_database_error_gracefully(
+        self, default_project: Project
+    ) -> None:
         with mock.patch(
             "sentry.models.eventattachment.EventAttachment.objects.create"
         ) as mock_create:

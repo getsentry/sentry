@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from typing import cast
+from unittest.mock import MagicMock, Mock, _patch, patch
 
 import responses
 from django.utils import timezone
@@ -34,12 +35,12 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
     def _create_preprod_artifact(
         self,
-        state=PreprodArtifact.ArtifactState.PROCESSED,
-        with_commit_comparison=True,
-        error_message=None,
-        app_id="com.example.app",
-        unique_shas=True,
-    ):
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        with_commit_comparison: bool = True,
+        error_message: str | None = None,
+        app_id: str = "com.example.app",
+        unique_shas: bool = True,
+    ) -> PreprodArtifact:
         """Helper to create PreprodArtifact with optional CommitComparison."""
         preprod_artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -73,7 +74,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         return preprod_artifact
 
-    def _create_working_status_check_setup(self, preprod_artifact):
+    def _create_working_status_check_setup(
+        self, preprod_artifact: PreprodArtifact
+    ) -> tuple[Mock, Mock, _patch[MagicMock], _patch[MagicMock]]:
         """Helper to mock a working status check setup with GitHub integration."""
         # Create repository that matches the commit comparison
         repository = Repository.objects.create(
@@ -99,7 +102,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
 
         return mock_client, mock_provider, patcher_client, patcher_provider
 
-    def _create_no_api_calls_setup(self):
+    def _create_no_api_calls_setup(self) -> tuple[Mock, Mock, _patch[MagicMock], _patch[MagicMock]]:
         """Helper to mock setup for tests that expect no API calls to be made."""
         mock_client = Mock()
         mock_provider = Mock()
@@ -220,7 +223,7 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
             organization_id=self.organization.id,
             name="owner/repo",
             provider="integrations:github",
-            integration_id=None,
+            integration_id=cast("int", None),
         )
 
         _, mock_provider, client_patch, provider_patch = self._create_no_api_calls_setup()
@@ -236,8 +239,9 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
         """Test task handles unsupported VCS provider gracefully and makes no API calls."""
         preprod_artifact = self._create_preprod_artifact()
         # Change provider to unsupported one (GitLab is not supported)
-        preprod_artifact.commit_comparison.provider = "gitlab"
-        preprod_artifact.commit_comparison.save()
+        commit_comparison = cast("CommitComparison", preprod_artifact.commit_comparison)
+        commit_comparison.provider = "gitlab"
+        commit_comparison.save()
 
         _, mock_provider, client_patch, provider_patch = self._create_no_api_calls_setup()
 
@@ -295,7 +299,10 @@ class CreatePreprodStatusCheckTaskTest(TestCase):
                 call_kwargs = mock_provider.create_status_check.call_args.kwargs
 
                 assert call_kwargs["repo"] == "owner/repo"
-                assert call_kwargs["sha"] == preprod_artifact.commit_comparison.head_sha
+                assert (
+                    call_kwargs["sha"]
+                    == cast("CommitComparison", preprod_artifact.commit_comparison).head_sha
+                )
                 assert call_kwargs["title"] == "Size Analysis"
 
                 # When no rules are configured, all statuses are converted to NEUTRAL.

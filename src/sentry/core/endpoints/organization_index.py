@@ -1,4 +1,5 @@
 import logging
+from typing import Any, cast
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -27,6 +28,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import has_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
@@ -77,14 +79,14 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
     dataStorageLocation = serializers.CharField(required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
         self.fields["slug"].required = False
         self.fields["name"].required = True
 
-    def validate_agreeTerms(self, value):
+    def validate_agreeTerms(self, value: bool) -> bool:
         if not value:
             raise serializers.ValidationError("This attribute is required.")
         return value
@@ -111,13 +113,13 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
 
         locality_name = attrs.get("dataStorageLocation")
 
         if locality_name:
-            attrs["cell_name"] = resolve_provisioning_cell(locality_name)
+            attrs["cell_name"] = resolve_provisioning_cell(cast(str, locality_name))
         else:
             # TODO(cells) Remove this when cell silo compatibility is removed.
             attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_FALLBACK_CELL
@@ -197,7 +199,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:
@@ -311,7 +313,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(organization_id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:

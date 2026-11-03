@@ -1,7 +1,9 @@
 import copy
 import math
+from collections.abc import Iterator
 from datetime import timedelta
 from functools import cached_property
+from typing import cast
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
@@ -74,7 +76,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
         with self.capture_on_commit_callbacks(execute=True):
-            assert SubscriptionProcessor.process(self.sub, message) is False
+            assert (
+                SubscriptionProcessor.process(self.sub, cast(QuerySubscriptionUpdate, message))
+                is False
+            )
         mock_is_enabled.assert_called_once()
 
     @patch("sentry.incidents.subscription_processor.metrics")
@@ -174,7 +179,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     @cached_property
-    def comparison_detector_above(self):
+    def comparison_detector_above(self) -> Detector:
         self.detector.config.update({"comparison_delta": 60 * 60})
         self.detector.save()
         self.update_threshold(self.detector, DetectorPriorityLevel.HIGH, 150)
@@ -184,7 +189,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         return self.detector
 
     @cached_property
-    def comparison_detector_below(self):
+    def comparison_detector_below(self) -> Detector:
         self.detector.config.update({"comparison_delta": 60 * 60})
         self.detector.save()
         DataCondition.objects.filter(
@@ -196,7 +201,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         return self.detector
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_above(self, helper_metrics):
+    def test_comparison_alert_above(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
@@ -245,7 +250,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_below(self, helper_metrics):
+    def test_comparison_alert_below(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_below
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold - 1, timedelta(minutes=-10))
@@ -295,7 +300,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_eap(self, helper_metrics):
+    def test_comparison_alert_eap(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         self.snuba_query.update(
             aggregate="count(span.duration)",
@@ -358,7 +363,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_comparison_query(self, helper_metrics):
+    def test_is_unresolved_comparison_query(self, helper_metrics: MagicMock) -> None:
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query)
         """
@@ -423,7 +428,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_different_aggregate(self, helper_metrics):
+    def test_is_unresolved_different_aggregate(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         snuba_query = self.get_snuba_query(detector)
@@ -570,12 +575,12 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
 
 class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metrics_patcher(self):
+    def _setup_metrics_patcher(self) -> Iterator[None]:
         with patch("sentry.snuba.entity_subscription.metrics") as self.entity_subscription_metrics:
             yield
 
     @cached_property
-    def crash_rate_detector(self):
+    def crash_rate_detector(self) -> Detector:
         detector = self.metric_detector
         DataCondition.objects.filter(condition_group=detector.workflow_condition_group).delete()
         self.set_up_data_conditions(
@@ -606,14 +611,17 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 )
             )
 
-    def send_crash_rate_detector_update(self, value, subscription, time_delta=None, count=EMPTY):
+    def send_crash_rate_detector_update(
+        self,
+        value: float | None,
+        subscription: QuerySubscription,
+        time_delta: timedelta | None = None,
+        count: object = EMPTY,
+    ) -> None:
         if time_delta is None:
             time_delta = timedelta()
 
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
+        timestamp = timezone.now() + time_delta
         timestamp = timestamp.replace(microsecond=0)
 
         with (
@@ -626,14 +634,14 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 if count is EMPTY:
                     numerator, denominator = value.as_integer_ratio()
                 else:
-                    denominator = count
+                    denominator = cast(int, count)
                     numerator = int(value * denominator)
             SubscriptionProcessor.process(
                 subscription,
                 {
                     "entity": "entity",
                     "subscription_id": (
-                        subscription.subscription_id if subscription else uuid4().hex
+                        cast(str, subscription.subscription_id) if subscription else uuid4().hex
                     ),
                     "values": {
                         "data": [
@@ -679,8 +687,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_crash_rate_detector_for_sessions_with_auto_resolve_critical(
-        self, mock_seer_request
-    ):
+        self, mock_seer_request: MagicMock
+    ) -> None:
         """
         Test that ensures that a dynamic critical monitor is triggered when `crash_free_percentage` falls
         below the critical threshold and then is resolved once `crash_free_percentage` goes above
@@ -879,8 +887,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_detector_when_session_count_is_lower_than_minimum_threshold(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
@@ -945,8 +953,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         update_value = (1 - self.critical_threshold / 100) + 0.05
         subscription = self.sub
 
@@ -977,14 +985,14 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         with self.feature("organizations:performance-view"):
             SubscriptionProcessor.process(
                 self.sub,
                 {
                     "entity": "entity",
-                    "subscription_id": self.sub.subscription_id,
+                    "subscription_id": cast(str, self.sub.subscription_id),
                     "values": {
                         # 1001 is a random int that doesn't map to anything in the indexer
                         "data": [

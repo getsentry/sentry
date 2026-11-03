@@ -12,12 +12,12 @@ from urllib3 import BaseHTTPResponse
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.investigations.contracts import RerunSkipReason
 from sentry.investigations.models import (
-    Investigation,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
 )
 from sentry.net.http import connection_from_url
+from sentry.notebooks.models import Notebook
 from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models import SeerApiError
@@ -100,7 +100,7 @@ __all__ = [
 
 
 def _monitoring_providers(
-    investigation: Investigation, *, actor: ActorId | None
+    investigation: Notebook, *, actor: ActorId | None
 ) -> list[dict[str, Any]]:
     """Replace Seer's connections with this actor's personal and organization connections."""
 

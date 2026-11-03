@@ -382,6 +382,7 @@ class TestReplayGranularPermissions(APITestCase):
                 user=self.user_with_access,
             )
 
+            assert installation.api_token is not None
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(
                 url,
@@ -410,6 +411,7 @@ class TestReplayGranularPermissions(APITestCase):
                 user=self.user_with_access,
             )
 
+            assert installation.api_token is not None
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(
                 url,
@@ -435,6 +437,7 @@ class TestReplayGranularPermissions(APITestCase):
                 user=self.user_with_access,
             )
 
+            assert installation.api_token is not None
             url = f"/api/0/organizations/{self.organization.slug}/replays/"
             response = self.client.get(
                 url,

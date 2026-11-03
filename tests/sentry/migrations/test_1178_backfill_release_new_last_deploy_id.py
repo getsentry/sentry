@@ -1,8 +1,10 @@
+from typing import Any
 import importlib
 from unittest import mock
 
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 # A leading digit is legal in a module name but not in the dotted path mock.patch parses,
@@ -16,19 +18,21 @@ class BackfillReleaseNewLastDeployIdTest(TestMigrations):
     migrate_from = "1177_drop_dashboardhiddenuser"
     migrate_to = "1178_backfill_release_new_last_deploy_id"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # A handful of rows spans several batches at this size, so the migration's
         # chunking is actually exercised rather than served by a single batch.
         with mock.patch.object(migration, "BATCH_SIZE", 2):
             super().setUp()
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.organization = self.create_organization()
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Release = apps.get_model("sentry", "Release")
 
-        def create_release(version, last_deploy_id, new_last_deploy_id):
+        def create_release(
+            version: str, last_deploy_id: int | None, new_last_deploy_id: int | None
+        ) -> Any:
             return Release.objects.create(
                 organization_id=self.organization.id,
                 version=version,
@@ -47,7 +51,7 @@ class BackfillReleaseNewLastDeployIdTest(TestMigrations):
         # A shadow value over a null deploy is the mismatch "is null" would miss.
         self.stale_shadow = create_release("stale-shadow", None, 999)
 
-    def test_backfills_every_row_out_of_sync(self):
+    def test_backfills_every_row_out_of_sync(self) -> None:
         for release in self.pending:
             release.refresh_from_db()
             assert release.new_last_deploy_id == release.last_deploy_id

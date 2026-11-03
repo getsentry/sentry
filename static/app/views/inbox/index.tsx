@@ -9,12 +9,16 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {InboxItemList} from 'sentry/views/inbox/inboxItemList';
+import {InboxItemPreview} from 'sentry/views/inbox/inboxItemPreview';
 import {useInboxItems} from 'sentry/views/inbox/useInboxItems';
+import {INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
@@ -24,7 +28,8 @@ const INBOX_LIST_MAX_SIZE = 640;
 
 function InboxContent() {
   const {data: items, isPending, isError, refetch} = useInboxItems();
-  const {id: selectedItemId = null} = useParams<{id?: string}>();
+  const {id} = useParams<{id?: string}>();
+  const location = useLocation();
   const listContainerRef = useRef<HTMLDivElement>(null);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_LIST_SIZE_STORAGE_KEY,
@@ -56,34 +61,51 @@ function InboxContent() {
     );
   }
 
+  const selectedItem =
+    items.find(
+      item =>
+        item.subjectId === id &&
+        location.pathname.includes(
+          `/inbox/${INBOX_SUBJECT_CONFIG[item.subjectType].pathSegment}/`
+        )
+    ) ?? null;
+
   return (
-    <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
-      <Stack
-        ref={listContainerRef}
-        position="relative"
-        // useResizable writes an inline width, so the initial width is also set inline.
-        style={{width: `${storedSize}px`}}
-        minWidth={0}
-        minHeight={0}
-        borderRight="primary"
-      >
-        <Container flex={1} overflowY="auto" minHeight={0}>
-          <InboxItemList items={items} selectedItemId={selectedItemId} />
+    <ListItemCheckboxProvider
+      hits={items.length}
+      knownIds={items.map(item => item.id)}
+      endpointOptions={undefined}
+    >
+      <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
+        <Stack
+          ref={listContainerRef}
+          position="relative"
+          // useResizable writes an inline width, so the initial width is also set inline.
+          style={{width: `${storedSize}px`}}
+          minWidth={0}
+          minHeight={0}
+          borderRight="primary"
+        >
+          <Container flex={1} overflowY="auto" minHeight={0}>
+            <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
+          </Container>
+          <Container top="0" right="0" bottom="0" width="8px" position="absolute">
+            {props => (
+              <ResizeHandle
+                {...props}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => setStoredSize(INBOX_LIST_DEFAULT_SIZE)}
+                atMinWidth={size === INBOX_LIST_MIN_SIZE}
+                atMaxWidth={size === INBOX_LIST_MAX_SIZE}
+              />
+            )}
+          </Container>
+        </Stack>
+        <Container overflowY="auto" minHeight={0}>
+          <InboxItemPreview item={selectedItem} />
         </Container>
-        <Container top="0" right="0" bottom="0" width="8px" position="absolute">
-          {props => (
-            <ResizeHandle
-              {...props}
-              onMouseDown={handleStartResize}
-              onDoubleClick={() => setStoredSize(INBOX_LIST_DEFAULT_SIZE)}
-              atMinWidth={size === INBOX_LIST_MIN_SIZE}
-              atMaxWidth={size === INBOX_LIST_MAX_SIZE}
-            />
-          )}
-        </Container>
-      </Stack>
-      <Container overflowY="auto" minHeight={0} />
-    </Grid>
+      </Grid>
+    </ListItemCheckboxProvider>
   );
 }
 

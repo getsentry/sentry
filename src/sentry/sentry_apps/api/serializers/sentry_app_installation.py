@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -40,7 +40,7 @@ class SentryAppInstallationSerializer(Serializer[SentryAppInstallationResult]):
         item_list: Sequence[SentryAppInstallation],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ):
+    ) -> MutableMapping[Any, Any]:
         result: MutableMapping[Any, Any] = super().get_attrs(item_list, user, **kwargs)
 
         organizations = {
@@ -61,7 +61,11 @@ class SentryAppInstallationSerializer(Serializer[SentryAppInstallationResult]):
         return result
 
     def serialize(
-        self, obj, attrs, user: User | RpcUser | AnonymousUser, **kwargs
+        self,
+        obj: SentryAppInstallation,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> SentryAppInstallationResult:
         access = kwargs.get("access")
         data: SentryAppInstallationResult = {

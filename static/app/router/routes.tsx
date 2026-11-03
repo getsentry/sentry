@@ -1910,7 +1910,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2793,7 +2792,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },
@@ -2812,6 +2811,24 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/seerWorkflows/automations/detail/runs')
           ),
+        },
+      ],
+    },
+    {
+      path: 'classifiers/',
+      component: make(() => import('sentry/views/classifiers')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/classifiers/list')),
+        },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/classifiers/new')),
+        },
+        {
+          path: ':classifierId/',
+          component: make(() => import('sentry/views/classifiers/detail')),
         },
       ],
     },
@@ -3082,12 +3099,20 @@ function buildRoutes(): RouteObject[] {
     traceView,
   ];
   const inboxRoutes: SentryRouteObject = {
-    // TODO: Items are temporarily addressed by inbox item ID. These URLs will
-    // change to reference the item's subject (e.g. the issue or notebook)
-    // so they stay stable and shareable.
-    path: '/inbox/:id?/',
+    path: '/inbox/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
+    children: [
+      {
+        index: true,
+      },
+      {
+        path: 'issue/:id/',
+      },
+      {
+        path: 'notebook/:id/',
+      },
+    ],
   };
 
   const issueRoutes: SentryRouteObject = {

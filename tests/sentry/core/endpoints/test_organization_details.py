@@ -3,13 +3,16 @@ from __future__ import annotations
 import re
 from base64 import b64encode
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
 from django.core import mail
+from django.core.mail import EmailMessage
 from django.db import router
+from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
@@ -51,6 +54,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, crea
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -63,7 +67,7 @@ _VALID_RELAY_KEYS = [
 ]
 
 
-def get_trusted_relay_value(organization):
+def get_trusted_relay_value(organization: Any) -> Any:
     return list(
         OrganizationOption.objects.filter(
             organization=organization,
@@ -81,7 +85,7 @@ class OrganizationDetailsTestBase(APITestCase):
 
 
 class MockAccess:
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         # For the "test_as_no_org_read_user" we need a set of scopes that allows GET on the
         # OrganizationDetailsEndpoint to allow high-level access, but without "org:read" scope
         # to cover that branch with test. The scope "org:write" is a good candidate for this.
@@ -96,7 +100,7 @@ cells = create_test_cells("us", "de")
 @cell_silo_test(cells=cells, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return datetime.now().replace(microsecond=0)
 
     def test_simple(self) -> None:
@@ -231,7 +235,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
-    def get_onboard_tasks(self, tasks, task_type):
+    def get_onboard_tasks(
+        self, tasks: list[dict[str, Any]], task_type: str
+    ) -> list[dict[str, Any]]:
         return [task for task in tasks if task["task"] == task_type]
 
     def test_onboarding_tasks(self) -> None:
@@ -1199,7 +1205,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self) -> None:
         self.create_organization(slug="taken")
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
-        assert res.json()["slug"] == ['The slug "taken" is already in use.']
+        assert orjson.loads(res.content)["slug"] == ['The slug "taken" is already in use.']
 
     def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
         de_cell = cells[1]
@@ -1211,7 +1217,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
-        assert res.json()["slug"] == ['The slug "taken" is in use by another organization.']
+        assert orjson.loads(res.content)["slug"] == [
+            'The slug "taken" is in use by another organization.'
+        ]
 
     def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
@@ -1670,7 +1678,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert response.data["defaultAutomatedRunStoppingPoint"] == choice
 
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    def test_default_automated_run_stopping_point_rejects_invalid(self, mock_seat_based) -> None:
+    def test_default_automated_run_stopping_point_rejects_invalid(
+        self, mock_seat_based: MagicMock
+    ) -> None:
         for invalid in ("solution", "invalid_point"):
             with self.subTest(value=invalid):
                 data = {"defaultAutomatedRunStoppingPoint": invalid}
@@ -2057,6 +2067,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_remove(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:admin"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert Organization.objects.get(id=self.organization.id).status == OrganizationStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(object_id=self.organization.id).exists()
+
     def test_can_remove_as_owner(self) -> None:
         owners = self.organization.get_owners()
         assert len(owners) > 0
@@ -2207,18 +2241,18 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with assume_test_silo_mode_of(Authenticator):
             assert self.has_2fa.has_2fa()
 
-    def assert_2fa_email_equal(self, outbox, expected):
+    def assert_2fa_email_equal(self, outbox: list[EmailMessage], expected: list[str]) -> None:
         invite_url_regex = re.compile(r"http://.*/accept/[^/]+/[0-9]+/[a-f0-9]+/")
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
         for email in outbox:
-            assert invite_url_regex.search(email.body), (
+            assert invite_url_regex.search(cast(str, email.body)), (
                 f"No invite URL found in 2FA invite email body to: {email.to}"
             )
 
     def assert_has_correct_audit_log(
         self, acting_user: User, target_user: User, organization: Organization
-    ):
+    ) -> None:
         with outbox_runner():
             pass
 
@@ -2418,7 +2452,7 @@ invalid_payloads = [
 
 
 @pytest.mark.parametrize("invalid_data", invalid_payloads)
-def test_trusted_relay_serializer_validation(invalid_data) -> None:
+def test_trusted_relay_serializer_validation(invalid_data: Any) -> None:
     """
     Tests that the public key is validated
     """

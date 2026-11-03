@@ -28,7 +28,7 @@ class SetupWizard(Endpoint):
     }
     permission_classes = ()
 
-    def delete(self, request: Request, wizard_hash=None) -> Response | None:
+    def delete(self, request: Request, wizard_hash: str | None = None) -> Response | None:
         """
         This removes the cache content for a specific hash
         """
@@ -38,7 +38,7 @@ class SetupWizard(Endpoint):
             return Response(status=200)
         return None
 
-    def get(self, request: Request, wizard_hash=None) -> Response:
+    def get(self, request: Request, wizard_hash: str | None = None) -> Response:
         """
         This tries to retrieve and return the cache content if possible
         otherwise creates new cache

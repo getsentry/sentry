@@ -52,9 +52,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
 
     @property
     @abstractmethod
-    def installation_class(
-        self,
-    ) -> type[T]:
+    def installation_class(self) -> type[T] | tuple[type[T], ...]:
         raise NotImplementedError
 
     @abstractmethod

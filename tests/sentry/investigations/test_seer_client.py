@@ -218,9 +218,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
     def test_nonhuman_commands_replace_personal_connections(
         self, get_connections: mock.Mock, post: mock.Mock
     ) -> None:
-        investigation = self.create_investigation(
-            organization=self.organization, created_by=self.user
-        )
+        investigation = self.create_notebook(organization=self.organization, created_by=self.user)
         run = self.create_investigation_orchestration_run(
             investigation=investigation,
             seer_run=self.create_seer_run(organization=self.organization, seer_run_state_id=8128),
