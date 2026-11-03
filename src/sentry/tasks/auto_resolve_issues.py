@@ -100,7 +100,7 @@ def auto_resolve_project_issues(
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
     recently_reopened = Exists(
-        Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+        Activity.objects.get_recent_unresolved_activities(project.id, cutoff_dt).filter(
             group_id=OuterRef("id")
         )
     )
