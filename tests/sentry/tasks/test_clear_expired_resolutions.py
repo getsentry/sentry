@@ -18,6 +18,7 @@ from sentry.tasks.clear_expired_resolutions import (
     RESOLUTION_RETRY_TIMES,
     clear_expired_resolutions,
 )
+from sentry.taskworker.selfchain_idempotency import already_spawned
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -361,7 +362,9 @@ class FinalizedResolutionTaskTest(TestCase):
         other = self.create_group_resolution(
             group=other_group, release=self.anchor, type=GroupResolution.Type.in_next_release
         )
+        task = Mock(id="resolution-page-1", attempt=0)
         with (
+            patch("sentry.tasks.clear_expired_resolutions.current_task", return_value=task),
             patch("sentry.tasks.clear_expired_resolutions.RESOLUTION_BATCH_SIZE", 1),
             patch.object(clear_expired_resolutions, "delay") as delay,
         ):
@@ -372,6 +375,14 @@ class FinalizedResolutionTaskTest(TestCase):
             assert self.resolution.release_id == successor.id
             assert other.status == GroupResolution.Status.pending
 
+            # Redelivery must not process the next page or enqueue another child.
+            clear_expired_resolutions(successor.id)
+            delay.assert_called_once()
+            other.refresh_from_db()
+            assert other.status == GroupResolution.Status.pending
+
+            # The child has its own activation ID and can continue the same release.
+            task.id = "resolution-page-2"
             with Feature({"organizations:release-resolution-finalized-order": False}):
                 clear_expired_resolutions(successor.id, after_id=self.resolution.id)
             other.refresh_from_db()
@@ -384,8 +395,38 @@ class FinalizedResolutionTaskTest(TestCase):
             delay.assert_called_once_with(release_id=successor.id, after_id=other.id)
 
             delay.reset_mock()
+            task.id = "resolution-page-3"
             clear_expired_resolutions(successor.id, after_id=other.id)
             delay.assert_not_called()
+
+    def test_failed_continuation_enqueue_remains_retryable(self) -> None:
+        successor = self.create_release(version="next")
+        other = self.create_group_resolution(
+            group=self.create_group(project=self.project),
+            release=self.anchor,
+            type=GroupResolution.Type.in_next_release,
+        )
+        task = Mock(id="resolution-failed-enqueue", attempt=0)
+        with (
+            patch("sentry.tasks.clear_expired_resolutions.current_task", return_value=task),
+            patch("sentry.tasks.clear_expired_resolutions.RESOLUTION_BATCH_SIZE", 1),
+            patch.object(clear_expired_resolutions, "delay") as delay,
+        ):
+            delay.side_effect = RuntimeError("enqueue failed")
+            with pytest.raises(RuntimeError, match="enqueue failed"):
+                clear_expired_resolutions(successor.id)
+            assert not already_spawned(clear_expired_resolutions.name, task.id)
+            self.resolution.refresh_from_db()
+            other.refresh_from_db()
+            assert self.resolution.release_id == successor.id
+            assert other.status == GroupResolution.Status.pending
+
+            delay.reset_mock(side_effect=True)
+            clear_expired_resolutions(successor.id)
+            other.refresh_from_db()
+            assert other.release_id == successor.id
+            delay.assert_called_once_with(release_id=successor.id, after_id=other.id)
+            assert already_spawned(clear_expired_resolutions.name, task.id)
 
     def test_budget_cutoff_continues_from_the_last_examined_row(self) -> None:
         successor = self.create_release(version="next")
@@ -573,7 +614,7 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
             with (
                 patch(
                     "sentry.tasks.clear_expired_resolutions.current_task",
-                    return_value=Mock(attempt=0, retries_remaining=True),
+                    return_value=Mock(id="slow-successor", attempt=0, retries_remaining=True),
                 ),
                 pytest.raises(RetryTaskError),
             ):
@@ -586,7 +627,9 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
             # The broker can still report retries remaining on the last attempt.
             with patch(
                 "sentry.tasks.clear_expired_resolutions.current_task",
-                return_value=Mock(attempt=RESOLUTION_RETRY_TIMES - 1, retries_remaining=True),
+                return_value=Mock(
+                    id="slow-successor", attempt=RESOLUTION_RETRY_TIMES - 1, retries_remaining=True
+                ),
             ):
                 clear_expired_resolutions(successor.id)
             assert logger.warning.call_args.kwargs["extra"]["resolution_ids"] == [slow.id]
@@ -644,7 +687,7 @@ def test_lock_contention_retries_and_preserves_manual_resolution(
                 patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
                 patch(
                     "sentry.tasks.clear_expired_resolutions.current_task",
-                    return_value=Mock(attempt=0, retries_remaining=True),
+                    return_value=Mock(id="lock-contention", attempt=0, retries_remaining=True),
                 ),
                 pytest.raises(RetryTaskError),
             ):
@@ -732,7 +775,7 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
         patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
         patch(
             "sentry.tasks.clear_expired_resolutions.current_task",
-            return_value=Mock(attempt=0, retries_remaining=True),
+            return_value=Mock(id="changed-resolution", attempt=0, retries_remaining=True),
         ),
         pytest.raises(RetryTaskError),
     ):

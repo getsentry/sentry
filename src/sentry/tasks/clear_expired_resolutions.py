@@ -18,11 +18,13 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
+_TASK_KEY = "sentry.tasks.clear_expired_resolutions"
 
 RESOLUTION_BATCH_SIZE = 100
 # Successor lookups start only within this budget; each can then run up to its timeout.
@@ -31,7 +33,7 @@ RESOLUTION_RETRY_TIMES = 3
 
 
 @instrumented_task(
-    name="sentry.tasks.clear_expired_resolutions",
+    name=_TASK_KEY,
     namespace=issues_tasks,
     processing_deadline_duration=15,
     retry=Retry(
@@ -95,6 +97,13 @@ def clear_expired_resolutions(release_id: int, *, after_id: int = 0) -> None:
 
 
 def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
+    task = current_task()
+    activation_id = task.id if task is not None else None
+    # A redelivered activation that already enqueued its child must not fork the chain.
+    if activation_id and already_spawned(_TASK_KEY, activation_id):
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+        return
+
     # The task deadline cannot interrupt a running query, so every query is bounded
     # server-side, and no resolution row is locked while successors are looked up.
     using = router.db_for_write(GroupResolution)
@@ -167,7 +176,6 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
             unfinished.extend(resolvable)
 
     if unfinished:
-        task = current_task()
         # Mirror the worker's own retry decision. `retries_remaining` can stay true on
         # the last attempt, because a retry sends `times + 1` as `max_attempts`.
         retrying = task is not None and task.attempt < RESOLUTION_RETRY_TIMES - 1
@@ -195,6 +203,9 @@ def _clear_finalized_resolutions(release: Release, after_id: int) -> None:
 
     if len(examined) < len(page) or len(page) == RESOLUTION_BATCH_SIZE:
         clear_expired_resolutions.delay(release_id=release.id, after_id=examined[-1].id)
+        # Mark only after enqueueing; failed attempts must remain retryable.
+        if activation_id:
+            mark_spawned(_TASK_KEY, activation_id)
 
 
 def _resolve_unchanged(
