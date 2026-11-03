@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Sequence
+from typing import Any, cast
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -59,7 +61,7 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
 
-    def _validate_fields(self, request: Request):
+    def _validate_fields(self, request: Request) -> None:
         """
         Validates fields request parameter.
         Checks if metric field is public (InvalidParams exception is raised if it is not),
@@ -86,7 +88,7 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         self._validate_fields(request)
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> dict[str, Any]:
             try:
                 query = QueryDefinition(
                     projects,
@@ -146,10 +148,10 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
 
 
 class MetricsDataSeriesPaginator(GenericOffsetPaginator):
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[Any]:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
-        data = self.data_fn(offset=offset, limit=limit + 1)
+        data = cast("dict[str, Any]", self.data_fn(offset=offset, limit=limit + 1))
 
         if isinstance(data.get("groups"), list):
             has_more = len(data["groups"]) == limit + 1
@@ -159,7 +161,7 @@ class MetricsDataSeriesPaginator(GenericOffsetPaginator):
             raise NotImplementedError
 
         return CursorResult(
-            data,
+            cast("Sequence[Any]", data),
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )

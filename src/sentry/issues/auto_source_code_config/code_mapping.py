@@ -16,7 +16,6 @@ from sentry.integrations.source_code_management.path import (
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
     RepoTree,
-    RepoTreesIntegration,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -51,25 +50,6 @@ SLASH = "/"
 BACKSLASH = "\\"  # This is the Python representation of a single backslash
 
 CodeMappingKey = tuple[str, str]
-
-
-def derive_code_mappings(
-    organization: Organization,
-    frame: Mapping[str, Any],
-    platform: str | None = None,
-) -> list[dict[str, str]]:
-    installation = get_installation(organization)
-    if not isinstance(installation, RepoTreesIntegration):
-        return []
-    trees = installation.get_trees_for_org()
-    trees_helper = CodeMappingTreesHelper(trees)
-    try:
-        frame_filename = create_frame_info(frame, platform)
-        return trees_helper.get_file_and_repo_matches(frame_filename)
-    except NeedsExtension:
-        logger.warning("Needs extension: %s", frame.get("filename"))
-
-    return []
 
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper

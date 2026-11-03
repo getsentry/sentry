@@ -108,7 +108,7 @@ class TestDeriveSnapshotStatusApprovalStatus(TestCase):
     def _create_approval(
         self,
         approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
-        extras: dict | None = None,
+        extras: dict[str, object] | None = None,
     ) -> PreprodComparisonApproval:
         artifact = self.create_preprod_artifact(project=self.project)
         return self.create_preprod_comparison_approval(

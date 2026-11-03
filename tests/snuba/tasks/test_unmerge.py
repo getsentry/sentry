@@ -5,8 +5,10 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import timedelta
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from datetime import datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -54,9 +56,16 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
+    def store_group_event(self, data: dict[str, Any]) -> GroupEvent:
+        event = self.store_event(data=data, project_id=self.project.id)
+        assert event.group is not None
+        return event.for_group(event.group)
+
     @patch("sentry.tasks.unmerge.Group")
     @patch("sentry.tasks.unmerge.current_task")
-    def test_selfchain_skips_when_already_spawned(self, mock_current_task, mock_group) -> None:
+    def test_selfchain_skips_when_already_spawned(
+        self, mock_current_task: mock.MagicMock, mock_group: mock.MagicMock
+    ) -> None:
         # A prior delivery of this activation already spawned its continuation; a broker re-pend
         # must short-circuit before touching the DB (proving no re-processing / no fork).
         mock_current_task.return_value = SimpleNamespace(id="unmerge-act-skip")
@@ -67,20 +76,19 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert mock_group.objects.get.call_count == 0
 
     def test_get_fingerprint(self) -> None:
+        event = self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
+        assert event.group is not None
         assert (
-            get_fingerprint(
-                self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
-            )
-            == hashlib.md5(b"Hello world").hexdigest()
+            get_fingerprint(event.for_group(event.group)) == hashlib.md5(b"Hello world").hexdigest()
         )
 
+        fingerprint_event = self.store_event(
+            data={"message": "Hello world", "fingerprint": ["Not hello world"]},
+            project_id=self.project.id,
+        )
+        assert fingerprint_event.group is not None
         assert (
-            get_fingerprint(
-                self.store_event(
-                    data={"message": "Hello world", "fingerprint": ["Not hello world"]},
-                    project_id=self.project.id,
-                )
-            )
+            get_fingerprint(fingerprint_event.for_group(fingerprint_event.group))
             == hashlib.md5(b"Not hello world").hexdigest()
         )
 
@@ -122,7 +130,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        events = [e1, e2, e3]
+        assert e1.group is not None
+        assert e2.group is not None
+        assert e3.group is not None
+        events = [
+            e1.for_group(e1.group),
+            e2.for_group(e2.group),
+            e3.for_group(e3.group),
+        ]
 
         assert get_group_creation_attributes(get_caches(), e1.group, events) == {
             "active_at": now,
@@ -163,7 +178,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 data={"type": "default", "last_received": now.timestamp(), "metadata": {}},
             ),
             [
-                self.store_event(
+                self.store_group_event(
                     data={
                         "platform": "python",
                         "message": "Hello from Python",
@@ -172,9 +187,8 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                         "level": "debug",
                         "tags": {"logger": "java"},
                     },
-                    project_id=self.project.id,
                 ),
-                self.store_event(
+                self.store_group_event(
                     data={
                         "platform": "java",
                         "message": "Hello from Java",
@@ -183,7 +197,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                         "level": "debug",
                         "tags": {"logger": "java"},
                     },
-                    project_id=self.project.id,
                 ),
             ],
         ) == {
@@ -203,7 +216,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         # bucket causing count mismatches.
         now = before_now(minutes=5).replace(second=0, microsecond=0)
 
-        def time_from_now(offset=0):
+        def time_from_now(offset: int = 0) -> datetime:
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
@@ -214,7 +227,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
 
         def create_message_event(
-            template, parameters, environment, release, fingerprint="group1"
+            template: str,
+            parameters: object,
+            environment: str,
+            release: str | None,
+            fingerprint: str = "group1",
         ) -> GroupEvent:
             i = next(sequence)
 
@@ -240,6 +257,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 project_id=project.id,
             )
 
+            assert event.group is not None
             UserReport.objects.create(
                 project_id=project.id,
                 group_id=event.group.id,
@@ -251,7 +269,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             features.record([event])
 
-            return event
+            return event.for_group(event.group)
 
         events: dict[str | None, list[GroupEvent]] = {}
 
@@ -306,7 +324,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert similar_items[0][0] == source.id
         assert similar_items[0][1]["message:message:character-shingles"] == 1.0
         assert similar_items[1][0] == destination.id
-        assert similar_items[1][1]["message:message:character-shingles"] < 1.0
+        similar_message_score = similar_items[1][1]["message:message:character-shingles"]
+        assert similar_message_score is not None
+        assert similar_message_score < 1.0
 
         with self.tasks():
             unmerge.delay(
@@ -412,10 +432,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
-        def get_expected_series_values(rollup, events, function=None):
+        def get_expected_series_values(
+            rollup: int,
+            events: Sequence[GroupEvent],
+            function: Callable[[Any, GroupEvent], Any] | None = None,
+        ) -> dict[float, Any]:
             if function is None:
 
-                def function(aggregate, event):
+                def function(aggregate: Any, event: GroupEvent) -> Any:
                     return (aggregate if aggregate is not None else 0) + 1
 
             expected: dict[float, float] = {}
@@ -425,14 +449,18 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return expected
 
-        def assert_series_contains(expected, actual, default=0):
-            actual = dict(actual)
+        def assert_series_contains(
+            expected: Mapping[float, Any],
+            actual: Iterable[tuple[float, Any]],
+            default: Any = 0,
+        ) -> None:
+            actual_dict = dict(actual)
 
             for key, value in expected.items():
-                assert actual.get(key, 0) == value
+                assert actual_dict.get(key, 0) == value
 
-            for key in set(actual.keys()) - set(expected.keys()):
-                assert actual.get(key, 0) == default
+            for key in set(actual_dict.keys()) - set(expected.keys()):
+                assert actual_dict.get(key, 0) == default
 
         assert_series_contains(
             get_expected_series_values(rollup_duration, list(events.values())[1]),
@@ -481,7 +509,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
-        def collect_by_user_tag(aggregate, event):
+        def collect_by_user_tag(aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else set()
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
@@ -511,7 +539,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 time_series[destination.id],
             )
 
-        def strip_zeroes(data):
+        def strip_zeroes(
+            data: dict[int, list[tuple[float, dict[int, float]]]],
+        ) -> dict[int, list[tuple[float, dict[int, float]]]]:
             for group_id, series in data.items():
                 for _, values in series:
                     for key, val in list(values.items()):
@@ -520,25 +550,25 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return data
 
-        def collect_by_release(group, aggregate, event):
+        def collect_by_release(group: Group, aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else {}
             release = event.get_tag("sentry:release")
             assert release
-            release = GroupRelease.objects.get(
+            release_id = GroupRelease.objects.get(
                 group_id=group.id,
                 environment=event.data["environment"],
                 release_id=Release.objects.get(
                     organization_id=project.organization_id, version=release
                 ).id,
             ).id
-            aggregate[release] = aggregate.get(release, 0) + 1
+            aggregate[release_id] = aggregate.get(release_id, 0) + 1
             return aggregate
 
         items = {}
         for i in [source.id, destination.id]:
             items[i] = list(GroupRelease.objects.filter(group_id=i).values_list("id", flat=True))
 
-        time_series = strip_zeroes(
+        frequency_time_series = strip_zeroes(
             tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_releases_by_group,
                 items,
@@ -555,7 +585,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[1],
                 functools.partial(collect_by_release, source),
             ),
-            time_series[source.id],
+            frequency_time_series[source.id],
             {},
         )
 
@@ -565,7 +595,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[0] + list(events.values())[2],
                 functools.partial(collect_by_release, destination),
             ),
-            time_series[destination.id],
+            frequency_time_series[destination.id],
             {},
         )
 
@@ -573,7 +603,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         for i in [source.id, destination.id]:
             items[i] = list(Environment.objects.all().values_list("id", flat=True))
 
-        time_series = strip_zeroes(
+        frequency_time_series = strip_zeroes(
             tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_environments_by_group,
                 items,
@@ -584,7 +614,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         )
 
-        def collect_by_environment(aggregate, event):
+        def collect_by_environment(aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else {}
             environment = Environment.objects.get(
                 organization_id=project.organization_id, name=event.data["environment"]
@@ -596,7 +626,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             get_expected_series_values(
                 rollup_duration, list(events.values())[1], collect_by_environment
             ),
-            time_series[source.id],
+            frequency_time_series[source.id],
             {},
         )
 
@@ -606,7 +636,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[0] + list(events.values())[2],
                 collect_by_environment,
             ),
-            time_series[destination.id],
+            frequency_time_series[destination.id],
             {},
         )
 
@@ -621,7 +651,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             },
         )
         assert source_similar_items[1][0] == destination.id
-        assert source_similar_items[1][1]["message:message:character-shingles"] < 1.0
+        source_message_score = source_similar_items[1][1]["message:message:character-shingles"]
+        assert source_message_score is not None
+        assert source_message_score < 1.0
 
         destination_similar_items = features.compare(destination)
         assert destination_similar_items[0] == (
@@ -634,19 +666,22 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             },
         )
         assert destination_similar_items[1][0] == source.id
-        assert destination_similar_items[1][1]["message:message:character-shingles"] < 1.0
+        destination_message_score = destination_similar_items[1][1][
+            "message:message:character-shingles"
+        ]
+        assert destination_message_score is not None
+        assert destination_message_score < 1.0
 
     def test_unmerge_logs_first_seen_for_new_destination(self) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
 
         def store(fingerprint: str, offset: int) -> GroupEvent:
-            return self.store_event(
+            return self.store_group_event(
                 data={
                     "message": f"{fingerprint} {offset}",
                     "fingerprint": [fingerprint],
                     "timestamp": (now + timedelta(seconds=offset)).isoformat(),
                 },
-                project_id=self.project.id,
             )
 
         moved = [store("moved", offset) for offset in range(5)]
@@ -691,7 +726,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_skips_similarity_when_backfilled_to_seer(
-        self, mock_similarity
+        self, mock_similarity: mock.MagicMock
     ) -> None:
         project = self.create_project()
         project.update_option("sentry:similarity_backfill_completed", True)
@@ -701,13 +736,14 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        repair_denormalizations(get_caches(), project, [event])
+        assert event.group is not None
+        repair_denormalizations(get_caches(), project, [event.for_group(event.group)])
 
         mock_similarity.record.assert_not_called()
 
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_records_similarity_when_not_backfilled(
-        self, mock_similarity
+        self, mock_similarity: mock.MagicMock
     ) -> None:
         project = self.create_project()
 
@@ -716,9 +752,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        repair_denormalizations(get_caches(), project, [event])
+        assert event.group is not None
+        group_event = event.for_group(event.group)
+        repair_denormalizations(get_caches(), project, [group_event])
 
-        mock_similarity.record.assert_called_once_with(project, [event])
+        mock_similarity.record.assert_called_once_with(project, [group_event])
 
 
 class StartUnmergeTest(TestCase):

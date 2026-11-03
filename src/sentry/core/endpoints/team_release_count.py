@@ -15,6 +15,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.models.team import Team
 from sentry.utils.dates import floor_to_utc_day
 
 
@@ -25,7 +26,7 @@ class TeamReleaseCountEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Returns a dict of team projects, and a time-series list of release counts for each.
         """

@@ -101,6 +101,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+from sentry.metrics.base import TagValue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
@@ -202,14 +203,14 @@ class GroupInfo:
     is_new_group_environment: bool = False
 
 
-def pop_tag(data: dict[str, Any], key: str) -> None:
+def pop_tag(data: MutableMapping[str, Any], key: str) -> None:
     if "tags" not in data:
         return
 
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
-def set_tag(data: dict[str, Any], key: str, value: Any) -> None:
+def set_tag(data: MutableMapping[str, Any], key: str, value: Any) -> None:
     pop_tag(data, key)
     if value is not None:
         data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
@@ -346,6 +347,10 @@ def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event
 ProjectsMapping = Mapping[int, Project]
 
 Job = MutableMapping[str, Any]
+
+
+def _event_from_job(job: Job) -> Event:
+    return job["event"]
 
 
 def resolve_project(project_id: int) -> Project:
@@ -504,11 +509,11 @@ class EventManager:
         if event_type == "transaction":
             job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects, skip_send_first_transaction)
-            return jobs[0]["event"]
+            return _event_from_job(jobs[0])
         elif event_type == "generic":
             job["data"]["project"] = project.id
             jobs = save_generic_events([job], projects)
-            return jobs[0]["event"]
+            return _event_from_job(jobs[0])
         else:
             project = job["event"].project
             job["in_grouping_transition"] = is_in_transition(project)
@@ -563,7 +568,7 @@ class EventManager:
             raise
 
         if not group_info:
-            return job["event"]
+            return _event_from_job(job)
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does
@@ -661,7 +666,7 @@ class EventManager:
 
         self._data = job["event"].data.data
 
-        return job["event"]
+        return _event_from_job(job)
 
 
 @traces.trace
@@ -757,7 +762,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
 
 # How often each cache-fronted model lookup on the save path reached Postgres.
 # `data_access` is set by the model: cache_hit, db_read, db_create, or db_update.
-def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
+def _record_resolve_model(model: str, tags: Mapping[str, TagValue]) -> None:
     metrics.incr(
         "save_event.resolve_model",
         tags={
@@ -780,7 +785,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         create_release = should_auto_create_releases(project)
 
         try:
-            resolve_tags: dict[str, str] = {}
+            resolve_tags: dict[str, TagValue] = {}
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
@@ -973,7 +978,7 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
-        resolve_tags: dict[str, str] = {}
+        resolve_tags: dict[str, str | int] = {}
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
@@ -998,7 +1003,7 @@ def _get_or_create_release_associated_models(
         environment = job["environment"]
         date = job["event"].datetime
 
-        release_env_tags: dict[str, str] = {}
+        release_env_tags: MutableTags = {}
         ReleaseEnvironment.get_or_create(
             project=project,
             release=release,
@@ -1008,7 +1013,7 @@ def _get_or_create_release_associated_models(
         )
         _record_resolve_model("releaseenvironment", release_env_tags)
 
-        release_project_env_tags: dict[str, str] = {}
+        release_project_env_tags: MutableTags = {}
         ReleaseProjectEnvironment.get_or_create(
             project=project,
             release=release,
@@ -1077,7 +1082,7 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
-            resolve_tags: dict[str, str] = {}
+            resolve_tags: dict[str, str | int | float | None] = {}
             group_info.group_release = GroupRelease.get_or_create(
                 group=group_info.group,
                 release=release,
@@ -1919,15 +1924,18 @@ def _handle_regression(
     return is_regression
 
 
-def _is_placeholder_title(title):
+def _is_placeholder_title(title: str | None) -> bool:
     return title in PLACEHOLDER_EVENT_TITLES
 
 
-def _is_real_title(title):
+def _is_real_title(title: str | None) -> bool:
     return bool(title) and title not in PLACEHOLDER_EVENT_TITLES
 
 
-def _get_updated_group_title(existing_container, incoming_container):
+def _get_updated_group_title(
+    existing_container: Mapping[str, str | None],
+    incoming_container: Mapping[str, str | None],
+) -> str | None:
     """
     Given either `group.data` or `group.data["metadata"]`, in both existing and incoming forms, pick
     the correct title to use when updating the group. Uses the incoming title (or `None` if there
@@ -2212,7 +2220,7 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
-def update_severity_error_count(reset=False) -> None:
+def update_severity_error_count(reset: bool = False) -> None:
     timeout = 60 * 60  # 1 hour
     if reset:
         cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)

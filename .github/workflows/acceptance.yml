@@ -25,7 +25,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -69,7 +69,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '2'
+      XDIST_WORKERS: '3'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -228,7 +228,7 @@ jobs:
     if: always()
     name: Acceptance
     needs: [acceptance, files-changed]
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - name: Check for failures

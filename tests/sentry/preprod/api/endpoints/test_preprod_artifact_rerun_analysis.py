@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 from sentry.models.files.file import File
 from sentry.preprod.models import (
@@ -18,7 +19,9 @@ class BaseRerunAnalysisTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
 
-    def create_artifact_with_metrics(self):
+    def create_artifact_with_metrics(
+        self,
+    ) -> tuple[PreprodArtifact, File, list[File], PreprodArtifactSizeComparison]:
         """Creates an artifact with size metrics and comparisons"""
         main_file = File.objects.create(name="test_artifact.zip", type="application/zip")
         artifact = self.create_preprod_artifact(
@@ -56,7 +59,12 @@ class BaseRerunAnalysisTest(APITestCase):
 
         return artifact, main_file, [analysis_file_1, analysis_file_2, comparison_file], comparison
 
-    def assert_metrics_cleaned_up(self, artifact, analysis_files, comparison):
+    def assert_metrics_cleaned_up(
+        self,
+        artifact: PreprodArtifact,
+        analysis_files: list[File],
+        comparison: PreprodArtifactSizeComparison,
+    ) -> None:
         """Asserts that old metrics/comparisons are deleted and new PENDING metric created"""
         assert PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact).count() == 1
         new_metric = PreprodArtifactSizeMetrics.objects.get(preprod_artifact=artifact)
@@ -65,19 +73,19 @@ class BaseRerunAnalysisTest(APITestCase):
             new_metric.metrics_artifact_type
             == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
         )
-        assert new_metric.analysis_file_id is None
+        assert cast("object", new_metric.analysis_file_id) is None
 
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         for analysis_file in analysis_files:
             assert not File.objects.filter(id=analysis_file.id).exists()
 
-    def assert_artifact_reset(self, artifact):
+    def assert_artifact_reset(self, artifact: PreprodArtifact) -> None:
         """Asserts that artifact state is reset"""
         artifact.refresh_from_db()
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-        assert artifact.error_code is None
-        assert artifact.error_message is None
-        assert artifact.installable_app_error_code is None
+        assert cast("object", artifact.error_code) is None
+        assert cast("object", artifact.error_message) is None
+        assert cast("object", artifact.installable_app_error_code) is None
         assert artifact.installable_app_error_message is None
 
 
@@ -168,7 +176,9 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
-    def test_rerun_analysis_skips_cleanup_when_size_query_excludes_artifact(self, mock_cleanup):
+    def test_rerun_analysis_skips_cleanup_when_size_query_excludes_artifact(
+        self, mock_cleanup: MagicMock
+    ) -> None:
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -187,7 +197,9 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         mock_cleanup.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
-    def test_rerun_analysis_runs_cleanup_when_size_query_matches(self, mock_cleanup):
+    def test_rerun_analysis_runs_cleanup_when_size_query_matches(
+        self, mock_cleanup: MagicMock
+    ) -> None:
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -206,7 +218,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         mock_cleanup.assert_called_once()
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
-    def test_rerun_analysis_runs_cleanup_when_no_query_set(self, mock_cleanup):
+    def test_rerun_analysis_runs_cleanup_when_no_query_set(self, mock_cleanup: MagicMock) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="MyApp",
@@ -221,7 +233,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         mock_cleanup.assert_called_once()
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
-    def test_rerun_analysis_runs_cleanup_on_invalid_query(self, mock_cleanup):
+    def test_rerun_analysis_runs_cleanup_on_invalid_query(self, mock_cleanup: MagicMock) -> None:
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -251,7 +263,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: Any, **params: Any) -> Any:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 

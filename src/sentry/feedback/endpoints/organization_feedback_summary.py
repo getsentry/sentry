@@ -61,7 +61,8 @@ def get_summary_from_seer(
         )
         return None
 
-    return response.json()["data"]
+    data = response.json()["data"]
+    return data
 
 
 @cell_silo_endpoint

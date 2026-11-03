@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
+from sentry.auth.principal import owned_by_acting_user, require_user
 from sentry.models.assistant import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
@@ -29,13 +30,13 @@ class AssistantSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=list(zip(VALID_STATUSES, VALID_STATUSES)))
     useful = serializers.BooleanField(required=False)
 
-    def validate_guide_id(self, value):
+    def validate_guide_id(self, value: int) -> int:
         valid_ids = manager.get_valid_ids()
         if value not in valid_ids:
             raise serializers.ValidationError("Not a valid assistant guide_id")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
         guide = attrs.get("guide")
         guide_id = attrs.get("guide_id")
@@ -69,7 +70,7 @@ class AssistantEndpoint(Endpoint):
             return Response(status=400)
 
         seen_ids = set(
-            AssistantActivity.objects.filter(user_id=request.user.id).values_list(
+            AssistantActivity.objects.filter(owned_by_acting_user(request.user)).values_list(
                 "guide_id", flat=True
             )
         )
@@ -78,7 +79,7 @@ class AssistantEndpoint(Endpoint):
             [{"guide": key, "seen": id in seen_ids} for key, id in manager.all().items()]
         )
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response | HttpResponse:
         """Mark a guide as viewed or dismissed.
 
         Request is of the form {
@@ -90,6 +91,7 @@ class AssistantEndpoint(Endpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=400)
+        user = require_user(request)
 
         serializer = AssistantSerializer(data=request.data)
 
@@ -104,7 +106,7 @@ class AssistantEndpoint(Endpoint):
 
         fields = {}
         if status == Status.RESTART.value:
-            AssistantActivity.objects.filter(user_id=request.user.id, guide_id=guide_id).delete()
+            AssistantActivity.objects.filter(user_id=user.id, guide_id=guide_id).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
@@ -114,9 +116,7 @@ class AssistantEndpoint(Endpoint):
                 fields["dismissed_ts"] = timezone.now()
 
             try:
-                AssistantActivity.objects.create(
-                    user_id=request.user.id, guide_id=guide_id, **fields
-                )
+                AssistantActivity.objects.create(user_id=user.id, guide_id=guide_id, **fields)
             except IntegrityError:
                 pass
 

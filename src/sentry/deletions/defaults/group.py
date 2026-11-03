@@ -134,7 +134,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     @property
     def tenant_ids(self) -> Mapping[str, Any]:
-        result = {"referrer": self.referrer}
+        result: dict[str, str | int] = {"referrer": self.referrer}
         if self.groups:
             result["organization_id"] = self.groups[0].project.organization_id
         return result

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import TypedDict
+from collections.abc import Mapping
+from datetime import datetime, timedelta
+from typing import Any, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,10 +23,20 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+
+
+class _ReplayDeletionJobCreateData(TypedDict):
+    rangeStart: datetime
+    rangeEnd: datetime
+    environments: list[str]
+    query: str | None
 
 
 class ReplayDeletionJobResponseData(TypedDict):
@@ -55,18 +67,27 @@ class ReplayDeletionJobPermission(ProjectPermission):
 
 
 class ReplayDeletionJobSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
-        return {
-            "id": obj.id,
-            "dateCreated": obj.date_added,
-            "dateUpdated": obj.date_updated,
-            "rangeStart": obj.range_start,
-            "rangeEnd": obj.range_end,
-            "environments": obj.environments,
-            "status": obj.status,
-            "query": obj.query,
-            "countDeleted": obj.offset,
-        }
+    def serialize(
+        self,
+        obj: ReplayDeletionJobModel,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ReplayDeletionJobResponseData:
+        return cast(
+            ReplayDeletionJobResponseData,
+            {
+                "id": obj.id,
+                "dateCreated": obj.date_added,
+                "dateUpdated": obj.date_updated,
+                "rangeStart": obj.range_start,
+                "rangeEnd": obj.range_end,
+                "environments": obj.environments,
+                "status": obj.status,
+                "query": obj.query,
+                "countDeleted": obj.offset,
+            },
+        )
 
 
 class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
@@ -77,7 +98,7 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     )
     query = serializers.CharField(required=True, allow_blank=True, allow_null=True)
 
-    def validate(self, data):
+    def validate(self, data: _ReplayDeletionJobCreateData) -> _ReplayDeletionJobCreateData:
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
         if data["rangeEnd"] - data["rangeStart"] > timedelta(days=30):
@@ -99,6 +120,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(
@@ -116,7 +138,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         },
         examples=ReplayExamples.GET_REPLAY_DELETION_JOBS,
     )
-    def get(self, request: Request, project) -> Response[ReplayDeletionJobListResponse]:
+    def get(self, request: Request, project: Project) -> Response[ReplayDeletionJobListResponse]:
         """
         Retrieve a collection of replay delete jobs.
         """
@@ -155,7 +177,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         examples=ReplayExamples.CREATE_REPLAY_DELETION_JOB,
     )
     def post(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[ReplayDeletionJobDetailResponse] | Response[ValidationErrorResponse]:
         """
         Create a new replay deletion job.
@@ -225,7 +247,7 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
         examples=ReplayExamples.GET_REPLAY_DELETION_JOB,
     )
     def get(
-        self, request: Request, project, job_id: int
+        self, request: Request, project: Project, job_id: int
     ) -> Response[ReplayDeletionJobDetailResponse]:
         """
         Fetch a replay delete job instance.

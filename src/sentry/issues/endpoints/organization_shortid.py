@@ -123,6 +123,7 @@ class ShortIdLookupEndpoint(GroupEndpoint):
         """
         Resolve a short ID to the project slug and group details.
         """
+        assert group.qualified_short_id is not None
         return Response(
             {
                 "organizationSlug": group.project.organization.slug,

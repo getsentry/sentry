@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -30,7 +30,7 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
             user=self.outsider, organization=self.org, role="member", teams=[self.team_a]
         )
 
-    def _approve_url(self, artifact_id):
+    def _approve_url(self, artifact_id: int) -> str:
         return reverse(
             "sentry-api-0-organization-preprod-artifact-approve",
             args=[self.org.slug, artifact_id],
@@ -51,7 +51,9 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.create_preprod_status_check_task")
     @patch("sentry.analytics.record")
-    def test_approve_size_records_analytics(self, mock_analytics, mock_task) -> None:
+    def test_approve_size_records_analytics(
+        self, mock_analytics: MagicMock, mock_task: MagicMock
+    ) -> None:
         self.login_as(user=self.owner)
 
         response = self.client.post(
@@ -74,7 +76,9 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.update_preprod_snapshot_vcs")
     @patch("sentry.analytics.record")
-    def test_approve_snapshots_records_analytics(self, mock_analytics, mock_task) -> None:
+    def test_approve_snapshots_records_analytics(
+        self, mock_analytics: MagicMock, mock_task: MagicMock
+    ) -> None:
         self.login_as(user=self.owner)
 
         response = self.client.post(
@@ -97,7 +101,9 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.create_preprod_status_check_task")
     @patch("sentry.analytics.record")
-    def test_already_approved_does_not_record_analytics(self, mock_analytics, mock_task) -> None:
+    def test_already_approved_does_not_record_analytics(
+        self, mock_analytics: MagicMock, mock_task: MagicMock
+    ) -> None:
         self.login_as(user=self.owner)
         self.create_preprod_comparison_approval(
             preprod_artifact=self.artifact,
@@ -120,7 +126,9 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.update_preprod_snapshot_vcs")
     @patch("sentry.analytics.record")
-    def test_already_approved_snapshots_resyncs_vcs(self, mock_analytics, mock_update_vcs) -> None:
+    def test_already_approved_snapshots_resyncs_vcs(
+        self, mock_analytics: MagicMock, mock_update_vcs: MagicMock
+    ) -> None:
         self.login_as(user=self.owner)
         self.create_preprod_comparison_approval(
             preprod_artifact=self.artifact,
@@ -149,7 +157,9 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_invalid_feature_type_does_not_record_analytics(self, mock_analytics) -> None:
+    def test_invalid_feature_type_does_not_record_analytics(
+        self, mock_analytics: MagicMock
+    ) -> None:
         self.login_as(user=self.owner)
 
         response = self.client.post(

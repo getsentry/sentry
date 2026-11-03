@@ -484,7 +484,7 @@ def log_alerting_quota_hit(
     metrics.incr("workflow_engine.quota.limit_hit", tags={"object_type": object_type})
 
 
-def validate_json_schema(value: Any, schema: Any) -> Any:
+def validate_json_schema[T](value: T, schema: Any) -> T:
     try:
         validate(value, schema)
     except JsonValidationError as e:

@@ -95,6 +95,7 @@ class SignalsTest(TestCase, SnubaTestCase):
             resolution_type="now",
             sender=type(self.project),
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -197,6 +198,7 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             mock_record,
             IssueAssignedEvent(

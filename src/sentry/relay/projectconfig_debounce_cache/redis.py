@@ -1,3 +1,5 @@
+from typing import cast
+
 import rb
 from sentry_redis_tools.clients import RedisCluster
 
@@ -14,16 +16,21 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
-    def __init__(self, **options):
-        self._key_prefix = options.pop("key_prefix", "relayconfig-debounce")
-        self._debounce_ttl = options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT)
+    def __init__(self, **options: object) -> None:
+        self._key_prefix = cast(str, options.pop("key_prefix", "relayconfig-debounce"))
+        self._debounce_ttl = cast(int, options.pop("debounce_ttl", REDIS_CACHE_TIMEOUT))
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
 
         super().__init__(**options)
 
-    def _get_redis_key(self, public_key, project_id, organization_id):
+    def _get_redis_key(
+        self,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> str:
         if organization_id:
             return f"{self._key_prefix}:o:{organization_id}"
         elif project_id:
@@ -33,7 +40,7 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         else:
             raise ValueError()
 
-    def validate(self):
+    def validate(self) -> None:
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def _get_redis_client(self, routing_key: str) -> rb.Cluster | RedisCluster:
@@ -44,7 +51,13 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         else:
             raise AssertionError("unreachable")
 
-    def is_debounced(self, *, public_key, project_id, organization_id):
+    def is_debounced(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> bool:
         if organization_id:
             key = self._get_redis_key(
                 public_key=None, project_id=None, organization_id=organization_id
@@ -64,13 +77,25 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
                 return True
         return False
 
-    def debounce(self, *, public_key, project_id, organization_id):
+    def debounce(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> None:
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
         client.setex(key, self._debounce_ttl, 1)
         metrics.incr("relay.projectconfig_debounce_cache.debounce")
 
-    def mark_task_done(self, *, public_key, project_id, organization_id):
+    def mark_task_done(
+        self,
+        *,
+        public_key: str | None,
+        project_id: int | None,
+        organization_id: int | None,
+    ) -> int:
         key = self._get_redis_key(public_key, project_id, organization_id)
         client = self._get_redis_client(key)
         ret = client.delete(key)

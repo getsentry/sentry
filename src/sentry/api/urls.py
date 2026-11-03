@@ -280,6 +280,7 @@ from sentry.integrations.api.endpoints.organization_integrations_index import (
 )
 from sentry.integrations.api.endpoints.organization_pull_request_files import (
     OrganizationPullRequestFilesEndpoint,
+    OrganizationRepositoryPullRequestFilesEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
@@ -569,6 +570,7 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
+from sentry.scm.endpoints.scm_git import ScmGitEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
@@ -592,6 +594,9 @@ from sentry.seer.endpoints.organization_seer_autofix_overview import (
 )
 from sentry.seer.endpoints.organization_seer_chat_suggestions import (
     OrganizationSeerChatSuggestionsEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_credit_check import (
+    OrganizationSeerCreditCheckEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -810,7 +815,6 @@ from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndp
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
-from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
@@ -1762,11 +1766,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-validate",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-sql/$",
-        OrganizationEventsSqlEndpoint.as_view(),
-        name="sentry-api-0-organization-events-sql",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events/(?P<project_id_or_slug>[^/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-event-details",
@@ -2241,6 +2240,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-pull-request-files",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/pull-request-files/$",
+        OrganizationRepositoryPullRequestFilesEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-pull-request-files",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/$",
         OrganizationRepositoriesEndpoint.as_view(),
         name="sentry-api-0-organization-repositories",
@@ -2560,6 +2564,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
         OrganizationSeerSetupCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/credit-check/$",
+        OrganizationSeerCreditCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-credit-check",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
@@ -3697,6 +3706,13 @@ INTERNAL_URLS = [
         r"^scm-rpc/$",
         ScmRpcServiceEndpoint.as_view(),
         name="sentry-api-0-scm-rpc-service",
+    ),
+    # No trailing slash, because git never sends one. scm-git/hosts/ is kept free for a later route
+    # that names repositories by their provider host.
+    re_path(
+        r"^scm-git/repositories/(?P<repository_id>\d+)\.git/(?P<route>.+)$",
+        ScmGitEndpoint.as_view(),
+        name="sentry-api-0-scm-git",
     ),
     re_path(
         r"^seer-rpc/(?P<method_name>\w+)/$",

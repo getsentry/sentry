@@ -11,6 +11,10 @@ from sentry.utils import redis
 signature_builder = MinHashSignatureBuilder(32, 0xFFFF)
 
 
+def character_features(value: str) -> list[bytes]:
+    return [character.encode() for character in value]
+
+
 class RedisScriptMinHashIndexBackendTestCase(TestCase):
     @cached_property
     def index(self) -> RedisScriptMinHashIndexBackend:
@@ -25,32 +29,43 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         )
 
     def test_export_import(self) -> None:
-        self.index.record("example", "1", [("index", "hello world")])
+        self.index.record("example", "1", [("index", character_features("hello world"))])
 
         timestamp = int(time.time())
-        result = self.index.export("example", [("index", 1)], timestamp=timestamp)
+        result = self.index.export("example", [("index", "1")], timestamp=timestamp)
         assert len(result) == 1
 
         # Copy the data from key 1 to key 2.
-        self.index.import_("example", [("index", 2, result[0])], timestamp=timestamp)
+        self.index.import_("example", [("index", "2", result[0])], timestamp=timestamp)
 
-        r1 = msgpack.unpackb(self.index.export("example", [("index", 1)], timestamp=timestamp)[0])
-        r2 = msgpack.unpackb(self.index.export("example", [("index", 2)], timestamp=timestamp)[0])
+        exported_1 = self.index.export("example", [("index", "1")], timestamp=timestamp)[0]
+        exported_2 = self.index.export("example", [("index", "2")], timestamp=timestamp)[0]
+        assert isinstance(exported_1, bytes)
+        assert isinstance(exported_2, bytes)
+        r1 = msgpack.unpackb(exported_1)
+        r2 = msgpack.unpackb(exported_2)
         assert r1[0] == r2[0]
         self.assertAlmostEqual(r1[1], r2[1], delta=10)  # cannot ensure exact TTL match
 
         # Copy the data again to key 2 (duplicating all of the data.)
-        self.index.import_("example", [("index", 2, result[0])], timestamp=timestamp)
+        self.index.import_("example", [("index", "2", result[0])], timestamp=timestamp)
 
-        result = self.index.export("example", [("index", 2)], timestamp=timestamp)
+        result = self.index.export("example", [("index", "2")], timestamp=timestamp)
         assert len(result) == 1
 
     def test_basic(self) -> None:
-        self.index.record("example", "1", [("index", "hello world")])
-        self.index.record("example", "2", [("index", "hello world")])
-        self.index.record("example", "3", [("index", "jello world")])
-        self.index.record("example", "4", [("index", "yellow world"), ("index", "mellow world")])
-        self.index.record("example", "5", [("index", "pizza world")])
+        self.index.record("example", "1", [("index", character_features("hello world"))])
+        self.index.record("example", "2", [("index", character_features("hello world"))])
+        self.index.record("example", "3", [("index", character_features("jello world"))])
+        self.index.record(
+            "example",
+            "4",
+            [
+                ("index", character_features("yellow world")),
+                ("index", character_features("mellow world")),
+            ],
+        )
+        self.index.record("example", "5", [("index", character_features("pizza world"))])
 
         # comparison, without thresholding
         results = self.index.compare("example", "1", [("index", 0)])
@@ -80,14 +95,14 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         assert results[0] == ("1", [1.0])
 
         # classification, without thresholding
-        results = self.index.classify("example", [("index", 0, "hello world")])
+        results = self.index.classify("example", [("index", 0, character_features("hello world"))])
         assert results[0:2] == [("1", [1.0]), ("2", [1.0])]
         assert results[2][0] in ("3", "4")  # equidistant pairs, order doesn't really matter
         assert results[3][0] in ("3", "4")
         assert results[4][0] == "5"
 
         # classification, low threshold
-        results = self.index.classify("example", [("index", 6, "hello world")])
+        results = self.index.classify("example", [("index", 6, character_features("hello world"))])
         assert len(results) == 4
         assert results[0] == ("1", [1.0])
         assert results[1] == ("2", [1.0])  # identical contents
@@ -95,13 +110,17 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         assert results[3][0] in ("3", "4")
 
         # classification, high threshold (exact match)
-        results = self.index.classify("example", [("index", self.index.bands, "hello world")])
+        results = self.index.classify(
+            "example", [("index", self.index.bands, character_features("hello world"))]
+        )
         assert len(results) == 2
         assert results[0] == ("1", [1.0])
         assert results[1] == ("2", [1.0])  # identical contents
 
         # classification, candidate limit (with lexicographical collision sort)
-        results = self.index.classify("example", [("index", 0, "hello world")], limit=1)
+        results = self.index.classify(
+            "example", [("index", 0, character_features("hello world"))], limit=1
+        )
         assert len(results) == 1
         assert results[0] == ("1", [1.0])
 
@@ -114,11 +133,32 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         ]
 
     def test_multiple_index(self) -> None:
-        self.index.record("example", "1", [("index:a", "hello world"), ("index:b", "hello world")])
-        self.index.record("example", "2", [("index:a", "hello world"), ("index:b", "hello world")])
-        self.index.record("example", "3", [("index:a", "hello world"), ("index:b", "pizza world")])
-        self.index.record("example", "4", [("index:a", "hello world")])
-        self.index.record("example", "5", [("index:b", "hello world")])
+        self.index.record(
+            "example",
+            "1",
+            [
+                ("index:a", character_features("hello world")),
+                ("index:b", character_features("hello world")),
+            ],
+        )
+        self.index.record(
+            "example",
+            "2",
+            [
+                ("index:a", character_features("hello world")),
+                ("index:b", character_features("hello world")),
+            ],
+        )
+        self.index.record(
+            "example",
+            "3",
+            [
+                ("index:a", character_features("hello world")),
+                ("index:b", character_features("pizza world")),
+            ],
+        )
+        self.index.record("example", "4", [("index:a", character_features("hello world"))])
+        self.index.record("example", "5", [("index:b", character_features("hello world"))])
 
         # comparison, without thresholding
         results = self.index.compare("example", "1", [("index:a", 0), ("index:b", 0)])
@@ -139,7 +179,11 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
 
         # classification, without thresholding
         results = self.index.classify(
-            "example", [("index:a", 0, "hello world"), ("index:b", 0, "hello world")]
+            "example",
+            [
+                ("index:a", 0, character_features("hello world")),
+                ("index:b", 0, character_features("hello world")),
+            ],
         )
         assert len(results) == 5
         assert results[:2] == [("1", [1.0, 1.0]), ("2", [1.0, 1.0])]
@@ -152,14 +196,15 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         results = self.index.classify(
             "example",
             [
-                ("index:a", self.index.bands, "pizza world"),  # no direct hits
-                ("index:b", 8, "pizza world"),  # one direct hit
+                ("index:a", self.index.bands, character_features("pizza world")),  # no direct hits
+                ("index:b", 8, character_features("pizza world")),  # one direct hit
             ],
         )
         assert len(results) == 1
         assert results[0][0] == "3"
         # this should have a value since it's similar even thought it was not
         # considered as a candidate for this index
+        assert results[0][1][0] is not None
         assert results[0][1][0] > 0
         assert results[0][1][1] == 1.0
 
@@ -167,22 +212,29 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         results = self.index.classify(
             "example",
             [
-                ("index:a", self.index.bands, "pizza world"),  # no direct hits
-                ("index:b", self.index.bands, "hello world"),  # 3 direct hits
+                ("index:a", self.index.bands, character_features("pizza world")),  # no direct hits
+                ("index:b", self.index.bands, character_features("hello world")),  # 3 direct hits
             ],
         )
         assert len(results) == 3
         assert results[0][0] == "1"  # tie btw first 2 items is broken by lex sort
+        assert results[0][1][0] is not None
         assert results[0][1][0] > 0
         assert results[0][1][1] == 1.0
         assert results[1][0] == "2"
+        assert results[1][1][0] is not None
         assert results[1][1][0] > 0
         assert results[1][1][1] == 1.0
         assert results[2] == ("5", [0.0, 1.0])
 
         # classification, candidate limit (with lexicographical collision sort)
         results = self.index.classify(
-            "example", [("index:a", 0, "hello world"), ("index:b", 0, "hello world")], limit=4
+            "example",
+            [
+                ("index:a", 0, character_features("hello world")),
+                ("index:b", 0, character_features("hello world")),
+            ],
+            limit=4,
         )
         assert len(results) == 4
         assert results[:2] == [("1", [1.0, 1.0]), ("2", [1.0, 1.0])]
@@ -192,33 +244,39 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
 
         # empty query
         assert (
-            self.index.classify("example", [("index:a", 0, "hello world"), ("index:b", 0, "")])
+            self.index.classify(
+                "example",
+                [
+                    ("index:a", 0, character_features("hello world")),
+                    ("index:b", 0, character_features("")),
+                ],
+            )
             == self.index.compare("example", "4", [("index:a", 0), ("index:b", 0)])
             == [("4", [1.0, None]), ("1", [1.0, 0.0]), ("2", [1.0, 0.0]), ("3", [1.0, 0.0])]
         )
 
     def test_merge(self) -> None:
-        self.index.record("example", "1", [("index", ["foo", "bar"])])
-        self.index.record("example", "2", [("index", ["baz"])])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
+        self.index.record("example", "1", [("index", [b"foo", b"bar"])])
+        self.index.record("example", "2", [("index", [b"baz"])])
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == [("1", [1.0])]
 
         self.index.merge("example", "1", [("index", "2")])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [0.5])]
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == [("1", [0.5])]
 
         # merge into an empty key should act as a move
         self.index.merge("example", "2", [("index", "1")])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("2", [0.5])]
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == [("2", [0.5])]
 
     def test_flush_scoped(self) -> None:
-        self.index.record("example", "1", [("index", ["foo", "bar"])])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
+        self.index.record("example", "1", [("index", [b"foo", b"bar"])])
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == [("1", [1.0])]
 
         self.index.flush("example", ["index"])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == []
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == []
 
     def test_flush_unscoped(self) -> None:
-        self.index.record("example", "1", [("index", ["foo", "bar"])])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
+        self.index.record("example", "1", [("index", [b"foo", b"bar"])])
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == [("1", [1.0])]
 
         self.index.flush("*", ["index"])
-        assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == []
+        assert self.index.classify("example", [("index", 0, [b"foo", b"bar"])]) == []

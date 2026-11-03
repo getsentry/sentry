@@ -1,7 +1,7 @@
 import threading
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -636,7 +636,10 @@ class CarryoverTestBase(MetricCallsMixin, TestCase):
         return double
 
     def carryover(self) -> list[dict[str, Any]] | None:
-        return cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY)
+        return cast(
+            "list[dict[str, Any]] | None",
+            cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY),
+        )
 
     def dispatched_ids(self, mock_drain: MagicMock) -> list[int]:
         return [call.kwargs["payload_id"] for call in mock_drain.delay.call_args_list]

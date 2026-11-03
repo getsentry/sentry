@@ -1,7 +1,7 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
   | 'agentic_triage_v2'
-  | 'breached_metrics'
+  | 'breached_metric_investigation'
   | 'duplicate_monitors';
 
 type SeerWorkflowError = {
@@ -46,7 +46,11 @@ export type SeerAutomationRun = SeerAutomationRunBase &
          */
         status: 'queued' | 'running' | 'complete' | null;
       }
-    | {error: SeerWorkflowError; status: 'failed' | 'rejected'}
+    | {
+        // Null when failed executions carry the error details.
+        error: SeerWorkflowError | null;
+        status: 'failed' | 'rejected';
+      }
   );
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];
