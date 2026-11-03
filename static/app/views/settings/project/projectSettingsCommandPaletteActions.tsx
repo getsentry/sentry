@@ -10,7 +10,6 @@ import {IconPlay} from '@sentry/icons/play';
 import {IconProject} from '@sentry/icons/project';
 import {IconReleases} from '@sentry/icons/releases';
 import {IconSeer} from '@sentry/icons/seer';
-import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {IconStack} from '@sentry/icons/stack';
 import {IconTag} from '@sentry/icons/tag';
@@ -24,6 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import {getSettingsScopeIcon} from 'sentry/views/settings/settingsScope';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -56,7 +56,7 @@ type ProjectSettingsCommandPaletteSection = {
 };
 
 export const PROJECT_SETTINGS_ICONS: Record<string, ReactNode> = {
-  '': <IconSettings />,
+  '': getSettingsScopeIcon('project'),
   'alerts/': <IconSiren />,
   'debug-symbols/': <IconFile />,
   'environments/': <IconGlobe />,

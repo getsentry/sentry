@@ -1,4 +1,4 @@
-import {IconSettings} from '@sentry/icons/settings';
+import {IconBuilding} from '@sentry/icons/building';
 import {IconUser} from '@sentry/icons/user';
 
 import {getSettingsFieldSections} from 'sentry/views/settings/settingsCommandPaletteActions';
@@ -36,14 +36,14 @@ describe('getSettingsFieldSections', () => {
     );
   });
 
-  it('gives both General pages the settings icon with settings-v3', () => {
-    const v3Sections = getSettingsFieldSections('org-slug', true);
-    expect(getSection(v3Sections, '/settings/:orgId/').icon).toEqual(<IconSettings />);
-    expect(getSection(v3Sections, '/settings/account/details/').icon).toEqual(
-      <IconSettings />
-    );
-
-    const sections = getSettingsFieldSections('org-slug', false);
-    expect(getSection(sections, '/settings/account/details/').icon).toEqual(<IconUser />);
-  });
+  it.each([true, false])(
+    'gives the General pages their scope icon (settings-v3: %s)',
+    settingsV3 => {
+      const sections = getSettingsFieldSections('org-slug', settingsV3);
+      expect(getSection(sections, '/settings/:orgId/').icon).toEqual(<IconBuilding />);
+      expect(getSection(sections, '/settings/account/details/').icon).toEqual(
+        <IconUser />
+      );
+    }
+  );
 });

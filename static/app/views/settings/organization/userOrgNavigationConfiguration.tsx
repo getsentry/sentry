@@ -6,7 +6,6 @@ import {IconLock} from '@sentry/icons/lock';
 import {IconMail} from '@sentry/icons/mail';
 import {IconRepository} from '@sentry/icons/repository';
 import {IconSeer} from '@sentry/icons/seer';
-import {IconSettings} from '@sentry/icons/settings';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconTerminal} from '@sentry/icons/terminal';
 import {IconUser} from '@sentry/icons/user';
@@ -16,6 +15,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {getSettingsScopeIcon} from 'sentry/views/settings/settingsScope';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
@@ -66,9 +66,7 @@ function getAccountNavigationConfiguration({
       items: [
         {
           path: `${userSettingsPathPrefix}/details/`,
-          // With settings-v3 this is the account's "General" page, so it gets
-          // the same icon as the org and project General pages.
-          icon: settingsV3 ? <IconSettings /> : <IconUser />,
+          icon: getSettingsScopeIcon('account'),
           title: settingsV3 ? t('General') : t('Account Details'),
           keywords: [t('user settings'), t('account settings')],
           description: t(
@@ -138,7 +136,7 @@ function getOrganizationNavigationConfiguration({
       items: [
         {
           path: `${organizationSettingsPathPrefix}/`,
-          icon: <IconSettings />,
+          icon: getSettingsScopeIcon('org'),
           title: settingsV3 ? t('General') : t('General Settings'),
           keywords: [t('slug'), t('org slug'), t('organization slug')],
           index: true,
