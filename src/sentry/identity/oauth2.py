@@ -12,6 +12,7 @@ from django.http import HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
+from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests import Response
@@ -522,11 +523,12 @@ class OAuth2CallbackView:
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
-            if state != pipeline.fetch_state("state"):
+            stored_state = pipeline.fetch_state("state")
+            if not state or not stored_state or not constant_time_compare(state, stored_state):
                 extra = {
                     "error": "invalid_state",
                     "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
+                    "pipeline_state": stored_state,
                     "code": code,
                 }
                 lifecycle.record_failure(
