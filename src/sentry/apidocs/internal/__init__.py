@@ -21,6 +21,9 @@ It is the published build, with the same hooks, checks, and settings, except tha
   path such a route answers on is listed under `x-sentry-path-aliases`.
 - A response no `@extend_schema` declares is read from the handler's `Response[T]`
   annotation, or marked `x-sentry-undocumented`.
+- The hand-written `APPEND_PATHS` operations (`api-docs/`) are appended method by method,
+  not over whole path items, and only where the generated operation documents no
+  response and its method is unpublished.
 - TypedDicts are closed objects, the null member of an optional union admits only null,
   and a type hint that cannot be resolved becomes an `x-sentry-unresolved` placeholder
   instead of failing the build.

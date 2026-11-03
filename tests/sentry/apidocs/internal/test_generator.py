@@ -311,6 +311,30 @@ class TestPostprocessing:
 
         assert processed["paths"][path]["get"]["operationId"] == "generated"
 
+    @pytest.mark.parametrize(
+        ("response", "winner"),
+        (
+            ({"$ref": "#/components/schemas/Installation"}, "generated"),
+            ({UNDOCUMENTED_EXTENSION: True}, "hand-written"),
+        ),
+    )
+    def test_an_unpublished_methods_generated_operation_wins_if_it_documents_a_response(
+        self, response: dict[str, Any], winner: str
+    ) -> None:
+        path = "/api/0/installations/"
+        generated = {
+            **_documented_operation("generated"),
+            "responses": {"200": {"content": {"application/json": {"schema": response}}}},
+        }
+        result = {"components": {"schemas": {}}, "paths": {path: {"get": generated}}}
+
+        with _internal_build():
+            _build().append_paths = {path: {"get": _documented_operation("hand-written")}}
+            _build().admitted = {(path, "get"): _Admitted(ApiPublishStatus.PRIVATE, ())}
+            processed = internal_postprocessing_hook(result, None)
+
+        assert processed["paths"][path]["get"]["operationId"] == winner
+
     def test_published_build_stamps_nothing(self) -> None:
         result = {
             "components": {"schemas": {}},
