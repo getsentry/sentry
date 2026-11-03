@@ -94,7 +94,7 @@ SORT_COL_MAP = {
     "lastTriggered": "last_triggered",
 }
 
-KNOWN_WORKFLOW_TYPES = {workflow_type.value for workflow_type in Workflow.Type}
+VISIBLE_WORKFLOW_TYPE_VALUES = {workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES}
 
 
 workflow_search_config = SearchConfig.create_from(
@@ -111,22 +111,21 @@ def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Typ
     """
     Handle the requested `type` value
     - If not specified, all visible types are returned
-    - Reject unknown values
-    - Drop hidden types
+    - Reject any value that is not a visible type
     """
     if not raw_types:
         return VISIBLE_WORKFLOW_TYPES
 
-    unknown_types = [raw_type for raw_type in raw_types if raw_type not in KNOWN_WORKFLOW_TYPES]
+    invalid_types = [
+        raw_type for raw_type in raw_types if raw_type not in VISIBLE_WORKFLOW_TYPE_VALUES
+    ]
 
-    if unknown_types:
+    if invalid_types:
         raise serializers.ValidationError(
-            {"type": [f"Invalid workflow type(s): {', '.join(unknown_types)}"]}
+            {"type": [f"Invalid workflow type(s): {', '.join(invalid_types)}"]}
         )
 
-    requested_types = {Workflow.Type(raw_type) for raw_type in raw_types}
-
-    return VISIBLE_WORKFLOW_TYPES & requested_types
+    return frozenset(Workflow.Type(raw_type) for raw_type in raw_types)
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):
