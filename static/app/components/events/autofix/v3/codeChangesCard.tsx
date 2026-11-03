@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
-import type {FilePatch} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -31,7 +30,6 @@ import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
 } from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
-import {usePullRequestPatches} from 'sentry/components/events/autofix/v3/usePullRequestPatches';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
@@ -44,6 +42,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+import {usePullRequestDiffs} from 'sentry/views/seerExplorer/hooks/usePullRequestDiffs';
+import {getRunChanges} from 'sentry/views/seerExplorer/runChanges';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface CodeChangesCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -53,12 +54,11 @@ interface CodeChangesCardProps {
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
-interface RepoFilePatch {
-  patch: FilePatch;
-  code_url?: string | null;
-}
+const NO_PR_STATES: Record<string, RepoPRState> = {};
 
-type RepoChanges = {status: 'pending'} | {patches: RepoFilePatch[]; status: 'ready'};
+type DisplayedChanges =
+  | {status: 'pending'}
+  | {patches: ExplorerFilePatch[]; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -168,33 +168,52 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   // A pinned iteration measures its edits from the PR's head, so the run's patches
-  // only hold what the iterations changed. Show each PR's full diff instead.
-  const pullRequestPatches = usePullRequestPatches({
-    enabled:
-      hasPinToPrHeadFeature &&
-      section.status === 'completed' &&
-      section.blocks.some(isPrIterationBlock),
+  // only hold what the iterations changed. Show each PR's full diff, with any edits
+  // Seer hasn't pushed yet on top, instead.
+  const showsPullRequestDiffs =
+    hasPinToPrHeadFeature &&
+    section.status === 'completed' &&
+    section.blocks.some(isPrIterationBlock);
+  const repoPRStates = autofix.runState?.repo_pr_states ?? NO_PR_STATES;
+  const pullRequestDiffs = usePullRequestDiffs({
+    enabled: showsPullRequestDiffs,
     organizationSlug: organization.slug,
-    repoPRStates: autofix.runState?.repo_pr_states,
+    repoPRStates,
   });
 
   const changesByRepo = useMemo(() => {
-    const changes = new Map<string, RepoChanges>(
+    const changes = new Map<string, DisplayedChanges>(
       Array.from(patchesByRepo, ([repo, patches]) => [repo, {status: 'ready', patches}])
     );
-    for (const [repo, result] of pullRequestPatches) {
-      if (result.status === 'pending') {
-        changes.set(repo, {status: 'pending'});
-      } else if (result.status === 'success' && result.patches.length) {
-        changes.set(repo, {
+    if (!showsPullRequestDiffs) {
+      return changes;
+    }
+    for (const repoChanges of getRunChanges(
+      section.blocks,
+      repoPRStates,
+      pullRequestDiffs
+    )) {
+      if (!repoChanges.prState?.pr_number) {
+        continue;
+      }
+      if (repoChanges.allStatus === 'pending') {
+        changes.set(repoChanges.repoName, {status: 'pending'});
+      } else if (repoChanges.all?.files.length) {
+        changes.set(repoChanges.repoName, {
           status: 'ready',
-          patches: result.patches.map(patch => ({patch})),
+          patches: repoChanges.all.files,
         });
       }
       // Otherwise keep the run's patches, which beat showing nothing.
     }
     return changes;
-  }, [patchesByRepo, pullRequestPatches]);
+  }, [
+    patchesByRepo,
+    showsPullRequestDiffs,
+    section.blocks,
+    repoPRStates,
+    pullRequestDiffs,
+  ]);
 
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;

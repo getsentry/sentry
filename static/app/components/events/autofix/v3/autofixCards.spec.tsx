@@ -2274,8 +2274,8 @@ describe('ArtifactCard', () => {
           {organization: pinnedOrganization}
         );
 
-        expect(await screen.findByText('2 files changed in 1 repo')).toBeInTheDocument();
-        expect(renderedPaths()).toEqual(['src/app.py', 'src/iterated.py']);
+        expect(await screen.findByText('3 files changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['logo.png', 'src/app.py', 'src/iterated.py']);
         expect(filesRequest).toHaveBeenCalledTimes(1);
       });
 
@@ -2319,24 +2319,45 @@ describe('ArtifactCard', () => {
         expect(filesRequest).not.toHaveBeenCalled();
       });
 
-      it('waits for a push to land before fetching the PR diff', () => {
-        const filesRequest = MockApiClient.addMockResponse({
+      it("layers Seer's unpushed edits on top of the PR's diff", async () => {
+        MockApiClient.addMockResponse({
           url: pullRequestFilesUrl,
-          body: {files: []},
+          body: {
+            files: [
+              {
+                path: 'src/app.py',
+                patch: '@@ -1,2 +1,2 @@\n context\n-old\n+new',
+                status: 'modified',
+                previousPath: null,
+              },
+            ],
+          },
         });
+        const unpushed = makePatch('org/repo', 'src/unpushed.py');
 
         render(
           <CodeChangesCard
             groupId="1"
-            autofix={makeAutofix(makePR({pr_creation_status: 'creating'}))}
-            section={iteratedSection}
+            autofix={makeAutofix()}
+            section={makeSection(
+              'code_changes',
+              'completed',
+              [[unpushed]],
+              [
+                makePrIterationBlock(0, {text: 'fix the CI failure'}),
+                {
+                  ...makeAssistantBlock('Edited the handler.'),
+                  file_patches: [unpushed],
+                  merged_file_patches: [unpushed],
+                },
+              ]
+            )}
           />,
           {organization: pinnedOrganization}
         );
 
-        expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
-        expect(screen.queryByText(/changed in/)).not.toBeInTheDocument();
-        expect(filesRequest).not.toHaveBeenCalled();
+        expect(await screen.findByText('2 files changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py', 'src/unpushed.py']);
       });
 
       it("falls back to the run's patches when the PR diff fails to load", async () => {
