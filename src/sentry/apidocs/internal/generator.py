@@ -191,9 +191,16 @@ def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> 
     build = _build()
     paths = result["paths"]
     # drf-spectacular appends `APPEND_PATHS` over whole path items, which drops the methods
-    # a view serves beyond the hand-written ones. The hand-written ones still win.
+    # a view serves beyond the hand-written ones. Those win, except over the generated
+    # operation of a published method: the published build's `_fix_issue_paths` moves that
+    # one over them, as for issue tag values, so the published reference describes it.
     for path, operations in build.append_paths.items():
-        paths.setdefault(path, {}).update(copy.deepcopy(operations))
+        generated = paths.setdefault(path, {})
+        for method, operation in operations.items():
+            admitted = build.admitted.get((path, method))
+            if method in generated and admitted is not None and admitted.status.is_published:
+                continue
+            generated[method] = copy.deepcopy(operation)
     # Before the published build's postprocessing, which can rewrite path keys.
     for path, operations in paths.items():
         aliases = build.path_aliases.get(path)

@@ -296,6 +296,21 @@ class TestPostprocessing:
         # Stamped on a copy, not on the operation in the settings.
         assert PUBLISH_STATUS_EXTENSION not in hand_written
 
+    def test_a_published_methods_generated_operation_wins_over_a_hand_written_one(self) -> None:
+        # As the published build's `_fix_issue_paths` moves it over the hand-written one.
+        path = f"{PREFIX}/issues/{{issue_id}}/tags/{{key}}/values/"
+        result = {
+            "components": {"schemas": {}},
+            "paths": {path: {"get": _documented_operation("generated")}},
+        }
+
+        with _internal_build():
+            _build().append_paths = {path: {"get": _documented_operation("hand-written")}}
+            _build().admitted = {(path, "get"): _Admitted(ApiPublishStatus.PUBLIC, ())}
+            processed = internal_postprocessing_hook(result, None)
+
+        assert processed["paths"][path]["get"]["operationId"] == "generated"
+
     def test_published_build_stamps_nothing(self) -> None:
         result = {
             "components": {"schemas": {}},
