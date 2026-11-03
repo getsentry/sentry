@@ -70,11 +70,12 @@ export type SeerAgentResponse = {
   allProjects: boolean;
   projectIds: number[];
   scopes: string[];
+  serviceAccountId: string;
 };
 
 export type SeerWorkflowConfigResponse = {
   /**
-   * Null when the automation has no service account
+   * Null when the automation has no agent
    */
   agent: SeerAgentResponse | null;
   dateAdded: string;
@@ -94,7 +95,6 @@ export type SeerWorkflowConfigResponse = {
   projects: number[];
   schedule: string;
   seededDefault: string | null;
-  serviceAccountId: string | null;
   strategy: string;
   version: number;
   /**

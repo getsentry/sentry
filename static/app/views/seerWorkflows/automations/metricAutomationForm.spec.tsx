@@ -32,8 +32,7 @@ describe('MetricAutomationForm', () => {
     enabled: false,
     monitorIds: [1],
     projects: [1],
-    serviceAccountId: '5',
-    agent,
+    agent: {...agent, serviceAccountId: '5'},
   });
   let requestSpy: jest.SpyInstance;
 
@@ -117,15 +116,18 @@ describe('MetricAutomationForm', () => {
 
   it('keeps all-project access without listing project IDs', async () => {
     const allProjectsAgent = {...agent, projectIds: [], allProjects: true};
+    const allProjectsConfig = {
+      ...config,
+      agent: {...allProjectsAgent, serviceAccountId: '5'},
+    };
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
-      body: {...config, agent: allProjectsAgent},
+      body: allProjectsConfig,
     });
-    render(
-      <MetricAutomationForm mode="edit" config={{...config, agent: allProjectsAgent}} />,
-      {organization}
-    );
+    render(<MetricAutomationForm mode="edit" config={allProjectsConfig} />, {
+      organization,
+    });
 
     await screen.findByRole('link', {name: 'Checkout error rate'});
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
