@@ -11,7 +11,11 @@ import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  getMenuWidthForLabels,
+  MenuComponents,
+} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -839,18 +843,13 @@ function toURLSelection({
 }
 
 function computeMenuWidth(options: Array<SelectOption<number>>): string {
-  // ProjectPageFilter will try to expand to accommodate the longest project slug
-  const longestSlugLength = options.reduce((acc, cur) => {
-    const length = cur.textValue?.length ?? 0;
-    return length > acc ? length : acc;
-  }, 0);
-
-  // Calculate an appropriate width for the menu. It should be between 22  and 28em.
-  // Within that range, the width is a function of the length of the longest slug.
-  // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
-  // (each character occupies roughly 0.6em).
-  // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
-  return `${Math.max(22, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
+  // ProjectPageFilter will try to expand to accommodate the longest project slug.
+  // The menu is between 22 and 28em. We add 12em to account for padding, trailing
+  // buttons, and the checkbox.
+  return getMenuWidthForLabels(
+    options.map(option => option.textValue ?? ''),
+    {extraEm: 12, minEm: 22, maxEm: 28}
+  );
 }
 
 // Helper functions for data selection

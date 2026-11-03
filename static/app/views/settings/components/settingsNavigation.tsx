@@ -4,7 +4,11 @@ import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  getMenuWidthForLabels,
+  MenuComponents,
+} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -105,6 +109,12 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
+  // Same range as the project page filter, with less reserved space since there is
+  // no checkbox or trailing button, only an avatar.
+  const menuWidth = getMenuWidthForLabels(
+    projects.map(project => project.slug),
+    {extraEm: 8, minEm: 22, maxEm: 28}
+  );
 
   return (
     <Container width="100%">
@@ -113,7 +123,7 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuMinWidth="22em"
+          menuWidth={menuWidth}
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
