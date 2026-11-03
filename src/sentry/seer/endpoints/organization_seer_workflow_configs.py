@@ -39,6 +39,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     BreachedMetricWorkflow,
+    ConnectedMonitor,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
@@ -224,7 +225,7 @@ def _with_no_access_project_ids(
 
 def _with_no_access_monitor_ids(
     monitor_ids: Sequence[int],
-    curr_monitors: Sequence[tuple[int, int]],
+    curr_monitors: Sequence[ConnectedMonitor],
     *,
     request: Request,
     organization: Organization,
@@ -232,7 +233,7 @@ def _with_no_access_monitor_ids(
 ) -> list[int]:
     """
     Return the requested monitors plus the current ones in projects the caller can't
-    read. ``curr_monitors`` are (monitor_id, project_id) pairs of active monitors.
+    read. ``curr_monitors`` are the active monitors currently connected.
     """
     if not curr_monitors:
         return sorted(set(monitor_ids))
@@ -242,8 +243,7 @@ def _with_no_access_monitor_ids(
         if request.access.has_project_scope(project, "project:read")
     }
     return sorted(
-        set(monitor_ids)
-        | {monitor_id for monitor_id, project_id in curr_monitors if project_id not in readable}
+        set(monitor_ids) | {m.monitor_id for m in curr_monitors if m.project_id not in readable}
     )
 
 
@@ -659,14 +659,14 @@ def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
     selected_project_ids: list[int],
-    connected_monitors: list[tuple[int, int]],
+    connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
-    monitor_ids = [monitor_id for monitor_id, _ in connected_monitors]
+    monitor_ids = [m.monitor_id for m in connected_monitors]
     if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
         # Metric automation projects come from their connected monitors.
-        project_ids = sorted({project_id for _, project_id in connected_monitors})
+        project_ids = sorted({m.project_id for m in connected_monitors})
     elif filters.all_projects:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     else:

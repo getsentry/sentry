@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from functools import partial
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, NamedTuple
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -120,6 +120,11 @@ class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
 
 
+class ConnectedMonitor(NamedTuple):
+    monitor_id: int
+    project_id: int
+
+
 @dataclass(frozen=True)
 class MonitorSelectionChange:
     workflow_id: int
@@ -131,10 +136,10 @@ class MonitorSelectionChange:
 
 def get_config_monitors_bulk(
     configs: Sequence[SeerWorkflowConfig], *, project_filter: Sequence[int] | None = None
-) -> dict[int, list[tuple[int, int]]]:
+) -> dict[int, list[ConnectedMonitor]]:
     """
-    Return the active metric monitors connected to each metric automation as sorted
-    (monitor_id, project_id) pairs. With ``project_filter``, only monitors in
+    Return the active metric monitors connected to each metric automation, sorted by
+    monitor ID. With ``project_filter``, only monitors in
     those projects are included.
     """
     config_ids_by_workflow_id = {
@@ -153,12 +158,12 @@ def get_config_monitors_bulk(
     if project_filter is not None:
         connections = connections.filter(detector__project_id__in=project_filter)
 
-    monitors: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
+    monitors: defaultdict[int, list[ConnectedMonitor]] = defaultdict(list)
     for workflow_id, detector_id, project_id in connections.order_by("detector_id").values_list(
         "workflow_id", "detector_id", "detector__project_id"
     ):
         config_id = config_ids_by_workflow_id[workflow_id]
-        monitors[config_id].append((detector_id, project_id))
+        monitors[config_id].append(ConnectedMonitor(detector_id, project_id))
 
     return dict(monitors)
 
@@ -215,8 +220,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
         return workflow
 
-    def get_monitors(self) -> list[tuple[int, int]]:
-        """Return the connected active metric monitors as sorted (monitor_id, project_id) pairs."""
+    def get_monitors(self) -> list[ConnectedMonitor]:
+        """Return the connected active metric monitors, sorted by monitor ID."""
         return get_config_monitors_bulk([self.get_config()]).get(self.config_id, [])
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
