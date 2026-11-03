@@ -21,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.action_kinds.base import FollowUpCommandType
+from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
@@ -44,7 +45,6 @@ from sentry.notebooks.services.notebooks import (
     default_investigation_title,
     update_investigation,
 )
-from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorId, ActorType
 
@@ -159,20 +159,12 @@ def _validate_creation_actor(
             has_investigations_access(organization, actor=user)
         ):
             raise PermissionDenied
+        # Open membership grants authorized human members access to every active project.
+        _validate_project_ids(organization.id, project_ids)
     else:
-        try:
-            account = ServiceAccountReplica.objects.get(
-                service_account_id=creator.id, organization_id=organization.id, is_active=True
-            )
-        except ServiceAccountReplica.DoesNotExist as error:
-            raise PermissionDenied from error
-        if not INVESTIGATION_SCOPES.intersection(
-            account.scope_list
-        ) or not has_investigations_access(organization):
-            raise PermissionDenied
-
-    # Open membership grants authorized members access to every active organization project.
-    _validate_project_ids(organization.id, project_ids)
+        resolve_investigation_service_account(
+            organization=organization, account_id=creator.id, project_ids=project_ids
+        )
 
 
 def _create_agentic_investigation(

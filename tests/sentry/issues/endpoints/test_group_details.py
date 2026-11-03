@@ -107,8 +107,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -121,8 +123,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_no_releases(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -474,7 +478,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
+            assert event.group is not None
             group = event.group
+            assert group is not None
             event.group.update(times_seen=1)
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
@@ -780,6 +786,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         assert group_resolution.type == GroupResolution.Type.in_next_release
         assert group_resolution.status == GroupResolution.Status.pending
@@ -795,6 +802,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data={}, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
 
@@ -818,6 +826,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data=data, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
@@ -839,6 +848,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         # For semver projects, we consider resolution based on an expression rather than a specific release,
         # thus, it is considered resolved in the release that has the highest semver
@@ -854,6 +864,7 @@ class GroupUpdateTest(APITestCase):
         # Let's test that none of these releases regress the group
         for release in releases + [old_version]:
             event = self.store_event(data={"release": release.version}, project_id=project.id)
+            assert event.group is not None
             assert event.group == group
             # Refetch from DB to ensure the latest state is fetched
             group = Group.objects.get(id=group.id, project=project.id)
@@ -1167,9 +1178,9 @@ class GroupUpdateTest(APITestCase):
         assert resp.status_code == 204
         assert not Group.objects.filter(id=group.id).exists()
         assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
+        group_tombstone_id = GroupHash.objects.get(id=group_hash.id).group_tombstone_id
+        assert group_tombstone_id is not None
+        tombstone = GroupTombstone.objects.get(id=group_tombstone_id)
         assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project

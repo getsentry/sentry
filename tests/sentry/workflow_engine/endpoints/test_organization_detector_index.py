@@ -83,6 +83,15 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
+    def test_discovery_exclusion_does_not_hide_existing_rows(self) -> None:
+        with override_detector_api_availability(
+            ErrorGroupType.slug, {DetectorAPIOperation.DISCOVER: False}
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"id": [self.error_detector.id]}
+            )
+        assert [detector["id"] for detector in response.data] == [str(self.error_detector.id)]
+
     def test_simple(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug

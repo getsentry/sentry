@@ -7,7 +7,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberSCIMSerializer,
     OrganizationMemberWithTeamsSerializer,
 )
-from sentry.models.organizationmember import InviteStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
@@ -25,7 +25,7 @@ class OrganizationMemberSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team])
         self.project_2 = self.create_project(teams=[self.team_2])
 
-    def _get_org_members(self) -> list[User]:
+    def _get_org_members(self) -> list[OrganizationMember]:
         return list(
             self.org.member_set.filter(user_id__in=[self.owner_user.id, self.user_2.id]).order_by(
                 "user_email"
@@ -49,10 +49,12 @@ class OrganizationMemberSerializerTest(TestCase):
         member = self.create_member(
             organization=self.org,
             user_id=user.id,
+            invite_status=None,
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
+        assert result["inviteStatus"] is None
 
     def test_member_with_missing_user_and_no_denormalized_email(self) -> None:
         # Tests the case where we have no user to resolve, and need to have

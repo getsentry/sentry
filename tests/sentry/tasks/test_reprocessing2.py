@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from time import time
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Literal, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -21,6 +23,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
@@ -44,11 +47,14 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
+type EventPreprocessor = Callable[[dict[str, Any]], dict[str, Any]]
 
-def _create_user_report(evt):
+
+def _create_user_report(evt: Event) -> None:
     UserReport.objects.create(
         project_id=evt.project_id,
         event_id=evt.event_id,
@@ -57,13 +63,13 @@ def _create_user_report(evt):
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature():
+def reprocessing_feature() -> Iterator[None]:
     with override_settings(SENTRY_REPROCESSING_PAGE_SIZE=1):
         yield
 
 
 @pytest.fixture(params=[False, True], ids=["redis", "inline"])
-def inline_payload_options(request):
+def inline_payload_options(request: pytest.FixtureRequest) -> Iterator[None]:
     with override_options(
         {
             "store.enable-inline-payloads": float(request.param),
@@ -74,8 +80,10 @@ def inline_payload_options(request):
 
 
 @pytest.fixture
-def process_and_save(default_project, task_runner):
-    def inner(data, seconds_ago=1):
+def process_and_save(
+    default_project: Project, task_runner: Callable[[], AbstractContextManager[None]]
+) -> Callable[..., str]:
+    def inner(data: dict[str, Any], seconds_ago: int = 1) -> str:
         # Set platform to native so all parts of reprocessing fire, symbolication will
         # not happen without this set to certain values
         data.setdefault("platform", "native")
@@ -86,8 +94,8 @@ def process_and_save(default_project, task_runner):
         )
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
-        data = mgr.get_data()
-        event_id = data["event_id"]
+        data = cast("dict[str, Any]", mgr.get_data())
+        event_id: str = data["event_id"]
         cache_key = event_processing_store.store(dict(data))
 
         with task_runner():
@@ -101,11 +109,11 @@ def process_and_save(default_project, task_runner):
 
 
 @pytest.fixture
-def register_event_preprocessor():
+def register_event_preprocessor() -> Iterator[Callable[[EventPreprocessor], None]]:
     with mock.patch("sentry.tasks.store.get_event_preprocessors") as m:
         m.return_value = []
 
-        def inner(f):
+        def inner(f: EventPreprocessor) -> None:
             m.return_value = [f]
 
         yield inner
@@ -115,21 +123,21 @@ def register_event_preprocessor():
 @pytest.mark.snuba
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
 def test_basic(
-    task_runner,
-    default_project,
-    change_groups,
-    reset_snuba,
-    process_and_save,
-    register_event_preprocessor,
-    django_cache,
-    inline_payload_options,
-):
+    task_runner: Callable[[], AbstractContextManager[None]],
+    default_project: Project,
+    change_groups: bool,
+    reset_snuba: None,
+    process_and_save: Callable[..., str],
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    django_cache: object,
+    inline_payload_options: None,
+) -> None:
     from sentry import eventstream
 
     tombstone_calls = []
     old_tombstone_fn = eventstream.backend.tombstone_events_unsafe
 
-    def tombstone_called(*args, **kwargs):
+    def tombstone_called(*args: Any, **kwargs: Any) -> None:
         tombstone_calls.append((args, kwargs))
         old_tombstone_fn(*args, **kwargs)
 
@@ -137,7 +145,7 @@ def test_basic(
         abs_count = 0
 
         @register_event_preprocessor
-        def event_preprocessor(data):
+        def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
             nonlocal abs_count
 
             tags = data.setdefault("tags", [])
@@ -226,13 +234,13 @@ def test_basic(
 @django_db_all
 @pytest.mark.snuba
 def test_concurrent_events_go_into_new_group(
-    default_project,
-    reset_snuba,
-    register_event_preprocessor,
-    process_and_save,
-    default_user,
-    django_cache,
-):
+    default_project: Project,
+    reset_snuba: None,
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    process_and_save: Callable[..., str],
+    default_user: User,
+    django_cache: object,
+) -> None:
     """
     Assert that both unmodified and concurrently inserted events go into "the
     new group", i.e. the successor of the reprocessed (old) group that
@@ -240,7 +248,7 @@ def test_concurrent_events_go_into_new_group(
     """
 
     @register_event_preprocessor
-    def event_preprocessor(data):
+    def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
         extra = data.setdefault("extra", {})
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
@@ -301,15 +309,15 @@ def test_concurrent_events_go_into_new_group(
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 @pytest.mark.parametrize("max_events", [2, None])
 def test_max_events(
-    default_project,
-    reset_snuba,
-    register_event_preprocessor,
-    process_and_save,
-    remaining_events,
-    max_events,
-):
+    default_project: Project,
+    reset_snuba: None,
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    process_and_save: Callable[..., str],
+    remaining_events: Literal["delete", "keep"],
+    max_events: int | None,
+) -> None:
     @register_event_preprocessor
-    def event_preprocessor(data):
+    def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
         extra = data.setdefault("extra", {})
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
@@ -326,7 +334,7 @@ def test_max_events(
         old_events[event_id] = old_event
 
     for evt in old_events.values():
-        _create_user_report(evt)
+        _create_user_report(cast("Event", evt))
 
     (group_id,) = {e.group_id for e in old_events.values()}
     assert group_id is not None
@@ -381,13 +389,13 @@ def test_max_events(
 @django_db_all
 @pytest.mark.snuba
 def test_attachments_and_userfeedback(
-    default_project,
-    reset_snuba,
-    register_event_preprocessor,
-    process_and_save,
-):
+    default_project: Project,
+    reset_snuba: None,
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    process_and_save: Callable[..., str],
+) -> None:
     @register_event_preprocessor
-    def event_preprocessor(data):
+    def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
         extra = data.setdefault("extra", {})
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
@@ -427,7 +435,7 @@ def test_attachments_and_userfeedback(
                 blob_path=":hello world",
             )
 
-        _create_user_report(evt)
+        _create_user_report(cast("Event", evt))
 
     with BurstTaskRunner() as burst:
         assert event.group_id
@@ -461,13 +469,13 @@ def test_attachments_and_userfeedback(
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
 @mock.patch("sentry.reprocessing2.logger")
 def test_nodestore_missing(
-    mock_logger,
-    default_project,
-    reset_snuba,
-    process_and_save,
-    remaining_events,
-    django_cache,
-):
+    mock_logger: mock.MagicMock,
+    default_project: Project,
+    reset_snuba: None,
+    process_and_save: Callable[..., str],
+    remaining_events: Literal["keep", "delete"],
+    django_cache: object,
+) -> None:
     event_id = process_and_save({"message": "hello world", "platform": "python"})
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
@@ -508,18 +516,18 @@ def test_nodestore_missing(
 @django_db_all
 @pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
-    default_project,
-    reset_snuba,
-    register_event_preprocessor,
-    process_and_save,
-):
+    default_project: Project,
+    reset_snuba: None,
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    process_and_save: Callable[..., str],
+) -> None:
     """
     Assert that after changing fingerprinting rules, the new fingerprinting config
     is respected by reprocessing.
     """
 
     @register_event_preprocessor
-    def event_preprocessor(data):
+    def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
         extra = data.setdefault("extra", {})
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
@@ -582,18 +590,18 @@ def test_apply_new_fingerprinting_rules(
 @django_db_all
 @pytest.mark.snuba
 def test_apply_new_stack_trace_rules(
-    default_project,
-    reset_snuba,
-    register_event_preprocessor,
-    process_and_save,
-):
+    default_project: Project,
+    reset_snuba: None,
+    register_event_preprocessor: Callable[[EventPreprocessor], None],
+    process_and_save: Callable[..., str],
+) -> None:
     """
     Assert that after changing stacktrace rules, the new grouping config
     is respected by reprocessing.
     """
 
     @register_event_preprocessor
-    def event_preprocessor(data):
+    def event_preprocessor(data: dict[str, Any]) -> dict[str, Any]:
         extra = data.setdefault("extra", {})
         extra.setdefault("processing_counter", 0)
         extra["processing_counter"] += 1
@@ -683,7 +691,7 @@ def test_apply_new_stack_trace_rules(
 
 
 @django_db_all
-def test_finish_reprocessing(default_project) -> None:
+def test_finish_reprocessing(default_project: Project) -> None:
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
     new_group = Group.objects.create(project=default_project)
@@ -715,7 +723,7 @@ def test_finish_reprocessing(default_project) -> None:
 
 
 @django_db_all
-def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
+def test_reprocessing_an_ongoing_reprocessing(default_project: Project) -> None:
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project, data={})
 
@@ -732,7 +740,7 @@ def test_reprocessing_an_ongoing_reprocessing(default_project) -> None:
 
 
 @django_db_all
-def test_reprocessing_allowed_when_previous_run_is_stale(default_project) -> None:
+def test_reprocessing_allowed_when_previous_run_is_stale(default_project: Project) -> None:
     old_group = Group.objects.create(project=default_project, data={})
     new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
     assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
@@ -746,7 +754,7 @@ def test_reprocessing_allowed_when_previous_run_is_stale(default_project) -> Non
 
 
 @django_db_all
-def test_reprocessing_blocked_when_previous_run_is_recent(default_project) -> None:
+def test_reprocessing_blocked_when_previous_run_is_recent(default_project: Project) -> None:
     old_group = Group.objects.create(project=default_project, data={})
     new_group_id = start_group_reprocessing(default_project.id, old_group.id, "delete")
     assert "_reprocessing_old_group_id" in Group.objects.get(id=new_group_id).data
@@ -763,7 +771,9 @@ def test_reprocessing_blocked_when_previous_run_is_recent(default_project) -> No
 
 @django_db_all
 @patch("sentry.tasks.reprocessing2.current_task")
-def test_selfchain_skips_when_already_spawned(mock_current_task, default_project) -> None:
+def test_selfchain_skips_when_already_spawned(
+    mock_current_task: mock.MagicMock, default_project: Project
+) -> None:
     # A prior delivery of this activation already spawned its continuation; a broker re-pend
     # must short-circuit before starting reprocessing or forking the chain.
     mock_current_task.return_value = SimpleNamespace(id="reprocess-act-skip")
@@ -784,7 +794,10 @@ def test_selfchain_skips_when_already_spawned(mock_current_task, default_project
 @pytest.mark.snuba
 @patch("sentry.tasks.reprocessing2.current_task")
 def test_selfchain_marks_and_dedupes_across_deliveries(
-    mock_current_task, default_project, reset_snuba, process_and_save
+    mock_current_task: mock.MagicMock,
+    default_project: Project,
+    reset_snuba: None,
+    process_and_save: Callable[..., str],
 ) -> None:
     # First delivery processes a page and spawns the continuation once. A re-pend must use the
     # mid-chain payload (new_group_id/query_state/start_time) — not another start hop — because
@@ -817,7 +830,11 @@ def test_selfchain_marks_and_dedupes_across_deliveries(
 @patch("sentry.tasks.reprocessing2.mark_spawned")
 @patch("sentry.tasks.reprocessing2.current_task", return_value=None)
 def test_selfchain_noop_without_activation(
-    mock_current_task, mock_mark, default_project, reset_snuba, process_and_save
+    mock_current_task: mock.MagicMock,
+    mock_mark: mock.MagicMock,
+    default_project: Project,
+    reset_snuba: None,
+    process_and_save: Callable[..., str],
 ) -> None:
     # Synchronous/eager path (e.g. direct call outside a worker) has no current activation, so the
     # guard is inert and existing behavior is preserved.
@@ -839,7 +856,10 @@ def test_selfchain_noop_without_activation(
 @pytest.mark.snuba
 @patch("sentry.tasks.reprocessing2.current_task")
 def test_selfchain_does_not_mark_on_terminal_hop(
-    mock_current_task, default_project, reset_snuba, process_and_save
+    mock_current_task: mock.MagicMock,
+    default_project: Project,
+    reset_snuba: None,
+    process_and_save: Callable[..., str],
 ) -> None:
     # When there are no events left, reprocess_group flushes remaining work and returns without
     # self-chaining. It must not mark the activation as spawned.

@@ -93,6 +93,10 @@ conditions and name may differ between queries on the same widget.
 http_error_count_percent.
 - Do not use widget_type "discover" or "transaction-like" — they are deprecated. Use "spans" or \
 "error-events" instead.
+- In logs and spans widgets, refer to a numeric custom attribute (anything other than a \
+built-in field like `span.duration`) as `tags[<name>,number]`, e.g. \
+`p95(tags[queue_wait_ms,number])` rather than `p95(queue_wait_ms)`. A bare custom attribute name \
+is treated as a string, so numeric aggregates over it fail.
 
 Projects:
 - If the user names one or more projects for the dashboard, set the dashboard's `projects` field \

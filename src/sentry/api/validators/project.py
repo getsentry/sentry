@@ -1,9 +1,13 @@
+from collections.abc import Iterable
+
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import ALL_ACCESS_PROJECTS
 
 
-def validate_project_ids(raw_project_ids, associated_projects):
+def validate_project_ids(
+    raw_project_ids: Iterable[int], associated_projects: Iterable[int]
+) -> set[int]:
     raw_project_ids = set(raw_project_ids)
 
     # Don't need to check all projects or my projects

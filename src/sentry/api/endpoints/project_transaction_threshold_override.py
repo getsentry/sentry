@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -10,6 +12,7 @@ from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThresholdOverride,
@@ -24,20 +27,20 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
     threshold = serializers.IntegerField(required=True, max_value=MAX_VALUE)
     metric = serializers.CharField(required=True)
 
-    def validate_metric(self, metric):
+    def validate_metric(self, metric: str) -> int:
         for key, value in TRANSACTION_METRICS.items():
             if value == metric:
                 return key
 
         raise serializers.ValidationError(f"Invalid transaction metric - {metric}")
 
-    def validate_threshold(self, threshold):
+    def validate_threshold(self, threshold: int) -> int:
         if threshold % 100:
             raise serializers.ValidationError("Invalid threshold - specify a multiple of 100")
 
         return threshold
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data = super().validate(data)
         organization = self.context.get("organization")
         project = self.context.get("project")
@@ -71,7 +74,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
     }
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
-    def get_project(self, request: Request, organization):
+    def get_project(self, request: Request, organization: Organization) -> Project:
         projects = self.get_projects(request, organization)
         if len(projects) != 1:
             raise ParseError("Only 1 project per transaction threshold")
@@ -101,7 +104,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
             status.HTTP_200_OK,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
@@ -142,7 +145,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

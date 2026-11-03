@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
-from django.db.models import F
+from django.db.models import F, QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -53,6 +53,16 @@ _default_logger = logging.getLogger(__name__)
 
 
 class ActivityManager(BaseManager["Activity"]):
+    def get_recent_unresolved_activities(
+        self, project_id: int, cutoff: datetime
+    ) -> QuerySet[Activity]:
+        """Any SET_UNRESOLVED grants another auto-resolution interval, including snooze expiry."""
+        return self.filter(
+            project_id=project_id,
+            datetime__gt=cutoff,
+            type=ActivityType.SET_UNRESOLVED.value,
+        )
+
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         # Internal-signal activities (e.g. SMART_ASSIGNMENT_COMPLETED) exist only to drive

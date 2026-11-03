@@ -134,6 +134,7 @@ def build_build_distribution_summary(
 
     # Determine webhook-level terminal state
     if has_error:
+        assert error_code_value is not None
         state = "FAILED"
         try:
             error_code_name = PreprodArtifact.InstallableAppErrorCode(error_code_value).name

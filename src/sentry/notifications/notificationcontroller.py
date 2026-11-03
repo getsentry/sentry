@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
+from functools import cached_property
 from typing import Union
 
 from django.db.models import Q
@@ -48,6 +49,39 @@ def sort_settings_by_scope(setting: NotificationSettingOption | NotificationSett
     if setting.scope_type == NotificationScopeEnum.TEAM.value:
         return 1
     return 0
+
+
+def _group_by_recipient[T: (NotificationSettingOption, NotificationSettingProvider)](
+    settings: Iterable[T],
+) -> Mapping[tuple[str, int], list[T]]:
+    by_recipient: defaultdict[tuple[str, int], list[T]] = defaultdict(list)
+    for setting in settings:
+        if setting.user_id is not None:
+            by_recipient[("user_id", setting.user_id)].append(setting)
+        if setting.team_id is not None:
+            by_recipient[("team_id", setting.team_id)].append(setting)
+    return by_recipient
+
+
+def _filter_settings[T: (NotificationSettingOption, NotificationSettingProvider)](
+    settings: Iterable[T],
+    by_recipient: Mapping[tuple[str, int], list[T]],
+    kwargs: Mapping[str, object],
+) -> list[T]:
+    # Filters are applied once per recipient, so narrow to that recipient's
+    # settings first instead of scanning every recipient's settings each time.
+    candidates: Iterable[T] = settings
+    for key in ("user_id", "team_id"):
+        recipient_id = kwargs.get(key)
+        if isinstance(recipient_id, int):
+            candidates = by_recipient.get((key, recipient_id), [])
+            break
+
+    return [
+        setting
+        for setting in candidates
+        if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
+    ]
 
 
 class NotificationController:
@@ -154,30 +188,32 @@ class NotificationController:
 
         return project_settings | org_settings | user_settings | team_settings
 
-    def _filter_options(
+    @cached_property
+    def _setting_options_by_recipient(
         self,
-        **kwargs,
-    ) -> list[NotificationSettingOption]:
-        return [
-            setting
-            for setting in self.get_all_setting_options
-            if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
-        ]
+    ) -> Mapping[tuple[str, int], list[NotificationSettingOption]]:
+        return _group_by_recipient(self.get_all_setting_options)
 
-    def _filter_providers(
+    @cached_property
+    def _setting_providers_by_recipient(
         self,
-        **kwargs,
-    ) -> list[NotificationSettingProvider]:
-        return [
-            setting
-            for setting in self.get_all_setting_providers
-            if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
-        ]
+    ) -> Mapping[tuple[str, int], list[NotificationSettingProvider]]:
+        return _group_by_recipient(self.get_all_setting_providers)
+
+    def _filter_options(self, **kwargs: object) -> list[NotificationSettingOption]:
+        return _filter_settings(
+            self.get_all_setting_options, self._setting_options_by_recipient, kwargs
+        )
+
+    def _filter_providers(self, **kwargs: object) -> list[NotificationSettingProvider]:
+        return _filter_settings(
+            self.get_all_setting_providers, self._setting_providers_by_recipient, kwargs
+        )
 
     def _get_layered_setting_options(
         self,
         project_id: int | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> MutableMapping[
         Recipient, MutableMapping[NotificationSettingEnum, NotificationSettingsOptionEnum]
     ]:
@@ -234,7 +270,7 @@ class NotificationController:
     def _get_layered_setting_providers(
         self,
         project_id: int | None = None,
-        **kwargs,
+        **kwargs: object,
     ) -> MutableMapping[
         Recipient,
         MutableMapping[

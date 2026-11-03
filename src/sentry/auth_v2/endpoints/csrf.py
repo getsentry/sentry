@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from django.middleware.csrf import rotate_token
 from django.utils.decorators import method_decorator
@@ -13,9 +13,15 @@ from sentry.analytics.events.auth_v2 import AuthV2CsrfTokenRotated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.auth_v2.utils.session import SessionSerializer
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth_v2.utils.session import SessionSerializer, SessionSerializerResponse
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class CsrfTokenResponse(TypedDict):
+    detail: str
+    session: SessionSerializerResponse
 
 
 @control_silo_endpoint
@@ -48,13 +54,10 @@ class CsrfTokenEndpoint(Endpoint):
     @extend_schema(
         operation_id="Retrieve the CSRF token in your session",
         parameters=[],
-        responses={
-            "detail": "string",
-            "session": SessionSerializer,
-        },
+        responses={200: inline_sentry_response_serializer("CsrfTokenResponse", CsrfTokenResponse)},
     )
     @method_decorator(ensure_csrf_cookie)
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response[CsrfTokenResponse]:
         return self.respond(
             {
                 "detail": "Set CSRF cookie",
@@ -66,13 +69,10 @@ class CsrfTokenEndpoint(Endpoint):
     @extend_schema(
         operation_id="Rotate the CSRF token in your session",
         parameters=[],
-        responses={
-            "detail": "string",
-            "session": SessionSerializer,
-        },
+        responses={200: inline_sentry_response_serializer("CsrfTokenResponse", CsrfTokenResponse)},
     )
     @method_decorator(ensure_csrf_cookie)
-    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def put(self, request: Request, *args: Any, **kwargs: Any) -> Response[CsrfTokenResponse]:
         rotate_token(request)
         if referrer := request.GET.get("referrer"):
             analytics.record(

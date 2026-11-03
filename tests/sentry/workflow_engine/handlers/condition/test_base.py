@@ -134,6 +134,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 id__in={self.event.group_id, self.event2.group_id, self.perf_event.group_id}
             ).values("id", "type", "project_id", "project__organization_id")
         )
+        assert self.event3.group_id is not None
         self.group_3 = list(
             Group.objects.filter(id=self.event3.group_id).values(
                 "id", "type", "project_id", "project__organization_id"

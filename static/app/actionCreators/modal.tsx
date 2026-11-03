@@ -16,7 +16,7 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {ModalStore, type ModalRenderer} from 'sentry/stores/modalStore';
 import type {
   CustomRepo,
   CustomRepoFormData,
@@ -37,10 +37,7 @@ type ModalRenderPropKeys = keyof ModalRenderProps;
 /**
  * Show a modal
  */
-export function openModal(
-  renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-  options?: ModalOptions
-) {
+export function openModal(renderer: ModalRenderer, options?: ModalOptions) {
   ModalStore.openModal(renderer, options ?? {});
 }
 
