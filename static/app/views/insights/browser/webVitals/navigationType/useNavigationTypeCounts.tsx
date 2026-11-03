@@ -10,6 +10,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import {
   useSpans,
   useTraceMetrics,
@@ -18,8 +19,10 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_COUNT_FIELD = 'count()';
 
-// One per pageload, matching the Pageloads column on the metrics backed dashboard.
-const METRIC_COUNT_FIELD = webVitalCountField('ttfb');
+// Every vital is counted, like the spans count counts every vital span. Soft
+// navigations and bfcache restores never report a TTFB, so no single vital
+// covers all navigation types.
+const METRIC_COUNT_FIELDS = ORDER.map(webVitalCountField);
 
 type Props = {
   /** The other active global filters, so the counts match the widgets. */
@@ -56,13 +59,13 @@ export function useNavigationTypeCounts({
     Referrer.WEB_VITAL_NAVIGATION_TYPE_COUNTS
   );
 
-  // The count field names the metric, so no span op filter is needed.
+  // The count fields name the metrics, so no span op filter is needed.
   const metrics = useTraceMetrics(
     {
       enabled: enabled && isMetrics,
       search: additionalQuery,
-      fields: [SpanFields.BROWSER_NAVIGATION_TYPE, METRIC_COUNT_FIELD],
-      sorts: [{field: METRIC_COUNT_FIELD, kind: 'desc'}],
+      fields: [SpanFields.BROWSER_NAVIGATION_TYPE, ...METRIC_COUNT_FIELDS],
+      sorts: [{field: METRIC_COUNT_FIELDS[0]!, kind: 'desc'}],
       limit: 20,
     },
     Referrer.WEB_VITAL_NAVIGATION_TYPE_COUNTS
@@ -73,7 +76,10 @@ export function useNavigationTypeCounts({
       isMetrics
         ? metrics.data.map(row => ({
             value: String(row[SpanFields.BROWSER_NAVIGATION_TYPE] ?? ''),
-            count: Number(row[METRIC_COUNT_FIELD] ?? 0),
+            count: METRIC_COUNT_FIELDS.reduce(
+              (total, field) => total + Number(row[field] ?? 0),
+              0
+            ),
           }))
         : spans.data.map(row => ({
             value: String(row[SpanFields.BROWSER_NAVIGATION_TYPE] ?? ''),

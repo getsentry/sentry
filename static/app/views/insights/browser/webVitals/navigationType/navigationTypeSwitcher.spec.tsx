@@ -18,8 +18,13 @@ import {SpanFields} from 'sentry/views/insights/types';
 describe('NavigationTypeSwitcher', () => {
   const organization = OrganizationFixture();
 
-  const METRIC_COUNT_FIELD =
-    'count(value,browser.web_vital.ttfb,distribution,millisecond)';
+  // In ORDER: lcp, fcp, inp, cls, ttfb. CLS has no unit.
+  const METRIC_COUNT_FIELDS = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'].map(
+    vital =>
+      `count(value,browser.web_vital.${vital},distribution,${vital === 'cls' ? 'none' : 'millisecond'})`
+  );
+  const LCP_COUNT_FIELD = METRIC_COUNT_FIELDS[0]!;
+  const CLS_COUNT_FIELD = METRIC_COUNT_FIELDS[3]!;
 
   function mockCounts(rows: Array<Record<string, string | number>>) {
     return MockApiClient.addMockResponse({
@@ -206,8 +211,13 @@ describe('NavigationTypeSwitcher', () => {
   });
 
   it('counts and filters the web vital metrics on a metrics backed dashboard', async () => {
+    // Every vital counts, so a page load with an LCP and a CLS counts twice.
     const mock = mockCounts([
-      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', [METRIC_COUNT_FIELD]: 1200},
+      {
+        [SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate',
+        [LCP_COUNT_FIELD]: 1000,
+        [CLS_COUNT_FIELD]: 200,
+      },
     ]);
     const onChange = jest.fn();
 
@@ -230,7 +240,7 @@ describe('NavigationTypeSwitcher', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'tracemetrics',
-          field: [SpanFields.BROWSER_NAVIGATION_TYPE, METRIC_COUNT_FIELD],
+          field: [SpanFields.BROWSER_NAVIGATION_TYPE, ...METRIC_COUNT_FIELDS],
         }),
       })
     );
@@ -247,7 +257,7 @@ describe('NavigationTypeSwitcher', () => {
 
   it('writes the selection for every dataset the dashboard carries', async () => {
     const mock = mockCounts([
-      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', [METRIC_COUNT_FIELD]: 10},
+      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', [LCP_COUNT_FIELD]: 10},
     ]);
     const onChange = jest.fn();
 
