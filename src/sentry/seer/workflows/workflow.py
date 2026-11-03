@@ -99,43 +99,40 @@ class SeerWorkflow:
             )
 
     @classmethod
-    @contextmanager
-    def _create_base(
+    def _create_config(
         cls,
         *,
+        database: str,
         organization_id: int,
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
         name: str | None = None,
-    ) -> Iterator[tuple[SeerWorkflowConfig, str]]:
+    ) -> SeerWorkflowConfig:
         """
-        Create a config within the org's automation limit and yield it with its database
-        inside the transaction, so callers can make related writes atomically.
+        Create a config within the org's automation limit. Call inside a transaction on
+        ``database`` so the limit check and any related writes are atomic.
         """
-        database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
-            existing = (
-                SeerWorkflowConfig.objects.using(database)
-                .filter(
-                    organization_id=organization_id,
-                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-                )
-                .count()
-            )
-            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-                raise WorkflowUpdateError(
-                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-                )
-
-            config = SeerWorkflowConfig.objects.using(database).create(
+        existing = (
+            SeerWorkflowConfig.objects.using(database)
+            .filter(
                 organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                filters=filters.dict(),
-                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
-            yield config, database
+            .count()
+        )
+        if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+            raise WorkflowUpdateError(
+                f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+            )
+
+        return SeerWorkflowConfig.objects.using(database).create(
+            organization_id=organization_id,
+            strategy=strategy,
+            enabled=enabled,
+            filters=filters.dict(),
+            extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+        )
 
     @classmethod
     def create(
@@ -165,16 +162,19 @@ class SeerWorkflow:
             project_set = set()
         cls._validate_project_ids(organization_id, project_set)
 
-        with cls._create_base(
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            filters=SeerWorkflowFilters(
-                all_projects=all_projects,
-                environments=list(environments),
-            ),
-            name=name,
-        ) as (config, database):
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            config = cls._create_config(
+                database=database,
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                filters=SeerWorkflowFilters(
+                    all_projects=all_projects,
+                    environments=list(environments),
+                ),
+                name=name,
+            )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
             if project_set:

@@ -177,13 +177,16 @@ class BreachedMetricWorkflow(SeerWorkflow):
         """Create an automation whose project coverage comes from connected monitors."""
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
-        with cls._create_base(
-            organization_id=organization_id,
-            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            enabled=enabled,
-            filters=SeerWorkflowFilters(environments=list(environments)),
-            name=name,
-        ) as (config, database):
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            config = cls._create_config(
+                database=database,
+                organization_id=organization_id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                enabled=enabled,
+                filters=SeerWorkflowFilters(environments=list(environments)),
+                name=name,
+            )
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = workflow._set_monitor_selection(config, monitor_ids) if monitor_ids else None
             if change is not None:
