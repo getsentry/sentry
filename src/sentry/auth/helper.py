@@ -1031,7 +1031,8 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             )
             return None
 
-        referrer = state.get("referrer") if state else None
+        stored_referrer = state.get("referrer") if state else None
+        referrer = stored_referrer if isinstance(stored_referrer, str) else None
 
         return cls(
             auth_provider=req_state.provider_model,
