@@ -4,3 +4,4 @@ export type {
   BreadcrumbListProps,
   BreadcrumbTitleItem,
 } from './breadcrumbList';
+export type {BreadcrumbTrailingActions} from './actions/breadcrumbTrailingActions';

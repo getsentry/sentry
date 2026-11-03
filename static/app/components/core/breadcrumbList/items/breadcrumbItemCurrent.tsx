@@ -1,3 +1,4 @@
+import {BreadcrumbTrailingActions} from '@sentry/scraps/breadcrumbList/actions/breadcrumbTrailingActions';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 
@@ -15,6 +16,11 @@ export interface BreadcrumbItemCurrentProps {
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
+  /**
+   * Typed trailing actions about the current item, such as exporting it or
+   * opening its full view. Rendered after the label.
+   */
+  trailingActions?: BreadcrumbTrailingActions;
 }
 
 /**
@@ -25,6 +31,7 @@ export function BreadcrumbItemCurrent({
   label,
   labelTooltip,
   leadingGraphic,
+  trailingActions,
 }: BreadcrumbItemCurrentProps) {
   return (
     <Flex align="center" gap="sm" height="32px" minWidth="32px">
@@ -44,6 +51,7 @@ export function BreadcrumbItemCurrent({
           </InfoText>
         )}
       </Container>
+      <BreadcrumbTrailingActions actions={trailingActions} />
     </Flex>
   );
 }

@@ -2,6 +2,7 @@ import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
+import {BreadcrumbTrailingActions} from './actions/breadcrumbTrailingActions';
 import type {BreadcrumbItemCurrentProps} from './items/breadcrumbItemCurrent';
 import {BreadcrumbItemCurrent} from './items/breadcrumbItemCurrent';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
@@ -174,3 +175,9 @@ function BreadcrumbCurrent({item}: BreadcrumbListCurrentProps) {
 
 BreadcrumbList.Title = BreadCrumbTitle;
 BreadcrumbList.Current = BreadcrumbCurrent;
+/**
+ * Renders typed trailing actions on their own, for layouts that keep the
+ * actions outside the element holding the current item — e.g. drawers, where
+ * the trail sits in a `<nav>` landmark but its actions should not.
+ */
+BreadcrumbList.TrailingActions = BreadcrumbTrailingActions;

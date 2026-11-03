@@ -180,6 +180,53 @@ describe('BreadcrumbList.Current', () => {
     expect(screen.getByText('Logs')).not.toHaveAttribute('tabindex');
   });
 
+  it('renders trailing actions after the label', async () => {
+    render(
+      <BreadcrumbList.Current
+        item={{
+          label: 'browser.name',
+          trailingActions: [
+            {
+              type: 'menu',
+              triggerIcon: <IconEllipsis />,
+              triggerLabel: 'Export options',
+              items: [{key: 'export', label: 'Export to CSV'}],
+            },
+            null,
+            {type: 'copy', text: 'browser.name', label: 'Copy tag key'},
+          ],
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.getByText('browser.name')).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByRole('button', {name: 'Copy tag key'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Export options'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Export to CSV'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders trailing actions on their own', () => {
+    render(
+      <BreadcrumbList.TrailingActions
+        actions={{
+          type: 'button',
+          element: <Button size="zero" aria-label="View full details" />,
+        }}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'View full details'})).toBeInTheDocument();
+  });
+
+  it('renders nothing when every trailing action is null', () => {
+    const {container} = render(<BreadcrumbList.TrailingActions actions={[null]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('hides the leading graphic from assistive technology', () => {
     render(
       <BreadcrumbList.Current
