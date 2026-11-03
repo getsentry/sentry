@@ -159,14 +159,12 @@ def _validate_creation_actor(
             has_investigations_access(organization, actor=user)
         ):
             raise PermissionDenied
+        # Open membership grants authorized human members access to every active project.
+        _validate_project_ids(organization.id, project_ids)
     else:
         resolve_investigation_service_account(
             organization=organization, account_id=creator.id, project_ids=project_ids
         )
-        return
-
-    # Open membership grants authorized human members access to every active project.
-    _validate_project_ids(organization.id, project_ids)
 
 
 def _create_agentic_investigation(
