@@ -7,8 +7,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DetailedError} from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
+
+import {DetailedError} from './errors/detailedError';
 
 type DefaultProps = {
   mini: boolean;

@@ -6,8 +6,9 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
+
+import {useAddIntegration} from './useAddIntegration';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();

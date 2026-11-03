@@ -1,7 +1,6 @@
 import type {QueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -24,6 +23,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
+
+import {addErrorMessage, addSuccessMessage} from './indicator';
 
 export function fetchDashboards(
   api: Client,

@@ -3,7 +3,6 @@ import {useQuery} from '@tanstack/react-query';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
-import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
 import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
@@ -13,6 +12,8 @@ import type {Group} from 'sentry/types/group';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
+
+import type {GroupIntegrationIssueResult} from './types';
 
 export function useSentryAppExternalIssues({
   group,

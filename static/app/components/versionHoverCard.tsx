@@ -7,14 +7,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DateTime} from 'sentry/components/dateTime';
-import {Hovercard} from 'sentry/components/hovercard';
-import {LastCommit} from 'sentry/components/lastCommit';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -26,6 +18,15 @@ import {uniqueId} from 'sentry/utils/guid';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {parseVersion} from 'sentry/utils/versions/parseVersion';
+
+import {CopyToClipboardButton} from './copyToClipboardButton';
+import {DateTime} from './dateTime';
+import {Hovercard} from './hovercard';
+import {LastCommit} from './lastCommit';
+import {LoadingError} from './loadingError';
+import {LoadingIndicator} from './loadingIndicator';
+import {TimeSince} from './timeSince';
+import {Version} from './version';
 
 interface BodyProps {
   organization: Organization;

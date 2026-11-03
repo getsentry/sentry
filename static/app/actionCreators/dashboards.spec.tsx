@@ -1,7 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 
-import {updateDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {updateDashboard} from './dashboards';
+import {addErrorMessage} from './indicator';
 
 jest.mock('sentry/actionCreators/indicator');
 

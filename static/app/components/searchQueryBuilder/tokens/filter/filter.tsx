@@ -17,14 +17,6 @@ import {
   BaseGridCell,
   FilterWrapper,
 } from 'sentry/components/searchQueryBuilder/tokens/components';
-import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
-import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -38,6 +30,15 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {AggregateKey} from './aggregateKey';
+import {FilterKey} from './filterKey';
+import {FilterOperator} from './filterOperator';
+import {FilterValueText} from './filterValueText';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
+import {isAggregateFilterToken} from './utils';
+import {SearchQueryBuilderValueCombobox} from './valueCombobox';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;

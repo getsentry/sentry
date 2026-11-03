@@ -3,10 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DeleteReplays} from 'sentry/components/replays/table/deleteReplays';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import {DeleteReplays} from './deleteReplays';
 
 const mockFetchMutation = jest.fn().mockResolvedValue({});
 

@@ -1,13 +1,10 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {addErrorMessage, addLoadingMessage, clearIndicators} from './indicator';
 
 type KeyTransaction = {
   project_id: string;

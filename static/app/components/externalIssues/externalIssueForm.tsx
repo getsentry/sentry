@@ -16,9 +16,6 @@ import type {
   JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -38,6 +35,10 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useDynamicFields} from './useDynamicFields';
+import type {ExternalIssueAction} from './utils';
+import {getConfigName} from './utils';
 
 export const openExternalIssueModal = ({
   group,

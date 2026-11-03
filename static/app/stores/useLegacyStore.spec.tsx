@@ -2,8 +2,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {TeamStore} from './teamStore';
+import {useLegacyStore} from './useLegacyStore';
 
 describe('useLegacyStore', () => {
   const team = TeamFixture();

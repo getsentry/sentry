@@ -1,7 +1,8 @@
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
+
+import {handleExpressiveCodeCopyClick} from './expressiveCodeCopy';
 
 function StoryCodeBlock() {
   return (

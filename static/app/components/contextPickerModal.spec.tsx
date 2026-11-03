@@ -9,7 +9,6 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -17,6 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
 
 describe('ContextPickerModal', () => {
   let project!: Project;

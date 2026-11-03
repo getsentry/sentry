@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -17,6 +15,9 @@ import {
 } from 'sentry/utils/featureFlags';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {addErrorMessage} from './indicator';
+import {setActiveOrganization} from './organizations';
 
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   const [org] = await api.requestPromise(

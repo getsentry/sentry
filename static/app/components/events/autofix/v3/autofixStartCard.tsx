@@ -11,9 +11,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+
+import {useForceBashMode} from './useForceBashMode';
 
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

@@ -18,8 +18,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
-import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -30,6 +28,9 @@ import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {OnCallServiceForm} from './forms/onCallServiceForm';
+import {SlackForm} from './forms/slackForm';
 
 type NotificationActionItemProps = {
   /**

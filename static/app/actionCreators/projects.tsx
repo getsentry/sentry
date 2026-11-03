@@ -1,10 +1,5 @@
 import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -14,6 +9,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
+
+import {addErrorMessage, addLoadingMessage, addSuccessMessage} from './indicator';
 
 type UpdateParams = {
   orgId: string;

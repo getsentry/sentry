@@ -1,11 +1,5 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -14,6 +8,13 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from './indicator';
 
 export async function updateUptimeRule(
   api: Client,

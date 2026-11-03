@@ -21,23 +21,6 @@ import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  buildSeerMutationResult,
-  mapSeerResponseItem,
-  useInitialSeerQuery,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import {
-  SearchQueryBuilderProvider,
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {
-  QueryInterfaceType,
-  type FieldDefinitionGetter,
-  type FilterKeySection,
-} from 'sentry/components/searchQueryBuilder/types';
 import {
   InvalidReason,
   TermOperator,
@@ -54,6 +37,24 @@ import {
 } from 'sentry/utils/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
+
+import {AskSeerComboBox} from './askSeerCombobox/askSeerComboBox';
+import type {SeerRawResponse} from './askSeerCombobox/types';
+import {
+  buildSeerMutationResult,
+  mapSeerResponseItem,
+  useInitialSeerQuery,
+} from './askSeerCombobox/useSeerComboBoxSetup';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderState,
+} from './context';
+import {
+  QueryInterfaceType,
+  type FieldDefinitionGetter,
+  type FilterKeySection,
+} from './types';
 
 jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),

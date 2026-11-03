@@ -5,12 +5,6 @@ import omitBy from 'lodash/omitBy';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
-import {
-  canIncludePreviousPeriod,
-  getPreviousSeriesName,
-  isMultiSeriesStats,
-} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -26,6 +20,13 @@ import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fiel
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {LoadingPanel} from './loadingPanel';
+import {
+  canIncludePreviousPeriod,
+  getPreviousSeriesName,
+  isMultiSeriesStats,
+} from './utils';
 
 type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;

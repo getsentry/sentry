@@ -8,18 +8,6 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
-import {CodingAgentHandoffPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
-import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
-import {
-  continueRunData,
-  getAutofixRunId,
-} from 'sentry/components/events/autofix/autofixRunId';
-import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
-import {
-  needsGitHubAuth,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -47,6 +35,13 @@ import {
   type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
+
+import {AutofixCursorGithubAccessModal} from './autofixCursorGithubAccessModal';
+import {CodingAgentHandoffPermissionsModal} from './autofixGithubAppPermissionsModal';
+import {AutofixGithubCopilotPurchaseModal} from './autofixGithubCopilotPurchaseModal';
+import {continueRunData, getAutofixRunId} from './autofixRunId';
+import {CodingAgentStatus} from './types';
+import {needsGitHubAuth, type CodingAgentIntegration} from './useAutofix';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.

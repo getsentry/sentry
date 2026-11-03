@@ -2,9 +2,6 @@ import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
-import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
-import {getScmDefaultProjectName} from 'sentry/components/onboarding/scm/scmProjectName';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {t} from 'sentry/locale';
@@ -19,6 +16,10 @@ import {useTeams} from 'sentry/utils/useTeams';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import type {NotificationSelection} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+
+import {linkProjectToRepository} from './linkProjectToRepository';
+import type {CreatedProject} from './scmMessagingSetup';
+import {getScmDefaultProjectName} from './scmProjectName';
 
 type GetIntegrationAction = ReturnType<
   typeof useCreateNotificationAction

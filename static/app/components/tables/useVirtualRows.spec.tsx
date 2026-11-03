@@ -2,7 +2,7 @@ import {useRef} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
+import {useVirtualRows} from './useVirtualRows';
 
 const ROW_COUNT = 100;
 const ROW_HEIGHT = 20;

@@ -1,15 +1,9 @@
-import {
-  ConnectRepositoryForm,
-  type ConnectFormProps,
-} from 'sentry/components/connectRepository/connectRepositoryForm';
-import {
-  EditRepositoryForm,
-  type EditFormProps,
-} from 'sentry/components/connectRepository/editRepositoryForm';
+import {ConnectRepositoryForm, type ConnectFormProps} from './connectRepositoryForm';
+import {EditRepositoryForm, type EditFormProps} from './editRepositoryForm';
 import {
   RepoLockedConnectForm,
   type RepoLockedConnectFormProps,
-} from 'sentry/components/connectRepository/repoLockedConnectForm';
+} from './repoLockedConnectForm';
 
 export type ConnectRepositoryModalProps =
   | (EditFormProps & {mode: 'edit'})

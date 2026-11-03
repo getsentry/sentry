@@ -1,6 +1,5 @@
 import type {NavigateFunction} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -12,6 +11,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+import {addErrorMessage, addSuccessMessage} from './indicator';
 
 type RedirectRemainingOrganizationParams = {
   /**

@@ -23,7 +23,6 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
@@ -37,6 +36,8 @@ import {defined} from 'sentry/utils/defined';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {sourceMapSdkDocsMap} from './crashContent/exception/utils';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {

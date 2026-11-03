@@ -1,13 +1,10 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {addErrorMessage, addLoadingMessage, addSuccessMessage} from './indicator';
 
 type ParamsGet = {
   orgSlug: string;

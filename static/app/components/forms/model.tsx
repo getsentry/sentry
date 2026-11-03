@@ -4,13 +4,14 @@ import {action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
-import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types/core';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+
+import {addUndoableFormChangeMessage} from './formIndicators';
+import {FormState} from './state';
 
 export const fieldIsRequiredMessage = t('Field is required');
 

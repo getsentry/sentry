@@ -5,8 +5,6 @@ import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -26,6 +24,9 @@ import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {FlamegraphContextMenu} from './flamegraphContextMenu';
+import {FlamegraphZoomView} from './flamegraphZoomView';
 
 const PROFILE_TYPE = 'differential aggregate flamegraph' as const;
 

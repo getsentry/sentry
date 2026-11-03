@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {LoadingError} from 'sentry/components/loadingError';
 import * as Storybook from 'sentry/stories';
+
+import {LoadingError} from './loadingError';
 
 export default Storybook.story('LoadingError', story => {
   story('Default', () => {

@@ -6,10 +6,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {AutofixDebugMenu} from 'sentry/components/events/autofix/v3/autofixDebugMenu';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AutofixDebugMenu} from './autofixDebugMenu';
 
 export interface SeerPanelActionsProps {
   autofixState?: ExplorerAutofixState | null;

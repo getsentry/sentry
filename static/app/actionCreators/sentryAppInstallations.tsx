@@ -1,14 +1,15 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+  clearIndicators,
+} from './indicator';
 
 export function sentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppInstallation[]>()(

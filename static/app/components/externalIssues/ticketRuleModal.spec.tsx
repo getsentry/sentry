@@ -12,8 +12,9 @@ import {
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+
+import {TicketRuleModal} from './ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/indicator');

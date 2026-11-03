@@ -1,4 +1,3 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
@@ -6,6 +5,8 @@ import type {User} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
+
+import {addErrorMessage, addSuccessMessage} from './indicator';
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,

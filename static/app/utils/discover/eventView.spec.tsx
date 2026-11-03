@@ -8,23 +8,24 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import {AggregationKey} from 'sentry/utils/fields';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+
+import type {MetaType} from './eventView';
 import {
   EventView,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
-} from 'sentry/utils/discover/eventView';
-import type {Column} from 'sentry/utils/discover/fields';
+} from './eventView';
+import type {Column} from './fields';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
   SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
-import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+} from './types';
 
 const generateFields = (fields: string[]) =>
   fields.map(field => ({

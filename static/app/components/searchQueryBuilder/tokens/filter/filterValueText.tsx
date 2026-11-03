@@ -8,16 +8,14 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
 } from 'sentry/components/searchQueryBuilder/context';
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
-import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
-import {
-  formatFilterValue,
-  getFilterValueType,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {FilterType, Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+
+import {renderRegexPattern} from './highlightedRegexPattern';
+import {RegexDelimiter} from './regexDelimiter';
+import {formatFilterValue, getFilterValueType} from './utils';
 
 const FILTER_VALUE_ELLIPSIS_DELIMITER = /[\s\-:/]/;
 

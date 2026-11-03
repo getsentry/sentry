@@ -7,8 +7,9 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type {FieldValue, FormModel} from 'sentry/components/forms/model';
 import {tct} from 'sentry/locale';
+
+import type {FieldValue, FormModel} from './model';
 
 /**
  * This will call an action creator to generate a "Toast" message that

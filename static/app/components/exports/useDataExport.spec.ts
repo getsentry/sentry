@@ -3,12 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  type DataExportPayload,
-  ExportQueryType,
-  useDataExport,
-} from 'sentry/components/exports/useDataExport';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+
+import {type DataExportPayload, ExportQueryType, useDataExport} from './useDataExport';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/downloadFromHref');

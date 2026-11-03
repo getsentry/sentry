@@ -1,8 +1,8 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {TagStore} from 'sentry/stores/tagStore';
 
+import * as indicators from './indicator';
 import {loadOrganizationTags} from './tags';
 
 describe('loadOrganizationTags', () => {

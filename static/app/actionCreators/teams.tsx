@@ -1,9 +1,10 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {addErrorMessage, addSuccessMessage} from './indicator';
 
 /**
  * Note these are both slugs

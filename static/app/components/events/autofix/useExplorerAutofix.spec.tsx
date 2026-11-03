@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
+import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+
+import {DiffFileType, DiffLineType} from './types';
 import {
   collectPatches,
   getOrderedAutofixSections,
@@ -22,8 +24,7 @@ import {
   type ExplorerAutofixState,
   type RootCauseArtifact,
   type SolutionArtifact,
-} from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+} from './useExplorerAutofix';
 
 jest.mock('sentry/actionCreators/indicator');
 

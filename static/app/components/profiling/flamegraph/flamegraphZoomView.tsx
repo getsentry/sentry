@@ -6,7 +6,6 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
@@ -52,6 +51,7 @@ import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderE
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 import type {FlamegraphContextMenuProps} from './flamegraphContextMenu';
+import {FlamegraphTooltip} from './flamegraphTooltip';
 
 function isHighlightingAllOccurrences(
   node: FlamegraphFrame | null,

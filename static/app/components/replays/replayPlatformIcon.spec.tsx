@@ -1,9 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  ReplayPlatformIcon,
-  ReplayPlatformIcons,
-} from 'sentry/components/replays/replayPlatformIcon';
+import {ReplayPlatformIcon, ReplayPlatformIcons} from './replayPlatformIcon';
 
 describe('ReplayPlatformIcon', () => {
   it('names the platform and version in a tooltip', async () => {

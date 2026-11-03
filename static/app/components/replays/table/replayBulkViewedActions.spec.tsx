@@ -3,11 +3,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ReplayBulkViewedActions} from 'sentry/components/replays/table/replayBulkViewedActions';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayBulkViewedActions} from './replayBulkViewedActions';
 
 jest.mock('sentry/utils/analytics');
 

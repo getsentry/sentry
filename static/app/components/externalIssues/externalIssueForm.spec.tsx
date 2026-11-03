@@ -12,8 +12,9 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {ExternalIssueForm} from './externalIssueForm';
 
 jest.mock('sentry/actionCreators/indicator');
 import {

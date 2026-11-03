@@ -4,10 +4,11 @@ import {IconLink} from '@sentry/icons/link';
 import {Button} from '@sentry/scraps/button';
 import {Kbd} from '@sentry/scraps/hotkey';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {CopyToClipboardButton} from './copyToClipboardButton';
 
 export default Storybook.story('CopyToClipboardButton', story => {
   story('Basic', () => (

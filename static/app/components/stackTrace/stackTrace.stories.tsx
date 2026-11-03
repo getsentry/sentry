@@ -11,20 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
-import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
-import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
-import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceContext,
-  useStackTraceFrameContext,
-} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
@@ -35,6 +21,21 @@ import {
   type Frame,
 } from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {ChevronAction} from './frame/actions/chevron';
+import {HiddenFramesToggleAction} from './frame/actions/hiddenFramesToggle';
+import {FrameContent} from './frame/frameContent';
+import {StackTraceFrameRow} from './frame/frameRow';
+import {IssueStackTracePreview} from './issueStackTrace/issueStackTracePreview';
+import {IssueStackTrace} from './issueStackTrace';
+import {
+  StackTraceViewStateProvider,
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
