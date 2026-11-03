@@ -50,8 +50,19 @@ class DiscoverAndPerformanceExamples:
                     "timeSeries": [
                         {
                             "values": [
-                                {"timestamp": 1741368281123, "value": 5, "incomplete": False},
-                                {"timestamp": 1741368281123, "value": 5, "incomplete": False},
+                                {"timestamp": 1741366800000, "value": 5, "incomplete": False},
+                                {
+                                    "timestamp": 1741370400000,
+                                    "value": 3,
+                                    "incomplete": True,
+                                    "incompleteReason": "INGESTION_PENDING",
+                                },
+                                {
+                                    "timestamp": 1741374000000,
+                                    "value": 4,
+                                    "incomplete": True,
+                                    "incompleteReason": "NOT_ELAPSED",
+                                },
                             ],
                             "yAxis": "count()",
                             "groupBy": [
@@ -67,8 +78,19 @@ class DiscoverAndPerformanceExamples:
                         },
                         {
                             "values": [
-                                {"timestamp": 1741368281123, "value": 5, "incomplete": False},
-                                {"timestamp": 1741368281123, "value": 5, "incomplete": False},
+                                {"timestamp": 1741366800000, "value": 5, "incomplete": False},
+                                {
+                                    "timestamp": 1741370400000,
+                                    "value": 2,
+                                    "incomplete": True,
+                                    "incompleteReason": "INGESTION_PENDING",
+                                },
+                                {
+                                    "timestamp": 1741374000000,
+                                    "value": 1,
+                                    "incomplete": True,
+                                    "incompleteReason": "NOT_ELAPSED",
+                                },
                             ],
                             "yAxis": "count()",
                             "groupBy": [
@@ -83,7 +105,16 @@ class DiscoverAndPerformanceExamples:
                             },
                         },
                     ],
-                    "meta": {"dataset": "spans", "start": 1741368281123, "end": 1741368281123},
+                    "meta": {
+                        "dataset": "spans",
+                        "start": 1741366800000,
+                        "end": 1741374060000,
+                        "ingestion": {
+                            "status": "healthy",
+                            "delaySeconds": 130.5,
+                            "completeThrough": 1741373929500,
+                        },
+                    },
                 }
             ),
             status_codes=["200"],

@@ -43,6 +43,6 @@ export function createPlottableFromTimeSeriesAndWidget(
     alias,
     name,
     color,
-    stack: shouldStack ? widget.title || 'widgetStack' : undefined,
+    stack: shouldStack ? 'widgetStack' : undefined,
   });
 }

@@ -13,9 +13,11 @@ import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefa
 export function useIssueTimeWindowConfig({
   timelineWidth,
   group,
+  maxBucketInterval,
 }: {
   group: Group;
   timelineWidth: number;
+  maxBucketInterval?: number;
 }) {
   const [now] = useState<Date>(() =>
     moment().startOf('minute').add(1, 'minutes').toDate()
@@ -41,7 +43,8 @@ export function useIssueTimeWindowConfig({
   }
 
   return useMemo(
-    () => getConfigFromTimeRange(since, until, timelineWidth, timezone),
-    [since, until, timelineWidth, timezone]
+    () =>
+      getConfigFromTimeRange(since, until, timelineWidth, timezone, maxBucketInterval),
+    [since, until, timelineWidth, timezone, maxBucketInterval]
   );
 }

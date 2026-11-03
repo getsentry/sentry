@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 import {useProfiler} from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';

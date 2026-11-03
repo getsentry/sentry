@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconIssues} from '@sentry/icons/issues';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -14,7 +15,6 @@ import {
   INERT_LOCATION,
   INERT_NAVIGATE,
 } from 'sentry/components/seer/markdown/embeds/inertRouting';
-import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';

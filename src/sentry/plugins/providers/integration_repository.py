@@ -97,6 +97,15 @@ def get_integration_repository_provider(integration: Any) -> Any:
     return provider_cls(id=provider_key)
 
 
+def _update_repo_fields(repo: RpcRepository, update_params: Mapping[str, Any]) -> None:
+    """Sets ``update_params`` on ``repo`` in place, merging ``config`` into the existing one.
+    No persistence."""
+    repo.config = {**repo.config, **(update_params.get("config") or {})}
+    for field_name, field_value in update_params.items():
+        if field_name != "config":
+            setattr(repo, field_name, field_value)
+
+
 class IntegrationRepositoryProvider(Generic[InstT]):
     """
     Repository Provider for Integrations in the Sentry Repository.
@@ -189,7 +198,6 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         integration_id = result["integration_id"]
         external_id = result["external_id"]
         name = result["name"]
-        url = result["url"]
 
         # first check if there is an existing hidden repository on this integration.
         # a repo on another integration is moved by _transfer_repository further down
@@ -204,10 +212,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         existing_repo = repositories[0] if repositories else None
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
-            existing_repo.name = name
-            existing_repo.integration_id = integration_id
-            existing_repo.url = url
-            existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
+            _update_repo_fields(existing_repo, result)
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )
@@ -240,11 +245,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     "old_provider": repo.provider,
                 },
             )
-            # update from params, merging config to preserve keys like webhook_id
-            repo.config = {**repo.config, **config_updates}
-            for field_name, field_value in repo_update_params.items():
-                if field_name != "config":
-                    setattr(repo, field_name, field_value)
+            _update_repo_fields(repo, repo_update_params)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
@@ -270,8 +271,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             if repositories:
                 # We anticipate to only update one repository, but we update any duplicates as well.
                 for repo in repositories:
-                    for field_name, field_value in repo_update_params.items():
-                        setattr(repo, field_name, field_value)
+                    _update_repo_fields(repo, repo_update_params)
                     repository_service.update_repository(
                         organization_id=organization.id,
                         update=repo,
@@ -300,12 +300,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         returning it. The caller persists it."""
         repo.status = ObjectStatus.ACTIVE
         repo.provider = self.id  # a plugin-era or provider-less row is ours now
-
-        new_config = config.get("config") or {}
-        repo.config = {**repo.config, **new_config}
-        for field_name, field_value in config.items():
-            if field_name != "config":
-                setattr(repo, field_name, field_value)
+        _update_repo_fields(repo, config)
         return repo
 
     def create_repositories(

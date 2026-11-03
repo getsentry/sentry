@@ -28,6 +28,7 @@ import type {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatOnDemandDescription,
   formatReservedWithUnits,
   getCreditApplied,
@@ -145,7 +146,7 @@ function ScheduledChanges({
                 </Flex>
               }
               textItems={[
-                `${utils.displayPrice({cents: planItem.amount})}${shortInterval && `/${shortInterval}`}`,
+                `${displayPrice({cents: planItem.amount})}${shortInterval && `/${shortInterval}`}`,
               ]}
             />
           )}
@@ -182,7 +183,7 @@ function ScheduledChanges({
                 textItems={[
                   `${formattedReserved} ${formattedCategory}`,
                   item.amount > 0
-                    ? `${utils.displayPrice({cents: item.amount})} ${shortInterval && `/${shortInterval}`}`
+                    ? `${displayPrice({cents: item.amount})} ${shortInterval && `/${shortInterval}`}`
                     : null,
                 ]}
               />
@@ -208,7 +209,7 @@ function ScheduledChanges({
                 </Flex>
               }
               textItems={[
-                `${utils.displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
+                `${displayPrice({cents: item.amount})}${shortInterval && `/${shortInterval}`}`,
               ]}
             />
           </Container>
@@ -220,7 +221,7 @@ function ScheduledChanges({
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
-              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+              textItems={[item.description, displayPrice({cents: adjustedAmount})]}
             />
           </Container>
         );
@@ -228,7 +229,7 @@ function ScheduledChanges({
       {creditApplied > 0 && (
         <Container padding="0 xl">
           <ScheduledChangeItem
-            textItems={[t('Credit applied'), utils.displayPrice({cents: creditApplied})]}
+            textItems={[t('Credit applied'), displayPrice({cents: creditApplied})]}
           />
         </Container>
       )}
@@ -238,7 +239,7 @@ function ScheduledChanges({
         return (
           <Container padding="0 xl" key={item.type}>
             <ScheduledChangeItem
-              textItems={[item.description, utils.displayPrice({cents: adjustedAmount})]}
+              textItems={[item.description, displayPrice({cents: adjustedAmount})]}
             />
           </Container>
         );
@@ -250,7 +251,7 @@ function ScheduledChanges({
         </Text>
         <div>
           <Text as="span" size="2xl" bold>
-            {utils.displayPrice({
+            {displayPrice({
               cents: total,
             })}
           </Text>
@@ -343,7 +344,7 @@ function Receipt({
                       tct('[planName] Plan', {
                         planName: planItem.description.replace('Subscription to ', ''),
                       }),
-                      utils.displayPrice({cents: planItem.amount}),
+                      displayPrice({cents: planItem.amount}),
                     ]}
                   />
                   {reservedVolume.map(item => {
@@ -383,9 +384,7 @@ function Receipt({
                         rowItems={[
                           formattedReserved,
                           formattedCategory,
-                          item.amount > 0
-                            ? utils.displayPrice({cents: item.amount})
-                            : null,
+                          item.amount > 0 ? displayPrice({cents: item.amount}) : null,
                         ]}
                       />
                     );
@@ -398,10 +397,7 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -427,10 +423,7 @@ function Receipt({
                       <ReceiptItem
                         key={item.type}
                         isSubItem={false}
-                        rowItems={[
-                          cleanDescription,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[cleanDescription, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -442,10 +435,7 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
@@ -453,7 +443,7 @@ function Receipt({
                     <ReceiptItem
                       rowItems={[
                         t('Credit applied'),
-                        utils.displayPrice({cents: creditApplied}),
+                        displayPrice({cents: creditApplied}),
                       ]}
                     />
                   )}
@@ -461,19 +451,14 @@ function Receipt({
                     return (
                       <ReceiptItem
                         key={item.type}
-                        rowItems={[
-                          item.description,
-                          utils.displayPrice({cents: item.amount}),
-                        ]}
+                        rowItems={[item.description, displayPrice({cents: item.amount})]}
                       />
                     );
                   })}
                 </ReceiptSection>
               )}
               <ReceiptSection>
-                <ReceiptItem
-                  rowItems={[t('Total'), utils.displayPrice({cents: total})]}
-                />
+                <ReceiptItem rowItems={[t('Total'), displayPrice({cents: total})]} />
               </ReceiptSection>
               {(successfulCharge || renewalDate) && (
                 <ReceiptSection>
@@ -697,6 +682,7 @@ const ZigZagEdge = styled('div')`
   --s: 10px; /* size of the zig-zag */
   --b: 2px; /* control the thickness */
 
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- The masked background draws the zigzag border. */
   background: ${p => p.theme.tokens.border.primary};
   height: calc(var(--b) + var(--s) / (2 * tan(var(--a) / 2)));
   --_g: var(--s) repeat-x

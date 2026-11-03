@@ -2,12 +2,19 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {IconCircleFill} from '@sentry/icons/circleFill';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconJson} from '@sentry/icons/json';
+import {IconPanel} from '@sentry/icons/panel';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconTerminal} from '@sentry/icons/terminal';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -26,14 +33,6 @@ import {
   KeyValueTableCard,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {
-  IconCircleFill,
-  IconFocus,
-  IconJson,
-  IconPanel,
-  IconProfiling,
-  IconTerminal,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -135,7 +134,6 @@ function SubtitleWithCopyButton({
           variant="transparent"
           size="zero"
           text={clipboardText}
-          tooltipProps={{disabled: true}}
         />
       ) : null}
     </Flex>
@@ -467,7 +465,8 @@ function PanelPositionDropDown({organization}: {organization: Organization}) {
       menuTitle={<div>{t('Panel Position')}</div>}
       trigger={triggerProps => (
         <Tooltip title={t('Panel Position')}>
-          <ActionButton
+          <OverlayTrigger.IconButton
+            css={actionButtonStyles}
             {...triggerProps}
             size="zero"
             aria-label={t('Panel position')}

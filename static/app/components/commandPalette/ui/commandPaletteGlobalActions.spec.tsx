@@ -17,11 +17,13 @@ jest.mock('@tanstack/react-virtual', () => ({
   },
 }));
 
+import * as Sentry from '@sentry/react';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeCloseButton,
@@ -33,6 +35,7 @@ import {
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 function makeRenderProps(closeModal: jest.Mock) {
@@ -599,5 +602,107 @@ describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
     expect(
       screen.queryByRole('option', {name: /Seer XRay Mode/})
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('GlobalCommandPaletteActions - Open my current replay session', () => {
+  const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        isStaff: false,
+        emails: [{id: '1', email: 'employee@sentry.io', is_verified: true}],
+      })
+    );
+    jest.spyOn(window, 'open').mockImplementation(() => null);
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function selectOpenCurrentReplay() {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'current replay');
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Open my current replay session/})
+    );
+  }
+
+  it('flushes the replay, opens it, and copies the link', async () => {
+    const flush = jest.fn().mockResolvedValue(undefined);
+    jest.spyOn(Sentry, 'getReplay').mockReturnValue({
+      flush,
+      getReplayId: () => 'abc123',
+    } as unknown as ReturnType<typeof Sentry.getReplay>);
+
+    await selectOpenCurrentReplay();
+
+    const url = 'https://sentry.sentry.io/explore/replays/abc123/';
+    expect(flush).toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noreferrer');
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(url));
+    // Copies before the new tab takes focus away from this document
+    const copyOrder = jest.mocked(navigator.clipboard.writeText).mock
+      .invocationCallOrder[0]!;
+    const openOrder = jest.mocked(window.open).mock.invocationCallOrder[0]!;
+    expect(copyOrder).toBeLessThan(openOrder);
+  });
+
+  it('does not open anything when replay is not enabled', async () => {
+    jest.spyOn(Sentry, 'getReplay').mockReturnValue(undefined);
+
+    await selectOpenCurrentReplay();
+
+    expect(window.open).not.toHaveBeenCalled();
   });
 });

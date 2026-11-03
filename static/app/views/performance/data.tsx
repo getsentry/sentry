@@ -1,10 +1,10 @@
 import type {Location} from 'history';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,15 +16,15 @@ export const DEFAULT_STATS_PERIOD = '14d';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
 export const COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'tpm',
+  'Transaction',
+  'Project',
+  'TPM',
   'p50',
   'p95',
-  'failure rate',
-  'apdex',
-  'users',
-  'user misery',
+  'Failure rate',
+  'Apdex',
+  'Users',
+  'User misery',
 ];
 
 export const USER_MISERY_TOOLTIP = tct(

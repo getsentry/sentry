@@ -18,6 +18,7 @@ from sentry.notifications.platform.discord.provider import (
     DiscordRenderer,
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedAction,
@@ -51,12 +52,23 @@ def assert_button_properties(
 
 
 class DiscordRendererTest(TestCase):
+    def render(
+        self, data: MockNotification, rendered_template: NotificationRenderedTemplate
+    ) -> DiscordRenderable:
+        return DiscordRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.DISCORD
+            ),
+        )
+
     def test_default_renderer(self) -> None:
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
 
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         # Test basic structure
         assert "content" in renderable
@@ -104,7 +116,7 @@ class DiscordRendererTest(TestCase):
 
         data = MockNotification(message="test without chart")
 
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         embed = renderable["embeds"][0]
         assert "image" not in embed or embed.get("image") is None
@@ -125,7 +137,7 @@ class DiscordRendererTest(TestCase):
 
         data = MockNotification(message="test without footer")
 
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         embed = renderable["embeds"][0]
         assert "footer" not in embed or embed.get("footer") is None
@@ -144,7 +156,7 @@ class DiscordRendererTest(TestCase):
 
         data = MockNotification(message="test without actions")
 
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         # Should have no components when no actions
         components = renderable["components"]
@@ -171,7 +183,7 @@ class DiscordRendererTest(TestCase):
 
         data = MockNotification(message="test with multiple actions")
 
-        renderable = DiscordRenderer.render(data=data, rendered_template=rendered_template)
+        renderable = self.render(data, rendered_template)
 
         components = renderable["components"]
         assert len(components) == 1

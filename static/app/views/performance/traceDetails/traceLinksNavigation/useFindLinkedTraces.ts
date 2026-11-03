@@ -1,17 +1,22 @@
 import {useMemo} from 'react';
 
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemResponseAttribute,
+  TraceItemResponseLink,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
 
 /**
  * Find an adjacent trace (next or previous) by querying the spans endpoint.
  * For 'next' traces: looks for a trace linking to the current trace as its previous trace.
- * For 'previous' traces: looks for the trace specified in the previous_trace attribute.
+ * For 'previous' traces: looks for the trace in the root span's `previous_trace` link.
  */
 export function useFindAdjacentTrace({
   direction,
   attributes,
+  links,
   adjacentTraceEndTimestamp,
   adjacentTraceStartTimestamp,
 }: {
@@ -19,6 +24,7 @@ export function useFindAdjacentTrace({
   adjacentTraceStartTimestamp: number;
   attributes: TraceItemResponseAttribute[];
   direction: ConnectedTraceConnection;
+  links?: TraceItemResponseLink[];
 }): {
   available: boolean;
   isLoading: boolean;
@@ -35,47 +41,37 @@ export function useFindAdjacentTrace({
   } = useMemo(() => {
     let _projectId: number | undefined;
     let _currentTraceId: string | undefined;
-    let _adjacentTraceAttribute: TraceItemResponseAttribute | undefined;
 
     for (const a of attributes ?? []) {
       if (a.name === 'project_id' && a.type === 'int') {
         _projectId = a.value;
       } else if (a.name === 'trace' && a.type === 'str') {
         _currentTraceId = a.value;
-      } else if (a.name === 'previous_trace' && a.type === 'str') {
-        _adjacentTraceAttribute = a;
       }
     }
 
-    const _hasAdjacentTraceLink = typeof _adjacentTraceAttribute?.value === 'string';
-
-    // In case the attribute value does not conform to `[traceId]-[spanId]-[sampledFlag]`,
-    // the split operation will return an array with different length or unexpected contents.
-    // For cases where we only get partial, empty or too long arrays, we should be safe because we
-    // only take the first three elements. If any of the elements are empty or undefined, we'll
-    // disable the query (see below).
-    // Worst-case, we get invalid ids and query for those. Since we check for `isError` below,
-    // we handle that case gracefully. Likewise we handle the case of getting an empty result.
-    // So all in all, this should be safe and we don't have to do further validation on the
-    // attribute content.
-    const [_adjacentTraceId, _adjacentTraceSpanId, _adjacentTraceSampledFlag] =
-      _hasAdjacentTraceLink
-        ? (_adjacentTraceAttribute?.value as string).split('-') || []
-        : [];
+    const previousTraceLink = links?.find(
+      link => getSpanLinkType(link) === 'previous_trace'
+    );
 
     return {
       projectId: _projectId,
       currentTraceId: _currentTraceId,
-      hasAdjacentTraceLink: _hasAdjacentTraceLink,
-      adjacentTraceSampled: _adjacentTraceSampledFlag === '1',
-      adjacentTraceId: _adjacentTraceId,
-      adjacentTraceSpanId: _adjacentTraceSpanId,
+      hasAdjacentTraceLink: previousTraceLink !== undefined,
+      // When the sampling decision is unknown, we still query. Result tells us if the previous trace exists.
+      adjacentTraceSampled: previousTraceLink?.sampled !== false,
+      adjacentTraceId: previousTraceLink?.traceId,
+      adjacentTraceSpanId: previousTraceLink?.itemId,
     };
-  }, [attributes]);
+  }, [attributes, links]);
 
   const searchQuery =
     direction === 'next'
-      ? // relaxed the next trace lookup to match spans containing only the
+      ? // `sentry.links` only allows a wildcard search on private JSON, which cannot
+        // filter by link type or sampling. Search the SDK's flat attribute instead,
+        // until EAP supports span links as objects.
+        //
+        // relaxed the next trace lookup to match spans containing only the
         // traceId and not the spanId of the current trace root. We can't
         // always be sure that the current trace root is indeed the span the
         // next span would link towards, because sometimes the root might be a web

@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconGraph} from '@sentry/icons/graph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
@@ -12,7 +13,6 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
-import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -210,7 +210,6 @@ export function SpanDescription({
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
-            tooltipProps={{disabled: true}}
           />
         </Flex>
         {codeFilepath && (
@@ -241,7 +240,6 @@ export function SpanDescription({
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
-          tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
     ) : (
@@ -257,7 +255,6 @@ export function SpanDescription({
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
-              tooltipProps={{disabled: true}}
             />
           </Fragment>
         ) : (
@@ -280,6 +277,8 @@ export function SpanDescription({
         attributes,
         spanId: span.event_id,
         op: span.op,
+        projectId: span.project_id,
+        description: span.description,
       })}
     />
   );

@@ -2,6 +2,7 @@ import {createContext, Fragment, useContext, useMemo, useRef, useState} from 're
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
@@ -10,7 +11,6 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconClose} from 'sentry/icons/iconClose';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 import {
@@ -46,7 +46,11 @@ interface DrawerPanelProps extends Pick<
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
   mode: NonNullable<DrawerOptions['mode']>;
+  /** Minimum panel width in pixels, e.g. to cover a pane docked on the right. */
+  minPanelWidth?: number;
   ref?: React.Ref<HTMLDivElement>;
+  /** Distance in pixels from the viewport top, e.g. to clear page banners. */
+  topOffset?: number;
 }
 
 function DrawerPanel({
@@ -58,6 +62,8 @@ function DrawerPanel({
   drawerWidth,
   drawerMaxWidth,
   drawerKey,
+  minPanelWidth,
+  topOffset,
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
@@ -78,6 +84,9 @@ function DrawerPanel({
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
           mode={mode}
+          minPanelWidth={minPanelWidth}
+          topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
+          height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
@@ -189,7 +198,7 @@ const Header = styled('header')<{
   flex-shrink: 0;
   gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
   padding: ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
   padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
@@ -235,16 +244,17 @@ const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
   }
 `;
 
-const DrawerSlidePanel = styled(SlideOverPanel)`
+const DrawerSlidePanel = styled(SlideOverPanel)<{minPanelWidth?: number}>`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   pointer-events: auto;
-  height: 100%;
+  height: ${p => p.height ?? '100%'};
 
   /* Extend the panel's background 20px past its right edge so the bounce-in
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
      anything positioned outside its bounds. */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
     20px 0 0 ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};
@@ -259,8 +269,17 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-max-width)
   ) !important;
 
+  /* A drawer narrower than a pane docked against the viewport's right edge
+     (Seer) would leave a strip of that pane showing beside it. */
+  ${p =>
+    p.minPanelWidth
+      ? css`
+          min-width: ${p.minPanelWidth}px;
+        `
+      : null}
+
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    top: 0;
+    top: ${p => p.topOffset ?? 0};
     bottom: 0;
     left: 0;
     right: 0;

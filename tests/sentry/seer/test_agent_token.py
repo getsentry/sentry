@@ -137,7 +137,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert request.auth is not None
         assert request.auth.kind == agent_token.AGENT_TOKEN_KIND
         assert request.auth.user_id == self.owner.id
-        assert request.auth.get_scopes() == ["org:read"]
+        assert request.auth.get_stored_scopes() == ["org:read"]
 
     def test_compatibility_user_strips_platform_elevation(self) -> None:
         elevated_user = self.create_user(is_staff=True, is_superuser=True)

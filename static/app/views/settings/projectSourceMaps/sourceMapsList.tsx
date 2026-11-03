@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -22,7 +24,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
-import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -368,7 +369,7 @@ function SourceMapUploadsList({
 
   return (
     <Fragment>
-      <List>
+      <Grid gap="xl" columns="1fr">
         {sourceMapUploads.map(sourceMapUpload => (
           <Item key={sourceMapUpload.id}>
             <ItemHeader>
@@ -387,15 +388,15 @@ function SourceMapUploadsList({
                 }
               />
             </ItemHeader>
-            <ItemContent>
+            <Container padding="md xl">
               <SourceMapUploadDetails
                 sourceMapUpload={sourceMapUpload}
                 projectId={project.id}
               />
-            </ItemContent>
+            </Container>
           </Item>
         ))}
-      </List>
+      </Grid>
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
@@ -481,12 +482,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const List = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
-
 const Item = styled(Panel)`
   margin: 0;
 `;
@@ -505,10 +500,6 @@ const ItemTitle = styled(Link)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-`;
-
-const ItemContent = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`

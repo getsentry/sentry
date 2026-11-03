@@ -123,13 +123,6 @@ export interface Monitor {
   project: Project;
   slug: string;
   status: ObjectStatus;
-  alertRule?: {
-    targets: Array<{
-      targetIdentifier: number;
-      targetType: 'Member' | 'Team';
-    }>;
-    environment?: string;
-  };
 }
 
 export interface CheckIn {

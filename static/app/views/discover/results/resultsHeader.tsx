@@ -4,8 +4,7 @@ import type {Location} from 'history';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -99,16 +98,6 @@ function ResultsHeaderBase({
     />
   );
 
-  const title = (
-    <Fragment>
-      {t('Errors')}
-      <PageHeadingQuestionTooltip
-        docsUrl="https://docs.sentry.io/product/discover-queries/"
-        title={t('Create queries to get insights into the health of your system.')}
-      />
-    </Fragment>
-  );
-
   return (
     <Fragment>
       {!isHomepage && hasDiscoverQueryFeature ? (
@@ -120,13 +109,18 @@ function ResultsHeaderBase({
           savedQuery={savedQuery}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {isHomepage ? (
-            <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-          ) : (
-            title
-          )}
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: t('Errors'),
+            labelTooltip: (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/discover-queries/">
+                {t('Create queries to get insights into the health of your system.')}
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
       {!hasExplore && <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>}
     </Fragment>

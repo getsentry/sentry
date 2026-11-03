@@ -1,6 +1,12 @@
 import {memo, useCallback, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFile} from '@sentry/icons/file';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLink} from '@sentry/icons/link';
+import {IconMoon} from '@sentry/icons/moon';
+import {IconSun} from '@sentry/icons/sun';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,13 +15,12 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {ContentVariant} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -36,6 +41,7 @@ import {
   WipeCardBody,
 } from './snapshotDiffBodies';
 import {SnapshotCanvasWrapper, SnapshotVariantFrame} from './snapshotFrames';
+import {ViewedCheckbox} from './viewedCheckbox';
 
 export function DarkAware({
   isDark,
@@ -121,6 +127,8 @@ export const PairCard = memo(function PairCardImpl({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   copyUrl: string;
   diffMode: DiffMode;
@@ -130,10 +138,12 @@ export const PairCard = memo(function PairCardImpl({
   snapshotKey: string;
   diffImageBaseUrl?: string;
   headBranch?: string | null;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onToggleViewed?: () => void;
   overlayColor?: string;
   overlayOpacity?: number;
   status?: DiffStatus;
@@ -212,9 +222,11 @@ export const PairCard = memo(function PairCardImpl({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
+          isViewed={isViewed}
+          onToggleViewed={onToggleViewed}
         />
-        {status === DiffStatus.ERRORED && <ErroredBanner />}
-        <Container padding="0 xl xl">{body}</Container>
+        {!isViewed && status === DiffStatus.ERRORED && <ErroredBanner />}
+        {!isViewed && <Container padding="0 xl xl">{body}</Container>}
       </SnapshotVariantFrame>
     </DarkAware>
   );
@@ -232,6 +244,8 @@ export const ImageCard = memo(function ImageCardImpl({
   onOpenSnapshot,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   cardType: 'added' | 'removed' | 'renamed' | 'solo' | 'unchanged' | 'skipped';
   copyUrl: string;
@@ -240,10 +254,12 @@ export const ImageCard = memo(function ImageCardImpl({
   isSelected: boolean;
   snapshotKey: string;
   copyData?: unknown;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
+  onToggleViewed?: () => void;
 }) {
   const {isDark, toggleIsDark} = useCanvasTheme(image.canvas_theme);
   const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
@@ -297,10 +313,14 @@ export const ImageCard = memo(function ImageCardImpl({
           showBottomBorder={false}
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
+          isViewed={isViewed}
+          onToggleViewed={onToggleViewed}
         />
-        <Container padding="0 xl xl">
-          <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
-        </Container>
+        {!isViewed && (
+          <Container padding="0 xl xl">
+            <ImageColumn src={imageUrl} alt={getImageName(image)} image={image} />
+          </Container>
+        )}
       </SnapshotVariantFrame>
     </DarkAware>
   );
@@ -320,6 +340,8 @@ export const CardHeader = memo(function CardHeaderImpl({
   showBottomBorder = true,
   onCopyLink,
   onCopyMetadata,
+  isViewed = false,
+  onToggleViewed,
 }: {
   copyData: unknown;
   copyUrl: string;
@@ -328,9 +350,11 @@ export const CardHeader = memo(function CardHeaderImpl({
   onToggleDark: () => void;
   diffPercent?: number | null;
   displayName?: string | null;
+  isViewed?: boolean;
   onCopyLink?: () => void;
   onCopyMetadata?: () => void;
   onDoubleClick?: () => void;
+  onToggleViewed?: () => void;
   showBottomBorder?: boolean;
   status?: DiffStatus | null;
   tags?: Record<string, string> | null;
@@ -373,6 +397,14 @@ export const CardHeader = memo(function CardHeaderImpl({
             }}
           />
           <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
+          {onToggleViewed && (
+            <ViewedCheckbox
+              checked={isViewed}
+              onChange={onToggleViewed}
+              showHotkey
+              aria-label={t('%s viewed', displayName ?? fileName)}
+            />
+          )}
         </Flex>
       </Flex>
       {tags && Object.keys(tags).length > 0 && <CollapsibleBadgeRow tags={tags} />}
@@ -460,7 +492,12 @@ const StatusBadge = memo(function StatusBadgeImpl({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Changed')
-          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
+          : t(
+              'Changed - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3, {
+                minimumValue: 0.00001,
+              })
+            );
       break;
     case DiffStatus.ADDED:
       label = t('Added');

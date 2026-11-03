@@ -6,15 +6,13 @@ from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
 from sentry import tsdb
-from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
+from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.notifications.utils.rules import get_notification_origins
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
-from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
@@ -74,28 +72,22 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent,
-    rules: Sequence[Rule],
+    event: GroupEvent,
+    origins: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
-    if not rules:
-        logger.warning("Creating record for %s that does not contain any rules!", event)
-
-    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
-    assert event.group is not None
-    rule_ids = []
-    for rule in rules:
-        origin = NotificationOrigin.from_legacy_rule(rule)
-        rule_id = (
-            origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
+    if not origins:
+        logger.warning(
+            "Creating record for %s that does not contain any notification origins!", event
         )
-        assert rule_id is not None
-        rule_ids.append(rule_id)
+
+    workflow_ids = []
+    for origin in origins:
+        assert origin.workflow_id is not None
+        workflow_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid, identifier_key),
+        Notification(event, workflow_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
@@ -180,44 +172,8 @@ def _build_digest_impl(
 def get_rules_from_workflows(
     project: Project, workflow_ids: set[int]
 ) -> dict[int, NotificationOrigin]:
-    rules: dict[int, NotificationOrigin] = {}
-    if not workflow_ids:
-        return rules
-
-    # Fetch all workflows in bulk
-    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
-        workflow_ids
-    )
-
-    # Try to fetch rules for workflows, if not use the workflow id
-    alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
-    alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
-
-    rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
-
-    bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
-
-    for workflow_id, workflow in workflows.items():
-        alert_workflow = alert_rule_workflows_map.get(workflow_id)
-        if alert_workflow:
-            if rule := bulk_rules.get(alert_workflow.rule_id):
-                assert rule.project_id == project.id, "Rule must belong to Project"
-                rules[workflow_id] = NotificationOrigin(
-                    label=rule.label,
-                    environment_id=workflow.environment_id,
-                    workflow_id=workflow_id,
-                    legacy_rule_id=rule.id,
-                )
-                continue
-
-        rules[workflow_id] = NotificationOrigin(
-            label=workflow.name,
-            environment_id=workflow.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=None,
-        )
-
-    return rules
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    return {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
@@ -231,45 +187,15 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
-    rule_ids: set[int] = set()
     workflow_ids: set[int] = set()
 
     for record in records:
-        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
-        # record.value is Notification, record.value.rules is Sequence[int]
-        ids_to_add = record.value.rules
-        if identifier_key == IdentifierKey.RULE:
-            rule_ids.update(ids_to_add)
-        elif identifier_key == IdentifierKey.WORKFLOW:
-            workflow_ids.update(ids_to_add)
+        workflow_ids.update(record.value.rules)
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    legacy_rules = Rule.objects.in_bulk(rule_ids)
-    workflow_ids_by_rule_id = dict(
-        AlertRuleWorkflow.objects.filter(rule_id__in=legacy_rules.keys()).values_list(
-            "rule_id", "workflow_id"
-        )
-    )
-
-    rules = {}
-    for rule_id, rule in legacy_rules.items():
-        workflow_id = workflow_ids_by_rule_id.get(rule.id)
-        if workflow_id is None:
-            # Every Rule that can fire is backed by a Workflow, so this most likely
-            # means the Workflow was deleted after the notification was queued.
-            logger.error(
-                "digests.build_digest.rule_without_workflow",
-                extra={"rule_id": rule.id, "project_id": project.id},
-            )
-        rules[rule_id] = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=rule.id,
-        )
-
-    rules.update(get_rules_from_workflows(project, workflow_ids))
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    rules = {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

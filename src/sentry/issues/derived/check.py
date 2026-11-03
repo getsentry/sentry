@@ -6,10 +6,13 @@ from datetime import datetime, timedelta
 from typing import Any, NamedTuple, Protocol, TypedDict
 from uuid import uuid4
 
+from django.utils import timezone
+
 from sentry.issues.derived.features import NO_CHANGE_RECONCILE_IDS, STATUS, IssueStatus
-from sentry.issues.derived.framework import Feature, State
+from sentry.issues.derived.framework import DerivedDataError, Feature, State
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore, PipelineFeatures
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
@@ -19,6 +22,8 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.mapping import CacheMapping
 
 logger = logging.getLogger(__name__)
+
+_RECENT_LOG_ENTRY_WINDOW = timedelta(minutes=10)
 
 
 class _GroupActionPipeline(PipelineFeatures, Protocol):
@@ -49,8 +54,14 @@ def check_status_consistency(group: Group, derived: GroupDerivedData) -> StatusI
     if actual_status is None:
         return None
 
-    raw = derived.data.get(STATUS.name)
-    derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
+    data: object = derived.data
+    if not isinstance(data, dict):
+        raise DerivedDataError("decode", feature_name=STATUS.name) from TypeError(
+            "Expected derived data to be an object"
+        )
+    derived_status = (
+        STATUS.from_json(data[STATUS.name]) if STATUS.name in data else STATUS.initial_value()
+    )
     if derived_status == actual_status:
         return None
 
@@ -64,7 +75,12 @@ def record_status_consistency(
 
     Returns the inconsistency when one is found, otherwise ``None``.
     """
-    inconsistency = check_status_consistency(group, derived)
+    try:
+        inconsistency = check_status_consistency(group, derived)
+    except DerivedDataError as error:
+        report_derived_data_error(error, derived=derived, operation="status_check")
+        metrics.incr("issues.status_reconciliation.error", sample_rate=1.0, tags={"source": source})
+        return None
     if inconsistency is None:
         metrics.incr(
             "issues.status_reconciliation.checked",
@@ -140,6 +156,13 @@ class CheckInvalidated:
     pass
 
 
+@dataclass(frozen=True)
+class CheckRecentBackfill:
+    """A check skipped because its replay includes a recently backfilled log entry."""
+
+    pass
+
+
 class FeatureDifference(TypedDict):
     """JSON-safe expected and actual feature values for diagnostics."""
 
@@ -157,7 +180,7 @@ class CheckFailure:
     differences: dict[Feature[Any], FeatureDifference]
 
 
-type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
+type CheckResult = CheckPassed | CheckFailure | CheckInvalidated | CheckRecentBackfill
 
 
 def compare_derived_data(
@@ -285,6 +308,7 @@ def check_derived_data(
         check_id = CheckId.new_for_derived_data(target)
 
     target_state = GroupDerivedDataStore.load(pipeline, target)
+    recent_entry_cutoff = timezone.now() - _RECENT_LOG_ENTRY_WINDOW
 
     replayed_derived = _check_cache.get(check_id)
     if replayed_derived is None:
@@ -298,6 +322,12 @@ def check_derived_data(
 
     deadline = time.monotonic() + timeout.total_seconds() if timeout is not None else None
     while entries := _entries_through_target_cursor(replayed_derived, check_id, batch_size):
+        if any(
+            entry.date_updated >= recent_entry_cutoff and entry.date_added < recent_entry_cutoff
+            for entry in entries
+        ):
+            _check_cache.delete(check_id)
+            return CheckRecentBackfill()
         replayed = pipeline.run(
             entries, state=GroupDerivedDataStore.load(pipeline, replayed_derived)
         )

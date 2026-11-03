@@ -1,16 +1,16 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 
 import {Flex} from '@sentry/scraps/layout';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -22,7 +22,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -255,9 +255,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   return (
-    <GridEditable
+    <DataGrid
       data={data}
-      // GridEditable needs name, but this functionality is replaced by aliases
+      // DataGrid needs name, but this functionality is replaced by aliases
       columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       grid={{
         staticColumnWidths: getStaticColumnWidths(columnOrder, aliases),
@@ -384,7 +384,6 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
         },
       }}
       stickyHeader={scrollable}
-      scrollable={scrollable}
       height={scrollable ? '100%' : undefined}
       bodyStyle={frameless ? FRAMELESS_STYLES : {}}
       resizable={resizable}
@@ -401,7 +400,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridEditable
+    <DataGrid
       isLoading
       columnOrder={columnsWithName}
       data={[]}

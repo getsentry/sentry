@@ -1,6 +1,7 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -18,7 +19,6 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   DataCategory,

@@ -1,26 +1,24 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconChat} from '@sentry/icons/chat';
+import {IconCode} from '@sentry/icons/code';
+import {IconFile} from '@sentry/icons/file';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconGroup} from '@sentry/icons/group';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProject} from '@sentry/icons/project';
+import {IconReleases} from '@sentry/icons/releases';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
+import {IconStack} from '@sentry/icons/stack';
+import {IconTag} from '@sentry/icons/tag';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {
-  IconChat,
-  IconCode,
-  IconFile,
-  IconFilter,
-  IconGlobe,
-  IconGroup,
-  IconLock,
-  IconPlay,
-  IconProject,
-  IconReleases,
-  IconSeer,
-  IconSettings,
-  IconSiren,
-  IconStack,
-  IconTag,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

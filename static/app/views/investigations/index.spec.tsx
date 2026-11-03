@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -27,7 +28,7 @@ const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const listUrl = '/organizations/org-slug/investigations/';
+const listUrl = '/organizations/org-slug/notebooks/';
 
 function renderView({
   renderOrganization = organization,
@@ -41,7 +42,7 @@ function renderView({
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/explore/investigations/',
+        pathname: '/organizations/org-slug/seer/investigations/',
         query,
       },
     },
@@ -104,7 +105,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/1/');
+    ).toHaveAttribute('href', '/seer/investigations/1/');
   });
 
   it('renders the dashboard-style empty state', async () => {
@@ -132,9 +133,7 @@ describe('Explore Investigations', () => {
     await userEvent.type(screen.getByPlaceholderText('Search Investigations'), 'latency');
     await userEvent.keyboard('{Enter}');
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/seer/investigations/');
     expect(router.location.query).toEqual({query: 'latency'});
   });
 
@@ -173,7 +172,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       body: {
         ...InvestigationFixture(),
         blocks: [],
@@ -181,7 +180,6 @@ describe('Explore Investigations', () => {
         parameters: [],
         projectIds: [],
         source: {type: 'manual', ref: {}, revision: null},
-        template: null,
         titleGeneration: {status: null},
       },
     });
@@ -194,45 +192,58 @@ describe('Explore Investigations', () => {
     await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(1));
   });
 
-  it('refreshes running title and summary generation in the list', async () => {
-    MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Untitled investigation',
-          titleGeneration: {status: 'running'},
-        }),
-      ],
+  describe('refreshes running title and summary generation in the list with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const {queryClient} = renderView();
-    await screen.findByText('Untitled investigation');
-    const completedRequest = MockApiClient.addMockResponse({
-      url: listUrl,
-      body: [
-        InvestigationFixture({
-          title: 'Checkout errors across releases',
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('refreshes running title and summary generation in the list', async () => {
+      MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Untitled investigation',
+            titleGeneration: {status: 'running'},
+          }),
+        ],
+      });
+
+      const {queryClient} = renderView();
+      await screen.findByText('Untitled investigation');
+      const completedRequest = MockApiClient.addMockResponse({
+        url: listUrl,
+        body: [
+          InvestigationFixture({
+            title: 'Checkout errors across releases',
+            summary: 'Errors rose across releases',
+            summaryDescription: 'All active releases increased together.',
+            titleGeneration: {status: 'completed'},
+          }),
+        ],
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(screen.getByText('Checkout errors across releases')).toBeInTheDocument();
+      expect(completedRequest).toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData(
+          investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+        )?.json[0]
+      ).toEqual(
+        expect.objectContaining({
           summary: 'Errors rose across releases',
           summaryDescription: 'All active releases increased together.',
-          titleGeneration: {status: 'completed'},
-        }),
-      ],
+        })
+      );
     });
-
-    expect(
-      await screen.findByText('Checkout errors across releases', {}, {timeout: 3000})
-    ).toBeInTheDocument();
-    expect(completedRequest).toHaveBeenCalled();
-    expect(
-      queryClient.getQueryData(
-        investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
-      )?.json[0]
-    ).toEqual(
-      expect.objectContaining({
-        summary: 'Errors rose across releases',
-        summaryDescription: 'All active releases increased together.',
-      })
-    );
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
@@ -241,7 +252,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const favoriteRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
     });
 
@@ -257,7 +268,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(favoriteRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/investigations/1/favorite/',
+        '/organizations/org-slug/notebooks/1/favorite/',
         expect.objectContaining({data: {shouldFavorite: true}})
       )
     );
@@ -274,7 +285,7 @@ describe('Explore Investigations', () => {
     );
     await waitFor(() =>
       expect(favoriteRequest).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/investigations/1/favorite/',
+        '/organizations/org-slug/notebooks/1/favorite/',
         expect.objectContaining({data: {shouldFavorite: false}})
       )
     );
@@ -287,7 +298,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
     });
 
@@ -315,7 +326,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const duplicateRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/duplicate/',
+      url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
       body: InvestigationFixture({id: '2'}),
     });
@@ -368,7 +379,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
+        `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
@@ -382,7 +393,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     const deleteRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -399,7 +410,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/investigations/1/',
+        '/organizations/org-slug/notebooks/1/',
         expect.objectContaining({data: {investigationVersion: 3}})
       )
     );
@@ -412,7 +423,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -438,7 +449,7 @@ describe('Explore Investigations', () => {
     const investigation = InvestigationFixture();
     MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
     });
 
@@ -476,7 +487,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/favorite/',
+      url: '/organizations/org-slug/notebooks/1/favorite/',
       method: 'PUT',
       statusCode: 500,
     });
@@ -499,7 +510,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/duplicate/',
+      url: '/organizations/org-slug/notebooks/1/duplicate/',
       method: 'POST',
       statusCode: 500,
     });
@@ -523,7 +534,7 @@ describe('Explore Investigations', () => {
       body: [InvestigationFixture()],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/1/',
+      url: '/organizations/org-slug/notebooks/1/',
       method: 'DELETE',
       statusCode: 500,
     });

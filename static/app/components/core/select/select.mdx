@@ -14,10 +14,37 @@ resources:
     WAI-ARIA Listbox: https://www.w3.org/WAI/ARIA/apg/patterns/listbox/
 ---
 
-import {Select} from '@sentry/scraps/select';
+import {useState} from 'react';
 
-import {IconGraphBar} from 'sentry/icons/iconGraphBar';
+import {Container} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
+
+import {IconGraphBar} from '@sentry/icons/graphBar';
 import * as Storybook from 'sentry/stories';
+
+export function SingleSelectDemo({initialValue = null, ...props}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <Select
+      {...props}
+      value={value}
+      onChange={option => setValue(option?.value ?? null)}
+    />
+  );
+}
+
+export function MultipleSelectDemo({initialValue = [], ...props}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <Select
+      {...props}
+      multiple
+      value={value}
+      onChange={options => setValue(options.map(option => option.value))}
+    />
+  );
+}
 
 export const documentation = import('!!type-loader!@sentry/scraps/select');
 
@@ -26,14 +53,18 @@ export const documentation = import('!!type-loader!@sentry/scraps/select');
 Use `<Select>` for form fields where users need to choose from a predefined set of options. For more complex selection scenarios with sections or custom triggers, consider `<CompactSelect>` instead.
 
 ```jsx
+const [value, setValue] = useState(null);
+
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   placeholder="Choose an option"
   options={[
     {value: 'option1', label: 'Option 1'},
     {value: 'option2', label: 'Option 2'},
     {value: 'option3', label: 'Option 3'},
   ]}
-/>
+/>;
 ```
 
 ## Sizes
@@ -42,7 +73,7 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       size="md"
       placeholder="medium"
       options={[
@@ -50,16 +81,16 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="sm"
       placeholder="small"
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="xs"
       placeholder="x-small"
       options={[
@@ -71,19 +102,19 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
 </Storybook.Demo>
 
 ```jsx
-<Select size="md" placeholder="medium" options={options} />
-<Select size="sm" placeholder="small" options={options} />
-<Select size="xs" placeholder="x-small" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="md" placeholder="medium" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="sm" placeholder="small" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="xs" placeholder="x-small" options={options} />
 ```
 
 ## Disabled State
 
-Use the `isDisabled` prop to disable the select, preventing user interaction.
+Use the `disabled` prop to disable the select, preventing user interaction.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      isDisabled
+    <SingleSelectDemo
+      disabled
       size="md"
       placeholder="medium"
       options={[
@@ -91,18 +122,18 @@ Use the `isDisabled` prop to disable the select, preventing user interaction.
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isDisabled
+    <SingleSelectDemo
+      disabled
       size="sm"
       placeholder="small"
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isDisabled
+    <SingleSelectDemo
+      disabled
       size="xs"
       placeholder="x-small"
       options={[
@@ -114,17 +145,27 @@ Use the `isDisabled` prop to disable the select, preventing user interaction.
 </Storybook.Demo>
 
 ```jsx
-<Select isDisabled placeholder="Disabled select" options={options} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  disabled
+  placeholder="Disabled select"
+  options={options}
+/>
 ```
 
-## In-Field Label
+## Leading Content
 
-Use the `inFieldLabel` prop to add a persistent label inside the select field. This is useful for compact layouts where external labels aren't feasible.
+Use `controlLeadingItems` to add content before the selected value and search input.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      inFieldLabel="Environment"
+    <SingleSelectDemo
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
       size="md"
       placeholder="medium"
       options={[
@@ -132,20 +173,28 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="sm"
       placeholder="small"
-      inFieldLabel="Environment"
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="xs"
       placeholder="x-small"
-      inFieldLabel="Environment"
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
@@ -155,21 +204,31 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
 </Storybook.Demo>
 
 ```jsx
-<Select inFieldLabel="Environment" placeholder="Choose environment" options={options} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  controlLeadingItems={
+    <Container paddingLeft="lg">
+      <Text bold>Environment</Text>
+    </Container>
+  }
+  placeholder="Choose environment"
+  options={options}
+/>
 ```
 
 > [!NOTE]
-> While in-field labels save space, they can reduce clarity. Prefer external labels when possible, especially for form fields requiring [WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions) compliance.
+> Leading content does not replace an accessible label. Use an external label or an ARIA label for the select.
 
 ## Clearable
 
-Set `isClearable` to allow users to clear their selection by clicking an "×" button.
+Set `clearable` to allow users to clear their selection by clicking an "×" button.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      isClearable
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+    <SingleSelectDemo
+      clearable
+      initialValue={'item1'}
       size="md"
       placeholder="medium"
       options={[
@@ -177,19 +236,19 @@ Set `isClearable` to allow users to clear their selection by clicking an "×" bu
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isClearable
+    <SingleSelectDemo
+      clearable
       size="sm"
       placeholder="small"
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isClearable
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+    <SingleSelectDemo
+      clearable
+      initialValue={'item1'}
       size="xs"
       placeholder="x-small"
       options={[
@@ -201,17 +260,22 @@ Set `isClearable` to allow users to clear their selection by clicking an "×" bu
 </Storybook.Demo>
 
 ```jsx
-<Select isClearable defaultValue={{value: 'item1', label: 'Item 1'}} options={options} />
+<Select
+  onChange={option => setValue(option?.value ?? null)}
+  clearable
+  value={value}
+  options={options}
+/>
 ```
 
 ## Searchable
 
-Enable `isSearchable` to allow users to filter options by typing. This is essential for selects with many options.
+Enable `searchable` to allow users to filter options by typing. This is essential for selects with many options.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="md"
       placeholder="medium"
       options={[
@@ -219,18 +283,18 @@ Enable `isSearchable` to allow users to filter options by typing. This is essent
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="sm"
       placeholder="small"
-      defaultValue={{value: 'item1', label: 'Item 1'}}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="xs"
       placeholder="x-small"
       options={[
@@ -242,7 +306,13 @@ Enable `isSearchable` to allow users to filter options by typing. This is essent
 </Storybook.Demo>
 
 ```jsx
-<Select isSearchable placeholder="Search for an option" options={manyOptions} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  searchable
+  placeholder="Search for an option"
+  options={manyOptions}
+/>
 ```
 
 > [!TIP]
@@ -254,43 +324,31 @@ Options can include `leadingItems` (typically icons) to provide visual context f
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="md"
       placeholder="medium"
-      defaultValue={{
-        value: 'item1',
-        label: 'Item 1',
-        leadingItems: <IconGraphBar />,
-      }}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
       ]}
     />
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="sm"
       placeholder="small"
-      defaultValue={{
-        value: 'item1',
-        label: 'Item 1',
-        leadingItems: <IconGraphBar />,
-      }}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
       ]}
     />
-    <Select
-      isSearchable
+    <SingleSelectDemo
+      searchable
       size="xs"
       placeholder="x-small"
-      defaultValue={{
-        value: 'item1',
-        label: 'Item 1',
-        leadingItems: <IconGraphBar />,
-      }}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
@@ -301,6 +359,8 @@ Options can include `leadingItems` (typically icons) to provide visual context f
 
 ```jsx
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   options={[
     {value: 'chart', label: 'Chart View', leadingItems: <IconGraphBar />},
     {value: 'table', label: 'Table View', leadingItems: <IconTable />},
@@ -314,7 +374,7 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <MultipleSelectDemo
       size="md"
       multiple
       placeholder="medium"
@@ -324,21 +384,18 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       size="sm"
       multiple
       placeholder="small"
-      defaultValue={[
-        {value: 'item1', label: 'Item 1'},
-        {value: 'item3', label: 'Item 3'},
-      ]}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       size="xs"
       multiple
       placeholder="x-small"
@@ -353,6 +410,8 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 ```jsx
 <Select
+  value={value}
+  onChange={options => setValue(options.map(option => option.value))}
   multiple
   placeholder="Select multiple items"
   options={[
@@ -365,17 +424,14 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 ### Multiple Selection with Clear
 
-Combine `multiple` and `isClearable` to allow clearing all selections at once.
+Combine `multiple` and `clearable` to allow clearing all selections at once.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <MultipleSelectDemo
       multiple
-      isClearable
-      defaultValue={[
-        {value: 'item1', label: 'Item 1'},
-        {value: 'item3', label: 'Item 3'},
-      ]}
+      clearable
+      initialValue={['item1', 'item3']}
       size="md"
       placeholder="medium"
       options={[
@@ -384,28 +440,22 @@ Combine `multiple` and `isClearable` to allow clearing all selections at once.
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
-      isClearable
+    <MultipleSelectDemo
+      clearable
       multiple
       size="sm"
       placeholder="small"
-      defaultValue={[
-        {value: 'item1', label: 'Item 1'},
-        {value: 'item3', label: 'Item 3'},
-      ]}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
-      isClearable
+    <MultipleSelectDemo
+      clearable
       multiple
-      defaultValue={[
-        {value: 'item1', label: 'Item 1'},
-        {value: 'item3', label: 'Item 3'},
-      ]}
+      initialValue={['item1', 'item3']}
       size="xs"
       placeholder="x-small"
       options={[
@@ -419,24 +469,22 @@ Combine `multiple` and `isClearable` to allow clearing all selections at once.
 
 ```jsx
 <Select
+  onChange={options => setValue(options.map(option => option.value))}
   multiple
-  isClearable
-  defaultValue={[
-    {value: 'item1', label: 'Item 1'},
-    {value: 'item3', label: 'Item 3'},
-  ]}
+  clearable
+  value={value}
   options={options}
 />
 ```
 
 ### Multiple Selection with Search
 
-Combine `multiple` and `isSearchable` for efficient selection from large lists.
+Combine `multiple` and `searchable` for efficient selection from large lists.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
-      isSearchable
+    <MultipleSelectDemo
+      searchable
       multiple
       size="md"
       placeholder="medium"
@@ -446,23 +494,20 @@ Combine `multiple` and `isSearchable` for efficient selection from large lists.
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
-      isSearchable
+    <MultipleSelectDemo
+      searchable
       multiple
       size="sm"
       placeholder="small"
-      defaultValue={[
-        {value: 'item1', label: 'Item 1'},
-        {value: 'item3', label: 'Item 3'},
-      ]}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
-      isSearchable
+    <MultipleSelectDemo
+      searchable
       multiple
       size="xs"
       placeholder="x-small"
@@ -477,8 +522,10 @@ Combine `multiple` and `isSearchable` for efficient selection from large lists.
 
 ```jsx
 <Select
+  value={value}
+  onChange={options => setValue(options.map(option => option.value))}
   multiple
-  isSearchable
+  searchable
   placeholder="Search and select multiple"
   options={manyOptions}
 />
@@ -494,6 +541,8 @@ Pair selects with labels for accessible forms:
 <label htmlFor="environment">
   Environment
   <Select
+    value={value}
+    onChange={option => setValue(option?.value ?? null)}
     id="environment"
     placeholder="Choose an environment"
     options={[
@@ -507,12 +556,21 @@ Pair selects with labels for accessible forms:
 
 ### Controlled Selects
 
-For controlled selects, manage the value in React state:
+`Select` is controlled. Pass `value` and `onChange`, and keep the selected value
+in React state. Use `null` for an empty single selection and `[]` for an empty
+multiple selection. `value` uses the raw option value, or an array of raw values
+for multiple selections.
+When `disabled` is `true`, `onChange` is optional. `value` is always required.
+`onChange` receives the selected option, an array of selected options, or `null`
+when a clearable single selection is cleared:
 
 ```jsx
-const [value, setValue] = useState(null);
-
-<Select value={value} onChange={setValue} options={options} />;
+<Select
+  clearable
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  options={options}
+/>
 ```
 
 ### Multi-Select for Tags
@@ -524,15 +582,59 @@ Use multi-select for tag or category selection:
   Tags
   <Select
     multiple
-    isSearchable
-    isClearable
+    searchable
+    clearable
     placeholder="Add tags"
     value={selectedTags}
-    onChange={setSelectedTags}
+    onChange={options => setSelectedTags(options.map(option => option.value))}
     options={allTags}
   />
 </label>
 ```
+
+## Custom content and menu behavior
+
+Use the select's content props to customize its appearance. The select owns input,
+option, and chip behavior; callers do not need implementation components or their props.
+
+| Prop                         | Purpose                                                         |
+| ---------------------------- | --------------------------------------------------------------- |
+| `components.Value`           | Selected value content. Receives `option`.                      |
+| `components.OptionLabel`     | Option label content. Receives `option`.                        |
+| `components.MultiValueLabel` | Chip content. Receives `option` and `children`.                 |
+| `controlLeadingItems`        | Add content before the value and search input.                  |
+| `dropdownIndicator`          | Replace the dropdown icon, or pass `null` to hide it.           |
+| `components.Indicators`      | Indicator wrapper. Receives `children`; pass `null` to hide it. |
+| `menuFooter`                 | Add content after the options, outside the scroll container.    |
+| `virtualized`                | Virtualize a large list, including grouped options.             |
+
+Pass component types in `components`, for example:
+
+```tsx
+<Select options={options} components={{Value: FruitValue, Indicators: FruitIndicators}} />
+```
+
+Option components receive the full option as their `option` prop.
+`MultiValueLabel` receives the default label as `children`, and `Indicators`
+receives the default indicator controls as `children`. Define these components
+outside the parent component so they keep the same identity between renders.
+
+Set `isOpen` and `onOpenChange` to control the menu. The component `ref` exposes
+`focus()` and `blur()`. Use `inputRef` to access the native search input.
+
+Single selects blur after selection by default; multiple selects keep focus.
+Set `blurInputOnSelect={false}` when focus must remain in the field, such as
+while saving a form. `openMenuOnClick` and `openMenuOnFocus` control whether
+those interactions open the menu; keyboard opening remains available.
+
+Fetch remote options outside the select, then pass `options`, `isLoading`, and
+`onInputChange`. Set `filterOption={null}` when the server performs all filtering.
+`options` is required. Pass `options={[]}` when no options are available, including
+for creatable selects without predefined choices.
+`onInputChange(input, reason)` reports user edits with `reason="input"` and text
+cleared by selection, blur, or menu close with `reason="reset"`. Ignore resets
+when a remote query must keep its search term. Custom `filterOption` callbacks
+receive the option and search text directly. The select does not fetch or cache options.
 
 ## Accessibility
 
@@ -555,21 +657,21 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 - Every select must have an associated label
 - Use a `<label>` element with `htmlFor`, wrap the select in a `<label>`, or provide `aria-label`
-- In-field labels (`inFieldLabel`) supplement but don't replace proper labeling
+- Leading content (`controlLeadingItems`) does not replace an accessible label
 
 ```jsx
 // Good: Visible label with htmlFor
 <label htmlFor="project">Project</label>
-<Select id="project" options={projects} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} id="project" options={projects} />
 
 // Good: Wrapping label
 <label>
   Project
-  <Select options={projects} />
+  <Select value={value} onChange={option => setValue(option?.value ?? null)} options={projects} />
 </label>
 
 // Good: aria-label when context is clear
-<Select aria-label="Filter by project" options={projects} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} aria-label="Filter by project" options={projects} />
 ```
 
 **Keyboard Navigation**
@@ -577,7 +679,7 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 - **Arrow Up/Down**: Navigate options
 - **Enter/Space**: Select option or open dropdown
 - **Escape**: Close dropdown
-- **Type to search**: When `isSearchable` is enabled
+- **Type to search**: When `searchable` is enabled
 
 **Error Handling**
 
@@ -586,6 +688,8 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 ```jsx
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   id="project"
   options={projects}
   aria-invalid={hasError}

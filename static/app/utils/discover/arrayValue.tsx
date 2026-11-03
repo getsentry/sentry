@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-import {nullableValue} from './fieldRenderers';
+import {nullableValue} from './emptyFieldValues';
 
 type Props = {
   value: Array<string | null>;

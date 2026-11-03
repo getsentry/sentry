@@ -1,8 +1,8 @@
 import {Flex} from '@sentry/scraps/layout';
 
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ViewButton} from 'sentry/views/issueDetails/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -13,7 +13,9 @@ export function MergedIssuesSidebarSection() {
 
   return (
     <Flex justify="between" align="center">
-      <SidebarSectionTitle style={{margin: 0}}>{t('Merged Issues')}</SidebarSectionTitle>
+      <SidebarSection.Title variant="primary" style={{margin: 0}}>
+        {t('Merged Issues')}
+      </SidebarSection.Title>
       <ViewButton
         aria-label={t('View Merged Issues')}
         to={{

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -10,6 +9,8 @@ from rest_framework.views import APIView
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
+from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -168,21 +169,22 @@ class UserEndpoint(Endpoint):
     """
 
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         if user_id == "me":
-            if not request.user.is_authenticated:
+            if not has_user(request.user):
                 raise ResourceDoesNotExist
-            user_id = request.user.id
+            user_id = acting_user_id(request.user)
 
         if user_id is None:
             raise ResourceDoesNotExist
 
         try:
-            user = User.objects.get(id=user_id)
-        except (User.DoesNotExist, ValueError):
+            user = User.objects.get(id=to_valid_int_id("user_id", user_id, raise_404=True))
+        except User.DoesNotExist:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, user)
@@ -199,6 +201,7 @@ class RegionSiloUserEndpoint(Endpoint):
     """
 
     permission_classes = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
@@ -206,11 +209,13 @@ class RegionSiloUserEndpoint(Endpoint):
         user: RpcUser | User | None = None
 
         if user_id == "me":
-            if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+            if not has_user(request.user):
                 raise ResourceDoesNotExist
             user = request.user
         elif user_id is not None:
-            user = user_service.get_user(user_id=int(user_id))
+            user = user_service.get_user(
+                user_id=to_valid_int_id("user_id", user_id, raise_404=True)
+            )
 
         if not user:
             raise ResourceDoesNotExist

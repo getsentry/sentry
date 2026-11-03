@@ -1,9 +1,10 @@
+import {IconClock} from '@sentry/icons/clock';
+
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -13,10 +14,9 @@ import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   getAgentRunsFilter,
+  getAiClientSpansFilter,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
-
-const AI_CLIENT_FILTER = 'gen_ai.operation.type:ai_client';
 
 function useAgentsChartInterval() {
   return useChartInterval({
@@ -36,7 +36,7 @@ export function useAgentsChartsState() {
   );
   const llmData = useSpans(
     {
-      search: AI_CLIENT_FILTER,
+      search: getAiClientSpansFilter(),
       fields: ['id'],
       limit: 1,
     },

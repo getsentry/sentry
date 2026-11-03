@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/traceDetails/traceState';
+import {unreachable} from 'sentry/utils/unreachable';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -50,9 +50,6 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer right': 0.4,
   'drawer bottom': 0.5,
 };
-
-export const TRACE_WATERFALL_TIME_COMPRESSION_FEATURE =
-  'trace-waterfall-time-compression';
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -161,26 +158,22 @@ function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
 export function getInitialTracePreferences(
   key: string,
   default_state: TracePreferencesState,
-  source: 'issues' | 'replay' | 'trace_view',
-  options: {enableCompressedTimeline?: boolean} = {}
+  source: 'issues' | 'replay' | 'trace_view'
 ): TracePreferencesState {
   const stored = loadTraceViewPreferences(key);
   const preferences = {...default_state};
-  const enableCompressedTimeline = options.enableCompressedTimeline ?? true;
 
   if (stored) {
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
     preferences.layout = stored.drawer_layout;
 
-    if (source === 'issues' || source === 'replay' || !enableCompressedTimeline) {
+    if (source === 'issues' || source === 'replay') {
       preferences.compressed_timeline = false;
     } else {
       preferences.compressed_timeline =
         stored.compressed_timeline ?? default_state.compressed_timeline;
     }
-  } else if (!enableCompressedTimeline) {
-    preferences.compressed_timeline = false;
   }
 
   return preferences;
@@ -234,7 +227,7 @@ export function tracePreferencesReducer(
         },
       };
     default:
-      traceReducerExhaustiveActionCheck(action);
+      unreachable(action);
       return state;
   }
 }

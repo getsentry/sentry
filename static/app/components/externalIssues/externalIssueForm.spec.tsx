@@ -590,6 +590,10 @@ describe('ExternalIssueForm', () => {
       expect(screen.getByRole('textbox', {name: 'Summary'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Reporter'})).toBeInTheDocument();
 
+      // jsdom keeps disabled inputs focused. Leave the project field before
+      // selecting it again so react-select receives a new focus event.
+      await userEvent.click(screen.getByRole('textbox', {name: 'Summary'}));
+
       // Swapping projects should refetch, and remove stale fields
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Project'}),

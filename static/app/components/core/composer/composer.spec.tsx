@@ -50,7 +50,37 @@ const MENTION_PLUGIN: ComposerPlugin = {
   getSources: () => [MEMBER_SOURCE],
 };
 
-function makePlugins(sources: readonly TestComposerSource[]): readonly ComposerPlugin[] {
+interface CommandSuggestion {
+  id: 'new' | 'snippet';
+  title: string;
+}
+
+const COMMAND_SOURCE: ComposerSource<CommandSuggestion> = {
+  id: 'commands',
+  label: 'Commands',
+  trigger: '/',
+  restrictToStart: true,
+  getSuggestions: query =>
+    (
+      [
+        {id: 'new', title: 'new'},
+        {id: 'snippet', title: 'snippet'},
+      ] satisfies CommandSuggestion[]
+    ).filter(suggestion => suggestion.title.startsWith(query)),
+  getId: suggestion => suggestion.id,
+  renderSuggestion: suggestion => `/${suggestion.title}`,
+  onSelect: (suggestion, actions) => {
+    if (suggestion.id === 'new') {
+      actions.clear();
+    } else {
+      actions.insertText('Inserted snippet ');
+    }
+  },
+};
+
+function makePlugins(
+  sources: ReadonlyArray<ComposerSource<unknown>>
+): readonly ComposerPlugin[] {
   return [{id: 'test', getSources: () => sources}];
 }
 
@@ -61,7 +91,7 @@ function ControlledComposer({
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
-  sources?: readonly TestComposerSource[];
+  sources?: ReadonlyArray<ComposerSource<unknown>>;
 }) {
   const [value, setValue] = useState<ComposerValue>({
     text: initialValue,
@@ -309,6 +339,178 @@ describe('Composer', () => {
 
     expect(onKeyDown).not.toHaveBeenCalled();
     expect(textbox).toHaveTextContent('@al');
+  });
+
+  it('only matches a restrictToStart trigger at the very start of the text', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} initialValue="hi there " />);
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}/new');
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('shows restrictToStart suggestions when the trigger is the first character', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/sni');
+
+    expect(await screen.findByRole('option', {name: '/snippet'})).toBeVisible();
+  });
+
+  it('runs onSelect to clear the editor instead of inserting text', async () => {
+    render(
+      <ControlledComposer
+        sources={[COMMAND_SOURCE]}
+        initialValue="/new @Alice Example"
+        initialMentions={[
+          {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 5, end: 19},
+        ]}
+      />
+    );
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.pointer({
+      target: textbox,
+      node: textbox.firstChild!,
+      offset: 4,
+      keys: '[MouseLeft]',
+    });
+    await userEvent.click(await screen.findByRole('option', {name: '/new'}));
+
+    expect(textbox).toBeEmptyDOMElement();
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(/^\|$/);
+    await userEvent.keyboard('Fresh');
+    expect(textbox).toHaveTextContent('Fresh');
+  });
+
+  it('runs onSelect to insert a snippet at the trigger position', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/sni');
+    await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
+
+    expect(textbox).toHaveTextContent('Inserted snippet');
+  });
+
+  it('replaces only the selected trigger range with a synchronous action', async () => {
+    render(
+      <ControlledComposer
+        sources={[{...COMMAND_SOURCE, restrictToStart: false}]}
+        initialValue="Before /sni after"
+      />
+    );
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.pointer({
+      target: textbox,
+      node: textbox.firstChild!,
+      offset: 11,
+      keys: '[MouseLeft]',
+    });
+    await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
+    await userEvent.keyboard('here');
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      'Before Inserted snippet here after|'
+    );
+  });
+
+  it('allows repeating a command after clearing the editor', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    const textbox = getEditor();
+
+    await userEvent.type(textbox, '/new');
+    await screen.findByRole('option', {name: '/new'});
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toBeEmptyDOMElement();
+
+    await userEvent.keyboard('/new');
+    expect(await screen.findByRole('option', {name: '/new'})).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toBeEmptyDOMElement();
+  });
+
+  it('allows repeating a command after inserting a snippet', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    const textbox = getEditor();
+
+    await userEvent.type(textbox, '/sni');
+    await screen.findByRole('option', {name: '/snippet'});
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toHaveTextContent('Inserted snippet');
+
+    await userEvent.keyboard('{Control>}a{/Control}/sni');
+    expect(await screen.findByRole('option', {name: '/snippet'})).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+    expect(textbox).toHaveTextContent('Inserted snippet');
+  });
+
+  it('excludes restricted sources from a shared trigger after other text', async () => {
+    render(
+      <ControlledComposer
+        sources={[COMMAND_SOURCE, {...MEMBER_SOURCE, trigger: '/'}]}
+        initialValue="hello "
+      />
+    );
+    await userEvent.click(getEditor());
+    await userEvent.keyboard('{End}/');
+
+    expect(await screen.findByRole('option', {name: 'Alice Example'})).toBeVisible();
+    expect(screen.queryByRole('option', {name: '/new'})).not.toBeInTheDocument();
+  });
+
+  it('retains mentions and places the caret after an inserted snippet', async () => {
+    const text = '/sni @Alice Example';
+    render(
+      <ControlledComposer
+        sources={[COMMAND_SOURCE]}
+        initialValue={text}
+        initialMentions={[
+          {
+            id: 'user:1',
+            sourceId: 'members',
+            text: '@Alice Example',
+            start: 5,
+            end: 19,
+          },
+        ]}
+      />
+    );
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.pointer({
+      target: textbox,
+      node: textbox.firstChild!,
+      offset: 4,
+      keys: '[MouseLeft]',
+    });
+    await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
+    await userEvent.keyboard('Here');
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      'Inserted snippet Here @Alice Example|user:1'
+    );
+    expect(
+      within(textbox).getByText('@Alice Example', {selector: 'strong'})
+    ).toBeVisible();
+  });
+
+  it('dismisses suggestions after an action that leaves the editor unchanged', async () => {
+    const onSelect = jest.fn();
+    render(<ControlledComposer sources={[{...COMMAND_SOURCE, onSelect}]} />);
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/new');
+    expect(await screen.findByRole('option', {name: '/new'})).toBeVisible();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(textbox).toHaveTextContent('/new');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('does not trigger onKeyDown when Enter is pressed while popup is loading', async () => {

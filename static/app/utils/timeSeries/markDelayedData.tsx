@@ -37,7 +37,7 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
       return {
         ...datum,
         incomplete: true,
-        incompleteReason: 'INCOMPLETE_BUCKET',
+        incompleteReason: 'INGESTION_PENDING',
       };
     }),
   };

@@ -2,7 +2,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {
   getContextKeys,
   getRelativeTimeFromEventDateCreated,
-} from 'sentry/components/events/contexts/utils';
+} from 'sentry/components/events/contexts/dataUtils';
 import {FileSize} from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
 import {DeviceContextKey, type DeviceContext, type Event} from 'sentry/types/event';

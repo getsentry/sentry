@@ -1,3 +1,4 @@
+import {getAttributeSearchMetadata} from './getAttributeSearchMetadata';
 import {
   ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
   getAttributeSearchDeprecationAliases,
@@ -10,6 +11,8 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
     'does not treat inherited key %s as attribute search metadata',
     key => {
       expect(getPreferredAttributeSearchKey(key)).toBeUndefined();
+      expect(getAttributeSearchMetadata(key)).toBeUndefined();
+      expect(getAttributeSearchDeprecationAliases(key)).toEqual([]);
     }
   );
 
@@ -51,5 +54,14 @@ describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
     for (const tag of Object.values(ATTRIBUTE_SEARCH_SECONDARY_ALIASES)) {
       expect(tag.alias).not.toContain('<');
     }
+  });
+
+  it('can include template aliases for visibility checks', () => {
+    const aliases = getAttributeSearchDeprecationAliases('params.<key>', {
+      includeTemplateKeys: true,
+    });
+
+    expect(aliases).toContain('url.path.parameter.<key>');
+    expect(aliases).not.toContain('params.<key>');
   });
 });

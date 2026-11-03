@@ -1,3 +1,4 @@
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -6,7 +7,7 @@ from sentry.auth.helper import CHANNEL_PROVIDER_MAP
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.utils.auth import is_valid_redirect
+from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.base import control_silo_view
 
@@ -47,7 +48,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         except OrganizationMapping.DoesNotExist:
             return self.redirect(reverse("sentry-login"))
 
-        next_uri = self.get_next_uri(request)
+        next_uri = request.GET.get(REDIRECT_FIELD_NAME, request.session.pop("_next", None))
         # If user has an active session within the same organization skip login
         if request.user.is_authenticated:
             if self.active_organization is not None:
@@ -60,7 +61,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         # organization in the url
         org_auth_url = reverse("sentry-auth-organization", args=[slug])
         redirect_url = (
-            org_auth_url + "?next=" + next_uri
+            construct_link_with_query(org_auth_url, {"next": next_uri})
             if is_valid_redirect(next_uri, allowed_hosts=(request.get_host()))
             else org_auth_url
         )

@@ -8,10 +8,11 @@ import {t} from 'sentry/locale';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 
+import {keyValueGridStyles} from './keyValueColumns';
+import {type KeyValueTableVariant} from './keyValueRow';
 import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
-  type KeyValueTableVariant,
 } from './keyValueTableDataRow';
 
 interface KeyValueTableCardProps {
@@ -69,7 +70,7 @@ export function KeyValueTableCard({
     : truncatedItems;
 
   return (
-    <CardPanel>
+    <KeyValueTableCardPanel>
       {title && <CardTitle>{title}</CardTitle>}
       {orderedItems.map((contentItem, index) => (
         <KeyValueTableDataRow
@@ -85,7 +86,7 @@ export function KeyValueTableCard({
         </TruncateWrapper>
       )}
       {children && <CardBody>{children}</CardBody>}
-    </CardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
@@ -111,12 +112,9 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   );
 }
 
-const CardPanel = styled(Panel)`
+export const KeyValueTableCardPanel = styled(Panel)`
+  ${keyValueGridStyles};
   padding: ${p => p.theme.space.sm};
-  display: grid;
-  column-gap: ${p => p.theme.space.lg};
-  grid-template-columns: fit-content(50%) 1fr;
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const CardTitle = styled('div')`

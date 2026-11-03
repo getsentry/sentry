@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Callable
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
@@ -8,6 +9,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ConditionalTraceMetricAggregateDefinition,
+    NumericArgumentDefinition,
     TraceMetricAggregateDefinition,
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
@@ -19,6 +21,37 @@ TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES = [
     AttributeKey(name="sentry.metric_type", type=AttributeKey.Type.TYPE_STRING),
     AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE),
 ]
+
+
+TRACE_METRIC_DEFAULT_ARGUMENTS = [
+    ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+    ValueArgumentDefinition(
+        argument_types={"string"},
+        validator=literal_validator(
+            [
+                "",
+                "counter",
+                "gauge",
+                "distribution",
+            ]
+        ),
+        default_arg="",
+    ),
+    ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+]
+
+
+@dataclass(kw_only=True)
+class PercentileDefinition(TraceMetricAggregateDefinition):
+    default_search_type: constants.SearchType = "number"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [
+            NumericArgumentDefinition(),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
+        ]
+    )
+    valid_arithmetic: bool = True
+
 
 TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
     "count": TraceMetricAggregateDefinition(
@@ -34,24 +67,12 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                     "integer",
                 },
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
         ],
         attribute_resolver=count_argument_resolver_optimized(
             TRACE_METRICS_ALWAYS_PRESENT_ATTRIBUTES
         ),
+        valid_arithmetic=True,
     ),
     "count_unique": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_UNIQ,
@@ -71,299 +92,48 @@ TRACE_METRICS_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
         ],
+        valid_arithmetic=True,
     ),
     "sum": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            NumericArgumentDefinition(),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
         ],
+        valid_arithmetic=True,
     ),
     "avg": TraceMetricAggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="number",
         arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
+            NumericArgumentDefinition(),
+            *TRACE_METRIC_DEFAULT_ARGUMENTS,
         ],
+        valid_arithmetic=True,
     ),
-    "p50": TraceMetricAggregateDefinition(
+    "p50": PercentileDefinition(
         internal_function=Function.FUNCTION_P50,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "p75": TraceMetricAggregateDefinition(
+    "p75": PercentileDefinition(
         internal_function=Function.FUNCTION_P75,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "p90": TraceMetricAggregateDefinition(
+    "p90": PercentileDefinition(
         internal_function=Function.FUNCTION_P90,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "p95": TraceMetricAggregateDefinition(
+    "p95": PercentileDefinition(
         internal_function=Function.FUNCTION_P95,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "p99": TraceMetricAggregateDefinition(
+    "p99": PercentileDefinition(
         internal_function=Function.FUNCTION_P99,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "max": TraceMetricAggregateDefinition(
+    "max": PercentileDefinition(
         internal_function=Function.FUNCTION_MAX,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
-    "min": TraceMetricAggregateDefinition(
+    "min": PercentileDefinition(
         internal_function=Function.FUNCTION_MIN,
-        default_search_type="number",
-        arguments=[
-            AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-            ValueArgumentDefinition(
-                argument_types={"string"},
-                validator=literal_validator(
-                    [
-                        "",
-                        "counter",
-                        "gauge",
-                        "distribution",
-                    ]
-                ),
-                default_arg="",
-            ),
-            ValueArgumentDefinition(argument_types={"string"}, default_arg=""),
-        ],
     ),
 }
 
@@ -383,6 +153,7 @@ def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
             ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
             *definition.arguments,
         ],
+        valid_arithmetic=definition.valid_arithmetic,
     )
 
 

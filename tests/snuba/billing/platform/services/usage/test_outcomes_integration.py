@@ -414,6 +414,51 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert data.spike_protection == 20
         assert data.dropped >= data.over_quota + data.spike_protection
 
+    def test_non_billable_outcomes_ignored(self):
+        billable_time = _now - timedelta(days=1, hours=1)
+        non_billable_time = _now - timedelta(hours=1)
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "project_id": self.project.id,
+                "timestamp": billable_time,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 10,
+            },
+        )
+        for outcome in (Outcome.CLIENT_DISCARD, Outcome.INVALID):
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "timestamp": non_billable_time,
+                    "outcome": outcome,
+                    "reason": "sample_rate",
+                    "category": DataCategory.ERROR,
+                    "quantity": 99,
+                },
+            )
+
+        request = _make_request(
+            org_id=self.organization.id,
+            start=_now - timedelta(days=2),
+            end=_now + timedelta(days=1),
+        )
+        response = query_outcomes_usage(request)
+
+        assert len(response.days) == 1
+        data = response.days[0].usage[0].data
+        assert data.total == 10
+        assert data.accepted == 10
+        assert data.dropped == 0
+        assert data.filtered == 0
+        # The daily table truncates timestamps, so compare against the start of
+        # the day holding the non-billable outcomes rather than an exact value.
+        non_billable_day = non_billable_time.replace(hour=0, minute=0, second=0)
+        assert response.last_usage_ts.ToDatetime(tzinfo=UTC) < non_billable_day
+
     def test_full_usage_service_e2e(self):
         """End-to-end test via UsageService().get_usage()."""
         self.store_outcomes(

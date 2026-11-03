@@ -1,18 +1,17 @@
 import {useCallback, type ReactNode} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
-import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
+import {ToolbarVisualizeRow} from 'sentry/views/explore/components/toolbar/styles';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
@@ -56,11 +55,6 @@ export function VisualizeEquation({
     transition: null,
   });
 
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   const equationBuilder = (
     <ExploreEquationArithmeticBuilder
       expression={expression}
@@ -69,12 +63,12 @@ export function VisualizeEquation({
       numberTags={numberTags}
       stringTags={stringTags}
       booleanTags={booleanTags}
-      menuPresentation={hasConditionalAggregates ? 'panel' : undefined}
+      menuPresentation="panel"
     />
   );
 
   return (
-    <ToolbarRow
+    <ToolbarVisualizeRow
       ref={setNodeRef}
       style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
@@ -84,11 +78,7 @@ export function VisualizeEquation({
       )}
       {label}
       <Flex flex="1" minWidth="0" overflow="visible">
-        {hasConditionalAggregates ? (
-          <ExpandableFilterSearchBar>{equationBuilder}</ExpandableFilterSearchBar>
-        ) : (
-          equationBuilder
-        )}
+        <ExpandableFilterSearchBar>{equationBuilder}</ExpandableFilterSearchBar>
       </Flex>
       {onDelete && (
         <Button
@@ -99,6 +89,6 @@ export function VisualizeEquation({
           aria-label={deleteLabel ?? t('Remove Overlay')}
         />
       )}
-    </ToolbarRow>
+    </ToolbarVisualizeRow>
   );
 }

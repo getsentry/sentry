@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router';
 
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';

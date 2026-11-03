@@ -19,18 +19,18 @@ eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
 
 if [ "$scope" == "scoped" ]; then
   # shellcheck disable=SC2086
-  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
+  JEST_TESTS="$(pnpm exec sentry-test --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
 
   RUNNER_CHUNK_SIZE=250
   JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
   if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
     RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
   else
-    JEST_TESTS="$(pnpm exec jest --listTests --json)"
+    JEST_TESTS="$(pnpm exec sentry-test --listTests --json)"
     RUNNERS=8
   fi
 else
-  JEST_TESTS="$(pnpm exec jest --listTests --json)"
+  JEST_TESTS="$(pnpm exec sentry-test --listTests --json)"
   RUNNERS=8
 fi
 echo "$JEST_TESTS" > jest-test-files.json

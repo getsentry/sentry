@@ -11,6 +11,7 @@ from requests import PreparedRequest, Request, Response
 from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.net.http import SafeSession
@@ -21,6 +22,7 @@ from ..exceptions import (
     ApiConnectionResetError,
     ApiError,
     ApiHostError,
+    ApiPaginationTruncated,
     ApiRetryError,
     ApiTimeoutError,
 )
@@ -28,7 +30,7 @@ from ..response.base import BaseApiResponse
 
 
 class SessionSettings(TypedDict):
-    timeout: int
+    timeout: int | tuple[float, float]
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
     proxies: NotRequired[MutableMapping[str, str]]
@@ -59,9 +61,9 @@ class BaseApiClient:
 
     integration_name: str
 
-    # Timeout for both the connect and the read timeouts.
+    # Timeout for both the connect and the read timeouts, or a (connect, read) tuple.
     # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
-    timeout: int = 30
+    timeout: int | tuple[float, float] = 30
 
     @property
     def name(self) -> str:
@@ -186,7 +188,8 @@ class BaseApiClient:
         """
         Generates a safe Requests session for the API client to use.
         """
-        return build_session()
+        max_retries = 0 if options.get("integrations.client.disable_retries") else None
+        return build_session(max_retries=max_retries)
 
     @staticmethod
     def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
@@ -207,7 +210,7 @@ class BaseApiClient:
     # prevents forwarding unexpected keys while keeping _request readable.
     def _build_session_settings(
         self,
-        timeout: int,
+        timeout: int | tuple[float, float],
         allow_redirects: bool,
         *,
         proxies: object | None = None,
@@ -246,7 +249,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
@@ -266,7 +269,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
@@ -285,7 +288,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
@@ -504,13 +507,14 @@ class BaseApiClient:
         gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
         get_results: Callable[[Any], Sequence[_TPaginatedResult]],
         *args: Any,
+        raise_on_page_limit: bool = False,
         **kwargs: Any,
     ) -> list[_TPaginatedResult]:
         page_size = self.page_size
         output: list[_TPaginatedResult] = []
 
         for i in range(self.page_number_limit):
-            resp = self.get(path, params=gen_params(i, page_size))
+            resp = self.get(path, *args, params=gen_params(i, page_size), **kwargs)
             results = get_results(resp)
             num_results = len(results)
 
@@ -518,4 +522,9 @@ class BaseApiClient:
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output
+        if raise_on_page_limit:
+            raise ApiPaginationTruncated(
+                output,
+                f"pagination stopped at page_number_limit={self.page_number_limit}",
+            )
         return output

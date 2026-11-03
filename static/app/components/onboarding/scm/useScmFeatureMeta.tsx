@@ -1,15 +1,13 @@
 import type {ComponentType} from 'react';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconSpan} from '@sentry/icons/span';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  IconGraph,
-  IconProfiling,
-  IconSpan,
-  IconTerminal,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 

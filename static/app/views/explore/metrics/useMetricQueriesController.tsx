@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, type Dispatch, type SetStateAction} from 'react';
 
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -10,6 +10,7 @@ import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBu
 import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {
   getNextLabel,
+  moveItem,
   useStableLabels,
 } from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {
@@ -20,7 +21,6 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -39,19 +39,61 @@ function syncUpdatedMetricQueries(
   );
 }
 
-export interface MetricQueriesControllerValue {
-  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => void;
-  metricQueries: MetricQuery[];
-  reorderMetricQueries: (
-    reorderedQueries: BaseMetricQuery[],
-    oldIndex: number,
-    newIndex: number
-  ) => void;
+function withTraceMetric(
+  metricQuery: BaseMetricQuery,
+  newTraceMetric: TraceMetric
+): BaseMetricQuery {
+  // When changing trace metrics, adjust the currently selected
+  // aggregation so it's valid for the new metric's type.
+  const visualize = metricQuery.queryParams.visualizes[0];
+  let aggregateFields: Array<GroupBy | VisualizeFunction> | undefined;
+  if (visualize && isVisualizeFunction(visualize)) {
+    const selectedAggregation = visualize.parsedFunction?.name;
+    const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
+    const aggregation =
+      selectedAggregation &&
+      allowedAggregations?.find(option => option.value === selectedAggregation)
+        ? selectedAggregation
+        : DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
+
+    let updatedVisualize = updateVisualizeYAxis(visualize, aggregation, newTraceMetric);
+
+    if (
+      visualize.chartType === ChartType.HEATMAP &&
+      !doesMetricSupportHeatMapVisualization(newTraceMetric)
+    ) {
+      updatedVisualize = updatedVisualize.replace({
+        chartType: determineDefaultChartType([updatedVisualize.yAxis]),
+      });
+    }
+
+    aggregateFields = [
+      updatedVisualize,
+      ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+    ];
+  }
+
+  return {
+    queryParams: metricQuery.queryParams.replace({aggregateFields}),
+    metric: newTraceMetric,
+    label: metricQuery.label,
+  };
 }
+
+export interface MetricQueriesControllerValue {
+  addMetricQuery: (options?: {type?: 'aggregate' | 'equation'}) => string;
+  metricQueries: MetricQuery[];
+  reorderMetricQueries: (oldIndex: number, newIndex: number) => void;
+}
+
+type RowMutators = Pick<
+  MetricQuery,
+  'setQueryParams' | 'setTraceMetric' | 'removeMetric'
+>;
 
 interface UseMetricQueriesControllerArgs {
   queries: BaseMetricQuery[];
-  setQueries: (nextQueries: BaseMetricQuery[]) => void;
+  setQueries: Dispatch<SetStateAction<BaseMetricQuery[]>>;
 }
 
 /**
@@ -68,97 +110,79 @@ export function useMetricQueriesController({
 }: UseMetricQueriesControllerArgs): MetricQueriesControllerValue {
   const labels = useStableLabels(queries);
 
+  const getRowMutators = useMemo(() => {
+    function updateQuery(
+      rowId: string,
+      update: (metricQuery: BaseMetricQuery) => BaseMetricQuery
+    ) {
+      // Read rows at call time: a deferred useState updater sees only the calls
+      // made before this one, and so does this snapshot.
+      const rowIds = labels.getRowIds();
+      const rowLabels = rowIds.map((_, j) => labels.getLabel(j));
+      const index = rowIds.indexOf(rowId);
+      setQueries(previousQueries => {
+        if (index === -1 || previousQueries.length !== rowIds.length) {
+          return previousQueries;
+        }
+        const labeledQueries = previousQueries.map((metricQuery, j) => ({
+          ...metricQuery,
+          label: rowLabels[j],
+        }));
+        const newMetricQueries = labeledQueries.map((metricQuery, j) =>
+          j === index ? update(metricQuery) : metricQuery
+        );
+        return syncUpdatedMetricQueries(labeledQueries, newMetricQueries);
+      });
+    }
+
+    function createRowMutators(rowId: string): RowMutators {
+      return {
+        setQueryParams: newQueryParams =>
+          updateQuery(rowId, metricQuery => ({
+            metric: metricQuery.metric,
+            queryParams: newQueryParams,
+            label: metricQuery.label,
+          })),
+        setTraceMetric: newTraceMetric =>
+          updateQuery(rowId, metricQuery => withTraceMetric(metricQuery, newTraceMetric)),
+        removeMetric: () => {
+          const rowIds = labels.getRowIds();
+          const index = rowIds.indexOf(rowId);
+          if (index === -1 || rowIds.length <= 1) {
+            return;
+          }
+          // Update the label ref synchronously before the storage write so
+          // labels stay stable on the next render.
+          labels.remove(index);
+          setQueries(previousQueries => previousQueries.toSpliced(index, 1));
+        },
+      };
+    }
+
+    const mutatorsByRowId = new Map<string, RowMutators>();
+
+    return (rowId: string) => {
+      let mutators = mutatorsByRowId.get(rowId);
+      if (!mutators) {
+        mutators = createRowMutators(rowId);
+        // oxlint-disable-next-line react/immutability
+        mutatorsByRowId.set(rowId, mutators);
+      }
+      return mutators;
+    };
+  }, [setQueries, labels]);
+
+  const rowIdsKey = labels.getRowIds().join(',');
+  const rowMutators = useMemo(
+    () => rowIdsKey.split(',').map(getRowMutators),
+    [rowIdsKey, getRowMutators]
+  );
+
   return useMemo(() => {
     const labeledQueries: BaseMetricQuery[] = queries.map((query, i) => ({
       ...query,
       label: labels.getLabel(i),
-      setQueryParams: () => {},
-      setTraceMetric: () => {},
-      removeMetric: () => {},
     }));
-
-    function setQueryParamsForIndex(i: number) {
-      return function (newQueryParams: ReadableQueryParams) {
-        const newMetricQueries = labeledQueries.map(
-          (metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-            return {
-              metric: metricQuery.metric,
-              queryParams: newQueryParams,
-              label: metricQuery.label,
-            };
-          }
-        );
-        setQueries(syncUpdatedMetricQueries(labeledQueries, newMetricQueries));
-      };
-    }
-
-    function setTraceMetricForIndex(i: number) {
-      return function (newTraceMetric: TraceMetric) {
-        const newMetricQueries = labeledQueries.map(
-          (metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-
-            // When changing trace metrics, adjust the currently selected
-            // aggregation so it's valid for the new metric's type.
-            const visualize = metricQuery.queryParams.visualizes[0];
-            let aggregateFields: Array<GroupBy | VisualizeFunction> | undefined;
-            if (visualize && isVisualizeFunction(visualize)) {
-              const selectedAggregation = visualize.parsedFunction?.name;
-              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-              const aggregation =
-                selectedAggregation &&
-                allowedAggregations?.find(option => option.value === selectedAggregation)
-                  ? selectedAggregation
-                  : DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
-
-              let updatedVisualize = updateVisualizeYAxis(
-                visualize,
-                aggregation,
-                newTraceMetric
-              );
-
-              if (
-                visualize.chartType === ChartType.HEATMAP &&
-                !doesMetricSupportHeatMapVisualization(newTraceMetric)
-              ) {
-                updatedVisualize = updatedVisualize.replace({
-                  chartType: determineDefaultChartType([updatedVisualize.yAxis]),
-                });
-              }
-
-              aggregateFields = [
-                updatedVisualize,
-                ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-              ];
-            }
-
-            return {
-              queryParams: metricQuery.queryParams.replace({aggregateFields}),
-              metric: newTraceMetric,
-              label: metricQuery.label,
-            };
-          }
-        );
-        setQueries(syncUpdatedMetricQueries(labeledQueries, newMetricQueries));
-      };
-    }
-
-    function removeMetricQueryForIndex(i: number) {
-      return function () {
-        if (labeledQueries.length <= 1) {
-          return;
-        }
-        // Update the label ref synchronously before the storage write so
-        // labels stay stable on the next render.
-        labels.remove(i);
-        setQueries(labeledQueries.filter((_, j) => i !== j));
-      };
-    }
 
     function addMetricQuery({
       type = 'aggregate',
@@ -172,36 +196,32 @@ export function useMetricQueriesController({
         equationStart !== -1 && type === 'aggregate'
           ? equationStart
           : labeledQueries.length;
-      const lastAggregate = labeledQueries.at(insertAt - 1) ?? defaultMetricQuery();
-      const canDuplicate =
-        type === 'aggregate' &&
-        lastAggregate?.queryParams.visualizes.some(isVisualizeFunction);
-      const newQuery = canDuplicate
-        ? {...lastAggregate, label: nextLabel}
-        : defaultMetricQuery({type});
-
       labels.insert(insertAt, nextLabel);
-      setQueries(labeledQueries.toSpliced(insertAt, 0, newQuery));
+      setQueries(previousQueries => {
+        const lastAggregate = previousQueries.at(insertAt - 1) ?? defaultMetricQuery();
+        const canDuplicate =
+          type === 'aggregate' &&
+          lastAggregate.queryParams.visualizes.some(isVisualizeFunction);
+        const newQuery = canDuplicate
+          ? {...lastAggregate, label: nextLabel}
+          : defaultMetricQuery({type});
+        return previousQueries.toSpliced(insertAt, 0, newQuery);
+      });
+      return nextLabel;
     }
 
-    function reorderMetricQueries(
-      reorderedQueries: BaseMetricQuery[],
-      oldIndex: number,
-      newIndex: number
-    ) {
+    function reorderMetricQueries(oldIndex: number, newIndex: number) {
       labels.move(oldIndex, newIndex);
-      setQueries(reorderedQueries);
+      setQueries(previousQueries => moveItem(previousQueries, oldIndex, newIndex));
     }
 
     return {
-      metricQueries: labeledQueries.map((metric, index) => ({
-        ...metric,
-        setQueryParams: setQueryParamsForIndex(index),
-        setTraceMetric: setTraceMetricForIndex(index),
-        removeMetric: removeMetricQueryForIndex(index),
+      metricQueries: labeledQueries.map((metricQuery, i) => ({
+        ...metricQuery,
+        ...rowMutators[i]!,
       })),
       addMetricQuery,
       reorderMetricQueries,
     };
-  }, [queries, setQueries, labels]);
+  }, [queries, setQueries, labels, rowMutators]);
 }

@@ -1,5 +1,6 @@
 import platform
 from datetime import timedelta
+from importlib.metadata import PackageNotFoundError
 from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
@@ -10,12 +11,31 @@ from django.utils import timezone
 import sentry
 from sentry import options
 from sentry.constants import DataCategory
+from sentry.debug.utils.packages import get_all_package_versions
 from sentry.models.broadcast import Broadcast
 from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
+
+
+def test_get_all_package_versions_with_imports() -> None:
+    modules = {}
+
+    def get_version() -> str:
+        modules["bar"] = SimpleNamespace(__version__="2.0")
+        return "1.0"
+
+    modules["foo"] = SimpleNamespace(get_version=get_version)
+    with (
+        patch("sentry.debug.utils.packages.sys", modules=modules, version_info=(3, 13, 0)),
+        patch(
+            "sentry.debug.utils.packages.importlib.metadata.version",
+            side_effect=PackageNotFoundError,
+        ),
+    ):
+        assert get_all_package_versions() == {"foo": "1.0", "sys": "3.13.0"}
 
 
 @no_silo_test

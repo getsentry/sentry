@@ -10,6 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
@@ -57,6 +58,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -70,7 +72,6 @@ from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
@@ -149,7 +150,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
@@ -177,7 +178,7 @@ def search_issues(
     environments: Sequence[Environment],
     extra_query_kwargs: None | Mapping[str, Any] = None,
 ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-    with start_span(name="_search", op="_search"):
+    with traces.start_span(name="_search", attributes={"sentry.op": "_search"}):
         query_kwargs = build_query_params_from_request(
             request, organization, projects, environments
         )
@@ -268,6 +269,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
@@ -317,6 +319,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.GROUP_STATS_PERIOD,
@@ -379,21 +383,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         query = request.GET.get("query", "").strip()
 
         # record analytics for search query
-        if request.user:
-            try:
-                analytics.record(
-                    IssueSearchEndpointQueriedEvent(
-                        user_id=request.user.id,
-                        organization_id=organization.id,
-                        project_ids=",".join(map(str, project_ids)),
-                        full_query_params=",".join(
-                            f"{key}={value}" for key, value in request.GET.items()
-                        ),
-                        query=query,
-                    )
+        try:
+            analytics.record(
+                IssueSearchEndpointQueriedEvent(
+                    user_id=acting_user_id(request.user),
+                    organization_id=organization.id,
+                    project_ids=",".join(map(str, project_ids)),
+                    full_query_params=",".join(
+                        f"{key}={value}" for key, value in request.GET.items()
+                    ),
+                    query=query,
                 )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID

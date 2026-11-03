@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -12,7 +13,6 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

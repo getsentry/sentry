@@ -10,7 +10,6 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
@@ -19,14 +18,6 @@ type Props = {
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
-  const handleRecordInteraction =
-    (slug: SentryAppComponent<SentryAppSchemaStacktraceLink>['sentryApp']['slug']) =>
-    () => {
-      recordInteraction(slug, 'sentry_app_component_interacted', {
-        componentType: 'stacktrace-link',
-      });
-    };
-
   const getUrl = (url: SentryAppSchemaStacktraceLink['url']) => {
     return addQueryParamsToExistingUrl(url, {lineNo, filename});
   };
@@ -35,17 +26,9 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
     <OpenInContainer>
       {components.map(component => {
         const url = getUrl(component.schema.url);
-        const {slug} = component.sentryApp;
-        const onClickRecordInteraction = handleRecordInteraction(slug);
         return (
           <Tooltip key={component.uuid} title={component.sentryApp.name} skipWrapper>
-            <OpenInLink
-              aria-label={component.sentryApp.name}
-              href={url}
-              onClick={onClickRecordInteraction}
-              onContextMenu={onClickRecordInteraction}
-              openInNewTab
-            >
+            <OpenInLink aria-label={component.sentryApp.name} href={url} openInNewTab>
               <SentryAppComponentIcon sentryAppComponent={component} size={16} />
             </OpenInLink>
           </Tooltip>

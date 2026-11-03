@@ -19,6 +19,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import (
 
 from sentry.constants import DataCategory
 from sentry.spans.consumers.process_segments.types import CompatibleSpan
+from sentry.utils.attributes import get_attribute_value
 from sentry.utils.eap import hex_to_item_id
 
 I64_MAX = 2**63 - 1
@@ -49,12 +50,21 @@ RENAME_ATTRIBUTES = {
 def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     attributes: dict[str, AnyValue] = {}
 
-    client_sample_rate = 1.0
-    server_sample_rate = 1.0
-    conversation_id = ""
-    session_id = ""
+    span_attributes = span.get("attributes") or {}
+    client_sample_rate = _sample_rate_or_default(
+        get_attribute_value(span_attributes, ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE)
+    )
+    server_sample_rate = _sample_rate_or_default(
+        get_attribute_value(span_attributes, ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE)
+    )
+    conversation_id = get_attribute_value(
+        span_attributes, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID, "string"
+    )
+    session_id = _uuid_or_empty(
+        get_attribute_value(span_attributes, ATTRIBUTE_NAMES.SESSION_ID, "string")
+    )
 
-    for k, attribute in (span.get("attributes") or {}).items():
+    for k, attribute in span_attributes.items():
         if attribute is None:
             continue
         if (value := attribute.get("value")) is None:
@@ -64,22 +74,6 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
             attributes[k] = _anyvalue(value)
         except Exception:
             sentry_sdk.capture_exception()
-        else:
-            if k == ATTRIBUTE_NAMES.SENTRY_CLIENT_SAMPLE_RATE:
-                try:
-                    client_sample_rate = float(value)  # type:ignore[arg-type]
-                except ValueError:
-                    pass
-            elif k == ATTRIBUTE_NAMES.SENTRY_SERVER_SAMPLE_RATE:
-                try:
-                    server_sample_rate = float(value)  # type:ignore[arg-type]
-                except ValueError:
-                    pass
-            elif k == ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID:
-                if isinstance(value, str):
-                    conversation_id = value
-            elif k == ATTRIBUTE_NAMES.SESSION_ID:
-                session_id = _uuid_or_empty(value)
 
     # For `is_segment`, we trust the value written by `flush_segments` over a pre-existing attribute:
     if (is_segment := span.get("is_segment")) is not None:
@@ -150,13 +144,22 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
         attributes=attributes,
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
-        conversation_id=conversation_id,
+        conversation_id=conversation_id or "",
         session_id=session_id,
         retention_days=span["retention_days"],
         downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
         outcomes=outcomes,
     )
+
+
+def _sample_rate_or_default(value: object) -> float:
+    if isinstance(value, str | int | float) and not isinstance(value, bool):
+        try:
+            return float(value)
+        except ValueError:
+            pass
+    return 1.0
 
 
 def _uuid_or_empty(value: Any) -> str:
@@ -221,10 +224,9 @@ def _sanitize_span_link(link: SpanLink) -> SpanLink:
     # might be an intermediary state where there is a pre-existing dropped
     # attributes count. Respect that count, if it's present. It should always be
     # an integer.
-    try:
-        dropped_attributes_count = int(attributes["sentry.dropped_attributes_count"]["value"])  # type: ignore[index,arg-type]
-    except (KeyError, ValueError, TypeError):
-        dropped_attributes_count = 0
+    dropped_attributes_count = (
+        get_attribute_value(attributes, "sentry.dropped_attributes_count", "int") or 0
+    )
 
     for key, value in attributes.items():
         if key in ALLOWED_LINK_ATTRIBUTE_KEYS:

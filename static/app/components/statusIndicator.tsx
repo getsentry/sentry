@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {AlertVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import type {AlertVariant} from 'sentry/utils/theme';
 
 type StatusVariant = AlertVariant | 'resolved';
 export interface StatusIndicatorProps {

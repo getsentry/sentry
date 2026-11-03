@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Link} from '@sentry/scraps/link';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';

@@ -15,6 +15,13 @@ export const settingsRoutes = (): SentryRouteObject => ({
       redirectTo: '/settings/:orgId/billing/cancel/',
     },
     {
+      handle: {
+        settingsBreadcrumb: {
+          type: 'link',
+          label: 'Subscription',
+          to: '/settings/:orgId/billing/',
+        },
+      },
       name: 'Subscription',
       path: 'billing/',
       children: [

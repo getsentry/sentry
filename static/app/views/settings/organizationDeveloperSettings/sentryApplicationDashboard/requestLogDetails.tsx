@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
-import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
+import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/responseCode';
 
 import {WebhookSubject} from './webhookSubjects';
 

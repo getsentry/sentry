@@ -9,16 +9,15 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.actions.issue_alert.notification import DiscordNotifyServiceAction
 from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
-from sentry.integrations.discord.client import DISCORD_BASE_URL, MESSAGE_URL
+from sentry.integrations.discord.client import CHANNEL_URL, DISCORD_BASE_URL, MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
 from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
-    get_title_link,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
@@ -140,15 +139,6 @@ class DiscordIssueAlertTest(RuleTestCase):
         embed = data["embeds"][0]
         assert embed == {
             "title": build_attachment_title(self.event.group),
-            "url": get_title_link(
-                self.event.group,
-                self.event,
-                False,
-                False,
-                None,
-                ExternalProviders.DISCORD,
-                notification_uuid=notification_uuid,
-            ),
             "color": LEVEL_TO_COLOR["error"],
             "footer": {"text": build_footer(self.event.group, self.event.project, "{text}", None)},
             "fields": [],
@@ -338,14 +328,21 @@ class DiscordNotifyServiceFormTest(TestCase):
         assert self.form.is_valid()
         assert mock_validate_channel_id.call_count == 1
 
+    @responses.activate
     @mock.patch(
         "sentry.integrations.discord.actions.issue_alert.form.get_channel_id_from_url",
         return_value="",
     )
     def test_no_channel_id(self, mock_get_channel_id_from_url: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{DISCORD_BASE_URL}{CHANNEL_URL.format(channel_id='')}",
+            status=400,
+        )
         self.form.full_clean()
         assert not self.form.is_valid()
         assert mock_get_channel_id_from_url.call_count == 1
+        assert len(responses.calls) == 1
 
     def test_no_server(self) -> None:
         form = DiscordNotifyServiceForm(integrations=self.integrations)

@@ -40,9 +40,6 @@ export function MonitorFixture(params: Partial<Monitor> = {}): Monitor {
         activeIncident: null,
       },
     ],
-    alertRule: {
-      targets: [{targetIdentifier: 1, targetType: 'Member'}],
-    },
     ...params,
   };
 }

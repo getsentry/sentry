@@ -99,11 +99,6 @@ describe('ExploreContent', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organizationSlug}/spans/fields/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organizationSlug}/events/`,
       method: 'GET',
       body: {},

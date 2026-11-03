@@ -5,6 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {AvatarProject} from 'sentry/types/project';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface WorkflowEngineDetailLayoutProps {
   /**
@@ -47,7 +48,7 @@ function Sidebar({children}: RequiredChildren) {
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
     <Fragment>
-      <Layout.Title>{title}</Layout.Title>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
       {project && (
         <Flex align="center" padding="md 0">
           <ProjectBadge project={project} disableLink avatarSize={16} />

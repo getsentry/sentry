@@ -127,8 +127,8 @@ def test_description() -> None:
             "/api/0/organizations/{organization_id_or_slug}/trace-items/attributes/",
             OrganizationTraceItemAttributesEndpoint,
             "listOrganizationTraceItemAttributes",
-            {"environment", "project"},
-            {"environment", "project"},
+            {"environment", "expand", "project"},
+            {"environment", "expand", "project"},
             id="trace-item-attributes",
         ),
     ],
@@ -155,3 +155,20 @@ def test_public_endpoint_query_parameters(
     assert expected_names <= query_parameters.keys()
     for name in array_names:
         assert query_parameters[name]["schema"]["type"] == "array"
+
+
+def test_trace_item_attributes_expand_is_experimental() -> None:
+    path = "/api/0/organizations/{organization_id_or_slug}/trace-items/attributes/"
+    route = path.removeprefix("/").replace(
+        "{organization_id_or_slug}", "<str:organization_id_or_slug>"
+    )
+    schema = generate_schema(route, view=OrganizationTraceItemAttributesEndpoint)
+    operation = schema["paths"][path]["get"]
+
+    # The endpoint itself stays PUBLIC; only `expand` is experimental.
+    assert "x-sentry-experimental" not in operation
+    assert "expand=context" in operation["description"]
+
+    (expand,) = [p for p in operation["parameters"] if p["name"] == "expand"]
+    assert expand["x-sentry-experimental"] is True
+    assert expand["description"].startswith("**Experimental:**")

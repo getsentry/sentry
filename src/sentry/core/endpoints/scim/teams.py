@@ -33,6 +33,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
@@ -186,6 +187,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     @extend_schema(
@@ -295,7 +297,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
                 team_created.send_robust(
                     organization_id=organization.id,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                     team_id=team.id,
                     sender=None,
                 )
@@ -329,6 +331,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMTeamPermission,)
     _allow_idp_changes = True
 
@@ -663,6 +666,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         """
         Delete a team with a SCIM Group DELETE Request.
         """
+        team_slug = team.slug
+        user_ids_to_revoke = []
         if self._should_manage_privileges(team):
             user_ids_to_revoke = [
                 omt.organizationmember.user_id
@@ -671,16 +676,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 )
                 if omt.organizationmember.user_id
             ]
-            if user_ids_to_revoke:
-                sync_scim_team_privileges.delay(
-                    team_slug=team.slug,
-                    organization_id=team.organization.id,
-                    user_ids_to_grant=[],
-                    user_ids_to_revoke=user_ids_to_revoke,
-                )
 
         metrics.incr("sentry.scim.team.delete")
-        return super().delete(request, team)
+        response = super().delete(request, team)
+
+        if user_ids_to_revoke:
+            sync_scim_team_privileges.delay(
+                team_slug=team_slug,
+                organization_id=team.organization.id,
+                user_ids_to_grant=[],
+                user_ids_to_revoke=user_ids_to_revoke,
+            )
+        return response
 
     def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts

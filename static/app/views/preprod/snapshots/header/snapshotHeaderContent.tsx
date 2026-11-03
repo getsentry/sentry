@@ -1,133 +1,124 @@
-import {Global, css} from '@emotion/react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 
-import {IdBadge} from 'sentry/components/idBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {SnapshotApproveButton} from 'sentry/views/preprod/snapshots/header/snapshotApproveButton';
+import {useSnapshotActions} from 'sentry/views/preprod/snapshots/header/useSnapshotActions';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
-const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+type PageTitleItem = Extract<BreadcrumbTitleItem, {type: 'page-title'}>;
 
-const topBarShrinkOverride = css`
-  *:has(> [${TITLE_MARKER_ATTR}]) {
-    flex: 1;
-    min-width: 0;
-  }
-  *:has(> [${TITLE_MARKER_ATTR}]) + * {
-    flex-shrink: 0;
-  }
-`;
-
-interface SnapshotHeaderContentProps {
-  data: SnapshotDetailsApiResponse;
+interface SnapshotBreadcrumbsProps {
+  snapshotId: string;
+  projectId?: string;
+  trailingActions?: PageTitleItem['trailingActions'];
 }
 
-export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
+function SnapshotBreadcrumbs({
+  projectId,
+  snapshotId,
+  trailingActions,
+}: SnapshotBreadcrumbsProps) {
   const organization = useOrganization();
-  const {vcs_info, app_id: appId} = data;
-  const shortSha = vcs_info.head_sha?.slice(0, 7);
-  const project = ProjectsStore.getById(data.project_id);
-  const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
-  const prUrl = getPrUrl(vcs_info);
-  const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
-
-  const vcsRef =
-    vcs_info.pr_number && prUrl ? (
-      <Flex align="center" gap="xs" flexShrink={0}>
-        <IconPullRequest size="xs" />
-        <ExternalLink href={prUrl}>
-          <Text size="sm" variant="accent" wrap="nowrap">
-            #{vcs_info.pr_number}
-            {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
-          </Text>
-        </ExternalLink>
-      </Flex>
-    ) : vcs_info.head_ref ? (
-      <Flex align="center" gap="xs" flexShrink={0}>
-        <IconStack size="xs" />
-        {branchUrl ? (
-          <ExternalLink href={branchUrl}>
-            <Text size="sm" variant="accent" wrap="nowrap">
-              {vcs_info.head_ref}
-            </Text>
-          </ExternalLink>
-        ) : (
-          <Text size="sm" wrap="nowrap">
-            {vcs_info.head_ref}
-          </Text>
-        )}
-      </Flex>
-    ) : null;
+  const project = useProjectFromId({project_id: projectId});
 
   return (
-    <Layout.Title>
-      <Global styles={topBarShrinkOverride} />
-      <Flex
-        align="center"
-        gap="md"
-        minWidth={0}
-        overflow="hidden"
-        {...{[TITLE_MARKER_ATTR]: ''}}
-      >
-        {t('Snapshots')}
-        <Container display={{zero: 'none', '3xs': 'flex'}}>
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/snapshots/"
-            title={t('Catch visual regressions before they reach users.')}
+    <TopBar.Slot
+      name="breadcrumbs"
+      items={[
+        {
+          type: 'link',
+          label: t('Snapshots'),
+          to: {
+            pathname: makeReleasesPathname({path: '/', organization}),
+            query: {tab: 'snapshots', project: project?.id},
+          },
+        },
+      ]}
+      title={{
+        type: 'page-title',
+        label: snapshotId,
+        leadingGraphic: project ? (
+          <ProjectBadge
+            disableLink
+            hideName
+            project={project}
+            avatarSize={16}
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
           />
-        </Container>
-
-        {project && (
-          <Container display={{zero: 'none', md: 'block'}}>
-            <Text as="div" size="sm">
-              <IdBadge project={project} avatarSize={16} />
-            </Text>
-          </Container>
-        )}
-
-        <Flex
-          align="center"
-          gap="md"
-          flexShrink={1}
-          minWidth={0}
-          overflow="hidden"
-          display={{zero: 'none', xs: 'flex'}}
-        >
-          {shortSha && shaUrl && (
-            <Flex align="center" gap="xs" flexShrink={0}>
-              <IconCommit size="xs" />
-              <ExternalLink href={shaUrl}>
-                <Text size="sm" variant="accent" monospace wrap="nowrap">
-                  {shortSha}
-                </Text>
-              </ExternalLink>
-            </Flex>
-          )}
-
-          {vcsRef}
-
-          {appId && (
-            <Flex align="center" gap="xs" minWidth={0}>
-              <IconCode size="xs" style={{flexShrink: 0}} />
-              <Link
-                to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
-              >
-                <Text size="sm" variant="accent" monospace ellipsis>
-                  {appId}
-                </Text>
-              </Link>
-            </Flex>
-          )}
-        </Flex>
-      </Flex>
-    </Layout.Title>
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        trailingActions,
+      }}
+    />
   );
+}
+
+interface SnapshotHeaderContentProps {
+  apiUrl: ReturnType<typeof getApiUrl>;
+  organizationSlug: string;
+  snapshotId: string;
+  data?: SnapshotDetailsApiResponse;
+}
+
+function SnapshotBreadcrumbsWithActions({
+  apiUrl,
+  data,
+  organizationSlug,
+  snapshotId,
+}: SnapshotHeaderContentProps & {data: SnapshotDetailsApiResponse}) {
+  const actions = useSnapshotActions({apiUrl, data, organizationSlug});
+
+  return (
+    <ConfirmDelete {...actions.confirmDeleteProps}>
+      {({open}) => (
+        <SnapshotBreadcrumbs
+          snapshotId={snapshotId}
+          projectId={data.project_id}
+          trailingActions={[
+            {
+              type: 'menu',
+              triggerLabel: t('More actions'),
+              triggerIcon: <IconEllipsis />,
+              items: actions.buildMenuItems(open),
+            },
+            actions.canApprove
+              ? {
+                  type: 'button',
+                  element: (
+                    <SnapshotApproveButton
+                      onApprove={actions.onApprove}
+                      disabled={actions.isApproving}
+                    />
+                  ),
+                }
+              : null,
+          ]}
+        />
+      )}
+    </ConfirmDelete>
+  );
+}
+
+/**
+ * The snapshot id is the artifact id and comes straight from the route, so the
+ * page title is there before the request resolves. The actions are not — they
+ * need the response — so they arrive with it.
+ */
+export function SnapshotHeaderContent(props: SnapshotHeaderContentProps) {
+  if (!props.data) {
+    return <SnapshotBreadcrumbs snapshotId={props.snapshotId} />;
+  }
+
+  return <SnapshotBreadcrumbsWithActions {...props} data={props.data} />;
 }

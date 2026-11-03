@@ -16,6 +16,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -41,7 +42,11 @@ type DiscordRenderable = DiscordMessage
 class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> DiscordRenderable:
         from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
         from sentry.integrations.discord.message_builder.base.component.action_row import (

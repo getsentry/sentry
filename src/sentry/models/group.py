@@ -23,7 +23,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, eventtypes, options, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     ALLOWED_FUTURE_DELTA,
@@ -527,11 +527,7 @@ class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .with_post_update_signal(options.get("groups.enable-post-update-signal"))
-        )
+        return super().get_queryset().with_post_update_signal(True)
 
     def by_qualified_short_id(
         self,
@@ -717,12 +713,8 @@ class GroupManager(BaseManager["Group"]):
         update_date: datetime | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
-        from sentry.incidents.grouptype import MetricIssue
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
-        from sentry.workflow_engine.models.incident_groupopenperiod import (
-            update_incident_based_on_open_period_status_change,
-        )
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -799,19 +791,6 @@ class GroupManager(BaseManager["Group"]):
                     new_status=GroupStatus.UNRESOLVED,
                 )
 
-            should_update_incident = is_status_resolved or (
-                is_status_unresolved and should_reopen_open_period[group.id]
-            )
-            # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id and should_update_incident:
-                if detector_id is None:
-                    logger.error(
-                        "Call to update metric issue status missing detector ID",
-                        extra={"group_id": group.id},
-                    )
-                    continue
-                update_incident_based_on_open_period_status_change(group, status)
-
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
@@ -864,14 +843,11 @@ class Group(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
-    logger = models.CharField(
-        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
-    )
+    logger = models.CharField(max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME))
     level = BoundedPositiveIntegerField(
         choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
-        db_index=True,
     )
     message = models.TextField()
     culprit = models.CharField(
@@ -898,7 +874,7 @@ class Group(Model):
             (GroupSubStatus.FOREVER, _("Forever")),
         ),
     )
-    times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
+    times_seen = BoundedPositiveIntegerField(default=1)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_release = FlexibleForeignKey("sentry.Release", null=True, on_delete=models.PROTECT)

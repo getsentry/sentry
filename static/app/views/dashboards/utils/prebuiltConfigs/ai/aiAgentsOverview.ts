@@ -1,4 +1,3 @@
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
@@ -15,12 +14,17 @@ import {
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {
+  getAgentRunsFilter,
+  getAiClientSpansFilter,
+  getToolSpansFilter,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const AGENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:agent`;
-const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
-const AGENT_AND_AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:[agent, ai_client]`;
-const TOOL_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:tool`;
+const AGENT_FILTER = getAgentRunsFilter();
+const AI_CLIENT_FILTER = getAiClientSpansFilter();
+const AGENT_AND_AI_CLIENT_FILTER = `(${getAgentRunsFilter()} OR ${getAiClientSpansFilter()})`;
+const TOOL_FILTER = getToolSpansFilter();
 
 const DEFAULT_GLOBAL_FILTERS = [
   {
@@ -32,18 +36,6 @@ const DEFAULT_GLOBAL_FILTERS = [
     },
     value: '',
   },
-];
-
-export const DEFAULT_TRACES_TABLE_WIDTHS = [
-  110,
-  COL_WIDTH_UNDEFINED,
-  140,
-  110,
-  110,
-  110,
-  120,
-  110,
-  110,
 ];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -219,7 +211,6 @@ const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   displayType: DisplayType.AGENTS_TRACES_TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
-  tableWidths: DEFAULT_TRACES_TABLE_WIDTHS,
   limit: MAX_TABLE_LIMIT,
   queries: [
     {

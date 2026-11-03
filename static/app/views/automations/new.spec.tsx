@@ -358,29 +358,25 @@ describe('AutomationNewSettings', () => {
     };
 
     await addAction('Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     await addAction('Slack (Staging)');
     {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget!, '#staging-alerts', {
-        delay: null,
-      });
+      await userEvent.click(stagingTarget!);
+      await userEvent.paste('#staging-alerts');
     }
 
     await addAction('Discord');
-    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel ID or URL'));
+    await userEvent.paste('123');
 
     await addAction('MS Teams');
-    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel name'));
+    await userEvent.paste('alerts-team');
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -645,6 +641,29 @@ describe('AutomationNewSettings', () => {
 
     // The project selector should show the pre-selected project
     expect(await screen.findByText('my-project')).toBeInTheDocument();
+  });
+
+  it('pre-selects the project from the project query param over page filters', async () => {
+    const queryProject = ProjectFixture({id: '2', slug: 'query-project', isMember: true});
+    const filterProject = ProjectFixture({
+      id: '3',
+      slug: 'filter-project',
+      isMember: true,
+    });
+    ProjectsStore.loadInitialData([queryProject, filterProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(filterProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: queryProject.id}},
+      },
+    });
+
+    expect(await screen.findByText('query-project')).toBeInTheDocument();
+    expect(screen.queryByText('filter-project')).not.toBeInTheDocument();
   });
 
   it('pre-selects the first member project when "my projects" is selected', async () => {

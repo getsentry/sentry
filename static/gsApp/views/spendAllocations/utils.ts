@@ -1,4 +1,22 @@
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+
 import {BILLION, MILLION} from 'getsentry/constants';
+
+/**
+ * Extracts a user-facing message from a failed API request. Falls back to the
+ * provided message when the request failed without a usable response body
+ * (e.g. a network failure, where `responseJSON` is undefined).
+ */
+export function getRequestErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as RequestError | undefined)?.responseJSON?.detail;
+  if (typeof detail === 'string' && detail) {
+    return detail;
+  }
+  if (typeof detail === 'object' && detail?.message) {
+    return detail.message;
+  }
+  return fallback;
+}
 
 export enum BigNumUnits {
   NUMBERS = 0,

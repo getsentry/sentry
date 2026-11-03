@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
@@ -91,26 +90,24 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-// Render a dollar amount, deep-linking to the org-scoped invoice detail page
-// when we have both the org slug and a single invoice's guid. The receipts
-// page (CustomerInvoiceDetailsEndpoint) resolves legacy and platform invoices
-// alike by guid. This is a plain anchor — not a router Link — because gsAdmin
-// is a separate app bundle from the org-facing settings UI, so navigating
-// there is a full page load (see the cross-app links in dataRequests.tsx).
+// Render a dollar amount, deep-linking to the admin invoice detail page when
+// the side has a single invoice. AdminInvoiceDetailsEndpoint resolves legacy
+// and platform invoices alike by guid, and unlike the org-scoped receipts
+// page it doesn't hide legacy shadow invoices for migrated orgs.
 function InvoiceAmount({
   cents,
   guid,
-  orgSlug,
+  region,
 }: {
   cents: number | null;
   guid: string | null;
-  orgSlug: string | null;
+  region: string | undefined;
 }) {
   const amount = formatDollars(cents);
-  if (!guid || !orgSlug) {
+  if (!guid || !region) {
     return amount;
   }
-  return <a href={`/settings/${orgSlug}/billing/receipts/${guid}/`}>{amount}</a>;
+  return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
 }
 
 function formatPercent(pct: number | null) {
@@ -461,15 +458,7 @@ export function InvoiceComparison() {
           <Panel>
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
-              <Grid
-                columns="repeat(3, 1fr)"
-                gap="xl"
-                css={css`
-                  @media (max-width: 900px) {
-                    grid-template-columns: repeat(2, 1fr);
-                  }
-                `}
-              >
+              <Grid columns={{zero: 'repeat(2, 1fr)', '2xl': 'repeat(3, 1fr)'}} gap="xl">
                 <Stack>
                   <Text size="sm" variant="muted">
                     Legacy invoices
@@ -548,7 +537,7 @@ export function InvoiceComparison() {
                         <InvoiceAmount
                           cents={row.legacy_amount}
                           guid={row.legacy_invoice_guid}
-                          orgSlug={row.organization_slug}
+                          region={cell?.name}
                         />{' '}
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
@@ -558,7 +547,7 @@ export function InvoiceComparison() {
                         <InvoiceAmount
                           cents={row.platform_amount}
                           guid={row.platform_invoice_guid}
-                          orgSlug={row.organization_slug}
+                          region={cell?.name}
                         />{' '}
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
@@ -621,7 +610,7 @@ export function InvoiceComparison() {
                         <InvoiceAmount
                           cents={row.amount}
                           guid={row.invoice_guid}
-                          orgSlug={row.organization_slug}
+                          region={cell?.name}
                         />
                       </RightCell>
                       <RightCell>{row.invoice_count}</RightCell>

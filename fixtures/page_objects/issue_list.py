@@ -1,3 +1,6 @@
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 from .issue_details import IssueDetailsPage
@@ -29,10 +32,14 @@ class IssueListPage(BasePage):
     def resolve_issues(self):
         self.browser.click('[aria-label="Resolve"]')
 
-    def wait_for_issue_removal(self):
-        toast_selector = '[role="status"]'
-        self.browser.click_when_visible(f'{toast_selector} [aria-label="Dismiss"]')
-        self.browser.wait_until_not(toast_selector)
+    def wait_for_issue_count(self, count: int) -> None:
+        WebDriverWait(self.driver, 10).until(
+            lambda driver: len(
+                driver.find_elements(By.CSS_SELECTOR, '[data-test-id="event-issue-header"]')
+            )
+            == count,
+            message=f"Expected {count} issues in the list",
+        )
 
     def wait_for_issue(self):
         self.browser.wait_until('[data-test-id="group"]')

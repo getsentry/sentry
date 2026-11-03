@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
-import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewUtils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 

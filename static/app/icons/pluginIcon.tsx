@@ -34,6 +34,8 @@ import vercel from 'sentry-logos/logo-vercel.svg';
 import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
+import codex from 'sentry-images/logo-codex.png';
+
 // Map of plugin id -> logo filename
 const PLUGIN_ICONS = {
   placeholder,
@@ -48,6 +50,7 @@ const PLUGIN_ICONS = {
   'amazon-sqs': aws,
   aws_lambda: aws,
   claude_code,
+  codex,
   cursor,
   cursor_origin: cursor,
   datadog,

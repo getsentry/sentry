@@ -1,9 +1,6 @@
-import {Component} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
-import type {
-  AdminConfirmParams,
-  AdminConfirmRenderProps,
-} from 'admin/components/adminConfirmationModal';
+import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 
 // Make sure these match the values in the backend
 // See https://github.com/getsentry/getsentry/blob/cf837619ae7c76e852666afc5578abc0f3f0a97b/getsentry/models/subscription.py#L147
@@ -19,51 +16,56 @@ const suspendReasons = [
   ],
 ] as const;
 
-type State = {
-  suspensionReason: (typeof suspendReasons)[number][0] | null;
-};
+type SuspensionReason = (typeof suspendReasons)[number][0] | null;
 
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-export class SuspendAccountAction extends Component<AdminConfirmRenderProps, State> {
-  state: State = {
-    suspensionReason: null,
-  };
+export function SuspendAccountAction({
+  onConfirm,
+  setConfirmCallback,
+  disableConfirmButton,
+}: AdminConfirmRenderProps) {
+  const [suspensionReason, setSuspensionReason] = useState<SuspensionReason>(null);
 
-  componentDidMount() {
-    this.props.setConfirmCallback(this.handleConfirm);
-  }
+  // Holds the latest selection so the confirm callback (registered once on
+  // mount) always reads the current value.
+  const suspensionReasonRef = useRef<SuspensionReason>(null);
 
-  handleConfirm = (_params: AdminConfirmParams) => {
+  useEffect(() => {
     // XXX(epurkhiser): In the original implementation none of the audit params
     // were passed, is that an oversight?
-    this.props.onConfirm?.({suspensionReason: this.state.suspensionReason});
-  };
+    setConfirmCallback(() => {
+      onConfirm?.({suspensionReason: suspensionReasonRef.current});
+    });
+    // Only register the callback once on mount. setConfirmCallback is recreated
+    // on every parent render and updates parent state, so depending on it would
+    // cause an infinite render loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  render() {
-    return suspendReasons.map(([key, label, help]) => (
-      <label style={{marginBottom: 10, position: 'relative'}} key={key}>
-        <div style={{position: 'absolute', left: 0, width: 20}}>
-          <input
-            data-test-id={`suspend-radio-btn-${key}`}
-            aria-label={label}
-            type="radio"
-            name="suspensionReason"
-            value={key}
-            checked={this.state.suspensionReason === key}
-            onChange={() => {
-              this.setState({suspensionReason: key});
-              this.props.disableConfirmButton(false);
-            }}
-          />
-        </div>
-        <div style={{marginLeft: 25}}>
-          <strong>{label}</strong>
-          <br />
-          <small style={{fontWeight: 'normal'}}>{help}</small>
-        </div>
-      </label>
-    ));
-  }
+  return suspendReasons.map(([key, label, help]) => (
+    <label style={{marginBottom: 10, position: 'relative'}} key={key}>
+      <div style={{position: 'absolute', left: 0, width: 20}}>
+        <input
+          data-test-id={`suspend-radio-btn-${key}`}
+          aria-label={label}
+          type="radio"
+          name="suspensionReason"
+          value={key}
+          checked={suspensionReason === key}
+          onChange={() => {
+            suspensionReasonRef.current = key;
+            setSuspensionReason(key);
+            disableConfirmButton(false);
+          }}
+        />
+      </div>
+      <div style={{marginLeft: 25}}>
+        <strong>{label}</strong>
+        <br />
+        <small style={{fontWeight: 'normal'}}>{help}</small>
+      </div>
+    </label>
+  ));
 }

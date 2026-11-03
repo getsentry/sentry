@@ -3,7 +3,7 @@ import {ThemeProvider, type Theme} from '@emotion/react';
 
 // these utils are for stories that have forced dark mode
 // which is a very specific sanctioned use case
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme} from '@sentry/scraps/theme';
 
 /**
  * Access the raw values from the dark theme

@@ -1,4 +1,5 @@
 import time
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
@@ -93,7 +94,22 @@ def _validate_project_config(config):
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
-    assert normalize_project_config(config) == config
+    expected = deepcopy(config)
+    # Relay serializes case-insensitive glob patterns lowercased:
+    if generic_filters := expected.get("filterSettings", {}).get("generic"):
+        _lowercase_glob_values(generic_filters)
+    assert normalize_project_config(config) == expected
+
+
+def _lowercase_glob_values(node: object) -> None:
+    if isinstance(node, dict):
+        if node.get("op") == "glob":
+            node["value"] = [value.lower() for value in node["value"]]
+        for child in node.values():
+            _lowercase_glob_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            _lowercase_glob_values(child)
 
 
 @django_db_all
@@ -278,6 +294,21 @@ def test_project_config_custom_inbound_filters_v2(
         ]
     else:
         assert custom_filters == []
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("option_enabled", [True, False])
+def test_project_config_json_expansion(default_project: MagicMock, option_enabled: bool) -> None:
+    default_project.update_option("sentry:relay_automatic_json_expansion", option_enabled)
+
+    project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    exposed_features = get_path(cfg, "config", "features") or []
+
+    assert ("projects:relay-automatic-json-expansion" in exposed_features) == option_enabled
 
 
 @django_db_all
@@ -696,7 +727,7 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     for profile in config["performanceScore"]["profiles"]:
         profile["version"] = "1"
 
-    assert normalize_project_config(config) == config
+    _validate_project_config(config)
     performance_score = config["performanceScore"]["profiles"]
     assert performance_score[0] == {
         "name": "Chrome",
@@ -1050,7 +1081,7 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     for profile in config["performanceScore"]["profiles"]:
         profile["version"] = "1"
 
-    assert normalize_project_config(config) == config
+    _validate_project_config(config)
     performance_score = config["performanceScore"]["profiles"]
 
     assert performance_score[8] == {
@@ -1501,3 +1532,72 @@ def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
     assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [
         f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{mine.id}"
     ]
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_serves_release_comparisons(default_project) -> None:
+    comparison = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "lt", "value": ["2.0.0"]}],
+    )
+    text = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
+    custom_ids = [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
+    assert custom_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{f.id}" for f in (comparison, text)]
+
+
+@django_db_all
+@cell_silo_test
+def test_project_config_reads_a_legacy_list_at_v2_from_its_row(default_project, factories):
+    default_project.update_option("sentry:releases", ["stale"])
+    default_project.update_option("sentry:error_messages", ["stale"])
+    default_project.update_option("sentry:log_messages", ["stale"])
+    default_project.update_option("sentry:trace_metric_names", ["some metric"])
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "value": ["1.*"]}],
+        legacy_filter=LegacyFilter.RELEASE_VERSION,
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        active=False,
+        data_type="error",
+        conditions=[{"type": "error_message", "value": ["TypeError*"]}],
+        legacy_filter=LegacyFilter.ERROR_MESSAGE,
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+            "organizations:ourlogs-ingestion": True,
+            "organizations:tracemetrics-ingestion": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    filter_settings = cfg["config"]["filterSettings"]
+    assert filter_settings["releases"] == {"releases": ["1.*"]}
+    # A row the user switched off applies nothing, and a list without a row is empty
+    # whatever its option still holds.
+    assert "errorMessages" not in filter_settings
+    generic_ids = [f["id"] for f in filter_settings["generic"]["filters"]]
+    assert "log-message" not in generic_ids
+    assert "trace-metric-name" not in generic_ids

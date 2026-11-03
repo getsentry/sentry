@@ -1,10 +1,6 @@
-from typing import Any, Mapping
-
 import pytest
 from jsonschema import ValidationError
 
-from sentry.rules.conditions.level import LevelCondition
-from sentry.rules.filters.level import LevelFilter
 from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -13,11 +9,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestLevelCondition(ConditionTestCase):
     condition = Condition.LEVEL
-    payload: Mapping[str, Any] = {
-        "id": LevelCondition.id,
-        "match": MatchType.EQUAL,
-        "level": "20",
-    }
 
     def setup_group_event_and_job(self) -> None:
         self.group_event = self.event.for_group(self.group)
@@ -33,32 +24,6 @@ class TestLevelCondition(ConditionTestCase):
             comparison={"match": MatchType.EQUAL, "level": 20},
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "match": MatchType.EQUAL,
-            "level": 20,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-    def test_dual_write_filter(self) -> None:
-        payload_copy = dict(self.payload)
-        payload_copy["id"] = LevelFilter.id
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(payload_copy, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "match": MatchType.EQUAL,
-            "level": 20,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 30})

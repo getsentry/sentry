@@ -11,7 +11,6 @@ from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Prov
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import AuthProviderTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -198,7 +197,6 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
 
-    @override_options({"auth.v2.enabled": True})
     def test_oauth2_flow_with_2fa(self) -> None:
         RecoveryCodeInterface().enroll(self.user)
         TotpInterface().enroll(self.user)

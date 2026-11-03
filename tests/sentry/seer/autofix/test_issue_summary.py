@@ -210,8 +210,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "possible_cause_confidence": 0.9,
                 "possible_cause_novelty": 0.8,
                 "fixability_score": 0.5,
-                "is_fixable": True,
-                "fixability_score_version": 1,
             },
         }
         mock_request.return_value = mock_response
@@ -551,7 +549,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             possible_cause="some possible cause",
             scores=SummarizeIssueScores(
                 fixability_score=0.5,
-                is_fixable=True,
             ),
         )
         mock_generate_fixability_score.return_value = mock_fixability_response

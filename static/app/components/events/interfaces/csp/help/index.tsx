@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {ExternalLink} from '@sentry/scraps/link';
-
-import {IconOpen} from 'sentry/icons';
 
 import {effectiveDirectives} from './effectiveDirectives';
 

@@ -1,11 +1,15 @@
+import {IconCopy} from '@sentry/icons/copy';
+
 import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {
+interface CopyAsDropdownProps extends Omit<
+  DropdownMenuProps,
+  'trigger' | 'triggerLabel'
+> {
   items: DropdownMenuProps['items'];
 }
 

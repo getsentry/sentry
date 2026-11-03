@@ -48,14 +48,12 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
-    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
-from sentry.utils.sdk import set_span_attribute
 
 logger = logging.getLogger(__name__)
 
@@ -248,8 +246,6 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Shadow column for widening `id` to int8. Every write keeps it equal to `id`.
-    new_id = BoundedBigIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -345,6 +341,10 @@ class Release(Model):
             models.Index(fields=("organization", "build_number")),
             models.Index(fields=("organization", "date_added")),
             models.Index(fields=("organization", "status")),
+            IndexWithPostgresNameLimits(
+                fields=["id", "organization"],
+                name="sentry_release_id_organization_id",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "version")
@@ -378,17 +378,6 @@ class Release(Model):
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
-
-    def save(self, **kwds: Any) -> None:
-        if self.id is None:
-            using = kwds.get("using")
-            if using is None:
-                using = router.db_for_write(type(self), instance=self)
-            self.id = reserve_ids(type(self), 1, using)[0]
-            self.new_id = self.id
-            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
-            kwds["force_insert"] = True
-        super().save(**kwds)
 
     @staticmethod
     def is_valid_version(value):
@@ -641,6 +630,9 @@ class Release(Model):
                     update_kwargs = {"release": to_release}
                 else:
                     update_kwargs = {"release_id": to_release.id}
+                if model is GroupRelease:
+                    # Dual-write: .update() skips GroupRelease.save(), so mirror the shadow here.
+                    update_kwargs["new_release_id"] = to_release.id
                 try:
                     with atomic_transaction(using=router.db_for_write(model)):
                         model.objects.filter(release_id=release.id).update(**update_kwargs)
@@ -752,7 +744,9 @@ class Release(Model):
         This will clear any existing commit log and replace it with the given
         commits.
         """
-        set_span_attribute("release.set_commits", len(commit_list))
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("release.set_commits", len(commit_list))
 
         from sentry.models.releases.set_commits import set_commits
 

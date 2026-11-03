@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -12,6 +12,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {getOption} from './options';
 
@@ -192,6 +193,15 @@ function TextOptionField({name, option}: OptionFieldProps) {
 }
 
 export default function AdminSettings() {
+  return (
+    <Fragment>
+      <BreadcrumbTitle title={t('Settings')} />
+      <AdminSettingsContent />
+    </Fragment>
+  );
+}
+
+function AdminSettingsContent() {
   const {data, isPending, isError} = useQuery(optionsQueryOptions);
   const location = useLocation();
 

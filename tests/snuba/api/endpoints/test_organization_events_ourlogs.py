@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import ANY, patch
 from uuid import uuid4
@@ -152,6 +153,31 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert meta["dataset"] == self.dataset
 
+    def test_invalid_wildcard_filter(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "foo"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message:*wild\\",
+                "orderby": "log.body",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Search terms cannot end with an escape character" in response.data["detail"]
+
     def test_regex_filter(self) -> None:
         logs = [
             self.create_ourlog(
@@ -171,7 +197,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -196,7 +221,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -223,7 +247,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -263,7 +286,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -289,29 +311,10 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
         assert [log["log.body"] for log in response.data["data"]] == ["Error: disk full"]
-
-    def test_regex_shaped_value_is_a_literal_without_the_feature(self) -> None:
-        logs = [
-            self.create_ourlog({"body": "//^ERROR//"}, timestamp=self.ten_mins_ago),
-            self.create_ourlog({"body": "ERROR [1] disk full"}, timestamp=self.nine_mins_ago),
-        ]
-        self.store_eap_items(logs)
-        response = self.do_request(
-            {
-                "field": ["log.body"],
-                "query": "message://^ERROR//",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert [log["log.body"] for log in response.data["data"]] == ["//^ERROR//"]
 
     def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
         response = self.do_request(
@@ -321,7 +324,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 400, response.content
@@ -697,6 +699,31 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         assert meta["dataset"] == self.dataset
 
+    def test_timestamp_precise_preserves_full_nanosecond_value(self) -> None:
+        base = before_now(minutes=10).replace(microsecond=0)
+        precise_nanos = int(base.timestamp()) * 1_000_000_000 + 123_456_789
+        log = self.create_ourlog(
+            {"body": "foo"},
+            attributes={"sentry.timestamp_precise": precise_nanos},
+            timestamp=base,
+        )
+        self.store_eap_items([log])
+
+        response = self.do_request(
+            {
+                "field": ["message", "timestamp_precise"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["timestamp_precise"] == precise_nanos
+        assert response.data["meta"]["fields"]["timestamp_precise"] == "number"
+
     def test_strip_sentry_prefix_from_message_parameter(self) -> None:
         logs = [
             self.create_ourlog(
@@ -851,6 +878,36 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         )
         assert response.status_code == 400, response.content
         assert "You must orderby timestamp to use HIGHEST_ACCURACY_FLEX_TIME" in str(
+            response.data["detail"]
+        )
+
+    def test_high_accuracy_flex_time_rejects_aggregates(self):
+        response = self.do_request(
+            {
+                "field": ["timestamp", "count()"],
+                "query": "",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "aggregates are not supported with flextime sampling" in str(response.data["detail"])
+
+    def test_high_accuracy_flex_time_ascending_orderby(self):
+        response = self.do_request(
+            {
+                "field": ["timestamp", "message", "id"],
+                "query": "",
+                "orderby": ["timestamp"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "Your first orderby must be -timestamp to use HIGHEST_ACCURACY_FLEX_TIME" in str(
             response.data["detail"]
         )
 
@@ -1211,6 +1268,73 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"count(message)": 1}]
+
+    def test_count_if_message(self):
+        self.store_eap_items(
+            [
+                self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago),
+                self.create_ourlog({"body": "hello"}, timestamp=self.ten_mins_ago),
+            ]
+        )
+        request = {
+            "field": ["count_if(`message:log`, message)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"count_if(`message:log`, message)": 1}]
+
+    def test_p50_if_message(self):
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {"body": "log"},
+                    attributes={"sentry.payload_size_bytes": 1234567},
+                    timestamp=self.ten_mins_ago,
+                ),
+                self.create_ourlog(
+                    {"body": "hello"},
+                    attributes={"sentry.payload_size_bytes": 7654321},
+                    timestamp=self.ten_mins_ago,
+                ),
+            ]
+        )
+        request = {
+            "field": ["p50_if(`message:log`,payload_size)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200
+        assert response.data["data"] == [{"p50_if(`message:log`,payload_size)": 1234567}]
+
+    def test_any_function(self):
+        log = self.create_ourlog(
+            {"body": "log"},
+            attributes={"sentry.payload_size_bytes": 1234567},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_eap_items([log])
+        request = {
+            "field": ["any(trace)", "any(timestamp)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "any(trace)": log.trace_id,
+                "any(timestamp)": math.floor(self.ten_mins_ago.timestamp()),
+            }
+        ]
 
     def test_aggregate_condition_filters_grouped_logs(self) -> None:
         self.store_eap_items(

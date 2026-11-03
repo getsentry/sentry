@@ -1,7 +1,14 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('ResultGrid', () => {
@@ -26,9 +33,11 @@ describe('ResultGrid', () => {
       <ResultGrid
         endpoint={endpoint}
         path={path}
-        columns={[<th key="h">Name</th>]}
+        columns={[{key: 'h', label: 'Name'}]}
         keyForRow={row => row.id}
-        columnsForRow={row => [<td key="c">{row.name}</td>]}
+        columnsForRow={row => [
+          <SimpleTable.RowCell key="c">{row.name}</SimpleTable.RowCell>,
+        ]}
         defaultSort="id"
         hasSearch
         {...extraProps}
@@ -53,6 +62,85 @@ describe('ResultGrid', () => {
     expect(screen.getByText('beta')).toBeInTheDocument();
     expect(screen.queryByText('Hold on to your butts!')).not.toBeInTheDocument();
     expect(mock).toHaveBeenCalled();
+  });
+
+  it('renders the headers and cells in column order when a column hides its label', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [{id: '1', name: 'alpha'}],
+    });
+
+    render(
+      <ExampleBasicResultGrid
+        inPanel
+        panelTitle="Things"
+        columns={[
+          {key: 'name', label: 'Name'},
+          {key: 'actions', label: 'Actions', hideLabel: true},
+        ]}
+        columnsForRow={row => [
+          <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="actions">edit</SimpleTable.RowCell>,
+        ]}
+      />
+    );
+
+    const table = await screen.findByRole('table', {name: 'Things'});
+    const row = await within(table).findByRole('row', {name: /alpha/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', '']);
+    expect(
+      within(table).getByRole('columnheader', {name: 'Actions'})
+    ).toBeInTheDocument();
+    expect(
+      within(row)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['alpha', 'edit']);
+  });
+
+  it('skips rows when their columns are empty', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [
+        {id: '1', name: 'alpha'},
+        {id: '2', name: 'hidden'},
+      ],
+    });
+
+    render(
+      <ExampleBasicResultGrid
+        columnsForRow={row =>
+          row.name === 'hidden'
+            ? []
+            : [<SimpleTable.RowCell key="c">{row.name}</SimpleTable.RowCell>]
+        }
+      />
+    );
+
+    expect(await screen.findByText('alpha')).toBeInTheDocument();
+    expect(screen.queryByText('hidden')).not.toBeInTheDocument();
+    expect(within(screen.getAllByRole('rowgroup')[1]!).getAllByRole('row')).toHaveLength(
+      1
+    );
+  });
+
+  it('shows the empty state when every row is skipped', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [{id: '1', name: 'hidden'}],
+    });
+
+    render(<ExampleBasicResultGrid columnsForRow={() => []} />);
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
   });
 
   it('updates the query string when a search is submitted', async () => {
@@ -83,7 +171,7 @@ describe('ResultGrid', () => {
 
     const {router} = render(<ExampleBasicResultGrid />);
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
@@ -109,7 +197,7 @@ describe('ResultGrid', () => {
       />
     );
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
     await userEvent.click(screen.getByRole('button', {name: /Status/}));
     await userEvent.click(await screen.findByRole('option', {name: 'Active'}));
     await waitFor(() => expect(router.location.query.status).toBe('active'));
@@ -121,13 +209,11 @@ describe('ResultGrid', () => {
   });
 
   it('shows the error state when the fetch itself rejects', async () => {
-    // The API client swallows a fetch-level rejection without running either
-    // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
+    // A fetch-level failure (blocked request, network error) rejects
+    // requestPromise, which must move the grid out of its loading state.
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockRejectedValue(new Error('Failed to fetch'));
 
     render(<ExampleBasicResultGrid />);
     const alert = await screen.findByText('Something bad happened :/');
@@ -161,8 +247,10 @@ function renderGrid(
       endpoint="/customers/"
       path="/_admin/customers/"
       method="GET"
-      columns={[<th key="name">Customer</th>]}
-      columnsForRow={(row: any) => [<td key="name">{row.name}</td>]}
+      columns={[{key: 'name', label: 'Customer'}]}
+      columnsForRow={(row: any) => [
+        <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+      ]}
       {...extraProps}
     />,
     {
@@ -542,10 +630,13 @@ describe('ResultGrid allowAllRegions', () => {
       {},
       {
         ...allRegionsProps,
-        columns: [<th key="name">Customer</th>, <th key="joined">Joined</th>],
+        columns: [
+          {key: 'name', label: 'Customer'},
+          {key: 'joined', label: 'Joined'},
+        ],
         columnsForRow: (row: any) => [
-          <td key="name">{row.name}</td>,
-          <td key="joined">2024</td>,
+          <SimpleTable.RowCell key="name">{row.name}</SimpleTable.RowCell>,
+          <SimpleTable.RowCell key="joined">2024</SimpleTable.RowCell>,
         ],
         regionColumnIndex: 1,
       }
@@ -638,6 +729,19 @@ describe('ResultGrid allowAllRegions', () => {
     let respond = true;
     const stubApi = {
       clear: jest.fn(),
+      // fetchRegionPages (all-regions) uses requestPromise
+      requestPromise: jest.fn((url: string, _options: any) => {
+        if (respond) {
+          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
+          return Promise.resolve([
+            [{id: '1', name, members: 5}],
+            'success',
+            {getResponseHeader: () => null},
+          ]);
+        }
+        return new Promise(() => {}); // never settles
+      }),
+      // single-region fetch still uses api.request with callbacks
       request: jest.fn((url: string, options: any) => {
         if (respond) {
           const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
@@ -708,18 +812,19 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
-    // The real API client swallows fetch rejections without calling success
-    // or error, so the grid must resolve the region through requestPromise.
     const stubApi = {
       clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
+      requestPromise: jest.fn((url: string, _options: any) => {
         if (url.startsWith('/_admin/cells/us/')) {
-          options.success([{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-          return {requestPromise: Promise.resolve()};
+          return Promise.resolve([
+            [{id: '1', name: 'Acme', members: 5}],
+            'success',
+            {
+              getResponseHeader: () => null,
+            },
+          ]);
         }
-        return {requestPromise: Promise.reject(new Error('Failed to fetch'))};
+        return Promise.reject(new Error('Failed to fetch'));
       }),
     };
 

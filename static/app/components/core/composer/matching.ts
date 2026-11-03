@@ -22,16 +22,18 @@ function findDefaultMatch(
   text: string,
   selectionStart: number,
   selectionEnd: number,
-  trigger: string
+  trigger: string,
+  restrictToStart: boolean
 ): TriggerMatch | null {
   if (selectionStart !== selectionEnd) {
     return null;
   }
 
   const escapedTrigger = escapeRegExp(trigger);
+  const boundary = restrictToStart ? '^' : '(?:^|\\s)';
   const match = text
     .slice(0, selectionStart)
-    .match(new RegExp(`(?:^|\\s)(${escapedTrigger}([^\\s${escapedTrigger}]*))$`));
+    .match(new RegExp(`${boundary}(${escapedTrigger}([^\\s${escapedTrigger}]*))$`));
   if (!match?.[1]) {
     return null;
   }
@@ -47,12 +49,18 @@ export function findActiveTrigger(
   text: string,
   selectionStart: number,
   selectionEnd: number,
-  sources: ReadonlyArray<{trigger: string}>
+  sources: ReadonlyArray<{trigger: string; restrictToStart?: boolean}>
 ): ActiveTrigger | null {
   let activeTrigger: ActiveTrigger | null = null;
 
   for (const source of sources) {
-    const match = findDefaultMatch(text, selectionStart, selectionEnd, source.trigger);
+    const match = findDefaultMatch(
+      text,
+      selectionStart,
+      selectionEnd,
+      source.trigger,
+      source.restrictToStart ?? false
+    );
     if (!match || match.start < 0 || match.end < match.start || match.end > text.length) {
       continue;
     }

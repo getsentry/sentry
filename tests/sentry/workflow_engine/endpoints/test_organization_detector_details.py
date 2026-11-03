@@ -1,11 +1,15 @@
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
+from django.db.models import QuerySet
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.test import APIClient
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -16,6 +20,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -40,11 +45,18 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    GATE_FEATURE,
+    assert_querysets_unchanged,
+    override_detector_api_availability,
+)
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 @cell_silo_test
@@ -157,12 +169,78 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
         )
         assert self.detector.data_sources is not None
 
+    def detector_querysets(self) -> dict[str, QuerySet[Any]]:
+        return {
+            "detectors": Detector.objects.filter(id=self.detector.id),
+            "data_sources": DataSource.objects.filter(organization=self.organization),
+            "data_source_detectors": DataSourceDetector.objects.filter(detector=self.detector),
+            "subscriptions": QuerySubscription.objects.filter(project=self.project),
+            "snuba_queries": SnubaQuery.objects.filter(id=self.snuba_query.id),
+            "condition_groups": DataConditionGroup.objects.filter(id=self.data_condition_group.id),
+            "conditions": DataCondition.objects.filter(condition_group=self.data_condition_group),
+            "detector_workflows": DetectorWorkflow.objects.filter(detector=self.detector),
+            "scheduled_deletions": CellScheduledDeletion.objects.filter(
+                model_name="Detector", object_id=self.detector.id
+            ),
+        }
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
+
+    def test_get_feature_gate(self) -> None:
+        with override_detector_api_availability(
+            MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+        ):
+            with self.feature({GATE_FEATURE: False}):
+                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
+            with self.feature(GATE_FEATURE):
+                response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
+    def test_list_exclusion_does_not_affect_detail(self) -> None:
+        with override_detector_api_availability(
+            MetricIssue.slug, {DetectorAPIOperation.LIST: False}
+        ):
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+        assert response.data == serialize(self.detector)
+
+    def test_get_feature_gate_uses_authorized_actor(self) -> None:
+        allowed_user = self.create_user(is_superuser=False)
+        denied_user = self.create_user(is_superuser=False)
+        for user in (allowed_user, denied_user):
+            self.create_member(
+                user=user, organization=self.organization, role="member", teams=[self.team]
+            )
+        allowed_user_id = allowed_user.id
+
+        class ActorFeatureHandler(features.BatchFeatureHandler):
+            features = {GATE_FEATURE}
+
+            def _check_for_batch(self, feature_name: str, entity: Any, actor: Any) -> bool:
+                return actor is not None and actor.id == allowed_user_id
+
+            def batch_has(self, *args: Any, **kwargs: Any) -> None:
+                raise NotImplementedError
+
+        with (
+            mock.patch.dict(
+                features.default_manager._handler_registry, {GATE_FEATURE: [ActorFeatureHandler()]}
+            ),
+            override_detector_api_availability(
+                MetricIssue.slug, {DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE)}
+            ),
+        ):
+            self.login_as(allowed_user)
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+            assert response.data == serialize(self.detector)
+
+            self.login_as(denied_user)
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
 
     def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 999999999, status_code=404)
@@ -345,6 +423,47 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
     def assert_snuba_query_updated(self, snuba_query: SnubaQuery) -> None:
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
+
+    def test_put_feature_gate(self) -> None:
+        # LIST alone doesn't restrict updates
+        with override_detector_api_availability(
+            MetricIssue.slug,
+            {
+                DetectorAPIOperation.PUT: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.LIST: False,
+            },
+        ):
+            with (
+                self.feature({GATE_FEATURE: False}),
+                assert_querysets_unchanged(**self.detector_querysets()),
+            ):
+                self.get_error_response(
+                    self.organization.slug, self.detector.id, **self.valid_data, status_code=404
+                )
+
+            with self.feature(GATE_FEATURE), self.tasks():
+                self.get_success_response(
+                    self.organization.slug, self.detector.id, **self.valid_data
+                )
+
+        self.detector.refresh_from_db()
+        self.assert_detector_updated(self.detector)
+
+    def test_put_excluded_target_type_is_rejected(self) -> None:
+        with (
+            override_detector_api_availability(
+                MonitorIncidentType.slug, {DetectorAPIOperation.PUT: False}
+            ),
+            assert_querysets_unchanged(**self.detector_querysets()),
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                name="Unauthorized change",
+                type=MonitorIncidentType.slug,
+                status_code=400,
+            )
+        assert "type" in response.data
 
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     def test_update(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
@@ -687,6 +806,48 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             assert audit_entries.count() == 2
             assert audit_entries[0].target_object == detector_workflows[0].id
             assert audit_entries[1].target_object == detector_workflows[1].id
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_advertises_org_write_for_all_projects_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(detector=all_projects_detector, workflow=workflow)
+
+        def create_agent_client(scopes: list[str]) -> APIClient:
+            token, _ = agent_token.encode_agent_token(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                scopes=scopes,
+                session_id="detector-workflow-update",
+            )
+            client = APIClient()
+            client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+            return client
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = create_agent_client(["alerts:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
+        assert not DetectorWorkflow.objects.filter(
+            detector=self.detector, workflow=workflow
+        ).exists()
+
+        with self.feature(agent_token.FEATURE_FLAG), outbox_runner():
+            retry_response = create_agent_client(["org:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert retry_response.status_code == 200, retry_response.content
+        assert DetectorWorkflow.objects.filter(detector=self.detector, workflow=workflow).exists()
 
     def test_update_workflows_replace_workflows(self) -> None:
         """Test replacing existing workflows with new ones"""
@@ -1134,6 +1295,27 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 @cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
+
+    def test_delete_feature_gate(self) -> None:
+        # LIST alone doesn't restrict deletion
+        with override_detector_api_availability(
+            MetricIssue.slug,
+            {
+                DetectorAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
+                DetectorAPIOperation.LIST: False,
+            },
+        ):
+            with (
+                self.feature({GATE_FEATURE: False}),
+                assert_querysets_unchanged(**self.detector_querysets()),
+            ):
+                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
+            with self.feature(GATE_FEATURE), outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
 
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"

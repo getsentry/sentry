@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     NotFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.models.group import Group
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
@@ -32,7 +33,6 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import process_value
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
     DEFINITIONS = OCCURRENCE_DEFINITIONS
 
     @classmethod
-    @trace
+    @traces.trace
     def run_table_query(
         cls,
         *,
@@ -99,7 +99,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_table_query_with_tags(
         cls,
         tag_names: set[str],
@@ -161,7 +161,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_grouped_timeseries_query(
         cls,
         *,
@@ -269,7 +269,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
         return results
 
     @classmethod
-    @trace
+    @traces.trace
     def run_stats_query(
         cls,
         *,

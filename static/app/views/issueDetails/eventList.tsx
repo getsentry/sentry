@@ -1,9 +1,9 @@
 import {useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

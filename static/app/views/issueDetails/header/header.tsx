@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -41,10 +40,6 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {
-  getGroupReprocessingStatus,
-  ReprocessingStatus,
-} from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface GroupHeaderProps {
@@ -68,11 +63,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
-  const groupReprocessingStatus = getGroupReprocessingStatus(group);
-  const disableActions = [
-    ReprocessingStatus.REPROCESSING,
-    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
-  ].includes(groupReprocessingStatus);
 
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
@@ -95,23 +85,20 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       >
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="breadcrumbs">
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Issues'),
-                    to: {
-                      pathname: `/organizations/${organization.slug}/issues/`,
-                      query,
-                    },
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={issueItem}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Issues'),
+                  to: {
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query,
                   },
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title item={issueItem} />
-            </TopBar.Slot>
+                },
+              ]}
+            />
             {hasErrorUpsampling && (
               <Container display={{zero: 'none', sm: 'block'}}>
                 <Tooltip
@@ -233,12 +220,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 borderTop="primary"
                 pointerEvents="none"
               />
-              <GroupActions
-                group={group}
-                project={project}
-                disabled={disableActions}
-                event={event}
-              />
+              <GroupActions group={group} project={project} event={event} />
               <Flex justify={{zero: 'start', '4xl': 'end'}} gap="0 xl" wrap="wrap">
                 <Flex align="center" gap="xs">
                   <Text variant="muted">{t('Priority')}</Text>

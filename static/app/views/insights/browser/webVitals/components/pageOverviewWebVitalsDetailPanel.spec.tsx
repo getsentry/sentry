@@ -85,7 +85,7 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
     expect(screen.getByText('Transaction')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.getByText('Replay')).toBeInTheDocument();
-    expect(screen.getByText('fcp')).toBeInTheDocument();
-    expect(screen.getByText('fcp Score')).toBeInTheDocument();
+    expect(screen.getByText('FCP')).toBeInTheDocument();
+    expect(screen.getByText('FCP Score')).toBeInTheDocument();
   });
 });

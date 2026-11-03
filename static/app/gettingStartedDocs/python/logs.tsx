@@ -10,10 +10,22 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const LOGS_MINIMUM_SDK_VERSION = '2.68.0';
+
 export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
   content: [
+    {
+      type: 'text',
+      text: tct(
+        'Logs require Python SDK version [minimumVersion] or higher. If you already have an older version installed, upgrade it with [code:pip install --upgrade sentry-sdk].',
+        {
+          code: <code />,
+          minimumVersion: <code>{LOGS_MINIMUM_SDK_VERSION}</code>,
+        }
+      ),
+    },
     {
       type: 'text',
       text: t('You can send logs to Sentry using the Sentry logging APIs:'),
@@ -30,14 +42,27 @@ sentry_sdk.logger.error('This is an error message')`,
     },
     {
       type: 'text',
-      text: t(
-        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+      text: tct(
+        "You can also forward logs from Python's built-in logging module by setting [code:capture_sentry_logs=True] on the [code:LoggingIntegration]:",
+        {
+          code: <code />,
+        }
       ),
     },
     {
       type: 'code',
       language: 'python',
       code: `import logging
+
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+
+sentry_sdk.init(
+    # ...
+    integrations=[
+        LoggingIntegration(capture_sentry_logs=True),
+    ],
+)
 
 # Your existing logging setup
 logger = logging.getLogger(__name__)
@@ -58,14 +83,14 @@ export const logs = (): OnboardingConfig => ({
         {
           type: 'text',
           text: tct(
-            'Install our Python SDK with a minimum version that supports logs ([code:2.35.0] or higher).',
+            'Install our Python SDK with a minimum version that supports logs ([minimumVersion] or higher).',
             {
-              code: <code />,
+              minimumVersion: <code>{LOGS_MINIMUM_SDK_VERSION}</code>,
             }
           ),
         },
         getPythonInstallCodeBlock({
-          minimumVersion: '2.35.0',
+          minimumVersion: LOGS_MINIMUM_SDK_VERSION,
         }),
       ],
     },
@@ -77,7 +102,7 @@ export const logs = (): OnboardingConfig => ({
         {
           type: 'text',
           text: tct(
-            'Configure the Sentry SDK to capture logs by setting [code:enable_logs=True] in your [code:sentry_sdk.init()] call:',
+            'Logs are enabled by default, so no extra configuration is needed in your [code:sentry_sdk.init()] call:',
             {
               code: <code />,
             }
@@ -90,8 +115,6 @@ export const logs = (): OnboardingConfig => ({
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    # Enable logs to be sent to Sentry
-    enable_logs=True,
 )`,
         },
         {

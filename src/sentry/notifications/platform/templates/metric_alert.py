@@ -29,8 +29,14 @@ class MetricAlertNotificationData(NotificationData):
     text: str
     notes: str | None = None
 
+    # The workflow (alert) that sent this notification, if known
+    workflow_name: str | None = None
+    workflow_link: str | None = None
+
     # Pre-computed chart URL (None if feature disabled or build failed)
     chart_url: str | None = None
+
+    show_investigation_button: bool = False
 
 
 _EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(

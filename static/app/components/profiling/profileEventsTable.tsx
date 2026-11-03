@@ -2,16 +2,17 @@ import {useCallback} from 'react';
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
-import type {
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {UserMisery} from 'sentry/components/userMisery';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -21,7 +22,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -75,7 +76,7 @@ export function ProfileEventsTable<F extends FieldType>(
   );
 
   return (
-    <GridEditable
+    <DataGrid
       isLoading={props.isLoading}
       error={props.error}
       data={props.data?.data ?? []}

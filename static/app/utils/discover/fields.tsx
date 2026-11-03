@@ -3,7 +3,7 @@ import isEqual from 'lodash/isEqual';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
+import type {ColumnAlign} from 'sentry/components/tables/dataGrid';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
@@ -72,7 +72,7 @@ export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
-      columnTypes: Readonly<ValidateColumnTypes>;
+      columnTypes: readonly ColumnType[] | ValidateColumnValueFunction;
       kind: 'column';
       required: boolean;
       defaultValue?: string;
@@ -252,7 +252,18 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
-export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
+export enum FractionUnit {
+  RATIO = 'ratio', // 1 means 100%
+  PERCENT = 'percent', // 100 means 100%
+}
+
+// Fractions normalized to a ratio of 1
+export const FRACTION_UNIT_MULTIPLIERS: Record<FractionUnit, number> = {
+  [FractionUnit.RATIO]: 1,
+  [FractionUnit.PERCENT]: 1 / 100,
+};
+
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | FractionUnit | null;
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -940,9 +951,9 @@ export function measurementType(field: string): MeasurementType {
   return FieldValueType.NUMBER;
 }
 
-const AGGREGATE_PATTERN = /^(\w+)\((.*)\)$/;
+const AGGREGATE_PATTERN = /^(formula\.[^()]+|\w+)\((.*)\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-export const AGGREGATE_BASE = /(\w+)\((.*)\)/g;
+export const AGGREGATE_BASE = /(formula\.[^()]+|\w+)\((.*)\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate

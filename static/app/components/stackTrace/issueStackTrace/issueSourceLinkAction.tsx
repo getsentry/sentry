@@ -12,7 +12,7 @@ import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 
 const HOVER_ACTIONS_SLOT_HEIGHT = 28;
 
@@ -24,7 +24,7 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
   const {frame, event, isExpanded} = useStackTraceFrameContext();
   const {project} = useStackTraceContext();
 
-  const storeComponents = useSentryAppComponentsStore({
+  const storeComponents = useSentryAppComponents({
     componentType: 'stacktrace-link',
   });
   const components = useMemo(
@@ -62,10 +62,8 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
         zero: 'auto',
         xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
       }}
-      minHeight={{
-        zero: '0',
-        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
-      }}
+      // Reserve the hover actions height at every width so rows don't grow on hover
+      minHeight={hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0'}
       overflow={{zero: 'visible', xl: 'hidden'}}
       whiteSpace="nowrap"
       pointerEvents="none"

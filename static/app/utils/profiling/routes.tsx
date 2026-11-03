@@ -11,6 +11,8 @@ import {
 
 const PROFILING_BASE_PATHNAME = 'explore/profiles';
 
+export const PROFILE_CONTEXT_WINDOW_MS = 100;
+
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
   return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
 }

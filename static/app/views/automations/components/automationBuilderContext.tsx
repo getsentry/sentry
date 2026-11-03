@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useReducer, type Reducer} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useReducer,
+  type Reducer,
+} from 'react';
 import {uuid4} from '@sentry/core';
 
 import type {
@@ -58,75 +65,45 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
     initialState ?? initialAutomationBuilderState
   );
 
-  const actions: AutomationActions = {
-    addWhenCondition: useCallback(
-      (conditionType: DataConditionType) =>
+  const actions = useMemo<AutomationActions>(
+    () => ({
+      addWhenCondition: (conditionType: DataConditionType) =>
         dispatch({type: 'ADD_WHEN_CONDITION', conditionType}),
-      [dispatch]
-    ),
-    removeWhenCondition: useCallback(
-      (id: string) => dispatch({type: 'REMOVE_WHEN_CONDITION', id}),
-      [dispatch]
-    ),
-    updateWhenCondition: useCallback(
-      (
+      removeWhenCondition: (id: string) => dispatch({type: 'REMOVE_WHEN_CONDITION', id}),
+      updateWhenCondition: (
         id: string,
         params: {
           comparison?: any;
           type?: DataConditionType;
         }
       ) => dispatch({type: 'UPDATE_WHEN_CONDITION', id, params}),
-      [dispatch]
-    ),
-    updateWhenLogicType: useCallback(
-      (logicType: DataConditionGroupLogicType) =>
+      updateWhenLogicType: (logicType: DataConditionGroupLogicType) =>
         dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType}),
-      [dispatch]
-    ),
-    addIf: useCallback(() => dispatch({type: 'ADD_IF'}), [dispatch]),
-    removeIf: useCallback(
-      (groupId: string) => dispatch({type: 'REMOVE_IF', groupId}),
-      [dispatch]
-    ),
-    addIfCondition: useCallback(
-      (groupId: string, conditionType: DataConditionType) =>
+      addIf: () => dispatch({type: 'ADD_IF'}),
+      removeIf: (groupId: string) => dispatch({type: 'REMOVE_IF', groupId}),
+      addIfCondition: (groupId: string, conditionType: DataConditionType) =>
         dispatch({type: 'ADD_IF_CONDITION', groupId, conditionType}),
-      [dispatch]
-    ),
-    removeIfCondition: useCallback(
-      (groupId: string, conditionId: string) =>
+      removeIfCondition: (groupId: string, conditionId: string) =>
         dispatch({type: 'REMOVE_IF_CONDITION', groupId, conditionId}),
-      [dispatch]
-    ),
-    updateIfCondition: useCallback(
-      (
+      updateIfCondition: (
         groupId: string,
         conditionId: string,
         params: {comparison?: any; type?: DataConditionType}
       ) => dispatch({type: 'UPDATE_IF_CONDITION', groupId, conditionId, params}),
-      [dispatch]
-    ),
-    addIfAction: useCallback(
-      (groupId: string, actionHandler: ActionHandler) =>
+      addIfAction: (groupId: string, actionHandler: ActionHandler) =>
         dispatch({type: 'ADD_IF_ACTION', groupId, actionHandler}),
-      [dispatch]
-    ),
-    removeIfAction: useCallback(
-      (groupId: string, actionId: string) =>
+      removeIfAction: (groupId: string, actionId: string) =>
         dispatch({type: 'REMOVE_IF_ACTION', groupId, actionId}),
-      [dispatch]
-    ),
-    updateIfAction: useCallback(
-      (groupId: string, actionId: string, params: Partial<Omit<Action, 'id' | 'type'>>) =>
-        dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
-      [dispatch]
-    ),
-    updateIfLogicType: useCallback(
-      (groupId: string, logicType: DataConditionGroupLogicType) =>
+      updateIfAction: (
+        groupId: string,
+        actionId: string,
+        params: Partial<Omit<Action, 'id' | 'type'>>
+      ) => dispatch({type: 'UPDATE_IF_ACTION', groupId, actionId, params}),
+      updateIfLogicType: (groupId: string, logicType: DataConditionGroupLogicType) =>
         dispatch({type: 'UPDATE_IF_LOGIC_TYPE', groupId, logicType}),
-      [dispatch]
-    ),
-  };
+    }),
+    []
+  );
 
   return {state, actions};
 }

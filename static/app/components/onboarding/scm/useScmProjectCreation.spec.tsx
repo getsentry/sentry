@@ -59,7 +59,7 @@ describe('useScmProjectCreation', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
-    // ProjectsStore.onCreateSuccess reloads organization details.
+    // useCreateProject reloads organization details after creating a project.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       body: organization,

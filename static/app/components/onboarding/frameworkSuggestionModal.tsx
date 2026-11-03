@@ -8,6 +8,7 @@ import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -365,9 +366,20 @@ export function FrameworkSuggestionModal({
 
   return (
     <form.AppForm form={form}>
-      <Header>
+      <Container
+        as="header"
+        position="relative"
+        height="30px"
+        css={theme => css`
+          margin: -${theme.space['3xl']} -${theme.space.xl} 0 -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+        `}
+      >
         <CloseButton onClick={closeModal} />
-      </Header>
+      </Container>
       <Body>
         <TopFrameworksImage frameworks={listEntries} />
         <Heading>{t('Do you use a framework?')}</Heading>
@@ -396,22 +408,26 @@ export function FrameworkSuggestionModal({
                           {items.map((platform, index) => (
                             <PlatformListItem key={platform.id}>
                               <RadioLabel index={index}>
-                                <RadioBox
-                                  size="sm"
-                                  autoFocus={platform.id === selectedPlatform.key}
-                                  name={field.name}
-                                  value={platform.id}
-                                  checked={field.state.value === platform.id}
-                                  onChange={() => field.handleChange(platform.id)}
-                                  onBlur={field.handleBlur}
-                                  onKeyDown={event => {
-                                    // Radios do not consistently submit on Enter across browsers.
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault();
-                                      event.currentTarget.form?.requestSubmit();
-                                    }
-                                  }}
-                                />
+                                <field.Base<HTMLInputElement>>
+                                  {baseProps => (
+                                    <RadioBox
+                                      {...baseProps}
+                                      id={`${baseProps.id}-${platform.id}`}
+                                      size="sm"
+                                      autoFocus={platform.id === selectedPlatform.key}
+                                      value={platform.id}
+                                      checked={field.state.value === platform.id}
+                                      onChange={() => field.handleChange(platform.id)}
+                                      onKeyDown={event => {
+                                        // Radios do not consistently submit on Enter across browsers.
+                                        if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          event.currentTarget.form?.requestSubmit();
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                </field.Base>
                                 <PlatformListItemIcon
                                   size={24}
                                   platform={platform.id}
@@ -484,18 +500,6 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
     </TopFrameworksImageWrapper>
   );
 }
-
-const Header = styled('header')`
-  position: relative;
-  height: 30px;
-
-  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
-    0 -${p => p.theme.space['2xl']};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
-      0 -${p => p.theme.space['3xl']};
-  }
-`;
 
 const TopFrameworkIcon = styled(PlatformIcon, {
   shouldForwardProp: prop => prop !== 'angle' && prop !== 'offset',

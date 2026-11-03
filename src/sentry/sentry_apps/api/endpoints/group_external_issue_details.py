@@ -16,13 +16,14 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     GroupActionActor,
     publish_action,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.locks import locks
@@ -37,6 +38,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
 
     @extend_schema(
         operation_id="deleteOrganizationIssueExternalIssue",
@@ -102,8 +104,8 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 project=group.project,
                 actor=(
-                    GroupActionActor.user(request.user.id)
-                    if request.user.is_authenticated
+                    GroupActionActor.user(user_id)
+                    if (user_id := acting_user_id(request.user)) is not None
                     else SYSTEM_ACTOR
                 ),
             )

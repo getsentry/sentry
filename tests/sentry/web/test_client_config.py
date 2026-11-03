@@ -94,27 +94,8 @@ def test_client_config_default() -> None:
 
 
 @multiregion_client_config_test
-@pytest.mark.parametrize(
-    "request_factory",
-    [
-        none_request,
-        make_request,
-        make_user_request,
-        make_user_request_from_org,
-        make_user_request_from_non_existant_org,
-        make_user_request_from_org_with_auth_identities,
-    ],
-)
 @django_db_all(transaction=True)
-def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
-    request_ret = request_factory()
-    if request_ret is not None:
-        request, _ = request_ret
-    else:
-        request = None
-
-    base_line = dict(get_client_config(request))
-
+def test_client_config_in_silo_modes(subtests: pytest.Subtests) -> None:
     def normalize(value: dict[str, Any]):
         # Removing the region lists as it varies based on silo mode.
         # See Locality.to_url()
@@ -123,15 +104,35 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory) -> None:
         value.pop("cells")
         value["links"].pop("regionUrl")
 
-    normalize(base_line)
-    cache.clear()
-
-    for silo_mode in SiloMode:
-        with override_settings(SILO_MODE=silo_mode):
-            result = dict(get_client_config(request))
-            normalize(result)
-            assert result == base_line
+    # The factories create independent users and orgs, so the cases can share one
+    # transactional DB setup instead of flushing every table per case.
+    request_factories: list[RequestFactory] = [
+        none_request,
+        make_request,
+        make_user_request,
+        make_user_request_from_org,
+        make_user_request_from_non_existant_org,
+        make_user_request_from_org_with_auth_identities,
+    ]
+    for make_request_fn in request_factories:
+        with subtests.test(msg=make_request_fn.__name__):
             cache.clear()
+            request_ret = make_request_fn()
+            if request_ret is not None:
+                request, _ = request_ret
+            else:
+                request = None
+
+            base_line = dict(get_client_config(request))
+            normalize(base_line)
+            cache.clear()
+
+            for silo_mode in SiloMode:
+                with override_settings(SILO_MODE=silo_mode):
+                    result = dict(get_client_config(request))
+                    normalize(result)
+                    assert result == base_line
+                    cache.clear()
 
 
 @no_silo_test

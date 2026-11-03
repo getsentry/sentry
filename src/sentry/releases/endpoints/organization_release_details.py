@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import options, release_health
+from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
@@ -45,9 +45,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.issues.action_log import (
     action_context_scope,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -318,6 +317,7 @@ class OrganizationReleaseDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationRelease",
@@ -603,10 +603,7 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        data: ReleaseSerializerResponse = serialize(
-            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-        )
+        data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
         return Response(data)
 
     @extend_schema(

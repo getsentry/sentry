@@ -3,11 +3,11 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   ReplayAccess,
@@ -82,30 +82,31 @@ function ReplaysHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title ? (
-            title
-          ) : (
-            <Fragment>
-              {t('Session Replay')}
-              <PageHeadingQuestionTooltip
-                title={t(
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Session Replay'),
+            labelTooltip: title ? undefined : (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/session-replay/">
+                {t(
                   'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
                 )}
-                docsUrl="https://docs.sentry.io/product/session-replay/"
-              />
-            </Fragment>
-          )}
-        </TopBar.Slot>
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
     </Fragment>
   );
 }
 
 function useReplayListLLMContextData({
+  onboarding,
   showDeadRageClickCards,
   widgetIsOpen,
 }: {
+  onboarding: boolean;
   showDeadRageClickCards: boolean;
   widgetIsOpen: boolean;
 }) {
@@ -116,6 +117,9 @@ function useReplayListLLMContextData({
   useLLMContext({
     contextHint:
       'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details. ' +
+      (onboarding
+        ? 'The page shows Session Replay setup instructions instead of the list, because the selected projects have not sent any replays or the plan does not include Session Replay. '
+        : '') +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
@@ -160,8 +164,10 @@ function ReplaysListBody() {
     true
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
+  const showReplayList = hasSessionReplay && hasSentReplays.hasSentOneReplay;
 
   useReplayListLLMContextData({
+    onboarding: !hasSentReplays.fetching && !showReplayList,
     showDeadRageClickCards: showDeadRageClickWidgets,
     widgetIsOpen,
   });
@@ -188,7 +194,7 @@ function ReplaysListBody() {
         <ExploreBodyContent>
           <ExploreContentSection gap="xl">
             <ReplayListPageHeaderHook />
-            {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+            {showReplayList ? (
               <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                 <ReplayIndexContainer
                   showDeadRageClickCards={showDeadRageClickCards}

@@ -1,8 +1,9 @@
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 
-import {IconGrabbable} from 'sentry/icons';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import type {IconSize} from '@sentry/scraps/theme';
+
 import {t} from 'sentry/locale';
-import type {IconSize} from 'sentry/utils/theme';
 
 type DragReorderButtonProps = Omit<ButtonProps, 'children'> & {
   iconSize?: IconSize;

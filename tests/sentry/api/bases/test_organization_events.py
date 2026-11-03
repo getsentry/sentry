@@ -3,6 +3,7 @@ from typing import Any
 from django.test import RequestFactory
 
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
+from sentry.auth import access
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
@@ -87,3 +88,28 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
 
     def test_transactions_is_unchanged(self) -> None:
         assert self.resolve("transactions") is transactions
+
+
+class OrganizationEventsEndpointBaseCaseInsensitiveTest(TestCase):
+    def resolve(self, **params: str) -> bool:
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user,
+                GET={"project": str(self.project.id), "statsPeriod": "1h", **params},
+            )
+        )
+        request.access = access.from_request(request, self.organization)
+        snuba_params = OrganizationEventsEndpointBase().get_snuba_params(request, self.organization)
+        return snuba_params.case_insensitive
+
+    def test_one_enables_case_insensitive(self) -> None:
+        assert self.resolve(caseInsensitive="1") is True
+
+    def test_true_enables_case_insensitive(self) -> None:
+        assert self.resolve(caseInsensitive="true") is True
+
+    def test_zero_keeps_case_sensitive(self) -> None:
+        assert self.resolve(caseInsensitive="0") is False
+
+    def test_missing_keeps_case_sensitive(self) -> None:
+        assert self.resolve() is False

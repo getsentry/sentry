@@ -15,6 +15,8 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.demo_mode.utils import is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
@@ -64,12 +66,12 @@ class AcceptOrganizationInvite(Endpoint):
         # so we should fetch the invite context as if they were anonymous.
         # This matches the original behavior where logout happened before get_invite_state().
         if request.user.is_authenticated and not is_demo_user(request.user):
-            user_id: int | None = request.user.id
+            user_id: int | None = acting_user_id(request.user)
         else:
             user_id = None
 
         invite_context = get_invite_state(
-            member_id=int(member_id),
+            member_id=to_valid_int_id("member_id", member_id),
             organization_id_or_slug=organization_id_or_slug,
             user_id=user_id,
         )
@@ -224,7 +226,7 @@ class AcceptOrganizationInvite(Endpoint):
         else:
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
-        helper.accept_invite(request.user)
+        helper.accept_invite(require_user(request))
         remove_invite_details_from_session(request)
 
         return response

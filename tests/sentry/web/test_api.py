@@ -294,11 +294,11 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self) -> None:
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @override_options({"staff.ga-rollout": True, "auth.v2.enabled": True})
+    @override_options({"staff.ga-rollout": True})
     def test_staff(self) -> None:
         self._run_test_with_privileges(is_superuser=False, is_staff=True)
 
-    @override_options({"staff.ga-rollout": True, "auth.v2.enabled": True})
+    @override_options({"staff.ga-rollout": True})
     def test_superuser_and_staff(self) -> None:
         self._run_test_with_privileges(is_superuser=True, is_staff=True)
 

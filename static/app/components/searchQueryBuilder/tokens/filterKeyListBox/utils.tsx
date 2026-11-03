@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {getEscapedKey, HighlightText} from '@sentry/scraps/compactSelect';
 
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
   ConvertHumanizedItem,
@@ -30,7 +31,7 @@ import {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {FieldKind, prettifyTagKey, type FieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
@@ -58,26 +59,6 @@ export function createRecentFilterOptionKey(filter: string) {
 
 function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
-}
-
-export function getKeyLabel(
-  tag: Tag,
-  fieldDefinition: FieldDefinition | null,
-  {includeAggregateArgs = false} = {}
-) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters?.length) {
-      if (includeAggregateArgs) {
-        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
-      }
-      return `${tag.key}(...)`;
-    }
-    return `${tag.key}()`;
-  }
-
-  // Some columns in explore can be formatted as an explicity number tag.
-  // We want to strip the explicit tag syntax before displaying where possible.
-  return prettifyTagKey(tag.key);
 }
 
 export function createSection(

@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 
 import {Redirect} from 'sentry/components/redirect';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';

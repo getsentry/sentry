@@ -65,6 +65,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="executeSentryAppInstallationExternalIssueAction",
@@ -99,6 +100,8 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         """
         Invoke the installed app's issue-link callback and store the returned association.
         Submit the app-specific form fields alongside `groupId`, `action`, and `uri`.
+        The installation UUID, form fields, and `uri` come from the organization's
+        `issue-link` Sentry App components.
 
         For `action=link`, the optional `expectedExternalIssueUrl` query parameter
         requires an exact canonical `webUrl` match. An existing matching link is

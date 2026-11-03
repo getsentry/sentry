@@ -5,7 +5,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
-import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
+import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/constants';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 type Options = {

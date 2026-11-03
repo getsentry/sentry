@@ -64,10 +64,6 @@ describe('SpansSearchBar', () => {
       body: [],
       method: 'POST',
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
-      body: [],
-    });
 
     mockSpanTags({type: 'string', mockedTags: []});
     mockSpanTagValues({type: 'string', tagKey: 'span.op', mockedValues: []});

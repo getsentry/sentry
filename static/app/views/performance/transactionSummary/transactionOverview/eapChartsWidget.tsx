@@ -9,13 +9,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanFields} from 'sentry/views/insights/types';
+import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
 import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
 
-export enum EAPWidgetType {
-  DURATION_BREAKDOWN = 'duration_breakdown',
-  DURATION_PERCENTILES = 'duration_percentiles',
-  WEB_VITALS = 'web_vitals',
-}
+export {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
 
 const WIDGET_OPTIONS: Record<
   EAPWidgetType,

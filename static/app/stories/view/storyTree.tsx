@@ -1,19 +1,19 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {IconChevron} from 'sentry/icons';
 import {
   COMPONENT_CATEGORY_CONFIG,
   COMPONENT_CATEGORY_ORDER,
   isComponentCategory,
   type ComponentCategory,
 } from 'sentry/stories/componentCategories';
-import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
-import {useStoryParams} from 'sentry/stories/view';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
+import {useStoryParams} from 'sentry/stories/view/useStoryParams';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';

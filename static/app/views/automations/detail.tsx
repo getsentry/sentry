@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -19,7 +19,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -90,20 +89,17 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: t('Alerts'),
-                to: makeAutomationBasePathname(organization.slug),
-              },
-            ]}
-          />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: automation.name}} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: automation.name}}
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>

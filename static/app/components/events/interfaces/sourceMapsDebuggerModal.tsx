@@ -2,6 +2,13 @@ import type {PropsWithChildren, ReactNode} from 'react';
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCircle} from '@sentry/icons/circle';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconWarning} from '@sentry/icons/warning';
 
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
@@ -9,7 +16,7 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
@@ -19,15 +26,6 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {ProgressRing} from 'sentry/components/progressRing';
-import {
-  IconCheckmark,
-  IconCircle,
-  IconMegaphone,
-  IconOpen,
-  IconQuestion,
-  IconRefresh,
-  IconWarning,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -912,12 +910,12 @@ function CheckListItem({children, title, status}: PropsWithChildren<CheckListIte
         }
         <Line className="source-map-debugger-modal-checklist-line" />
       </Stack>
-      <ListItemContentContainer>
+      <Container flexGrow={1} paddingBottom="xl" marginLeft="lg" maxWidth="100%">
         <Flex align="center" minHeight="20px">
           <ListItemTitle status={status}>{title}</ListItemTitle>
         </Flex>
         {children}
-      </ListItemContentContainer>
+      </Container>
     </ListItemContainer>
   );
 }
@@ -2019,13 +2017,6 @@ const Line = styled('div')`
   width: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.gray200};
   border-radius: ${p => p.theme.space['2xs']};
-`;
-
-const ListItemContentContainer = styled('div')`
-  flex-grow: 1;
-  margin-left: ${p => p.theme.space.lg};
-  padding-bottom: ${p => p.theme.space.xl};
-  max-width: 100%;
 `;
 
 const CompletionNoteContainer = styled('div')`

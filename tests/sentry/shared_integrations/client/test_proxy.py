@@ -1,9 +1,11 @@
 import ipaddress
 from unittest.mock import MagicMock, patch
 
+import responses
 from django.test import override_settings
 from pytest import raises
 from requests import Request
+from requests.adapters import HTTPAdapter
 
 from sentry.constants import ObjectStatus
 from sentry.net.http import Session
@@ -21,6 +23,7 @@ from sentry.silo.util import (
     PROXY_TIMEOUT_HEADER,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 control_address = "http://controlserver"
@@ -238,6 +241,68 @@ class IntegrationProxyClientTest(TestCase):
         client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_session_send.call_count == 1
         assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
+
+    @responses.activate
+    def test_retries_proxy_requests_by_default(self) -> None:
+        proxy_url = "http://controlserver/api/0/internal/integration-proxy/"
+        responses.add(responses.POST, proxy_url, status=503)
+        responses.add(responses.POST, proxy_url, json={"ok": True})
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with self.options({"hybridcloud.integrationproxy.retries": 1}):
+            assert client.post("/some/endpoint") == {"ok": True}
+
+        assert len(responses.calls) == 2
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_does_not_honor_retry_after_in_control(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retries = adapter.max_retries
+
+        assert retries.total == 3
+        assert retries.respect_retry_after_header is False
+        assert retries.backoff_max == 60
+        assert retries.retry_after_max == 60
+        assert not retries.is_retry("GET", 429, has_retry_after=True)
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_does_not_honor_retry_after_in_cell(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retries = adapter.max_retries
+
+        assert retries.respect_retry_after_header is False
+        assert retries.backoff_max == 60
+        assert retries.retry_after_max == 60
+        assert retries.is_retry("POST", 503, has_retry_after=True)
+
+    @override_settings(SILO_MODE=SiloMode.CELL)
+    def test_retry_options_are_read_on_each_build_session(self) -> None:
+        client = self.client_cls(org_integration_id=self.oi_id)
+
+        with override_options(
+            {
+                "hybridcloud.integrationproxy.retry_max_sleep": 5,
+                "hybridcloud.integrationproxy.respect_retry_after": True,
+            }
+        ):
+            adapter = client.build_session().get_adapter(self.base_url)
+            assert isinstance(adapter, HTTPAdapter)
+            retries = adapter.max_retries
+            assert retries.respect_retry_after_header is True
+            assert retries.backoff_max == 5
+            assert retries.retry_after_max == 5
+            assert retries.is_retry("GET", 429, has_retry_after=True)
+
+        adapter = client.build_session().get_adapter(self.base_url)
+        assert isinstance(adapter, HTTPAdapter)
+        retries = adapter.max_retries
+        assert retries.respect_retry_after_header is False
+        assert retries.backoff_max == 60
+        assert retries.retry_after_max == 60
 
 
 def test_get_control_silo_ip_address() -> None:

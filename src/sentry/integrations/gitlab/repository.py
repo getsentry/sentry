@@ -163,7 +163,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 "repository": repo.name,
                 "author_email": c["author_email"],
                 "author_name": c["author_name"],
-                "message": c["title"],
+                "message": c.get("message") or c["title"],
                 "timestamp": self.format_date(c["created_at"]),
                 "patch_set": self._get_patchset(client, repo, c["id"]),
             }

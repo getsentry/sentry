@@ -232,6 +232,7 @@ class TestTransformWebhookToCodegenRequest:
         )
 
         expected_repo = {
+            "repository_id": repo.id,
             "provider": "github",
             "owner": "test-owner",
             "name": "test-repo",

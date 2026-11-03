@@ -63,6 +63,7 @@ class ProjectConfigPayload(TypedDict):
 class CodeChangeFilePayload(TypedDict):
     repoName: str
     patch: FilePatch
+    codeUrl: str | None
 
 
 class RootCausePayload(TypedDict):

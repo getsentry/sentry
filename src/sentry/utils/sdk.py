@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import os
 import re
 import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
+from urllib.parse import unquote
 
 import sentry_sdk
 from django.conf import settings
@@ -17,12 +19,10 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope, traces
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
-from sentry_sdk.traces import StreamedSpan
-from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 
@@ -35,10 +35,10 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import json, warnings
+from sentry.utils.attributes import get_attribute_value
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.env import in_test_environment
 from sentry.utils.rust import RustInfoIntegration
-from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -295,7 +295,10 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     if attributes is not None:
         # This is a coming from arroyo and creating high cardinality of attribute names like
         # `Partition(topic=Topic(name='...'), index=...)`
-        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+        if (
+            get_attribute_value(attributes, "sentry.message.template", "string")
+            == "New partitions assigned: %r"
+        ):
             return None
 
     try:
@@ -344,6 +347,31 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(backend=backend_dsn)
 
     return sdk_options, dsns
+
+
+def _parse_otel_resource_attributes(raw: str | None) -> dict[str, str]:
+    """
+    Parse an `OTEL_RESOURCE_ATTRIBUTES` value (comma-separated, percent-encoded
+    `key=value` pairs). Malformed entries are skipped.
+    """
+    attributes: dict[str, str] = {}
+    for entry in (raw or "").split(","):
+        key, sep, value = entry.partition("=")
+        key = unquote(key.strip())
+        value = unquote(value.strip())
+        if sep and key and value:
+            attributes[key] = value
+    return attributes
+
+
+def _set_resource_attributes() -> None:
+    # Global scope attributes are added to every streamed span (and log/metric)
+    # without overwriting attributes the span already has. Infra sets these on
+    # k8s pods so traces show which pod/node/cluster a span ran in.
+    attributes = _parse_otel_resource_attributes(os.environ.get("OTEL_RESOURCE_ATTRIBUTES"))
+    global_scope = sentry_sdk.get_global_scope()
+    for key, value in attributes.items():
+        global_scope.set_attribute(key, value)
 
 
 def configure_sdk():
@@ -402,6 +430,7 @@ def configure_sdk():
             disabled_integrations=disabled_integrations,
             **sdk_options,
         )
+        _set_resource_attributes()
         return
 
     internal_project_key = get_project_key()
@@ -412,6 +441,7 @@ def configure_sdk():
             disabled_integrations=disabled_integrations,
             **sdk_options,
         )
+        _set_resource_attributes()
         return
 
     if not in_test_environment():
@@ -561,7 +591,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with start_span(op="other", name="bind_organization_context"):
+    with traces.start_span(name="bind_organization_context", attributes={"sentry.op": "other"}):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -635,26 +665,11 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = get_current_span()
-    if isinstance(span, StreamedSpan):
+    span = traces.get_current_span()
+    if isinstance(span, traces.StreamedSpan):
         return span.trace_id
-    if span is not None:
-        return span.get_trace_context().get("trace_id")
 
     return None
-
-
-def set_span_attribute(data_name, value):
-    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
-    if span_streaming:
-        streamed_span = sentry_sdk.traces.get_current_span()
-        if streamed_span is not None:
-            streamed_span.set_attribute(data_name, value)
-        return
-
-    span = sentry_sdk.get_current_span()
-    if span is not None:
-        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

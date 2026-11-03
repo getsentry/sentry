@@ -1,9 +1,10 @@
+import {IconRefresh} from '@sentry/icons/refresh';
+
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {CommandLine} from 'sentry/components/commandLine';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
 type Props = {

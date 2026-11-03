@@ -1,8 +1,9 @@
-import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+import {createMemoryRouter, useLocation, useNavigate} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
@@ -21,6 +22,7 @@ describe('buttonTracking', () => {
   const wrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={organization}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -49,7 +51,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -57,6 +58,7 @@ describe('buttonTracking', () => {
   const anonymousWrapper = ({children}: ButtonProps) => (
     <OrganizationContext value={null}>
       <RouterProvider
+        useTransitions={false}
         router={createMemoryRouter(
           [
             {
@@ -67,7 +69,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -91,6 +92,25 @@ describe('buttonTracking', () => {
       text: 'Create Alert',
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the same function after navigating', async () => {
+    const {result} = renderHook(
+      () => ({
+        location: useLocation(),
+        navigate: useNavigate(),
+        track: useButtonTracking(),
+      }),
+      {wrapper}
+    );
+    const initialTrack = result.current.track;
+
+    act(() => {
+      result.current.navigate(`/settings/${organization.slug}/${project.slug}/?query=1`);
+    });
+
+    await waitFor(() => expect(result.current.location.search).toBe('?query=1'));
+    expect(result.current.track).toBe(initialTrack);
   });
 
   it('does not set a default Reload event key for links', () => {

@@ -2,6 +2,8 @@ import functools
 from collections.abc import Sequence
 from datetime import timedelta
 
+from sentry_sdk import traces
+
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -12,7 +14,6 @@ from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, get_snuba_column_name
-from sentry.utils.tracing import start_span
 
 
 def query(
@@ -148,7 +149,9 @@ def timeseries_query(
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
 
-    with start_span(op="issueplatform", name="timeseries.filter_transform"):
+    with traces.start_span(
+        name="timeseries.filter_transform", attributes={"sentry.op": "issueplatform"}
+    ):
         equations, columns = categorize_columns(selected_columns)
 
         column_resolver = functools.partial(get_snuba_column_name, dataset=Dataset.IssuePlatform)
@@ -193,7 +196,9 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with start_span(op="issueplatform", name="timeseries.transform_results"):
+    with traces.start_span(
+        name="timeseries.transform_results", attributes={"sentry.op": "issueplatform"}
+    ):
         results = []
         for snql_query, result in zip(query_list, query_results):
             assert snql_query.params.start is not None

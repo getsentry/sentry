@@ -15,13 +15,10 @@ type Props = {
   yesNo?: boolean;
 };
 
-/**
- * Detail label is used within DetailList
- */
 export function DetailLabel({title, yesNo, children}: Props) {
   return (
     <Fragment>
-      <DescriptionList.Term>{title}:</DescriptionList.Term>
+      <DescriptionList.Term>{title}</DescriptionList.Term>
       <DescriptionList.Details>
         {yesNo !== undefined &&
           (yesNo ? <Tag variant="success">yes</Tag> : <Tag variant="danger">no</Tag>)}

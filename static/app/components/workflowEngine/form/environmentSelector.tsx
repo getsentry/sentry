@@ -7,17 +7,30 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 
 export function EnvironmentSelector() {
   const value = useFormField<string | null>('environment');
+  const allProjects = useFormField<boolean>('allProjects');
+  const projectIds = useFormField<string[]>('projectIds');
+  const {connectedDetectors} = useConnectedDetectors();
   const {form} = useContext(FormContext);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const options = useMemo<Array<SelectOptionOrSection<string>>>(() => {
+    // Project selection overrides saved detector IDs until the form is submitted.
+    const selectedProjectIds = new Set(
+      projectIds?.length
+        ? projectIds
+        : connectedDetectors.map(detector => detector.projectId)
+    );
     const userEnvs = new Set<string>();
     const otherEnvs = new Set<string>();
 
     projects.forEach(project => {
+      if (!allProjects && !selectedProjectIds.has(project.id)) {
+        return;
+      }
       if (project.isMember) {
         project.environments.forEach(env => userEnvs.add(env));
       } else {
@@ -31,6 +44,10 @@ export function EnvironmentSelector() {
         label: t('All Environments'),
         options: [{value: '', label: t('All Environments')}],
       },
+      // Known environments are suggestions; API-configured filters may name any environment.
+      ...(value && !userEnvs.has(value) && !otherEnvs.has(value)
+        ? [{value, label: value}]
+        : []),
       {
         key: 'my-projects',
         label: t('Environments in My Projects'),
@@ -42,7 +59,7 @@ export function EnvironmentSelector() {
         options: setToOptions(otherEnvs.difference(userEnvs)),
       },
     ];
-  }, [projects]);
+  }, [allProjects, connectedDetectors, projectIds, projects, value]);
 
   return (
     <CompactSelect

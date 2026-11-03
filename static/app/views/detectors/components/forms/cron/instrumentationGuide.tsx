@@ -1,4 +1,6 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import partition from 'lodash/partition';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
@@ -14,7 +16,6 @@ import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -37,9 +38,15 @@ const genericIcons: Record<string, React.ReactNode> = {
   http: <IconGlobe size="sm" />,
 };
 
-export function InstrumentationGuide() {
+export function InstrumentationGuide({
+  skipDetectionForInitialProject = false,
+}: {
+  skipDetectionForInitialProject?: boolean;
+}) {
   const {projects} = useProjects();
   const projectId = useCronDetectorFormField('projectId');
+  const [initialProjectId] = useState(projectId);
+  const isInitialProject = projectId === initialProjectId;
   const [skipGuideDetection] = useQueryState('skipGuideDetection', parseAsBoolean);
 
   const selectedProject = projects.find(p => p.id === projectId);
@@ -74,6 +81,10 @@ export function InstrumentationGuide() {
       return;
     }
 
+    if (skipDetectionForInitialProject && isInitialProject) {
+      return;
+    }
+
     // Attempt to find a supported upsert platform using th project platform.
     // Make a second attempt if the exact project platform has no guides by
     // extracting the 'first part' of the platform.
@@ -90,7 +101,13 @@ export function InstrumentationGuide() {
     }
 
     setPlatformGuide(defaultPlatform);
-  }, [projectPlatform, setPlatformGuide, skipGuideDetection]);
+  }, [
+    isInitialProject,
+    projectPlatform,
+    setPlatformGuide,
+    skipDetectionForInitialProject,
+    skipGuideDetection,
+  ]);
 
   const platformItems = regularPlatforms.map<MenuItemProps>(c => {
     const item = {

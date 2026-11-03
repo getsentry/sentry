@@ -2,8 +2,10 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
@@ -12,23 +14,22 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
 };
 
 const getRow = (region: string, row: any) => [
-  <td key="name">
+  <SimpleTable.RowCell key="name">
     <Link to={`/_admin/invoices/${region}/${row.id}/`}>
       {moment(row.dateCreated).format('ll')}
     </Link>
-  </td>,
-  <td key="status" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="status" justify="center">
     <Tag variant={row.isPaid ? 'success' : row.isClosed ? 'danger' : 'warning'}>
       {row.isPaid ? 'Paid' : row.isClosed ? 'Closed' : 'Pending'}
     </Tag>
-  </td>,
-  <td key="amount" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="amount" direction="column" align="end" gap="xs">
     ${(row.amount / 100).toLocaleString()}
-    <br />
     {row.isRefunded && (
-      <small>(${(row.amountRefunded / 100).toLocaleString()} refunded)</small>
+      <Text size="xs">(${(row.amountRefunded / 100).toLocaleString()} refunded)</Text>
     )}
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function CustomerInvoices({orgId, region, ...props}: Props) {
@@ -39,13 +40,9 @@ export function CustomerInvoices({orgId, region, ...props}: Props) {
       method="GET"
       defaultParams={{per_page: 10}}
       columns={[
-        <th key="name">Invoice</th>,
-        <th key="status" style={{width: 100, textAlign: 'center'}}>
-          Status
-        </th>,
-        <th key="amount" style={{width: 150, textAlign: 'right'}}>
-          Amount
-        </th>,
+        {key: 'name', label: 'Invoice'},
+        {key: 'status', label: 'Status', width: 100, align: 'center'},
+        {key: 'amount', label: 'Amount', width: 150, align: 'right'},
       ]}
       columnsForRow={row => getRow(region, row)}
       {...props}

@@ -70,14 +70,19 @@ const allAiNodes = [generationA, generationB, evaluation, unassociatedGeneration
 const conversationIds = [CONVERSATION_A, CONVERSATION_B];
 
 function mockConversation(conversationId: string, node: EapSpanNode) {
+  const {[SpanFields.GEN_AI_RESPONSE_TEXT]: responseText, ...attributes} =
+    node.attributes ?? {};
   return MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/agents/conversations/${conversationId}/`,
+    url: `/organizations/${organization.slug}/agents/conversations/${encodeURIComponent(conversationId)}/`,
     body: {
       conversationId,
       title: null,
       spans: [
         {
-          ...node.attributes,
+          ...attributes,
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {role: 'assistant', content: responseText},
+          ]),
           span_id: node.id,
           'span.name': node.op,
           'span.status': 'ok',
@@ -89,7 +94,7 @@ function mockConversation(conversationId: string, node: EapSpanNode) {
           trace: TRACE_ID,
         },
         {
-          ...node.attributes,
+          ...attributes,
           span_id: `${node.id}-other-trace`,
           'span.name': node.op,
           'span.status': 'ok',
@@ -99,7 +104,9 @@ function mockConversation(conversationId: string, node: EapSpanNode) {
           project: 'project-slug',
           'project.id': 1,
           trace: 'another-trace',
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Other trace answer',
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {role: 'assistant', content: 'Other trace answer'},
+          ]),
         },
       ],
     },
@@ -123,6 +130,10 @@ describe('TraceAiConversations', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -162,6 +173,50 @@ describe('TraceAiConversations', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('distinguishes non-UUID IDs and encodes reserved characters in conversation links', async () => {
+    const ids = [
+      'slack:C0123:thread/one?query#fragment',
+      'slack:C0123:thread/two',
+    ] as const;
+    const nodes = ids.map((conversationId, index) => {
+      const node = aiSpanFixture({
+        id: `span-${index}`,
+        model: `model-${index}`,
+        conversationId,
+      });
+      mockConversation(conversationId, node);
+      return node;
+    });
+
+    render(
+      <TraceAiConversations
+        traceSlug={TRACE_ID}
+        allAiNodes={nodes}
+        conversationIds={[...ids]}
+      />,
+      {organization}
+    );
+
+    for (const id of ids) {
+      await selectTimelineScope(id);
+      expect(
+        screen.getByRole('button', {name: 'Show full conversation'})
+      ).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/explore/agents/conversations/${encodeURIComponent(id)}/?referrer=trace-view`
+      );
+    }
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+    await userEvent.click(screen.getByRole('button', {name: /Conversation/}));
+    await userEvent.click(screen.getByRole('option', {name: ids[0]}));
+    expect(await screen.findByText('model-0 answer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show full conversation'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/agents/conversations/${encodeURIComponent(ids[0])}/?referrer=trace-view`
+    );
+  });
+
   it('defaults mixed traces to all AI spans without conversation-specific chrome', async () => {
     render(
       <TraceAiConversations
@@ -199,7 +254,7 @@ describe('TraceAiConversations', () => {
       {organization}
     );
 
-    await selectTimelineScope(CONVERSATION_A.slice(0, 8));
+    await selectTimelineScope(CONVERSATION_A);
     expect(await screen.findByRole('button', {name: /model-a/})).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
@@ -212,7 +267,7 @@ describe('TraceAiConversations', () => {
       expect.stringContaining(`/${CONVERSATION_A}/`)
     );
 
-    await selectTimelineScope(CONVERSATION_B.slice(0, 8));
+    await selectTimelineScope(CONVERSATION_B);
     expect(await screen.findByRole('button', {name: /model-b/})).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {
@@ -227,7 +282,7 @@ describe('TraceAiConversations', () => {
     await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
     expect(await screen.findByText('model-b answer')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: /Conversation/}));
-    await userEvent.click(screen.getByRole('option', {name: CONVERSATION_A.slice(0, 8)}));
+    await userEvent.click(screen.getByRole('option', {name: CONVERSATION_A}));
     expect(await screen.findByText('model-a answer')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
     expect(await screen.findByRole('button', {name: /model-a/})).toBeInTheDocument();
@@ -263,7 +318,7 @@ describe('TraceAiConversations', () => {
     expect(screen.getByText('LLM Calls')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: /Conversation/}));
-    await userEvent.click(screen.getByRole('option', {name: CONVERSATION_B.slice(0, 8)}));
+    await userEvent.click(screen.getByRole('option', {name: CONVERSATION_B}));
     expect(await screen.findByText('model-b answer')).toBeInTheDocument();
     expect(screen.queryByText('model-a answer')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Show full conversation'})).toHaveAttribute(
@@ -300,7 +355,7 @@ describe('TraceAiConversations', () => {
       {organization}
     );
 
-    await selectTimelineScope(CONVERSATION_A.slice(0, 8));
+    await selectTimelineScope(CONVERSATION_A);
     expect(
       screen.queryByRole('button', {name: /synthetic-evaluator/})
     ).not.toBeInTheDocument();
@@ -336,7 +391,7 @@ describe('TraceAiConversations', () => {
       />,
       {organization}
     );
-    await selectTimelineScope(CONVERSATION_A.slice(0, 8));
+    await selectTimelineScope(CONVERSATION_A);
 
     rerender(
       <TraceAiConversations

@@ -1,6 +1,3 @@
-import {Fragment} from 'react';
-
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -38,24 +35,17 @@ export default function MultiQueryMode() {
             title={title}
           />
         ) : (
-          <Fragment>
-            <TopBar.Slot name="breadcrumbs">
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Traces'),
-                    to: makeTracesPathname({organization, path: '/'}),
-                  },
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title
-                item={{type: 'page-title', label: title || t('Compare Queries')}}
-              />
-            </TopBar.Slot>
-          </Fragment>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: title || t('Compare Queries')}}
+            items={[
+              {
+                type: 'link',
+                label: t('Traces'),
+                to: makeTracesPathname({organization, path: '/'}),
+              },
+            ]}
+          />
         )}
         <TopBar.Slot name="feedback">
           <FeedbackButton

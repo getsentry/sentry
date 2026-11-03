@@ -1,8 +1,8 @@
-import {NavLink} from 'react-router-dom';
+import {NavLink} from 'react-router';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
-import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
+import {legacyLocationDescriptorToTo} from 'sentry/router/legacy/location';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -34,7 +34,7 @@ export function ListLink({
 
   return (
     <li className={classNames({active}, className)}>
-      <NavLink {...props} to={locationDescriptorToTo(target)}>
+      <NavLink {...props} to={legacyLocationDescriptorToTo(target)}>
         {children}
       </NavLink>
     </li>

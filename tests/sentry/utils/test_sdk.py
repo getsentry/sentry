@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import contextlib
+import os
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,6 +12,7 @@ from django.db import OperationalError
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from sentry_sdk.types import Log
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
@@ -57,6 +60,68 @@ def test_ai_conversation_routes_are_fully_sampled(path: str) -> None:
         )
         == 1.0
     )
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        {"sentry.message.template": "New partitions assigned: %r"},
+        {"sentry.message.template": {"type": "string", "value": "New partitions assigned: %r"}},
+    ],
+)
+def test_before_send_log_filters_partition_assignments(attributes: dict[str, Any]) -> None:
+    log = cast(Log, {"attributes": attributes})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is None
+
+
+def test_before_send_log_keeps_other_messages() -> None:
+    log = cast(Log, {"attributes": {"sentry.message.template": "Request processed"}})
+    with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
+        assert sdk.before_send_log(log, {}) is log
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, {}),
+        ("", {}),
+        (
+            "k8s.pod.name=web-abc,k8s.namespace.name=default,cloud.provider=gcp",
+            {"k8s.pod.name": "web-abc", "k8s.namespace.name": "default", "cloud.provider": "gcp"},
+        ),
+        (" k8s.node.name = node-1 , ", {"k8s.node.name": "node-1"}),
+        ("k8s.cluster.name=a%2Cb%3Dc", {"k8s.cluster.name": "a,b=c"}),
+        ("novalue,=nokey,empty=,k8s.job.name=job", {"k8s.job.name": "job"}),
+    ],
+)
+def test_parse_otel_resource_attributes(raw: str | None, expected: dict[str, str]) -> None:
+    assert sdk._parse_otel_resource_attributes(raw) == expected
+
+
+def test_set_resource_attributes_on_global_scope() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(
+            os.environ,
+            {"OTEL_RESOURCE_ATTRIBUTES": "k8s.pod.name=web-abc,cloud.account.id=project"},
+        ),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {"k8s.pod.name": "web-abc", "cloud.account.id": "project"}
+
+
+def test_set_resource_attributes_unset_is_noop() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(os.environ, {"OTEL_RESOURCE_ATTRIBUTES": ""}),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {}
 
 
 class SDKUtilsTest(TestCase):

@@ -1,8 +1,9 @@
+import {IconSettings} from '@sentry/icons/settings';
+
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
-import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 /**

@@ -180,6 +180,7 @@ export function ArithmeticInput({
 
       const selection = getSelection(activeSelection);
       if (selection) {
+        // oxlint-disable-next-line react/todo
         handleSelect(selection);
       }
       return;

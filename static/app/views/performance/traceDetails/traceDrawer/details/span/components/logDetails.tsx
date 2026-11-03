@@ -1,3 +1,5 @@
+import {Stack} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
@@ -17,10 +19,12 @@ export function LogDetails() {
       title={t('Logs')}
       disableCollapsePersistence
     >
-      <LogsInfiniteTable
-        embedded
-        analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-      />
+      <Stack maxHeight="30rem">
+        <LogsInfiniteTable
+          embedded
+          analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+        />
+      </Stack>
     </FoldSection>
   );
 }

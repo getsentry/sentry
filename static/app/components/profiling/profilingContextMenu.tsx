@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconCheckmark} from 'sentry/icons';
 
 interface MenuProps extends React.DetailedHTMLProps<
   React.HTMLAttributes<HTMLDivElement>,

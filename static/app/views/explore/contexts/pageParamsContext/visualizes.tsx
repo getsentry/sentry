@@ -13,7 +13,7 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
 

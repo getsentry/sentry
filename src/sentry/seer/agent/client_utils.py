@@ -15,13 +15,13 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
@@ -132,15 +132,19 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
-    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
+    enable_code_mode_tools: NotRequired[Literal["off", "only"]]
     enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_pr_context_tools: NotRequired[bool]
+    enable_write_pull_request: NotRequired[bool]
+    enable_investigation_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
+    pin_to_pr_head: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
@@ -388,7 +392,7 @@ def get_agent_state_from_pr_id(
 
 def has_seer_agent_access_with_detail(
     organization: Organization | RpcOrganization,
-    actor: SentryUser | AnonymousUser | RpcUser | None = None,
+    actor: RequestPrincipal | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Agent.
@@ -417,7 +421,7 @@ def has_seer_agent_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     organization: Organization,
     request: Request | None = None,
 ) -> UserOrgContext:
@@ -438,7 +442,7 @@ def collect_user_org_context(
         for p in all_projects
     ]
 
-    if user is None or isinstance(user, AnonymousUser):
+    if user is None or not has_user(user):
         return {
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
@@ -513,7 +517,7 @@ def get_proxy_headers() -> dict[str, str] | None:
     from sentry.viewer_context import encode_viewer_context, get_viewer_context
 
     ctx = get_viewer_context()
-    if ctx is None or ctx.user_id is None:
+    if ctx is None:
         return None
 
     if not settings.SEER_API_SHARED_SECRET:

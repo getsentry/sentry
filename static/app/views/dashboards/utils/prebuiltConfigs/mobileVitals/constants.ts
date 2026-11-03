@@ -19,8 +19,8 @@ const START_VALUE_NUMBER = `tags[${SpanFields.APP_VITALS_START_VALUE},number]`;
 const START_VALUE_DURATION = `tags[${SpanFields.APP_VITALS_START_VALUE},millisecond]`;
 export const APP_START_TABLE_CONDITION = `(has:${SpanFields.APP_VITALS_START_SCREEN} AND has:${START_VALUE_NUMBER})`;
 export const AVG_START_VALUE = `avg(${START_VALUE_DURATION})`;
-export const AVG_COLD_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,cold)`;
-export const AVG_WARM_START = `avg_if(${START_VALUE_DURATION},${SpanFields.APP_VITALS_START_TYPE},equals,warm)`;
+export const AVG_COLD_START = `avg_if(\`${SpanFields.APP_VITALS_START_TYPE}:cold\`,${START_VALUE_DURATION})`;
+export const AVG_WARM_START = `avg_if(\`${SpanFields.APP_VITALS_START_TYPE}:warm\`,${START_VALUE_DURATION})`;
 export const COLD_START_CONDITION = `(${APP_START_TABLE_CONDITION} AND ${SpanFields.APP_VITALS_START_TYPE}:cold)`;
 export const WARM_START_CONDITION = `(${APP_START_TABLE_CONDITION} AND ${SpanFields.APP_VITALS_START_TYPE}:warm)`;
 

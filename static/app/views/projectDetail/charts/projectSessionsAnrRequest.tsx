@@ -13,7 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
-import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 import type {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
 

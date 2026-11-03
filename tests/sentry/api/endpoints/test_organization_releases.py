@@ -540,6 +540,12 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
 
+        # IN operator (list value) is unsupported for build and must 400, not 500
+        response = self.get_response(
+            self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:[124,125]"
+        )
+        assert response.status_code == 400
+
     def test_release_stage_filter(self) -> None:
         self.login_as(user=self.user)
 
@@ -1481,6 +1487,30 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert release.organization == org
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
+
+    def test_projects_with_dict_entries(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        # Non-scalar project entries must 400 at validation, not raise an
+        # unhashable-type TypeError in the handler.
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [{"slug": project.slug}]},
+        )
+
+        assert response.status_code == 400
 
     def test_duplicate(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
