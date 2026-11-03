@@ -146,7 +146,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
                 organization_id=self.organization.id,
                 scope_list=["org:ci"],
             )
-        monitor = self._create_monitor_with_auth(AuthenticatedToken.from_token(token))
+        auth = AuthenticatedToken.from_token(token)
+        assert auth is not None
+        monitor = self._create_monitor_with_auth(auth)
 
         assert monitor.created_by_id is None
         assert monitor.created_by_service_account_id is None
