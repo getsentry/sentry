@@ -109,7 +109,10 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
-  const menuWidth = getMenuWidthForLabels(projects.map(project => project.slug));
+  const menuWidth = getMenuWidthForLabels(
+    projects.map(project => project.slug),
+    {minWidth: 22, maxWidth: 28, extraWidth: 12}
+  );
 
   return (
     <Container width="100%">

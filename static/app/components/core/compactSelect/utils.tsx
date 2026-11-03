@@ -515,15 +515,15 @@ interface MenuWidthForLabelsOptions {
    * Space in em reserved for everything except the label text, such as
    * padding, leading checkboxes or avatars, and trailing buttons.
    */
-  extraWidth?: number;
+  extraWidth: number;
   /**
    * Maximum menu width in em.
    */
-  maxWidth?: number;
+  maxWidth: number;
   /**
    * Minimum menu width in em.
    */
-  minWidth?: number;
+  minWidth: number;
 }
 
 /**
@@ -533,7 +533,7 @@ interface MenuWidthForLabelsOptions {
  */
 export function getMenuWidthForLabels(
   labels: readonly string[],
-  {minWidth = 22, maxWidth = 28, extraWidth = 12}: MenuWidthForLabelsOptions = {}
+  {minWidth, maxWidth, extraWidth}: MenuWidthForLabelsOptions
 ): string {
   const longestLabelLength = labels.reduce(
     (longest, label) => Math.max(longest, label.length),
