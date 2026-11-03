@@ -47,6 +47,7 @@ export function useErrorsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval,
   } = params;
 
@@ -70,7 +71,11 @@ export function useErrorsSeriesQuery(
           queryIndex,
           pageFilters,
           DiscoverDatasets.ERRORS,
-          {referrer: getReferrer(filteredWidget.displayType), widgetInterval}
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
         ),
       })
     ),
@@ -133,6 +138,7 @@ export function useErrorsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -180,6 +186,7 @@ export function useErrorsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
       return queryOptions({

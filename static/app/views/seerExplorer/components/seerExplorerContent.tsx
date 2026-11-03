@@ -3,6 +3,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   type ReactNode,
@@ -65,6 +66,7 @@ import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggest
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {useStartInvestigation} from 'sentry/views/seerExplorer/hooks/useStartInvestigation';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -519,7 +521,31 @@ export function SeerExplorerContent({
     }
   }, [openFeedbackForm, runId]);
 
+  const startInvestigation = useStartInvestigation();
+
   // - Pop-up menu component --------------------------------------------------
+
+  // The composer only keeps the caret for its own edits, so a command completed
+  // from the menu moves it after the new text once that has rendered.
+  const completedTextRef = useRef<string | null>(null);
+  const completeInput = useCallback(
+    (text: string) => {
+      completedTextRef.current = text;
+      setInputValue({text, mentions: []});
+    },
+    [setInputValue]
+  );
+  useLayoutEffect(() => {
+    const composer = composerRef.current;
+    if (completedTextRef.current !== inputValue.text || !composer) {
+      return;
+    }
+    completedTextRef.current = null;
+    composer.focus();
+    const selection = composer.ownerDocument.defaultView?.getSelection();
+    selection?.selectAllChildren(composer);
+    selection?.collapseToEnd();
+  }, [inputValue.text]);
 
   // Extract repo_pr_states from session
   const repoPRStates = useMemo(
@@ -530,12 +556,14 @@ export function SeerExplorerContent({
   // Menu component
   const {menu, closeMenu} = useExplorerMenu({
     clearInput,
+    completeInput,
     inputValue: inputValue.text,
     focusInput,
     composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
+      canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
@@ -556,13 +584,33 @@ export function SeerExplorerContent({
   const canSendMessage =
     !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
+    const text = inputValue.text.trim();
+    // `/investigate` runs here whether or not a question follows it; the menu
+    // only completes it. It doesn't wait for Seer to finish responding.
+    const investigateMatch = /^\/investigate(?:\s+(.*))?$/s.exec(text);
+    if (startInvestigation && investigateMatch) {
+      // Keep the question if the investigation doesn't start.
+      void startInvestigation(investigateMatch[1]).then(started => {
+        if (started) {
+          clearInput();
+        }
+      });
+      return;
+    }
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.text.trim(), blocks.length);
+    sendMessage(text, blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
-  }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
+  }, [
+    canSendMessage,
+    inputValue,
+    startInvestigation,
+    sendMessage,
+    blocks.length,
+    clearInput,
+  ]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {

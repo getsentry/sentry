@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -32,6 +33,8 @@ class GroupAttributesTest(TestCase):
             first_seen=timezone.now() - timedelta(days=5),
             num_comments=50,
         )
+        assert group.num_comments is not None
+        assert group_2.num_comments is not None
         assert _bulk_retrieve_group_values([group.id, group_2.id]) == [
             GroupValues(
                 id=group.id,
@@ -153,7 +156,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             ) as _log_group_attributes_changed,
             patch("sentry.issues.attributes.send_snapshot_values") as send_snapshot_values,
         ):
-            kwargs = {}
+            kwargs: dict[str, Any] = {}
             if update_fields:
                 kwargs["update_fields"] = update_fields
             self.group.save(**kwargs)

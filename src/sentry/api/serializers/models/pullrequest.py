@@ -1,7 +1,8 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -22,6 +23,8 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import is_seer_attribution
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
@@ -79,7 +82,9 @@ class LinkedPullRequestResponse(PullRequestSerializerResponse):
     reviewStatus: AggregateReviewStatus | None
 
 
-def get_users_for_pull_requests(item_list, user=None):
+def get_users_for_pull_requests(
+    item_list: Sequence[PullRequest], user: User | RpcUser | AnonymousUser | None = None
+) -> Mapping[str, Author]:
     authors = list(
         CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
     )
@@ -93,16 +98,21 @@ def get_users_for_pull_requests(item_list, user=None):
 
 @register(PullRequest)
 class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[PullRequest],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[PullRequest, dict[str, object]]:
         users_by_author = get_users_for_pull_requests(item_list, user)
         repositories = list(Repository.objects.filter(id__in=[c.repository_id for c in item_list]))
         repository_map = {repository.id: repository for repository in repositories}
         serialized_repos = {r["id"]: r for r in serialize(repositories, user)}
 
-        result = {}
+        result: dict[PullRequest, dict[str, object]] = {}
         for item in item_list:
             repository_id = str(item.repository_id)
-            external_url = ""
+            external_url: str | None = ""
             if item.repository_id in repository_map:
                 external_url = item.get_external_url()
             result[item] = {
@@ -113,7 +123,13 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
 
         return result
 
-    def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> PullRequestSerializerResponse:
+    def serialize(
+        self,
+        obj: PullRequest,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> PullRequestSerializerResponse:
         return {
             "id": obj.key,
             "title": obj.title,
@@ -121,9 +137,9 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
             "dateCreated": obj.date_added,
             "mergedAt": obj.merged_at,
             "status": get_stored_pull_request_status(obj),
-            "repository": attrs["repository"],
-            "author": attrs["user"],
-            "externalUrl": attrs["external_url"],
+            "repository": cast(RepositorySerializerResponse, attrs["repository"]),
+            "author": cast(Author, attrs["user"]),
+            "externalUrl": cast(str, attrs["external_url"]),
         }
 
 
@@ -168,7 +184,12 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
         self.status_by_pr_id = status_by_pr_id
         self.checks_and_review_by_pr_id = checks_and_review_by_pr_id
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[PullRequest],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[PullRequest, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
         prefetch_related_objects(
             item_list,
@@ -179,14 +200,21 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             ),
         )
         for item in item_list:
-            attrs[item]["attribution"] = _serialize_attribution(item.valid_attributions)
+            attributions: Sequence[PullRequestAttribution] = getattr(item, "valid_attributions")
+            attrs[item]["attribution"] = _serialize_attribution(attributions)
         return attrs
 
-    def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> LinkedPullRequestResponse:
+    def serialize(
+        self,
+        obj: PullRequest,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> LinkedPullRequestResponse:
         checks_and_review = self.checks_and_review_by_pr_id.get(obj.id, PullRequestStatusResult())
         return {
             **super().serialize(obj, attrs, user, **kwargs),
-            "attribution": attrs["attribution"],
+            "attribution": cast(LinkedPullRequestAttributionResponse | None, attrs["attribution"]),
             "dateLinked": self.date_linked_by_pr_id[obj.id],
             "status": self.status_by_pr_id[obj.id],
             "checksStatus": checks_and_review.checks,

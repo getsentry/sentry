@@ -544,7 +544,9 @@ export type TagValue = {
   firstSeen: string;
   lastSeen: string;
   name: string;
-  value: string;
+  // Missing tags come back as '' or, for tags Snuba stores in their own
+  // column (like user), null.
+  value: string | null;
   email?: string;
   identifier?: string;
   ipAddress?: string;
@@ -559,7 +561,7 @@ type Topvalue = {
   key: string;
   lastSeen: string;
   name: string;
-  value: string;
+  value: string | null;
   // Might not actually exist.
   query?: string;
   readable?: string;
@@ -676,6 +678,8 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1137,7 +1141,19 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
 export type GroupActivity =
+  | GroupActivityUnlinkExternalIssue
+  | GroupActivityUnlinkPlatformExternalIssue
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration

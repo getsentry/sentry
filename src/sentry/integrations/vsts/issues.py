@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import re
 from abc import ABC
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, NoReturn
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 from urllib.parse import ParseResult
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from mistune import markdown
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -161,7 +160,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | User, **kwargs: Any
+        self, group: Group | None, user: RpcUser | User, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -201,8 +200,10 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
             *fields,
         ]
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> Sequence[Mapping[str, str]]:
-        fields: Sequence[MutableMapping[str, str]] = super().get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -282,7 +283,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
             )
         return {"externalIssue": match[1]}
 
-    def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
+    def get_issue(self, issue_id: str | int, **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
         work_item = client.get_work_item(issue_id)
         return {
@@ -438,12 +439,16 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
-        return (external_issue.metadata or {}).get("display_name", "")
+        display_name = (external_issue.metadata or {}).get("display_name", "")
+        return display_name
 
-    def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:
+    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> dict[str, Any]:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().update_work_item(issue_id, comment=quoted_comment)
+        return cast(
+            "dict[str, Any]",
+            self.get_client().update_work_item(issue_id, comment=quoted_comment),
+        )
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml
@@ -455,11 +460,11 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment
 
-    def update_comment(self, issue_id: int, user_id: int, group_note: str) -> None:
+    def update_comment(self, issue_id: str, user_id: int, group_note: Activity) -> None:
         # Azure does not support updating comments.
         pass
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         client = self.get_client()
 
         integration = integration_service.get_integration(

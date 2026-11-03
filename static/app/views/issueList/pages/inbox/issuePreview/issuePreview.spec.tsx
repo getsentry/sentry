@@ -94,6 +94,10 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,

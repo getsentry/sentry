@@ -3,9 +3,12 @@ from __future__ import annotations
 import ast
 import os
 from collections import Counter
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, NamedTuple
+
+from tools.api_guidelines.rules import ApiRule
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
@@ -112,35 +115,35 @@ S020_eap_base_classes = frozenset(
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
 S021_msg = (
-    "S021 Every T declared by inline_sentry_response_serializer(...) in "
+    f"{ApiRule.S021} Every T declared by inline_sentry_response_serializer(...) in "
     "@extend_schema must appear in the Response[T] return annotation. "
     "Missing from the annotation: {}."
 )
 S022_missing_msg = (
-    "S022 Published endpoint methods must declare their response shape. This "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. This "
     "method has no return annotation; use Response[YourTypedDict], a union of "
     "Response[T] arms, Response[None], or a non-DRF response type."
 )
 S022_bare_msg = (
-    "S022 Published endpoint methods must declare their response shape. Bare "
+    f"{ApiRule.S022} Published endpoint methods must declare their response shape. Bare "
     "`Response` opts the body out of type checking; use Response[YourTypedDict], "
     "a union of Response[T] arms, or Response[None]."
 )
 S023_no_reason_msg = (
-    "S023 exclude_fields={!r} has no recorded reason. Add a help_text to the "
+    f"{ApiRule.S023} exclude_fields={{!r}} has no recorded reason. Add a help_text to the "
     "field, or withhold it deliberately with @sentry_schema_serializer("
     'omit_from_public_schema={{{!r}: "<why>"}}).'
 )
-S023_not_mapping_msg = "S023 omit_from_public_schema must be a {field: reason} mapping."
+S023_not_mapping_msg = (
+    f"{ApiRule.S023} omit_from_public_schema must be a {{field: reason}} mapping."
+)
 S023_blank_reason_msg = (
-    "S023 omit_from_public_schema[{!r}] needs a reason explaining why the field "
+    f"{ApiRule.S023} omit_from_public_schema[{{!r}}] needs a reason explaining why the field "
     "is not public surface."
 )
-S023_ghost_msg = (
-    "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
-)
+S023_ghost_msg = f"{ApiRule.S023} {{}}={{!r}} names no field on this class; it omits nothing and should be deleted."
 S023_bad_path_msg = (
-    "S023 {}={!r} is not a usable path. Write 'field' or 'field.choice', "
+    f"{ApiRule.S023} {{}}={{!r}} is not a usable path. Write 'field' or 'field.choice', "
     "with no leading, trailing or doubled dots."
 )
 
@@ -183,6 +186,20 @@ S031_msg = (
     "override_options(...) so the change is undone in order"
 )
 
+S032_msg = (
+    "S032 acting_user_id() is None when no user is calling (e.g. a service account), "
+    "and a None lookup matches rows with no user; call require_user(request) or handle "
+    "None first"
+)
+# Lookups only: writing None, e.g. to created_by_id, is how a caller with no user is
+# recorded.
+_S032_query_methods = frozenset(("filter", "exclude", "get", "get_or_create", "update_or_create"))
+
+S033_msg = (
+    "S033 Don't assign request.user or request.auth directly; call "
+    "set_request_principal(request, user, auth)."
+)
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
 S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
@@ -196,25 +213,27 @@ ENFORCED: frozenset[str] = frozenset()
 INPUT_LINT_ALL_ENV = "SENTRY_INPUT_LINT_ALL"
 
 S025_query_msg = (
-    "S025 {} validates the query string but is not declared in "
+    f"{ApiRule.S025} {{}} validates the query string but is not declared in "
     "@extend_schema(parameters=...), so the schema does not document what this "
     "endpoint accepts. Add it to parameters=."
 )
 S026_msg = (
-    "S026 {} is read straight off the {}, so the schema has nothing to document and "
-    "the value is an unchecked string. Read it through a serializer declared in "
-    "@extend_schema."
+    f"{ApiRule.S026} {{}} is read straight off the {{}} instead of through a serializer declared in "
+    "@extend_schema, so nothing ties the schema to what this endpoint accepts. Read it "
+    "through a declared serializer, or declare this endpoint's input as an exception."
 )
 S027_msg = (
-    "S027 the {} is read with the computed key {}, so no schema can document it. "
-    "Read a literal key, or declare this endpoint's input as an exception."
+    f"{ApiRule.S027} the {{}} is read with the computed key {{}}, so no schema can document it. "
+    "Read it through a serializer declared in @extend_schema, or declare this "
+    "endpoint's input as an exception."
 )
 S028_msg = (
-    "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
-    "determined. Read the values here, or declare this endpoint's input as an exception."
+    f"{ApiRule.S028} the whole {{}} is handed to {{}}, so what this endpoint accepts cannot be "
+    "determined. Validate it with a serializer declared in @extend_schema, or declare "
+    "this endpoint's input as an exception."
 )
 S025_body_msg = (
-    "S025 {} validates the request body but is not declared in "
+    f"{ApiRule.S025} {{}} validates the request body but is not declared in "
     "@extend_schema(request=...), so the schema does not document what this "
     "endpoint accepts. Add it as request=."
 )
@@ -288,6 +307,95 @@ def _base_class_names(node: ast.ClassDef) -> list[str]:
         elif isinstance(base, ast.Attribute):
             names.append(base.attr)
     return names
+
+
+def _collect_literal_var_constants(tree: ast.AST) -> set[str]:
+    """Helper function for getting a file's top level constants that hold string literals.
+    This is used to check if top level constants are iterables when we iterate over request fields/params.
+    """
+    names: set[str] = set()
+
+    # check if the tree is an ast.Module
+    if not isinstance(tree, ast.Module):
+        return names
+
+    # loop over the tree.body
+    for node in tree.body:
+        # check for assign nodes
+        if isinstance(node, ast.Assign):
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                if _is_literal_strings(node.value):
+                    names.add(node.targets[0].id)
+
+        # check for ann assign nodes
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name):
+                if node.value and _is_literal_strings(node.value):
+                    names.add(node.target.id)
+
+    return names
+
+
+def _is_literal_strings(node: ast.expr) -> bool:
+    """Helper function for checking if a dict, list, or tuple are literal string constants.
+    This is used to check if the list of iterables in a for loop are constants
+    i.e, for key in ("a", "b") where "a" and "b" are literal strings"""
+
+    # check if its a dict
+    if isinstance(node, ast.Dict):
+        for key in node.keys:
+            # check if the keys in the dict are constants/strings
+            if key is None or not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                return False
+        return True
+
+    # check if its a tuple or list
+    if isinstance(node, (ast.Tuple, ast.List)):
+        # check if the elms are constant/strings
+        for elm in node.elts:
+            if not isinstance(elm, ast.Constant) or not isinstance(elm.value, str):
+                return False
+        return True
+
+    return False
+
+
+def _is_iterable_elms_literals(
+    node: ast.expr, file_lvl_constants: set[str], declared_serializers: set[str]
+) -> bool:
+    """Helper function for checking if the iterables in a for loop are a safe and known collection:
+    1. An inline literal list/tuple/dict of string literals
+    2. A file level constant variable name
+    3. A declared serializer's `.fields` attribute
+    """
+    if (
+        isinstance(node, ast.Call)
+        and not node.args
+        and not node.keywords
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("keys", "items")
+    ):
+        node = (
+            node.func.value
+        )  # the object the method was being called on so PARAMS.items() becomes PARAMS
+
+    # check if it's a file level constant
+    if isinstance(node, ast.Name) and node.id in file_lvl_constants:
+        return True
+
+    # check if it's a declared serializer's .fields attribute
+    if isinstance(node, ast.Attribute) and node.attr == "fields":
+        serializer = node.value
+        # check if its MySerializer().fields
+        if (
+            isinstance(serializer, ast.Call)
+            and isinstance(serializer.func, ast.Name)
+            and serializer.func.id in declared_serializers
+        ):
+            return True
+
+    # check if it's an inline literal dict/list/tuple of strings
+    return _is_literal_strings(node)
 
 
 def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
@@ -392,10 +500,23 @@ _CONTAINER_OPS = frozenset(
 )
 _COPY_METHODS = frozenset(("copy", "dict"))
 
+# Date range helpers should not be flagged for handoffs if allk the params are documented fully
+_DATE_RANGE_HELPERS = frozenset(("get_date_range_from_params", "get_date_range_from_stats_period"))
+# The current date keys those helpers read, by their GlobalParams name. The
+# timeframe aliases are legacy and left out of the public spec on purpose
+_DATE_RANGE_PARAMS = frozenset(
+    ("START", "END", "STATS_PERIOD", "STATS_PERIOD_START", "STATS_PERIOD_END")
+)
+
 
 def _looks_like_a_class(func: ast.expr) -> bool:
     """Callee named like a class, which is how a serializer is spelled."""
     return _name_of(func).rsplit(".", 1)[-1][:1].isupper()
+
+
+def _looks_like_a_class_variable(func: ast.expr) -> bool:
+    """Callee is a class held in a variable, like serializer_cls which is another way how a serializer is defined."""
+    return _name_of(func).endswith("_cls")
 
 
 def _is_request(node: ast.expr) -> bool:
@@ -427,10 +548,13 @@ def _declared_elements(value: ast.expr) -> list[ast.expr]:
 
 
 def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
-    """Short names declared under `@extend_schema(<keyword>=...)`."""
+    """Short names declared under `@extend_schema(<keyword>=...)`. A serializer
+    written with arguments, like `MySerializer(partial=True)`, counts as `MySerializer`"""
     names: set[str] = set()
     for value in extend_schema_kwarg(decorators, keyword):
         for element in _declared_elements(value):
+            if isinstance(element, ast.Call):
+                element = element.func
             names.add(_name_of(element).rsplit(".", 1)[-1])
     return names
 
@@ -444,6 +568,41 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_acting_user_id(node: ast.expr) -> bool:
+    """A call to `acting_user_id(...)`."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "acting_user_id"
+    )
+
+
+def _is_named_request(node: ast.expr) -> bool:
+    """`request`, `self.request`, `drf_request`, ..."""
+    if isinstance(node, ast.Name):
+        return node.id.endswith("request")
+    return isinstance(node, ast.Attribute) and node.attr.endswith("request")
+
+
+def _is_request_principal_attr(node: ast.expr) -> bool:
+    """`request.user` / `request.auth` on anything named like a request."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr in ("user", "auth")
+        and _is_named_request(node.value)
+    )
+
+
+def _unpack_targets(targets: list[ast.expr]) -> Iterator[ast.expr]:
+    stack = list(targets)
+    while stack:
+        target = stack.pop()
+        if isinstance(target, (ast.Tuple, ast.List)):
+            stack.extend(target.elts)
+        else:
+            yield target
 
 
 def _is_seer_connection_pool_call(node: ast.expr) -> bool:
@@ -681,23 +840,68 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+class _StartEnd(NamedTuple):
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+
+
+def _start_and_end(node: ast.expr) -> _StartEnd:
+    """Where a node starts and ends, as ast reports it (columns are 0-based)"""
+    return _StartEnd(
+        line=node.lineno,
+        column=node.col_offset,
+        end_line=node.end_lineno or node.lineno,
+        end_column=node.end_col_offset or node.col_offset,
+    )
+
+
+# Short source names used in violation keys, so a query and a body read of the
+# same name stay separate violations.
+_SOURCE_PREFIX = {"query string": "query", "request body": "body"}
+
+
+@dataclass(frozen=True)
+class ApiInputViolation:
+    """Structured record of a single S025-S028 API input lint violation.
+
+    Preserves the `Class.method` scope, prefixed input `key`, and full start and end
+    position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
+    """
+
+    rule: ApiRule
+    message: str
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+    severity: Literal["error", "warning"]
+    scope: str  # Class.method
+    key: str  # source and name, for example "query:id"
+    tool: str = "sentry-flake8"
+
+
 class _InputCtx:
     """One PUBLIC method's input sources, gathered during the single traversal."""
 
-    def __init__(self, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+        self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
         self.query_locals: set[str] = set()
         self.body_locals: set[str] = set()
-        # (line, col, serializer) for each serializer built from that source
-        self.query_validators: list[tuple[int, int, str]] = []
-        self.body_validators: list[tuple[int, int, str]] = []
-        # (line, col, key, source) reads with a literal key
-        self.literal_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, rendered key, source) reads whose key is computed
-        self.computed_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, callee, source) the whole dict passed somewhere
-        self.hand_offs: list[tuple[int, int, str, str]] = []
+        # (start_end, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[_StartEnd, str]] = []
+        self.body_validators: list[tuple[_StartEnd, str]] = []
+        # (start_end, key, source) reads with a literal key
+        self.literal_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # loop variable names currently marked safe (i.e, keys that are known/fixed)
+        self.safe_loop_vars: set[str] = set()
+        # (start_end, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[_StartEnd, str, str]] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -721,11 +925,13 @@ class _InputCtx:
             return "request body"
         return None
 
-    def record_read(self, key: ast.expr, source: str, line: int, col: int) -> None:
+    def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
-            self.literal_reads.append((line, col, key.value, source))
+            self.literal_reads.append((_start_and_end(node), key.value, source))
+        elif isinstance(key, ast.Name) and key.id in self.safe_loop_vars:
+            return
         else:
-            self.computed_reads.append((line, col, ast.unparse(key), source))
+            self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -737,6 +943,8 @@ class SentryVisitor(ast.NodeVisitor):
         eap_suite_classes: set[str] | None = None,
     ) -> None:
         self.errors: list[tuple[int, int, str]] = []
+        # Every S025-S028 violation, enforced or not; see get_api_violations
+        self.api_violations: list[ApiInputViolation] = []
         self.filename = filename
         self._s015_year = s015_year
         self._s015_msg = s015_msg
@@ -761,6 +969,8 @@ class SentryVisitor(ast.NodeVisitor):
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
         self._input_stack: list[_InputCtx] = []
+        # names of top level constants holding literal string keys, these keys are collected in visit_Module()
+        self._literal_var_constants: set[str] = set()
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
@@ -906,6 +1116,101 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Module(self, node: ast.Module) -> None:
+        """Visitor for tracking top level constant variables that hold request fields to iterate over."""
+        self._literal_var_constants = _collect_literal_var_constants(tree=node)
+        self.generic_visit(node)
+
+    def _new_safe_loop_var(
+        self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
+    ) -> str | None:
+        """The loop variable to mark safe when a loop iterates over a fixed set of keys, else None."""
+        if not _is_iterable_elms_literals(
+            node=iter_node,
+            file_lvl_constants=self._literal_var_constants,
+            declared_serializers=curr_method.declared_params | curr_method.declared_body,
+        ):
+            return None
+
+        loop_var = None
+        # check if its a single looping variable
+        if isinstance(target, ast.Name):
+            loop_var = target.id
+
+        # check if its multi looping variables
+        elif isinstance(target, (ast.Tuple, ast.List)) and target.elts:
+            first_var = target.elts[0]
+            if isinstance(first_var, ast.Name):
+                loop_var = first_var.id
+
+        # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
+        # the inner loop reusing the name keeps the outer name safe
+        if loop_var in curr_method.safe_loop_vars:
+            return None
+
+        return loop_var
+
+    def visit_For(self, node: ast.For) -> None:
+        """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
+
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        curr_method = self._input_stack[-1]
+
+        self.visit(node.target)
+        self.visit(node.iter)
+
+        loop_var = self._new_safe_loop_var(node.target, node.iter, curr_method)
+        if loop_var is not None:
+            curr_method.safe_loop_vars.add(loop_var)
+
+        for statement in node.body:
+            self.visit(statement)
+
+        if loop_var is not None:
+            curr_method.safe_loop_vars.discard(loop_var)
+
+        for statement in node.orelse:
+            self.visit(statement)
+
+    def visit_comprehension_types(
+        self, node: ast.ListComp | ast.DictComp | ast.SetComp | ast.GeneratorExp
+    ) -> None:
+        """Visitor for tracking loop variables in list, set, dict and generator comprehensions."""
+
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        curr_method = self._input_stack[-1]
+
+        valid_vars: list[str] = []
+
+        for comp_node in node.generators:
+            self.visit(comp_node.iter)
+            self.visit(comp_node.target)
+
+            loop_var = self._new_safe_loop_var(comp_node.target, comp_node.iter, curr_method)
+            if loop_var is not None:
+                curr_method.safe_loop_vars.add(loop_var)
+                valid_vars.append(loop_var)
+
+            for condition in comp_node.ifs:
+                self.visit(condition)
+
+        if isinstance(node, ast.DictComp):
+            self.visit(node.key)
+            self.visit(node.value)
+        else:
+            self.visit(node.elt)
+
+        for var in valid_vars:
+            curr_method.safe_loop_vars.discard(var)
+
+    visit_ListComp = visit_SetComp = visit_GeneratorExp = visit_DictComp = visit_comprehension_types
+
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         top_level = not self._class_stack
         if top_level:
@@ -985,14 +1290,17 @@ class SentryVisitor(ast.NodeVisitor):
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         self._check_S031(node.targets)
+        self._check_S033(node.targets)
         self.generic_visit(node)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_Delete(self, node: ast.Delete) -> None:
@@ -1005,6 +1313,19 @@ class SentryVisitor(ast.NodeVisitor):
         for target in targets:
             if _is_settings_target(target):
                 self.errors.append((target.lineno, target.col_offset, S031_msg))
+
+    def _s033_applies(self) -> bool:
+        # set_request_principal is the one setter; tests may assign directly.
+        return not _is_tests_path(self.filename) and not self.filename.endswith(
+            "sentry/auth/principal.py"
+        )
+
+    def _check_S033(self, targets: list[ast.expr]) -> None:
+        if not self._s033_applies():
+            return
+        for target in _unpack_targets(targets):
+            if _is_request_principal_attr(target):
+                self.errors.append((target.lineno, target.col_offset, S033_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)
@@ -1127,7 +1448,7 @@ class SentryVisitor(ast.NodeVisitor):
             ctx = self._input_stack[-1]
             source = ctx.source_of(node.value)
             if source is not None:
-                ctx.record_read(node.slice, source, node.lineno, node.col_offset)
+                ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
     def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -1141,6 +1462,7 @@ class SentryVisitor(ast.NodeVisitor):
         decorators = self._class_decorators + node.decorator_list
         self._input_stack.append(
             _InputCtx(
+                f"{self._class_stack[-1]}.{node.name}",
                 _declared_names(decorators, "parameters"),
                 _declared_names(decorators, "request"),
             )
@@ -1154,20 +1476,31 @@ class SentryVisitor(ast.NodeVisitor):
         if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
             source = ctx.source_of(func.value)
             if source is not None and node.args:
-                ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
+                ctx.record_read(node.args[0], source, node)
             # On anything but the request this is an ordinary lookup, and
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
-        # Only a serializer's data= is the target shape. `my_func(data=...)`
-        # hands the dict over exactly as a positional argument would.
-        if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
+        # Only a serializer's data= is the target shape. This includes uppercase class
+        # names and dynamic variables ending in `_cls`. `my_func(data=...)` hands the
+        # dict over exactly as a positional argument would. The `_cls` check is kept
+        # separate from `_looks_like_a_class` because `_looks_like_a_class` has two
+        # callers and only this specific check should be expanded to allow `_cls`.
+        if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
+            kw.arg == "data" for kw in node.keywords
+        ):
+            return
+        # The date helpers read a fixed set of keys, so they are only a handoff
+        # when the endpoint does not document all of them.
+        if _name_of(func) in _DATE_RANGE_HELPERS and _DATE_RANGE_PARAMS.issubset(
+            ctx.declared_params
+        ):
             return
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
             source = ctx.source_of(argument)
             if source is not None:
                 name = _name_of(func).rsplit(".", 1)[-1]
                 if name not in _CONTAINER_OPS:
-                    ctx.hand_offs.append((node.lineno, node.col_offset, name, source))
+                    ctx.hand_offs.append((_start_and_end(node), name, source))
                 return
 
     def _record_validator(self, node: ast.Call) -> None:
@@ -1182,29 +1515,61 @@ class SentryVisitor(ast.NodeVisitor):
                 continue
             name = _name_of(node.func).rsplit(".", 1)[-1]
             if ctx.is_query(keyword.value):
-                ctx.query_validators.append((node.lineno, node.col_offset, name))
+                ctx.query_validators.append((_start_and_end(node), name))
             elif ctx.is_body(keyword.value):
-                ctx.body_validators.append((node.lineno, node.col_offset, name))
+                ctx.body_validators.append((_start_and_end(node), name))
 
-    def _report_input(self, line: int, col: int, msg: str, rule: str) -> None:
-        """Fatal only for an enforced rule; otherwise recorded unless asked for."""
-        if rule in ENFORCED or os.environ.get(INPUT_LINT_ALL_ENV):
-            self.errors.append((line, col, msg))
+    def _report_input(
+        self,
+        ctx: _InputCtx,
+        start_end: _StartEnd,
+        msg: str,
+        group: str,
+        key: str,
+        source: str,
+        rule: ApiRule,
+    ) -> None:
+        """Always recorded as a structured violation; fatal only for an enforced group."""
+        enforced = group in ENFORCED
+        self.api_violations.append(
+            ApiInputViolation(
+                rule=rule,
+                message=msg,
+                line=start_end.line,
+                column=start_end.column,
+                end_line=start_end.end_line,
+                end_column=start_end.end_column,
+                severity="error" if enforced else "warning",
+                scope=ctx.scope,
+                key=f"{_SOURCE_PREFIX[source]}:{key}",
+            )
+        )
+        if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
+            self.errors.append((start_end.line, start_end.column, msg))
 
     def _exit_input(self) -> None:
         ctx = self._input_stack.pop()
-        for line, col, name in ctx.query_validators:
+        for start_end, name in ctx.query_validators:
             if name not in ctx.declared_params:
-                self._report_input(line, col, S025_query_msg.format(name), "declared")
-        for line, col, name in ctx.body_validators:
+                msg = S025_query_msg.format(name)
+                self._report_input(
+                    ctx, start_end, msg, "declared", name, "query string", ApiRule.S025
+                )
+        for start_end, name in ctx.body_validators:
             if name not in ctx.declared_body:
-                self._report_input(line, col, S025_body_msg.format(name), "declared")
-        for line, col, key, source in ctx.literal_reads:
-            self._report_input(line, col, S026_msg.format(repr(key), source), "shaped")
-        for line, col, key, source in ctx.computed_reads:
-            self._report_input(line, col, S027_msg.format(source, key), "shaped")
-        for line, col, callee, source in ctx.hand_offs:
-            self._report_input(line, col, S028_msg.format(source, callee), "shaped")
+                msg = S025_body_msg.format(name)
+                self._report_input(
+                    ctx, start_end, msg, "declared", name, "request body", ApiRule.S025
+                )
+        for start_end, key, source in ctx.literal_reads:
+            msg = S026_msg.format(repr(key), source)
+            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S026)
+        for start_end, key, source in ctx.computed_reads:
+            msg = S027_msg.format(source, key)
+            self._report_input(ctx, start_end, msg, "shaped", key, source, ApiRule.S027)
+        for start_end, callee, source in ctx.hand_offs:
+            msg = S028_msg.format(source, callee)
+            self._report_input(ctx, start_end, msg, "shaped", callee, source, ApiRule.S028)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
@@ -1243,6 +1608,28 @@ class SentryVisitor(ast.NodeVisitor):
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
 
+        # S033: setattr(request, "user" | "auth", ...).
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "setattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and node.args[1].value in ("user", "auth")
+            and self._s033_applies()
+            and _is_named_request(node.args[0])
+        ):
+            self.errors.append((node.lineno, node.col_offset, S033_msg))
+
+        # S032: a caller's possibly-None user_id used as a queryset lookup.
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in _S032_query_methods
+            and ".objects" in _name_of(node.func.value)
+        ):
+            for keyword in node.keywords:
+                if _is_acting_user_id(keyword.value):
+                    self.errors.append((keyword.lineno, keyword.col_offset, S032_msg))
+
         if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
             for keyword in node.keywords:
                 if keyword.arg == "extra" and isinstance(keyword.value, ast.Dict):
@@ -1272,6 +1659,24 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S020_msg))
 
         self.generic_visit(node)
+
+
+def get_api_violations(
+    tree: ast.AST, filename: str, all_rules: bool = True
+) -> list[ApiInputViolation]:
+    """Scan a file's AST and keep structured records for S025-S028 violations.
+
+    Unlike flake8's plain text output, these records preserve the method scope
+    and parameter key needed for baseline tracking. By default `all_rules=True`,
+    this returns every violation even if the rule is currently disabled in flake8.
+    """
+    visitor = SentryVisitor(filename, datetime.now(timezone.utc).year, _s015_msg())
+    visitor.visit(tree)
+    violations = []
+    for violation in visitor.api_violations:
+        if all_rules or violation.severity == "error":
+            violations.append(violation)
+    return violations
 
 
 class SentryCheck:

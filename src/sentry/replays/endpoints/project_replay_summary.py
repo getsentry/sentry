@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -56,7 +57,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     }
     permission_classes = (ReplaySummaryPermission,)
 
-    def __init__(self, **kw) -> None:
+    def __init__(self, **kw: object) -> None:
         storage.initialize_client()
         # Trace sample rates for each method. Uses the default when not set (=0).
         self.sample_rate_post = options.get(
@@ -283,7 +284,10 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 )
 
             # Extract start and end times from the replay (pass None if missing or invalid).
-            replay = process_raw_response(snuba_response, fields=[])[0]
+            replay = process_raw_response(
+                cast("list[dict[str, Any]]", snuba_response),
+                fields=[],
+            )[0]
 
             def validate_iso_timestamp(timestamp: str | None) -> str | None:
                 """Validate that timestamp is a valid ISO format string, return None if invalid."""

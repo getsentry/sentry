@@ -241,6 +241,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
             name=service_account.name,
             scope_list=service_account.scope_list,
             is_active=service_account.is_active,
+            all_projects=service_account.all_projects,
         )
         with enforce_constraints(transaction.atomic(router.db_for_write(ServiceAccountReplica))):
             handle_replication(ServiceAccount, destination)

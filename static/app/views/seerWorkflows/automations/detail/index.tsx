@@ -7,6 +7,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -18,7 +19,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   getNextUpdate,
-  PLACEHOLDER_CONFIGS,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -27,6 +27,7 @@ import type {
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
+  getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
@@ -37,28 +38,22 @@ export default function AutomationDetail() {
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
     ? 'runs'
     : 'configuration';
-  const basePath =
-    activeTab === 'runs'
-      ? location.pathname.slice(0, -'runs/'.length)
-      : location.pathname;
 
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
+  const basePath = getAutomationDetailPath(organization.slug, automationId);
 
-  // TODO(aliu): Fetch the single config once the API supports it
-  const {data, isPending} = useQuery(
+  const {data, isPending, isError, refetch} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
         path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {id: automationId},
         staleTime: 0,
       }
     )
   );
-  const configs: AutomationConfig[] = automationsEnabled
-    ? [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])]
-    : [];
-  const config = configs.find(c => c.id === automationId);
+  const config: AutomationConfig | undefined = data?.configs[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
@@ -66,10 +61,14 @@ export default function AutomationDetail() {
   const title = strategyMeta?.label ?? strategy;
   const nextUpdate = config ? getNextUpdate(config.schedule) : undefined;
 
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
+
   if (!config) {
     return (
       <Container padding="xl">
-        {automationsEnabled && isPending ? (
+        {isPending ? (
           <Fragment>
             <TopBar.Slot
               name="breadcrumbs"
@@ -77,6 +76,8 @@ export default function AutomationDetail() {
             />
             <LoadingIndicator />
           </Fragment>
+        ) : isError ? (
+          <LoadingError onRetry={refetch} />
         ) : (
           <NotFound />
         )}
@@ -104,13 +105,13 @@ export default function AutomationDetail() {
           </Heading>
           <Text>{strategyMeta?.description ?? t('No description')}</Text>
           <Stack direction="row" align="center" gap="md" wrap="wrap">
-            {config?.lastRun !== undefined && (
+            {config?.dateLastRun !== undefined && (
               <Fragment>
                 <Text size="sm" variant="muted">
                   {tct('Last run [time]', {
                     time: (
                       <TimeSince
-                        date={new Date(config.lastRun * 1000)}
+                        date={config.dateLastRun}
                         tooltipPrefix={t('Last run')}
                       />
                     ),

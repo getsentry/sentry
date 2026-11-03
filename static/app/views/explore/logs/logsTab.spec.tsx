@@ -5,12 +5,14 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -279,7 +281,8 @@ describe('LogsTabContent', () => {
     );
   });
 
-  it('disables saving when any log series has transformations', async () => {
+  it('allows query saves when a hidden log series has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig: {
         location: {
@@ -301,11 +304,75 @@ describe('LogsTabContent', () => {
       additionalWrapper: ProviderWrapper,
     });
 
-    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
     expect(await screen.findByText('some log message1')).toBeInTheDocument();
+  });
+
+  it('saves a transformed log chart as a widget while keeping its monitor disabled', async () => {
+    const openAddToDashboard = jest
+      .spyOn(modal, 'openAddToDashboardModal')
+      .mockResolvedValue(undefined);
+
+    try {
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                JSON.stringify({
+                  yAxes: ['count(message)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                }),
+              ],
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'dashboards-edit'],
+        }),
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart actions'}));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create a Monitor'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+      );
+
+      expect(openAddToDashboard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widgets: [
+            expect.objectContaining({
+              queries: [
+                expect.objectContaining({
+                  aggregates: ['count(message)'],
+                  transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    } finally {
+      openAddToDashboard.mockRestore();
+    }
   });
 
   it('should call APIs as expected', async () => {
@@ -934,6 +1001,63 @@ describe('LogsTabContent', () => {
         /we only scan your full log volume when sorting by timestamp in descending order/
       )
     ).toBeInTheDocument();
+  });
+
+  it('warns that results may be incomplete while auto-refresh is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we don't scan your full log volume while auto-refresh is on/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when auto-refresh finds no logs in a full scan', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'full'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
   });
 
   describe('dropped data layer', () => {

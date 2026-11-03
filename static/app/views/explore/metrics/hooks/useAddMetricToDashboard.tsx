@@ -19,6 +19,7 @@ import {
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function useAddMetricToDashboard() {
@@ -55,7 +56,10 @@ export function useAddMetricToDashboard() {
       if (fields.length > 0) {
         newEventView.sorts = aggregateSortBys;
       }
-      return newEventView;
+      return {
+        eventView: newEventView,
+        transformations: visualizesToWidgetTransformations(visualizes),
+      };
     },
     [selection]
   );
@@ -63,9 +67,9 @@ export function useAddMetricToDashboard() {
   const addToDashboard = useCallback(
     (metricQuery: BaseMetricQuery | BaseMetricQuery[]) => {
       const queries = Array.isArray(metricQuery) ? metricQuery : [metricQuery];
-      const eventViews = queries.map(q => getEventView(q));
+      const dashboardQueries = queries.map(q => getEventView(q));
 
-      if (eventViews.length === 0) {
+      if (dashboardQueries.length === 0) {
         return;
       }
 
@@ -74,7 +78,7 @@ export function useAddMetricToDashboard() {
         handleAddMultipleQueriesToDashboard({
           organization,
           location,
-          eventViews,
+          queries: dashboardQueries,
           widgetType: WidgetType.TRACEMETRICS,
           source: DashboardWidgetSource.TRACEMETRICS,
           selection,
@@ -83,8 +87,8 @@ export function useAddMetricToDashboard() {
         handleAddQueryToDashboard({
           organization,
           location,
-          eventView: eventViews[0]!,
-          yAxis: eventViews[0]!.yAxis,
+          ...dashboardQueries[0]!,
+          yAxis: dashboardQueries[0]!.eventView.yAxis,
           widgetType: WidgetType.TRACEMETRICS,
           source: DashboardWidgetSource.TRACEMETRICS,
         });

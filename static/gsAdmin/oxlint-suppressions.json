@@ -4,17 +4,15 @@
       "count": 1
     }
   },
-  "components/adminConfirmationModal.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 13
-    }
-  },
   "components/changeBalanceAction.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1
     }
   },
   "components/customerName.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -33,8 +31,16 @@
     }
   },
   "components/customers/customerStats.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "components/customerStatus.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
     }
   },
   "components/dropdownActions.tsx": {
@@ -48,11 +54,17 @@
     }
   },
   "components/pageHeader.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "components/planList.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
     }
@@ -63,6 +75,9 @@
     }
   },
   "components/provisionSubscriptionAction.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 5
     }
@@ -73,6 +88,9 @@
     }
   },
   "components/toggleConsolePlatformsModal.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -87,17 +105,20 @@
       "count": 4
     }
   },
+  "globalStyles.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 3
+    }
+  },
   "views/billingPlans.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 3
+    },
     "@sentry/scraps/no-manual-table": {
       "count": 13
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 8
-    }
-  },
-  "views/customerContractDetails.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "views/debuggingTools.tsx": {
@@ -106,11 +127,22 @@
     }
   },
   "views/dynamicSamplingPanel.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
+  "views/generateSpikeProjectionsForBatch.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    }
+  },
   "views/giftRecurringCredits.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 3
+    },
     "@sentry/scraps/no-manual-table": {
       "count": 10
     },
@@ -119,6 +151,9 @@
     }
   },
   "views/invoiceComparison.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 2
+    },
     "@sentry/scraps/no-manual-table": {
       "count": 12
     },
@@ -137,6 +172,9 @@
     }
   },
   "views/layout.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 6
     },
@@ -150,6 +188,9 @@
     }
   },
   "views/overview.tsx": {
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }

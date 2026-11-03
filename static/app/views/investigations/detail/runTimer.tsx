@@ -4,7 +4,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
-import {isOnlyNextStepPending} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {
+  getInvestigationActiveTime,
+  isOnlyNextStepPending,
+} from 'sentry/views/investigations/runState';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 export function InvestigationRunTimer({
@@ -18,8 +21,9 @@ export function InvestigationRunTimer({
   } | null>(null);
   const runKey = `${orchestration.runId}:${orchestration.generation}`;
   const settled = isOnlyNextStepPending(orchestration);
-  const active = !settled && ['processing', 'pending'].includes(orchestration.status);
-  let seconds = getActiveSeconds(orchestration, settled, active);
+  const activeTime = getInvestigationActiveTime(orchestration);
+  const active = activeTime?.active ?? false;
+  let seconds = activeTime?.seconds ?? null;
 
   const frozenSeconds = settledSeconds?.runKey === runKey ? settledSeconds.seconds : null;
   if (settled && seconds !== null) {
@@ -49,51 +53,6 @@ export function InvestigationRunTimer({
       active={active}
     />
   );
-}
-
-function getActiveSeconds(
-  orchestration: InvestigationOrchestration,
-  settled: boolean,
-  active: boolean
-): number | null {
-  const {
-    startedAt,
-    finishedAt,
-    activeTimeElapsedSeconds,
-    activeSince,
-    serverTime,
-    status,
-  } = orchestration;
-  const terminal = !settled && ['completed', 'failed', 'cancelled'].includes(status);
-  if (
-    !startedAt ||
-    !Number.isFinite(Date.parse(startedAt)) ||
-    activeTimeElapsedSeconds === null ||
-    activeTimeElapsedSeconds === undefined ||
-    !Number.isFinite(activeTimeElapsedSeconds) ||
-    activeTimeElapsedSeconds < 0 ||
-    (terminal && (!finishedAt || !Number.isFinite(Date.parse(finishedAt)))) ||
-    (active && finishedAt) ||
-    (!active && !terminal && !settled && status !== 'awaiting_input')
-  ) {
-    return null;
-  }
-
-  let seconds = activeTimeElapsedSeconds;
-  if (active || (settled && activeSince !== null)) {
-    if (!activeSince || !serverTime) {
-      return null;
-    }
-    const interval = (Date.parse(serverTime) - Date.parse(activeSince)) / 1000;
-    if (!Number.isFinite(interval) || interval < 0) {
-      return null;
-    }
-    seconds += interval;
-  } else if (activeSince !== null) {
-    // A partial or stale projection cannot authoritatively freeze an active interval.
-    return null;
-  }
-  return seconds;
 }
 
 function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {

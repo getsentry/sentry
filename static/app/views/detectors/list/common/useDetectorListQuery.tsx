@@ -1,14 +1,14 @@
 import {useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 type UseDetectorListQueryOptions = {
   assigneeFilter?: string;
@@ -19,10 +19,8 @@ export function useDetectorListQuery({
   detectorFilter,
   assigneeFilter,
 }: UseDetectorListQueryOptions = {}) {
-  const location = useLocation();
   const {selection, isReady} = usePageFilters();
-  const cursor = decodeScalar(location.query.cursor);
-  const query = decodeScalar(location.query.query);
+  const [{cursor, query}] = useQueryStates({cursor: parseAsScalar, query: parseAsScalar});
   const [sort] = useDetectorListSort();
   const organization = useOrganization();
 
@@ -36,7 +34,7 @@ export function useDetectorListQuery({
 
   return useQuery({
     ...detectorListApiOptions(organization, {
-      cursor,
+      cursor: cursor ?? undefined,
       query: finalQuery,
       sortBy: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : undefined,
       projects: selection.projects,

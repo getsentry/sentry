@@ -705,39 +705,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
         with assume_test_silo_mode_of(Organization):
             assert org.get_option("sentry:aggregated_data_consent") is True
 
-    @mock.patch("sentry.analytics.record")
-    @override_options({"organization.provision-analytics-with-outbox": True})
-    def test_success_analytics_recorded_with_outbox_analytics(
-        self, mock_record: mock.MagicMock
-    ) -> None:
-        self.login_as(user=self.user)
-
-        with outbox_runner():
-            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
-        assert response.status_code == 201
-
-        with assume_test_silo_mode_of(Organization):
-            org = Organization.objects.get(slug="org-name")
-
-        assert_any_analytics_event(
-            mock_record,
-            OrganizationCreatedEvent(
-                id=org.id,
-                actor_id=self.user.id,
-                name=org.name,
-                slug=org.slug,
-            ),
-        )
-        assert_any_analytics_event(
-            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
-        )
-        assert_org_audit_log_exists(
-            organization=org,
-            event=audit_log.get_event_id("ORG_ADD"),
-        )
-        with assume_test_silo_mode_of(Organization):
-            assert org.get_option("sentry:aggregated_data_consent") is True
-
     def test_data_consent(self) -> None:
         data = {"name": "hello world original", "agreeTerms": True}
         response = self.get_success_response(**data)
@@ -866,9 +833,9 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-    def assert_redirected_to_2fa(self):
+    def assert_redirected_to_2fa(self) -> None:
         response = self.get_success_response(self.org_2fa.slug, status_code=302)
-        assert self.path_2fa in response.url
+        assert self.path_2fa in response.headers["Location"]
 
     def test_preexisting_members_must_enable_2fa(self) -> None:
         self.login_as(self.no_2fa_user)
@@ -909,7 +876,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     # This is a react view, not an API endpoint
     endpoint = "sentry-organization-index"
 
-    def setup_user(self, is_superuser=False):
+    def setup_user(self, is_superuser: bool = False) -> None:
         self.organization = self.create_organization()
         self.user = self.create_user(is_superuser=is_superuser)
         self.create_member(
@@ -923,7 +890,10 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     def test_member_limit_redirect(self) -> None:
         self.setup_user()
         response = self.get_success_response(self.organization.slug, status_code=302)
-        assert f"/organizations/{self.organization.slug}/disabled-member/" in response.url
+        assert (
+            f"/organizations/{self.organization.slug}/disabled-member/"
+            in response.headers["Location"]
+        )
 
     def test_member_limit_superuser_no_redirect(self) -> None:
         self.setup_user(is_superuser=True)

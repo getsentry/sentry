@@ -161,8 +161,8 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         self.group = self.event.group
-        assert self.group
         self.group.substatus = GroupSubStatus.ONGOING
         self.group.save()
 

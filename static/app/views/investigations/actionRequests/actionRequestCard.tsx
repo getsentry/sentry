@@ -1,8 +1,8 @@
-import {useId} from 'react';
+import {useEffect, useId, useRef} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -22,9 +22,12 @@ import {
 } from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import type {ApplyCheck} from 'sentry/views/investigations/actionRequests/applyButton';
 import {
+  canRetryFollowUp,
+  isFollowUpPending,
   parseApplyError,
+  useInvestigationActionRequestMutation,
   type ActionRequestError,
-  useApplyInvestigationActionRequestMutation,
+  type ActionRequestFollowUp,
 } from 'sentry/views/investigations/api';
 import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 import type {
@@ -34,10 +37,9 @@ import type {
 import {getActorName} from 'sentry/views/investigations/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-const SHOWN_STATES = new Set<InvestigationActionRequest['state']>([
+const CURRENT_STATES = new Set<InvestigationActionRequest['state']>([
   'suggested',
   'applied',
-  'withdrawn',
 ]);
 
 type ActionRequestCardProps = {
@@ -45,6 +47,8 @@ type ActionRequestCardProps = {
   investigationId: string;
   finishing?: boolean;
   heading?: string;
+  label?: React.ReactNode;
+  runProcessing?: boolean;
   source?: InvestigationDetail['source'];
 };
 
@@ -53,14 +57,17 @@ export function ActionRequestCard({
   finishing = false,
   heading,
   investigationId,
+  label,
+  runProcessing = false,
   source,
 }: ActionRequestCardProps) {
   const headingId = useId();
   const organization = useOrganization();
   const check = useApplyCheck(investigationId, actionRequest);
-  const applyMutation = useApplyInvestigationActionRequestMutation(
+  const applyMutation = useInvestigationActionRequestMutation(
     organization.slug,
     investigationId,
+    'apply',
     {
       onSuccess: (_response, applied) => {
         const message = getApplySuccessMessage(applied.action);
@@ -82,6 +89,55 @@ export function ActionRequestCard({
     }
   );
 
+  const recheckMutation = useInvestigationActionRequestMutation(
+    organization.slug,
+    investigationId,
+    'recheck',
+    {
+      onError: (error, rechecked) => {
+        const recheckError = parseApplyError(error);
+        if (recheckError?.code === 'not_stale') {
+          toast.message(getCannotApplyMessage(rechecked.action, recheckError.code));
+          return;
+        }
+        toast.error(
+          recheckError
+            ? getCannotApplyMessage(rechecked.action, recheckError.code)
+            : t('Unable to recheck this suggestion.')
+        );
+      },
+    }
+  );
+
+  const retryFollowUpMutation = useInvestigationActionRequestMutation(
+    organization.slug,
+    investigationId,
+    'retry-follow-up',
+    {
+      onError: (error, retried) => {
+        const retryError = parseApplyError(error);
+        toast.error(
+          retryError
+            ? getCannotApplyMessage(retried.action, retryError.code)
+            : t('Unable to send this to Seer again.')
+        );
+      },
+    }
+  );
+
+  const previousCheckStatus = useRef(check.status);
+  const {error: applyMutationError, reset: resetApplyMutation} = applyMutation;
+  useEffect(() => {
+    if (
+      check.status === 'passed' &&
+      previousCheckStatus.current !== 'passed' &&
+      applyMutationError
+    ) {
+      resetApplyMutation();
+    }
+    previousCheckStatus.current = check.status;
+  }, [check.status, applyMutationError, resetApplyMutation]);
+
   if (!isShownActionRequest(actionRequest)) {
     return null;
   }
@@ -94,11 +150,17 @@ export function ActionRequestCard({
       {heading}
     </Heading>
   ) : null;
+  const labelElement = label ? (
+    <Text as="p" size="sm" variant="muted">
+      {label}
+    </Text>
+  ) : null;
 
   if (actionRequest.state === 'withdrawn') {
     return (
       <Stack as="section" gap="md" {...labelProps}>
         {headingElement}
+        {labelElement}
         <Text as="p" size="md" density="comfortable" variant="muted">
           {actionRequest.reason
             ? tct('Seer no longer recommends “[title]”: [reason]', {
@@ -118,12 +180,18 @@ export function ActionRequestCard({
       ? parseApplyError(applyMutation.error)
       : null;
   const staleError = getStaleError(actionRequest, check, applyError);
+  const rechecking =
+    recheckMutation.isPending && recheckMutation.variables?.id === actionRequest.id;
+  const retryingFollowUp =
+    retryFollowUpMutation.isPending &&
+    retryFollowUpMutation.variables?.id === actionRequest.id;
   const appliedSummary =
     actionRequest.state === 'applied' ? getAppliedSummary(actionRequest, source) : null;
 
   return (
     <Stack as="section" gap="lg" {...labelProps}>
       {headingElement}
+      {labelElement}
       <Stack gap="xs">
         <Text as="p" size="md" density="comfortable">
           {appliedSummary ??
@@ -136,11 +204,32 @@ export function ActionRequestCard({
           <AppliedBy actionRequest={actionRequest} />
         ) : null}
       </Stack>
+      {canRetryFollowUp(actionRequest) ? (
+        <Flex>
+          <TryAgainButton
+            busy={retryingFollowUp}
+            onClick={() => retryFollowUpMutation.mutate(actionRequest)}
+          />
+        </Flex>
+      ) : null}
       {staleError ? (
         <Alert.Container>
-          <Alert variant="warning" role="status">
+          <Alert
+            variant="warning"
+            role="status"
+            trailingItems={
+              actionRequest.followUp?.status === 'failed' ? (
+                <TryAgainButton
+                  busy={rechecking}
+                  onClick={() => recheckMutation.mutate(actionRequest)}
+                />
+              ) : undefined
+            }
+          >
             <StaleSuggestionMessage
+              actionRequest={actionRequest}
               message={getApplyErrorMessage(actionRequest.action, staleError)}
+              runProcessing={runProcessing}
             />
           </Alert>
         </Alert.Container>
@@ -166,8 +255,18 @@ export function ActionRequestCard({
         check={check}
         finishing={finishing}
         onApply={() => applyMutation.mutate(actionRequest)}
+        onRecheck={() => recheckMutation.mutate(actionRequest)}
+        rechecking={rechecking}
       />
     </Stack>
+  );
+}
+
+function TryAgainButton({busy, onClick}: {busy: boolean; onClick: () => void}) {
+  return (
+    <Button size="xs" busy={busy} disabled={busy} onClick={onClick}>
+      {t('Try again')}
+    </Button>
   );
 }
 
@@ -193,7 +292,15 @@ function AppliedBy({actionRequest}: {actionRequest: InvestigationActionRequest})
 }
 
 function isShownActionRequest(actionRequest: InvestigationActionRequest) {
-  return SHOWN_STATES.has(actionRequest.state) || isStaleActionRequest(actionRequest);
+  return (
+    isCurrentActionRequest(actionRequest) ||
+    actionRequest.state === 'withdrawn' ||
+    isStaleActionRequest(actionRequest)
+  );
+}
+
+export function isCurrentActionRequest(actionRequest: InvestigationActionRequest) {
+  return CURRENT_STATES.has(actionRequest.state);
 }
 
 export function isStaleActionRequest(actionRequest: InvestigationActionRequest) {
@@ -217,20 +324,43 @@ function getStaleError(
   return null;
 }
 
-function StaleSuggestionMessage({message}: {message: string}) {
+function StaleSuggestionMessage({
+  actionRequest,
+  message,
+  runProcessing,
+}: {
+  actionRequest: InvestigationActionRequest;
+  message: string;
+  runProcessing: boolean;
+}) {
   const organization = useOrganization();
   const {openSeerExplorer} = useSeerExplorerContext();
+  const {followUp} = actionRequest;
+  if (isFollowUpPending(actionRequest)) {
+    return tct('[message] Seer is checking the suggestion again…', {message});
+  }
+  if (followUp?.status === 'acknowledged' && runProcessing) {
+    return tct('[message] Seer is updating its suggestion…', {message});
+  }
+  const notice =
+    followUp?.status === 'failed' ? getRecheckFailedNotice(message, followUp) : message;
   if (!isSeerExplorerEnabled(organization)) {
     return tct('[message] Ask Seer about this investigation for a new suggestion.', {
-      message,
+      message: notice,
     });
   }
   return tct('[message] [ask:Ask Seer about this investigation] for a new suggestion.', {
-    message,
+    message: notice,
     ask: (
       <Button variant="link" size="zero" onClick={() => openSeerExplorer()}>
         {null}
       </Button>
     ),
   });
+}
+
+function getRecheckFailedNotice(message: string, followUp: ActionRequestFollowUp) {
+  return followUp.reason === 'action_requests_report_changed'
+    ? t("%s Seer couldn't check it again because the report changed.", message)
+    : t("%s Seer couldn't check it again.", message);
 }

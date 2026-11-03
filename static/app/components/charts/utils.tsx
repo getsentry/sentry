@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
@@ -17,7 +15,6 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
-import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -273,19 +270,6 @@ export function shouldFetchPreviousPeriod({
   end,
 }: Pick<DateTimeObject, 'start' | 'end' | 'period'>) {
   return !start && !end && canIncludePreviousPeriod(true, period);
-}
-
-/**
- * Generates a series selection based on the query parameters defined by the location.
- */
-export function getSeriesSelection(
-  location: Location
-): LegendComponentOption['selected'] {
-  const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
 }
 
 /**

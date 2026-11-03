@@ -10,7 +10,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
@@ -215,18 +214,17 @@ describe('useSaveAsItems', () => {
     expect(alertItem?.children).toHaveLength(1);
   });
 
-  it('preserves the chart type when adding a dashboard widget', () => {
-    const handleAddQueryToDashboard = jest
-      .spyOn(discoverUtils, 'handleAddQueryToDashboard')
-      .mockImplementation(() => {});
-
+  it('preserves the selected chart type and pipeline when adding a dashboard widget', () => {
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [
-          new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+          new VisualizeFunction('count(message)', {
+            chartType: ChartType.LINE,
+            transformations: ['fill(locf)', 'smooth(sma,5)'],
+          }),
         ],
         groupBys: ['message.template'],
         interval: '5m',
@@ -250,9 +248,19 @@ describe('useSaveAsItems', () => {
         logsSortBys: '-timestamp',
       })
     );
-    expect(handleAddQueryToDashboard).toHaveBeenCalledWith(
+    expect(modal.openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventView: expect.objectContaining({display: DisplayType.LINE}),
+        widgets: [
+          expect.objectContaining({
+            displayType: DisplayType.LINE,
+            queries: [
+              expect.objectContaining({
+                aggregates: ['count(message)'],
+                transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+              }),
+            ],
+          }),
+        ],
       })
     );
   });

@@ -55,7 +55,7 @@ class CursorWebhookEndpoint(Endpoint):
     organization_id: int
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             raise MethodNotAllowed(request.method or "unknown")
         return super().dispatch(request, *args, **kwargs)

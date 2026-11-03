@@ -279,9 +279,14 @@ describe('SelectField', () => {
                     field.handleChange(val);
                   }}
                   options={[{value: 1, label: 'Apple'}]}
-                  isOptionDisabled={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<SelectValue<number>>();
-                    return false;
+                  components={{
+                    OptionLabel: ({option}) => {
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: number;
+                      }>();
+                      return option.label;
+                    },
                   }}
                 />
               )}
@@ -310,9 +315,14 @@ describe('SelectField', () => {
                     field.handleChange(val);
                   }}
                   options={[{value: {id: 1}, label: 'Apple'}]}
-                  isOptionDisabled={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<SelectValue<{id: number}>>();
-                    return false;
+                  components={{
+                    OptionLabel: ({option}) => {
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: {id: number};
+                      }>();
+                      return option.label;
+                    },
                   }}
                 />
               )}
@@ -358,19 +368,13 @@ describe('SelectField', () => {
   });
 });
 
-it('does not pass unmatched object values to react-select callbacks like getOptionValue', () => {
-  // When the current value is an object that doesn't match any option (e.g.
-  // options haven't loaded yet), Select should pass null to react-select —
-  // not the raw object. If the raw object were forwarded, react-select would
-  // treat it as an option and call getOptionValue on it. A custom
-  // getOptionValue that accesses option-specific properties (like `.value.id`)
-  // would crash because the raw form value has a different shape.
+it('shows an empty selection when the current object value has no matching option', () => {
   const OBJECT_OPTIONS: Array<SelectValue<{id: string; name: string}>> = [
     {value: {id: '1', name: 'Apple'}, label: 'Apple'},
     {value: {id: '2', name: 'Banana'}, label: 'Banana'},
   ];
 
-  function GetOptionValueForm() {
+  function UnmatchedValueForm() {
     const form = useScrapsForm({
       ...defaultFormOptions,
       defaultValues: {fruit: {id: '99', name: 'Mango'}},
@@ -385,7 +389,6 @@ it('does not pass unmatched object values to react-select callbacks like getOpti
               onChange={field.handleChange}
               options={OBJECT_OPTIONS}
               isValueEqual={(a, b) => a.id === b.id}
-              getOptionValue={opt => opt.value.id}
             />
           )}
         </form.AppField>
@@ -393,14 +396,10 @@ it('does not pass unmatched object values to react-select callbacks like getOpti
     );
   }
 
-  // {id: '99', name: 'Mango'} doesn't match any option. Before the fix, the
-  // raw object was passed to react-select which called getOptionValue on it.
-  // getOptionValue expects a full option {value: {id, name}, label} but
-  // receives the raw {id, name}, so opt.value is undefined and .id throws.
-  render(<GetOptionValueForm />);
+  render(<UnmatchedValueForm />);
 
-  // Should render without crashing — no selected value is shown
-  expect(screen.getByRole('textbox')).toBeInTheDocument();
+  expect(screen.getByRole('textbox')).toHaveValue('');
+  expect(screen.queryByText('Mango')).not.toBeInTheDocument();
 });
 
 describe('SelectField disabled', () => {

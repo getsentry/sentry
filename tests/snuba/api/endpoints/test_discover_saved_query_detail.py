@@ -41,7 +41,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         self.query_id_without_access = invalid.id
 
-    def setup_no_team_user(self):
+    def setup_no_team_user(self) -> None:
         # disable Open Membership
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -603,7 +603,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, query_id):
+    def url(self, query_id: int) -> str:
         return reverse(
             "sentry-api-0-discover-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},

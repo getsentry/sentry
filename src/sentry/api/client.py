@@ -1,20 +1,27 @@
 from __future__ import annotations
 
-from typing import TypeAlias
+from collections.abc import Mapping
+from typing import Any, TypeAlias, cast
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from django.urls import resolve
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from sentry.auth.principal import set_request_principal
 from sentry.auth.superuser import Superuser
+from sentry.viewer_context import get_viewer_context, viewer_context_scope
 
 __all__ = ("ApiClient", "ApiError", "client")
 
 
 class ApiError(Exception):
-    def __init__(self, status_code, body):
+    def __init__(self, status_code: int, body: object) -> None:
         self.status_code = status_code
         self.body = body
 
@@ -30,18 +37,23 @@ class ApiClient:
 
     ApiError: TypeAlias = ApiError
 
-    def request(
+    def request(self, *args: Any, **kwargs: Any) -> Response:
+        # The called view sets its own caller on the viewer context; keep it out of ours.
+        with viewer_context_scope(get_viewer_context()):
+            return self._request(*args, **kwargs)
+
+    def _request(
         self,
-        method,
-        path,
-        user=None,
-        auth=None,
-        params=None,
-        data=None,
-        is_sudo=None,
-        is_superuser=None,
-        request=None,
-    ):
+        method: str,
+        path: str,
+        user: AbstractBaseUser | AnonymousUser | None = None,
+        auth: object = None,
+        params: Mapping[str, object] | None = None,
+        data: Mapping[str, object] | None = None,
+        is_sudo: bool | None = None,
+        is_superuser: bool | None = None,
+        request: HttpRequest | None = None,
+    ) -> Response:
         if self.prefix not in path:
             full_path = self.prefix + path
         else:
@@ -65,8 +77,7 @@ class ApiClient:
         mock_request.__from_api_client__ = True
 
         if request:
-            mock_request.auth = getattr(request, "auth", None)
-            mock_request.user = request.user
+            set_request_principal(mock_request, request.user, getattr(request, "auth", None))
 
             if is_sudo is None:
                 mock_request.is_sudo = lambda: request.is_sudo()
@@ -79,8 +90,7 @@ class ApiClient:
             else:
                 mock_request.superuser = Superuser(mock_request)
         else:
-            mock_request.auth = auth
-            mock_request.user = user or AnonymousUser()
+            set_request_principal(mock_request, user or AnonymousUser(), auth)
             mock_request.is_sudo = lambda: is_sudo
             mock_request.session = {}
             mock_request.superuser = Superuser(mock_request)
@@ -92,7 +102,7 @@ class ApiClient:
             # superuser checks require access to IP
             mock_request.META["REMOTE_ADDR"] = request.META["REMOTE_ADDR"]
 
-        force_authenticate(mock_request, user, auth)
+        force_authenticate(mock_request, user, cast(Token | None, auth))
 
         if params:
             mock_request.GET._mutable = True
@@ -114,16 +124,16 @@ class ApiClient:
             return response
         raise self.ApiError(response.status_code, response.data)
 
-    def get(self, *args, **kwargs):
+    def get(self, *args: Any, **kwargs: Any) -> Response:
         return self.request("GET", *args, **kwargs)
 
-    def post(self, *args, **kwargs):
+    def post(self, *args: Any, **kwargs: Any) -> Response:
         return self.request("POST", *args, **kwargs)
 
-    def put(self, *args, **kwargs):
+    def put(self, *args: Any, **kwargs: Any) -> Response:
         return self.request("PUT", *args, **kwargs)
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> Response:
         return self.request("DELETE", *args, **kwargs)
 
 

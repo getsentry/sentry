@@ -3,13 +3,13 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from pydantic import BaseModel
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
@@ -177,7 +177,7 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
-    steps: list[dict] = []
+    steps: list[dict[str, Any]] = []
     coding_agents: dict[str, CodingAgentState] = {}
 
     class Config:
@@ -473,23 +473,39 @@ def get_repo_url_path(repo: Repository) -> str:
     return repo.name
 
 
+def get_token_based_billing_repo_filter(
+    organization: Organization,
+    prefix: Literal["", "repository__", "projectrepository__repository__"] = "",
+) -> Q:
+    """Filter for repos Seer can use under token-based billing. prefix is the lookup path to Repository."""
+    return Q(
+        **{
+            f"{prefix}organization_id": organization.id,
+            f"{prefix}status": ObjectStatus.ACTIVE,
+            f"{prefix}provider__in": get_supported_scm_providers(organization),
+            f"{prefix}integration_id__isnull": False,
+            f"{prefix}external_id__isnull": False,
+        }
+    ) & ~Q(**{f"{prefix}external_id": ""})
+
+
 def get_token_based_billing_project_repos(
     organization: Organization, project_ids: Sequence[int]
 ) -> QuerySet[ProjectRepository]:
     """Linked repos Seer can use under token-based billing."""
     return (
         ProjectRepository.objects.filter(
+            get_token_based_billing_repo_filter(organization, prefix="repository__"),
             project_id__in=project_ids,
-            repository__organization_id=organization.id,
-            repository__status=ObjectStatus.ACTIVE,
-            repository__provider__in=get_supported_scm_providers(organization),
-            repository__integration_id__isnull=False,
-            repository__external_id__isnull=False,
         )
-        .exclude(repository__external_id="")
         .select_related("repository", "seerprojectrepository")
         .prefetch_related("seerprojectrepository__branch_overrides")
     )
+
+
+def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectRepository | None:
+    """Avoid raising RelatedObjectDoesNotExist when ProjectRepository has no SeerProjectRepository."""
+    return getattr(project_repo, "seerprojectrepository", None)
 
 
 def build_seer_repo_definition(
@@ -530,9 +546,8 @@ def _get_repo_definitions_by_project(
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         for project_repo in get_token_based_billing_project_repos(organization, project_ids):
-            # getattr since accessing a missing one-to-one raises RelatedObjectDoesNotExist.
             repo_def = build_seer_repo_definition(
-                project_repo.repository, getattr(project_repo, "seerprojectrepository", None)
+                project_repo.repository, get_seer_project_repo(project_repo)
             )
             if repo_def is not None:
                 repo_definitions_by_project[project_repo.project_id].append(repo_def)
@@ -744,6 +759,44 @@ class ProjectRepoCreateData(TypedDict):
     branch_overrides: NotRequired[list[BranchOverrideData]]
 
 
+class ProjectRepoUpdateData(TypedDict):
+    branch_name: NotRequired[str | None]
+    instructions: NotRequired[str | None]
+    branch_overrides: NotRequired[list[BranchOverrideData]]
+
+
+def update_seer_project_repo(
+    seer_project_repo: SeerProjectRepository, data: ProjectRepoUpdateData
+) -> None:
+    """Update a Seer project repo's config. Fields missing from data are left unchanged."""
+    if "branch_name" in data:
+        seer_project_repo.branch_name = data["branch_name"]
+    if "instructions" in data:
+        seer_project_repo.instructions = data["instructions"]
+    if "branch_name" in data or "instructions" in data:
+        seer_project_repo.save()
+
+    if "branch_overrides" in data:
+        SeerProjectRepositoryBranchOverride.objects.filter(
+            seer_project_repository=seer_project_repo
+        ).delete()
+        if data["branch_overrides"]:
+            SeerProjectRepositoryBranchOverride.objects.bulk_create(
+                [
+                    SeerProjectRepositoryBranchOverride(
+                        seer_project_repository=seer_project_repo,
+                        tag_name=override["tag_name"],
+                        tag_value=override["tag_value"],
+                        branch_name=override["branch_name"],
+                    )
+                    for override in data["branch_overrides"]
+                ],
+                update_conflicts=True,
+                update_fields=["branch_name", "date_updated"],
+                unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+            )
+
+
 def add_seer_project_repos(project: Project, repos_data: list[ProjectRepoCreateData]) -> list[int]:
     """Upsert Seer project repos."""
     if not repos_data:
@@ -846,7 +899,7 @@ def has_project_connected_repos(organization: Organization, project: Project) ->
 def get_autofix_repos_from_project_code_mappings(
     project: Project,
     code_mappings: list[RepositoryProjectPathConfig] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
         return settings.SEER_AUTOFIX_FORCE_USE_REPOS
@@ -854,7 +907,10 @@ def get_autofix_repos_from_project_code_mappings(
     if code_mappings is None:
         code_mappings = get_sorted_code_mapping_configs(project)
 
-    repos: dict[tuple, dict] = {}
+    repos: dict[
+        tuple[object, object, object],
+        dict[str, Any],
+    ] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository
         repo_name_sections = get_repo_url_path(repo).split("/")

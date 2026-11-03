@@ -8,11 +8,15 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {ListItem, useReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
+import {
+  ControlContext,
+  ListItem,
+  useReserveLeadingSlot,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<

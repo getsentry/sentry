@@ -71,7 +71,7 @@ type OnboardingProps = {
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
 
-const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
+const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
 
 const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
 
@@ -214,6 +214,7 @@ function OnboardingPanel({
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="bash"
+                          alwaysShowCopyButton
                           onCopy={() => trackPromptCopied('install_command')}
                         >
                           {INSTALL_PLUGIN_COMMAND}
@@ -225,6 +226,8 @@ function OnboardingPanel({
                       <Container marginTop="md" marginBottom="2xl">
                         <OnboardingCodeSnippet
                           language="text"
+                          alwaysShowCopyButton
+                          wrapMode="wrap"
                           onCopy={() => trackPromptCopied('prompt')}
                         >
                           {AI_SETUP_PROMPT}

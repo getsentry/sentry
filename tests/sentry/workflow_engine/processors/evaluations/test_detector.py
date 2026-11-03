@@ -19,10 +19,10 @@ def _status_change() -> StatusChangeMessage:
 
 
 class TestCreateIssue:
-    def test_triggers_without_a_result(self) -> None:
+    def test_needs_an_occurrence(self) -> None:
         evaluation = DetectorEvaluation.create_issue("group", DetectorPriorityLevel.HIGH)
 
-        assert evaluation.result is None
+        assert evaluation.needs_occurrence is True
         assert evaluation.triggered is True
         assert evaluation.priority == DetectorPriorityLevel.HIGH
         assert evaluation.data["group_key"] == "group"
@@ -34,25 +34,25 @@ class TestCreateIssue:
 
 
 class TestOk:
-    def test_does_not_trigger(self) -> None:
+    def test_does_not_need_an_occurrence(self) -> None:
         evaluation = DetectorEvaluation.ok("group")
 
-        assert evaluation.triggered is False
+        assert evaluation.needs_occurrence is False
         assert evaluation.result is None
         assert evaluation.priority == DetectorPriorityLevel.OK
         assert evaluation.outcome == DetectorEvaluationOutcome.NOT_TRIGGERED
 
 
 class TestWithResult:
-    def test_returns_a_copy_carrying_the_result(self) -> None:
+    def test_a_built_result_no_longer_needs_an_occurrence(self) -> None:
         evaluation = DetectorEvaluation.create_issue(None, DetectorPriorityLevel.HIGH)
         status_change = _status_change()
 
         delivered = evaluation.with_result(status_change)
 
+        assert delivered.needs_occurrence is False
         assert delivered.result is status_change
-        assert delivered.triggered is True
-        assert evaluation.result is None
+        assert evaluation.needs_occurrence is True
 
     def test_resolving_an_ok_evaluation(self) -> None:
         resolved = DetectorEvaluation.ok(None).with_result(_status_change())

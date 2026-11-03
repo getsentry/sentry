@@ -58,6 +58,10 @@ describe('EventStackTrace', () => {
   });
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

@@ -2,9 +2,7 @@ import type {ComponentProps} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import {Toast} from './toast';
-import type {ToastVariant} from './types';
+import {Toast, type ToastVariant} from '@sentry/scraps/toast';
 
 function ExampleToast({
   width = 400,
@@ -22,8 +20,7 @@ function ExampleToast({
 }
 
 describe('Toast', () => {
-  // The loading spinner needs global Less styles, which are not loaded here.
-  it.snapshot.each<ToastVariant>(['default', 'success', 'error'])(
+  it.snapshot.each<ToastVariant>(['default', 'success', 'error', 'loading'])(
     '%s',
     variant => (
       <ExampleToast variant={variant} message="A toast message." onDismiss={() => {}} />

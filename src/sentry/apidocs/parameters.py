@@ -1,5 +1,3 @@
-from typing import Any
-
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
@@ -39,7 +37,7 @@ def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter
     return parameter
 
 
-def build_typed_list(type: Any):
+def build_typed_list(type: OpenApiTypes) -> dict[str, object]:
     """
     drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
     a typed list using this workaround. build_basic_type will dynamically check the type
@@ -114,6 +112,20 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
+    )
+    STATS_PERIOD_START = OpenApiParameter(
+        name="statsPeriodStart",
+        location="query",
+        required=False,
+        type=str,
+        description="""How long ago the query period starts, in the same format as `statsPeriod`. Must be sent with `statsPeriodEnd`, and is ignored when `statsPeriod` is sent.""",
+    )
+    STATS_PERIOD_END = OpenApiParameter(
+        name="statsPeriodEnd",
+        location="query",
+        required=False,
+        type=str,
+        description="""How long ago the query period ends, in the same format as `statsPeriod`. Must be sent with `statsPeriodStart`, and is ignored when `statsPeriod` is sent.""",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -1084,6 +1096,20 @@ class EventParams:
         enum=["latest", "oldest", "recommended"],
     )
 
+    EVENT_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location=OpenApiParameter.QUERY,
+        required=False,
+        type=OpenApiTypes.STR,
+        many=True,
+        enum=["adjacentEvents"],
+        description=(
+            "Parts of the response to skip computing. Specify `adjacentEvents` to skip looking up "
+            "the neighboring events in the issue; `nextEventID` and `previousEventID` are then "
+            "always `null`. Unknown values are ignored."
+        ),
+    )
+
     FULL_PAYLOAD = OpenApiParameter(
         name="full",
         type=OpenApiTypes.BOOL,
@@ -1112,6 +1138,16 @@ class EventParams:
             "[Sentry Search Documentation](https://docs.sentry.io/concepts/search/searchable-properties/events/) for more information. An example query might be `query=transaction:foo AND release:abc`"
         ),
         required=False,
+    )
+
+
+class TraceParams:
+    TRACE_ID = OpenApiParameter(
+        name="trace_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the trace, a 32-character hexadecimal string.",
     )
 
 

@@ -1,14 +1,16 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
@@ -18,8 +20,11 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import Serializer, serialize
 from sentry.auth import access
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import FunctionSiloLimit, SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -33,15 +38,27 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 # Though it looks weird to have a method outside a class, this isn't a mistake but rather
 # a mock for a method in Django REST Framework's `APIView` class
-def reraise(self, e: Exception):
+def reraise(self: Any, e: Exception) -> None:
     raise e
 
 
 class DummyEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response({"ok": True})
+
+
+class ServiceAccountAuthentication(BaseAuthentication):
+    def authenticate(self, request: Request) -> tuple[Any, AuthenticatedToken]:
+        principal = ServiceAccountPrincipal(service_account_id=1, organization_id=1, name="sa")
+        token = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        return (principal, token)
+
+
+class DummyUserOnlyEndpoint(DummyEndpoint):
+    authentication_classes = (ServiceAccountAuthentication,)
+    requires_user = True
 
 
 class DummyCsrfProtectedEndpoint(DummyEndpoint):
@@ -59,7 +76,7 @@ class DummySecondDeclaredScopePermission(AllowAny):
 class DummyScopeCheckingEndpoint(Endpoint):
     permission_classes = (DummyDeclaredScopePermission, DummySecondDeclaredScopePermission)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         request.access.has_scope("org:read")
         request.access.has_scope("team:read")
         request.access.has_scope("project:write")
@@ -87,10 +104,16 @@ class DummyErroringEndpoint(Endpoint):
     handler_context_arg: Mapping[str, Any] | None = None
     scope_arg: Scope | None = None
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         raise self.error
 
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+    def handle_exception_with_details(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         return super().handle_exception_with_details(
             request, exc, self.handler_context_arg, self.scope_arg
         )
@@ -99,10 +122,10 @@ class DummyErroringEndpoint(Endpoint):
 class DummyPaginationEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 100)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -116,10 +139,10 @@ class DummyPaginationEndpoint(Endpoint):
 class DummyPaginationStreamingEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 100)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -127,13 +150,15 @@ class DummyPaginationStreamingEndpoint(Endpoint):
             request=request,
             paginator=GenericOffsetPaginator(data_fn),
             on_results=lambda results: iter(results),
-            response_cls=StreamingHttpResponse,
+            response_cls=cast(type[Response], StreamingHttpResponse),
             response_kwargs={"content_type": "application/json"},
         )
 
 
 class SometimesFailingSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj: int, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Mapping[str, Any]:
         if obj % 2:
             raise Exception
         return {"id": obj}
@@ -142,10 +167,10 @@ class SometimesFailingSerializer(Serializer):
 class DummyPaginationFailingSerializerEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 10)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -165,6 +190,20 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    @mock.patch("sentry.api.base.metrics.incr")
+    def test_requires_user_rejects_service_account(self, mock_incr: MagicMock) -> None:
+        response = DummyUserOnlyEndpoint.as_view()(self.make_request(method="GET"))
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "user-required"
+        mock_incr.assert_any_call("api.user_required", tags={"endpoint": "DummyUserOnlyEndpoint"})
+
+    def test_requires_user_allows_user(self) -> None:
+        class Endpoint(DummyEndpoint):
+            requires_user = True
+
+        request = self.make_request(user=self.user, method="GET")
+        assert Endpoint.as_view()(request).status_code == 200
+
     def test_csrf_protection_defaults_to_disabled(self) -> None:
         assert DummyEndpoint.as_view().csrf_exempt is True
 
@@ -464,19 +503,19 @@ class EndpointHandleExceptionTest(APITestCase):
     @mock.patch("rest_framework.views.APIView.handle_exception", return_value=Response(status=500))
     def test_handle_exception_when_super_returns_response(
         self, mock_super_handle_exception: MagicMock
-    ):
+    ) -> None:
         mock_endpoint = DummyErroringEndpoint.as_view(error=Exception("nope"))
         response = mock_endpoint(self.make_request(method="GET"))
 
         # The endpoint should pass along the response generated by `APIView.handle_exception_with_details`
         assert response == mock_super_handle_exception.return_value
 
-    @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
+    @mock.patch("rest_framework.views.APIView.handle_exception", reraise)
     @mock.patch("sentry.api.base.capture_exception", return_value="1231201211212012")
     def test_handle_exception_when_super_reraises(
         self,
         mock_capture_exception: MagicMock,
-    ):
+    ) -> None:
         handler_context = {"api_request_URL": "http://dogs.are.great/"}
         scope = Scope()
         tags = {"maisey": "silly", "charlie": "goofy"}
@@ -650,7 +689,7 @@ class PaginateTest(APITestCase):
 @all_silo_test(cells=create_test_cells("us", "eu"))
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self) -> None:
-        def request_with_subdomain(subdomain):
+        def request_with_subdomain(subdomain: str) -> bool:
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return subdomain_is_locality(request)
@@ -661,14 +700,16 @@ class CustomerDomainTest(APITestCase):
 
 
 class EndpointSiloLimitTest(APITestCase):
-    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+    def _test_active_on(
+        self, endpoint_mode: SiloMode, active_mode: SiloMode, expect_to_be_active: bool
+    ) -> None:
         @EndpointSiloLimit(endpoint_mode)
         class DecoratedEndpoint(DummyEndpoint):
             pass
 
         class EndpointWithDecoratedMethod(DummyEndpoint):
             @EndpointSiloLimit(endpoint_mode)
-            def get(self, request):
+            def get(self, request: Request) -> Response:
                 return super().get(request)
 
         with override_settings(SILO_MODE=active_mode):
@@ -713,9 +754,11 @@ class EndpointSiloLimitTest(APITestCase):
 
 
 class FunctionSiloLimitTest(APITestCase):
-    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+    def _test_active_on(
+        self, endpoint_mode: SiloMode, active_mode: SiloMode, expect_to_be_active: bool
+    ) -> None:
         @FunctionSiloLimit(endpoint_mode)
-        def decorated_function():
+        def decorated_function() -> None:
             pass
 
         with override_settings(SILO_MODE=active_mode):
@@ -778,12 +821,14 @@ class RequestAccessTest(APITestCase):
         class AccessUsingEndpoint(Endpoint):
             permission_classes = ()
 
-            def convert_args(self, request, *args, **kwargs):
+            def convert_args(
+                self, request: Request, *args: Any, **kwargs: Any
+            ) -> tuple[tuple[Any, ...], dict[str, Any]]:
                 # This should not raise an AttributeError
                 assert request.access is not None
                 return (args, kwargs)
 
-            def get(self, request):
+            def get(self, request: Request) -> Response:
                 return Response({"ok": True})
 
         response = AccessUsingEndpoint.as_view()(self.request)
@@ -804,6 +849,14 @@ class StatsMixinParseArgsTest(APITestCase):
             mixin._parse_args(self._make_request({"until": "not_a_number"}))
         with raises(ParseError, match="since must be a numeric timestamp"):
             mixin._parse_args(self._make_request({"since": "not_a_number"}))
+
+    def test_negative_resolution(self) -> None:
+        mixin = StatsMixin()
+        request = self._make_request({"resolution": "-1s"})
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request)
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request, restrict_rollups=False)
 
     def test_overflow_timestamp_params(self) -> None:
         mixin = StatsMixin()

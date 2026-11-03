@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {t} from 'sentry/locale';
 import type {ActionRequestError} from 'sentry/views/investigations/api';
 
 export type ApplyCheck =
@@ -22,6 +23,8 @@ type ApplyButtonProps = {
   label: string;
   message: string | null;
   onApply: () => void;
+  onRecheck: () => void;
+  rechecking: boolean;
 };
 
 export function ApplyButton({
@@ -34,22 +37,40 @@ export function ApplyButton({
   label,
   message,
   onApply,
+  onRecheck,
+  rechecking,
 }: ApplyButtonProps) {
   const messageId = useId();
   const checking = canApply && check.status === 'pending';
+  const recheck = check.status === 'blocked' && check.error.code === 'stale';
+  function getLabel() {
+    if (rechecking) {
+      return t('Rechecking suggestion…');
+    }
+    if (recheck) {
+      return t('Recheck suggestion');
+    }
+    return applying ? busyLabel : label;
+  }
+
   return (
     <Flex align="center" gap="md" wrap="wrap">
       <Button
         variant="primary"
         icon={icon}
-        busy={applying || checking}
+        busy={applying || rechecking || checking}
         disabled={
-          applying || checking || disabled || !canApply || check.status === 'blocked'
+          applying ||
+          rechecking ||
+          checking ||
+          disabled ||
+          !canApply ||
+          (check.status === 'blocked' && !recheck)
         }
         aria-describedby={message ? messageId : undefined}
-        onClick={onApply}
+        onClick={recheck ? onRecheck : onApply}
       >
-        {applying ? busyLabel : label}
+        {getLabel()}
       </Button>
       <Text id={messageId} role="status" size="sm" variant="muted">
         {message}

@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch, sentinel
 
 from django.test import RequestFactory, override_settings
@@ -21,7 +22,7 @@ class RateLimitedEndpoint(Endpoint):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=0, window=10)}}
     )
 
-    def get(self):
+    def get(self) -> None:
         raise NotImplementedError
 
 
@@ -29,7 +30,7 @@ class RequestTimingMiddlewareTest(TestCase):
     middleware = cached_property(RequestTimingMiddleware)
 
     @cached_property
-    def factory(self):
+    def factory(self) -> Any:
         return RequestFactory()
 
     @patch("sentry.utils.metrics.incr")

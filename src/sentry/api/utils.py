@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import (
+    INVALID_REGEX_ERROR_MESSAGE,
     RATE_LIMIT_ERROR_MESSAGE,
     TIMEOUT_ERROR_MESSAGE,
     TIMEOUT_RPC_ERROR_MESSAGE,
@@ -69,6 +70,7 @@ from sentry.utils.snuba import (
 )
 from sentry.utils.snuba_rpc import (
     SnubaRPCError,
+    SnubaRPCInvalidRegex,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
     SnubaRPCUnavailable,
@@ -340,7 +342,8 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     ):
         locality_name = get_locality_name_for_cell(settings.SENTRY_LOCAL_CELL)
     if not region_url_template or not locality_name:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        return url_prefix
     return region_url_template.replace("{region}", locality_name)
 
 
@@ -419,6 +422,10 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         sentry_sdk.set_attribute("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCInvalidRegex:
+        sentry_sdk.set_tag("query.error_reason", "InvalidRegex")
+        sentry_sdk.set_attribute("query.error_reason", "InvalidRegex")
+        raise ParseError(detail=INVALID_REGEX_ERROR_MESSAGE)
     except SnubaRPCRateLimitExceeded:
         sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
         sentry_sdk.set_attribute("query.error_reason", "RateLimitExceeded")

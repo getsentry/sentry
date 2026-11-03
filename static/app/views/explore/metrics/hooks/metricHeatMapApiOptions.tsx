@@ -7,6 +7,7 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {HeatMapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
@@ -18,6 +19,7 @@ interface MetricHeatMapApiOptions {
   timeWindow: HeatMapWindow;
   traceMetric: TraceMetric;
   interval?: string | null;
+  sampling?: SamplingMode;
   yBuckets?: number | null;
   yMax?: number;
   yMin?: number;
@@ -34,6 +36,7 @@ export function metricHeatMapApiOptions({
   traceMetric,
   query,
   interval,
+  sampling,
   yBuckets,
   yMin,
   yMax,
@@ -63,7 +66,7 @@ export function metricHeatMapApiOptions({
         interval,
         yMin,
         yMax,
-        sampling: undefined,
+        sampling,
         query: combinedQuery,
         project: selection.projects,
         environment: selection.environments,

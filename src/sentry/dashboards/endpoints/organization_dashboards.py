@@ -375,10 +375,13 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:update"],
-        "PUT": ["org:read", "org:write", "org:admin", "dashboard:update"],
-        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
+
+    # dashboard:read and dashboard:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(
         self,
@@ -408,16 +411,6 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         return True
 
 
-class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
-    # `dashboard:create` is only accepted here, where POST creates a new dashboard.
-    # Other dashboard endpoints use POST to modify existing dashboards (e.g.
-    # revision restore), so the shared permission must not accept it.
-    scope_map = {
-        **OrganizationDashboardsPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:create"],
-    }
-
-
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
@@ -425,8 +418,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (OrganizationDashboardsCreatePermission,)
+    permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
         operation_id="listOrganizationDashboards",

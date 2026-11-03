@@ -4,7 +4,7 @@ import {IconGraph} from '@sentry/icons/graph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';

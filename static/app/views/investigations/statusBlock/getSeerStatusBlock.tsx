@@ -1,5 +1,14 @@
 import {t, tn} from 'sentry/locale';
+import {
+  getInvestigationActiveTime,
+  isOnlyNextStepPending,
+} from 'sentry/views/investigations/runState';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
+import {
+  isThought,
+  withThoughts,
+  type SeerStatusActivity,
+} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {
   InvestigationOrchestration,
   InvestigationToolActivity,
@@ -11,7 +20,8 @@ type SeerStatusBlockContent = {
   variant: SeerStatusBlockVariant;
   description?: string;
   meta?: string;
-  toolActivity?: InvestigationToolActivity[];
+  startTime?: Date;
+  toolActivity?: SeerStatusActivity[];
 };
 
 /**
@@ -24,27 +34,35 @@ type SeerStatusBlockContent = {
  */
 function getToolActivity(
   projection: InvestigationOrchestration
-): InvestigationToolActivity[] | undefined {
-  let activity: InvestigationToolActivity[] = [];
+): SeerStatusActivity[] | undefined {
+  let lists: SeerStatusActivity[][] = [];
   switch (projection.phase) {
     case 'intake':
     case 'broad_scan':
-      activity = projection.broadScan.toolActivity ?? [];
+      lists = [
+        withThoughts(projection.broadScan.toolActivity, projection.broadScan.thoughts),
+      ];
       break;
     case 'investigating':
     case 'judging':
-      activity = projection.hypotheses
+      lists = projection.hypotheses
         .filter(hypothesis => hypothesis.effectiveStatus === 'investigating')
-        .flatMap(hypothesis => hypothesis.toolActivity ?? []);
+        .map(hypothesis => withThoughts(hypothesis.toolActivity, hypothesis.thoughts));
       break;
     case 'reporting':
     case 'metadata':
-      activity = projection.report.currentBlockToolActivity ?? [];
+      lists = [
+        withThoughts(
+          projection.report.currentBlockToolActivity,
+          projection.report.currentBlockThoughts
+        ),
+      ];
       break;
     default:
       break;
   }
-  return activity.length ? inFlightLast(activity) : undefined;
+  const activity = inFlightLast(lists);
+  return activity.length ? activity : undefined;
 }
 
 /**
@@ -57,7 +75,32 @@ const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number
 };
 
 /**
- * Moves calls still in flight to the end, keeping the order within each group.
+ * Reasoning no call has followed yet is what an agent is doing now, so it sorts
+ * after every call. Sorted with the running calls instead, one hypothesis's
+ * reasoning could land just before another's running call and read as what led
+ * to it.
+ */
+const CURRENT_REASONING_RANK = (IN_FLIGHT_RANK.running ?? 0) + 1;
+
+/**
+ * Each entry of one list paired with where it sorts. Reasoning sorts with the
+ * call it led to, so sorting never parts the two.
+ */
+function rankEntries(activity: SeerStatusActivity[]) {
+  let nextCallRank = CURRENT_REASONING_RANK;
+  return [...activity]
+    .reverse()
+    .map(entry => {
+      const rank = isThought(entry) ? nextCallRank : (IN_FLIGHT_RANK[entry.status] ?? 0);
+      nextCallRank = rank;
+      return {entry, rank};
+    })
+    .reverse();
+}
+
+/**
+ * Joins the lists, moving calls still in flight to the end and keeping the
+ * order within each group.
  *
  * Each list on the projection is latest-last on its own, but hypotheses are
  * investigated in parallel and their calls carry no timestamp, so joining
@@ -66,13 +109,12 @@ const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number
  * what the agent is doing now, and a running call is the best evidence of that,
  * so it wins.
  */
-function inFlightLast(
-  activity: InvestigationToolActivity[]
-): InvestigationToolActivity[] {
-  return activity
-    .map((call, index) => ({call, index, rank: IN_FLIGHT_RANK[call.status] ?? 0}))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map(({call}) => call);
+function inFlightLast(lists: SeerStatusActivity[][]): SeerStatusActivity[] {
+  return lists
+    .flatMap(list => rankEntries(list))
+    .map((ranked, order) => ({...ranked, order}))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .map(({entry}) => entry);
 }
 
 /**
@@ -130,12 +172,34 @@ function getFailureMessage(projection: InvestigationOrchestration): string | und
  * working and the viewer has nothing to do — so only the words change.
  */
 function getRunningContent(
-  projection: InvestigationOrchestration
+  projection: InvestigationOrchestration,
+  receivedAt: number | undefined
 ): SeerStatusBlockContent {
-  return {...getRunningCopy(projection), toolActivity: getToolActivity(projection)};
+  return {
+    ...getRunningCopy(projection),
+    toolActivity: getToolActivity(projection),
+    startTime: getStartTime(projection, receivedAt),
+  };
 }
 
-/** The words for a running run; the tool calls are added by the caller. */
+/**
+ * When the run started working, on this browser's clock: its active time as of
+ * the snapshot, counted back from when the snapshot arrived. Only differences on
+ * each clock are used, so a browser whose clock disagrees with the server's
+ * still counts the same time as the server does.
+ */
+function getStartTime(
+  projection: InvestigationOrchestration,
+  receivedAt: number | undefined
+): Date | undefined {
+  const activeTime = getInvestigationActiveTime(projection);
+  if (!activeTime || receivedAt === undefined) {
+    return undefined;
+  }
+  return new Date(receivedAt - activeTime.seconds * 1000);
+}
+
+/** The words for a running run; the tool calls and clock are added by the caller. */
 function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlockContent {
   const causeCount = projection.hypotheses.length;
 
@@ -200,19 +264,6 @@ function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlock
   }
 }
 
-export function isWritingMetadata(projection: InvestigationOrchestration) {
-  return projection.status === 'processing' && projection.phase === 'metadata';
-}
-
-export function isOnlyNextStepPending(projection: InvestigationOrchestration) {
-  const {metadata, status} = projection.report;
-  return (
-    isWritingMetadata(projection) &&
-    status === 'completed' &&
-    (metadata.status === 'completed' || metadata.status === 'failed')
-  );
-}
-
 function getCompleteContent(
   projection: InvestigationOrchestration
 ): SeerStatusBlockContent {
@@ -235,9 +286,14 @@ function getCompleteContent(
  * stopped run shares the `completed`/`failed`/`cancelled` phases with its
  * status. Taking the variant from the status keeps the colour tied to whether
  * the viewer has to do anything.
+ *
+ * `receivedAt` is when this browser received the projection (the query's
+ * `dataUpdatedAt`). A running block needs it to start its clock at the run's
+ * start; without it the clock starts when the block appears.
  */
 export function getSeerStatusBlock(
-  projection: InvestigationOrchestration
+  projection: InvestigationOrchestration,
+  receivedAt?: number
 ): SeerStatusBlockContent | null {
   switch (projection.status) {
     // Stopped, but recoverably, and the only state that asks for something
@@ -273,13 +329,13 @@ export function getSeerStatusBlock(
     case 'processing':
       return isOnlyNextStepPending(projection)
         ? getCompleteContent(projection)
-        : getRunningContent(projection);
+        : getRunningContent(projection, receivedAt);
     case 'pending':
-      return getRunningContent(projection);
+      return getRunningContent(projection, receivedAt);
     default:
       // An unrecognized status is still a run in progress as far as the viewer
       // is concerned — Seer can add one before this code knows the name, and a
       // missing block reads as "nothing is happening", which is worse.
-      return getRunningContent(projection);
+      return getRunningContent(projection, receivedAt);
   }
 }

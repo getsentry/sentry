@@ -350,6 +350,18 @@ function DropdownMenuList({
             {stackProps => (
               <Overlay
                 {...stackProps}
+                onKeyDownCapture={event => {
+                  // Handle Escape before React Aria closes the entire menu tree.
+                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                    event.stopPropagation();
+                    // Let the IME cancel composition without dismissing the submenu.
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
+                    event.preventDefault();
+                    parentMenuState.selectionManager.clearSelection();
+                  }
+                }}
                 style={{
                   // Cap the requested height by the space available to the overlay.
                   maxHeight: calculateMenuMinHeight(

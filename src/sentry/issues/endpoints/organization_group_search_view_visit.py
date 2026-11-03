@@ -15,8 +15,11 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read"],
+        "POST": ["member:read", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint

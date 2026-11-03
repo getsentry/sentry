@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {ControlContext, DropdownButton} from '@sentry/scraps/menu';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
-import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
 

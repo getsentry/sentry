@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -26,7 +28,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
-from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import APITestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -53,7 +55,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             interval="1d",
         )
 
-    def assert_equal_dashboards(self, dashboard, data):
+    def assert_equal_dashboards(self, dashboard: Dashboard, data: Mapping[str, Any]) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -1239,7 +1241,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -1591,7 +1593,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -2192,7 +2194,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert starred_dashboard["projects"] == []
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit: MagicMock) -> None:
         mock_get_dashboard_limit.return_value = 1
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 400
@@ -2203,7 +2205,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_not_bypassed_by_burst_creates(
+        self, mock_get_dashboard_limit: MagicMock
+    ) -> None:
         Dashboard.objects.all().delete()
         mock_get_dashboard_limit.return_value = 2
 
@@ -2225,7 +2229,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_does_not_count_prebuilt_dashboards(
-        self, mock_get_dashboard_limit
+        self, mock_get_dashboard_limit: MagicMock
     ) -> None:
         mock_get_dashboard_limit.return_value = 2
 
@@ -2941,7 +2945,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_succeeds_for_user_without_team_membership(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
         assert self.project  # lazy fixture; the org needs a project
@@ -2961,7 +2965,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Creation must work too, not just validation."""
         org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
@@ -2981,7 +2985,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         org = self.create_organization(owner=self.user, flags=1)
         team = self.create_team(organization=org)
@@ -3008,7 +3012,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_errors_when_no_project_is_accessible(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project."""
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
@@ -3033,7 +3037,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_does_not_error_for_organization_without_projects(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
         empty_org = self.create_organization(owner=self.user)
@@ -3055,7 +3059,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
-class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase):
+class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -3064,49 +3068,20 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             "sentry-api-0-organization-dashboards",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
 
     def _use_token(self, scope_list: list[str]) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def _details_url(self, dashboard_id: int) -> str:
-        return reverse(
-            "sentry-api-0-organization-dashboard-details",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "dashboard_id": dashboard_id,
-            },
-        )
-
-    def test_create_scope_can_create(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        with outbox_runner():
-            response = self.client.post(self.url, data={"title": "Created"})
-        assert response.status_code == 201, response.content
-        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
-
-    def test_create_scope_cannot_update_own_dashboard(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        with outbox_runner():
-            response = self.client.post(self.url, data={"title": "Created"})
-        assert response.status_code == 201, response.content
-
-        response = self.client.put(
-            self._details_url(response.data["id"]),
-            data={"title": "Renamed"},
-            format="json",
-        )
-        assert response.status_code == 403
-        assert Dashboard.objects.filter(organization=self.organization, title="Created").exists()
-
-    def test_create_scope_cannot_delete(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:create"])
-        response = self.client.delete(self._details_url(self.dashboard.id))
-        assert response.status_code == 403
-        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
-
-    def test_create_scope_cannot_restore_revision(self) -> None:
+    def _restore_revision_url(self) -> str:
         revision = DashboardRevision.objects.create(
             dashboard=self.dashboard,
             created_by_id=self.user.id,
@@ -3115,7 +3090,7 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             snapshot={"title": "Old Title", "widgets": []},
             snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
         )
-        url = reverse(
+        return reverse(
             "sentry-api-0-organization-dashboard-revision-restore",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
@@ -3123,33 +3098,652 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
                 "revision_id": revision.id,
             },
         )
-        self._use_token(["dashboard:read", "dashboard:create"])
-        response = self.client.post(url)
-        assert response.status_code == 403
-        self.dashboard.refresh_from_db()
-        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_can_read(self) -> None:
+        self._use_token(["dashboard:read"])
+        assert self.client.get(self.url).status_code == 200
+        assert self.client.get(self.details_url).status_code == 200
 
     def test_read_scope_cannot_create(self) -> None:
         self._use_token(["dashboard:read"])
         response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 403
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Created"
+        ).exists()
 
-    def test_update_scope_can_create_and_update(self) -> None:
-        # `dashboard:update` implies `dashboard:create`, so the saved token holds both.
-        self._use_token(["dashboard:read", "dashboard:update"])
+    def test_read_scope_cannot_update(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_read_scope_cannot_delete(self) -> None:
+        self._use_token(["dashboard:read"])
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_read_scope_cannot_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:read"])
+        response = self.client.post(url)
+        assert response.status_code == 403
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Dashboard 1"
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+
+    def test_write_scope_can_create_update_and_delete(self) -> None:
+        self._use_token(["dashboard:write"])
         with outbox_runner():
             response = self.client.post(self.url, data={"title": "Created"})
         assert response.status_code == 201, response.content
 
-        response = self.client.put(
-            self._details_url(response.data["id"]),
-            data={"title": "Renamed"},
-            format="json",
-        )
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
         assert response.status_code == 200, response.content
 
-    def test_update_scope_cannot_delete(self) -> None:
-        self._use_token(["dashboard:read", "dashboard:update"])
-        response = self.client.delete(self._details_url(self.dashboard.id))
-        assert response.status_code == 403
+        response = self.client.delete(self.details_url)
+        assert response.status_code == 204, response.content
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    def test_write_scope_can_restore_revision(self) -> None:
+        url = self._restore_revision_url()
+        self._use_token(["dashboard:write"])
+        response = self.client.post(url)
+        assert response.status_code == 200, response.content
+        self.dashboard.refresh_from_db()
+        assert self.dashboard.title == "Old Title"
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCase):
+    """With granular scopes, dashboard endpoints require dashboard:* instead of org:read."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"auth.deprecated-scope-translation.enabled": True}))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
         assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_org_read_accepted_when_translation_disabled(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    def test_member_session_has_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+
+@with_feature(
+    [
+        "organizations:dashboards-basic",
+        "organizations:dashboards-edit",
+        "organizations:explore-interpolation-and-smoothing",
+    ]
+)
+class OrganizationDashboardTransformationsTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.project = self.create_project()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.data: dict[str, Any] = {
+            "title": "Transformed dashboard",
+            "widgets": [
+                {
+                    "title": "Transformed widget",
+                    "displayType": "line",
+                    "widgetType": "spans",
+                    "queries": [
+                        {
+                            "fields": ["count()", "count()"],
+                            "aggregates": ["count()", "count()"],
+                            "columns": [],
+                            "conditions": "",
+                            "transformations": {
+                                "0": ["fill(locf)", "smooth(sma,3)"],
+                                "1": ["fill(zero)"],
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def details_url(self, dashboard_id: str) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_create_and_read_transformations(self) -> None:
+        self.data["widgets"][0]["queries"].append(
+            {
+                "fields": ["count()", "count()"],
+                "aggregates": ["count()", "count()"],
+                "conditions": "",
+                "transformations": {"1": ["smooth(sma,5)", "fill(linear)"]},
+            }
+        )
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        queries = response.data["widgets"][0]["queries"]
+        assert queries[0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        assert queries[1]["transformations"] == {"1": ["smooth(sma,5)", "fill(linear)"]}
+
+        response = self.client.get(self.details_url(response.data["id"]))
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "1": ["smooth(sma,5)", "fill(linear)"]
+        }
+
+        queries = response.data["widgets"][0]["queries"]
+        response = self.client.put(
+            self.details_url(response.data["id"]),
+            {
+                "widgets": [
+                    {
+                        "id": response.data["widgets"][0]["id"],
+                        "queries": [{"id": queries[1]["id"]}, {"id": queries[0]["id"]}],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "1": ["smooth(sma,5)", "fill(linear)"]
+        }
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_create_and_read_latest_smoothing_pipelines(self) -> None:
+        transformations = {
+            "0": ["fill( linear )", "smooth( ema , 7 , 0.25 )"],
+            "1": ["smooth(asap,7)", "fill(zero)"],
+        }
+        self.data["widgets"][0]["queries"][0]["transformations"] = transformations
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == transformations
+
+        response = self.client.get(self.details_url(response.data["id"]))
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == transformations
+
+    def test_rejects_invalid_transformations(self) -> None:
+        invalid_transformations: list[object] = [
+            None,
+            [],
+            {"0": "fill(locf)"},
+            {"0": [None]},
+            {"0": [5]},
+            {"0": [True]},
+            {"": ["fill(locf)"]},
+            {"-1": ["fill(locf)"]},
+            {"+1": ["fill(locf)"]},
+            {" 1": ["fill(locf)"]},
+            {"1 ": ["fill(locf)"]},
+            {"1\n": ["fill(locf)"]},
+            {"00": ["fill(locf)"]},
+            {"01": ["fill(locf)"]},
+            {"٠": ["fill(locf)"]},
+            {"¹": ["fill(locf)"]},
+            {"2": ["fill(locf)"]},
+            {"9" * 5000: ["fill(locf)"]},
+            {"0": ["unknown(locf)"]},
+            {"0": ["fill(sma)"]},
+            {"0": ["smooth(sma)"]},
+            {"0": ["smooth(sma,0)"]},
+            {"0": ["smooth(sma,-3)"]},
+            {"0": ["smooth(sma,1.5)"]},
+            {"0": ["fill(locf) AS alias"]},
+        ]
+        for transformations in invalid_transformations:
+            self.data["widgets"][0]["queries"][0]["transformations"] = transformations
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400, response.data
+            assert "transformations" in response.data["widgets"][0]["queries"][0]
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Transformed dashboard"
+        ).exists()
+
+    def test_rejects_invalid_pipeline_on_create_and_update(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        dashboard_id = response.data["id"]
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+
+        invalid_pipelines: list[tuple[list[str], str]] = [
+            (
+                ["fill(locf)", "fill(zero)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["smooth(sma,3)", "smooth(sma,5)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["smooth(asap,7)", "smooth(ema,3)"],
+                "Only one transformation per function type is allowed per yAxis",
+            ),
+            (
+                ["fill(zero)", "smooth(sma,3)", "fill(locf)"],
+                "At most 2 transformations are allowed per yAxis",
+            ),
+            (
+                ["fill(locf)", "fill(invalid)"],
+                "fill(invalid): mode argument invalid: expected one of locf, zero, linear",
+            ),
+        ]
+        for pipeline, message in invalid_pipelines:
+            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": pipeline}
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
+            assert Dashboard.objects.filter(organization=self.organization).count() == 1
+
+            response = self.client.put(
+                self.details_url(dashboard_id),
+                {
+                    "widgets": [
+                        {
+                            "id": widget["id"],
+                            "queries": [{"id": query_id, "transformations": {"0": pipeline}}],
+                        }
+                    ]
+                },
+            )
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
+        assert DashboardWidgetQuery.objects.get(id=query_id).transformations == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_partial_update_preserves_replaces_and_clears(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+
+        response = self.client.put(
+            url,
+            {"widgets": [{"id": widget["id"], "queries": [{"id": query_id, "name": "Renamed"}]}]},
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [{"id": query_id, "transformations": {"1": []}}],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {"1": []}
+
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {"id": widget["id"], "queries": [{"id": query_id, "transformations": {}}]}
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+
+    def test_partial_update_validates_effective_aggregate_positions(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+        updates: list[dict[str, Any]] = [
+            {"aggregates": ["count()"]},
+            {"transformations": {"2": ["fill(zero)"]}},
+        ]
+        for update in updates:
+            response = self.client.put(
+                url,
+                {"widgets": [{"id": widget["id"], "queries": [{"id": query_id, **update}]}]},
+            )
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+                "Transformations index must match an aggregate position."
+            ]
+        query = DashboardWidgetQuery.objects.get(id=query_id)
+        assert query.aggregates == ["count()", "count()"]
+        assert query.transformations == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {
+                                "id": query_id,
+                                "aggregates": ["count()"],
+                                "transformations": {},
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["aggregates"] == ["count()"]
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+
+    def test_add_query_to_existing_widget_and_restore_revision(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        dashboard_id = response.data["id"]
+        widget = response.data["widgets"][0]
+        old_query_id = widget["queries"][0]["id"]
+        response = self.client.put(
+            self.details_url(dashboard_id),
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {"id": old_query_id},
+                            {
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "transformations": {"0": ["smooth(sma,7)"]},
+                            },
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "0": ["smooth(sma,7)"]
+        }
+        revision = DashboardRevision.objects.get(dashboard_id=dashboard_id)
+        assert revision.snapshot["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-restore",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+                "revision_id": revision.id,
+            },
+        )
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.post(url)
+        assert response.status_code == 400, response.data
+        assert DashboardRevision.objects.filter(dashboard_id=dashboard_id).count() == 1
+        assert DashboardWidgetQuery.objects.filter(widget_id=widget["id"]).count() == 2
+
+        response = self.client.post(url)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["id"] != old_query_id
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_validate_widget_and_dashboard_without_saving(self) -> None:
+        self.data["widgets"][0]["queries"][0]["transformations"] = {"2": ["fill(locf)"]}
+        url = reverse(
+            "sentry-api-0-organization-dashboard-widget-details",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.post(url, self.data["widgets"][0])
+        assert response.status_code == 400, response.data
+        assert response.data["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+        response = self.client.post(f"{self.url}?validateOnly=true", self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+
+    def test_supplied_query_id_cannot_bypass_aggregate_bounds_on_create(self) -> None:
+        other_dashboard = self.create_dashboard(organization=self.organization)
+        other_widget = self.create_dashboard_widget(dashboard=other_dashboard)
+        other_query = self.create_dashboard_widget_query(
+            widget=other_widget, order=0, aggregates=["count()", "count()"]
+        )
+        query = self.data["widgets"][0]["queries"][0]
+        query["id"] = str(other_query.id)
+        del query["aggregates"]
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+
+    def test_duplicate_query_ids_cannot_bypass_transformation_bounds(self) -> None:
+        self.data["widgets"][0]["queries"][0]["transformations"] = {}
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget_id = response.data["widgets"][0]["id"]
+        query_id = response.data["widgets"][0]["queries"][0]["id"]
+        updates = [
+            {"id": query_id, "transformations": {"1": ["fill(zero)"]}},
+            {"id": query_id, "aggregates": ["count()"]},
+        ]
+        for widgets in [
+            [{"id": widget_id, "queries": updates}],
+            [
+                {"id": widget_id, "queries": [updates[0]]},
+                {"id": widget_id, "queries": [updates[1]]},
+            ],
+        ]:
+            response = self.client.put(url, {"widgets": widgets})
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"] == ["Query IDs must be unique."]
+        query = DashboardWidgetQuery.objects.get(id=query_id)
+        assert query.aggregates == ["count()", "count()"]
+        assert query.transformations == {}
+
+    def test_duplicated_widget_can_copy_query_ids(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query = widget["queries"][0]
+        duplicate = {
+            "title": widget["title"],
+            "displayType": widget["displayType"],
+            "widgetType": widget["widgetType"],
+            "queries": [
+                {
+                    "id": query["id"],
+                    "fields": query["fields"],
+                    "aggregates": query["aggregates"],
+                    "columns": query["columns"],
+                    "conditions": query["conditions"],
+                    "name": query["name"],
+                    "orderby": query["orderby"],
+                    "transformations": query["transformations"],
+                }
+            ],
+        }
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {"id": widget["id"], "queries": [{"id": query["id"]}]},
+                    duplicate,
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        assert len(widgets) == 2
+        copied_query_ids = {widget["queries"][0]["id"] for widget in widgets}
+        assert query["id"] in copied_query_ids
+        assert len(copied_query_ids) == 2
+
+    def test_query_from_another_dashboard_cannot_supply_aggregate_bounds(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        other_dashboard = self.create_dashboard(organization=self.organization)
+        other_widget = self.create_dashboard_widget(dashboard=other_dashboard)
+        other_query = self.create_dashboard_widget_query(
+            widget=other_widget, order=0, aggregates=["count()", "count()"]
+        )
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {"id": str(other_query.id), "transformations": {"1": ["fill(zero)"]}}
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 400, response.data
+        other_query.refresh_from_db()
+        assert other_query.transformations is None
+        response = self.client.get(url)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_legacy_query_serializes_empty_transformations(self) -> None:
+        del self.data["widgets"][0]["queries"][0]["transformations"]
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+        query = DashboardWidgetQuery.objects.get(id=response.data["widgets"][0]["queries"][0]["id"])
+        assert query.transformations is None
+
+    def test_feature_disabled_rejects_new_transformations(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations are not enabled for this organization."
+        ]
+
+    def test_feature_disabled_preserves_and_clears_saved_transformations(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.put(url, {"title": "Renamed dashboard"})
+            assert response.status_code == 200, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+                "0": ["fill(locf)", "smooth(sma,3)"],
+                "1": ["fill(zero)"],
+            }
+            response = self.client.put(
+                url,
+                {
+                    "widgets": [
+                        {"id": widget["id"], "queries": [{"id": query_id, "transformations": {}}]}
+                    ]
+                },
+            )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}

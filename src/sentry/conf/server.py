@@ -11,9 +11,10 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, NotRequired, TypedDict, Union, overload
 from urllib.parse import urlparse
 
+import orjson
 from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
@@ -40,7 +41,7 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_EnvTypes = Union[str, float, int, list, dict]
+_EnvTypes = Union[str, float, int, list[object], dict[str, object]]
 
 
 @overload
@@ -48,13 +49,15 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
+def env(
+    key: str, default: _EnvTypes, type: env_types.Type[_EnvTypes] | None = None
+) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: env_types.Type | None = None,
+    type: env_types.Type[_EnvTypes] | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -382,6 +385,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
+    "sentry.middleware.request_memory.RequestMemoryMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
@@ -465,6 +469,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.notifications",
+    "sentry.inbox",
     "sentry.flags",
     "sentry.monitors",
     "sentry.processing_errors",
@@ -493,6 +498,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
+    "sentry.notebooks.apps.NotebooksConfig",
+    "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
@@ -800,6 +807,12 @@ VIEWER_CONTEXT_JWT_TTL: int = 900
 # First element is used to sign requests; request is accepted if signed with any element in the list.
 SCM_RPC_SHARED_SECRET: list[str] | None = None
 
+# Ed25519 public keys, as SubjectPublicKeyInfo PEM strings, that verify the grants Seer signs for
+# the SCM git endpoint. Only Seer holds a private key, so these aren't secret. A grant is accepted
+# if any listed key verifies it. To rotate, add the new public key here, switch Seer to the new
+# private key, wait 15 minutes for its old grants to expire, then remove the old public key.
+SCM_GIT_GRANT_PUBLIC_KEYS: list[str] = []
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -951,6 +964,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
     "sentry.spans.consumers.process_segments.tasks",
@@ -1021,7 +1035,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.tasks",
+    "sentry.telemetry_classifiers.poc_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1243,13 +1257,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
-    "llm-cache-issue-detection": {
-        "task": (
-            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
-            "run_llm_cache_issue_detection"
-        ),
-        "schedule": timedelta(minutes=1),
-    },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
@@ -1440,10 +1447,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
 }
 
 
-def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+_OperationParameter = TypedDict("_OperationParameter", {"in": str, "required": NotRequired[bool]})
+
+
+def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
     """
     Sort parameters by type then if the parameter is required or not.
     It should group path parameters first, then query parameters.
@@ -1732,6 +1743,10 @@ SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
+# Seer credit backend
+SENTRY_SEER_CREDIT = "sentry.seer_credit.SeerCredit"
+SENTRY_SEER_CREDIT_OPTIONS: dict[str, str] = {}
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
@@ -1922,11 +1937,15 @@ SENTRY_SCOPES = {
     "alerts:read",
     "alerts:write",
     "dashboard:read",
-    "dashboard:create",
-    "dashboard:update",
-    "dashboard:delete",
+    "dashboard:write",
+    "saved_query:read",
+    "saved_query:write",
     "seer:read",
     "seer:write",
+    "service_account:read",
+    "service_account:write",
+    "user_preference:read",
+    "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1942,7 +1961,10 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "saved_query:read",
     "seer:read",
+    "service_account:read",
+    "user_preference:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1970,16 +1992,18 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:create": {"dashboard:read", "dashboard:create"},
-    "dashboard:update": {"dashboard:read", "dashboard:create", "dashboard:update"},
-    "dashboard:delete": {
-        "dashboard:read",
-        "dashboard:create",
-        "dashboard:update",
-        "dashboard:delete",
-    },
+    # Granular scopes are explicit: write does not imply read, so a token that reads
+    # and writes needs both scopes.
+    "dashboard:write": {"dashboard:write"},
+    "saved_query:read": {"saved_query:read"},
+    "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "service_account:read": {"service_account:read"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
+    "user_preference:read": {"user_preference:read"},
+    "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2003,21 +2027,46 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
 GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
-        "dashboard:create",
-        "dashboard:update",
-        "dashboard:delete",
+        "dashboard:write",
+        "saved_query:read",
+        "saved_query:write",
+        "user_preference:read",
+        "user_preference:write",
     ]
 )
 
-# Broad read scopes being retired in favour of granular ones. API attribution tags
-# whether a caller still holds one (see sentry.api.caller_scopes).
-DEPRECATED_SCOPES = frozenset(
-    [
-        "org:read",
-        "project:read",
-        "member:read",
-    ]
-)
+# Broad read scopes being retired in favour of granular ones, mapped to the scopes they're
+# replaced with at request time (see sentry.auth.deprecated_scope_translation). Stored token
+# scopes are left unchanged. Remove an entry once callers no longer rely on the translation.
+DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
+    "org:read": frozenset(
+        [
+            # Removed once org:read has a full 1:1 translation to granular scopes.
+            "org:read",
+            "dashboard:read",
+            "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
+            # Recent searches and prompt activity accept org:read today, including writes.
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    # Starring, starred order and last visited accept member:read today, including writes.
+    "member:read": frozenset(
+        [
+            # Removed once member:read has a full 1:1 translation to granular scopes.
+            "member:read",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    # No granular replacements yet.
+    "project:read": frozenset(["project:read"]),
+}
+
+# API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(DEPRECATED_SCOPE_TRANSLATIONS)
 
 SENTRY_SCOPE_SETS = (
     (
@@ -2075,10 +2124,12 @@ SENTRY_SCOPE_SETS = (
         ("alerts:read", "Read alerts"),
     ),
     (
-        ("dashboard:delete", "Read, update, and delete access to dashboards."),
-        ("dashboard:update", "Read and update access to dashboards."),
-        ("dashboard:create", "Read and create access to dashboards."),
+        ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
+    ),
+    (
+        ("saved_query:write", "Write access to saved queries."),
+        ("saved_query:read", "Read access to saved queries."),
     ),
     (
         (
@@ -2086,6 +2137,20 @@ SENTRY_SCOPE_SETS = (
             "Read and write access to Seer-generated work, such as running Autofix analysis.",
         ),
         ("seer:read", "Read access to Seer-generated work."),
+    ),
+    (
+        ("service_account:write", "Write access to service accounts."),
+        ("service_account:read", "Read access to service accounts."),
+    ),
+    (
+        (
+            "user_preference:write",
+            "Write access to your own stars, recent searches, and dismissed prompts.",
+        ),
+        (
+            "user_preference:read",
+            "Read access to your own stars, recent searches, and dismissed prompts.",
+        ),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
@@ -2117,6 +2182,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2144,6 +2210,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2187,6 +2254,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2223,6 +2292,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2293,15 +2364,18 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2324,6 +2398,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2337,9 +2412,11 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2370,11 +2447,15 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2410,11 +2491,15 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
-            "dashboard:update",
-            "dashboard:delete",
+            "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2526,7 +2611,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.10.0"
+SELF_HOSTED_STABLE_VERSION = "26.10.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2552,6 +2637,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
+    "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -2570,7 +2656,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
         "http_headers": {
             "request": {
                 "mode": "denylist",
-                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+                # "grant" keeps the SCM git endpoint's X-Scm-Git-Grant out of spans and events.
+                # It's a credential, but none of the SDK's own terms match it.
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user", "grant"],
             }
         },
         "cookies": {"mode": "off"},
@@ -2585,6 +2673,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     # connectivity issues. We are specifically enabling this to help ensure
     # cron monitor check-ins make it through.
     "keep_alive": True,
+    "attach_stacktrace": False,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
@@ -3291,8 +3380,6 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
-SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
@@ -3313,7 +3400,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 SENTRY_GITHUB_APP_USER_ID = 39604003
 
-SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+SEER_AUTOFIX_FORCE_USE_REPOS: list[dict[str, object]] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
@@ -3384,7 +3471,7 @@ SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
 }
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
@@ -3588,6 +3675,15 @@ MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
+# Prod flag values written by bin/sync-prod-flags, run by devenv sync.
+if IS_DEV:
+    _prod_flags = os.path.join(
+        os.path.expanduser(os.environ.get("SENTRY_CONF", "~/.sentry")), "prod-flags.json"
+    )
+    if os.path.exists(_prod_flags):
+        with open(_prod_flags, "rb") as f:
+            SENTRY_FEATURES.update(orjson.loads(f.read()))
+
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
@@ -3606,6 +3702,13 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Dev only: verifies the grants a local Seer signs. Its private half is committed to Seer's
+    # .envrc, in a public repository, so anyone can sign grants this key accepts.
+    SCM_GIT_GRANT_PUBLIC_KEYS = [
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MCowBQYDK2VwAyEAq8SFj6uFiEB74zliRdruAG69shgf1FNJbj/UCnK0jFM=\n"
+        "-----END PUBLIC KEY-----\n"
+    ]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
@@ -3673,6 +3776,18 @@ CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
 CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
 CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
 CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+if IS_DEV:
+    # Pair with `devservices up --mode conduit`. These credentials match the
+    # development defaults in the conduit repo (.env.default / devservices
+    # config). They are dev-only and must never be used in production.
+    CONDUIT_GATEWAY_PRIVATE_KEY = (
+        os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+        or "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ2tranZiTU1MRENCckcKNDhhQytCUGd2ZU5IQzJYc3RWYWZxaEJKYkw0cmtOZjVTTHczcWpJZHl2L240dU4rNitzbTc3dUFYZU42elFwVgo4RkZGZmoveFBVbmVmd3pEa1VJYVJvRmVsRld0NHhEOTFkOS9KeW5LMkYxZ2syTzlyaXVUaklXMFVBRTdORnRyCm1hdE5JOU5zTklWdFZMOWY5eEJOanBKV1ZzaVdNU09mNzlvQyt6N3p6YWZzV3lNQUNmaVZ1ejhEOG4wM0JsblAKN2taakdMcWVqZEpPUHFzUVF0VWJOemRiZnBsbXlVMHUxYk1UZFo5RlFrekk1Rm5tL0lhS0NOWHB0RHI1MnJFNAovRE9vT3gvNG1XSUhZQXc1RGJxVWNjMGlTQU5rVXRJNTZPckFjeHNwc0tQU0pLL1V5dGZqRnhPV0REektpS3hmCnZnRVRaV3pCQWdNQkFBRUNnZ0VBSGV1RVBGNktHa0UvOVFiMlVWdGU2YzQ4SXU5OGtXT0tveTZkRld4U3lzTGoKc1N1N0pIZXA4dWEwVGVsZktQVWxaSWZUVkF3OXpsYTIyVmIrdjU2cmEyV1VKNEo3eEphRktSZkdiM2FTZVRHKwpKaGdiTVJmaXJrRldBTGZyTzFJT0ZCNUpOTFlTOHp1YW4xNXAyWFY0KzhRMHVlTGRoRW43eWMzdzV3ZVNJbFB6Cnc3N3VxandodHp5a3JxdUU5R0lJTUt5YnllR2pNbXRUclUzU3hJTXpuVE0wMnN3RlQxRFhMNmIvTStaTzJpaWEKY2ZFTmJwalZ2akxadEpiOHFYT0FJTE1zWUVVRWdIeVMwZytDNlJmc3A4OFQrSFZoOXAzaVlEdzZ5cGkwUGlmbApsZS9TczdPQXdCbW1iK0Z6QWxWRDRQRmxYMi91ZVpOa0wrZDlINTl2RVFLQmdRRGlSdi96WjdtVjJEYmtJVExxCnNLVzczUTl4cmNic3RmaTZwdklRb3Awd1JOSkhjQytiU1hTbUgrK2Q5c2FaTFRvcnI0SDJReUdpdi93OTh3RWQKdWxicVJYVWpINUkvMUpiRmFVR2dmRS9LSmJkQVRQRDR1cVM3NWc4QkhQQkVnU3pEZkQxSTFkZnlxdFhiOW80QwoxVzRDcjhMalhxK2RIR0d2WVRtc3NudkY3UUtCZ1FDNk1FQUM4VGwwUkZiWTNUamJtaWxWUTU5UEhyLzJtaU1WCmJLSGlIMzRDTUNsMkVjRjBJTk9XUzNzd1pWb3pUckRxSTVLL0hzbVhRalJnbnhXdGVzbEpFbFpiQ0g4ckxTWWQKTnVxby9PUVptd2JWY1hDaXNkOEpWZC9CbFNmOG5rTlpFQm9DNll5RVQ4cnZMN1R6aElZbEdjYlVEQVRiZHEzMwogSk0raXdWN25wUUtCZ0FEckhOcldEdkRHd2VKSEtEZS9vOHlSWnlDay9ldTBDV0Jva1E3ME9nTWFKR2haMGplbApJcTRSN3gwTEJWOVZ5YWludTdWT0xITEdxTFZ2cVE5LzFCNTdUYkJvem1VbjdieTdZcUxPSGx6SnJtYTZhVGY1Ck9mWHhSeHBRRGNHWmJKOFdnQUV0clFTMUlNMFZ3Um5OMS9aMjFDbXNGclppaVJyM0lBN05ZcWM1QW9HQVBpczgKUkg4OWV2Z1NzNmp5Z2trd2dmcnBaK2JSbkVzTmFlcnpCdWtURHpIN3RpUHBuNWdTYm4zWHJXbzZPeVdNWnpIbgpudzl0cXFiOWpFR3lZRkcrZ2pxd1FRZE9SeUYxTjQ0TnZzMXFjSzVXRXRFbEZmNGtoaDU1YjA4Wm9mMUthYU81CnU3MDJJVHZ2ZS94SEJJVDhzY2l3bmo5QkkvSzExZThoc2F1MXY4MENnWUVBaWV1RzB4aFdvZCtsNGpwT1dHOFIKQ0pDZ2h6UGRUdGVWUldmUzlVdkJBVEEzcEh2NWFUNDZGZnZMQ1FJVHBDYWFOZk9DVUU4VDNnU1oyQ3N0SmpTYQp0SnBpWXpDbGVjb2lVRVVTVWZqQkQ2cFAxbDJNQ2dWRzlEWkxJOS9rOUtSN3k3VkJpaVdBNUNTY3p0RVhyKy82CkVjTlAvNzV3SkU5WkFDSFI5UGowYnJnPQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t"
+    )
+    CONDUIT_GATEWAY_JWT_ISSUER = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "dev.getsentry.net")
+    CONDUIT_PUBLISH_SECRET = os.getenv("CONDUIT_PUBLISH_SECRET") or "conduit-dev-secret"
+    CONDUIT_PUBLISH_JWT_ISSUER = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "dev.getsentry.net")
 
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:

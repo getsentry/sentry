@@ -16,9 +16,6 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.cell_organization_provisioning import (
     cell_organization_provisioning_rpc_service,
 )
-from sentry.hybridcloud.services.cell_organization_provisioning.impl import (
-    DatabaseBackedCellOrganizationProvisioningRpcService,
-)
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -41,7 +38,6 @@ from sentry.signals import organization_created, terms_accepted
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import get_matching_analytics_events
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_cells
 from sentry.users.models.user import User
@@ -399,10 +395,9 @@ class TestRegionOrganizationProvisioningCreateInControl(TestCase):
             organization_id=42,
             user=user,
             capture=capture,
-            sender=DatabaseBackedCellOrganizationProvisioningRpcService,
+            sender="provision_analytics",
         )
 
-    @override_options({"organization.provision-analytics-with-outbox": True})
     def test_creates_analytics_and_audit_logs_with_outbox(self) -> None:
         user = self.create_user()
         capture = self.provision_and_capture(42, self.get_provisioning_args(user))
@@ -411,18 +406,6 @@ class TestRegionOrganizationProvisioningCreateInControl(TestCase):
             organization_id=42, user=user, capture=capture, sender="provision_analytics"
         )
 
-    def test_creates_analytics_and_audit_logs_minimal_options(self) -> None:
-        user = self.create_user()
-        capture = self.provision_and_capture(42, self.get_minimal_provisioning_args(user))
-
-        self.assert_minimal_analytics_and_audit_logs(
-            organization_id=42,
-            user=user,
-            capture=capture,
-            sender=DatabaseBackedCellOrganizationProvisioningRpcService,
-        )
-
-    @override_options({"organization.provision-analytics-with-outbox": True})
     def test_creates_analytics_and_audit_logs_minimal_options_with_outbox(self) -> None:
         user = self.create_user()
         capture = self.provision_and_capture(42, self.get_minimal_provisioning_args(user))
@@ -432,13 +415,6 @@ class TestRegionOrganizationProvisioningCreateInControl(TestCase):
         )
 
     def test_no_analytics_or_audit_logs_when_provisioning_fails(self) -> None:
-        self.create_conflicting_org(42)
-        capture = self.provision_and_capture(42, self.get_provisioning_args(self.create_user()))
-
-        self.assert_no_analytics_or_audit_logs(organization_id=42, capture=capture)
-
-    @override_options({"organization.provision-analytics-with-outbox": True})
-    def test_no_analytics_or_audit_logs_when_provisioning_fails_with_outbox(self) -> None:
         self.create_conflicting_org(42)
         capture = self.provision_and_capture(42, self.get_provisioning_args(self.create_user()))
 

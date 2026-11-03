@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import connection
@@ -17,14 +17,17 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationSerializer,
 )
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationActionRequestState,
-    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommandStatus,
-    InvestigationStatus,
+    InvestigationOrchestrationRerun,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookBlockExecutionStatus,
+    NotebookStatus,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
@@ -33,7 +36,7 @@ from tests.sentry.investigations.test_contracts import RecordingKind, fake_actio
 class InvestigationSerializerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Latency spike"
         )
 
@@ -48,6 +51,7 @@ class InvestigationSerializerTest(TestCase):
             "status": self.investigation.status,
             "sourceType": "manual",
             "createdBy": str(self.user.id),
+            "creator": {"type": "user", "id": str(self.user.id)},
             "dateCreated": self.investigation.date_added,
             "dateUpdated": self.investigation.date_updated,
             "version": 1,
@@ -56,6 +60,20 @@ class InvestigationSerializerTest(TestCase):
             "titleGeneration": {"status": None},
             "orchestration": None,
         }
+
+    def test_serializes_account_and_missing_creators(self) -> None:
+        account = self.create_service_account(organization=self.organization, id=910001)
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["createdBy"] is None
+        assert result["creator"] == {"type": "service_account", "id": str(account.id)}
+
+        self.investigation.update(created_by_service_account_id=None)
+        assert (
+            serialize(self.investigation, self.user, InvestigationSerializer())["creator"] is None
+        )
 
     def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
         heartbeat = timezone.now()
@@ -78,8 +96,8 @@ class InvestigationSerializerTest(TestCase):
         }
 
     def test_counts_only_active_blocks(self) -> None:
-        self.create_investigation_block(investigation=self.investigation, position=0)
-        deleted = self.create_investigation_block(investigation=self.investigation, position=1)
+        self.create_notebook_block(notebook=self.investigation, position=0)
+        deleted = self.create_notebook_block(notebook=self.investigation, position=1)
         deleted.update(deleted_at=self.investigation.date_added)
 
         result = serialize(self.investigation, self.user, InvestigationSerializer())
@@ -88,7 +106,7 @@ class InvestigationSerializerTest(TestCase):
 
     def test_reports_the_viewers_own_favorite(self) -> None:
         other_user = self.create_user()
-        self.create_investigation_favorite(investigation=self.investigation, user=other_user)
+        self.create_notebook_favorite(notebook=self.investigation, user=other_user)
 
         assert not serialize(self.investigation, self.user, InvestigationSerializer())[
             "isFavorited"
@@ -102,14 +120,14 @@ class InvestigationSerializerTest(TestCase):
 
     def test_query_count_does_not_grow_with_the_number_of_investigations(self) -> None:
         for index in range(3):
-            investigation = self.create_investigation(
+            investigation = self.create_notebook(
                 organization=self.organization, title=f"First {index}"
             )
-            self.create_investigation_block(investigation=investigation, position=0)
-            self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_notebook_block(notebook=investigation, position=0)
+            self.create_notebook_favorite(notebook=investigation, user=self.user)
             self.create_investigation_orchestration_run(investigation=investigation)
 
-        first_batch = list(Investigation.objects.filter(organization=self.organization))
+        first_batch = list(Notebook.objects.filter(organization=self.organization))
         serialize(
             first_batch,
             self.user,
@@ -123,14 +141,14 @@ class InvestigationSerializerTest(TestCase):
             )
 
         for index in range(3, 12):
-            investigation = self.create_investigation(
+            investigation = self.create_notebook(
                 organization=self.organization, title=f"Second {index}"
             )
-            self.create_investigation_block(investigation=investigation, position=0)
-            self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_notebook_block(notebook=investigation, position=0)
+            self.create_notebook_favorite(notebook=investigation, user=self.user)
             self.create_investigation_orchestration_run(investigation=investigation)
 
-        second_batch = list(Investigation.objects.filter(organization=self.organization))
+        second_batch = list(Notebook.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
             results = serialize(
                 second_batch,
@@ -151,24 +169,20 @@ class InvestigationSerializerTest(TestCase):
 class InvestigationDetailsSerializerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.parameter = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-        )
-        self.block = self.create_investigation_block(investigation=self.investigation, position=0)
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.block = self.create_notebook_block(notebook=self.investigation, position=0)
 
     def serialize_detail(self) -> InvestigationDetailsSerializerResponse:
-        return serialize(
-            self.investigation,
-            self.user,
-            InvestigationDetailsSerializer(),
+        return cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                self.user,
+                InvestigationDetailsSerializer(),
+            ),
         )
 
     def test_extends_the_list_representation(self) -> None:
@@ -193,12 +207,12 @@ class InvestigationDetailsSerializerTest(TestCase):
             "Checkout failures increased.\nRoll back the latest release."
         )
         assert detail["projectIds"] == [self.project.id]
-        assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
+        assert detail["parameters"] == []
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
 
     def test_orders_blocks_by_position(self) -> None:
-        second = self.create_investigation_block(investigation=self.investigation, position=1)
-        third = self.create_investigation_block(investigation=self.investigation, position=2)
+        second = self.create_notebook_block(notebook=self.investigation, position=1)
+        third = self.create_notebook_block(notebook=self.investigation, position=2)
 
         detail = self.serialize_detail()
 
@@ -209,7 +223,7 @@ class InvestigationDetailsSerializerTest(TestCase):
         ]
 
     def test_omits_soft_deleted_blocks(self) -> None:
-        deleted = self.create_investigation_block(investigation=self.investigation, position=1)
+        deleted = self.create_notebook_block(notebook=self.investigation, position=1)
         deleted.update(deleted_at=self.investigation.date_added)
 
         detail = self.serialize_detail()
@@ -223,50 +237,37 @@ class InvestigationDetailsSerializerTest(TestCase):
         assert detail["source"]["type"] == "manual"
         assert detail["titleGeneration"] == {"status": None}
 
-    def test_reports_the_template_that_created_the_investigation(self) -> None:
-        self.investigation.update(template_key="breached_metric", template_version=1)
-
-        detail = self.serialize_detail()
-
-        assert detail["template"] == {"key": "breached_metric", "version": 1}
-
     def test_includes_block_output(self) -> None:
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=self.block,
-            executor="manual",
+            executor="code_mode",
             block_version=1,
             input_fingerprint="f" * 64,
-            status=InvestigationBlockExecutionStatus.COMPLETED,
+            status=NotebookBlockExecutionStatus.COMPLETED,
             result={"schemaVersion": 1},
         )
-        self.create_investigation_block_execution_project(execution=execution, project=self.project)
+        self.create_notebook_block_execution_project(execution=execution, project=self.project)
         self.block.update(current_execution=execution, result_execution=execution)
 
         assert self.serialize_detail()["blocks"][0]["outputStatus"] == "available"
         assert self.serialize_detail()["blocks"][0]["output"] == {"schemaVersion": 1}
 
     def test_query_count_is_constant_for_a_bare_queryset(self) -> None:
-        def build(index: int) -> Investigation:
-            investigation = self.create_investigation(
+        def build(index: int) -> Notebook:
+            investigation = self.create_notebook(
                 organization=self.organization, title=f"Extra {index}"
             )
-            self.create_investigation_project(investigation=investigation, project=self.project)
-            parameter = self.create_investigation_parameter(
-                investigation=investigation, key="env", label="Env", type="string", position=0
-            )
-            block = self.create_investigation_block(investigation=investigation, position=0)
-            self.create_investigation_block_parameter(block=block, parameter=parameter)
-            execution = self.create_investigation_block_execution(
+            self.create_notebook_project(notebook=investigation, project=self.project)
+            block = self.create_notebook_block(notebook=investigation, position=0)
+            execution = self.create_notebook_block_execution(
                 block=block,
-                executor="manual",
+                executor="code_mode",
                 block_version=1,
                 input_fingerprint="f" * 64,
-                status=InvestigationBlockExecutionStatus.COMPLETED,
+                status=NotebookBlockExecutionStatus.COMPLETED,
                 result={"schemaVersion": 1},
             )
-            self.create_investigation_block_execution_project(
-                execution=execution, project=self.project
-            )
+            self.create_notebook_block_execution_project(execution=execution, project=self.project)
             block.update(
                 current_execution=execution,
                 content_execution=execution,
@@ -296,7 +297,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
         kind.start()
         self.addCleanup(kind.stop)
         self.detector = self.create_detector(project=self.project, type=MetricIssue.slug)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
@@ -313,10 +314,10 @@ class InvestigationActionRequestSerializationTest(TestCase):
             **values,
         }
 
-    def add_request(self, key: str = "widen-window", **values: Any) -> InvestigationActionRequest:
+    def add_request(self, key: str = "widen-window", **values: Any) -> NotebookActionRequest:
         action = values.pop("action", self.action())
-        return self.create_investigation_action_request(
-            investigation=self.investigation,
+        return self.create_notebook_action_request(
+            notebook=self.investigation,
             key=key,
             action_kind=action["kind"] if action else None,
             action_payload=action,
@@ -325,9 +326,15 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def serialize_requests(self) -> list[dict[str, Any]]:
         access = from_user(self.user, self.organization)
-        return serialize(
-            self.investigation, self.user, InvestigationDetailsSerializer(access=access)
-        )["actionRequests"]
+        detail = cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                self.user,
+                InvestigationDetailsSerializer(access=access),
+            ),
+        )
+        return cast("list[dict[str, Any]]", detail["actionRequests"])
 
     def test_serializes_an_action_request(self) -> None:
         action_request = self.add_request(
@@ -365,13 +372,15 @@ class InvestigationActionRequestSerializationTest(TestCase):
             actor_id=self.user.id,
             expected_workflow_version=1,
             resulting_workflow_version=2,
-            type="recheck_action_requests",
-            payload={"reportRevision": 0, "source": {"type": "manual"}},
-            **command,
+            **{
+                "type": "recheck_action_requests",
+                "payload": {"reportRevision": 0, "source": {"type": "manual"}},
+                **command,
+            },
         )
         self.add_request(
             key,
-            state=InvestigationActionRequestState.SUPERSEDED,
+            state=NotebookActionRequestState.SUPERSEDED,
             error={"code": "stale", "current": {"timeWindowSeconds": 600}},
             followup_request_id=sent.request_id,
         )
@@ -381,7 +390,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "accepted", "reason": None}
+        assert serialized["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
 
     def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
         self.add_followed_up_request(
@@ -398,6 +412,26 @@ class InvestigationActionRequestSerializationTest(TestCase):
         assert serialized["followUp"] == {
             "status": "failed",
             "reason": "action_requests_report_changed",
+            "rerun": None,
+            "retryable": False,
+        }
+
+    def test_a_re_run_seer_dropped_says_so(self) -> None:
+        self.add_followed_up_request(
+            type="rerun_after_connection",
+            payload={"provider": "datadog"},
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            rerun=InvestigationOrchestrationRerun.SKIPPED,
+            error={"code": "rerun_skipped", "reason": "run_failed"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": "run_failed",
+            "rerun": "skipped",
+            "retryable": False,
         }
 
     def test_an_undelivered_follow_up_has_no_reason(self) -> None:
@@ -408,16 +442,66 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
         (serialized,) = self.serialize_requests()
 
-        assert serialized["followUp"] == {"status": "failed", "reason": None}
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": True,
+        }
+
+    def test_a_re_check_that_failed_behind_another_command_can_be_tried_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_conflicted"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] == {
+            "status": "failed",
+            "reason": None,
+            "rerun": None,
+            "retryable": True,
+        }
+
+    def test_a_re_check_behind_an_undelivered_command_cannot_be_tried_again(self) -> None:
+        self.add_followed_up_request(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"]["retryable"] is False
+
+    def test_a_re_run_behind_a_conflict_can_be_tried_again_but_not_behind_a_failure(
+        self,
+    ) -> None:
+        for key, code, retryable in (
+            ("conflicted", "earlier_command_conflicted", True),
+            ("failed", "earlier_command_failed", False),
+        ):
+            self.add_followed_up_request(
+                key,
+                type="rerun_after_connection",
+                payload={"provider": "datadog"},
+                status=InvestigationOrchestrationCommandStatus.FAILED,
+                error={"code": code},
+            )
+
+        assert {row["key"]: row["followUp"]["retryable"] for row in self.serialize_requests()} == {
+            "conflicted": True,
+            "failed": False,
+        }
 
     def test_block_anchors_point_at_the_live_block(self) -> None:
-        live = self.create_investigation_block(
-            investigation=self.investigation, position=0, stable_agent_key="cause"
+        live = self.create_notebook_block(
+            notebook=self.investigation, position=0, producer_key="cause"
         )
-        self.create_investigation_block(
-            investigation=self.investigation,
+        self.create_notebook_block(
+            notebook=self.investigation,
             position=1,
-            stable_agent_key="removed",
+            producer_key="removed",
             deleted_at=timezone.now(),
         )
         for key, anchor_id in [("live", "cause"), ("gone", "removed")]:
@@ -447,27 +531,27 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_orders_the_newest_report_first_and_omits_superseded_requests(self) -> None:
         old_primary = self.add_request(
             "old-primary",
-            report_revision=0,
+            producer_revision=0,
             primary=True,
-            state=InvestigationActionRequestState.WITHDRAWN,
+            state=NotebookActionRequestState.WITHDRAWN,
         )
-        older = self.add_request("older", report_revision=0)
-        self.add_request("superseded", state=InvestigationActionRequestState.SUPERSEDED)
+        older = self.add_request("older", producer_revision=0)
+        self.add_request("superseded", state=NotebookActionRequestState.SUPERSEDED)
         stale = self.add_request(
             "stale",
-            report_revision=0,
-            state=InvestigationActionRequestState.SUPERSEDED,
+            producer_revision=0,
+            state=NotebookActionRequestState.SUPERSEDED,
             error={"code": "stale", "current": {"timeWindowSeconds": 600}},
             followup_request_id=uuid4(),
         )
         self.add_request(
             "dropped-stale",
-            report_revision=0,
-            state=InvestigationActionRequestState.SUPERSEDED,
+            producer_revision=0,
+            state=NotebookActionRequestState.SUPERSEDED,
             error={"code": "stale", "current": {"timeWindowSeconds": 600}},
         )
-        newer = self.add_request("newer", report_revision=1)
-        primary = self.add_request("primary", report_revision=1, primary=True)
+        newer = self.add_request("newer", producer_revision=1)
+        primary = self.add_request("primary", producer_revision=1, primary=True)
 
         assert [row["id"] for row in self.serialize_requests()] == [
             str(primary.id),
@@ -480,19 +564,19 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_serializes_who_applied_it_failures_and_withdrawals(self) -> None:
         now = timezone.now()
         self.add_request(
-            state=InvestigationActionRequestState.APPLIED,
+            state=NotebookActionRequestState.APPLIED,
             applied_by_id=self.user.id,
             date_applied=now,
             applied_details={"provider": "datadog", "rerun": None},
         )
         self.add_request(
             "failed",
-            state=InvestigationActionRequestState.FAILED,
+            state=NotebookActionRequestState.FAILED,
             error={"code": "validation_failed", "detail": {"dataSources": ["Bad window."]}},
         )
         self.add_request(
             "withdrawn",
-            state=InvestigationActionRequestState.WITHDRAWN,
+            state=NotebookActionRequestState.WITHDRAWN,
             reason="The spikes are real.",
         )
 
@@ -512,7 +596,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def test_shows_no_applier_once_the_user_is_gone(self) -> None:
         self.add_request(
-            state=InvestigationActionRequestState.APPLIED,
+            state=NotebookActionRequestState.APPLIED,
             applied_by_id=None,
             applied_details={"provider": "datadog", "rerun": None},
         )
@@ -524,7 +608,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_query_count_does_not_grow_with_action_requests(self) -> None:
         self.add_request("first-suggestion")
         self.add_request(
-            state=InvestigationActionRequestState.APPLIED,
+            state=NotebookActionRequestState.APPLIED,
             applied_by_id=self.user.id,
             date_applied=timezone.now(),
             applied_details={"fields": ["highThreshold"]},
@@ -537,27 +621,60 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.add_request("second")
         self.add_request(
             "third",
-            state=InvestigationActionRequestState.APPLIED,
+            state=NotebookActionRequestState.APPLIED,
             applied_by_id=other.id,
             date_applied=timezone.now(),
             applied_details={"fields": ["highThreshold"]},
         )
         self.add_request("connect-gcp", action={"kind": "connect_telemetry", "provider": "gcp"})
         for index in range(3):
-            self.add_request(f"older-{index}", report_revision=1)
+            self.add_request(f"older-{index}", producer_revision=1)
         with CaptureQueriesContext(connection) as many:
             assert len(self.serialize_requests()) == 9
 
         assert len(many.captured_queries) == len(one.captured_queries)
 
+    def add_connect_request(self) -> None:
+        self.add_request(
+            "connect-datadog", action={"kind": "connect_telemetry", "provider": "datadog"}
+        )
+
+    @with_feature("organizations:seer-infra-telemetry")
+    def test_a_manager_can_connect_a_provider_that_is_not_connected_yet(self) -> None:
+        self.add_connect_request()
+
+        (serialized,) = self.serialize_requests()
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
+    @with_feature("organizations:seer-infra-telemetry")
+    def test_members_who_cannot_install_integrations_cannot_connect(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.add_connect_request()
+
+        assert self.cannot_apply_reason(member) == "permission_denied"
+
+    def test_providers_cannot_be_connected_without_infra_telemetry(self) -> None:
+        self.add_connect_request()
+
+        assert self.cannot_apply_reason() == "unsupported_action"
+
     def serialize_for(self, user: Any) -> list[dict[str, Any]]:
         access = from_user(user, self.organization)
-        return serialize(self.investigation, user, InvestigationDetailsSerializer(access=access))[
-            "actionRequests"
-        ]
+        detail = cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                user,
+                InvestigationDetailsSerializer(access=access),
+            ),
+        )
+        return cast("list[dict[str, Any]]", detail["actionRequests"])
 
     def cannot_apply_reason(self, user: Any = None) -> str | None:
-        return self.serialize_for(user or self.user)[0]["cannotApplyReason"]
+        reason = self.serialize_for(user or self.user)[0]["cannotApplyReason"]
+        return reason if isinstance(reason, str) else None
 
     def test_an_editor_can_apply_a_suggestion(self) -> None:
         self.add_request()
@@ -568,12 +685,12 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def test_archived_investigations_cannot_apply(self) -> None:
         self.add_request()
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         assert self.cannot_apply_reason() == "investigation_archived"
 
     def test_requests_that_are_not_suggested_cannot_apply(self) -> None:
-        self.add_request(state=InvestigationActionRequestState.FAILED)
+        self.add_request(state=NotebookActionRequestState.FAILED)
 
         assert self.cannot_apply_reason() == "not_suggested"
 
@@ -673,7 +790,7 @@ class InvestigationActionRequestSerializationTest(TestCase):
         self.add_request("second")
         self.add_request("third")
         for index in range(5):
-            self.add_request(f"applied-{index}", state=InvestigationActionRequestState.APPLIED)
+            self.add_request(f"applied-{index}", state=NotebookActionRequestState.APPLIED)
         with CaptureQueriesContext(connection) as many:
             assert len(self.serialize_for(member)) == 10
 

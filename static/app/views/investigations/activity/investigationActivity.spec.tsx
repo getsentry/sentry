@@ -20,7 +20,7 @@ const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
   location: {
@@ -155,6 +155,75 @@ describe('InvestigationActivity', () => {
     expect(items[2]).toHaveTextContent('Before the change');
     expect(items[3]).toHaveTextContent('Investigation first created');
     expect(within(activity).queryByText(/Raise the threshold/)).not.toBeInTheDocument();
+  });
+
+  it('records a connected provider', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedDetails: {provider: 'datadog'},
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            followUp: {
+              status: 'acknowledged',
+              reason: null,
+              rerun: 'started',
+              retryable: false,
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Datadog connected');
+    expect(items[0]).not.toHaveTextContent('re-run');
+  });
+
+  it('names who connected a provider and why Seer did not re-run', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'applied',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            dateApplied: '2026-01-02T00:00:00Z',
+            appliedBy: {
+              id: '2',
+              name: 'Ada Lovelace',
+              email: 'ada@example.com',
+              username: 'ada@example.com',
+              ip_address: '',
+            },
+            appliedDetails: {provider: 'datadog'},
+            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            followUp: {
+              status: 'failed',
+              reason: 'provider_already_used',
+              rerun: null,
+              retryable: false,
+            },
+          }),
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    const items = within(await findActivity()).getAllByRole('listitem');
+    expect(items[0]).toHaveTextContent('Ada Lovelace connected Datadog');
+    expect(items[0]).toHaveTextContent(
+      "Seer already used Datadog in this investigation, so it didn't re-run it."
+    );
   });
 
   it('names every changed setting once', async () => {

@@ -83,6 +83,7 @@ export function useTraceMetricsSeriesQuery(
           pageFilters,
           DiscoverDatasets.TRACEMETRICS,
           {
+            organization,
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,
@@ -303,6 +304,7 @@ export function useTraceMetricsHeatmapQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval = '',
     yBuckets = 0,
   } = params;
@@ -332,6 +334,7 @@ export function useTraceMetricsHeatmapQuery(
     selection: pageFilters,
     query: query?.conditions ?? '',
     interval: widgetInterval,
+    sampling: samplingMode,
     yBuckets,
   });
 

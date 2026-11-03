@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
@@ -10,6 +10,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
@@ -49,7 +50,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.cache import cache
 
@@ -179,7 +180,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
         assert result is False
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_false_when_no_budget_available(self, mock_has_budget):
+    def test_returns_false_when_no_budget_available(self, mock_has_budget: MagicMock) -> None:
         """Test returns False when organization has no available budget for scanner."""
         self.project.update_option("sentry:seer_scanner_automation", True)
         mock_has_budget.return_value = False
@@ -192,7 +193,7 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
         )
 
     @patch("sentry.quotas.backend.check_seer_quota")
-    def test_returns_true_when_all_conditions_met(self, mock_has_budget):
+    def test_returns_true_when_all_conditions_met(self, mock_has_budget: MagicMock) -> None:
         """Test returns True when all eligibility conditions are met."""
         self.project.update_option("sentry:seer_scanner_automation", True)
 
@@ -208,8 +209,8 @@ class TestIsIssueEligibleForSeerAutomation(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota")
     def test_returns_true_when_issue_type_always_triggers(
         self,
-        mock_has_budget,
-    ):
+        mock_has_budget: MagicMock,
+    ) -> None:
         """Test returns True when issue type has always_trigger_seer_automation even if scanner automation is disabled."""
         # Disable scanner automation
         self.project.update_option("sentry:seer_scanner_automation", False)
@@ -230,15 +231,15 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         super().setUp()
         self.organization = self.create_organization(name="test-org")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         cache.delete(f"seer:seat-based-tier:{self.organization.id}")
 
     @patch("sentry.seer.autofix.utils.features.has")
-    def test_returns_true_when_seat_based_seer_enabled(self, mock_features_has):
+    def test_returns_true_when_seat_based_seer_enabled(self, mock_features_has: MagicMock) -> None:
         """Test returns True when seat-based-seer-enabled feature flag is enabled and caches the result."""
 
-        def features_side_effect(flag, org):
+        def features_side_effect(flag: str, org: Organization) -> bool:
             if flag == "organizations:seat-based-seer-enabled":
                 return True
             return False
@@ -271,8 +272,10 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         assert result is True
 
 
-class HasProjectConnectedReposTestMixin(BaseTestCase):
+class HasProjectConnectedReposBaseTest(TestCase):
     """Test the has_project_connected_repos function."""
+
+    __test__ = False
 
     def setUp(self) -> None:
         self.organization = self.create_organization()
@@ -281,7 +284,7 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
             organization=self.organization, provider="github", external_id="github:1"
         )
 
-    def test_returns_true_when_repos_exist(self):
+    def test_returns_true_when_repos_exist(self) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -293,10 +296,10 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
-    def test_returns_false_when_no_repos(self):
+    def test_returns_false_when_no_repos(self) -> None:
         assert has_project_connected_repos(self.organization, self.project) is False
 
-    def test_returns_false_when_only_inactive_repos(self):
+    def test_returns_false_when_only_inactive_repos(self) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -310,7 +313,7 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
 
         assert has_project_connected_repos(self.organization, self.project) is False
 
-    def test_returns_true_when_at_least_one_active_repo(self):
+    def test_returns_true_when_at_least_one_active_repo(self) -> None:
         disabled_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -332,7 +335,7 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
 
         assert has_project_connected_repos(self.organization, self.project) is True
 
-    def test_returns_true_via_project_repository_fk(self):
+    def test_returns_true_via_project_repository_fk(self) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -348,7 +351,9 @@ class HasProjectConnectedReposTestMixin(BaseTestCase):
         assert has_project_connected_repos(self.organization, self.project) is True
 
 
-class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
     def test_returns_false_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -368,7 +373,9 @@ class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposTestM
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposTestMixin, TestCase):
+class TestHasProjectConnectedReposTokenBasedBilling(HasProjectConnectedReposBaseTest):
+    __test__ = True
+
     def test_returns_true_when_repo_has_no_seer_config(self) -> None:
         repo = self.create_repo(
             project=self.project,
@@ -961,8 +968,10 @@ class TestGetTokenBasedBillingProjectRepos(TestCase):
         )
 
 
-class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
-    def setUp(self):
+class ReadPreferenceFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.integration = self.create_integration(
@@ -983,7 +992,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
             name="test-org/other-repo",
         )
 
-    def test_unconfigured_project_returns_default_preference(self):
+    def test_unconfigured_project_returns_default_preference(self) -> None:
         result = read_preference_from_sentry_db(self.project)
         assert result is not None
         assert result.repositories == []
@@ -991,7 +1000,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.automation_handoff is None
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_project_with_repos_only(self):
+    def test_project_with_repos_only(self) -> None:
         spr = self.create_seer_project_repository(
             project=self.project,
             repository=self.repo,
@@ -1030,7 +1039,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.automated_run_stopping_point == "code_changes"
         assert result.automation_handoff is None
 
-    def test_reads_via_project_repository_fk(self):
+    def test_reads_via_project_repository_fk(self) -> None:
         pr = ProjectRepository.objects.create(project=self.project, repository=self.repo)
         SeerProjectRepository.objects.create(
             project_repository=pr,
@@ -1041,7 +1050,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].branch_name == "main"
 
-    def test_autofix_automation_tuning_default(self):
+    def test_autofix_automation_tuning_default(self) -> None:
         self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
@@ -1050,7 +1059,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result is not None
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_autofix_automation_tuning_explicit(self):
+    def test_autofix_automation_tuning_explicit(self) -> None:
         self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
@@ -1062,7 +1071,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result is not None
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.MEDIUM
 
-    def test_autofix_automation_tuning_alone_creates_preference(self):
+    def test_autofix_automation_tuning_alone_creates_preference(self) -> None:
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH
         )
@@ -1072,7 +1081,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.autofix_automation_tuning == AutofixAutomationTuningSettings.HIGH
         assert result.repositories == []
 
-    def test_project_with_stopping_point_only(self):
+    def test_project_with_stopping_point_only(self) -> None:
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 
         result = read_preference_from_sentry_db(self.project)
@@ -1081,7 +1090,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.repositories == []
         assert result.automation_handoff is None
 
-    def test_project_with_handoff_only(self):
+    def test_project_with_handoff_only(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -1097,7 +1106,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.automation_handoff.integration_id == 42
         assert result.automation_handoff.auto_create_pr is True
 
-    def test_project_with_repos_and_options(self):
+    def test_project_with_repos_and_options(self) -> None:
         self.create_seer_project_repository(
             project=self.project,
             repository=self.repo,
@@ -1125,7 +1134,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.automation_handoff.integration_id == 42
         assert result.automation_handoff.auto_create_pr is False
 
-    def test_excludes_other_projects_data(self):
+    def test_excludes_other_projects_data(self) -> None:
         other_project = self.create_project(organization=self.organization)
         other_repo = self.create_repo(
             project=other_project,
@@ -1150,14 +1159,14 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.repositories[0].name == "test-repo"
         assert result.automated_run_stopping_point == "root_cause"
 
-    def test_partial_handoff_returns_none_handoff(self):
+    def test_partial_handoff_returns_none_handoff(self) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
 
         result = read_preference_from_sentry_db(self.project)
         assert result is not None
         assert result.automation_handoff is None
 
-    def test_excludes_invalid_repo_names(self):
+    def test_excludes_invalid_repo_names(self) -> None:
         bad_repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -1177,7 +1186,7 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "test-repo"
 
-    def test_excludes_inactive_repos(self):
+    def test_excludes_inactive_repos(self) -> None:
         self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
         )
@@ -1194,7 +1203,9 @@ class ReadPreferenceFromSentryDbTestMixin(BaseTestCase):
         assert result.repositories[0].name == "test-repo"
 
 
-class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbTestMixin, TestCase):
+class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project, repository=self.repo)
 
@@ -1208,9 +1219,9 @@ class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbT
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestReadPreferenceFromSentryDbTokenBasedBilling(
-    ReadPreferenceFromSentryDbTestMixin, TestCase
-):
+class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDbBaseTest):
+    __test__ = True
+
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
 
     def test_includes_repos_without_seer_config(self) -> None:
@@ -1224,8 +1235,10 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(
         assert result.repositories[0].branch_overrides == []
 
 
-class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
-    def setUp(self):
+class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
+    __test__ = False
+
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project1 = self.create_project(organization=self.organization)
         self.project2 = self.create_project(organization=self.organization)
@@ -1248,11 +1261,11 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
             name="test-org/other-repo",
         )
 
-    def test_empty_project_ids_returns_empty(self):
+    def test_empty_project_ids_returns_empty(self) -> None:
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [])
         assert result == {}
 
-    def test_unconfigured_project_returns_default_preference(self):
+    def test_unconfigured_project_returns_default_preference(self) -> None:
         result = bulk_read_preferences_from_sentry_db(self.organization.id, [self.project1.id])
         pref = result[self.project1.id]
         assert pref is not None
@@ -1261,7 +1274,7 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert pref.automation_handoff is None
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_returns_correct_preferences(self):
+    def test_returns_correct_preferences(self) -> None:
         self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1297,7 +1310,7 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert pref2.automation_handoff.integration_id == 99
         assert pref2.automation_handoff.auto_create_pr is False
 
-    def test_autofix_automation_tuning_populated(self):
+    def test_autofix_automation_tuning_populated(self) -> None:
         self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1317,7 +1330,7 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert pref2 is not None
         assert pref2.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_autofix_automation_tuning_defaults_to_off(self):
+    def test_autofix_automation_tuning_defaults_to_off(self) -> None:
         self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1328,7 +1341,7 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert pref is not None
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
 
-    def test_wrong_organization_excluded(self):
+    def test_wrong_organization_excluded(self) -> None:
         other_org = self.create_organization()
         self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
@@ -1337,7 +1350,7 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         result = bulk_read_preferences_from_sentry_db(other_org.id, [self.project1.id])
         assert result == {}
 
-    def test_excludes_inactive_repos(self):
+    def test_excludes_inactive_repos(self) -> None:
         self.create_seer_project_repository(
             project=self.project1, repository=self.repo, branch_name="main"
         )
@@ -1368,9 +1381,9 @@ class BulkReadPreferencesFromSentryDbTestMixin(BaseTestCase):
         assert len(result[self.project2.id].repositories) == 0
 
 
-class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
-    BulkReadPreferencesFromSentryDbTestMixin, TestCase
-):
+class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
     def test_excludes_repos_without_seer_config(self) -> None:
         self.create_project_repository(project=self.project1, repository=self.repo)
 
@@ -1384,9 +1397,9 @@ class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(
         "organizations:token-billed-seer-enabled": True,
     }
 )
-class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
-    BulkReadPreferencesFromSentryDbTestMixin, TestCase
-):
+class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFromSentryDbBaseTest):
+    __test__ = True
+
     """Runs the tests above under token-based billing, plus token-based billing only cases."""
 
     def test_includes_repos_without_seer_config(self) -> None:
@@ -1399,12 +1412,12 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
         assert stopping_point == "code_changes"
         assert handoff is None
 
-    def test_respects_org_stopping_point_option(self):
+    def test_respects_org_stopping_point_option(self) -> None:
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
         self.organization.update_option("sentry:auto_open_prs", True)
 
@@ -1412,7 +1425,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    def test_seer_agent_auto_open_prs_forces_open_pr(self):
+    def test_seer_agent_auto_open_prs_forces_open_pr(self) -> None:
         self.organization.update_option(
             "sentry:default_automated_run_stopping_point", "code_changes"
         )
@@ -1422,14 +1435,14 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    def test_seer_agent_no_auto_open_prs_caps_open_pr_to_code_changes(self):
+    def test_seer_agent_no_auto_open_prs_caps_open_pr_to_code_changes(self) -> None:
         self.organization.update_option("sentry:default_automated_run_stopping_point", "open_pr")
 
         stopping_point, handoff = get_org_default_seer_automation_handoff(self.organization)
         assert stopping_point == "code_changes"
         assert handoff is None
 
-    def test_external_agent_returns_handoff_config(self):
+    def test_external_agent_returns_handoff_config(self) -> None:
         self.organization.update_option(
             "sentry:seer_default_coding_agent", "cursor_background_agent"
         )
@@ -1443,7 +1456,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert handoff.integration_id == 42
         assert handoff.auto_create_pr is False
 
-    def test_external_agent_auto_open_prs_sets_auto_create_pr(self):
+    def test_external_agent_auto_open_prs_sets_auto_create_pr(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent", "claude_code_agent")
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 99)
         self.organization.update_option("sentry:auto_open_prs", True)
@@ -1452,7 +1465,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert handoff is not None
         assert handoff.auto_create_pr is True
 
-    def test_external_agent_auto_open_prs_does_not_override_stopping_point(self):
+    def test_external_agent_auto_open_prs_does_not_override_stopping_point(self) -> None:
         self.organization.update_option(
             "sentry:default_automated_run_stopping_point", "code_changes"
         )
@@ -1466,7 +1479,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "code_changes"
         assert handoff is not None
 
-    def test_external_agent_without_integration_id_falls_back_to_seer(self):
+    def test_external_agent_without_integration_id_falls_back_to_seer(self) -> None:
         self.organization.update_option(
             "sentry:seer_default_coding_agent", "cursor_background_agent"
         )
@@ -1476,7 +1489,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    def test_seer_coding_agent_treated_as_no_external_agent(self):
+    def test_seer_coding_agent_treated_as_no_external_agent(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent", "seer")
         self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 42)
         self.organization.update_option("sentry:auto_open_prs", True)
@@ -1485,7 +1498,7 @@ class TestGetOrgDefaultSeerAutomationHandoff(TestCase):
         assert stopping_point == "open_pr"
         assert handoff is None
 
-    def test_invalid_stopping_point_falls_back_to_default(self):
+    def test_invalid_stopping_point_falls_back_to_default(self) -> None:
         self.organization.update_option(
             "sentry:default_automated_run_stopping_point", "invalid_point"
         )
@@ -1765,7 +1778,7 @@ class TestAddSeerProjectRepos(TestCase):
             external_id="222",
         )
 
-    def test_creates_project_repos(self):
+    def test_creates_project_repos(self) -> None:
         add_seer_project_repos(
             self.project,
             [
@@ -1783,7 +1796,7 @@ class TestAddSeerProjectRepos(TestCase):
         )
         assert pr2.branch_name is None
 
-    def test_creates_branch_overrides(self):
+    def test_creates_branch_overrides(self) -> None:
         add_seer_project_repos(
             self.project,
             [
@@ -1804,7 +1817,7 @@ class TestAddSeerProjectRepos(TestCase):
         assert overrides[0].tag_value == "prod"
         assert overrides[0].branch_name == "release"
 
-    def test_upserts_existing_repo(self):
+    def test_upserts_existing_repo(self) -> None:
         existing = self.create_seer_project_repository(
             self.project, repository=self.repo1, branch_name="old"
         )
@@ -1842,7 +1855,7 @@ class TestAddSeerProjectRepos(TestCase):
         assert overrides[0].tag_value == "prod"
         assert overrides[0].branch_name == "release"
 
-    def test_returns_created_ids(self):
+    def test_returns_created_ids(self) -> None:
         created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])
         assert created_ids == list(
             SeerProjectRepository.objects.filter(
@@ -1868,7 +1881,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
             external_id="222",
         )
 
-    def test_replaces_existing_repos(self):
+    def test_replaces_existing_repos(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 
         replace_all_seer_project_repos(
@@ -1886,7 +1899,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
         )
         assert pr2.branch_name == "develop"
 
-    def test_clears_all_when_empty(self):
+    def test_clears_all_when_empty(self) -> None:
         project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -1904,7 +1917,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
             seer_project_repository=project_repo
         ).exists()
 
-    def test_creates_branch_overrides(self):
+    def test_creates_branch_overrides(self) -> None:
         replace_all_seer_project_repos(
             self.project,
             [
@@ -1921,7 +1934,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
         )
         assert project_repo.branch_overrides.count() == 1
 
-    def test_clears_old_branch_overrides(self):
+    def test_clears_old_branch_overrides(self) -> None:
         project_repo = self.create_seer_project_repository(self.project, repository=self.repo1)
         SeerProjectRepositoryBranchOverride.objects.create(
             seer_project_repository=project_repo,
@@ -1937,7 +1950,7 @@ class TestReplaceAllSeerProjectRepos(TestCase):
         )
         assert project_repo.branch_overrides.count() == 0
 
-    def test_preserves_inactive_repos(self):
+    def test_preserves_inactive_repos(self) -> None:
         inactive_repo = self.create_repo(
             project=self.project,
             name="getsentry/inactive",
