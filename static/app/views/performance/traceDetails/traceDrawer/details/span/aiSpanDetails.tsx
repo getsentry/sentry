@@ -6,7 +6,6 @@ import {
   ConversationSpanDetail,
   type DetailTab,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {getGenAiOpType} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useAvgSpanDuration} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
@@ -17,13 +16,22 @@ interface AiSpanDetailsProps {
   traceId: string;
 }
 
+export function AiSpanNodeDetails({
+  node,
+  operationType,
+  traceId,
+}: AiSpanDetailsProps & {operationType: string}) {
+  const organization = useOrganization();
+  useEffect(() => {
+    traceAnalytics.trackGenAISpanDetailsViewed(organization, operationType);
+  }, [operationType, organization]);
+
+  return <AiSpanDetails node={node} traceId={traceId} />;
+}
+
 export function AiSpanDetails({node, traceId}: AiSpanDetailsProps) {
   const location = useLocation();
-  const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<DetailTab>('input');
-  useEffect(() => {
-    traceAnalytics.trackGenAISpanDetailsViewed(organization, getGenAiOpType(node)!);
-  }, [node, organization]);
 
   const eapSpan = isEAPSpanNode(node) ? node.value : undefined;
   const avgSpanDuration = useAvgSpanDuration(eapSpan, location);

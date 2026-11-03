@@ -6,6 +6,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ConversationSpanDetail} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
@@ -74,26 +75,49 @@ describe('Result Size highlighted attribute', () => {
     mockAttributes(true, 'other-tool-span');
     mockAverage();
     const node = toolNode();
-    const {rerender} = render(<AiSpanDetails node={node} traceId="trace-id" />, {
-      organization,
-    });
+    const onTabScrollToNode = jest.fn();
+    const {rerender} = render(
+      <TraceTreeNodeDetails
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        traceId="trace-id"
+      />,
+      {organization}
+    );
     expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
     expect(trackViewed).toHaveBeenCalledTimes(1);
     expect(trackViewed).toHaveBeenCalledWith(organization, 'tool');
 
-    rerender(<AiSpanDetails node={node} traceId="trace-id" />);
+    rerender(
+      <TraceTreeNodeDetails
+        node={node}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        traceId="trace-id"
+      />
+    );
     expect(trackViewed).toHaveBeenCalledTimes(1);
 
-    rerender(<AiSpanDetails node={toolNode('other-tool-span')} traceId="trace-id" />);
+    rerender(
+      <TraceTreeNodeDetails
+        node={toolNode('other-tool-span')}
+        organization={organization}
+        onTabScrollToNode={onTabScrollToNode}
+        traceId="trace-id"
+      />
+    );
     expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
     expect(trackViewed).toHaveBeenCalledTimes(2);
   });
 
-  it('compares size in trace details using a project-scoped tool average', async () => {
+  it('compares size in the shared AI panel without tracking a waterfall view', async () => {
+    const trackViewed = jest.spyOn(traceAnalytics, 'trackGenAISpanDetailsViewed');
     mockAttributes();
     const request = mockAverage();
     render(<AiSpanDetails node={toolNode()} traceId="trace-id" />, {organization});
     expect(await screen.findByText('300% larger than avg 1 kB')).toBeInTheDocument();
+    expect(trackViewed).not.toHaveBeenCalled();
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
