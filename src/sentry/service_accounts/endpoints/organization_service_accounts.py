@@ -302,19 +302,15 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             _check_can_grant_all_projects(request)
 
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
-                service_account = ServiceAccount.objects.create(
-                    organization_id=organization.id,
-                    name=data["name"],
-                    scope_list=data["scopes"],
-                    is_active=data.get("isActive", True),
-                    all_projects=all_projects,
-                    created_by_id=request.user.id,
-                )
-                ServiceAccountProject.objects.bulk_create(
-                    ServiceAccountProject(service_account=service_account, project_id=project_id)
-                    for project_id in data.get("projectIds") or ()
-                )
+            service_account = ServiceAccount.create_with_projects(
+                organization_id=organization.id,
+                name=data["name"],
+                scope_list=data["scopes"],
+                project_ids=data.get("projectIds") or (),
+                all_projects=all_projects,
+                created_by_id=request.user.id,
+                is_active=data.get("isActive", True),
+            )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)

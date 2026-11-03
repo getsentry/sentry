@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.service_accounts.services.service_account.model import RpcServiceAccount
 from sentry.service_accounts.services.service_account.serial import serialize_service_account
@@ -59,15 +60,24 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         all_projects: bool,
         created_by_id: int | None,
     ) -> RpcServiceAccount:
-        with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
-            service_account = ServiceAccount.objects.create(
+        try:
+            service_account = ServiceAccount.create_with_projects(
                 organization_id=organization_id,
                 name=name,
                 scope_list=scope_list,
+                project_ids=project_ids,
                 all_projects=all_projects,
                 created_by_id=created_by_id,
             )
-            service_account.replace_projects([] if all_projects else project_ids)
+        except IntegrityError as e:
+            if "service_accounts_serviceaccount_org_name_unique" in str(e):
+                raise RpcValidationException(
+                    detail=f"A service account named '{name}' already exists.",
+                    code="duplicate_name",
+                    service_name="service_account",
+                    method_name="create_service_account",
+                ) from e
+            raise
         return serialize_service_account(service_account, [] if all_projects else project_ids)
 
     def update_service_account(

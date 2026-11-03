@@ -6,7 +6,7 @@ from typing import ClassVar, Self
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -19,7 +19,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.models.outbox import ControlOutboxBase
+from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.base import (
     ControlOutboxProducingManager,
     ControlOutboxProducingModel,
@@ -103,6 +103,38 @@ class ServiceAccount(ReplicatedControlModel):
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         return service_account_outboxes(self.id, self.organization_id, shard_identifier)
+
+    @classmethod
+    def create_with_projects(
+        cls,
+        *,
+        organization_id: int,
+        name: str,
+        scope_list: list[str],
+        project_ids: Iterable[int],
+        all_projects: bool,
+        created_by_id: int | None,
+        is_active: bool = True,
+    ) -> ServiceAccount:
+        """
+        Raises `IntegrityError` when `name` is taken in the org. Callers must authorize the
+        grant and write the audit log.
+        """
+        with outbox_context(transaction.atomic(using=router.db_for_write(cls))):
+            service_account = cls.objects.create(
+                organization_id=organization_id,
+                name=name,
+                scope_list=scope_list,
+                is_active=is_active,
+                all_projects=all_projects,
+                created_by_id=created_by_id,
+            )
+            if not all_projects:
+                ServiceAccountProject.objects.bulk_create(
+                    ServiceAccountProject(service_account=service_account, project_id=project_id)
+                    for project_id in set(project_ids)
+                )
+        return service_account
 
     def replace_projects(self, project_ids: Iterable[int]) -> None:
         project_ids = set(project_ids)

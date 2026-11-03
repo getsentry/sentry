@@ -1,3 +1,6 @@
+import pytest
+
+from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
@@ -67,6 +70,22 @@ class ServiceAccountServiceTest(TestCase):
 
         assert account.all_projects
         assert account.project_ids == self.project_ids(account.id) == []
+
+    def test_create_duplicate_name_raises_validation_error(self) -> None:
+        self.create()
+
+        with pytest.raises(RpcValidationException):
+            service_account_service.create_service_account(
+                organization_id=self.organization.id,
+                name="seer-agent",
+                scope_list=["event:read"],
+                project_ids=[],
+                all_projects=False,
+                created_by_id=None,
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
 
     def test_update_service_account_replaces_scopes_and_projects(self) -> None:
         account_id = self.create()
