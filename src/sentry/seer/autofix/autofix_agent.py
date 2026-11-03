@@ -543,6 +543,8 @@ def trigger_autofix_agent(
             },
         )
 
+        # TEMPORARY: single runs skip "started" notices until they send completion notices too;
+        # otherwise the issue would look stuck in progress. Remove with AIML-3809.
         if not SeerAgentRun.objects.filter(run=feature_run, source=SINGLE_RUN_FEATURE_ID).exists():
             _handle_step_started_events(
                 group,
