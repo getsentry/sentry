@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.project import Project
@@ -62,5 +62,5 @@ class MonitorCheckInMixin(BaseEndpointMixin):
                     project_id=project.id,
                 ),
             ),
-            paginator_cls=OffsetPaginator,
+            paginator_cls=DateTimePaginator,
         )
