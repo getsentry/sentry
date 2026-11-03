@@ -123,7 +123,7 @@ class TestGrantExchanger(TestCase):
         assert e.value.webhook_context == {"installation_uuid": self.install.uuid}
         assert e.value.__cause__ is outbox_error
 
-        # Assert taht the token wasn't minted, so the grant is still exchangeable.
+        # Assert that the token wasn't minted, so the grant is still exchangeable.
         assert ApiGrant.objects.filter(id=self.grant.id).exists()
         assert not ApiToken.objects.filter(application=self.grant.application).exists()
 
