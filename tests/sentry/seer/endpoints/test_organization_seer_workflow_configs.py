@@ -77,6 +77,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "schedule": "daily",
             "version": 4,
             "projects": [project.id],
+            "monitorIds": [],
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
@@ -246,6 +247,53 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def test_breached_metric_lists_connected_monitors_and_their_projects(self) -> None:
+        first_project, second_project = self.create_project(), self.create_project()
+        monitors = [
+            self.create_detector(project=first_project, type=MetricIssue.slug),
+            self.create_detector(project=first_project, type=MetricIssue.slug),
+            self.create_detector(project=second_project, type=MetricIssue.slug),
+        ]
+        disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
+        metric = BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id, monitor_ids=[*(m.id for m in monitors), disabled.id]
+        )
+        disabled.update(status=ObjectStatus.DISABLED)
+        triage = self.create_config()
+
+        response = self.get_success_response(self.organization.slug)
+
+        configs = {item["id"]: item for item in response.data["configs"]}
+        assert configs[str(metric.config_id)]["monitorIds"] == sorted(m.id for m in monitors)
+        assert configs[str(metric.config_id)]["projects"] == sorted(
+            [first_project.id, second_project.id]
+        )
+        assert configs[str(triage.id)]["monitorIds"] == []
+
+    def test_breached_metric_hides_monitors_in_inaccessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_detector(
+            project=self.create_project(teams=[team]), type=MetricIssue.slug
+        )
+        hidden = self.create_detector(
+            project=self.create_project(teams=[self.create_team(organization=self.organization)]),
+            type=MetricIssue.slug,
+        )
+        BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id, monitor_ids=[accessible.id, hidden.id]
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data["configs"]) == 1
+        assert response.data["configs"][0]["monitorIds"] == [accessible.id]
+        assert response.data["configs"][0]["projects"] == [accessible.project_id]
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
@@ -504,6 +552,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.data["version"] == version + 1
         assert self.connected_monitor_ids(workflow) == {kept.id, added.id}
+        assert response.data["monitorIds"] == sorted([kept.id, added.id])
+        assert response.data["projects"] == sorted([kept.project_id, added.project_id])
 
     def test_put_monitor_ids_on_non_metric_config_returns_400(self) -> None:
         config = self.create_config()
@@ -659,6 +709,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "schedule": "daily",
             "version": 1,
             "projects": [],
+            "monitorIds": [],
             "environments": [],
             "filters": {},
             "outputPolicy": {},
@@ -835,6 +886,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == {monitor.id for monitor in monitors}
+        assert response.data["monitorIds"] == sorted(monitor.id for monitor in monitors)
+        assert response.data["projects"] == sorted(monitor.project_id for monitor in monitors)
 
     def test_breached_metric_creates_without_monitors(self) -> None:
         response = self.get_success_response(
@@ -844,6 +897,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.backing_workflow_id is None
+        assert response.data["monitorIds"] == []
+        assert response.data["projects"] == []
 
     def test_breached_metric_rejects_project_ids_and_schedule(self) -> None:
         response = self.get_error_response(
