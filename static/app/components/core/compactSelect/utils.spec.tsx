@@ -17,4 +17,12 @@ describe('getMenuWidthForLabels', () => {
   it('caps the width at the maximum', () => {
     expect(getMenuWidthForLabels(['a'.repeat(100)])).toBe('28em');
   });
+
+  it('accepts custom bounds and extra width', () => {
+    const options = {minWidth: 16, maxWidth: 24, extraWidth: 6};
+    expect(getMenuWidthForLabels([], options)).toBe('16em');
+    // 20 * 0.6 + 6 = 18
+    expect(getMenuWidthForLabels(['a'.repeat(20)], options)).toBe('18em');
+    expect(getMenuWidthForLabels(['a'.repeat(100)], options)).toBe('24em');
+  });
 });

@@ -1,4 +1,4 @@
-import {cloneElement, Fragment} from 'react';
+import {cloneElement, Fragment, useMemo} from 'react';
 import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
@@ -109,7 +109,10 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
-  const menuWidth = getMenuWidthForLabels(projects.map(project => project.slug));
+  const menuWidth = useMemo(
+    () => getMenuWidthForLabels(projects.map(project => project.slug)),
+    [projects]
+  );
 
   return (
     <Container width="100%">

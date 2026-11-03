@@ -3,7 +3,11 @@ import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 
-import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {
+  CompactSelect,
+  getMenuWidthForLabels,
+  MenuComponents,
+} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -181,22 +185,15 @@ export function EnvironmentPageFilter({
     [environments]
   );
 
-  const defaultMenuWidth = useMemo(() => {
-    // EnvironmentPageFilter will try to expand to accommodate the longest env slug
-    const longestSlugLength = options
-      .slice(0, 25)
-      .reduce(
-        (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-        0
-      );
-
-    // Calculate an appropriate width for the menu. It should be between 16 and 24em.
-    // Within that range, the width is a function of the length of the longest slug.
-    // The environment slugs take up to (longestSlugLength * 0.6)em of horizontal space
-    // (each character occupies roughly 0.6em). We also need to add 6em to account for
-    // the checkbox and menu paddings.
-    return `${Math.max(16, Math.min(24, longestSlugLength * 0.6 + 6))}em`;
-  }, [options]);
+  // EnvironmentPageFilter will try to expand to accommodate the longest env slug.
+  const defaultMenuWidth = useMemo(
+    () =>
+      getMenuWidthForLabels(
+        options.slice(0, 25).map(option => String(option.label)),
+        {minWidth: 16, maxWidth: 24, extraWidth: 6}
+      ),
+    [options]
+  );
 
   const stagedSelect = useStagedCompactSelect({
     value,
