@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -12,17 +11,14 @@ from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
-from sentry.auth.principal import is_owned_by_acting_user, require_user
+from sentry.auth.principal import RequestPrincipal, is_owned_by_acting_user, require_user
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
-from sentry.users.models.user import User
 
 
-def get_homepage_query(
-    organization: Organization, user: User | AnonymousUser
-) -> DiscoverSavedQuery:
+def get_homepage_query(organization: Organization, user: RequestPrincipal) -> DiscoverSavedQuery:
     return DiscoverSavedQuery.objects.get(
         is_owned_by_acting_user(user, "created_by_id"), organization=organization, is_homepage=True
     )

@@ -58,11 +58,11 @@ def sudo_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
 def primary_email_verification_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
     @wraps(func)
     def wrapped(self: T, request: Request, *args: P.args, **kwargs: P.kwargs) -> HttpResponseBase:
-        if (
-            isinstance(request.user, AnonymousUser)
-            or not require_user(request).has_verified_primary_email()
-        ):
+        if isinstance(request.user, AnonymousUser):
             raise PrimaryEmailVerificationRequired(request.user)
+        user = require_user(request)
+        if not user.has_verified_primary_email():
+            raise PrimaryEmailVerificationRequired(user)
         return func(self, request, *args, **kwargs)
 
     return cast("_RFMethod[T, P]", wrapped)
