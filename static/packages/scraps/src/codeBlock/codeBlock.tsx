@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,11 +8,12 @@ import Prism from 'prismjs';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {darkTheme} from '@sentry/scraps/theme';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {getPrismLanguage, loadPrismLanguage} from './prism';
+import {codeBlockStyles} from './styles';
 
-interface CodeBlockProps {
+export interface CodeBlockProps {
   children: string;
   /**
    * Keeps the copy button visible when it floats over the code snippet.
@@ -110,7 +112,7 @@ export function CodeBlock({
   useEffect(() => {
     async function loadLineHighlight() {
       // oxlint-disable-next-line react/todo
-      await import('prismjs/plugins/line-highlight/prism-line-highlight');
+      await import('prismjs/plugins/line-highlight/prism-line-highlight.js');
       setLineHighlightLoaded(true);
     }
 
@@ -244,6 +246,8 @@ const Wrapper = styled('div')<{
   wrapMode: 'scroll' | 'wrap';
   reserveCopyButtonSpace?: boolean;
 }>`
+  ${p => codeBlockStyles(p.theme)};
+
   position: relative;
   height: 100%;
   min-width: 0;

@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';

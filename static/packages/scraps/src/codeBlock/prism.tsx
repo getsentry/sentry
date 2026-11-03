@@ -1,5 +1,5 @@
 import Prism from 'prismjs';
-import prismComponents from 'prismjs/components';
+import prismComponents from 'prismjs/components.js';
 
 type PrismLanguageDefinition = {
   alias?: string | string[];
@@ -98,6 +98,33 @@ export const getPrismLanguage = (lang: string) => {
   return PRISM_LANGUAGE_MAP[aliased ?? language];
 };
 
+// Grammars attach themselves to Prism's shared registry. Load dependencies first
+// and share in-flight imports when several snippets request the same language.
+const pendingGrammars = new Map<string, Promise<void>>();
+
+function loadGrammar(language: string): Promise<void> {
+  if (Prism.languages[language]) {
+    return Promise.resolve();
+  }
+
+  const pending = pendingGrammars.get(language);
+  if (pending) {
+    return pending;
+  }
+
+  const load = async () => {
+    const required = prismLanguages[language]?.require;
+    const dependencies = Array.isArray(required) ? required : required ? [required] : [];
+    for (const dependency of dependencies) {
+      await loadGrammar(dependency);
+    }
+    await import(`prismjs/components/prism-${language}.min.js`);
+  };
+  const promise = load().finally(() => pendingGrammars.delete(language));
+  pendingGrammars.set(language, promise);
+  return promise;
+}
+
 /**
  * Loads the specified Prism language (aliases like `js` for `javascript` also work).
  * Will log a warning if a) the language doesn't exist (unless `suppressExistenceWarning`
@@ -110,7 +137,7 @@ export async function loadPrismLanguage(
     onLoad,
     suppressExistenceWarning,
   }: {
-    onError?: (error: any) => void;
+    onError?: (error: unknown) => void;
     onLoad?: () => void;
     suppressExistenceWarning?: boolean;
   }
@@ -137,21 +164,7 @@ export async function loadPrismLanguage(
       return;
     }
 
-    // Check for dependencies (e.g. `php` requires `markup-templating`) & download them
-    const deps = prismLanguages[language]?.require;
-    const depsArray = Array.isArray(deps) ? deps : [deps];
-    await Promise.all(
-      depsArray.map(dep => {
-        if (!dep) {
-          return Promise.resolve();
-        }
-
-        return import(`prismjs/components/prism-${dep}.min`);
-      })
-    );
-
-    // Download language grammar file
-    await import(`prismjs/components/prism-${language}.min`);
+    await loadGrammar(language);
 
     onLoad?.();
   } catch (error) {
