@@ -5,8 +5,8 @@
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
 - **Baseline revision:** `1cd41fc29e1` (`origin/master`, 2026-11-03).
 - **Remaining (sweep counter):** cast 1204, Any 3357, type-ignore 13, fixed-name-reflection 79.
-- **Accepted:** none. **Red:** none. **Parked:** none.
-- **Next:** G1, then C1 (the pilot).
+- **Accepted:** C1 (draft #129702). **Red:** none. **Parked:** none.
+- **Next:** G1, then B1.
 
 The executor rewrites this block in place after every accepted slice. The **Ledger** at the end records each item's PR and disposition.
 
@@ -44,7 +44,7 @@ The audit's original rule banned `Any` outright. That is too strict for a Django
 | `@no_type_check`, blanket `__getattr__` in stubs, weaker mypy settings | Banned.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Fixed-name `getattr`/`setattr`                                         | Banned as a way around a known attribute's type. Allowed only where the attribute really is dynamic (for example a `getattr(obj, name, default)` probe across heterogeneous objects).                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `assert x is not None`                                                 | Only for an internal invariant that is already established, and only where it preserves existing behavior. Never on a value the model, field, or API allows to be `None`. The counter reports new asserts in `src/` as `note`, and the PR body justifies each one.                                                                                                                                                                                                                                                                                                                                                           |
-| `TypeGuard`/`TypeIs`                                                   | `TypeIs` only when the function classifies both branches correctly. `TypeGuard` only for a real positive refinement that checks the full promised shape: keys and element types. Each new guard gets a false-branch test. A content predicate such as `check_if_results_have_data` stays `-> bool`.                                                                                                                                                                                                                                                                                                                          |
+| `TypeGuard`/`TypeIs`                                                   | `TypeIs` only when the function classifies both branches correctly. `TypeGuard` only for a real positive refinement that checks the full promised shape: keys and element types. Each new guard gets a false-branch test (**Test policy**). A content predicate such as `check_if_results_have_data` stays `-> bool`.                                                                                                                                                                                                                                                                                                        |
 
 Every `FAIL` line from the counter's `diff` mode must appear in the PR body under **Escape hatches kept**, with its category (E1/E2/E3, or the stated invariant for a cast). An unlisted `FAIL` blocks the push.
 
@@ -57,6 +57,27 @@ Every `FAIL` line from the counter's `diff` mode must appear in the PR body unde
 - **Preserve runtime semantics:** coercions, error types, mutation, and aliasing. Never turn `None` into `""`, `0`, `{}`, `"None"`, or a fake timestamp to satisfy a type. Copying a mapping counts as a behavior change.
 - **Overrides stay substitutable.** When a subclass's real contract is incompatible with its base (for example a nullable `DecimalField`), change the class design (compose, or subclass the generic `Field[...]` with honest parameters). Don't suppress the override error.
 - **JSON values:** if a boundary needs a JSON type, define one `type JSONValue = ...` recursive alias in `src/sentry/utils/json.py` the first time it is needed. Note that PR in the Ledger so later items reuse it.
+
+### Test policy (owner, 2026-11-03)
+
+Full-tree mypy is the proof of a typing change. Add a runtime test only when it checks something mypy cannot. Most pure contract repairs need no new test.
+
+- **Add a test when:**
+  - the repair relies on a runtime fact the types don't show, such as DRF call order, Django field behavior, or a dependency's actual return value (C1's test checks that blank input still becomes `None` through a real serializer);
+  - the PR changes behavior (the test must fail before the change);
+  - the PR adds a parser, `TypeGuard`, or `TypeIs` (test the false branch and one malformed input);
+  - a `None`/absent state now handled at runtime has no existing test (search the existing tests first).
+- **Don't add:**
+  - tests of dependency behavior (DRF parsing, `min_value`, `allow_null`, `required`);
+  - smoke or "returns without error" tests;
+  - an `assert_type` for every annotation;
+  - parametrized grids beyond the cases at risk;
+  - cases that duplicate existing coverage.
+- **Size:** the smallest test that fails when the fact breaks. That is usually one case per contract and well under the size of the code change. If tests outweigh the source diff, justify it or cut.
+- **Mutation check:** before committing, break the guarded line (for example, delete the branch), confirm the test fails, then revert. A test that still passes gets deleted.
+- **`assert_type`:** only where an `Any` receiver used to erase a precise type (C14, C15). There mypy alone would not notice the precise type decaying back to `Any`, and `assert_type` fails on `Any`.
+- **Negative type tests** that expect a mypy diagnostic use the `call_mypy` harness pattern from `tests/tools/mypy_helpers/test_plugin.py`, never an ignore.
+- **Location:** extend the test file that mirrors the source module (`tests/AGENTS.md`). Create one only when none exists.
 
 ### Delegated (executor decides within the bound, and states the choice in the PR body)
 
@@ -88,7 +109,7 @@ Every `FAIL` line from the counter's `diff` mode must appear in the PR body unde
 
 - **Pinned dependency versions:** sentry-relay 0.10.1, google-cloud-storage 2.18.0, selenium 4.16.0, djangorestframework 3.18.2, django-stubs 5.2.9, djangorestframework-stubs 3.16.8.
 - **Known red:** none in mypy. No full pytest run has been made, so treat any failure in a test file the PR doesn't touch as pre-existing until it reproduces on `origin/master`.
-- **Gotcha:** `.venv` is an editable install pointing at `/Users/josh/dev/sentry/src` (`easy-install.pth`). In a worktree, run pytest as `PYTHONPATH=$PWD/src /Users/josh/dev/sentry/.venv/bin/pytest ...`, and check once with `python -c 'import sentry; print(sentry.__file__)'`. Mypy reads the worktree's own files. Warm a new worktree's cache with `cp -cR /Users/josh/dev/sentry/.mypy_cache .` (APFS clone) before the first run.
+- **Gotcha:** `.venv` is an editable install pointing at `/Users/josh/dev/sentry/src` (`easy-install.pth`). In a worktree, prefix **both** pytest and mypy with `PYTHONPATH=$PWD/src` (the Django mypy plugin imports `sentry` at runtime), and check once with `python -c 'import sentry; print(sentry.__file__)'`. Never copy `.mypy_cache` from another checkout: a cache built on a different revision produced false errors in C1. A cold full mypy run takes 19 s wall. Create worktrees with `git -c core.hooksPath=/dev/null worktree add ...`; the repo's post-checkout hook otherwise starts devservices and runs migrations.
 
 ## Sequence
 
@@ -111,7 +132,7 @@ Branches are named `josh/typing-contracts/<id>-<slug>`. Line numbers were verifi
 
 | ID         | Files                                                                                                                                                                                                                                                                                                  | Wrong today                                                                                                                                                                  | Repair                                                                                                                                                                                                                           |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1 (pilot) | `src/sentry/api/fields/empty_decimal.py:17`, `empty_integer.py:16`, their users                                                                                                                                                                                                                        | Blank input returns `cast(Decimal/int, None)`.                                                                                                                               | Give the field a nullable conversion type through an honest `Field[...]` parameterization or composition; no override suppression. Callers see `Decimal \| None`.                                                                |
+| C1 (pilot) | `src/sentry/api/fields/empty_decimal.py`, `empty_integer.py`, `src/sentry/monitors/validators.py` (`MissedMarginField`)                                                                                                                                                                                | Blank input returns `cast(Decimal/int, None)`.                                                                                                                               | Done in #129702: the cast branch was unreachable (`run_validation` maps `""` first), so the overrides were deleted.                                                                                                              |
 | C2         | `src/sentry/integrations/gitlab/issue_sync.py:322-350` + caller                                                                                                                                                                                                                                        | An invalid issue key returns `cast("IssuePayload", None)`.                                                                                                                   | Return `IssuePayload \| None` (or an explicit outcome) and handle it in the caller. Behavior stays the same.                                                                                                                     |
 | C3         | `src/sentry/integrations/jira/integration.py:1465`, `jira_server/integration.py:1323`, both clients' assign methods                                                                                                                                                                                    | Unassignment sends `None` disguised as `str`.                                                                                                                                | Make the assignee ID nullable through to the client payload type. Never `"None"` or `""`.                                                                                                                                        |
 | C4         | `src/sentry/api/base.py:795` (`StatsMixin._parse_args`)                                                                                                                                                                                                                                                | `environment_id and [environment_id]` produces `None`, cast to `list[int]`.                                                                                                  | Type the absent-filter state truthfully. Settle `None` vs `[]` per **Delegated**.                                                                                                                                                |
@@ -161,23 +182,21 @@ python3 -I .work/bin/escape_hatches.py diff origin/master          # every FAIL 
 ```
 
 - The target hatches for the item are gone: `escape_hatches.py sweep <file>` shows no remaining count for the repaired symbols.
-- Changed contracts have meaningful tests: `assert_type` for a recovered precise result (C14, C15), runtime tests for real risks (nullable fields, omitted keys, page payloads, null unassignment, guard false branches, generator callbacks, recorded exceptions). No tautological per-annotation tests. A negative type test expecting a diagnostic uses the `call_mypy` harness pattern from `tests/tools/mypy_helpers/test_plugin.py`, never an ignore.
+- Tests follow **Decisions → Test policy**: every added test fails when the code it guards is broken.
 - Items that change a serializer response type (C6–C10, and any sweep PR that does): `make validate-api-docs` and `.venv/bin/pytest --reuse-db tests/apidocs` are green. This loop has not been timed yet; record its time in **Baseline** the first time it runs.
 - The PR body follows the template below.
 - After pushing, `gh pr checks <n>` ends green, or the failure is shown to reproduce on `origin/master` and is noted in the PR body.
 
 ### PR body template
 
-Write it with the `pr-writer` skill, in these sections:
+Write it with the repo's `pr-writer` skill: a short reviewer cover note with no `Summary`/`Test Plan` sections and no pasted commands. It must still cover, in prose:
 
-```markdown
-**Contract**: what the type claimed, what runtime actually does (path:line), and the new type.
-**Behavior change**: `None`, or exactly what changes at runtime, for which inputs, and the test that fails without it.
-**Escape hatches removed**: summary of the counter `diff` output.
-**Escape hatches kept**: each `FAIL` line with its category (E1/E2/E3) or, for a cast, the stated invariant. Write `None` if there are none.
-**Verification**: exact commands run and results; what was not run and why.
-**Supersedes/Overlaps/Stacked on**: PR numbers, if any.
-```
+- **The contract:** what the type claimed, what runtime actually does, and the new type.
+- **Behavior change:** a bold `**Behavior change:**` line in every PR, saying `none` or exactly what changes at runtime, for which inputs, and which test pins it.
+- **Escape hatches kept:** a bold `**Escape hatches kept:**` line whenever the counter printed a `FAIL`, giving each one's category (E1/E2/E3) or, for a cast, the stated invariant. Omit it when there are none.
+- **Supersedes #N / Overlaps #N / Stacked on #N:** when any applies.
+
+#129702 is the reference example.
 
 ### Campaign done
 
@@ -213,9 +232,10 @@ The owner's full audit (45 finding records) is not in this repo. If the owner pl
 
 ## Ledger
 
-| ID  | PR  | Disposition |
-| --- | --- | ----------- |
-| G1  |     |             |
+| ID  | PR      | Disposition   |
+| --- | ------- | ------------- |
+| G1  |         |               |
+| C1  | #129702 | draft #129702 |
 
 The executor adds one row per item and per Phase 3 package. Dispositions are `draft #N`, `parked: <cause>, retry when <condition>`, or `exempt: <category>`.
 
