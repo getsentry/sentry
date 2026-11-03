@@ -113,7 +113,11 @@ class _IntegrationDefaults(TypedDict):
 
 
 def ensure_integration(
-    key: str, data: IntegrationData, *, overwrite_existing_integration: bool = True
+    key: str,
+    data: IntegrationData,
+    *,
+    overwrite_existing_integration: bool = True,
+    merge_metadata: bool = False,
 ) -> Integration:
     defaults: _IntegrationDefaults = {
         "metadata": data.get("metadata", {}),
@@ -123,9 +127,25 @@ def ensure_integration(
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
-    if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
-        integration.update(**defaults)
+    if created:
+        return integration
+    if not overwrite_existing_integration and _has_live_installations(integration):
+        return integration
 
+    if not merge_metadata:
+        integration.update(**defaults)
+        return integration
+
+    # Keep keys written outside this flow (e.g. by a background sync) instead
+    # of replacing the whole blob. Lock the row so a concurrent metadata write
+    # isn't lost between the read and the update.
+    with transaction.atomic(router.db_for_write(Integration)):
+        integration = Integration.objects.select_for_update().get(id=integration.id)
+        integration.update(
+            metadata={**integration.metadata, **defaults["metadata"]},
+            name=defaults["name"],
+            status=defaults["status"],
+        )
     return integration
 
 

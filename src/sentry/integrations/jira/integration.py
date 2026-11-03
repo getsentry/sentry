@@ -1682,21 +1682,26 @@ class JiraIntegrationProvider(IntegrationProvider):
         #  - the `installed` webhook passes the raw Atlassian payload
         #    (`clientKey`, `oauthClientId`, ...).
         if "external_id" in state and "metadata" in state:
-            external_id = state["external_id"]
-            metadata = state["metadata"]
-        else:
-            external_id = state["clientKey"]
-            metadata = {
+            # The `installed` webhook already created the integration. Linking
+            # an org must not rewrite it: the metadata in pipeline state is a
+            # snapshot from when the link was opened, and writing it back would
+            # undo anything stored since then and reset the site name.
+            return {
+                "external_id": state["external_id"],
+                "provider": IntegrationProviderSlug.JIRA.value,
+                "expect_exists": True,
+            }
+
+        return {
+            "external_id": state["clientKey"],
+            "provider": IntegrationProviderSlug.JIRA.value,
+            "name": "JIRA",
+            "metadata": {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            }
-        return {
-            "external_id": external_id,
-            "provider": IntegrationProviderSlug.JIRA.value,
-            "name": "JIRA",
-            "metadata": metadata,
+            },
         }
