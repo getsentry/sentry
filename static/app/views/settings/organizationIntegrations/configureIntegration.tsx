@@ -51,6 +51,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {AwsConnectionStatus} from './awsConnectionStatus';
 import {GcpConnectionStatus} from './gcpConnectionStatus';
 import {GrafanaIntegrationForm} from './grafanaIntegrationForm';
 import {IntegrationAlertRules} from './integrationAlertRules';
@@ -274,6 +275,12 @@ function IntegrationMainTab({
 
   return (
     <Fragment>
+      {provider.key === 'aws' && (
+        <AwsConnectionStatus
+          integration={integration}
+          onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
+        />
+      )}
       {provider.key === 'gcp' && (
         <GcpConnectionStatus
           configData={integration.configData}

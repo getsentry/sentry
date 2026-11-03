@@ -6,12 +6,115 @@ from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
+from sentry.seer.sentry_data_models import MonitoringProviderConnectionsResponse
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
+
+
+@with_feature("organizations:seer-infra-telemetry")
+@with_feature("organizations:integrations-aws")
+class TestAwsOrgMonitoringConnections(TestCase):
+    def create_aws_integration(self, *, account_id="123456789012", organization=None, **kwargs):
+        organization = organization or self.organization
+        return self.create_integration(
+            organization=organization,
+            provider="aws",
+            external_id=f"{organization.id}:{account_id}",
+            oi_params={
+                "config": {
+                    "role_arn": f"arn:aws:iam::{account_id}:role/SentrySeerAccess",
+                    "aws_account_id": account_id,
+                    "external_id": f"sentry-{organization.id}-{account_id}",
+                    "regions": ["us-east-1", "us-west-2"],
+                    "verification": {
+                        "connection_status": "permission_denied",
+                        "external_id_required": True,
+                        "regions": [
+                            {
+                                "region": "us-east-1",
+                                "connection_status": "connected",
+                                "services": [],
+                            },
+                            {
+                                "region": "us-west-2",
+                                "connection_status": "permission_denied",
+                                "services": [],
+                            },
+                        ],
+                    },
+                }
+            },
+            **kwargs,
+        )
+
+    def test_connections_include_all_accounts_and_only_verified_regions(self) -> None:
+        self.create_aws_integration()
+        self.create_aws_integration(account_id="999999999999")
+        connections = get_monitoring_provider_connections(self.organization, None)
+        assert len(connections) == 2
+        response = MonitoringProviderConnectionsResponse.parse_obj(
+            {"connections": [c.dict() for c in connections]}
+        )
+        assert {c["role_arn"] for c in response.connections} == {
+            "arn:aws:iam::123456789012:role/SentrySeerAccess",
+            "arn:aws:iam::999999999999:role/SentrySeerAccess",
+        }
+        for connection in response.connections:
+            assert connection["type"] == "aws_assume_role"
+            assert connection["regions"] == ["us-east-1"]
+            assert connection["url"] == "https://aws-mcp.us-east-1.api.aws/mcp"
+            assert connection["refreshable"] is False
+
+    def test_connections_are_org_scoped(self) -> None:
+        self.create_aws_integration(organization=self.create_organization())
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:integrations-aws": False})
+    def test_connections_require_feature_flag(self) -> None:
+        self.create_aws_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_inactive_integration_is_skipped(self) -> None:
+        for status in (ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION):
+            with self.subTest(status=status):
+                organization = self.create_organization()
+                self.create_aws_integration(status=status, organization=organization)
+                assert get_monitoring_provider_connections(organization, None) == []
+
+    def test_pending_uninstall_is_skipped(self) -> None:
+        integration = self.create_aws_integration()
+        integration_service.update_organization_integration(
+            org_integration_id=integration.get_installation(
+                self.organization.id
+            ).org_integration.id,
+            status=ObjectStatus.PENDING_DELETION,
+        )
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_unverified_external_id_is_never_sent(self) -> None:
+        integration = self.create_aws_integration()
+        oi = integration.get_installation(self.organization.id).org_integration
+        for verification in (
+            None,
+            {},
+            {
+                "external_id_required": False,
+                "connection_status": "connected",
+                "regions": [
+                    {"region": "us-east-1", "connection_status": "connected", "services": []}
+                ],
+            },
+        ):
+            with self.subTest(verification=verification):
+                integration_service.update_organization_integration(
+                    org_integration_id=oi.id, config={**oi.config, "verification": verification}
+                )
+                assert get_monitoring_provider_connections(self.organization, None) == []
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)

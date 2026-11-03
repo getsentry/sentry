@@ -8,11 +8,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {
   IntegrationProvider,
@@ -45,6 +46,19 @@ export class InstalledIntegration extends Component<Props> {
   };
 
   getRemovalBodyAndText(aspects: OrganizationIntegration['provider']['aspects']) {
+    if (this.props.provider.key === 'aws') {
+      return {
+        body: tct(
+          'Delete this integration and remove the SentrySeerAccess stack in [link:AWS CloudFormation]. Existing sessions can last up to one hour. Reinstalling generates a new external ID, so you will need to update or recreate the stack.',
+          {
+            link: (
+              <ExternalLink href="https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks" />
+            ),
+          }
+        ),
+        actionText: t('Delete'),
+      };
+    }
     if (aspects?.removal_dialog) {
       return {
         body: aspects.removal_dialog.body,

@@ -985,6 +985,10 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# AWS for Seer uses a broker role, with no stored AWS access keys.
+register("seer-aws.principal-arn", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("seer-aws.cloudformation-url", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)

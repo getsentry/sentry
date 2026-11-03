@@ -913,8 +913,24 @@ class GcpSaImpersonationConnectionData(BaseModel):
         return self.dict()[key]
 
 
+class AwsAssumeRoleConnectionData(BaseModel):
+    """Seer exchanges its GCP identity for broker credentials, then assumes this role."""
+
+    type: Literal["aws_assume_role"] = "aws_assume_role"
+    provider_key: str
+    url: str
+    role_arn: str
+    external_id: str
+    regions: list[str]
+    auth_method: Literal["aws_assume_role"] = "aws_assume_role"
+    refreshable: bool = False
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
 MonitoringProviderConnectionData = Annotated[
-    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData],
+    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData, AwsAssumeRoleConnectionData],
     Field(discriminator="type"),
 ]
 

@@ -1,0 +1,50 @@
+---
+title: AWS Verification Results
+description: Trust-policy and regional telemetry checks for AWS for Seer.
+category: patterns
+source: sentry/components/awsVerificationResults
+---
+
+import * as Storybook from 'sentry/stories';
+import {AwsVerificationResults} from 'sentry/components/awsVerificationResults';
+
+## Partial Access
+
+Setup can finish when the role requires the generated external ID and at least one region is connected.
+
+<Storybook.Demo>
+  <AwsVerificationResults
+    result={{
+      connectionStatus: 'permission_denied',
+      externalIdRequired: true,
+      regions: [
+        {region: 'us-east-1', connectionStatus: 'connected', services: []},
+        {
+          region: 'us-west-2',
+          connectionStatus: 'permission_denied',
+          services: [
+            {
+              service: 'logs',
+              status: 'permission_denied',
+              errorDetail: 'Grant logs:DescribeLogGroups.',
+            },
+          ],
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+## Trust Policy Requires Attention
+
+The setup and settings views place these results in a live status region. Setup remains blocked until the external ID requirement is verified.
+
+<Storybook.Demo>
+  <AwsVerificationResults
+    result={{
+      connectionStatus: 'invalid_trust_policy',
+      externalIdRequired: false,
+      regions: [],
+    }}
+  />
+</Storybook.Demo>

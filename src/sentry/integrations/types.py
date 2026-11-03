@@ -74,6 +74,7 @@ class IntegrationProviderSlug(StrEnum):
     DATADOG = "datadog"
     DATADOG_PAT = "datadog_pat"
     GCP = "gcp"
+    AWS = "aws"
     GRAFANA = "grafana"
 
 

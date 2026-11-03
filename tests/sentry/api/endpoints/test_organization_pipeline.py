@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import Any, Never
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.http import HttpResponse
 from django.http.request import HttpRequest
@@ -13,6 +14,7 @@ from django.urls import reverse
 from rest_framework.serializers import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.base import Pipeline
@@ -22,6 +24,7 @@ from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineEndpoint, PipelineView
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -433,3 +436,108 @@ class OrganizationPipelineEndpointTest(APITestCase):
         )
         assert resp.status_code == 200
         assert pipeline.fetch_state("external_id") is None
+
+
+@control_silo_test
+@with_feature("organizations:integrations-aws")
+class AwsOrganizationPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+
+    @patch("sentry.integrations.aws.client.make_signed_seer_api_request")
+    def test_install_requires_server_verified_trust(self, seer_request: Any) -> None:
+        with self.options(
+            {
+                "seer-aws.principal-arn": "arn:aws:iam::111111111111:role/SentrySeerBroker",
+                "seer-aws.cloudformation-url": "https://example.com/template.json",
+            }
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "action": "initialize",
+                    "provider": "aws",
+                    "initialData": {"external_id": "customer-selected"},
+                },
+                format="json",
+            )
+            assert response.status_code == 200, response.data
+            assert response.data["step"] == "aws_setup"
+            external_id = response.data["data"]["externalId"]
+            assert len(external_id) == 64
+            response = self.client.post(
+                self.url, {"externalId": "customer-selected"}, format="json"
+            )
+        assert response.status_code == 200
+        assert response.data["step"] == "aws_customer_config"
+        role_arn = "arn:aws:iam::123456789012:role/SentrySeerAccess"
+        response = self.client.post(
+            self.url, {"roleArn": role_arn, "regions": ["us-east-1"]}, format="json"
+        )
+        assert response.status_code == 200
+        assert response.data["step"] == "aws_verification"
+        response = self.client.post(
+            self.url,
+            {
+                "action": "finish",
+                "verification": {"externalIdRequired": True, "connectionStatus": "connected"},
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert not OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration__provider="aws"
+        ).exists()
+
+        seer_request.return_value.status = 200
+        result = {
+            "connection_status": "connected",
+            "external_id_required": False,
+            "regions": [{"region": "us-east-1", "connection_status": "connected", "services": []}],
+        }
+        seer_request.return_value.data = orjson.dumps(result)
+        response = self.client.post(self.url, {"action": "verify"}, format="json")
+        assert response.status_code == 200
+        assert response.data["status"] == "stay"
+        response = self.client.post(self.url, {"action": "finish"}, format="json")
+        assert response.status_code == 400
+
+        seer_request.return_value.data = orjson.dumps({**result, "external_id_required": True})
+        response = self.client.post(
+            self.url, {"action": "verify", "externalId": "forged"}, format="json"
+        )
+        assert response.status_code == 200
+        assert orjson.loads(seer_request.call_args.kwargs["body"]) == {
+            "organization_id": self.organization.id,
+            "role_arn": role_arn,
+            "external_id": external_id,
+            "regions": ["us-east-1"],
+        }
+        response = self.client.post(self.url, {"action": "finish"}, format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["status"] == "complete"
+        config = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration__provider="aws"
+        ).config
+        assert config["external_id"] == external_id
+        assert config["verification"]["external_id_required"] is True
+
+    @with_feature({"organizations:integrations-aws": False})
+    def test_install_requires_feature_flag(self) -> None:
+        response = self.client.post(
+            self.url, {"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 404
+
+    def test_member_cannot_install(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        response = self.client.post(
+            self.url, {"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 403

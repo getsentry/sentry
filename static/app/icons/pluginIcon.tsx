@@ -49,6 +49,7 @@ const PLUGIN_ICONS = {
   sqs: aws,
   'amazon-sqs': aws,
   aws_lambda: aws,
+  aws,
   claude_code,
   codex,
   cursor,
