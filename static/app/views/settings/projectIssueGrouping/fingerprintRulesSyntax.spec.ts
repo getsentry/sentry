@@ -52,7 +52,7 @@ describe('tokenizeFingerprintRules', () => {
     'message:"x → y" -> a',
     'message:"multi\\"quote" -> {{ tags.foo }}',
     // Names are checked by the backend on save
-    'error.typo:A -> {{ x }}, name="y"',
+    'error.typo:A -> {{ x }}',
     // Not whitespace to the backend
     'message:a -> x\uFEFFy',
   ])('has no diagnostics for %j', text => {
@@ -76,6 +76,8 @@ describe('tokenizeFingerprintRules', () => {
       'error.type:A -> a,,b',
       'error.type:A -> {x}',
     ].map(line => [line, 'invalid-syntax', line]),
+    ['error.type:A -> a, name="y"', 'unknown-attribute', 'name'],
+    ['error.type:A -> a Title="T"', 'unknown-attribute', 'Title'],
     ['error.type:A -> a title=T', 'unquoted-title', 'title=T'],
     ['error.type:A -> a # b c', 'inline-comment', '# b c'],
   ])('flags %j', (text, code, highlighted) => {

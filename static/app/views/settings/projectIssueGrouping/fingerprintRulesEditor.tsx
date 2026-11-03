@@ -1,4 +1,4 @@
-import {useId, useMemo, useRef} from 'react';
+import {useEffect, useId, useMemo, useRef} from 'react';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -28,6 +28,8 @@ const DIAGNOSTIC_MESSAGES: Record<FingerprintDiagnosticCode, (text: string) => s
   'invalid-syntax': () => t('Invalid syntax'),
   'lookalike-arrow': arrow => t('Use "->" instead of "%s"', arrow),
   'missing-arrow': () => t('Missing "->" before the fingerprint'),
+  'unknown-attribute': attribute =>
+    t('Unknown attribute "%s", only "title" is supported', attribute),
   'inline-comment': () => t('This comment becomes part of the fingerprint'),
   'unquoted-title': () => t('Unquoted title becomes part of the fingerprint'),
 };
@@ -43,12 +45,13 @@ function normalizeNewlines(text: string) {
 
 // The highlighting is only a hint, so a tokenizer bug shows plain text instead of breaking
 // the field. The backend still validates the rules on save.
-function tokenize(text: string) {
+function tokenize(text: string): ReturnType<typeof tokenizeFingerprintRules> & {
+  error?: unknown;
+} {
   try {
     return tokenizeFingerprintRules(text);
   } catch (error) {
-    Sentry.captureException(error);
-    return {tokens: [], diagnostics: []};
+    return {tokens: [], diagnostics: [], error};
   }
 }
 
@@ -153,13 +156,29 @@ export function FingerprintRulesEditor({
   const summaryId = useId();
 
   const text = normalizeNewlines(value);
-  const {tokens, diagnostics} = tokenize(text);
+  const {tokens, error} = useMemo(() => tokenize(text), [text]);
+
+  // Report once, rather than on every edit that hits the same bug
+  const hasReportedErrorRef = useRef(false);
+  useEffect(() => {
+    if (error && !hasReportedErrorRef.current) {
+      hasReportedErrorRef.current = true;
+      Sentry.captureException(error);
+    }
+  }, [error]);
 
   // Hold diagnostics back while typing, so a half-written rule isn't flagged. The summary
   // keeps showing the last settled ones so the layout doesn't jump.
   const [settledText] = useDebouncedValue(text, {wait: 500});
   const isSettled = settledText === text;
-  const settledDiagnostics = isSettled ? diagnostics : tokenize(settledText).diagnostics;
+  const settledDiagnostics = useMemo(
+    () => tokenize(settledText).diagnostics,
+    [settledText]
+  );
+  const segments = useMemo(
+    () => getSegments(text, tokens, isSettled ? settledDiagnostics : []),
+    [text, tokens, settledDiagnostics, isSettled]
+  );
   const [firstDiagnostic, ...otherDiagnostics] = settledDiagnostics;
   const errorCount = settledDiagnostics.filter(d => d.severity === 'error').length;
   const warningCount = settledDiagnostics.length - errorCount;
@@ -197,15 +216,14 @@ export function FingerprintRulesEditor({
           }
         />
         <HighlightLayer ref={layerRef} aria-hidden size={size} disabled={!!disabled}>
-          {getSegments(text, tokens, isSettled ? diagnostics : []).map(
-            ({start, end, type, severity}) =>
-              type || severity ? (
-                <span key={start} data-token={type} data-severity={severity}>
-                  {text.slice(start, end)}
-                </span>
-              ) : (
-                text.slice(start, end)
-              )
+          {segments.map(({start, end, type, severity}) =>
+            type || severity ? (
+              <span key={start} data-token={type} data-severity={severity}>
+                {text.slice(start, end)}
+              </span>
+            ) : (
+              text.slice(start, end)
+            )
           )}
           {/* Gives a trailing newline a line to occupy, like the textarea does */}
           {text.endsWith('\n') && ' '}

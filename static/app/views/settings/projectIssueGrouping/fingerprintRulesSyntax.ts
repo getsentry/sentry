@@ -4,7 +4,7 @@ import {parse} from 'sentry/views/settings/projectIssueGrouping/fingerprintRules
  * Tokenizes fingerprint rules to highlight them and point out mistakes before they're saved.
  * `fingerprintRules.pegjs` mirrors the backend grammar, so a line gets an error when the
  * backend can't parse it. Matcher and variable names aren't checked, so it doesn't need
- * updating when the backend adds one.
+ * updating when the backend adds one. `title` is the only attribute the backend accepts.
  */
 
 type FingerprintTokenType =
@@ -32,6 +32,7 @@ export type FingerprintDiagnosticCode =
   | 'invalid-syntax'
   | 'lookalike-arrow'
   | 'missing-arrow'
+  | 'unknown-attribute'
   // Warnings, these save but probably don't do what was intended
   | 'inline-comment'
   | 'unquoted-title';
@@ -86,6 +87,8 @@ export function tokenizeFingerprintRules(rules: string) {
     const value = text.slice(start, end);
     if (type === 'invalid') {
       diagnostics.push({severity: 'error', ...describeInvalidLine(text, start, end)});
+    } else if (type === 'attribute' && value !== 'title') {
+      diagnostics.push({code: 'unknown-attribute', severity: 'error', start, end});
     } else if (type === 'value' && value.startsWith('#')) {
       // Runs to the end of the line
       const eol = start + text.slice(start).search(/[\r\n]|$/);
