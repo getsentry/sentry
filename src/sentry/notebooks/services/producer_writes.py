@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime
 from typing import Any
@@ -22,6 +23,7 @@ from sentry.notebooks.models import (
     NotebookBlockExecutor,
     NotebookBlockKind,
     NotebookProject,
+    NotebookStatus,
 )
 from sentry.utils import json
 
@@ -31,6 +33,45 @@ class Unset:
 
 
 UNSET = Unset()
+
+
+class NotebookWrites:
+    """A locked notebook that producer block writes go through. Open one with notebook_writes()."""
+
+    def __init__(self, notebook: Notebook) -> None:
+        self._notebook = notebook
+        self._open = True
+        self.changed = False
+
+    @property
+    def notebook(self) -> Notebook:
+        if not self._open:
+            raise RuntimeError("This notebook_writes() block has exited.")
+        return self._notebook
+
+    def mark_changed(self) -> None:
+        self.changed = True
+
+
+@contextmanager
+def notebook_writes(notebook: Notebook) -> Iterator[NotebookWrites]:
+    """Lock an active notebook for producer writes, and bump its version once if they changed it."""
+
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        locked = Notebook.objects.select_for_update().get(id=notebook.id)
+        if locked.status == NotebookStatus.ARCHIVED:
+            raise serializers.ValidationError({"detail": "Archived investigations are read-only."})
+        notebook.status = locked.status
+        notebook.version = locked.version
+        writes = NotebookWrites(notebook)
+        try:
+            yield writes
+        finally:
+            writes._open = False
+        if writes.changed:
+            notebook.version += 1
+            notebook.date_updated = timezone.now()
+            notebook.save(update_fields=["version", "date_updated"])
 
 
 def _default_display(kind: str) -> dict[str, Any]:
@@ -45,7 +86,7 @@ def _default_display(kind: str) -> dict[str, Any]:
 
 
 def upsert_block(
-    notebook: Notebook,
+    writes: NotebookWrites,
     *,
     key: str,
     revision: int,
@@ -71,6 +112,7 @@ def upsert_block(
     A field left UNSET keeps the block's value, and generated_content falls back to content.
     """
 
+    notebook = writes.notebook
     with transaction.atomic(using=router.db_for_write(NotebookBlock)):
         block = (
             NotebookBlock.objects.filter(
@@ -158,6 +200,10 @@ def upsert_block(
             block.version += 1
         block.save()
         execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
+        if execution is not None and execution.block_id != block.id:
+            raise serializers.ValidationError(
+                {"requestId": "This execution request ID is already in use."}
+            )
         result = (
             query_result
             if kind == NotebookBlockKind.QUERY and complete
@@ -303,12 +349,13 @@ def upsert_block(
                 "date_updated",
             ]
         )
-        return block
+    writes.mark_changed()
+    return block
 
 
-def move_block(notebook: Notebook, *, key: str, revision: int, position: int) -> None:
+def move_block(writes: NotebookWrites, *, key: str, revision: int, position: int) -> None:
     block = NotebookBlock.objects.filter(
-        notebook=notebook,
+        notebook=writes.notebook,
         producer_revision=revision,
         producer_key=key,
         deleted_at__isnull=True,
@@ -318,10 +365,11 @@ def move_block(notebook: Notebook, *, key: str, revision: int, position: int) ->
     block.position = position
     block.version += 1
     block.save(update_fields=["position", "version", "date_updated"])
+    writes.mark_changed()
 
 
 def remove_blocks(
-    notebook: Notebook,
+    writes: NotebookWrites,
     *,
     revision: int | None = None,
     key: str | None = None,
@@ -338,7 +386,7 @@ def remove_blocks(
         raise ValueError("remove_blocks needs a filter or all_blocks=True.")
 
     blocks = NotebookBlock.objects.filter(
-        notebook=notebook,
+        notebook=writes.notebook,
         producer_revision__isnull=False,
         producer_key__isnull=False,
         deleted_at__isnull=True,
@@ -350,4 +398,7 @@ def remove_blocks(
     if block_ids is not None:
         blocks = blocks.filter(id__in=block_ids)
     now = now or timezone.now()
-    return blocks.update(deleted_at=now, date_updated=now)
+    removed = blocks.update(deleted_at=now, date_updated=now)
+    if removed:
+        writes.mark_changed()
+    return removed

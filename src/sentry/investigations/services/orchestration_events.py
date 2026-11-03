@@ -52,7 +52,9 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.producer_writes import (
     UNSET,
+    NotebookWrites,
     move_block,
+    notebook_writes,
     remove_blocks,
     upsert_block,
 )
@@ -417,7 +419,7 @@ def _cancel_workflow_report_executions(run: InvestigationOrchestrationRun) -> in
 
 
 def _adopt_preserved_report_revision(
-    run: InvestigationOrchestrationRun, projection: dict[str, Any]
+    run: InvestigationOrchestrationRun, projection: dict[str, Any], writes: NotebookWrites
 ) -> bool:
     report = projection.get("report")
     if not isinstance(report, dict):
@@ -430,7 +432,7 @@ def _adopt_preserved_report_revision(
             and isinstance(revision, int)
             and not isinstance(revision, bool)
         ):
-            return _clear_report(run, revision, bump=False)
+            return _clear_report(run, revision, writes, bump=False)
         return False
     revision = report.get("revision")
     if (
@@ -464,16 +466,21 @@ def _adopt_preserved_report_revision(
             run.investigation,
             [key for key in discarded.values_list("producer_key", flat=True) if key],
         )
-        remove_blocks(run.investigation, block_ids=discarded_ids, now=now)
+        remove_blocks(writes, block_ids=discarded_ids, now=now)
     _control(run).update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
 
-def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Notebook) -> None:
+def _bump_notebook(run: InvestigationOrchestrationRun, writes: NotebookWrites | None) -> None:
     run.notebook_revision += 1
     report = run.projection.setdefault("report", {})
     if isinstance(report, dict):
         report["notebookRevision"] = run.notebook_revision
+    if writes is not None:
+        writes.mark_changed()
+        return
+    # A failed workflow still finishes executions on a fenced notebook.
+    investigation = run.investigation
     investigation.version += 1
     investigation.date_updated = timezone.now()
     investigation.save(update_fields=["version", "date_updated"])
@@ -481,6 +488,7 @@ def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Notebook) 
 
 def _upsert_report_block(
     *,
+    writes: NotebookWrites,
     run: InvestigationOrchestrationRun,
     payload: dict[str, Any],
     complete: bool,
@@ -497,7 +505,7 @@ def _upsert_report_block(
                 {"payload": "Investigation project scope is not available for this run."}
             )
     return upsert_block(
-        run.investigation,
+        writes,
         key=key,
         revision=revision,
         kind=kind,
@@ -528,6 +536,7 @@ def _upsert_report_block(
 def _clear_report(
     run: InvestigationOrchestrationRun,
     revision: int,
+    writes: NotebookWrites,
     *,
     force: bool = False,
     bump: bool = True,
@@ -550,7 +559,7 @@ def _clear_report(
         run,
         block_ids=list(live_blocks.values_list("id", flat=True)),
     )
-    remove_blocks(run.investigation, all_blocks=True, now=now)
+    remove_blocks(writes, all_blocks=True, now=now)
     supersede_action_requests_before(run.investigation, revision)
     control.update(
         {
@@ -565,7 +574,7 @@ def _clear_report(
         if isinstance(report, dict):
             report.update({"revision": revision, "status": "composing", "error": None})
     if bump:
-        _bump_notebook(run, run.investigation)
+        _bump_notebook(run, writes)
     return True
 
 
@@ -613,6 +622,7 @@ def _apply_snapshot(
     run: InvestigationOrchestrationRun,
     event: InvestigationOrchestrationEvent,
     payload: dict[str, Any],
+    writes: NotebookWrites,
 ) -> None:
     generation = _event_generation(event)
     projection = payload["projection"]
@@ -624,7 +634,7 @@ def _apply_snapshot(
             _sync_snapshot_action_requests(run, payload["actionRequests"])
         return
     blocks = payload["blocks"]
-    _clear_report(run, revision, force=True, bump=False, mutate_projection=False)
+    _clear_report(run, revision, writes, force=True, bump=False, mutate_projection=False)
     seen_keys: set[str] = set()
     for position, raw_block in enumerate(blocks):
         block_payload = deepcopy(raw_block)
@@ -636,6 +646,7 @@ def _apply_snapshot(
             raise serializers.ValidationError({"payload": "Snapshot block keys must be unique."})
         seen_keys.add(key)
         _upsert_report_block(
+            writes=writes,
             run=run,
             payload=block_payload,
             complete=True,
@@ -649,7 +660,7 @@ def _apply_snapshot(
     # An older snapshot doesn't clear the report, so its list isn't the full current one.
     if "actionRequests" in payload and revision == _report_revision(run):
         _sync_snapshot_action_requests(run, payload["actionRequests"])
-    _bump_notebook(run, run.investigation)
+    _bump_notebook(run, writes)
 
 
 def _sync_snapshot_action_requests(run: InvestigationOrchestrationRun, items: list[object]) -> None:
@@ -688,30 +699,43 @@ def _apply_event(
     )
     if notebook_writes_are_fenced and event.type in _NOTEBOOK_EVENT_TYPES:
         return False, "notebook_write_fenced"
+    if notebook_writes_are_fenced:
+        return _apply_generation_event(run, event, payload, generation=generation, writes=None)
+    with notebook_writes(run.investigation) as writes:
+        return _apply_generation_event(run, event, payload, generation=generation, writes=writes)
+
+
+def _apply_generation_event(
+    run: InvestigationOrchestrationRun,
+    event: InvestigationOrchestrationEvent,
+    payload: dict[str, Any],
+    *,
+    generation: int,
+    writes: NotebookWrites | None,
+) -> tuple[bool, str | None]:
+    """`writes` is None when the run's notebook writes are fenced."""
 
     if event.type == "workflow_updated":
         if _projection_is_stale(run, payload["projection"], event_generation=generation):
             return False, "stale_workflow_version"
         notebook_changed = False
-        if not notebook_writes_are_fenced:
-            notebook_changed = _adopt_preserved_report_revision(run, payload["projection"])
+        if writes is not None:
+            notebook_changed = _adopt_preserved_report_revision(run, payload["projection"], writes)
         _set_projection(run, payload["projection"], event_generation=generation)
-        if (
-            not notebook_writes_are_fenced
-            and run.status == InvestigationOrchestrationStatus.CANCELLED
-        ):
+        if writes is not None and run.status == InvestigationOrchestrationStatus.CANCELLED:
             notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
         if notebook_changed:
-            _bump_notebook(run, run.investigation)
+            _bump_notebook(run, writes)
     elif event.type == "state_snapshot":
         if _projection_is_stale(run, payload["projection"], event_generation=generation):
             return False, "stale_workflow_version"
-        if notebook_writes_are_fenced:
+        if writes is None:
             _set_projection(run, payload["projection"], event_generation=generation)
         else:
-            _apply_snapshot(run, event, payload)
+            _apply_snapshot(run, event, payload, writes)
     elif event.type == "report_clear":
-        if not _clear_report(run, payload["reportRevision"]):
+        assert writes is not None
+        if not _clear_report(run, payload["reportRevision"], writes):
             return False, "stale_report_revision"
     elif event.type in {
         "report_block_started",
@@ -724,17 +748,19 @@ def _apply_event(
         "title_delta",
         "metadata_completed",
     }:
+        assert writes is not None
         revision = payload["reportRevision"]
         if revision != _report_revision(run):
             return False, "stale_report_revision"
 
         if event.type == "report_block_started":
             _upsert_report_block(
+                writes=writes,
                 run=run,
                 payload=payload,
                 complete=False,
             )
-            _bump_notebook(run, run.investigation)
+            _bump_notebook(run, writes)
         elif event.type == "report_text_delta":
             block = NotebookBlock.objects.filter(
                 notebook=run.investigation,
@@ -758,35 +784,34 @@ def _apply_event(
                 block.save(
                     update_fields=["content", "generated_content", "version", "date_updated"]
                 )
-                _bump_notebook(run, run.investigation)
+                _bump_notebook(run, writes)
         elif event.type == "report_block_upserted":
             _upsert_report_block(
+                writes=writes,
                 run=run,
                 payload=payload,
                 complete=True,
             )
-            _bump_notebook(run, run.investigation)
+            _bump_notebook(run, writes)
         elif event.type == "report_block_removed":
             _cancel_report_executions(
                 run,
                 revision=revision,
                 producer_key=payload["stableAgentKey"],
             )
-            updated = remove_blocks(
-                run.investigation, revision=revision, key=payload["stableAgentKey"]
-            )
+            updated = remove_blocks(writes, revision=revision, key=payload["stableAgentKey"])
             if updated:
                 supersede_block_action_requests(run.investigation, [payload["stableAgentKey"]])
-                _bump_notebook(run, run.investigation)
+                _bump_notebook(run, writes)
         elif event.type == "report_block_moved":
             # Seer sends absolute positions in the final plan, not insertions.
             move_block(
-                run.investigation,
+                writes,
                 key=payload["stableAgentKey"],
                 revision=revision,
                 position=payload["position"],
             )
-            _bump_notebook(run, run.investigation)
+            _bump_notebook(run, writes)
         elif event.type == "report_completed":
             report = run.projection.setdefault("report", {})
             if isinstance(report, dict):
@@ -797,7 +822,7 @@ def _apply_event(
             if isinstance(report, dict):
                 report.update({"status": "failed", "error": deepcopy(payload.get("error"))})
             if execution_updated:
-                _bump_notebook(run, run.investigation)
+                _bump_notebook(run, writes)
         elif event.type == "title_delta":
             control = _control(run)
             investigation = run.investigation
@@ -817,7 +842,7 @@ def _apply_event(
                 investigation.save(update_fields=["title", "date_updated"])
                 if isinstance(metadata, dict):
                     metadata.update({"status": "generating", "title": title})
-                _bump_notebook(run, investigation)
+                _bump_notebook(run, writes)
         elif event.type == "metadata_completed":
             _complete_metadata(run, payload)
     elif event.type == "action_requested":
@@ -841,7 +866,7 @@ def _apply_event(
         run.status = InvestigationOrchestrationStatus.FAILED
         run.error = deepcopy(payload.get("error"))
         if _fail_report_executions(run, revision=_report_revision(run)):
-            _bump_notebook(run, run.investigation)
+            _bump_notebook(run, writes)
     else:
         return False, "unsupported_event_type"
 
@@ -1186,22 +1211,28 @@ def _synchronize_orchestration_projection(
                 run,
                 event_generation=generation,
             )
-            notebook_changed = False
-            if not notebook_writes_are_fenced:
-                notebook_changed = _adopt_preserved_report_revision(run, projection)
-            _set_projection(
-                run,
-                projection,
-                event_generation=generation,
-                authoritative_workflow_version=authoritative,
-            )
-            if (
-                not notebook_writes_are_fenced
-                and run.status == InvestigationOrchestrationStatus.CANCELLED
-            ):
-                notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
-            if notebook_changed:
-                _bump_notebook(run, run.investigation)
+            if notebook_writes_are_fenced:
+                _set_projection(
+                    run,
+                    projection,
+                    event_generation=generation,
+                    authoritative_workflow_version=authoritative,
+                )
+            else:
+                with notebook_writes(run.investigation) as writes:
+                    notebook_changed = _adopt_preserved_report_revision(run, projection, writes)
+                    _set_projection(
+                        run,
+                        projection,
+                        event_generation=generation,
+                        authoritative_workflow_version=authoritative,
+                    )
+                    if run.status == InvestigationOrchestrationStatus.CANCELLED:
+                        notebook_changed = (
+                            bool(_cancel_workflow_report_executions(run)) or notebook_changed
+                        )
+                    if notebook_changed:
+                        _bump_notebook(run, writes)
             schedule_investigation_updates(run.investigation_id, database)
         run.date_updated = timezone.now()
         run.save(
