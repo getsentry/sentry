@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin
 
 import orjson
@@ -154,7 +154,7 @@ class Symbolicator:
         path: str,
         kwargs_cb: Callable[[], dict[str, Any]] | None = None,
         **kwargs: Any,
-    ) -> Any:
+    ) -> dict[str, Any]:
         """
         This function will submit a symbolication task to a Symbolicator and handle
         polling it using the `SymbolicatorSession`.
@@ -172,7 +172,7 @@ class Symbolicator:
         )
 
         task_id: str | None = None
-        json_response = None
+        json_response: dict[str, Any] | None = None
 
         backoff = Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
 
@@ -227,8 +227,8 @@ class Symbolicator:
                 return json_response
 
     def process_minidump(
-        self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
-    ):
+        self, platform: str | None, minidump: CachedAttachment, rewrite_first_module: list[Any]
+    ) -> dict[str, Any]:
         (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
@@ -277,7 +277,9 @@ class Symbolicator:
         res = self._process("process_minidump", "minidump", data=data, files=files)
         return process_response(res)
 
-    def process_applecrashreport(self, platform: str, report: CachedAttachment):
+    def process_applecrashreport(
+        self, platform: str | None, report: CachedAttachment
+    ) -> dict[str, Any]:
         (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
@@ -320,8 +322,14 @@ class Symbolicator:
         return process_response(res)
 
     def process_payload(
-        self, platform, stacktraces, modules, frame_order, signal=None, apply_source_context=True
-    ):
+        self,
+        platform: str | None,
+        stacktraces: list[dict[str, Any]],
+        modules: list[dict[str, Any]],
+        frame_order: FrameOrder,
+        signal: int | None = None,
+        apply_source_context: bool = True,
+    ) -> dict[str, Any]:
         """
         Process a native event by symbolicating its frames.
 
@@ -336,7 +344,7 @@ class Symbolicator:
         """
         (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
-        json = {
+        json: dict[str, Any] = {
             "platform": platform,
             "sources": sources,
             "options": {
@@ -358,8 +366,15 @@ class Symbolicator:
         return process_response(res)
 
     def process_js(
-        self, platform, stacktraces, modules, release, dist, frame_order, apply_source_context=True
-    ):
+        self,
+        platform: str | None,
+        stacktraces: list[dict[str, Any]],
+        modules: list[dict[str, Any]],
+        release: str | None,
+        dist: str | None,
+        frame_order: FrameOrder,
+        apply_source_context: bool = True,
+    ) -> dict[str, Any]:
         """
         Process a JS event by remapping its frames with sourcemaps.
 
@@ -398,14 +413,14 @@ class Symbolicator:
 
     def process_jvm(
         self,
-        platform,
-        exceptions,
-        stacktraces,
-        modules,
-        classes,
-        frame_order,
-        apply_source_context=True,
-    ):
+        platform: str | None,
+        exceptions: list[dict[str, Any]],
+        stacktraces: list[dict[str, Any]],
+        modules: list[dict[str, Any]],
+        classes: list[str],
+        frame_order: FrameOrder,
+        apply_source_context: bool = True,
+    ) -> dict[str, Any]:
         """
         Process a JVM event by remapping its frames and exceptions with
         ProGuard.
@@ -468,39 +483,39 @@ class SymbolicatorSession:
 
     def __init__(
         self,
-        url=None,
-        project_id=None,
-        event_id=None,
-        timeout=None,
-    ):
+        url: str | None = None,
+        project_id: str | None = None,
+        event_id: str | None = None,
+        timeout: float | None = None,
+    ) -> None:
         self.url = url
         self.project_id = project_id
         self.event_id = event_id
         self.timeout = timeout
-        self.session = None
+        self.session: Session | None = None
         self.reset_worker_id()
 
-    def __enter__(self):
+    def __enter__(self) -> SymbolicatorSession:
         self.open()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.close()
 
-    def open(self):
+    def open(self) -> None:
         if self.session is None:
             self.session = Session()
 
-    def close(self):
+    def close(self) -> None:
         if self.session is not None:
             self.session.close()
             self.session = None
 
-    def _request(self, method, path, **kwargs):
+    def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         if not self.session:
             raise RuntimeError("Session not opened")
 
-        url = urljoin(self.url, path)
+        url = urljoin(cast(str, self.url), path)
 
         # required for load balancing
         kwargs.setdefault("headers", {})["x-sentry-project-id"] = self.project_id
@@ -515,7 +530,9 @@ class SymbolicatorSession:
                 with metrics.timer(
                     "events.symbolicator.session.request", tags={"attempt": attempts}
                 ):
-                    response = self.session.request(method, url, timeout=self.timeout + 1, **kwargs)
+                    response = self.session.request(
+                        method, url, timeout=cast(float, self.timeout) + 1, **kwargs
+                    )
 
                 metrics.incr(
                     "events.symbolicator.status_code",
@@ -537,7 +554,8 @@ class SymbolicatorSession:
                     raise ServiceUnavailable()
 
                 if response.ok:
-                    json = response.json()
+                    payload = response.json()
+                    json = payload
 
                     if json["status"] != "pending":
                         metrics.distribution(
@@ -574,7 +592,7 @@ class SymbolicatorSession:
                 time.sleep(wait)
                 wait *= 2.0
 
-    def create_task(self, path, **kwargs):
+    def create_task(self, path: str, **kwargs: Any) -> dict[str, Any]:
         params = {"timeout": self.timeout, "scope": self.project_id}
 
         with metrics.timer(
@@ -583,12 +601,12 @@ class SymbolicatorSession:
         ):
             return self._request(method="post", path=path, params=params, **kwargs)
 
-    def query_task(self, task_id):
+    def query_task(self, task_id: str) -> dict[str, Any]:
         params = {"timeout": self.timeout, "scope": self.project_id}
         task_url = f"requests/{task_id}"
 
         with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
-    def reset_worker_id(self):
+    def reset_worker_id(self) -> None:
         self.worker_id = uuid.uuid4().hex

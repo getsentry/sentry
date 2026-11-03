@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 from django.core.cache import cache
@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
@@ -411,7 +412,7 @@ class TestSpansQuery(APITransactionTestCase, SnubaTestCase, SpanTestCase):
         assert table_result is None
 
     @patch("sentry.seer.agent.tools.client.get")
-    def test_spans_table_query_error_handling(self, mock_client_get):
+    def test_spans_table_query_error_handling(self, mock_client_get: MagicMock) -> None:
         """Test error handling for API errors: 400 errors return error dict, non-400 errors are re-raised"""
         # Test 400 error with dict body containing detail
         error_detail_msg = "Invalid query: field 'invalid_field' does not exist"
@@ -800,7 +801,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
     def _test_get_trace_waterfall(self, use_short_id: bool) -> None:
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
-        spans: list[dict] = []
+        spans: list[dict[str, Any]] = []
         for i in range(5):
             # Create a span tree for this trace
             span = self.create_span(
@@ -826,7 +827,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         seen_span_ids = []
         root_span_ids = []
 
-        def check_span(s):
+        def check_span(s: Any) -> None:
             if "parent_span_id" not in s:
                 # Not a span.
                 return
@@ -872,7 +873,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
 
-        spans: list[dict] = []
+        spans: list[dict[str, Any]] = []
         for i in range(2):
             span = self.create_span(
                 {
@@ -899,7 +900,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         trace_id = uuid.uuid4().hex
         twenty_days_ago = before_now(days=20)
 
-        spans: list[dict] = []
+        spans: list[dict[str, Any]] = []
         for i in range(3):
             span = self.create_span(
                 {
@@ -927,7 +928,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         trace_id = uuid.uuid4().hex
         twenty_seven_days_ago = before_now(days=27)
 
-        spans: list[dict] = []
+        spans: list[dict[str, Any]] = []
         for i in range(3):
             span = self.create_span(
                 {
@@ -955,7 +956,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         trace_id = uuid.uuid4().hex
         one_hundred_days_ago = before_now(days=100)
 
-        spans: list[dict] = []
+        spans: list[dict[str, Any]] = []
         for i in range(3):
             span = self.create_span(
                 {
@@ -1215,12 +1216,14 @@ class _SentryEventData(BaseModel):
     """
 
     title: str
-    entries: list[dict]
+    entries: list[dict[str, Any]]
     groupID: str | None
     tags: list[dict[str, str | None]] | None = None
 
 
-def _validate_event_timeseries(timeseries: dict, expected_total: int | None = None):
+def _validate_event_timeseries(
+    timeseries: dict[str, Any], expected_total: int | None = None
+) -> None:
     assert isinstance(timeseries, dict)
     assert "count()" in timeseries
     assert "data" in timeseries["count()"]
@@ -1244,12 +1247,12 @@ def _validate_event_timeseries(timeseries: dict, expected_total: int | None = No
 class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin):
     """Tests for get_issue_details — fetching issue-level metadata, timeseries, tags, and activity."""
 
-    def _make_error_event(self, timestamp=None):
+    def _make_error_event(self, timestamp: Any = None) -> Event:
         data = load_data("python", timestamp=timestamp or before_now(minutes=5))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def _assert_issue_response_shape(self, result: IssueDetailsResponse):
+    def _assert_issue_response_shape(self, result: IssueDetailsResponse) -> None:
         assert isinstance(result["issue"], dict)
         _IssueMetadata.parse_obj(result["issue"])
         assert isinstance(result["event_timeseries"], dict | None)
@@ -1264,7 +1267,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_by_numeric_issue_id(self, mock_tags, mock_ts):
+    def test_by_numeric_issue_id(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Fetching by numeric issue_id returns issue metadata."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": [{"key": "env", "top_values": []}]}
@@ -1287,7 +1290,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_by_qualified_short_id(self, mock_tags, mock_ts):
+    def test_by_qualified_short_id(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Fetching by qualified short ID (PROJECT-123) resolves the correct group."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
@@ -1295,6 +1298,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
 
         result = get_issue_details(
             organization_id=self.organization.id,
@@ -1307,11 +1311,12 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert result["project_id"] == group.project_id
         assert result["project_slug"] == group.project.slug
 
-    def test_by_qualified_short_id_scoped_to_project_slug(self):
+    def test_by_qualified_short_id_scoped_to_project_slug(self) -> None:
         """A short ID is only resolvable within the project_slug-scoped projects."""
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
 
         other_project = self.create_project(organization=self.organization, name="other project")
 
@@ -1327,7 +1332,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_timeseries_values_forwarded(self, mock_tags, mock_ts):
+    def test_timeseries_values_forwarded(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Timeseries data and its period/interval metadata are included in the response."""
         mock_ts.return_value = ({"count()": {"data": [[1000, [{"count": 3}]]]}}, "24h", "1h")
         mock_tags.return_value = {"tags_overview": []}
@@ -1348,7 +1353,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_timeseries_start_end_forwarded(self, mock_tags, mock_ts):
+    def test_timeseries_start_end_forwarded(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """start/end strings are parsed and forwarded to _get_issue_event_timeseries."""
         mock_ts.return_value = ({"count()": {"data": []}}, "7d", "6h")
         mock_tags.return_value = {"tags_overview": []}
@@ -1373,7 +1378,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_timeseries_failure_returns_nulls(self, mock_tags, mock_ts):
+    def test_timeseries_failure_returns_nulls(
+        self, mock_tags: MagicMock, mock_ts: MagicMock
+    ) -> None:
         """If _get_issue_event_timeseries raises, timeseries fields are None rather than propagating."""
         mock_ts.side_effect = Exception("snuba down")
         mock_tags.return_value = {"tags_overview": []}
@@ -1396,7 +1403,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_tags_overview_forwarded(self, mock_tags, mock_ts):
+    def test_tags_overview_forwarded(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """tags_overview from get_all_tags_overview is included in the response."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         expected_tags = {"tags_overview": [{"key": "browser", "top_values": ["Chrome"]}]}
@@ -1415,7 +1422,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_tags_failure_returns_none(self, mock_tags, mock_ts):
+    def test_tags_failure_returns_none(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """If get_all_tags_overview raises, tags_overview is None rather than propagating."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.side_effect = Exception("tags unavailable")
@@ -1438,7 +1445,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_user_activity_included(self, mock_tags, mock_ts):
+    def test_user_activity_included(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Activity records for the group are serialized and included."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
@@ -1467,7 +1474,9 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_user_attributed_seer_actions_are_included(self, mock_tags, mock_ts):
+    def test_user_attributed_seer_actions_are_included(
+        self, mock_tags: MagicMock, mock_ts: MagicMock
+    ) -> None:
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
 
@@ -1503,7 +1512,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_assigned_user_included(self, mock_tags, mock_ts):
+    def test_assigned_user_included(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Issue metadata includes assignedTo when a user is assigned."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
@@ -1529,7 +1538,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_assigned_team_included(self, mock_tags, mock_ts):
+    def test_assigned_team_included(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Issue metadata includes assignedTo when a team is assigned."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
@@ -1557,7 +1566,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
     @patch("sentry.seer.agent.tools.get_all_tags_overview")
-    def test_no_projects_returns_none(self, mock_tags, mock_ts):
+    def test_no_projects_returns_none(self, mock_tags: MagicMock, mock_ts: MagicMock) -> None:
         """Returns None when project_slug doesn't match any project."""
         mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
         mock_tags.return_value = {"tags_overview": []}
@@ -1583,12 +1592,12 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
     (broader pool shipped around first-seen).
     """
 
-    def _make_error_event(self):
+    def _make_error_event(self) -> Event:
         data = load_data("python", timestamp=before_now(minutes=5))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         return self.store_event(data=data, project_id=self.project.id)
 
-    def _add_suspect_commit(self, group):
+    def _add_suspect_commit(self, group: Any) -> Commit:
         repo = self.create_repo(project=self.project, name="getsentry/sentry")
         author = self.create_commit_author(organization_id=self.organization.id, user=self.user)
         commit = self.create_commit(repo=repo, author=author, message="fix: the failing function")
@@ -1605,7 +1614,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
         return commit
 
-    def _make_blame_event(self, author_email):
+    def _make_blame_event(self, author_email: str) -> Group:
         """Store an event whose stacktrace frames are blamed on a release commit."""
         repo = self.create_repo(project=self.project, name="getsentry/sentry")
         release = self.create_release(project=self.project, version="blame-v1")
@@ -1643,7 +1652,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
         return group
 
-    def _make_event_with_multiple_release_commits(self, author_email):
+    def _make_event_with_multiple_release_commits(self, author_email: str) -> Group:
         """Store an event linked to a release shipping several commits with differing
         numbers of file changes, to exercise the per-commit file-change-count mapping.
         """
@@ -1691,7 +1700,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         )
         return group
 
-    def test_returns_suspect_commits(self):
+    def test_returns_suspect_commits(self) -> None:
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
@@ -1712,10 +1721,11 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert suspect[0]["commits"][0]["id"] == commit.key
         assert suspect[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
-    def test_resolves_by_qualified_short_id(self):
+    def test_resolves_by_qualified_short_id(self) -> None:
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
         self._add_suspect_commit(group)
 
         result = get_issue_committers(
@@ -1726,7 +1736,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert result is not None
         assert len(result["suspect_commits"]) == 1
 
-    def test_returns_file_committers_from_stacktrace_blame(self):
+    def test_returns_file_committers_from_stacktrace_blame(self) -> None:
         group = self._make_blame_event(self.user.email)
 
         result = get_issue_committers(
@@ -1743,7 +1753,9 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert commit["score"] is not None
 
     @patch("sentry.seer.agent.tools._get_recommended_event", return_value=None)
-    def test_stack_commits_fall_back_to_latest_event_without_span(self, mock_recommended):
+    def test_stack_commits_fall_back_to_latest_event_without_span(
+        self, mock_recommended: MagicMock
+    ) -> None:
         """When no span-bearing recommended event exists (the common case for error
         issues), frame blame falls back to the issue's latest event so stack_commits is
         still populated instead of silently empty."""
@@ -1760,7 +1772,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert stack_commits[0]["author"]["email"] == self.user.email
         mock_recommended.assert_called_once()
 
-    def test_returns_release_commits_in_window(self):
+    def test_returns_release_commits_in_window(self) -> None:
         group = self._make_blame_event(self.user.email)
 
         result = get_issue_committers(
@@ -1776,7 +1788,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert commit["files_changed_count"] == 1
         assert commit["is_merge_commit"] is False
 
-    def test_release_commits_file_change_counts_are_per_commit(self):
+    def test_release_commits_file_change_counts_are_per_commit(self) -> None:
         """Regression test: with multiple candidate commits, the per-commit
         ``files_changed_count`` is built from
         ``values_list("commit_id").annotate(n=Count("id"))`` passed to ``dict()``.
@@ -1802,7 +1814,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         merge_commit = next(c for c in release if c["id"] == "c" * 40)
         assert merge_commit["is_merge_commit"] is True
 
-    def test_no_commit_data_returns_empty_lists(self):
+    def test_no_commit_data_returns_empty_lists(self) -> None:
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
@@ -1817,7 +1829,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         assert result["suspect_commits"] == []
         assert result["release_commits"] == []
 
-    def test_returns_none_when_issue_does_not_exist(self):
+    def test_returns_none_when_issue_does_not_exist(self) -> None:
         result = get_issue_committers(
             organization_id=self.organization.id,
             issue_id="123456789",
@@ -1869,7 +1881,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         )
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
 
-    def test_returns_user_owner(self):
+    def test_returns_user_owner(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
         self._set_ownership(
             [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])]
@@ -1892,7 +1904,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert "*checkout.py" in result["matched_rules"]
         assert result["auto_assignment"] is False
 
-    def test_returns_team_owner(self):
+    def test_returns_team_owner(self) -> None:
         group = self._make_event_on_path("src/app/billing.py")
         self._set_ownership([Rule(Matcher("path", "*billing.py"), [Owner("team", self.team.slug)])])
 
@@ -1909,8 +1921,9 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert owners[0]["email"] is None
         assert owners[0]["username"] is None
 
-    def test_resolves_by_qualified_short_id(self):
+    def test_resolves_by_qualified_short_id(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
+        assert group.qualified_short_id is not None
         self._set_ownership(
             [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])]
         )
@@ -1924,7 +1937,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert len(result["owners"]) == 1
         assert result["owners"][0]["email"] == self.user.email
 
-    def test_auto_assignment_flag_reflects_project_setting(self):
+    def test_auto_assignment_flag_reflects_project_setting(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
         self._set_ownership(
             [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])],
@@ -1939,7 +1952,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert result is not None
         assert result["auto_assignment"] is True
 
-    def test_no_matching_rule_returns_empty_owners(self):
+    def test_no_matching_rule_returns_empty_owners(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
         # Rule targets a different file, so nothing covers the failing frame.
         self._set_ownership(
@@ -1955,7 +1968,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert result["owners"] == []
         assert result["matched_rules"] == []
 
-    def test_no_ownership_config_returns_empty_owners(self):
+    def test_no_ownership_config_returns_empty_owners(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
 
         result = get_issue_ownership(
@@ -1968,7 +1981,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert result["matched_rules"] == []
         assert result["auto_assignment"] is False
 
-    def test_returns_none_when_issue_does_not_exist(self):
+    def test_returns_none_when_issue_does_not_exist(self) -> None:
         result = get_issue_ownership(
             organization_id=self.organization.id,
             issue_id="123456789",
@@ -1980,7 +1993,7 @@ class TestGetTeamMembers(APITestCase):
     """Tests for get_team_members — expands a team into its active member users so the
     agent can drill from a team-level owner (from get_issue_ownership) down to people."""
 
-    def test_returns_active_members(self):
+    def test_returns_active_members(self) -> None:
         dev = self.create_user(email="dev@example.com", username="dev")
         lead = self.create_user(email="lead@example.com", username="lead")
         team = self.create_team(organization=self.organization, members=[dev, lead])
@@ -2001,7 +2014,7 @@ class TestGetTeamMembers(APITestCase):
         assert all(m["slug"] is None for m in members)
         assert all(m["name"] for m in members)
 
-    def test_member_without_email_retains_username(self):
+    def test_member_without_email_retains_username(self) -> None:
         user = self.create_user(email="", username="sso-user")
         team = self.create_team(organization=self.organization, members=[user])
 
@@ -2014,7 +2027,7 @@ class TestGetTeamMembers(APITestCase):
         assert result["members"][0]["email"] == ""
         assert result["members"][0]["username"] == "sso-user"
 
-    def test_empty_team_returns_no_members(self):
+    def test_empty_team_returns_no_members(self) -> None:
         team = self.create_team(organization=self.organization, members=[])
 
         result = get_team_members(
@@ -2026,14 +2039,14 @@ class TestGetTeamMembers(APITestCase):
         assert result["team_slug"] == team.slug
         assert result["members"] == []
 
-    def test_returns_none_for_unknown_team(self):
+    def test_returns_none_for_unknown_team(self) -> None:
         result = get_team_members(
             organization_id=self.organization.id,
             team_slug="no-such-team",
         )
         assert result is None
 
-    def test_does_not_leak_team_from_other_org(self):
+    def test_does_not_leak_team_from_other_org(self) -> None:
         other_org = self.create_organization()
         other_team = self.create_team(organization=other_org, members=[self.create_user()])
 
@@ -2043,7 +2056,7 @@ class TestGetTeamMembers(APITestCase):
         )
         assert result is None
 
-    def test_excludes_non_active_team(self):
+    def test_excludes_non_active_team(self) -> None:
         from sentry.models.team import TeamStatus
 
         team = self.create_team(
@@ -2082,7 +2095,7 @@ class TestGetProjectMembers(APITestCase):
             datetime=when,
         )
 
-    def test_returns_active_project_members_with_recent_assignees_first(self):
+    def test_returns_active_project_members_with_recent_assignees_first(self) -> None:
         alice = self.create_user(email="alice@example.com", name="Alice")
         bob = self.create_user(email="bob@example.com", name="Bob")
         carol = self.create_user(email="carol@example.com", name="Carol")
@@ -2140,7 +2153,7 @@ class TestGetProjectMembers(APITestCase):
             {"id": dana.id, "username": dana.username},
         ]
 
-    def test_defaults_to_three_and_randomizes_members_without_assignment_history(self):
+    def test_defaults_to_three_and_randomizes_members_without_assignment_history(self) -> None:
         users = [
             self.create_user(email=f"user-{index}@example.com", name=f"User {index}")
             for index in range(4)
@@ -2175,7 +2188,7 @@ class TestGetProjectMembers(APITestCase):
             sample_rate=1.0,
         )
 
-    def test_returns_none_for_project_outside_organization(self):
+    def test_returns_none_for_project_outside_organization(self) -> None:
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)
 
@@ -2186,7 +2199,7 @@ class TestGetProjectMembers(APITestCase):
 
         assert result is None
 
-    def test_rejects_invalid_limit(self):
+    def test_rejects_invalid_limit(self) -> None:
         for limit in (0, 21, True):
             with self.subTest(limit=limit), pytest.raises(BadRequest):
                 get_project_members(
@@ -2197,7 +2210,7 @@ class TestGetProjectMembers(APITestCase):
 
 
 class TestGetGroupAssignees(APITestCase):
-    def test_returns_active_user_assignees_by_group_id(self):
+    def test_returns_active_user_assignees_by_group_id(self) -> None:
         second_user = self.create_user(email="second@example.com")
         self.create_member(user=second_user, organization=self.organization)
         first_group = self.create_group(project=self.project)
@@ -2236,7 +2249,9 @@ class TestGetGroupAssignees(APITestCase):
         }
 
     @patch("sentry.seer.agent.tools.user_service.get_many")
-    def test_skips_user_service_when_no_groups_have_user_assignees(self, get_many):
+    def test_skips_user_service_when_no_groups_have_user_assignees(
+        self, get_many: MagicMock
+    ) -> None:
         team_group = self.create_group(project=self.project)
         GroupAssignee.objects.create(
             project=self.project,
@@ -2252,7 +2267,7 @@ class TestGetGroupAssignees(APITestCase):
         assert result["assignees"] == {}
         get_many.assert_not_called()
 
-    def test_excludes_groups_from_other_organizations(self):
+    def test_excludes_groups_from_other_organizations(self) -> None:
         other_organization = self.create_organization()
         other_project = self.create_project(organization=other_organization)
         other_group = self.create_group(project=other_project)
@@ -2271,7 +2286,7 @@ class TestGetGroupAssignees(APITestCase):
 
         assert result["assignees"] == {}
 
-    def test_rejects_more_than_one_hundred_groups(self):
+    def test_rejects_more_than_one_hundred_groups(self) -> None:
         with pytest.raises(BadRequest):
             get_group_assignees(
                 organization_id=self.organization.id,
@@ -2284,7 +2299,7 @@ class TestGetEventDetails(
 ):
     """Tests for get_event_details — fetching event data by event_id or recommended event by issue_id."""
 
-    def _make_error_event(self, timestamp=None, trace_id=None):
+    def _make_error_event(self, timestamp: Any = None, trace_id: str | None = None) -> Event:
         data = load_data("python", timestamp=timestamp or before_now(minutes=5))
         data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
         if trace_id:
@@ -2295,8 +2310,8 @@ class TestGetEventDetails(
         return self.store_event(data=data, project_id=self.project.id)
 
     def _assert_event_response_shape(
-        self, result, expected_event_id: str | None, expected_trace_id: Any = ANY
-    ):
+        self, result: Any, expected_event_id: str | None, expected_trace_id: Any = ANY
+    ) -> None:
         assert result is not None
         assert result["project_id"] == self.project.id
         assert result["project_slug"] == self.project.slug
@@ -2504,7 +2519,7 @@ class TestGetEventDetails(
     # --- fetch by issue_id (recommended event) ---
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
-    def test_by_issue_id_numeric(self, mock_recommended):
+    def test_by_issue_id_numeric(self, mock_recommended: MagicMock) -> None:
         """Fetching by numeric issue_id calls _get_recommended_event with the correct group and org."""
         event = self._make_error_event()
         group = event.group
@@ -2526,7 +2541,7 @@ class TestGetEventDetails(
         )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
-    def test_by_issue_id_qualified_short_id(self, mock_recommended):
+    def test_by_issue_id_qualified_short_id(self, mock_recommended: MagicMock) -> None:
         """Qualified short ID (e.g. PROJECT-1) resolves to the correct group before calling _get_recommended_event."""
         event = self._make_error_event()
         group = event.group
@@ -2548,7 +2563,7 @@ class TestGetEventDetails(
         )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
-    def test_by_issue_id_with_time_range(self, mock_recommended):
+    def test_by_issue_id_with_time_range(self, mock_recommended: MagicMock) -> None:
         """start/end strings are parsed into datetimes and forwarded to _get_recommended_event."""
         event = self._make_error_event(timestamp=before_now(days=5))
         group = event.group
@@ -2574,7 +2589,7 @@ class TestGetEventDetails(
         assert args[3] == parse_iso_timestamp(end)
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
-    def test_by_issue_id_no_events_returns_none(self, mock_recommended):
+    def test_by_issue_id_no_events_returns_none(self, mock_recommended: MagicMock) -> None:
         """Returns None when _get_recommended_event returns None."""
         event = self._make_error_event()
         group = event.group
@@ -2669,7 +2684,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
         assert result is None
 
     @patch("sentry.seer.agent.tools.client")
-    def test_no_start_end_uses_group_date_range(self, mock_api_client):
+    def test_no_start_end_uses_group_date_range(self, mock_api_client: MagicMock) -> None:
         """Selects resolution based on group lifespan and passes correct start/end to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
             mock_api_client.get = Mock(side_effect=client.get)
@@ -2727,7 +2742,7 @@ class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
             group.delete()
 
     @patch("sentry.seer.agent.tools.client")
-    def test_with_start_end_uses_explicit_range(self, mock_api_client):
+    def test_with_start_end_uses_explicit_range(self, mock_api_client: MagicMock) -> None:
         """Selects resolution based on explicit start/end and passes correct params to the API."""
         for stats_period, interval in EVENT_TIMESERIES_RESOLUTIONS:
             mock_api_client.get = Mock(side_effect=client.get)
@@ -3281,8 +3296,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_finds_transaction_profile(
-        self, mock_fetch_profile, mock_convert_tree
-    ):
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
         """Test finding transaction profile via profile.id with wildcard query"""
         profile_id_8char = "a1b2c3d4"
         full_profile_id = profile_id_8char + "e5f6789012345678901234567"
@@ -3312,8 +3327,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_finds_continuous_profile(
-        self, mock_fetch_profile, mock_convert_tree
-    ):
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
         """Test finding continuous profile via profiler.id with wildcard query"""
         profiler_id_8char = "b1c2d3e4"
         full_profiler_id = profiler_id_8char + "f5a6b7c8d9e0f1a2b3c4d5e6"
@@ -3349,8 +3364,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_aggregates_timestamps_across_spans(
-        self, mock_fetch_profile, mock_convert_tree
-    ):
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
         """Test that min/max timestamps are aggregated across multiple spans with same profile"""
         profile_id_8char = "c1d2e3f4"
         full_profile_id = profile_id_8char + "a5b6c7d8e9f0a1b2c3d4e5f6"
@@ -3392,8 +3407,8 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
     def test_rpc_get_profile_flamegraph_sliding_window_finds_old_profile(
-        self, mock_fetch_profile, mock_convert_tree
-    ):
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
         """Test that sliding 14-day windows can find profiles from 20 days ago"""
         profile_id_8char = "d1e2f3a4"
         full_profile_id = profile_id_8char + "b5c6d7e8f9a0b1c2d3e4f5a6"
@@ -3421,7 +3436,9 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
 
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")
-    def test_rpc_get_profile_flamegraph_full_32char_id(self, mock_fetch_profile, mock_convert_tree):
+    def test_rpc_get_profile_flamegraph_full_32char_id(
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
         """Test with full 32-character profile ID (no wildcard needed)"""
         full_profile_id = "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6"
 
@@ -3478,7 +3495,7 @@ class TestGetReplayMetadata(ReplaysSnubaTestCase):
         trace_ids: list[str]
         error_ids: list[str]
         environment: str | None
-        tags: dict[str, list[str]] | list
+        tags: dict[str, list[str]] | list[Any]
         user: dict[str, Any]
         sdk: dict[str, Any]
         os: dict[str, Any]

@@ -12,6 +12,7 @@ from sentry.api.serializers.models.activity import (
     serialize_group_notes,
 )
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
     ActivityReadResult,
@@ -119,7 +120,7 @@ def _serialized_comment_id(obj: GroupActionLogEntry) -> str | None:
 
 def get_serialized_activity_items(
     group: "Group",
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     *,
     endpoint: str,
     limit: int = 99,

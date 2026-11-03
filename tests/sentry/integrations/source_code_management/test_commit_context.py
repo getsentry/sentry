@@ -106,6 +106,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
 
     integration_name = "mock_integration"
     integration_id = 1
+    organization_id: int | None = None
 
     def __init__(self) -> None:
         self.client = Mock()
@@ -126,7 +127,7 @@ class MockCommitContextIntegration(CommitContextIntegration):
 class TestCommitContextIntegrationSLO(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.integration = MockCommitContextIntegration()
+        self.mock_integration = MockCommitContextIntegration()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="example/repo",
@@ -138,9 +139,9 @@ class TestCommitContextIntegrationSLO(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_success(self, mock_record: MagicMock) -> None:
         """Test successful blame retrieval records correct lifecycle events"""
-        self.integration.client.get_blame_for_files.return_value = []
+        self.mock_integration.client.get_blame_for_files.return_value = []
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
@@ -151,19 +152,19 @@ class TestCommitContextIntegrationSLO(TestCase):
     def test_get_blame_for_files_event_includes_organization_id(
         self, mock_interaction_event: MagicMock
     ) -> None:
-        self.integration.organization_id = self.organization.id
-        self.integration.client.get_blame_for_files.return_value = []
+        self.mock_integration.organization_id = self.organization.id
+        self.mock_integration.client.get_blame_for_files.return_value = []
 
         lifecycle = MagicMock()
         mock_interaction_event.return_value.capture.return_value.__enter__.return_value = lifecycle
         mock_interaction_event.return_value.capture.return_value.__exit__.return_value = False
 
-        self.integration.get_blame_for_files([self.source_line], {})
+        self.mock_integration.get_blame_for_files([self.source_line], {})
 
         mock_interaction_event.assert_called_once_with(
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
-            provider_key=self.integration.integration_name,
-            integration_id=self.integration.integration_id,
+            provider_key=self.mock_integration.integration_name,
+            integration_id=self.mock_integration.integration_id,
             organization_id=self.organization.id,
         )
 
@@ -173,27 +174,26 @@ class TestCommitContextIntegrationSLO(TestCase):
     def test_get_blame_for_files_event_omits_organization_id_when_unavailable(
         self, mock_interaction_event: MagicMock
     ) -> None:
-        self.integration.client.get_blame_for_files.return_value = []
+        self.mock_integration.client.get_blame_for_files.return_value = []
 
         lifecycle = MagicMock()
         mock_interaction_event.return_value.capture.return_value.__enter__.return_value = lifecycle
         mock_interaction_event.return_value.capture.return_value.__exit__.return_value = False
 
-        self.integration.get_blame_for_files([self.source_line], {})
+        self.mock_integration.get_blame_for_files([self.source_line], {})
 
         mock_interaction_event.assert_called_once_with(
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
-            provider_key=self.integration.integration_name,
-            integration_id=self.integration.integration_id,
+            provider_key=self.mock_integration.integration_name,
+            integration_id=self.mock_integration.integration_id,
             organization_id=None,
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_missing_identity(self, mock_record: MagicMock) -> None:
         """Test missing identity records failure"""
-        self.integration.get_client = Mock(side_effect=Identity.DoesNotExist())
-
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        with patch.object(self.mock_integration, "get_client", side_effect=Identity.DoesNotExist()):
+            result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert len(mock_record.mock_calls) == 2
@@ -205,9 +205,9 @@ class TestCommitContextIntegrationSLO(TestCase):
         """Test invalid identity records failure"""
         from sentry.auth.exceptions import IdentityNotValid
 
-        self.integration.client.get_blame_for_files = Mock(side_effect=IdentityNotValid())
+        self.mock_integration.client.get_blame_for_files = Mock(side_effect=IdentityNotValid())
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
@@ -218,11 +218,11 @@ class TestCommitContextIntegrationSLO(TestCase):
         """Test rate limited requests record halt"""
         from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiRateLimitedError(text="Rate limited")
         )
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
@@ -233,11 +233,11 @@ class TestCommitContextIntegrationSLO(TestCase):
         """Test invalid request records halt"""
         from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiInvalidRequestError(text="Invalid request")
         )
 
-        self.integration.get_blame_for_files([self.source_line], {})
+        self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
@@ -250,13 +250,13 @@ class TestCommitContextIntegrationSLO(TestCase):
         class MockGitlabIntegration(MockCommitContextIntegration):
             integration_name = "gitlab"
 
-        self.integration = MockGitlabIntegration()
+        self.mock_integration = MockGitlabIntegration()
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiInvalidRequestError(text="Invalid request")
         )
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
@@ -267,13 +267,13 @@ class TestCommitContextIntegrationSLO(TestCase):
         class MockGitlabIntegration(MockCommitContextIntegration):
             integration_name = "gitlab"
 
-        self.integration = MockGitlabIntegration()
+        self.mock_integration = MockGitlabIntegration()
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiHostError(text="retried too many times")
         )
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
@@ -293,13 +293,13 @@ class TestCommitContextIntegrationSLO(TestCase):
                 super().__init__()
                 self.client.base_url = self.base_url
 
-        self.integration = MockGitlabIntegration()
+        self.mock_integration = MockGitlabIntegration()
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiRetryError(text="Host error")
         )
 
-        result = self.integration.get_blame_for_files([self.source_line], {})
+        result = self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
@@ -319,14 +319,14 @@ class TestCommitContextIntegrationSLO(TestCase):
                 super().__init__()
                 self.client.base_url = self.base_url
 
-        self.integration = MockGitlabIntegration()
+        self.mock_integration = MockGitlabIntegration()
 
-        self.integration.client.get_blame_for_files = Mock(
+        self.mock_integration.client.get_blame_for_files = Mock(
             side_effect=ApiRetryError(text="Host error")
         )
 
         with pytest.raises(ApiRetryError):
-            self.integration.get_blame_for_files([self.source_line], {})
+            self.mock_integration.get_blame_for_files([self.source_line], {})
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, ApiRetryError(text="Host error"))
@@ -334,9 +334,9 @@ class TestCommitContextIntegrationSLO(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_commit_context_all_frames(self, mock_record: MagicMock) -> None:
         """Test get_commit_context_all_frames records correct lifecycle events"""
-        self.integration.client.get_blame_for_files.return_value = []
+        self.mock_integration.client.get_blame_for_files.return_value = []
 
-        result = self.integration.get_commit_context_all_frames([self.source_line], {})
+        result = self.mock_integration.get_commit_context_all_frames([self.source_line], {})
 
         assert result == []
         assert len(mock_record.mock_calls) == 2
@@ -348,8 +348,8 @@ class TestEAPGetTop5IssuesByCount(TestCase, SnubaTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.integration = MockCommitContextIntegration()
-        self.pr_comment_workflow = GitHubPRCommentWorkflow(self.integration)
+        self.mock_integration = MockCommitContextIntegration()
+        self.pr_comment_workflow = GitHubPRCommentWorkflow(self.mock_integration)
 
     def _query_both(
         self, issue_ids: list[int]

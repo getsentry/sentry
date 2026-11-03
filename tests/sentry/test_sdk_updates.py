@@ -121,11 +121,11 @@ def test_enable_two_integrations() -> None:
         "sentry.dotnet",
     ]
 )
-def some_dotnet_sdk(request):
+def some_dotnet_sdk(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
-def test_add_aspnetcore_sdk(some_dotnet_sdk) -> None:
+def test_add_aspnetcore_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -152,7 +152,7 @@ def test_add_aspnetcore_sdk(some_dotnet_sdk) -> None:
         ]
 
 
-def test_add_serilog_sdk(some_dotnet_sdk) -> None:
+def test_add_serilog_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -174,7 +174,7 @@ def test_add_serilog_sdk(some_dotnet_sdk) -> None:
         ]
 
 
-def test_add_no_dotnet_sdk(some_dotnet_sdk) -> None:
+def test_add_no_dotnet_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -191,7 +191,7 @@ def test_add_no_dotnet_sdk(some_dotnet_sdk) -> None:
     assert suggestions == []
 
 
-def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
+def test_more_specific_dotnet_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",

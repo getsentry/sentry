@@ -7,6 +7,7 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
 from sentry.silo.base import SiloMode
@@ -14,16 +15,19 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 
 
 class RecentSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("test@test.com")
 
-    def check_results(self, expected, search_type, query=None):
+    def check_results(
+        self, expected: list[RecentSearch], search_type: SearchType, query: str | None = None
+    ) -> None:
         self.login_as(user=self.user)
         kwargs = {}
         if query:
@@ -194,11 +198,11 @@ class RecentSearchesCreateTest(APITestCase):
     method = "post"
 
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.create_organization()
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         user = self.create_user("test@test.com")
         self.create_team(members=[user], organization=self.organization)
         return user

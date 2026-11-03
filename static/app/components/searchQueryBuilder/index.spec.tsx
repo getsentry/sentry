@@ -2216,6 +2216,37 @@ describe('SearchQueryBuilder', () => {
       });
     });
 
+    it('moves focus into key details on Arrow Right and back on Arrow Left', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            'db.system': {key: 'db.system', name: 'db.system', kind: FieldKind.TAG},
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('db.system');
+      await userEvent.keyboard('{ArrowDown}');
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+      await screen.findByRole('link', {name: 'OpenTelemetry docs'});
+      await userEvent.keyboard('{ArrowRight}');
+      const focusedInDetails = document.activeElement;
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(focusedInDetails).toBe(
+        screen.getByRole('link', {name: 'OpenTelemetry docs'})
+      );
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('db.system');
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
     it('can remove a previous token by pressing backspace', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />

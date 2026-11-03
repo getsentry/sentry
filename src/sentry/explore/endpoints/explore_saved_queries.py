@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Case, Count, Exists, F, IntegerField, OrderBy, OuterRef, Subquery, When
@@ -44,6 +46,7 @@ from sentry.explore.models import (
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
+from sentry.users.models.user import User
 from sentry.utils.locking import UnableToAcquireLock
 
 PREBUILT_SAVED_QUERIES = [
@@ -194,7 +197,7 @@ PREBUILT_SAVED_QUERIES = [
 ]
 
 
-def sync_prebuilt_queries(organization):
+def sync_prebuilt_queries(organization: Organization) -> None:
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQuery record and
     creates them if they don't, updates them if they're outdated, or deletes them if they
@@ -235,11 +238,13 @@ def sync_prebuilt_queries(organization):
                 }
             else:
                 continue
+            prebuilt_version = cast(int, prebuilt_query["prebuilt_version"])
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
                     prebuilt_id=prebuilt_query["prebuilt_id"]
                 )
-                if prebuilt_query["prebuilt_version"] > saved_prebuilt_query.prebuilt_version:
+                saved_prebuilt_version = saved_prebuilt_query.prebuilt_version
+                if saved_prebuilt_version is not None and prebuilt_version > saved_prebuilt_version:
                     queries_to_update.append(
                         ExploreSavedQuery(
                             id=saved_prebuilt_query.id,
@@ -269,7 +274,7 @@ def sync_prebuilt_queries(organization):
             ).delete()
 
 
-def sync_prebuilt_queries_starred(organization, user):
+def sync_prebuilt_queries_starred(organization: Organization, user: User) -> None:
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQueryStarred record for the user_id, and creates them if they don't.
     This ensures that prebuilt queries are starred by default for all users.
@@ -322,7 +327,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -507,7 +512,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         queryset = queryset.order_by(*order_by)
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[ExploreSavedQuery]:
             return list(queryset[offset : offset + limit])
 
         return self.paginate(

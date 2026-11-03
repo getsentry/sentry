@@ -1,4 +1,5 @@
 import type {Location} from 'history';
+import {parseAsJson} from 'nuqs';
 import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
@@ -13,18 +14,18 @@ import {
   type ReadableQueryParamsOptions,
 } from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  isBaseVisualize,
   isVisualize,
+  parseVisualize,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 
-export interface TraceMetric {
+export type TraceMetric = {
   name: string;
   type: string;
   unit?: string | null;
-}
+};
 
 export const traceMetricSchema = z.looseObject({
   name: z.string(),
@@ -44,56 +45,63 @@ export interface MetricQuery extends BaseMetricQuery {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
+const sortSchema = z.looseObject({field: z.string(), kind: z.enum(['asc', 'desc'])});
+
+const parseAsMetricQuery = parseAsJson(
+  z.object({
+    metric: traceMetricSchema,
+    query: z.string().catch(''),
+    aggregateFields: z.array(z.unknown()).catch([]),
+    aggregateSortBys: z.array(sortSchema).readonly().catch([]),
+    sortBys: z
+      .array(sortSchema.refine(sort => SORTABLE_SAMPLE_COLUMNS.has(sort.field)))
+      .catch([]),
+    mode: z.enum(Mode).catch(Mode.SAMPLES),
+  })
+);
+
 export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
-  let json: any;
-  try {
-    json = JSON.parse(value);
-  } catch {
-    // The value is not valid JSON — it may be a stale or malformed URL param.
-    // Log a warning so future encoding regressions are caught immediately.
+  const json = parseAsMetricQuery.parse(value);
+  if (!json) {
+    // Surfaces encoding regressions that would otherwise silently drop a metric.
     // eslint-disable-next-line no-console
     console.warn('[decodeMetricsQueryParams] Failed to parse metric URL param:', value);
     return null;
   }
 
-  if (!traceMetricSchema.safeParse(json.metric).success) {
-    return null;
-  }
-
-  const metric: TraceMetric = json.metric;
-  const query = parseQuery(json.query);
-  const visualizes = parseVisualizes(json.aggregateFields);
+  const visualizes = json.aggregateFields.flatMap(item => parseVisualize(item));
 
   if (!visualizes.length) {
     return null;
   }
 
-  const groupBys = parseGroupBys(json.aggregateFields);
-  const aggregateFields = [...visualizes, ...groupBys];
-  const aggregateSortBys = parseAggregateSortBys(json.aggregateSortBys, aggregateFields);
+  const aggregateFields = [...visualizes, ...json.aggregateFields.filter(isGroupBy)];
   const fields = defaultFields();
-  const sortBys = parseSortBys(json.sortBys, fields);
 
   return {
-    metric,
+    metric: json.metric,
     queryParams: new ReadableQueryParams({
       extrapolate: true,
       mode: json.mode,
-      query,
+      query: json.query,
 
       cursor: '',
       fields,
-      sortBys,
+      sortBys: json.sortBys.length ? json.sortBys : defaultSortBys(fields),
 
       aggregateCursor: '',
       aggregateFields,
-      aggregateSortBys,
+      aggregateSortBys:
+        json.aggregateSortBys.length &&
+        json.aggregateSortBys.every(sort => validateAggregateSort(sort, aggregateFields))
+          ? json.aggregateSortBys
+          : defaultAggregateSortBys(aggregateFields),
     }),
   };
 }
 
 export function encodeMetricQueryParams(metricQuery: BaseMetricQuery): string {
-  return JSON.stringify({
+  return parseAsMetricQuery.serialize({
     metric: metricQuery.metric,
     query: metricQuery.queryParams.query,
     aggregateFields: metricQuery.queryParams.aggregateFields.map(field => {
@@ -208,64 +216,4 @@ export function stripMetricParamsFromLocation(location: Location): Location {
   delete target.query.metric;
 
   return target;
-}
-
-function parseQuery(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
-function parseVisualizes(value: unknown): Visualize[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
-}
-
-function parseGroupBys(value: unknown): GroupBy[] {
-  if (!Array.isArray(value)) {
-    return defaultGroupBys();
-  }
-
-  return value.filter<GroupBy>(isGroupBy);
-}
-
-function parseAggregateSortBys(
-  value: unknown,
-  aggregateFields: AggregateField[]
-): Sort[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    return defaultAggregateSortBys(aggregateFields);
-  }
-
-  if (value.length > 0) {
-    if (value.some(v => !validateAggregateSort(v, aggregateFields))) {
-      return defaultAggregateSortBys(aggregateFields);
-    }
-  }
-
-  return value;
-}
-
-function parseSortBys(value: unknown, fields: string[]): Sort[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    return defaultSortBys(fields);
-  }
-
-  const isValid = value.every(
-    (v: unknown) =>
-      v !== null &&
-      typeof v === 'object' &&
-      'field' in v &&
-      typeof v.field === 'string' &&
-      SORTABLE_SAMPLE_COLUMNS.has(v.field) &&
-      'kind' in v &&
-      (v.kind === 'asc' || v.kind === 'desc')
-  );
-
-  if (!isValid) {
-    return defaultSortBys(fields);
-  }
-
-  return value;
 }

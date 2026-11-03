@@ -1,18 +1,21 @@
 import logging
 from collections import defaultdict
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistribution,
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
+    TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -40,9 +43,10 @@ from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
+from sentry.search.events.types import SnubaParams
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
@@ -152,13 +156,14 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
-        distributions_result = query_attribute_distributions(
-            snuba_params=snuba_params,
-            function_string=function_string,
-            above=above,
-            query_1=query_1,
-            query_2=query_2,
-        )
+        with handle_query_errors():
+            distributions_result = query_attribute_distributions(
+                snuba_params=snuba_params,
+                function_string=function_string,
+                above=above,
+                query_1=query_1,
+                query_2=query_2,
+            )
 
         cohort_2_distribution = distributions_result["cohort_2_distribution"]
         cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]
@@ -197,8 +202,8 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
 
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
         scored_attrs_rrr = compare_distributions(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
+            baseline=cast("list[dict[str, Any]]", cohort_2_distribution),
+            outliers=cast("list[dict[str, Any]]", cohort_1_distribution),
             total_outliers=total_outliers,
             total_baseline=total_baseline,
             config={
@@ -258,7 +263,7 @@ class AttributeDistributionsResponse(TypedDict):
 
 
 def query_attribute_distributions(
-    snuba_params,
+    snuba_params: SnubaParams,
     function_string: str,
     above: bool,
     query_1: str,
@@ -385,7 +390,9 @@ def query_attribute_distributions(
             AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
         )
 
-    def run_stats_request_with_error_handling(filter, attributes):
+    def run_stats_request_with_error_handling(
+        filter: TraceItemFilter | None, attributes: list[AttributeKey]
+    ) -> TraceItemStatsResponse:
         with handle_query_errors():
             request = TraceItemStatsRequest(
                 filter=filter,
@@ -401,7 +408,7 @@ def query_attribute_distributions(
             )
             return trace_item_stats_rpc(request)
 
-    def run_table_query_with_error_handling(query_string):
+    def run_table_query_with_error_handling(query_string: str) -> EAPResponse:
         with handle_query_errors():
             return Spans.run_table_query(
                 params=snuba_params,
@@ -432,14 +439,14 @@ def query_attribute_distributions(
         totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
 
         # Merge cohort 1 results
-        cohort_1_data = []
+        cohort_1_data: list[AttributeDistribution] = []
         for future in cohort_1_futures:
             result = future.result()
             if result.results:
                 cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
 
         # Merge cohort 2 results
-        cohort_2_data = []
+        cohort_2_data: list[AttributeDistribution] = []
         for future in cohort_2_futures:
             result = future.result()
             if result.results:

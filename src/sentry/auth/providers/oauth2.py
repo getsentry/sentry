@@ -5,7 +5,7 @@ import logging
 import secrets
 from collections.abc import Mapping
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
@@ -124,8 +124,9 @@ class OAuth2Callback(AuthView):
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-            return dict(parse_qsl(body))
-        return orjson.loads(body)
+            return dict(parse_qsl(cast(Any, body)))
+        data = orjson.loads(body)
+        return data
 
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")

@@ -38,7 +38,10 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {
+  sortProjects,
+  sortProjectsByBookmarkAndMembership,
+} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -54,6 +57,8 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
+
+const QUICK_ACCESS_PROJECT_LIMIT = 5;
 
 interface OrganizationDropdownProps {
   /**
@@ -95,6 +100,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   // request settles: on success ProjectsStore has the new value, on error the
   // project falls back to its previous state.
   const [pendingBookmarks, setPendingBookmarks] = useState<Record<string, boolean>>({});
+  // Captured when the menu opens, so toggling a bookmark does not reorder the
+  // open menu.
+  const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>();
   const {mutate: toggleBookmark} = useMutation({
     mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
       update(api, {
@@ -151,6 +159,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   if (settingsV3) {
     const memberProjects = sortProjects(projects.filter(project => project.isMember));
     const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+    // Unbookmarked projects fill the remaining slots, so the list is not empty
+    // when nothing is bookmarked.
+    const quickAccessProjects = sortProjectsByBookmarkAndMembership(
+      projects,
+      bookmarkedSnapshot
+    ).slice(0, QUICK_ACCESS_PROJECT_LIMIT);
 
     return (
       <SettingsNavigationTourElement
@@ -182,6 +196,15 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             isOpen={isProjectTourActive || isMenuOpen}
             onOpenChange={open => {
               setMenuOpen(open);
+              if (open) {
+                setBookmarkedSnapshot(
+                  new Set(
+                    projects
+                      .filter(project => project.isBookmarked)
+                      .map(project => project.id)
+                  )
+                );
+              }
               if (!open && isProjectTourActive) {
                 settingsTour?.endTour();
               }
@@ -249,16 +272,14 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 ref: projectsTourProps.ref,
                 hidden: props.hideCurrentOrganizationLinks,
                 children: [
-                  ...sortProjects(projects.filter(project => project.isBookmarked))
-                    .slice(0, 5)
-                    .map(project =>
-                      makeProjectMenuItem(
-                        project,
-                        organization,
-                        makeBookmarkAction(project),
-                        'starred-project'
-                      )
-                    ),
+                  ...quickAccessProjects.map(project =>
+                    makeProjectMenuItem(
+                      project,
+                      organization,
+                      makeBookmarkAction(project),
+                      'quick-access-project'
+                    )
+                  ),
                   {
                     key: 'view-all-projects',
                     label: t('View All Projects'),

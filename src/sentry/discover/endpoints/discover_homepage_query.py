@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,9 +16,12 @@ from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
 
 
-def get_homepage_query(organization, user):
+def get_homepage_query(
+    organization: Organization, user: User | AnonymousUser
+) -> DiscoverSavedQuery:
     return DiscoverSavedQuery.objects.get(
         organization=organization, is_homepage=True, created_by_id=user.id
     )
@@ -37,7 +41,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         DiscoverSavedQueryPermission,
     )
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -112,7 +116,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         return Response(serialize(model), status=status.HTTP_201_CREATED)
 
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 

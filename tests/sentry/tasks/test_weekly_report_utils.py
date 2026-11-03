@@ -286,6 +286,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.ONGOING
         event1.group.save()
 
@@ -299,6 +300,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.NEW
         event2.group.save()
         timestamp = self.now.timestamp()
@@ -336,6 +338,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -347,6 +350,7 @@ class WeeklyReportUtilsTest(
             default_event_type=EventType.DEFAULT,
         )
         group2 = event2.group
+        assert group2 is not None
         group2.status = GroupStatus.RESOLVED
         group2.substatus = None
         group2.resolved_at = self.now - timedelta(minutes=1)
@@ -433,6 +437,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event1.group is not None
         event1.group.substatus = GroupSubStatus.NEW
         event1.group.save()
 
@@ -446,6 +451,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event2.group is not None
         event2.group.substatus = GroupSubStatus.ESCALATING
         event2.group.save()
 
@@ -459,6 +465,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event3.group is not None
         event3.group.substatus = GroupSubStatus.REGRESSED
         event3.group.save()
 
@@ -473,6 +480,7 @@ class WeeklyReportUtilsTest(
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event4.group is not None
         event4.group.status = GroupStatus.RESOLVED
         event4.group.substatus = None
         event4.group.save()
@@ -505,6 +513,7 @@ class WeeklyReportUtilsTest(
             default_event_type=EventType.DEFAULT,
         )
         group1 = event1.group
+        assert group1 is not None
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
         group1.resolved_at = self.now - timedelta(minutes=1)
@@ -595,6 +604,7 @@ class WeeklyReportUtilsTest(
             default_event_type=EventType.DEFAULT,
         )
         group1 = event1.group
+        assert group1 is not None
         group1.status = GroupStatus.RESOLVED
         group1.substatus = None
         group1.resolved_at = self.now - timedelta(days=14)

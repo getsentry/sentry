@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, TypeAlias, cast
 
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -269,9 +269,8 @@ class GeneratedWidget(BaseModel):
         limit = values.get("limit")
         if display_type is None or limit is None or display_type == "text":
             return values
-        max_limit = get_max_widget_limit(
-            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
-        )
+        display_type_id = cast(int, DashboardWidgetDisplayTypes.get_id_for_type_name(display_type))
+        max_limit = get_max_widget_limit(display_type_id)
         if limit > max_limit:
             raise ValueError(
                 f"limit={limit} exceeds the maximum of {max_limit} for display_type '{display_type}'"
@@ -285,9 +284,8 @@ class GeneratedWidget(BaseModel):
         if display_type is None or layout is None:
             return values
 
-        min_height = get_min_widget_height(
-            DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
-        )
+        display_type_id = cast(int, DashboardWidgetDisplayTypes.get_id_for_type_name(display_type))
+        min_height = get_min_widget_height(display_type_id)
         if layout.h < min_height:
             raise ValueError(f"Height must be at least {min_height} for {display_type} widgets.")
 

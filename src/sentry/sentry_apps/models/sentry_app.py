@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -36,6 +38,19 @@ from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, resource_of
 from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from django.db.models.base import ModelBase
+
+    from sentry.models.organization import Organization
+
+
+class HasScopes(Protocol):
+    @property
+    def scopes(self) -> Iterable[str]: ...
+
+
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
@@ -65,11 +80,11 @@ MASKED_VALUE = "*" * 64
 UUID_CHARS_IN_SLUG = 6
 
 
-def default_uuid():
+def default_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def track_response_code(status, integration_slug, webhook_event):
+def track_response_code(status: int | str, integration_slug: str, webhook_event: str) -> None:
     metrics.incr(
         "integration-platform.http_response",
         sample_rate=1.0,
@@ -78,7 +93,7 @@ def track_response_code(status, integration_slug, webhook_event):
 
 
 class SentryAppManager(ParanoidManager["SentryApp"]):
-    def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet["SentryApp"]:
+    def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet[SentryApp]:
         return self.filter(
             installations__organization_id=organization_id,
             is_alertable=True,
@@ -86,7 +101,7 @@ class SentryAppManager(ParanoidManager["SentryApp"]):
             installations__date_deleted=None,
         ).distinct()
 
-    def visible_for_user(self, request: Request) -> QuerySet["SentryApp"]:
+    def visible_for_user(self, request: Request) -> QuerySet[SentryApp]:
         from sentry.auth.superuser import is_active_superuser
 
         if is_active_superuser(request):
@@ -185,22 +200,33 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             return "unpublished"
         return self.slug
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         self.date_updated = timezone.now()
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
-            result = super().save(*args, **kwargs)
+            result = super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields,
+            )
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return result
 
-    def update(self, *args, **kwargs):
+    def update(self, using: str | None = None, **kwargs: object) -> int:
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
-            result = super().update(*args, **kwargs)
+            result = super().update(using=using, **kwargs)
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return result
 
-    def is_installed_on(self, organization) -> bool:
+    def is_installed_on(self, organization: Organization) -> bool:
         from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
@@ -208,7 +234,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             sentry_app=self,
         ).exists()
 
-    def build_signature(self, body) -> str:
+    def build_signature(self, body: str) -> str:
         assert self.application is not None
         secret = self.application.client_secret
         # SentryApps always have a client_secret (they are confidential clients)
@@ -217,7 +243,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
-    def show_auth_info(self, access) -> bool:
+    def show_auth_info(self, access: HasScopes) -> bool:
         from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
@@ -253,7 +279,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     def cells_with_installations(self) -> set[str]:
         return find_cells_for_sentry_app(self)
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp))):
@@ -267,9 +295,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
             if options.get("sentry-apps.hard-delete"):
                 # actually delete the object. we need to delete all soft-deleted objects before removing ParanoidModel
-                return super(Model, self).delete(*args, **kwargs)
+                return super(Model, self).delete(using=using, keep_parents=keep_parents)
 
-            return super().delete(*args, **kwargs)
+            return super().delete(using=using, keep_parents=keep_parents)
 
     @classmethod
     def sanitize_relocation_json(

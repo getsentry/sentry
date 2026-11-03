@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
     alias_namespace=ingest_errors_tasks,
 )
 def trigger_lightweight_rca_cluster_task(
-    group_id: int, event_id: str | None = None, **kwargs
+    group_id: int, event_id: str | None = None, **kwargs: object
 ) -> None:
     try:
         group = Group.objects.get(id=group_id)
