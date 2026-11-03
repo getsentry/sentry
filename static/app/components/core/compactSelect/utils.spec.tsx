@@ -1,24 +1,34 @@
-import {getMenuWidthForLabels} from './utils';
+import {getMenuWidthForOptions} from './utils';
 
-describe('getMenuWidthForLabels', () => {
-  it('returns the minimum width when there are no labels', () => {
-    expect(getMenuWidthForLabels([])).toBe('16em');
+function makeOptions(labels: string[], extra: {trailingItems?: React.ReactNode} = {}) {
+  return labels.map(label => ({value: label, label, ...extra}));
+}
+
+describe('getMenuWidthForOptions', () => {
+  it('returns the minimum width when there are no options', () => {
+    expect(getMenuWidthForOptions([])).toBe('16em');
   });
 
   it('grows with the longest label', () => {
     // 20 * 0.6 + 6 = 18
-    expect(getMenuWidthForLabels(['short', 'a'.repeat(20)])).toBe('18em');
+    expect(getMenuWidthForOptions(makeOptions(['short', 'a'.repeat(20)]))).toBe('18em');
   });
 
   it('caps the width at the maximum', () => {
-    expect(getMenuWidthForLabels(['a'.repeat(100)])).toBe('24em');
+    expect(getMenuWidthForOptions(makeOptions(['a'.repeat(100)]))).toBe('24em');
   });
 
-  it('reserves room for trailing actions', () => {
-    const options = {hasTrailingActions: true};
-    expect(getMenuWidthForLabels([], options)).toBe('22em');
+  it('prefers textValue over the label', () => {
+    expect(
+      getMenuWidthForOptions([{value: 'a', label: <span />, textValue: 'a'.repeat(20)}])
+    ).toBe('18em');
+  });
+
+  it('reserves room for trailing items', () => {
+    const trailing = {trailingItems: <span />};
+    expect(getMenuWidthForOptions(makeOptions(['short'], trailing))).toBe('22em');
     // 20 * 0.6 + 12 = 24
-    expect(getMenuWidthForLabels(['a'.repeat(20)], options)).toBe('24em');
-    expect(getMenuWidthForLabels(['a'.repeat(100)], options)).toBe('28em');
+    expect(getMenuWidthForOptions(makeOptions(['a'.repeat(20)], trailing))).toBe('24em');
+    expect(getMenuWidthForOptions(makeOptions(['a'.repeat(100)], trailing))).toBe('28em');
   });
 });

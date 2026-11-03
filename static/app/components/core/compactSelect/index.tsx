@@ -40,7 +40,7 @@ export {
   itemIsSectionWithKey,
   SectionToggle,
   getEscapedKey,
-  getMenuWidthForLabels,
+  getMenuWidthForOptions,
 } from './utils';
 
 export {useVirtualizedItems} from './useVirtualizedItems';

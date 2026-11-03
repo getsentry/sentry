@@ -13,7 +13,7 @@ import xor from 'lodash/xor';
 import {LinkButton} from '@sentry/scraps/button';
 import {
   CompactSelect,
-  getMenuWidthForLabels,
+  getMenuWidthForOptions,
   MenuComponents,
 } from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
@@ -572,14 +572,7 @@ export function ProjectPageFilter({
   // React Compiler could not prove this memoization is preserved; it bails out on
   // code this callback depends on. Revisit once those bailouts are fixed.
   // oxlint-disable-next-line react/preserve-manual-memoization
-  const defaultMenuWidth = useMemo(
-    () =>
-      getMenuWidthForLabels(
-        options.map(option => option.textValue ?? ''),
-        {hasTrailingActions: true}
-      ),
-    [options]
-  );
+  const defaultMenuWidth = useMemo(() => getMenuWidthForOptions(options), [options]);
 
   const canCreateProject = useCanCreateProject();
 

@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import {
   CompactSelect,
-  getMenuWidthForLabels,
+  getMenuWidthForOptions,
   MenuComponents,
 } from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
@@ -187,7 +187,7 @@ export function EnvironmentPageFilter({
 
   // EnvironmentPageFilter will try to expand to accommodate the longest env slug.
   const defaultMenuWidth = useMemo(
-    () => getMenuWidthForLabels(options.slice(0, 25).map(option => String(option.label))),
+    () => getMenuWidthForOptions(options.slice(0, 25)),
     [options]
   );
 

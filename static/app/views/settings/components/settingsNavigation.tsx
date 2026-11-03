@@ -6,7 +6,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
-  getMenuWidthForLabels,
+  getMenuWidthForOptions,
   MenuComponents,
 } from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
@@ -109,7 +109,11 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
-  const menuWidth = getMenuWidthForLabels(projects.map(project => project.slug));
+  const options = projects.map(project => ({
+    value: project.slug,
+    label: project.slug,
+    leadingItems: <ProjectAvatar project={project} size={16} />,
+  }));
 
   return (
     <Container width="100%">
@@ -118,7 +122,7 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuWidth={menuWidth}
+          menuWidth={getMenuWidthForOptions(options)}
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
@@ -157,11 +161,7 @@ function SettingsProjectSelector() {
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           }
-          options={projects.map(project => ({
-            value: project.slug,
-            label: project.slug,
-            leadingItems: <ProjectAvatar project={project} size={16} />,
-          }))}
+          options={options}
           onChange={selection =>
             navigate(
               normalizeUrl(
