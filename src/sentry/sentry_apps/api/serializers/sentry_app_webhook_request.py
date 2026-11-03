@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, NotRequired, TypedDict
+from urllib.parse import urlsplit
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -45,9 +46,25 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     durationMs: NotRequired[int | None]
 
 
+def _webhook_url_origin(url: str) -> str:
+    # Chat webhook URLs (Slack, Discord, Google Chat) carry their secret in the
+    # path or query string, so the summary view only shows where it was sent.
+    parts = urlsplit(url)
+    if not parts.scheme or not parts.hostname:
+        return ""
+    try:
+        port = f":{parts.port}" if parts.port else ""
+    except ValueError:
+        port = ""
+    return f"{parts.scheme}://{parts.hostname}{port}"
+
+
 class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerializerResponse]):
-    def __init__(self, sentry_app: SentryApp) -> None:
+    def __init__(self, sentry_app: SentryApp, *, include_details: bool) -> None:
         self.sentry_app = sentry_app
+        # False returns a delivery summary without headers, bodies, the full
+        # webhook URL, or linked errors; see SentryAppWebhookRequestsPermission.
+        self.include_details = include_details
 
     def get_attrs(
         self,
@@ -81,7 +98,11 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
         response_code = obj.data.response_code
 
         data: SentryAppWebhookRequestSerializerResponse = {
-            "webhookUrl": obj.data.webhook_url,
+            "webhookUrl": (
+                obj.data.webhook_url
+                if self.include_details
+                else _webhook_url_origin(obj.data.webhook_url)
+            ),
             "sentryAppSlug": self.sentry_app.slug,
             "eventType": obj.data.event_type,
             "date": obj.data.date,
@@ -92,7 +113,9 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "durationMs": obj.data.duration_ms,
         }
 
-        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
+        if self.include_details and (
+            response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES
+        ):
             # add error data to display in Sentry app dashboard
             data.update(
                 {
