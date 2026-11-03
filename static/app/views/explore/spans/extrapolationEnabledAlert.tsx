@@ -36,7 +36,7 @@ export function ExtrapolationEnabledAlert() {
                   organization,
                   organization_id: organization.id,
                   enabled: true,
-                  source: 'disabled_alert',
+                  source: 'enabled_alert',
                 });
                 setExtrapolate(true);
               }}

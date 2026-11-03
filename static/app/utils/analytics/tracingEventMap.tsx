@@ -25,7 +25,7 @@ export type TracingEventParameters = {
   'trace.explorer.extrapolation_toggled': {
     enabled: boolean;
     organization_id: string;
-    source: 'settings_dropdown' | 'disabled_alert';
+    source: 'settings_dropdown' | 'enabled_alert';
   };
   'trace.explorer.metadata': {
     columns: readonly string[];
