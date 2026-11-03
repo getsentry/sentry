@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,8 +14,133 @@ const INBOX_ROUTES = [
   '/organizations/:orgId/inbox/notebook/:id/',
 ];
 
+const NEXT_CURSOR = '2020-01-01T00:00:00+00:00|3:0:0';
+
+function mockIssuePreviewRequests(groupId: string) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/`,
+    body: GroupFixture({id: groupId, metadata: {type: 'TypeError'}}),
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
+    body: EventFixture({id: 'event-id'}),
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/users/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/events/event-id/owners/',
+    body: {owners: [], rules: []},
+  });
+}
+
 describe('Inbox', () => {
   const organization = OrganizationFixture({features: ['universal-inbox']});
+
+  const issueItem = InboxItemFixture({
+    id: '1',
+    subjectType: 'issue',
+    subjectId: '7656018581',
+    title: "TypeError: Cannot read properties of undefined (reading 'id')",
+  });
+  const notebookItem = InboxItemFixture({
+    id: '2',
+    subjectType: 'notebook',
+    subjectId: '1000210',
+    title: 'OperationalError: could not connect to server',
+    latestEvent: {
+      id: '2',
+      type: 'notebook.mentioned',
+      actor: {type: 'user', id: '2', name: 'Jane Doe', avatar: null},
+      data: {commentId: '1'},
+      summary: 'Mentioned you in a comment',
+      isUnread: true,
+      dateAdded: '2020-01-01T00:00:00.000Z',
+    },
+  });
+  const readNotebookItem = InboxItemFixture({
+    id: '3',
+    subjectType: 'notebook',
+    subjectId: '1000209',
+    title: 'Checkout latency regression',
+    isUnread: false,
+    unreadEventCount: 0,
+  });
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [issueItem, notebookItem, readNotebookItem],
+    });
+  });
+
+  it('shows the title and latest event summary of each item', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [notebookItem, InboxItemFixture({id: '4', title: null})],
+    });
+
+    render(<Inbox />, {organization});
+
+    expect(
+      await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Mentioned you in a comment')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Unavailable/})).toBeInTheDocument();
+  });
+
+  it('shows an empty state when there are no items', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [],
+    });
+
+    render(<Inbox />, {organization});
+
+    expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
+  });
+
+  it('shows an error state when items fail to load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(<Inbox />, {organization});
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+  });
+
+  it('loads more items', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [issueItem, notebookItem],
+      headers: {
+        Link: `<http://localhost/?cursor=${encodeURIComponent(NEXT_CURSOR)}>; rel="next"; results="true"; cursor="${NEXT_CURSOR}"`,
+      },
+    });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      match: [MockApiClient.matchQuery({cursor: NEXT_CURSOR})],
+      body: [readNotebookItem],
+    });
+
+    render(<Inbox />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Show more'}));
+
+    expect(
+      await screen.findByRole('link', {name: /Checkout latency regression/})
+    ).toBeInTheDocument();
+    expect(nextPageRequest).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', {name: 'Show more'})).not.toBeInTheDocument();
+  });
 
   it('selects an item from the list', async () => {
     const {router} = render(<Inbox />, {
@@ -97,22 +223,7 @@ describe('Inbox', () => {
   });
 
   it('selects the item for the issue in the url', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/7656018581/',
-      body: GroupFixture({id: '7656018581', metadata: {type: 'TypeError'}}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/7656018581/events/recommended/',
-      body: EventFixture({id: 'event-id'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/event-id/owners/',
-      body: {owners: [], rules: []},
-    });
+    mockIssuePreviewRequests('7656018581');
 
     render(<Inbox />, {
       organization,
@@ -126,6 +237,23 @@ describe('Inbox', () => {
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('previews the issue in the url when it is not in the loaded items', async () => {
+    mockIssuePreviewRequests('9999');
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/issue/9999/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: /TypeError: Cannot read properties/})
+    ).not.toHaveAttribute('aria-current');
   });
 
   it('selects items with checkboxes without opening them', async () => {
@@ -156,10 +284,16 @@ describe('Inbox', () => {
   });
 
   it('renders not found without the feature flag', () => {
+    const inboxRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/inbox/',
+      body: [notebookItem],
+    });
+
     render(<Inbox />, {organization: OrganizationFixture()});
 
     expect(
       screen.queryByText('OperationalError: could not connect to server')
     ).not.toBeInTheDocument();
+    expect(inboxRequest).not.toHaveBeenCalled();
   });
 });
