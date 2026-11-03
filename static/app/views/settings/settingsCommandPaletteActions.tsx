@@ -18,7 +18,8 @@ import {
 import {
   getSettingsScopeTitle,
   type SettingsScope,
-} from 'sentry/views/settings/useSettingsScope';
+} from 'sentry/views/settings/settingsScope';
+import type {NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const ROUTE_ICONS: Record<string, ReactNode> = {
@@ -29,6 +30,22 @@ const ROUTE_ICONS: Record<string, ReactNode> = {
   '/settings/:orgId/': <IconSettings />,
   '/settings/:orgId/security-and-privacy/': <IconLock />,
 };
+
+/**
+ * With settings-v3, the org and account index pages are both titled "General",
+ * like the project one, so they share its icon to read as the same page type.
+ * Shared with the global cmd+k settings actions so both lists agree.
+ */
+export const SETTINGS_V3_GENERAL_ICONS: Record<string, ReactNode> = {
+  '/settings/:orgId/': <IconSettings />,
+  '/settings/account/details/': <IconSettings />,
+};
+
+function getRouteIcon(route: string, settingsV3: boolean): ReactNode {
+  return (
+    (settingsV3 ? SETTINGS_V3_GENERAL_ICONS[route] : undefined) ?? ROUTE_ICONS[route]
+  );
+}
 
 function normalizeRouteForLookup(route: string): string {
   if (route === '/settings/organization/') {
@@ -87,35 +104,50 @@ type SettingsFieldSection = {
 
 type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
-// With settings-v3, the org and account index pages are both titled "General",
-// so their field sections are named after their scope to tell them apart.
-const SETTINGS_V3_INDEX_SCOPES: Record<string, SettingsScope> = {
-  '/settings/:orgId/': 'org',
-  '/settings/account/details/': 'account',
-};
+function getNavItems(sections: NavigationSection[]) {
+  return sections.flatMap(section => section.items);
+}
 
 function getRouteTitleMap(settingsV3: boolean): Map<string, string> {
-  const sections = settingsV3
-    ? [
-        ...getUserOrgNavigationConfiguration({settingsV3}),
-        ...getUserNavigationConfiguration({settingsV3}),
-      ]
-    : getUserOrgNavigationConfiguration();
-
   const routeTitleMap = new Map<string, string>();
-  for (const section of sections) {
-    for (const item of section.items) {
-      const scope = settingsV3 ? SETTINGS_V3_INDEX_SCOPES[item.path] : undefined;
+
+  if (!settingsV3) {
+    for (const item of getNavItems(getUserOrgNavigationConfiguration())) {
+      routeTitleMap.set(item.path, item.title);
+    }
+    return routeTitleMap;
+  }
+
+  // With settings-v3, org and account pages live in separate scopes and can
+  // share a title (both index pages are "General"). Titles used by more than
+  // one scope are prefixed with the scope's name to tell them apart.
+  const scopedItems: Array<[SettingsScope, ReturnType<typeof getNavItems>]> = [
+    ['org', getNavItems(getUserOrgNavigationConfiguration({settingsV3}))],
+    ['account', getNavItems(getUserNavigationConfiguration({settingsV3}))],
+  ];
+
+  const scopesByTitle = new Map<string, Set<SettingsScope>>();
+  for (const [scope, items] of scopedItems) {
+    for (const item of items) {
+      const scopes = scopesByTitle.get(item.title) ?? new Set();
+      scopes.add(scope);
+      scopesByTitle.set(item.title, scopes);
+    }
+  }
+
+  for (const [scope, items] of scopedItems) {
+    for (const item of items) {
+      const isShared = (scopesByTitle.get(item.title)?.size ?? 0) > 1;
       routeTitleMap.set(
         item.path,
-        scope ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title
+        isShared ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title
       );
     }
   }
   return routeTitleMap;
 }
 
-function getSettingsFieldSections(
+export function getSettingsFieldSections(
   orgSlug: string,
   settingsV3: boolean
 ): SettingsFieldSection[] {
@@ -147,7 +179,7 @@ function getSettingsFieldSections(
       return {
         key: route,
         title,
-        icon: ROUTE_ICONS[route],
+        icon: getRouteIcon(route, settingsV3),
         fields: Array.from(fieldMap.values())
           .filter(
             (f): f is FormFieldDefinition & {label: string} =>

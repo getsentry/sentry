@@ -109,12 +109,13 @@ import {
 } from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+import {SETTINGS_V3_GENERAL_ICONS} from 'sentry/views/settings/settingsCommandPaletteActions';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {
   NavigationGroupProps,
   NavigationItem,
   NavigationSection,
 } from 'sentry/views/settings/types';
-import {getSettingsScopeTitle} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 /**
@@ -155,13 +156,6 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/:orgId/seer/': <IconSeer />,
   '/settings/:orgId/teams/': <IconGroup />,
   '/settings/account/notifications/': <IconSubscribed />,
-};
-
-// With settings-v3, the org and account index pages are titled "General" like
-// the project one, so they get the same icon to read as the same page type.
-const SETTINGS_V3_GENERAL_ICONS: Record<string, React.ReactElement> = {
-  '/settings/:orgId/': <IconSettings />,
-  '/settings/account/details/': <IconSettings />,
 };
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);

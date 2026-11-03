@@ -526,22 +526,44 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   });
 });
 
+function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/group-search-views/starred/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/dashboards/starred/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/dashboards/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/explore/all-queries/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/users/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/members/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/teams/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/projects/`,
+    body: [],
+  });
+}
+
 describe('GlobalCommandPaletteActions - settings-v3', () => {
   function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
-    for (const url of [
-      'group-search-views/starred/',
-      'dashboards/starred/',
-      'dashboards/',
-      'explore/all-queries/',
-      'members/',
-      'teams/',
-      'projects/',
-    ]) {
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/${url}`,
-        body: [],
-      });
-    }
+    mockOrgApis(organization);
 
     render(
       <CommandPaletteProvider>
@@ -602,41 +624,6 @@ describe('GlobalCommandPaletteActions - settings-v3', () => {
 });
 
 describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
-  function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/group-search-views/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/starred/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/all-queries/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/users/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-  }
-
   function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
     render(
       <CommandPaletteProvider>

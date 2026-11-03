@@ -37,7 +37,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
-import {getSettingsScopeTitle} from 'sentry/views/settings/useSettingsScope';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const REPLAY_COLUMNS: TableColumnConfig[] = [

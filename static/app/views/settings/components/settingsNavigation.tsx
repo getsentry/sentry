@@ -22,12 +22,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
-import {
-  getSettingsScopeTitle,
-  useSettingsScope,
-} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type Props = NavigationProps & {

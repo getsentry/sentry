@@ -57,8 +57,9 @@ import {NavigationMenuHeader} from './navigationMenuHeader';
 
 interface OrganizationDropdownProps {
   /**
-   * When true, hides the links into the current organization: settings, projects,
-   * members, teams, and billing, or with settings-v3, settings and project settings.
+   * When true, hides the links into the current organization. Without
+   * settings-v3, these are settings, projects, members, teams, and billing.
+   * With settings-v3, these are settings and project settings.
    */
   hideCurrentOrganizationLinks?: boolean;
 }
