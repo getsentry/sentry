@@ -201,6 +201,41 @@ describe('MetricAutomationForm', () => {
     expectNoServiceAccountRequests();
   });
 
+  it('keeps connected monitors that are outside the first page of monitors', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '3', name: 'Latency spike', projectId: '2'})],
+      match: [MockApiClient.matchQuery({id: ['3']})],
+    });
+    const update = MockApiClient.addMockResponse({
+      url: `${configsUrl}42/`,
+      method: 'PUT',
+      body: config,
+    });
+    render(
+      <MetricAutomationForm
+        mode="edit"
+        config={{...config, monitorIds: [3], agent: null}}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('link', {name: 'Latency spike'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        `${configsUrl}42/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            monitorIds: [3],
+            agent: {scopes: agent.scopes, projectIds: [2], allProjects: false},
+          }),
+        })
+      )
+    );
+  });
+
   it('lists environments for each connected monitor project', async () => {
     const productionSource = SnubaQueryDataSourceFixture();
     productionSource.queryObj.snubaQuery.environment = 'production';

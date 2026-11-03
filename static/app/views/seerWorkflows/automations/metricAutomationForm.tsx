@@ -78,6 +78,7 @@ export function MetricAutomationForm(props: Props) {
       scope !== 'org:superuser' &&
       scope !== 'org:billing'
   );
+  // TODO: Search monitors server-side so the picker isn't limited to the first 100.
   const monitorsQuery = useQuery(
     detectorListApiOptions(organization, {
       query: 'type:metric_issue',
@@ -85,8 +86,27 @@ export function MetricAutomationForm(props: Props) {
       limit: 100,
     })
   );
-  const monitors =
-    monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
+  const connectedMonitorIds =
+    props.mode === 'edit' ? props.config.monitorIds.map(String) : [];
+  const connectedMonitorsQuery = useQuery({
+    ...detectorListApiOptions(organization, {
+      ids: connectedMonitorIds,
+      projects: [-1],
+      limit: 100,
+    }),
+    enabled: connectedMonitorIds.length > 0,
+  });
+  const monitors = [
+    ...new Map(
+      [...(monitorsQuery.data ?? []), ...(connectedMonitorsQuery.data ?? [])]
+        .filter(monitor => monitor.type === 'metric_issue')
+        .map(monitor => [monitor.id, monitor])
+    ).values(),
+  ];
+  const monitorsPending =
+    monitorsQuery.isPending ||
+    (connectedMonitorIds.length > 0 && connectedMonitorsQuery.isPending);
+  const monitorsError = monitorsQuery.isError || connectedMonitorsQuery.isError;
   const getProjectSlug = (projectId: string) =>
     projects.find(project => project.id === projectId)?.slug ?? projectId;
   const configsUrl = getApiUrl(
@@ -229,8 +249,17 @@ export function MetricAutomationForm(props: Props) {
               {monitorIds => (
                 <Fragment>
                   <Stack gap="lg">
-                    {monitorsQuery.isError ? (
-                      <LoadingError onRetry={monitorsQuery.refetch} />
+                    {monitorsError ? (
+                      <LoadingError
+                        onRetry={() => {
+                          if (monitorsQuery.isError) {
+                            monitorsQuery.refetch();
+                          }
+                          if (connectedMonitorsQuery.isError) {
+                            connectedMonitorsQuery.refetch();
+                          }
+                        }}
+                      />
                     ) : (
                       <form.AppField name="monitorIds">
                         {field => (
@@ -246,7 +275,7 @@ export function MetricAutomationForm(props: Props) {
                               searchable
                               value={field.state.value}
                               onChange={field.handleChange}
-                              isLoading={monitorsQuery.isPending}
+                              isLoading={monitorsPending}
                               placeholder={t('Connect metric monitors…')}
                               options={monitors.map(monitor => ({
                                 value: monitor.id,
@@ -273,8 +302,8 @@ export function MetricAutomationForm(props: Props) {
                     <MonitorProjectsSummary
                       monitorIds={monitorIds}
                       monitors={monitors}
-                      isPending={monitorsQuery.isPending}
-                      isError={monitorsQuery.isError}
+                      isPending={monitorsPending}
+                      isError={monitorsError}
                       getProjectSlug={getProjectSlug}
                     />
                   </DisplayField.Row>
@@ -404,7 +433,7 @@ export function MetricAutomationForm(props: Props) {
               )}
               <form.SubmitButton
                 variant="primary"
-                disabled={monitorsQuery.isPending || monitorsQuery.isError}
+                disabled={monitorsPending || monitorsError}
               >
                 {props.mode === 'create' ? t('Create automation') : t('Save changes')}
               </form.SubmitButton>
