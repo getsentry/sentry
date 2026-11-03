@@ -50,7 +50,7 @@ jobs:
         with:
           node-version-file: '.node-version'
       - name: Prepare release
-        uses: getsentry/craft@055aa3c9b28b95a24c86a82cf48b08fea499d3d7 # 3.7.0
+        uses: getsentry/craft@2e29b0819113d334c15da3d8cac2138cb9dc111a # 3.9.0
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
