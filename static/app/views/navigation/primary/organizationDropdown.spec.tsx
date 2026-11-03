@@ -176,7 +176,7 @@ describe('OrganizationDropdown', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('lists starred projects first, then fills the rest like the project filter', async () => {
+  it('lists starred projects first, then member projects, then the rest', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'project-a', isMember: true}),
       ProjectFixture({id: '2', slug: 'project-b', isMember: false}),

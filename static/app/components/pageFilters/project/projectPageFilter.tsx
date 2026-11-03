@@ -380,8 +380,8 @@ export function ProjectPageFilter({
         ? memberProjectIds(projects)
         : urlProjectSelection;
 
-    // sortBy is stable, so selected projects move to the top and both groups
-    // keep the bookmark, membership, and slug order.
+    // sortBy is stable, so selected projects move to the top and keep their
+    // relative order.
     const projectItems = sortBy(
       sortProjectsByBookmarkAndMembership(
         [...memberProjectList, ...nonMemberProjectList],

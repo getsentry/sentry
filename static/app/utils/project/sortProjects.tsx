@@ -17,20 +17,18 @@ export function sortProjects<T extends SortableProject>(projects: readonly T[]):
   return projects.toSorted(projectDisplayCompare);
 }
 
-type PageFilterSortableProject = SortableProject & {
+type MemberSortableProject = SortableProject & {
   id: string;
   isMember: boolean;
 };
 
 /**
- * Sort projects the way the project page filter lists them: bookmarked
- * projects first, then projects the user is a member of, each group by slug.
+ * Sort projects by bookmark, then membership, then slug.
  *
- * Pass `bookmarkedIds` to sort by a snapshot of bookmarks instead of each
- * project's live `isBookmarked`, so an open menu keeps its order while the
- * user toggles stars in it.
+ * Pass `bookmarkedIds` to sort by a fixed set of bookmarks instead of each
+ * project's current `isBookmarked`, so the order holds while bookmarks change.
  */
-export function sortProjectsByBookmarkAndMembership<T extends PageFilterSortableProject>(
+export function sortProjectsByBookmarkAndMembership<T extends MemberSortableProject>(
   projects: readonly T[],
   bookmarkedIds?: ReadonlySet<string>
 ): T[] {

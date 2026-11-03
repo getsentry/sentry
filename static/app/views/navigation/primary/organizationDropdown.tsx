@@ -100,8 +100,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   // request settles: on success ProjectsStore has the new value, on error the
   // project falls back to its previous state.
   const [pendingBookmarks, setPendingBookmarks] = useState<Record<string, boolean>>({});
-  // Bookmarks when the menu opened, so starring a project from the menu does
-  // not reorder it while it is open. Matches the project page filter.
+  // Captured when the menu opens, so toggling a bookmark does not reorder the
+  // open menu.
   const [bookmarkedSnapshot, setBookmarkedSnapshot] = useState<Set<string>>();
   const {mutate: toggleBookmark} = useMutation({
     mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
@@ -159,8 +159,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   if (settingsV3) {
     const memberProjects = sortProjects(projects.filter(project => project.isMember));
     const otherProjects = sortProjects(projects.filter(project => !project.isMember));
-    // Starred projects take the first slots and the rest fill up to the limit,
-    // so orgs with few or no starred projects still get shortcuts.
+    // Unbookmarked projects fill the remaining slots, so the list is not empty
+    // when nothing is bookmarked.
     const quickAccessProjects = sortProjectsByBookmarkAndMembership(
       projects,
       bookmarkedSnapshot
