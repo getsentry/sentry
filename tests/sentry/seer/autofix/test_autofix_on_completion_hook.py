@@ -1515,33 +1515,25 @@ class TestFailedRunCompletionHook(TestCase):
         mock_broadcast: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
-        for failure_reason in ("timeout", None):
-            with self.subTest(failure_reason=failure_reason):
-                mock_process.reset_mock()
-                mock_fetch.return_value = run_state(
-                    blocks=[root_cause_memory_block()],
-                    metadata={
-                        "group_id": self.group.id,
-                        "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
-                    },
-                    status="error",
-                    failure_reason=failure_reason,
-                )
+        mock_fetch.return_value = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+            status="error",
+            failure_reason="timeout",
+        )
 
-                AutofixOnCompletionHook.execute(self.organization, 123)
+        AutofixOnCompletionHook.execute(self.organization, 123)
 
-                mock_process.assert_called_once_with(
-                    kwargs={
-                        "event_type": SentryAppEventType.SEER_ERRORED,
-                        "event_payload": {
-                            "run_id": 123,
-                            "group_id": self.group.id,
-                            "failure_reason": failure_reason,
-                            "step": AutofixStep.ROOT_CAUSE.value,
-                        },
-                        "organization_id": self.organization.id,
-                    }
-                )
+        mock_process.assert_called_once_with(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {"run_id": 123, "group_id": self.group.id},
+                "organization_id": self.organization.id,
+            }
+        )
         mock_broadcast.assert_not_called()
         mock_trigger.assert_not_called()
 

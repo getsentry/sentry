@@ -87,7 +87,6 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-# failure_reason isn't a settled contract yet, so every failed run gets the same reply.
 AUTOFIX_RUN_FAILED_MESSAGE = (
     "Seer ran into a problem and couldn't finish working on this issue. "
     "You can try again from the issue in Sentry."

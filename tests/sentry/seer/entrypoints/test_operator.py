@@ -480,12 +480,7 @@ class SeerOperatorTest(TestCase):
         )
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         mock_entrypoint_cls.has_access.return_value = True
-        event_payload = {
-            "run_id": MOCK_RUN_ID,
-            "group_id": self.group.id,
-            "failure_reason": "timeout",
-            "step": "root_cause",
-        }
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
         activity_count = Activity.objects.filter(group=self.group).count()
 
         with (

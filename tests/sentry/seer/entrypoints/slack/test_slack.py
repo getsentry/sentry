@@ -284,33 +284,25 @@ class SlackAutofixEntrypointTest(TestCase):
             cache_payload=cache_payload,
         )
 
-        for failure_reason in ("timeout", None):
-            with self.subTest(failure_reason=failure_reason):
-                mock_send_threaded_message.reset_mock()
-                with self.tasks():
-                    process_autofix_updates(
-                        event_type=SentryAppEventType.SEER_ERRORED,
-                        event_payload={
-                            "run_id": MOCK_RUN_ID,
-                            "group_id": self.group.id,
-                            "failure_reason": failure_reason,
-                            "step": "root_cause",
-                        },
-                        organization_id=self.organization.id,
-                    )
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
 
-                posted_to = [
-                    (call.kwargs["channel_id"], call.kwargs["thread_ts"])
-                    for call in mock_send_threaded_message.call_args_list
-                ]
-                assert sorted(posted_to) == sorted(
-                    [
-                        (self.thread["channel_id"], self.thread["thread_ts"]),
-                        (other_thread["channel_id"], other_thread["thread_ts"]),
-                    ]
-                )
-                renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
-                assert "couldn't finish working on this issue" in str(renderable["blocks"])
+        posted_to = [
+            (call.kwargs["channel_id"], call.kwargs["thread_ts"])
+            for call in mock_send_threaded_message.call_args_list
+        ]
+        assert sorted(posted_to) == sorted(
+            [
+                (self.thread["channel_id"], self.thread["thread_ts"]),
+                (other_thread["channel_id"], other_thread["thread_ts"]),
+            ]
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "couldn't finish working on this issue" in str(renderable["blocks"])
         mock_send_threaded_ephemeral_message.assert_not_called()
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
