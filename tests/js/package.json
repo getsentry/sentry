@@ -191,7 +191,7 @@
     "@sentry/react": "11.7.0",
     "@sentry/scraps": "workspace:*",
     "@swc-contrib/mut-cjs-exports": "19.0.0",
-    "@swc/core": "1.16.20",
+    "@swc/core": "1.16.21",
     "@swc/jest": "0.2.39",
     "@swc/plugin-emotion": "20.0.1",
     "@tanstack/react-pacer": "^0.22.1",
