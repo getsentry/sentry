@@ -759,6 +759,23 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Bound GitLab project webhook reconciliation independently in each cell region. These
+# options intentionally describe repositories rather than HTTP requests: one repair can
+# make several requests, so production values should leave room below GitLab's API limit.
+register(
+    "gitlab.webhook-reconcile.rate-limit.burst",
+    default=10,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.per-second",
+    default=2,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(

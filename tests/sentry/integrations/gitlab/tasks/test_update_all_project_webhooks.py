@@ -13,6 +13,10 @@ from fixtures.gitlab import GitLabTestCase
 from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
 from sentry.integrations.gitlab.tasks import (
+    MAX_RATE_LIMIT_DEFERRALS,
+    WebhookReconciliationRateLimitError,
+    WebhookReconciliationRedisError,
+    _consume_webhook_reconciliation_capacity,
     delete_redundant_project_webhook,
     update_all_project_webhooks,
     update_project_webhook,
@@ -20,9 +24,11 @@ from sentry.integrations.gitlab.tasks import (
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.ratelimits.leaky_bucket import LeakyBucketLimitInfo
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
@@ -433,6 +439,49 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
 
 @cell_silo_test
+class WebhookReconciliationCapacityTest(GitLabTestCase):
+    @patch("sentry.integrations.gitlab.tasks.LeakyBucketRateLimiter")
+    def test_capacity_is_scoped_to_gitlab_identity(self, limiter) -> None:
+        limiter.return_value.use_and_get_info.return_value = LeakyBucketLimitInfo(
+            burst_limit=10, drip_rate=2
+        )
+
+        _consume_webhook_reconciliation_capacity(
+            "https://example.gitlab.com", "example.gitlab.com:123"
+        )
+
+        limiter.assert_called_once_with(
+            burst_limit=10,
+            drip_rate=2,
+            key="gitlab:webhook-reconcile:example.gitlab.com:example.gitlab.com:123",
+            fail_open=False,
+        )
+
+    @override_options(
+        {
+            "gitlab.webhook-reconcile.rate-limit.burst": 100,
+            "gitlab.webhook-reconcile.rate-limit.per-second": 100,
+        }
+    )
+    @patch("sentry.integrations.gitlab.tasks.LeakyBucketRateLimiter")
+    def test_capacity_options_are_clamped(self, limiter) -> None:
+        limiter.return_value.use_and_get_info.return_value = LeakyBucketLimitInfo(
+            burst_limit=10, drip_rate=2
+        )
+
+        _consume_webhook_reconciliation_capacity(
+            "https://example.gitlab.com", "example.gitlab.com:123"
+        )
+
+        limiter.assert_called_once_with(
+            burst_limit=10,
+            drip_rate=2,
+            key="gitlab:webhook-reconcile:example.gitlab.com:example.gitlab.com:123",
+            fail_open=False,
+        )
+
+
+@cell_silo_test
 class UpdateProjectWebhookTest(GitLabTestCase):
     """Tests for the individual webhook update task"""
 
@@ -440,6 +489,12 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        capacity_patcher = patch(
+            "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+            return_value=LeakyBucketLimitInfo(burst_limit=10, drip_rate=2),
+        )
+        self.consume_capacity = capacity_patcher.start()
+        self.addCleanup(capacity_patcher.stop)
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo = self.create_gitlab_repo(
                 name="test-repo",
@@ -475,6 +530,66 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     def _unmarked_webhook_url(self) -> str:
         installation = self.integration.get_installation(organization_id=self.organization.id)
         return installation.get_client().project_webhook_url()
+
+    @patch("sentry.integrations.gitlab.tasks.randint", return_value=3)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_task_defers_when_region_rate_limit_is_exhausted(self, record_event, randint):
+        self.consume_capacity.return_value = LeakyBucketLimitInfo(
+            burst_limit=10,
+            drip_rate=2,
+            current_level=10,
+            wait_time=0.5,
+        )
+
+        with patch.object(update_project_webhook, "apply_async") as apply_async:
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+                rate_limit_deferrals=4,
+            )
+
+        apply_async.assert_called_once_with(
+            kwargs={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "rate_limit_deferrals": 5,
+            },
+            countdown=4,
+        )
+        randint.assert_called_once_with(0, 5)
+        self.consume_capacity.assert_called_once_with("https://example.gitlab.com", "gitlab123")
+        assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
+
+    def test_task_fails_after_rate_limit_deferral_budget_is_exhausted(self):
+        self.consume_capacity.return_value = LeakyBucketLimitInfo(
+            burst_limit=10,
+            drip_rate=2,
+            current_level=10,
+            wait_time=0.5,
+        )
+
+        with pytest.raises(WebhookReconciliationRateLimitError):
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+                rate_limit_deferrals=MAX_RATE_LIMIT_DEFERRALS,
+            )
+
+    @responses.activate
+    def test_task_does_not_call_gitlab_when_rate_limit_redis_is_unavailable(self):
+        self.consume_capacity.side_effect = WebhookReconciliationRedisError("Redis unavailable")
+
+        with pytest.raises(WebhookReconciliationRedisError):
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+            )
+
+        assert len(responses.calls) == 0
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
