@@ -105,6 +105,8 @@ def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
 
 
 def is_single_run_start(group: Group, args: AutofixFeatureArgs) -> bool:
+    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs,
+    # and coding-agent handoff only exists in that flow (AIML-3808).
     if args.step != AutofixStep.ROOT_CAUSE or args.existing_run_id is not None:
         return False
     if get_automation_handoff(group.project.get_option) is not None:
