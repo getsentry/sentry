@@ -101,7 +101,9 @@ describe('MetricAutomationForm', () => {
       'Breached Metric Investigation'
     );
     expect(screen.getByText('No monitors connected')).toBeInTheDocument();
-    expect(screen.getByRole('switch', {name: 'Start investigations'})).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Start investigations'})
+    ).not.toBeChecked();
     await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Checkout errors');
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
@@ -170,7 +172,7 @@ describe('MetricAutomationForm', () => {
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
     await userEvent.click(await screen.findByText('Payment failures · checkout-api'));
-    await userEvent.click(screen.getByRole('switch', {name: 'Start investigations'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
     MockApiClient.addMockResponse({
       url: configsUrl,
       body: {configs: [{...config, monitorIds: [2], enabled: true}]},
@@ -185,7 +187,7 @@ describe('MetricAutomationForm', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled()
     );
-    expect(screen.getByRole('switch', {name: 'Start investigations'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Start investigations'})).toBeChecked();
 
     const clear = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
@@ -199,7 +201,7 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(
       screen.getByRole('button', {name: 'Disconnect Payment failures'})
     );
-    await userEvent.click(screen.getByRole('switch', {name: 'Start investigations'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
     await waitFor(() =>
       expect(clear).toHaveBeenCalledWith(
@@ -208,7 +210,9 @@ describe('MetricAutomationForm', () => {
       )
     );
     expect(screen.getByText('No monitors connected')).toBeInTheDocument();
-    expect(screen.getByRole('switch', {name: 'Start investigations'})).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Start investigations'})
+    ).not.toBeChecked();
     expect(updateAccount).toHaveBeenLastCalledWith(
       `${accountsUrl}5/`,
       expect.objectContaining({
