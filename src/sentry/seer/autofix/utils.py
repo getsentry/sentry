@@ -969,14 +969,7 @@ def is_seer_token_billed_enabled(organization: Organization) -> bool:
     if cached_value is not None:
         return cached_value
 
-    try:
-        has_token_billed_seer = features.has(
-            "organizations:token-billed-seer-enabled", organization
-        )
-    except Exception:
-        # This flag will throw an error for self hosted Sentry since it lives in getsentry.
-        has_token_billed_seer = False
-
+    has_token_billed_seer = features.has("organizations:token-billed-seer-enabled", organization)
     cache.set(cache_key, has_token_billed_seer, timeout=60 * 60 * 4)  # 4 hours TTL
 
     return has_token_billed_seer

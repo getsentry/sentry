@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.test import override_settings
@@ -294,10 +294,6 @@ class TestIsSeerTokenBilledEnabled(TestCase):
         cache.set(self.cache_key, True, timeout=60)
 
         assert is_seer_token_billed_enabled(self.organization) is True
-
-    @patch("sentry.seer.autofix.utils.features.has", side_effect=Exception)
-    def test_returns_false_when_flag_check_raises(self, mock_features_has: MagicMock) -> None:
-        assert is_seer_token_billed_enabled(self.organization) is False
 
 
 class TestHasProjectConnectedRepos(TestCase):
