@@ -177,9 +177,11 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * PR iterations are folded into the section's blocks. Each drove one iteration;
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
- * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing). Only the latest iteration can
- * use the run's current push error; earlier feedback keeps its processed state.
+ * The iteration at the current step marker is the one still running (when the
+ * section is processing). Only that iteration can use the run's current push
+ * error; earlier feedback keeps its processed state. A retry runs another turn
+ * of the same iteration and carries its feedback again, so each iteration's
+ * feedback is shown once.
  * Feedback submitted mid-run that hasn't been folded into a block yet is
  * appended as `queued`. The list is returned newest-first.
  */
@@ -209,7 +211,14 @@ export function usePrIterationFeedback(
       autofix.runState?.status === 'awaiting_user_input' ||
       repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    return section.blocks.flatMap((block, blockIndex) => {
+    const currentStep = section.blocks[currentStepStart];
+    const currentIterationIndex =
+      currentStep && isPrIterationBlock(currentStep)
+        ? currentStep.message.metadata?.iteration_index
+        : undefined;
+    const seenIterations = new Set<number>();
+
+    return section.blocks.flatMap(block => {
       if (!isPrIterationBlock(block)) {
         return [];
       }
@@ -222,8 +231,16 @@ export function usePrIterationFeedback(
         return [];
       }
 
+      if (seenIterations.has(Number(iterationIndex))) {
+        return [];
+      }
+      seenIterations.add(Number(iterationIndex));
+
       let status: FeedbackStatus = 'processed';
-      if (blockIndex >= currentStepStart) {
+      if (
+        currentIterationIndex !== undefined &&
+        Number(iterationIndex) === Number(currentIterationIndex)
+      ) {
         if (inProgress) {
           status = 'in_progress';
         } else if (section.status === 'error' || pushErrors.length > 0) {
