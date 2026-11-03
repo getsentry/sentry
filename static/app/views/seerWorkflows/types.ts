@@ -66,7 +66,17 @@ export type WorkflowDisplayStatus =
   | 'running'
   | 'partial';
 
+export type SeerAgentResponse = {
+  allProjects: boolean;
+  projectIds: number[];
+  scopes: string[];
+};
+
 export type SeerWorkflowConfigResponse = {
+  /**
+   * Null when the automation has no service account
+   */
+  agent: SeerAgentResponse | null;
   dateAdded: string;
   dateUpdated: string;
   enabled: boolean;

@@ -20,14 +20,10 @@ describe('MetricAutomationForm', () => {
     access: [...OrganizationFixture().access, 'event:read', 'event:write', 'member:read'],
   });
   const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
-  const accountsUrl = `/organizations/${organization.slug}/service-accounts/`;
-  const account = {
-    id: '5',
-    name: 'Checkout investigation agent',
+  const agent = {
     scopes: ['event:read', 'member:read', 'org:read', 'project:read', 'team:read'],
-    projectIds: ['1', '2'],
+    projectIds: [1, 2],
     allProjects: false,
-    isActive: true,
   };
   const config = SeerWorkflowConfigFixture({
     id: '42',
@@ -36,8 +32,17 @@ describe('MetricAutomationForm', () => {
     enabled: false,
     monitorIds: [1],
     projects: [1],
-    serviceAccountId: account.id,
+    serviceAccountId: '5',
+    agent,
   });
+  let requestSpy: jest.SpyInstance;
+
+  function expectNoServiceAccountRequests() {
+    expect(requestSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('/service-accounts/'),
+      expect.anything()
+    );
+  }
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -45,7 +50,7 @@ describe('MetricAutomationForm', () => {
       ProjectFixture({id: '1', slug: 'checkout-api'}),
       ProjectFixture({id: '2', slug: 'payments-worker'}),
     ]);
-    MockApiClient.addMockResponse({url: `${accountsUrl}5/`, body: account});
+    requestSpy = jest.spyOn(MockApiClient.prototype, 'request');
     MockApiClient.addMockResponse({url: configsUrl, body: {configs: [config]}});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/`,
@@ -56,12 +61,11 @@ describe('MetricAutomationForm', () => {
     });
   });
 
-  it('creates a service account and automation', async () => {
-    const createAccount = MockApiClient.addMockResponse({
-      url: accountsUrl,
-      method: 'POST',
-      body: account,
-    });
+  afterEach(() => {
+    requestSpy.mockRestore();
+  });
+
+  it('creates an automation with its agent settings', async () => {
     const create = MockApiClient.addMockResponse({
       url: configsUrl,
       method: 'POST',
@@ -92,16 +96,6 @@ describe('MetricAutomationForm', () => {
         '/organizations/org-slug/seer/automations/42/'
       )
     );
-    expect(createAccount).toHaveBeenCalledWith(
-      accountsUrl,
-      expect.objectContaining({
-        data: expect.objectContaining({
-          projectIds: [1, 2],
-          scopes: [...account.scopes, 'event:write'],
-          allProjects: false,
-        }),
-      })
-    );
     expect(create).toHaveBeenCalledWith(
       configsUrl,
       expect.objectContaining({
@@ -110,18 +104,70 @@ describe('MetricAutomationForm', () => {
           name: 'Checkout errors',
           enabled: false,
           monitorIds: [1],
-          serviceAccountId: account.id,
+          agent: {
+            scopes: [...agent.scopes, 'event:write'],
+            projectIds: [1, 2],
+            allProjects: false,
+          },
         },
       })
+    );
+    expectNoServiceAccountRequests();
+  });
+
+  it('keeps all-project access without listing project IDs', async () => {
+    const allProjectsAgent = {...agent, projectIds: [], allProjects: true};
+    const update = MockApiClient.addMockResponse({
+      url: `${configsUrl}42/`,
+      method: 'PUT',
+      body: {...config, agent: allProjectsAgent},
+    });
+    render(
+      <MetricAutomationForm mode="edit" config={{...config, agent: allProjectsAgent}} />,
+      {organization}
+    );
+
+    await screen.findByRole('link', {name: 'Checkout error rate'});
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        `${configsUrl}42/`,
+        expect.objectContaining({
+          data: {monitorIds: [1], enabled: false, agent: allProjectsAgent},
+        })
+      )
+    );
+  });
+
+  it('defaults agent access to the monitor projects when there is no agent', async () => {
+    const update = MockApiClient.addMockResponse({
+      url: `${configsUrl}42/`,
+      method: 'PUT',
+      body: config,
+    });
+    render(<MetricAutomationForm mode="edit" config={{...config, agent: null}} />, {
+      organization,
+    });
+
+    await screen.findByRole('link', {name: 'Checkout error rate'});
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(
+        `${configsUrl}42/`,
+        expect.objectContaining({
+          data: {
+            monitorIds: [1],
+            enabled: false,
+            agent: {scopes: agent.scopes, projectIds: [1], allProjects: false},
+          },
+        })
+      )
     );
   });
 
   it('saves monitors and the investigation toggle without changing agent access', async () => {
-    const updateAccount = MockApiClient.addMockResponse({
-      url: `${accountsUrl}5/`,
-      method: 'PUT',
-      body: account,
-    });
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
@@ -147,15 +193,10 @@ describe('MetricAutomationForm', () => {
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
-        expect.objectContaining({data: {monitorIds: [2], enabled: true}})
+        expect.objectContaining({data: {monitorIds: [2], enabled: true, agent}})
       )
     );
-    expect(updateAccount).toHaveBeenCalledWith(
-      `${accountsUrl}5/`,
-      expect.objectContaining({
-        data: {projectIds: [1, 2], scopes: account.scopes, allProjects: false},
-      })
-    );
+    expectNoServiceAccountRequests();
   });
 
   it('lists environments for each connected monitor project', async () => {
@@ -182,11 +223,6 @@ describe('MetricAutomationForm', () => {
   });
 
   it('shows the API error when saving fails', async () => {
-    MockApiClient.addMockResponse({
-      url: `${accountsUrl}5/`,
-      method: 'PUT',
-      body: account,
-    });
     MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',

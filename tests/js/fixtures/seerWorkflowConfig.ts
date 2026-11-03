@@ -15,6 +15,7 @@ export function SeerWorkflowConfigFixture(
     filters: {},
     outputPolicy: {},
     seededDefault: null,
+    agent: null,
     serviceAccountId: null,
     dateAdded: '2026-10-01T00:00:00Z',
     dateUpdated: '2026-10-01T00:00:00Z',

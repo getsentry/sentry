@@ -10,6 +10,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
@@ -144,7 +145,9 @@ export default function AutomationDetail() {
                     '%s monitors connected',
                     config.monitorIds.length
                   )
-                : tn('%s project', '%s projects', config.projects.length)}
+                : config.projects.includes(ALL_ACCESS_PROJECTS)
+                  ? t('All projects')
+                  : tn('%s project', '%s projects', config.projects.length)}
             </Text>
           </Stack>
         </Stack>
