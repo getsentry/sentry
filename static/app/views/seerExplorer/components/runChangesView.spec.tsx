@@ -80,7 +80,14 @@ function makeChanges(overrides: Partial<RepoChanges> = {}): RepoChanges {
 
 describe('RunChangesView', () => {
   it('shows every change', () => {
-    render(<RunChangesView changes={makeChanges()} onBack={jest.fn()} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={jest.fn()}
+      />
+    );
 
     expect(screen.getByText('acme/web#482')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'All changes'})).toBeChecked();
@@ -89,7 +96,14 @@ describe('RunChangesView', () => {
   });
 
   it('shows only the unpushed changes when toggled', async () => {
-    render(<RunChangesView changes={makeChanges()} onBack={jest.fn()} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={jest.fn()}
+      />
+    );
 
     await userEvent.click(screen.getByRole('radio', {name: 'Unpushed'}));
 
@@ -100,6 +114,8 @@ describe('RunChangesView', () => {
   it('cannot show unpushed changes once everything is pushed', () => {
     render(
       <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
         changes={makeChanges({unpushed: changeSet([])})}
         onBack={jest.fn()}
       />
@@ -111,6 +127,8 @@ describe('RunChangesView', () => {
   it("says when the PR's changes can't load", () => {
     render(
       <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
         changes={makeChanges({all: null, allStatus: 'error'})}
         onBack={jest.fn()}
       />
@@ -122,6 +140,8 @@ describe('RunChangesView', () => {
   it("can show the unpushed changes while the PR's changes load", async () => {
     render(
       <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
         changes={makeChanges({all: null, allStatus: 'pending'})}
         onBack={jest.fn()}
       />
@@ -138,6 +158,8 @@ describe('RunChangesView', () => {
     const files = changeSet([filePatch('app/cart.py', 'cart')]);
     render(
       <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
         changes={makeChanges({prState: null, all: files, unpushed: files})}
         onBack={jest.fn()}
       />
@@ -149,7 +171,14 @@ describe('RunChangesView', () => {
   });
 
   it('explains the unpushed changes in a tooltip', async () => {
-    render(<RunChangesView changes={makeChanges()} onBack={jest.fn()} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={jest.fn()}
+      />
+    );
 
     await userEvent.hover(screen.getByRole('radio', {name: 'Unpushed'}));
 
@@ -159,7 +188,14 @@ describe('RunChangesView', () => {
   });
 
   it('collapses and expands every file at once', async () => {
-    render(<RunChangesView changes={makeChanges()} onBack={jest.fn()} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={jest.fn()}
+      />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Collapse all'}));
 
@@ -178,7 +214,14 @@ describe('RunChangesView', () => {
 
   it('goes back with the back button or Escape', async () => {
     const onBack = jest.fn();
-    render(<RunChangesView changes={makeChanges()} onBack={onBack} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={onBack}
+      />
+    );
 
     const back = screen.getByRole('button', {name: 'Back to chat'});
     expect(back).toHaveFocus();
@@ -188,9 +231,60 @@ describe('RunChangesView', () => {
     expect(onBack).toHaveBeenCalledTimes(2);
   });
 
+  it("switches between the run's repos", async () => {
+    const onSelectRepo = jest.fn();
+    const web = makeChanges();
+    const api = makeChanges({repoName: 'acme/api', prState: null});
+    render(
+      <RunChangesView
+        allChanges={[web, api]}
+        changes={web}
+        onBack={jest.fn()}
+        onSelectRepo={onSelectRepo}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'acme/web#482'}));
+    await userEvent.click(screen.getByRole('option', {name: 'acme/api'}));
+
+    expect(onSelectRepo).toHaveBeenCalledWith('acme/api');
+  });
+
+  it('starts over when the repo changes', async () => {
+    const web = makeChanges();
+    const api = makeChanges({repoName: 'acme/api'});
+    const props = {allChanges: [web, api], onBack: jest.fn(), onSelectRepo: jest.fn()};
+    const {rerender} = render(<RunChangesView {...props} changes={web} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Unpushed'}));
+    rerender(<RunChangesView {...props} changes={api} />);
+
+    expect(screen.getByRole('radio', {name: 'All changes'})).toBeChecked();
+  });
+
+  it("starts another repo's diff at the top", () => {
+    const web = makeChanges();
+    const api = makeChanges({repoName: 'acme/api'});
+    const props = {allChanges: [web, api], onBack: jest.fn(), onSelectRepo: jest.fn()};
+    const {rerender} = render(<RunChangesView {...props} changes={web} />);
+    const line = screen.getByText('cart on the PR');
+
+    rerender(<RunChangesView {...props} changes={api} />);
+
+    // The file list remounts rather than keeping the last repo's scroll offset.
+    expect(screen.getByText('cart on the PR')).not.toBe(line);
+  });
+
   it('goes back with Escape after clicking the diff', async () => {
     const onBack = jest.fn();
-    render(<RunChangesView changes={makeChanges()} onBack={onBack} />);
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={onBack}
+      />
+    );
 
     await userEvent.click(screen.getByText('cart on the PR'));
     await userEvent.keyboard('{Escape}');

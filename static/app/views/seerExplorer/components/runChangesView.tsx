@@ -5,7 +5,9 @@ import {IconOpen} from '@sentry/icons/open';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
@@ -22,16 +24,35 @@ const MAX_EXPANDED_DIFF_LINES = 300;
 type DiffMode = 'all' | 'unpushed';
 
 interface RunChangesViewProps {
+  /** The run's changes to every repo, to switch between. */
+  allChanges: RepoChanges[];
   changes: RepoChanges;
   onBack: () => void;
+  onSelectRepo: (repoName: string) => void;
+}
+
+function getTitle({prState, repoName}: RepoChanges) {
+  return prState?.pr_number ? `${repoName}#${prState.pr_number}` : repoName;
 }
 
 /** The run's changes to one repo, shown in place of the chat until the user goes back. */
-export function RunChangesView({changes, onBack}: RunChangesViewProps) {
+export function RunChangesView({
+  allChanges,
+  changes,
+  onBack,
+  onSelectRepo,
+}: RunChangesViewProps) {
   const {all, allStatus, prState, repoName, unpushed} = changes;
   const [selectedMode, setSelectedMode] = useState<DiffMode>('all');
   // Files the user expanded or collapsed, by path, over each file's default.
   const [expandedPaths, setExpandedPaths] = useState<Record<string, boolean>>({});
+  // Another repo's diff starts over.
+  const [shownRepoName, setShownRepoName] = useState(repoName);
+  if (shownRepoName !== repoName) {
+    setShownRepoName(repoName);
+    setSelectedMode('all');
+    setExpandedPaths({});
+  }
   const backButtonRef = useRef<HTMLButtonElement>(null);
 
   // The chat behind this view goes inert, so move focus out of it.
@@ -93,9 +114,47 @@ export function RunChangesView({changes, onBack}: RunChangesViewProps) {
           <Flex align="center" gap="xs" minWidth="0">
             {/* `ellipsis` makes the title full width, which would push the link to the end. */}
             <Container minWidth="0">
-              <Text bold ellipsis>
-                {hasPR ? `${repoName}#${prState.pr_number}` : repoName}
-              </Text>
+              {allChanges.length > 1 ? (
+                <CompactSelect
+                  // The select sizes to its trigger, so cap it to let long titles truncate.
+                  style={{maxWidth: '100%'}}
+                  size="xs"
+                  value={repoName}
+                  options={allChanges.map(repoChanges => ({
+                    value: repoChanges.repoName,
+                    label: getTitle(repoChanges),
+                  }))}
+                  onChange={option => onSelectRepo(option.value)}
+                  // The panel clips overflow and the menu renders inline, so escape the clip.
+                  strategy="fixed"
+                  position="bottom-start"
+                  preventOverflowOptions={{boundary: document.body}}
+                  trigger={(triggerProps, isOpen) => (
+                    // `link` has no padding, so the title lines up with the PR title below it.
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      variant="link"
+                      showChevron={false}
+                    >
+                      <Flex align="center" gap="xs" minWidth="0">
+                        {/* The button's own font is smaller than the title's. */}
+                        <Text size="md" bold ellipsis>
+                          {getTitle(changes)}
+                        </Text>
+                        <IconChevron
+                          size="xs"
+                          variant="muted"
+                          direction={isOpen ? 'up' : 'down'}
+                        />
+                      </Flex>
+                    </OverlayTrigger.Button>
+                  )}
+                />
+              ) : (
+                <Text bold ellipsis>
+                  {getTitle(changes)}
+                </Text>
+              )}
             </Container>
             {prUrl && (
               <LinkButton
@@ -167,7 +226,8 @@ export function RunChangesView({changes, onBack}: RunChangesViewProps) {
           </Button>
         )}
       </Flex>
-      <Container flex="1" minHeight="0" overflowY="auto" padding="0 xl xl">
+      {/* Keyed so another repo's diff also starts over at the top. */}
+      <Container key={repoName} flex="1" minHeight="0" overflowY="auto" padding="0 xl xl">
         <Stack gap="md">
           {!shown && allStatus === 'pending' && (
             <Stack gap="md">

@@ -966,8 +966,10 @@ export function SeerExplorerContent({
           {openChanges && (
             <Container position="absolute" inset="0" background="primary">
               <RunChangesView
+                allChanges={runChanges}
                 changes={openChanges}
                 onBack={() => setChangesRepoName(null)}
+                onSelectRepo={setChangesRepoName}
               />
             </Container>
           )}
