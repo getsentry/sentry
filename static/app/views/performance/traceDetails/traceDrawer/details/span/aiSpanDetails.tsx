@@ -22,10 +22,7 @@ export function AiSpanDetails({node, traceId}: AiSpanDetailsProps) {
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<DetailTab>('input');
   useEffect(() => {
-    const genAiOperationType = getGenAiOpType(node);
-    if (typeof genAiOperationType === 'string' && genAiOperationType) {
-      traceAnalytics.trackGenAISpanDetailsViewed(organization, genAiOperationType);
-    }
+    traceAnalytics.trackGenAISpanDetailsViewed(organization, getGenAiOpType(node)!);
   }, [node, organization]);
 
   const eapSpan = isEAPSpanNode(node) ? node.value : undefined;
