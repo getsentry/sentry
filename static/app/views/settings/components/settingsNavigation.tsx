@@ -113,7 +113,7 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuMinWidth={300}
+          menuMinWidth="22em"
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
