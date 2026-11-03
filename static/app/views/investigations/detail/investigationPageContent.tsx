@@ -1,32 +1,23 @@
-import {Fragment, useEffect, useRef, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
-import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconIssues} from '@sentry/icons/issues';
-import {IconStack} from '@sentry/icons/stack';
-import {useDebouncer} from '@tanstack/react-pacer';
 import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AnchoredActionRequests,
@@ -41,13 +32,8 @@ import {InvestigationActivity} from 'sentry/views/investigations/activity/invest
 import {
   getInvestigationDetailQueryOptions,
   investigationCommentCountsQueryOptions,
-  investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
-  investigationTitleGenerationQueryOptions,
   isFollowUpPending,
-  useDeleteInvestigationMutation,
-  useDuplicateInvestigationMutation,
-  useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
@@ -66,12 +52,11 @@ import {
 } from 'sentry/views/investigations/detail/outline';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import {isTitleGenerationActive} from 'sentry/views/investigations/detail/utils';
+import type {InvestigationTitle} from 'sentry/views/investigations/detail/useInvestigationTitle';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {
   getHypothesisLLMContext,
   getInvestigationLLMContext,
@@ -88,15 +73,7 @@ import type {
   InvestigationHypothesis,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
-import {
-  getInvestigationPath,
-  getInvestigationsPath,
-} from 'sentry/views/investigations/utils';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
-
-const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
 const STATUS_TAG_VARIANT = {
   running: 'info',
@@ -223,19 +200,19 @@ function isRunLive(orchestration: InvestigationOrchestration | undefined) {
   return orchestration !== undefined && shouldPollInvestigationRun(orchestration.status);
 }
 
-function InvestigationPageContentInner({
+/**
+ * The investigation notebook: its header, report, and activity. It reports to
+ * the "investigation" node of the LLM context tree, which whoever renders it
+ * registers around it.
+ */
+export function InvestigationPageContent({
   investigation,
-  showPageChrome = true,
-  renderHeaderActions,
+  title,
 }: {
   investigation: InvestigationDetail;
-  renderHeaderActions?: (actions: MenuItemProps[]) => ReactNode;
-  showPageChrome?: boolean;
+  title: InvestigationTitle;
 }) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const {copy} = useCopyToClipboard();
   const composerRef = useRef<HTMLDivElement>(null);
   const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id, {
@@ -250,26 +227,6 @@ function InvestigationPageContentInner({
     refetchInterval: 10_000,
   });
   const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
-  const [draftTitle, setDraftTitle] = useState<string | null>(null);
-  const persistedTitle = useRef(investigation.title);
-  const titleGenerationSettledFor = useRef<string | null>(null);
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organization.slug,
-    investigation.id
-  );
-  const titleGenerationQuery = useQuery({
-    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
-    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
-    refetchInterval: query =>
-      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
-  });
-  const generatedTitlePreview =
-    draftTitle === null &&
-    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
-    isTitleGenerationActive(titleGenerationQuery.data?.status)
-      ? titleGenerationQuery.data?.preview
-      : null;
-  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
   const recheckRunWait = useRecheckRunWait(investigation.actionRequests);
   const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
@@ -294,119 +251,6 @@ function InvestigationPageContentInner({
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
-
-  useEffect(() => {
-    const status = titleGenerationQuery.data?.status;
-    if (isTitleGenerationActive(status)) {
-      if (titleGenerationSettledFor.current === investigation.id) {
-        titleGenerationSettledFor.current = null;
-      }
-      return;
-    }
-    if (
-      (status === 'completed' || status === 'failed') &&
-      titleGenerationSettledFor.current !== investigation.id
-    ) {
-      titleGenerationSettledFor.current = investigation.id;
-      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      void queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({
-          organizationSlug: organization.slug,
-        }).queryKey,
-      });
-    }
-  }, [
-    detailOptions.queryKey,
-    investigation.id,
-    organization.slug,
-    queryClient,
-    titleGenerationQuery.data?.status,
-  ]);
-
-  const renameMutation = useRenameInvestigationMutation(
-    organization.slug,
-    investigation.id,
-    {
-      onSuccess: updated => {
-        persistedTitle.current = updated.title;
-      },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
-    }
-  );
-  const renameDebouncer = useDebouncer(
-    (nextTitle: string) => {
-      const title = nextTitle.trim();
-      if (title && title !== persistedTitle.current) {
-        renameMutation.mutate(title);
-      }
-    },
-    {wait: 500, onUnmount: debouncer => debouncer.flush()}
-  );
-
-  useEffect(() => {
-    if (draftTitle === null) {
-      persistedTitle.current = investigation.title;
-    }
-  }, [draftTitle, investigation.title]);
-  const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
-    onSuccess: duplicate => {
-      addSuccessMessage(t('Investigation duplicated.'));
-      navigate(getInvestigationPath(organization.slug, duplicate.id));
-    },
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
-  });
-  const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
-    onMutate: () => renameDebouncer.cancel(),
-    onSuccess: () => {
-      queryClient.removeQueries({
-        queryKey: detailOptions.queryKey,
-        exact: true,
-      });
-      addSuccessMessage(t('Investigation deleted.'));
-      navigate(getInvestigationsPath(organization.slug));
-    },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
-  });
-  function handleTitleChange(nextTitle: string) {
-    setDraftTitle(nextTitle);
-    updateInvestigationCache(
-      queryClient,
-      organization.slug,
-      investigation.id,
-      current => ({...current, title: nextTitle})
-    );
-    renameDebouncer.maybeExecute(nextTitle);
-  }
-
-  function handleTitleBlur() {
-    renameDebouncer.cancel();
-    if (draftTitle === null) {
-      return;
-    }
-    const title = draftTitle.trim();
-    if (title) {
-      if (title !== draftTitle) {
-        setDraftTitle(title);
-        updateInvestigationCache(
-          queryClient,
-          organization.slug,
-          investigation.id,
-          current => ({...current, title})
-        );
-      }
-      if (title !== persistedTitle.current) {
-        renameMutation.mutate(title);
-      }
-      return;
-    }
-    setDraftTitle(null);
-    updateInvestigationCache(
-      queryClient,
-      organization.slug,
-      investigation.id,
-      current => ({...current, title: persistedTitle.current})
-    );
-  }
 
   const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
@@ -445,21 +289,12 @@ function InvestigationPageContentInner({
   const showActivity = isInvestigationRunDone(investigation);
   // Push the investigation into the LLM context tree for Seer Explorer. Its
   // hypotheses and blocks register their own nodes beneath it.
-  const {getLLMContext} = useLLMContext(
+  useLLMContext(
     getInvestigationLLMContext(investigation, orchestration),
     // Page context waits for the run, so its state and hypotheses come along.
     {isLoading: Boolean(investigation.orchestration) && orchestrationPending}
   );
   const askSeer = useInvestigationAskSeer();
-  const askSeerAboutInvestigation = askSeer
-    ? () =>
-        askSeer({
-          prompt: t('What would you like to know about this investigation?'),
-          // This node with everything beneath it, so the hypotheses and blocks on
-          // screen come along.
-          context: getLLMContext(true).nodes[0],
-        })
-    : undefined;
   const askSeerAboutHypothesis = askSeer
     ? (hypothesis: InvestigationHypothesis) =>
         askSeer({
@@ -481,327 +316,243 @@ function InvestigationPageContentInner({
     ),
     hasSummary,
   });
-  const actions: MenuItemProps[] = [
-    ...(askSeerAboutInvestigation
-      ? [
-          {
-            key: 'ask-seer',
-            label: t('Ask Seer'),
-            onAction: askSeerAboutInvestigation,
-          },
-        ]
-      : []),
-    {
-      key: 'copy-link',
-      label: t('Copy link'),
-      onAction: () =>
-        copy(
-          `${window.location.origin}${getInvestigationPath(
-            organization.slug,
-            investigation.id
-          )}`,
-          {successMessage: t('Investigation link copied.')}
-        ),
-    },
-    {
-      key: 'duplicate',
-      label: t('Duplicate'),
-      onAction: () => duplicateMutation.mutate(investigation),
-    },
-    {
-      key: 'delete',
-      label: t('Delete'),
-      priority: 'danger',
-      onAction: () =>
-        openConfirmModal({
-          message: t('Are you sure you want to delete this investigation?'),
-          priority: 'danger',
-          confirmText: t('Delete'),
-          onConfirm: () => deleteMutation.mutate(investigation),
-        }),
-    },
-  ];
-
-  const headerActions = renderHeaderActions?.(actions);
 
   return (
-    <Fragment>
-      {showPageChrome ? (
-        <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug} />
-      ) : null}
-      <Stack flex={1}>
-        {showPageChrome ? (
-          <TopBar.Slot
-            name="breadcrumbs"
-            title={{
-              type: 'page-title',
-              label: displayedTitle,
-              trailingActions: {
-                type: 'menu',
-                items: actions,
-                triggerLabel: t('Investigation actions'),
-                triggerIcon: <IconEllipsis />,
-              },
-            }}
-            items={[
-              {
-                type: 'link',
-                label: t('Investigations'),
-                to: getInvestigationsPath(organization.slug),
-                leadingGraphic: <IconStack size="md" />,
-              },
-            ]}
-          />
-        ) : null}
-        <Container as="header" width="100%" padding="xl xl 2xl">
-          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
-            <Grid
-              columns={
-                runStatus || headerActions ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'
-              }
-              align="center"
-              gap="md"
-            >
-              <NotebookTitleInput
-                aria-label={t('Investigation title')}
-                value={displayedTitle}
-                onChange={event => handleTitleChange(event.target.value)}
-                onBlur={handleTitleBlur}
-                maxLength={200}
-                aria-busy={renameMutation.isPending}
-              />
-              {runStatus || headerActions ? (
-                <Flex align="center" gap="md" wrap="nowrap">
-                  {runStatus ? (
-                    <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                      {runStatus.statusLabel}
-                    </Tag>
-                  ) : null}
-                  {runStatus && orchestration ? (
-                    <InvestigationRunTimer orchestration={orchestration} />
-                  ) : null}
-                  {headerActions}
-                </Flex>
-              ) : null}
-            </Grid>
-            <Flex align="center" justify="between" gap="md">
-              <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
-                {source.groupId ? (
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/issues/${source.groupId}/`
-                    )}
-                  >
-                    <Flex as="span" align="center" gap="xs">
-                      <IconIssues size="xs" />
-                      {source.monitorName ?? t('View issue')}
-                    </Flex>
-                  </Link>
-                ) : (
-                  <Text variant="muted">
-                    {formatSourceType(investigation.sourceType)}
-                  </Text>
-                )}
-                <MetaDivider />
-                <Text variant="muted">
-                  {tct('Last update: [date]', {
-                    date: <DateTime date={investigation.dateUpdated} year />,
-                  })}
-                </Text>
-                {!showActivity ||
-                (investigation.status === 'archived' && commentCount === 0) ? null : (
-                  <Fragment>
-                    <MetaDivider />
-                    <Button
-                      size="sm"
-                      variant="link"
-                      icon={<IconChat size="xs" />}
-                      onClick={() => {
-                        if (investigation.status === 'archived') {
-                          activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
-                          return;
-                        }
-                        composerRef.current?.scrollIntoView?.({
-                          block: 'center',
-                          behavior: 'smooth',
-                        });
-                        composerRef.current?.focus({preventScroll: true});
-                      }}
-                    >
-                      {hasMoreComments
-                        ? t('%s+ comments', commentCount)
-                        : commentCount > 0
-                          ? tn('%s comment', '%s comments', commentCount)
-                          : t('Comment')}
-                    </Button>
-                  </Fragment>
-                )}
-                <InvestigationViewers
-                  investigationId={investigation.id}
-                  separator={<MetaDivider />}
-                />
+    <Stack flex={1}>
+      <Container as="header" width="100%" padding="xl xl 2xl">
+        <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+          <Grid
+            columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+            align="center"
+            gap="md"
+          >
+            <NotebookTitleInput
+              aria-label={t('Investigation title')}
+              value={title.displayedTitle}
+              onChange={event => title.onChange(event.target.value)}
+              onBlur={title.onBlur}
+              maxLength={200}
+              aria-busy={title.isSaving}
+            />
+            {runStatus ? (
+              <Flex align="center" gap="md" wrap="nowrap">
+                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                  {runStatus.statusLabel}
+                </Tag>
+                {orchestration ? (
+                  <InvestigationRunTimer orchestration={orchestration} />
+                ) : null}
               </Flex>
-              <Container flexShrink={0}>
-                <FeedbackButton
-                  feedbackOptions={{
-                    formTitle: t('Give feedback on this investigation'),
-                    messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                    tags: {
-                      'feedback.source': 'investigation',
-                      'feedback.owner': 'ml-ai',
-                      'investigation.id': investigation.id,
-                      'investigation.source_type': investigation.sourceType,
-                    },
-                  }}
+            ) : null}
+          </Grid>
+          <Flex align="center" justify="between" gap="md">
+            <Flex flex="1" minWidth={0} align="center" gap="sm" wrap="wrap">
+              {source.groupId ? (
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/issues/${source.groupId}/`
+                  )}
                 >
-                  {t('Give feedback')}
-                </FeedbackButton>
-              </Container>
+                  <Flex as="span" align="center" gap="xs">
+                    <IconIssues size="xs" />
+                    {source.monitorName ?? t('View issue')}
+                  </Flex>
+                </Link>
+              ) : (
+                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+              )}
+              <MetaDivider />
+              <Text variant="muted">
+                {tct('Last update: [date]', {
+                  date: <DateTime date={investigation.dateUpdated} year />,
+                })}
+              </Text>
+              {!showActivity ||
+              (investigation.status === 'archived' && commentCount === 0) ? null : (
+                <Fragment>
+                  <MetaDivider />
+                  <Button
+                    size="sm"
+                    variant="link"
+                    icon={<IconChat size="xs" />}
+                    onClick={() => {
+                      if (investigation.status === 'archived') {
+                        activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                        return;
+                      }
+                      composerRef.current?.scrollIntoView?.({
+                        block: 'center',
+                        behavior: 'smooth',
+                      });
+                      composerRef.current?.focus({preventScroll: true});
+                    }}
+                  >
+                    {hasMoreComments
+                      ? t('%s+ comments', commentCount)
+                      : commentCount > 0
+                        ? tn('%s comment', '%s comments', commentCount)
+                        : t('Comment')}
+                  </Button>
+                </Fragment>
+              )}
+              <InvestigationViewers
+                investigationId={investigation.id}
+                separator={<MetaDivider />}
+              />
             </Flex>
-          </Stack>
-        </Container>
-        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
-          <Layout.Main width="full">
-            {/*
-             * The report keeps to the middle column, as wide as the header above
-             * it, which leaves the left one free for the outline.
-             */}
-            <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
-              {outline.length > 0 ? (
-                <Container
-                  column="1"
-                  display={{zero: 'none', '4xl': 'block'}}
-                  justifySelf="end"
-                  paddingRight="2xl"
-                >
-                  <InvestigationOutline entries={outline} />
-                </Container>
-              ) : null}
-              <Stack column="2" minWidth={0} gap="3xl">
-                <InvestigationSummaryCard
-                  id={SUMMARY_ELEMENT_ID}
-                  summary={investigation.summary}
-                  summaryDescription={investigation.summaryDescription}
-                />
-                <NextStepCard
-                  actionRequests={investigation.actionRequests}
-                  actionRequestsStale={actionRequestsStale}
-                  investigationId={investigation.id}
-                  source={investigation.source}
-                  orchestration={orchestration}
-                  orchestrationLoading={
-                    Boolean(investigation.orchestration) && orchestrationPending
-                  }
-                  waitingOnRun={recheckRunWait.waiting}
-                />
-                <AnchoredActionRequests
-                  actionRequests={placedActionRequests.get('unplaced')}
-                  investigationId={investigation.id}
-                  runProcessing={runProcessing}
-                  source={investigation.source}
-                />
+            <Container flexShrink={0}>
+              <FeedbackButton
+                feedbackOptions={{
+                  formTitle: t('Give feedback on this investigation'),
+                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                  tags: {
+                    'feedback.source': 'investigation',
+                    'feedback.owner': 'ml-ai',
+                    'investigation.id': investigation.id,
+                    'investigation.source_type': investigation.sourceType,
+                  },
+                }}
+              >
+                {t('Give feedback')}
+              </FeedbackButton>
+            </Container>
+          </Flex>
+        </Stack>
+      </Container>
+      <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
+        <Layout.Main width="full">
+          {/*
+           * The report keeps to the middle column, as wide as the header above
+           * it, which leaves the left one free for the outline.
+           */}
+          <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
+            {outline.length > 0 ? (
+              <Container
+                column="1"
+                display={{zero: 'none', '4xl': 'block'}}
+                justifySelf="end"
+                paddingRight="2xl"
+              >
+                <InvestigationOutline entries={outline} />
+              </Container>
+            ) : null}
+            <Stack column="2" minWidth={0} gap="3xl">
+              <InvestigationSummaryCard
+                id={SUMMARY_ELEMENT_ID}
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+              <NextStepCard
+                actionRequests={investigation.actionRequests}
+                actionRequestsStale={actionRequestsStale}
+                investigationId={investigation.id}
+                source={investigation.source}
+                orchestration={orchestration}
+                orchestrationLoading={
+                  Boolean(investigation.orchestration) && orchestrationPending
+                }
+                waitingOnRun={recheckRunWait.waiting}
+              />
+              <AnchoredActionRequests
+                actionRequests={placedActionRequests.get('unplaced')}
+                investigationId={investigation.id}
+                runProcessing={runProcessing}
+                source={investigation.source}
+              />
 
-                {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
+              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
-                {hasDetails ? (
-                  <Stack gap="lg">
-                    {showDetailsHeading ? (
-                      <Heading as="h2" size="lg">
-                        {t('Investigation details')}
-                      </Heading>
-                    ) : null}
-                    <DetailsBody gap="3xl">
-                      {/*
-                       * Only an agentic investigation has hypotheses, and `orchestration`
-                       * being present is the only thing that says one is: it is null for
-                       * manual and template investigations, whose orchestration endpoint
-                       * 404s.
-                       */}
-                      {investigation.orchestration ? (
-                        <InvestigationHypotheses
-                          id={HYPOTHESES_ELEMENT_ID}
-                          investigationId={investigation.id}
-                          phase={investigation.orchestration.phase}
-                          status={investigation.orchestration.status}
-                          onAskSeer={askSeerAboutHypothesis}
-                        />
-                      ) : null}
-                      <AnchoredActionRequests
-                        actionRequests={placedActionRequests.get('hypotheses')}
+              {hasDetails ? (
+                <Stack gap="lg">
+                  {showDetailsHeading ? (
+                    <Heading as="h2" size="lg">
+                      {t('Investigation details')}
+                    </Heading>
+                  ) : null}
+                  <DetailsBody gap="3xl">
+                    {/*
+                     * Only an agentic investigation has hypotheses, and `orchestration`
+                     * being present is the only thing that says one is: it is null for
+                     * manual and template investigations, whose orchestration endpoint
+                     * 404s.
+                     */}
+                    {investigation.orchestration ? (
+                      <InvestigationHypotheses
+                        id={HYPOTHESES_ELEMENT_ID}
                         investigationId={investigation.id}
-                        runProcessing={runProcessing}
-                        source={investigation.source}
-                        getLabel={anchor => {
-                          const statement = anchor
-                            ? hypothesisStatements.get(anchor.id)
-                            : undefined;
-                          return statement
-                            ? tct('About the possible cause: [statement]', {statement})
-                            : null;
-                        }}
+                        phase={investigation.orchestration.phase}
+                        status={investigation.orchestration.status}
+                        onAskSeer={askSeerAboutHypothesis}
                       />
-                      {visibleBlocks.length > 0 || awaitingReportBlock ? (
-                        <Stack>
-                          {visibleBlocks.map((block, index) => (
-                            <Container
-                              key={block.id}
-                              paddingTop={getBlockSpacing(block, index)}
-                            >
-                              <InvestigationNotebookBlock
-                                block={block}
-                                canRun={investigation.status === 'active'}
-                                investigation={investigation}
-                                commentCount={commentCounts?.[block.id]}
-                                onComment={
-                                  isArchived && commentCounts && !commentCounts[block.id]
-                                    ? undefined
-                                    : openBlockComments
-                                }
-                              />
-                              <AnchoredActionRequests
-                                actionRequests={placedActionRequests.get(
-                                  `block:${block.id}`
-                                )}
-                                investigationId={investigation.id}
-                                runProcessing={runProcessing}
-                                source={investigation.source}
-                              />
-                            </Container>
-                          ))}
-                          {awaitingReportBlock ? (
-                            <Container
-                              paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}
-                            >
-                              <InvestigationBlockPlaceholder />
-                            </Container>
-                          ) : null}
-                        </Stack>
-                      ) : null}
-                    </DetailsBody>
-                  </Stack>
-                ) : null}
-                {showActivity ? (
-                  <InvestigationActivity
-                    id={ACTIVITY_ELEMENT_ID}
-                    investigation={investigation}
-                    composerRef={composerRef}
-                    ref={activityRef}
-                  />
-                ) : null}
-                <Container height="128px" flexShrink={0} aria-hidden />
-              </Stack>
-            </Grid>
-          </Layout.Main>
-        </Layout.Body>
-      </Stack>
-    </Fragment>
+                    ) : null}
+                    <AnchoredActionRequests
+                      actionRequests={placedActionRequests.get('hypotheses')}
+                      investigationId={investigation.id}
+                      runProcessing={runProcessing}
+                      source={investigation.source}
+                      getLabel={anchor => {
+                        const statement = anchor
+                          ? hypothesisStatements.get(anchor.id)
+                          : undefined;
+                        return statement
+                          ? tct('About the possible cause: [statement]', {statement})
+                          : null;
+                      }}
+                    />
+                    {visibleBlocks.length > 0 || awaitingReportBlock ? (
+                      <Stack>
+                        {visibleBlocks.map((block, index) => (
+                          <Container
+                            key={block.id}
+                            paddingTop={getBlockSpacing(block, index)}
+                          >
+                            <InvestigationNotebookBlock
+                              block={block}
+                              canRun={investigation.status === 'active'}
+                              investigation={investigation}
+                              commentCount={commentCounts?.[block.id]}
+                              onComment={
+                                isArchived && commentCounts && !commentCounts[block.id]
+                                  ? undefined
+                                  : openBlockComments
+                              }
+                            />
+                            <AnchoredActionRequests
+                              actionRequests={placedActionRequests.get(
+                                `block:${block.id}`
+                              )}
+                              investigationId={investigation.id}
+                              runProcessing={runProcessing}
+                              source={investigation.source}
+                            />
+                          </Container>
+                        ))}
+                        {awaitingReportBlock ? (
+                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
+                            <InvestigationBlockPlaceholder />
+                          </Container>
+                        ) : null}
+                      </Stack>
+                    ) : null}
+                  </DetailsBody>
+                </Stack>
+              ) : null}
+              {showActivity ? (
+                <InvestigationActivity
+                  id={ACTIVITY_ELEMENT_ID}
+                  investigation={investigation}
+                  composerRef={composerRef}
+                  ref={activityRef}
+                />
+              ) : null}
+              <Container height="128px" flexShrink={0} aria-hidden />
+            </Stack>
+          </Grid>
+        </Layout.Main>
+      </Layout.Body>
+    </Stack>
   );
 }
-
-export const InvestigationPageContent = registerLLMContext(
-  'investigation',
-  InvestigationPageContentInner
-);
 
 /**
  * Text blocks start a new section with a large gap. Query blocks sit close to the

@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InboxNotebookPreview} from 'sentry/views/inbox/inboxNotebookPreview';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
@@ -33,10 +33,6 @@ describe('InboxNotebookPreview', () => {
     expect(screen.getByText('Manual investigation')).toBeInTheDocument();
     expect(screen.getByLabelText('Block actions for Summary')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open investigation'})).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/seer/investigations/${investigation.id}/`
-    );
   });
 
   it("leaves the page's top bar alone", async () => {
@@ -48,17 +44,12 @@ describe('InboxNotebookPreview', () => {
     expect(
       screen.queryByRole('heading', {name: 'Investigate database latency'})
     ).not.toBeInTheDocument();
-    expect(screen.getAllByLabelText('Investigation actions')).toHaveLength(1);
-  });
-
-  it('offers the investigation actions in a menu', async () => {
-    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
-
-    await userEvent.click(await screen.findByLabelText('Investigation actions'));
-
-    expect(screen.getByRole('menuitemradio', {name: 'Copy link'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Investigation actions'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open investigation'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows an error when the investigation fails to load', async () => {
