@@ -30,7 +30,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user_id, owned_by_acting_user
+from sentry.auth.principal import owned_by_acting_user, require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -267,6 +267,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         for project in projects:
             self.check_object_permissions(request, project)
 
+        # Saved views act on the caller as a person, so only a user can create one.
+        user = require_user(request)
+
         # Create the new view
         creator = get_creator_reference(request)
         view = GroupSearchView.objects.create(
@@ -284,12 +287,10 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
         view.projects.set(validated_data["projects"])
 
-        # Starring is per user, so a request without one can't star the view.
-        starring_user_id = acting_user_id(request.user)
-        if validated_data.get("starred") and starring_user_id is not None:
+        if validated_data.get("starred"):
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
-                user_id=starring_user_id,
+                user_id=user.id,
                 view=view,
             )
 
