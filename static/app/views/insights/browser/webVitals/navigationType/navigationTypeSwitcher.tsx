@@ -19,6 +19,8 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 import {
   buildNavigationTypeGlobalFilter,
   getBucketsFromGlobalFilters,
+  getNavigationTypeCountsDataset,
+  getNavigationTypeDatasets,
   isAllBucketsSelected,
   isNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
@@ -27,7 +29,7 @@ import {
   type NavigationTypeBucket,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {spanFilterQueryFromGlobalFilters} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
+import {filterQueryFromGlobalFilters} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 type Props = {
   globalFilters: GlobalFilter[];
@@ -40,16 +42,25 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
   const buckets = getBucketsFromGlobalFilters(globalFilters);
   const isAll = isAllBucketsSelected(buckets);
 
+  // The dashboard's filters say which datasets its widgets read from, so the
+  // selection is written for each of them and counted on the primary one.
+  const datasets = getNavigationTypeDatasets(globalFilters);
+  const countsDataset = getNavigationTypeCountsDataset(datasets);
+
   // So the counts match what the widgets render.
   const additionalQuery = useMemo(
     () =>
-      spanFilterQueryFromGlobalFilters(
-        globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
+      filterQueryFromGlobalFilters(
+        globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter)),
+        countsDataset
       ),
-    [globalFilters]
+    [globalFilters, countsDataset]
   );
 
-  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({additionalQuery});
+  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({
+    additionalQuery,
+    dataset: countsDataset,
+  });
 
   const options: Array<SelectOption<NavigationTypeBucket>> =
     NAVIGATION_TYPE_BUCKET_ORDER.map(candidate => {
@@ -82,7 +93,7 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
         untaggedCount > 0 ? (
           <MenuComponents.Alert variant="info">
             {tct(
-              '[count] spans have no navigation type (sent before the SDK started tagging it). They are counted as page loads.',
+              '[count] web vitals have no navigation type (sent before the SDK started tagging it). They are counted as page loads.',
               {count: <strong>{formatAbbreviatedNumber(untaggedCount)}</strong>}
             )}
           </MenuComponents.Alert>
@@ -91,9 +102,10 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
       onChange={selected => {
         const nextBuckets = normalizeBuckets(selected.map(option => option.value));
         onChange(
-          mergeGlobalFilters(globalFilters, [
-            buildNavigationTypeGlobalFilter(nextBuckets),
-          ])
+          mergeGlobalFilters(
+            globalFilters,
+            datasets.map(dataset => buildNavigationTypeGlobalFilter(nextBuckets, dataset))
+          )
         );
         trackAnalytics('insight.vital.select_navigation_type', {
           organization,

@@ -13,25 +13,34 @@ import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltCo
 import {
   bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
+  getNavigationTypeCountsDataset,
+  getNavigationTypeDatasets,
   isNavigationTypeGlobalFilter,
   isSwitcherQuery,
   isWebVitalsPrebuiltDashboard,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
   type NavigationTypeBucket,
+  type NavigationTypeDataset,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
-export function spanFilterQueryFromGlobalFilters(filters: GlobalFilter[]): string {
+/** The active filters on one dataset as a query, so side queries match the widgets. */
+export function filterQueryFromGlobalFilters(
+  filters: GlobalFilter[],
+  dataset: WidgetType
+): string {
   return filters
-    .filter(filter => filter.dataset === WidgetType.SPANS && filter.value)
+    .filter(filter => filter.dataset === dataset && filter.value)
     .map(filter => filter.value)
     .join(' ');
 }
 
 type NavigationTypeExperiment = {
   buckets: NavigationTypeBucket[];
+  /** The dataset the switcher counts, metrics on a metrics backed dashboard. */
+  countsDataset: NavigationTypeDataset;
   isEnabled: boolean;
-  /** The other active spans filters, for keeping side queries in sync. */
-  otherSpanFilterQuery: string;
+  /** The other active filters on the counts dataset, for keeping side queries in sync. */
+  otherFilterQuery: string;
   supportsThresholds: boolean;
 };
 
@@ -50,13 +59,18 @@ export function useNavigationTypeExperiment(
   const globalFilters =
     getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
   const buckets = getBucketsFromGlobalFilters(globalFilters);
+  const countsDataset = getNavigationTypeCountsDataset(
+    getNavigationTypeDatasets(globalFilters)
+  );
 
   return {
     isEnabled,
     buckets,
+    countsDataset,
     supportsThresholds: bucketsKeepThresholds(buckets),
-    otherSpanFilterQuery: spanFilterQueryFromGlobalFilters(
-      globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
+    otherFilterQuery: filterQueryFromGlobalFilters(
+      globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter)),
+      countsDataset
     ),
   };
 }

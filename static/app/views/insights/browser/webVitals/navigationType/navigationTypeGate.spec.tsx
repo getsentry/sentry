@@ -20,10 +20,8 @@ describe('NavigationTypeGate', () => {
     features: ['insights-web-vitals-navigation-type-switcher'],
   });
 
-  function mockCounts(
-    rows: Array<{'browser.navigation.type': string; 'count()': number}>
-  ) {
-    MockApiClient.addMockResponse({
+  function mockCounts(rows: Array<Record<string, string | number>>) {
+    return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: rows, meta: {fields: {}}},
     });
@@ -105,6 +103,46 @@ describe('NavigationTypeGate', () => {
     expect(
       screen.queryByText(/is a blend rather than one measurement/)
     ).not.toBeInTheDocument();
+  });
+
+  it('counts the web vital metrics on a metrics backed dashboard', async () => {
+    const mock = mockCounts([
+      {
+        [SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate',
+        'count(value,browser.web_vital.ttfb,distribution,millisecond)': 10,
+      },
+    ]);
+
+    render(
+      <NavigationTypeGate prebuiltId={PrebuiltDashboardId.WEB_VITALS}>
+        <div>widget grid</div>
+      </NavigationTypeGate>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/6/',
+            query: {
+              globalFilter: [
+                JSON.stringify(
+                  buildNavigationTypeGlobalFilter(
+                    [NavigationTypeBucket.SOFT_NAVIGATION],
+                    WidgetType.TRACEMETRICS
+                  )
+                ),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    // No soft navigation metrics, so the empty state takes over.
+    expect(await screen.findByText(/Chromium 151/)).toBeInTheDocument();
+    expect(mock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({dataset: 'tracemetrics'})})
+    );
   });
 
   it('does nothing, and queries nothing, outside the web vitals dashboards', async () => {

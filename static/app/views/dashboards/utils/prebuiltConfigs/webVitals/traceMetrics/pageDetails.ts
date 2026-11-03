@@ -10,7 +10,10 @@ import {
   WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
   webVitalP75Meter,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {
+  ISSUE_TYPES,
+  WEB_VITALS_NAVIGATION_TYPE_FILTER,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
 
 // TODO: Move these to trace metrics once the metrics can back them.
@@ -33,7 +36,12 @@ export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
   filters: {
-    globalFilter: WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
+    globalFilter: [
+      ...WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
+      // The samples tables and interactions chart are still on spans, so the
+      // navigation type switcher filters those too
+      WEB_VITALS_NAVIGATION_TYPE_FILTER,
+    ],
   },
   widgets: [
     scoreBreakdownChartWidget(

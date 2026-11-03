@@ -1,8 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {
   buildNavigationTypeGlobalFilter,
+  getNavigationTypeCountsDataset,
+  getNavigationTypeDatasets,
+  NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
@@ -23,6 +27,16 @@ describe('hidesNavigationTypeChip', () => {
   it('hides the chip where the switcher replaces it', () => {
     expect(
       hidesNavigationTypeChip(WEB_VITALS_NAVIGATION_TYPE_FILTER, withFlag, true)
+    ).toBe(true);
+    expect(
+      hidesNavigationTypeChip(
+        buildNavigationTypeGlobalFilter(
+          NAVIGATION_TYPE_BUCKET_ORDER,
+          WidgetType.TRACEMETRICS
+        ),
+        withFlag,
+        true
+      )
     ).toBe(true);
   });
 
@@ -70,6 +84,21 @@ describe('showsNavigationTypeSwitcher', () => {
     ).toBe(true);
   });
 
+  it('shows on a metrics backed copy that carries the filter', () => {
+    expect(
+      showsNavigationTypeSwitcher(
+        [
+          buildNavigationTypeGlobalFilter(
+            NAVIGATION_TYPE_BUCKET_ORDER,
+            WidgetType.TRACEMETRICS
+          ),
+        ],
+        withFlag,
+        false
+      )
+    ).toBe(true);
+  });
+
   it('stays off on a dashboard without the filter', () => {
     expect(showsNavigationTypeSwitcher([], withFlag, false)).toBe(false);
   });
@@ -93,5 +122,33 @@ describe('showsNavigationTypeSwitcher', () => {
     expect(
       showsNavigationTypeSwitcher([WEB_VITALS_NAVIGATION_TYPE_FILTER], withoutFlag, true)
     ).toBe(false);
+  });
+});
+
+describe('getNavigationTypeDatasets', () => {
+  const spansFilter = WEB_VITALS_NAVIGATION_TYPE_FILTER;
+  const metricsFilter = buildNavigationTypeGlobalFilter(
+    NAVIGATION_TYPE_BUCKET_ORDER,
+    WidgetType.TRACEMETRICS
+  );
+
+  it('falls back to spans for a dashboard without the filter', () => {
+    expect(getNavigationTypeDatasets([])).toEqual([WidgetType.SPANS]);
+    expect(getNavigationTypeDatasets(undefined)).toEqual([WidgetType.SPANS]);
+  });
+
+  it('reads the datasets from the filters the dashboard carries', () => {
+    expect(getNavigationTypeDatasets([metricsFilter])).toEqual([WidgetType.TRACEMETRICS]);
+    expect(getNavigationTypeDatasets([metricsFilter, spansFilter])).toEqual([
+      WidgetType.SPANS,
+      WidgetType.TRACEMETRICS,
+    ]);
+  });
+
+  it('counts on the metrics whenever the dashboard is metrics backed', () => {
+    expect(getNavigationTypeCountsDataset([WidgetType.SPANS])).toBe(WidgetType.SPANS);
+    expect(
+      getNavigationTypeCountsDataset([WidgetType.SPANS, WidgetType.TRACEMETRICS])
+    ).toBe(WidgetType.TRACEMETRICS);
   });
 });

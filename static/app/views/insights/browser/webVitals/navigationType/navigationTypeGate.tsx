@@ -38,8 +38,11 @@ interface Props {
  */
 export function NavigationTypeGate({children, prebuiltId}: Props) {
   const organization = useOrganization();
-  const {isEnabled: isWebVitalsDashboard, otherSpanFilterQuery} =
-    useNavigationTypeExperiment(prebuiltId);
+  const {
+    isEnabled: isWebVitalsDashboard,
+    countsDataset,
+    otherFilterQuery,
+  } = useNavigationTypeExperiment(prebuiltId);
   const location = useLocation();
 
   const switcherFilter = getSwitcherFilter(
@@ -50,7 +53,8 @@ export function NavigationTypeGate({children, prebuiltId}: Props) {
   const hidesThresholds = Boolean(switcherFilter) && !bucketsKeepThresholds(buckets);
 
   const {counts, isPending} = useNavigationTypeCounts({
-    additionalQuery: otherSpanFilterQuery,
+    additionalQuery: otherFilterQuery,
+    dataset: countsDataset,
     enabled: hidesThresholds && isWebVitalsDashboard,
   });
 
