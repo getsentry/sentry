@@ -171,7 +171,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         )
 
     @mock.patch(_MAKE_SCM)
-    def test_returns_files_by_repo_name_and_number(self, mock_make_scm):
+    def test_returns_files_by_repo_name_and_number(self, mock_make_scm: MagicMock) -> None:
         mock_make_scm.return_value = _FakeScm(
             pages=[
                 _page(
@@ -204,7 +204,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         )
         assert mock_make_scm.return_value.calls == ["42"]
 
-    def test_requires_repo_and_numeric_number(self):
+    def test_requires_repo_and_numeric_number(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
         self.get_error_response(
             self.organization.slug,
@@ -212,7 +212,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
             status_code=400,
         )
 
-    def test_repo_in_other_org_returns_404(self):
+    def test_repo_in_other_org_returns_404(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         self.create_repo(
             project=self.create_project(organization=other_org),
@@ -226,7 +226,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
             status_code=404,
         )
 
-    def test_repo_without_integration_returns_404(self):
+    def test_repo_without_integration_returns_404(self) -> None:
         self.create_repo(project=self.project, name="getsentry/plain", provider="github")
         self.get_error_response(
             self.organization.slug,
@@ -235,7 +235,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         )
 
     @mock.patch(_MAKE_SCM)
-    def test_provider_error_returns_502(self, mock_make_scm):
+    def test_provider_error_returns_502(self, mock_make_scm: MagicMock) -> None:
         mock_make_scm.return_value = _FakeScm(error=SCMError("boom"))
         self.get_error_response(
             self.organization.slug,
@@ -244,7 +244,7 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         )
 
     @mock.patch(_MAKE_SCM)
-    def test_ambiguous_repo_name_returns_404(self, mock_make_scm):
+    def test_ambiguous_repo_name_returns_404(self, mock_make_scm: MagicMock) -> None:
         self.create_repo(
             project=self.project,
             name="getsentry/sentry",
