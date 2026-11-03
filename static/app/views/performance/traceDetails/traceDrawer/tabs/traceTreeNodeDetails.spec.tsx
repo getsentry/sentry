@@ -35,7 +35,9 @@ jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/span', () =
 jest.mock(
   'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails',
   () => ({
-    AiSpanDetails: () => <div>ai span details</div>,
+    AiSpanNodeDetails: ({operationType}: {operationType: string}) => (
+      <div>ai span details for {operationType}</div>
+    ),
   })
 );
 jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/autogroup', () => ({
@@ -77,7 +79,7 @@ describe('TraceTreeNodeDetails', () => {
     });
     render(renderDetails(new EapSpanNode(null, value, extra)));
 
-    expect(await screen.findByText('ai span details')).toBeInTheDocument();
+    expect(await screen.findByText('ai span details for ai_client')).toBeInTheDocument();
   });
 
   it('renders the autogroup panel for an autogroup node', async () => {

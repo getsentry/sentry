@@ -593,7 +593,8 @@ class _RemoteSiloCall:
             # value set for the override is invalid
             sentry_sdk.capture_exception()
 
-        return options.get("hybridcloud.rpc.retries")
+        retries = options.get("hybridcloud.rpc.retries")
+        return retries
 
     def get_method_timeout(self) -> float:
         timeout_key = f"{self.service_name}.{self.method_name}"

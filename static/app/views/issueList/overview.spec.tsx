@@ -988,7 +988,9 @@ describe('IssueList', () => {
         expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
       });
       // ?new=true should be removed
-      expect(testRouter.location.query.new).toBeUndefined();
+      await waitFor(() => {
+        expect(testRouter.location.query.new).toBeUndefined();
+      });
 
       expect(fetchDataMock).toHaveBeenCalled();
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();

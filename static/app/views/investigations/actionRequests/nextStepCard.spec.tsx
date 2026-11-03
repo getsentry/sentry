@@ -137,11 +137,11 @@ function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
 }
 
 const applyUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/apply/';
 const recheckUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/recheck/';
 const retryFollowUpUrl =
-  '/organizations/org-slug/investigations/investigation-1/action-requests/312/retry-follow-up/';
+  '/organizations/org-slug/notebooks/investigation-1/action-requests/312/retry-follow-up/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 

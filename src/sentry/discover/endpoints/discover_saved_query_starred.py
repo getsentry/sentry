@@ -16,7 +16,7 @@ class StarQuerySerializer(serializers.Serializer):
     starred = serializers.BooleanField(required=True)
     position = serializers.IntegerField(required=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if not data["starred"] and "position" in data:
             raise serializers.ValidationError("Position is only allowed when starring a query.")
         return data
@@ -40,7 +40,7 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )

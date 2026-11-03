@@ -27,24 +27,26 @@ class TypesClass:
     TYPES: list[tuple[int, str]]
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> list[tuple[int, str]]:
         return [(k, str(v)) for k, v in cls.TYPES]
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> list[tuple[str, str]]:
         return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
-    def get_type_name(cls, num):
+    def get_type_name(cls, num: int) -> str | None:
         for id, name in cls.TYPES:
             if id == num:
                 return name
+        return None
 
     @classmethod
-    def get_id_for_type_name(cls, type_name):
+    def get_id_for_type_name(cls, type_name: str) -> int | None:
         for id, name in cls.TYPES:
             if type_name == name:
                 return id
+        return None
 
 
 class DashboardWidgetTypes(TypesClass):
@@ -99,7 +101,7 @@ class DashboardWidgetLegendType(str, Enum):
     BREAKDOWN = "breakdown"
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> list[tuple[str, str]]:
         return [(member.value, member.value) for member in cls]
 
 
@@ -156,11 +158,11 @@ class DatasetSourcesTypes(Enum):
     SPAN_MIGRATION_VERSION_5 = 11
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
     @classmethod
-    def as_text_choices(cls):
+    def as_text_choices(cls) -> tuple[tuple[str, int], ...]:
         return tuple((source.name.lower(), source.value) for source in cls)
 
 
@@ -331,7 +333,7 @@ class DashboardWidgetQueryOnDemand(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, db_default=Now())
 
-    def can_extraction_be_auto_overridden(self):
+    def can_extraction_be_auto_overridden(self) -> bool:
         """Determines whether tasks can override extraction state"""
         if self.extraction_state == self.OnDemandExtractionState.DISABLED_MANUAL:
             # Manually disabling a widget will cause it to stay off until manually re-enabled.
@@ -347,7 +349,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
         return True
 
-    def extraction_enabled(self):
+    def extraction_enabled(self) -> bool:
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """

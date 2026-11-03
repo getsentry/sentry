@@ -128,7 +128,8 @@ def fetch_recent_commits(
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
-    return provider.fetch_recent_commits(repo, end_sha, actor=user)
+    commits = provider.fetch_recent_commits(repo, end_sha, actor=user)
+    return commits
 
 
 def get_repo_for_ref(
@@ -169,8 +170,11 @@ def get_provider_for_repo(
         if repo.has_integration_provider()
         else "repository.provider"
     )
+    provider_name = repo.provider
+    if provider_name is None:
+        return None
     try:
-        provider_cls = bindings.get(binding_key).get(repo.provider)
+        provider_cls = bindings.get(binding_key).get(provider_name)
     except KeyError:
         return None
 

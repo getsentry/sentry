@@ -32,6 +32,7 @@ import collections
 import inspect
 import typing
 from collections import defaultdict
+from collections.abc import Sequence
 from enum import Enum
 from types import UnionType
 from typing import Any, Literal, Union, is_typeddict
@@ -66,13 +67,21 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   map TypedDicts in schema registry
 
 
-def get_type_hints(hint, **kwargs):
+TypeHint = Any
+
+
+def get_type_hints(
+    hint: TypeHint,
+    globalns: dict[str, TypeHint] | None = None,
+    localns: dict[str, TypeHint] | None = None,
+    include_extras: bool = False,
+) -> dict[str, TypeHint]:
     try:
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except NameError:
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, globalns, localns, include_extras)
     except TypeError:
         raise UnableToProceedError(
             f"""Unable to resolve type hints for {hint}.
@@ -82,11 +91,11 @@ def get_type_hints(hint, **kwargs):
         )
 
 
-def _get_type_hint_origin(hint):
+def _get_type_hint_origin(hint: TypeHint) -> tuple[TypeHint, tuple[TypeHint, ...]]:
     return typing.get_origin(hint), typing.get_args(hint)
 
 
-def build_choice_description_list(choices) -> str:
+def build_choice_description_list(choices: Sequence[tuple[object, object]]) -> str:
     """
     Override the default generated description for choicefields if the value and
     label are identical to be (* `value`) instead of (* `value` - `label`).
@@ -102,7 +111,7 @@ drf_spectacular.plumbing.build_choice_description_list = build_choice_descriptio
 
 def build_array_type(
     schema: _SchemaType | None, min_length: int | None = None, max_length: int | None = None
-):
+) -> _SchemaType:
     """
     This function wraps the build_array_type from `drf-spectacular` because it is not type-safe.
     """
@@ -124,11 +133,16 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     }
 
 
-def resolve_type_hint(hint) -> Any:
+def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
+    if hint is type(None):
+        return {"nullable": True, "enum": [None]}
+
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
+    if hint is object:
+        return build_basic_type(OpenApiTypes.ANY)
     if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
@@ -140,7 +154,7 @@ def resolve_type_hint(hint) -> Any:
         else:
             properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
-    elif origin is list or hint is list:
+    elif origin is list or hint is list or origin is collections.abc.Sequence:
         return build_array_type(
             _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
@@ -150,7 +164,7 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict:
+    elif origin is dict or origin is defaultdict or origin is collections.abc.Mapping:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = _resolve_at(args[1], "additionalProperties")

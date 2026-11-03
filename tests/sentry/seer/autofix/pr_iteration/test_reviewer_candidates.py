@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, NoReturn
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -27,7 +27,7 @@ REPO_NAME = "owner/repo"
 PR_NUMBER = 42
 
 
-def _files_page(files: list[dict]) -> dict:
+def _files_page(files: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "data": files,
         "type": "github",
@@ -36,7 +36,7 @@ def _files_page(files: list[dict]) -> dict:
     }
 
 
-def _commits_page(raw_commits: list[dict]) -> dict:
+def _commits_page(raw_commits: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "data": [],
         "type": "github",
@@ -49,10 +49,10 @@ class _FakeScm:
     """Satisfies the runtime protocol checks; the patched ``scm_actions``
     intercepts every call, so the methods never actually run."""
 
-    def get_pull_request_files(self, *args, **kwargs):
+    def get_pull_request_files(self, *args: Any, **kwargs: Any) -> NoReturn:
         raise NotImplementedError
 
-    def get_commits_by_path(self, *args, **kwargs):
+    def get_commits_by_path(self, *args: Any, **kwargs: Any) -> NoReturn:
         raise NotImplementedError
 
 
@@ -82,7 +82,9 @@ class CollectReviewerCandidatesTest(TestCase):
             **kwargs,
         )
 
-    def _create_suspect_commit(self, *, external_id: str | None, user_id: int | None = None):
+    def _create_suspect_commit(
+        self, *, external_id: str | None, user_id: int | None = None
+    ) -> None:
         author = self.create_commit_author(
             organization_id=self.organization.id, email="suspect@example.com"
         )

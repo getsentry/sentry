@@ -163,7 +163,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def apply(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-apply",
+            "sentry-api-0-organization-notebook-action-request-apply",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -178,7 +178,7 @@ class ConnectTelemetryApplyTest(APITestCase, TelemetryFixtures):
 
     def retry_follow_up(self, **data: Any) -> Any:
         url = reverse(
-            "sentry-api-0-organization-investigation-action-request-retry-follow-up",
+            "sentry-api-0-organization-notebook-action-request-retry-follow-up",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

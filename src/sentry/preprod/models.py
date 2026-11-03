@@ -248,13 +248,14 @@ class PreprodArtifact(DefaultFieldsModel):
     def platform(self) -> Platform | None:
         if self.artifact_type is None:
             return None
-        match self.artifact_type:
+        artifact_type = self.ArtifactType(self.artifact_type)
+        match artifact_type:
             case self.ArtifactType.XCARCHIVE:
                 return Platform.APPLE
             case self.ArtifactType.AAB | self.ArtifactType.APK:
                 return Platform.ANDROID
             case _:
-                assert_never(self.artifact_type)
+                assert_never(artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """

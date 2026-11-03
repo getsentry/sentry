@@ -131,7 +131,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="listOrganizationAIConversations",
@@ -273,7 +273,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         response: list[AIConversationResponse] = []
         for conversation in conversations:
             project_id = conversation["projectId"]
-            project = projects_by_id.get(project_id)
+            project = projects_by_id.get(project_id) if project_id is not None else None
             response.append(
                 {
                     **conversation,

@@ -642,6 +642,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
         status = GroupStatus.RESOLVED
 
