@@ -267,6 +267,35 @@ class TestPostprocessing:
 
         assert processed["paths"][path]["get"]["parameters"] == [issue_id]
 
+    def test_appends_hand_written_operations_beside_the_views_others(self) -> None:
+        path = "/api/0/installations/"
+        hand_written = _documented_operation("hand-written")
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                path: {
+                    "get": {"operationId": "generated", "parameters": []},
+                    "post": {"operationId": "create", "parameters": []},
+                }
+            },
+        }
+
+        with _internal_build():
+            _build().append_paths = {path: {"get": hand_written}}
+            _build().admitted = {
+                (path, "get"): _Admitted(ApiPublishStatus.PRIVATE, ()),
+                (path, "post"): _Admitted(ApiPublishStatus.PRIVATE, ()),
+            }
+            processed = internal_postprocessing_hook(result, None)
+
+        operations = processed["paths"][path]
+        assert {method: op["operationId"] for method, op in operations.items()} == {
+            "get": "hand-written",
+            "post": "create",
+        }
+        # Stamped on a copy, not on the operation in the settings.
+        assert PUBLISH_STATUS_EXTENSION not in hand_written
+
     def test_published_build_stamps_nothing(self) -> None:
         result = {
             "components": {"schemas": {}},
@@ -281,23 +310,30 @@ class TestPostprocessing:
 
 
 def test_build_swaps_hooks_and_restores_settings() -> None:
-    before = (
-        list(spectacular_settings.PREPROCESSING_HOOKS),
-        list(spectacular_settings.POSTPROCESSING_HOOKS),
-        spectacular_settings.TITLE,
-    )
+    append_paths = {"/api/0/hand-written/": {"get": _documented_operation("hand-written")}}
+    with mock.patch.object(spectacular_settings, "APPEND_PATHS", append_paths):
+        before = (
+            list(spectacular_settings.PREPROCESSING_HOOKS),
+            list(spectacular_settings.POSTPROCESSING_HOOKS),
+            spectacular_settings.TITLE,
+            spectacular_settings.APPEND_PATHS,
+        )
 
-    with _internal_build():
-        assert spectacular_settings.PREPROCESSING_HOOKS[0] is internal_preprocessing_hook
-        assert internal_postprocessing_hook in spectacular_settings.POSTPROCESSING_HOOKS
-        assert custom_preprocessing_hook not in spectacular_settings.PREPROCESSING_HOOKS
-        assert custom_postprocessing_hook not in spectacular_settings.POSTPROCESSING_HOOKS
+        with _internal_build():
+            assert spectacular_settings.PREPROCESSING_HOOKS[0] is internal_preprocessing_hook
+            assert internal_postprocessing_hook in spectacular_settings.POSTPROCESSING_HOOKS
+            assert custom_preprocessing_hook not in spectacular_settings.PREPROCESSING_HOOKS
+            assert custom_postprocessing_hook not in spectacular_settings.POSTPROCESSING_HOOKS
+            # Appended by postprocessing instead, method by method.
+            assert spectacular_settings.APPEND_PATHS == {}
+            assert _build().append_paths is append_paths
 
-    assert (
-        list(spectacular_settings.PREPROCESSING_HOOKS),
-        list(spectacular_settings.POSTPROCESSING_HOOKS),
-        spectacular_settings.TITLE,
-    ) == before
+        assert (
+            list(spectacular_settings.PREPROCESSING_HOOKS),
+            list(spectacular_settings.POSTPROCESSING_HOOKS),
+            spectacular_settings.TITLE,
+            spectacular_settings.APPEND_PATHS,
+        ) == before
 
 
 class BoxItem(TypedDict):

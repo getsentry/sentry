@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import itertools
 import re
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -69,6 +70,8 @@ class _InternalBuild:
     public_spellings: dict[str, str] = field(default_factory=dict)
     # Each admitted operation, keyed by (path, lowercased method).
     admitted: dict[tuple[str, str], _Admitted] = field(default_factory=dict)
+    # The `APPEND_PATHS` setting, which postprocessing appends in drf-spectacular's place.
+    append_paths: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
 
 _current: ContextVar[_InternalBuild] = ContextVar("internal_build")
@@ -187,6 +190,10 @@ def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> 
     """Stamp what preprocessing read and each path's aliases, then postprocess as published."""
     build = _build()
     paths = result["paths"]
+    # drf-spectacular appends `APPEND_PATHS` over whole path items, which drops the methods
+    # a view serves beyond the hand-written ones. The hand-written ones still win.
+    for path, operations in build.append_paths.items():
+        paths.setdefault(path, {}).update(copy.deepcopy(operations))
     # Before the published build's postprocessing, which can rewrite path keys.
     for path, operations in paths.items():
         aliases = build.path_aliases.get(path)
@@ -223,12 +230,13 @@ def _in_reference(operation: Mapping[str, Any]) -> bool:
 
 @contextlib.contextmanager
 def _internal_build() -> Iterator[None]:
-    token = _current.set(_InternalBuild())
+    token = _current.set(_InternalBuild(append_paths=spectacular_settings.APPEND_PATHS))
     try:
         with (
             _spectacular_settings(
                 TITLE=_TITLE,
                 DESCRIPTION=_DESCRIPTION,
+                APPEND_PATHS={},
                 PREPROCESSING_HOOKS=_swapped(
                     spectacular_settings.PREPROCESSING_HOOKS,
                     custom_preprocessing_hook,
