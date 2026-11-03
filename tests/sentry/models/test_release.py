@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -51,6 +52,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils.strings import truncatechars
@@ -170,7 +172,7 @@ class NextReleaseOrderingTest(TestCase):
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version) -> None:
+def test_version_is_semver_valid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -197,7 +199,7 @@ def test_version_is_semver_valid(release_version) -> None:
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version) -> None:
+def test_version_is_semver_invalid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
@@ -788,6 +790,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -835,6 +838,7 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -903,6 +907,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -1097,6 +1102,58 @@ class SetCommitsTestCase(TestCase):
         commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
         assert commit_d.author is None
 
+    @override_options({"releases.set-commits.max-commits": 2})
+    def test_keeps_only_newest_commits_over_limit(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org)
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        now = timezone.now()
+
+        with patch("sentry.models.releases.set_commits.logger") as mock_logger:
+            release.set_commits(
+                [
+                    {
+                        "id": "a" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=2),
+                    },
+                    {"id": "b" * 40, "repository": repo.name, "timestamp": now},
+                    {
+                        "id": "c" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=1),
+                    },
+                    # Ignored commits are dropped before the limit is applied.
+                    {
+                        "id": "d" * 40,
+                        "repository": repo.name,
+                        "timestamp": now + timedelta(hours=1),
+                        "message": "#skipsentry",
+                    },
+                ]
+            )
+
+        assert set(
+            ReleaseCommit.objects.filter(release=release).values_list("commit__key", flat=True)
+        ) == {"b" * 40, "c" * 40}
+        assert not Commit.objects.filter(repository_id=repo.id, key="a" * 40).exists()
+
+        release.refresh_from_db()
+        assert release.commit_count == 2
+        assert release.last_commit_id == Commit.objects.get(repository_id=repo.id, key="b" * 40).id
+
+        mock_logger.info.assert_any_call(
+            "set_commits.truncated",
+            extra={
+                "organization_id": org.id,
+                "release_id": release.id,
+                "original_count": 3,
+                "truncated_count": 2,
+            },
+        )
+
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self) -> None:
@@ -1107,7 +1164,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": "previous-commit-id",
@@ -1156,7 +1213,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": None,
@@ -1455,7 +1512,14 @@ class ReleaseFilterBySemverTest(TestCase):
         ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        version: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1546,7 +1610,14 @@ class ReleaseFilterBySemverTest(TestCase):
 
 
 class ReleaseFilterBySemverBuildTest(TestCase):
-    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        build: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(

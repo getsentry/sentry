@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -706,16 +706,17 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 <field.Select
                   value={field.state.value ?? null}
                   onChange={field.handleChange}
-                  options={platformOptions}
+                  options={platformOptions.map(option => ({
+                    ...option,
+                    disabled:
+                      option.value === project.platform &&
+                      !isPlatformAllowed({
+                        isSelfHosted,
+                        organization,
+                        platform: option.value,
+                      }),
+                  }))}
                   filterOption={platformFilter}
-                  isOptionDisabled={option =>
-                    option.value === project.platform &&
-                    !isPlatformAllowed({
-                      isSelfHosted,
-                      organization,
-                      platform: option.value,
-                    })
-                  }
                   disabled={disabled}
                 />
               </field.Layout.Row>
@@ -723,9 +724,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm

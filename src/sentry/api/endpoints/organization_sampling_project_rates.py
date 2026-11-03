@@ -1,6 +1,7 @@
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,6 +20,8 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 OPTION_KEY = "sentry:target_sample_rate"
 
@@ -26,7 +29,12 @@ OPTION_KEY = "sentry:target_sample_rate"
 class GetSerializer(Serializer[Mapping[str, Any]]):
     """Serializer for OrganizationSamplingProjectRatesEndpoint.get"""
 
-    def get_attrs(self, item_list, user, **kwargs) -> MutableMapping[Any, Any]:
+    def get_attrs(
+        self,
+        item_list: Sequence[Project],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> MutableMapping[Project, object]:
         options = ProjectOption.objects.get_value_bulk(item_list, OPTION_KEY)
         # NOTE: `get_value_bulk` does not resolve defaults. The default does not
         # depend on epochs, so we can speed this up by using the constant.
@@ -35,7 +43,13 @@ class GetSerializer(Serializer[Mapping[str, Any]]):
             for item, value in options.items()
         }
 
-    def serialize(self, obj: Any, attrs: Any, user, **kwargs) -> Mapping[str, Any]:
+    def serialize(
+        self,
+        obj: Any,
+        attrs: Any,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> Mapping[str, Any]:
         return {"id": obj.id, "sampleRate": attrs}
 
 
@@ -59,7 +73,7 @@ class OrganizationSamplingProjectRatesEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationPermission,)
 
-    def _check_feature(self, request: Request, organization: Organization):
+    def _check_feature(self, request: Request, organization: Organization) -> None:
         if not features.has(
             "organizations:dynamic-sampling-custom", organization, actor=request.user
         ):

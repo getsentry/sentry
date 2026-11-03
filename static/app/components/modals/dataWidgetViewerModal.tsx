@@ -13,7 +13,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption, components} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -236,6 +236,26 @@ function WidgetViewerTable({
   }
 }
 
+interface QueryOption extends SelectValue<number> {
+  getHighlightedQuery: (
+    props: React.ComponentProps<typeof HighlightContainer>
+  ) => React.ReactNode;
+}
+
+function QueryValue({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'block'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
+function QueryOptionLabel({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'flex'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
 function DataWidgetViewerModal(props: Props) {
   const {
     organization,
@@ -445,7 +465,7 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const queryOptions = sortedQueries.map((query, index) => {
+  const queryOptions: QueryOption[] = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(
@@ -674,60 +694,20 @@ function DataWidgetViewerModal(props: Props) {
               });
             }}
             components={{
-              // Replaces the displayed selected value
-              SingleValue: (containerProps: any) => {
-                return (
-                  <components.SingleValue
-                    {...containerProps}
-                    // Overwrites some of the default styling that interferes with highlighted query text
-                    getStyles={() => ({
-                      wordBreak: 'break-word',
-                      flex: 1,
-                      display: 'flex',
-                      padding: `0 ${theme.space.xs}`,
-                    })}
-                  >
-                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                      display: 'block',
-                    }) ??
-                      (queryOptions[selectedQueryIndex]!.label || (
-                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                      ))}
-                  </components.SingleValue>
-                );
-              },
-              // Replaces the dropdown options
-              Option: (containerProps: any) => {
-                const highlightedQuery = containerProps.data.getHighlightedQuery({
-                  display: 'flex',
-                });
-                return (
-                  <SelectOption
-                    {...(highlightedQuery
-                      ? {
-                          ...containerProps,
-                          label: highlightedQuery,
-                        }
-                      : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
-                  />
-                );
-              },
-              // Hide the dropdown indicator if there is only one option
-              ...(widget.queries.length < 2
-                ? {IndicatorsContainer: (_: any) => null}
-                : {}),
+              Value: QueryValue,
+              OptionLabel: QueryOptionLabel,
+              ...(widget.queries.length < 2 && {Indicators: null}),
             }}
-            isSearchable={false}
-            isDisabled={widget.queries.length < 2}
+            styles={{
+              singleValue: () => ({
+                wordBreak: 'break-word',
+                flex: 1,
+                display: 'flex',
+                padding: `0 ${theme.space.xs}`,
+              }),
+            }}
+            searchable={false}
+            disabled={widget.queries.length < 2}
           />
           {widget.queries.length === 1 && (
             <StyledQuestionTooltip

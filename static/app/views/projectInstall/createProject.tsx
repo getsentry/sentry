@@ -616,7 +616,7 @@ export function CreateProject() {
                     placeholder={t('Select a Team')}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
                     minMenuHeight={240}
-                    value={formData.team}
+                    value={formData.team ?? null}
                     onChange={({value}: {value: string}) => {
                       updateFormData('team', value);
                     }}

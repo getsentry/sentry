@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedState} from '@tanstack/react-pacer';
 
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
@@ -15,7 +17,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';

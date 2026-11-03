@@ -1,7 +1,7 @@
 import datetime
 import re
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import jwt as pyjwt
@@ -260,7 +260,7 @@ class StreamDemoDataTest(TestCase):
     # Patch the module's own `time` reference. Patching `time.sleep` would also count the sleeps of
     # every other thread in the test process.
     @patch("sentry.conduit.tasks.time")
-    def test_stream_demo_data_sends_all_phases(self, mock_time):
+    def test_stream_demo_data_sends_all_phases(self, mock_time: MagicMock) -> None:
         """Test that stream_demo_data sends START, DELTA, and END phases."""
         mock_time.time.side_effect = time.time
         org_id = 123
@@ -288,7 +288,9 @@ class StreamDemoDataTest(TestCase):
     # `time.sleep`, which would replace sleep for every thread in the test process.
     @patch("sentry.utils.retries.time")
     @patch("sentry.conduit.tasks.time")
-    def test_stream_demo_data_stops_on_exhausted_retries(self, mock_time, mock_retries_time):
+    def test_stream_demo_data_stops_on_exhausted_retries(
+        self, mock_time: MagicMock, mock_retries_time: MagicMock
+    ) -> None:
         """Test that stream_demo_data stops streaming when a publish fails after max retries."""
         mock_time.time.side_effect = time.time
         org_id = 123

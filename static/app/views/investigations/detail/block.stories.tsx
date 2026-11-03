@@ -16,13 +16,6 @@ import {
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 
-const completedDependency = InvestigationBlockFixture({
-  id: 'completed-dependency',
-  title: 'Collect baseline evidence',
-  outputStatus: 'completed',
-  output: {schemaVersion: 1, markdown: 'Baseline evidence collected.'},
-  currentExecution: InvestigationBlockExecutionFixture({id: 'completed-dependency-run'}),
-});
 const notRunBlock = InvestigationBlockFixture({
   id: 'not-run-block',
   position: 1,
@@ -48,17 +41,9 @@ const restrictedBlock = InvestigationBlockFixture({
   content: '',
   outputStatus: 'restricted',
 });
-const waitingBlock = InvestigationBlockFixture({
-  id: 'waiting-block',
-  position: 4,
-  title: 'Waiting for dependencies',
-  content: '',
-  config: {autoRun: true},
-  dependencies: [completedDependency.id],
-});
 const completedBlock = InvestigationBlockFixture({
   id: 'completed-block',
-  position: 5,
+  position: 4,
   title: 'Completed',
   content: '',
   outputStatus: 'completed',
@@ -70,14 +55,7 @@ const completedBlock = InvestigationBlockFixture({
 });
 const preRunInvestigation = InvestigationDetailFixture({
   id: 'block-pre-run-states',
-  blocks: [
-    completedDependency,
-    notRunBlock,
-    availableBlock,
-    restrictedBlock,
-    waitingBlock,
-    completedBlock,
-  ],
+  blocks: [notRunBlock, availableBlock, restrictedBlock, completedBlock],
 });
 
 const pendingExecutionId = 'pending-block-run';
@@ -263,16 +241,6 @@ export default Storybook.story('Investigations — Blocks', story => {
           <InvestigationNotebookBlock
             block={restrictedBlock}
             canRun={false}
-            investigation={preRunInvestigation}
-          />
-        </Stack>
-        <Stack gap="sm" padding="lg" border="primary" radius="md">
-          <Heading as="h3" size="md">
-            Waiting for an auto-run dependency
-          </Heading>
-          <InvestigationNotebookBlock
-            block={waitingBlock}
-            canRun
             investigation={preRunInvestigation}
           />
         </Stack>

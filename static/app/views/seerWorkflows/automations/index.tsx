@@ -7,12 +7,15 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -55,10 +58,6 @@ type AdditionalConfig = {
    */
   costPerRun?: number;
   /**
-   * When the automation last ran, in Unix seconds (UTC)
-   */
-  lastRun?: number;
-  /**
    * Estimated tokens used per month
    */
   tokensPerMonth?: number;
@@ -71,53 +70,11 @@ type AdditionalConfig = {
 // TODO: can just be Response type once API updated
 export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
-function makePlaceholderConfig(
-  id: string,
-  overrides: Partial<AutomationConfig>
-): AutomationConfig {
-  return {
-    id,
-    dateAdded: '',
-    dateUpdated: '',
-    enabled: true,
-    environments: [],
-    filters: {},
-    outputPolicy: {},
-    projects: [ALL_ACCESS_PROJECTS],
-    schedule: '',
-    seededDefault: null,
-    strategy: '',
-    version: 0,
-    ...overrides,
-  };
-}
-
-/**
- * Temporary mock data for configs endpoint
- */
-export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
-  makePlaceholderConfig('placeholder-agentic-triage', {
-    strategy: 'agentic_triage',
-    lastRun: Math.floor(Date.now() / 1000) - 4 * 60 * 60,
-    schedule: 'daily',
-    tokensPerMonth: 85_400_000,
-    costPerRun: 2.5,
-  }),
-  makePlaceholderConfig('placeholder-breached-metrics', {
-    strategy: 'breached_metrics',
-    lastRun: Math.floor(Date.now() / 1000) - 2 * 24 * 60 * 60,
-    trigger: 'Triggered by metric exceptions',
-    tokensPerMonth: 341_000,
-    costPerRun: 0.052,
-    projects: [6178942, 11276, 4511418012073984],
-  }),
-];
-
 export default function AutomationsList() {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data} = useQuery(
+  const {data, isPending, isLoadingError, refetch} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
@@ -127,10 +84,22 @@ export default function AutomationsList() {
     )
   );
 
-  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
+  const configs = data?.configs ?? [];
 
   if (!automationsEnabled) {
     return <NotFound />;
+  }
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isLoadingError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (configs.length === 0) {
+    return <EmptyState title={t('No automations yet.')} />;
   }
 
   return (

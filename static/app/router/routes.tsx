@@ -1910,7 +1910,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2793,7 +2792,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },
@@ -2812,6 +2811,24 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/seerWorkflows/automations/detail/runs')
           ),
+        },
+      ],
+    },
+    {
+      path: 'classifiers/',
+      component: make(() => import('sentry/views/classifiers')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/classifiers/list')),
+        },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/classifiers/new')),
+        },
+        {
+          path: ':classifierId/',
+          component: make(() => import('sentry/views/classifiers/detail')),
         },
       ],
     },
@@ -3085,6 +3102,17 @@ function buildRoutes(): RouteObject[] {
     path: '/inbox/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
+    children: [
+      {
+        index: true,
+      },
+      {
+        path: 'issue/:id/',
+      },
+      {
+        path: 'notebook/:id/',
+      },
+    ],
   };
 
   const issueRoutes: SentryRouteObject = {

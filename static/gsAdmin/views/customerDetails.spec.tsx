@@ -1634,6 +1634,65 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('set contract package', () => {
+    const packageOrg = OrganizationFixture({slug: 'package-org'});
+    const packageUid = 'c2fa2600-1075-4855-99a2-f11e35baffde';
+
+    function renderPackageOrg() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${packageOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: packageOrg,
+      });
+    }
+
+    it('is hidden for orgs on legacy billing', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: false});
+      renderPackageOrg();
+
+      await openCustomerActions();
+
+      expect(screen.queryByText('Set Contract Package')).not.toBeInTheDocument();
+    });
+
+    it('posts the package uid and refreshes the contracts table', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: true});
+      const contractsMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contracts/`,
+        body: [],
+      });
+      const setPackageMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contract/package/`,
+        method: 'POST',
+      });
+      renderPackageOrg();
+
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(1));
+      await openCustomerActions();
+      renderGlobalModal();
+      await userEvent.click(screen.getByText('Set Contract Package'));
+
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Package UID'}),
+        packageUid
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(setPackageMock).toHaveBeenCalledWith(
+          `/_admin/customers/${packageOrg.slug}/contract/package/`,
+          expect.objectContaining({method: 'POST', data: {packageUid}})
+        )
+      );
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(2));
+    });
+  });
+
   describe('close account', () => {
     it('closes an account', async () => {
       setUpMocks(organization);

@@ -591,7 +591,7 @@ class TestWorkflowValidatorCreate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -627,7 +627,7 @@ class TestWorkflowValidatorCreate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -776,7 +776,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 ],
                 "logicType": "any",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         ]
 
@@ -912,7 +912,7 @@ class TestWorkflowValidatorUpdate(TestCase):
                 ],
                 "logicType": "all",
                 "conditions": [],
-                "organizationId": self.organization.id,
+                "organizationId": str(self.organization.id),
             }
         )
 

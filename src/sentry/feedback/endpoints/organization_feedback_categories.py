@@ -62,6 +62,12 @@ class FeedbackLabelGroup(TypedDict):
     associatedLabels: list[str]
 
 
+class FeedbackCategory(TypedDict):
+    primaryLabel: str
+    associatedLabels: list[str]
+    feedbackCount: int
+
+
 @cell_silo_endpoint
 class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FEEDBACK
@@ -289,7 +295,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             labels_groups=label_groups_lists,
         )
 
-        categories = []
+        categories: list[FeedbackCategory] = []
         for i, list_group in enumerate(label_groups_lists):
             primaryLabel = list_group[0]
             associatedLabels = list_group[1:]

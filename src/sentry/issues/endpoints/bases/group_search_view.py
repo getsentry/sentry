@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.auth.principal import is_acting_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
@@ -9,10 +10,10 @@ from sentry.models.organization import Organization
 
 class GroupSearchViewPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "saved_query:read"],
+        "POST": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
     def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
@@ -27,7 +28,7 @@ class GroupSearchViewPermission(OrganizationPermission):
             # The creator can edit their own GroupSearchView
             # Org owners/managers and superusers may edit any GroupSearchView
             if (
-                request.user.id == obj.user_id
+                is_acting_user(request.user, obj.user_id)
                 or request.access.has_scope("org:write")
                 or is_active_superuser(request)
             ):

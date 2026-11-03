@@ -41,6 +41,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -48,10 +49,7 @@ from sentry.seer.autofix.feature.models import (
     RepoPins,
     SolutionStepArgs,
 )
-from sentry.seer.autofix.pr_iteration.constants import (
-    MANUAL_FLAG,
-    REVIEW_REQUEST_FLAG,
-)
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
@@ -448,6 +446,7 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
+    single_run: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -525,6 +524,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_mode=enable_bash_mode,
+            single_run=single_run,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -543,15 +543,18 @@ def trigger_autofix_agent(
             },
         )
 
-        _handle_step_started_events(
-            group,
-            step,
-            feature_run_id,
-            str(feature_run.uuid),
-            referrer,
-            iteration_index,
-            actor_user_id=actor_user_id,
-        )
+        # TEMPORARY: single runs skip "started" notices until they send completion notices too;
+        # otherwise the issue would look stuck in progress. Remove with AIML-3809.
+        if not SeerAgentRun.objects.filter(run=feature_run, source=SINGLE_RUN_FEATURE_ID).exists():
+            _handle_step_started_events(
+                group,
+                step,
+                feature_run_id,
+                str(feature_run.uuid),
+                referrer,
+                iteration_index,
+                actor_user_id=actor_user_id,
+            )
         return feature_run
     except (NoSeerQuotaException, SeerPermissionError, PrIterationNoPullRequestException):
         outcome = "declined"
@@ -834,7 +837,7 @@ def trigger_push_changes(
     author: SeerCommitAuthor | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     allow_force_push: bool = True,
-):
+) -> None:
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
     ):
@@ -924,14 +927,12 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
 
 def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
     lines = _build_issue_reference_lines(group)
-
-    if features.has(MANUAL_FLAG, group.organization):
-        lines.append(
-            # One command per line, and one `<sub>` tag per line: a blank line
-            # would close the tag and leave the next line full size.
-            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
-            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
-        )
+    lines.append(
+        # One command per line, and one `<sub>` tag per line: a blank line
+        # would close the tag and leave the next line full size.
+        "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+        "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
+    )
 
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id

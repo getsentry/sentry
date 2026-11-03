@@ -895,6 +895,7 @@ def histogram_query(
     key_column = None
     array_column = None
     field_names = None
+    histogram_function: Callable[[str], str | None]
     if len(fields) > 1:
         array_column = check_multihistogram_fields(fields)
         if array_column == "measurements":

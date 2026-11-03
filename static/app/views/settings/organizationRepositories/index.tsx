@@ -174,9 +174,8 @@ const SCM_PROVIDER_ORDER = [
   'vsts',
 ];
 
-// Always renders the + connect action on each repo row (flag-gated at the
-// call site via `repoActions`). No edit branch — editing is triggered by
-// clicking a mapped project chip instead.
+// Always renders the + connect action on each repo row. No edit branch —
+// editing is triggered by clicking a mapped project chip instead.
 function ConnectRepoRowAction({
   repo,
   providerKey,
@@ -244,9 +243,6 @@ function openMappedProjectEditModal({
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const {openModal} = useModal();
-  const hasCodeMappingsRefactor = organization.features.includes(
-    'code-mappings-refactor'
-  );
   const [searchTerm, setSearchTerm] = useState('');
   const [autoSyncIntegrationId, setAutoSyncIntegrationId] = useState<string | null>(null);
   const clearAutoSync = useCallback(() => setAutoSyncIntegrationId(null), []);
@@ -341,26 +337,21 @@ export default function OrganizationRepositories() {
       manageUrl: getProviderConfigUrl(integration) ?? undefined,
       mappedProjectSlugsByRepoId,
       mappingsLoading,
-      // Both actions are flag-gated: + connect button and chip-click edit.
-      repoActions: hasCodeMappingsRefactor
-        ? (repo: Repository) => (
-            <ConnectRepoRowAction
-              repo={repo}
-              providerKey={integration.provider.key}
-              openModal={openModal}
-            />
-          )
-        : undefined,
-      onMappedProjectClick: hasCodeMappingsRefactor
-        ? (repo: Repository, avatarProject: AvatarProject) =>
-            openMappedProjectEditModal({
-              repo,
-              avatarProject,
-              providerKey: integration.provider.key,
-              projectsBySlug,
-              openModal,
-            })
-        : undefined,
+      repoActions: (repo: Repository) => (
+        <ConnectRepoRowAction
+          repo={repo}
+          providerKey={integration.provider.key}
+          openModal={openModal}
+        />
+      ),
+      onMappedProjectClick: (repo: Repository, avatarProject: AvatarProject) =>
+        openMappedProjectEditModal({
+          repo,
+          avatarProject,
+          providerKey: integration.provider.key,
+          projectsBySlug,
+          openModal,
+        }),
     }));
     return groupBy(installations, i => i.integration.provider.key);
   }, [
@@ -370,7 +361,6 @@ export default function OrganizationRepositories() {
     mappedProjectSlugsByRepoId,
     projectsBySlug,
     mappingsLoading,
-    hasCodeMappingsRefactor,
     openModal,
   ]);
 

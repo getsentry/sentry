@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Callable, MutableMapping, Sequence
-from typing import Any, ClassVar, NamedTuple
+from collections.abc import MutableMapping, Sequence
+from typing import Any, ClassVar, NamedTuple, Protocol
 
 from sentry.models.project import Project
 from sentry.notifications.types import NotificationActionContext, RuleFuture
@@ -43,8 +43,12 @@ by the rule's logic. Each rule condition may be associated with a form.
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
+class RuleCallback(Protocol):
+    def __call__(self, event: GroupEvent, futures: Sequence[RuleFuture]) -> None: ...
+
+
 class CallbackFuture(NamedTuple):
-    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None]
+    callback: RuleCallback
     kwargs: dict[str, Any]
     key: str | None
 
@@ -78,7 +82,7 @@ class RuleBase(abc.ABC):
 
     def future(
         self,
-        callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
+        callback: RuleCallback,
         key: str | None = None,
         **kwargs: Any,
     ) -> CallbackFuture:

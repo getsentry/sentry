@@ -5,16 +5,16 @@ import {IconJson} from '@sentry/icons/json';
 import {IconMobile} from '@sentry/icons/mobile';
 import {PlatformIcon} from 'platformicons';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {t} from 'sentry/locale';
-import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,11 +45,6 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     isPending: isBuildDetailsPending,
     isError: isBuildDetailsError,
   } = buildDetailsQuery;
-
-  const datetimeFormat = getFormat({
-    seconds: true,
-    timeZone: true,
-  });
 
   const releasesCrumb = {
     type: 'link' as const,
@@ -147,11 +142,11 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
                 <IconClock />
               </Flex>
               <Text size="sm" variant="muted">
-                {getFormattedDate(
-                  getUtcToSystem(appInfo.date_built || appInfo.date_added),
-                  datetimeFormat,
-                  {local: true}
-                )}
+                <DateTime
+                  date={appInfo.date_built || appInfo.date_added}
+                  seconds
+                  timeZone
+                />
               </Text>
             </Flex>
           </Tooltip>

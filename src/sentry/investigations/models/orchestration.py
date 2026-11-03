@@ -64,7 +64,7 @@ class InvestigationOrchestrationRun(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     investigation = models.OneToOneField(
-        "investigations.Investigation",
+        "notebooks.Notebook",
         on_delete=models.CASCADE,
         related_name="orchestration_run",
     )

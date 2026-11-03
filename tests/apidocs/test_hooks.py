@@ -32,11 +32,16 @@ from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
 @pytest.mark.django_db
 def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
-        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+        endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
-        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        path.startswith(
+            (
+                "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/notebooks/",
+            )
+        )
         for path, _regex, _method, _callback in selected
     )
     assert all(
@@ -185,7 +190,7 @@ class IdempotentOperationsTest(TestCase):
         _OPERATION_SILOS.clear()
 
     def _endpoints(
-        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str]
+        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str] | None
     ) -> list[tuple[Any, Any, str, Any]]:
         view_class = type(
             "FakeEndpoint",
@@ -261,6 +266,24 @@ class IdempotentOperationsTest(TestCase):
         with pytest.raises(SentryApiBuildError, match="does not implement"):
             custom_preprocessing_hook(endpoints)
 
+    def test_published_write_without_declaration_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints("/api/0/assemble/", {"POST": ApiPublishStatus.PUBLIC}, None)
+
+        with pytest.raises(SentryApiBuildError, match="does not declare idempotent_methods"):
+            custom_preprocessing_hook(endpoints)
+
+    def test_undeclared_reads_and_private_writes_are_allowed(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/assemble/",
+                {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE},
+                None,
+            )
+        )
+
+        assert [method for _, _, method, _ in filtered] == ["GET"]
+        assert _IDEMPOTENT_OPERATIONS == set()
+
     def test_safe_method_raises(self, _write_ownership: Any) -> None:
         endpoints = self._endpoints(
             "/api/0/assemble/", {"GET": ApiPublishStatus.PUBLIC}, frozenset({"GET"})
@@ -301,6 +324,48 @@ class SummaryUniquenessTest(TestCase):
         }
         # Should not raise.
         custom_postprocessing_hook(result, None)
+
+
+class MapRequestBodyTest(TestCase):
+    """A body keyed by arbitrary strings documents the fields of its values."""
+
+    def _result(self, value_properties: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/assemble/": {
+                    "post": {
+                        "tags": ["Events"],
+                        "description": "An endpoint",
+                        "operationId": "assemble",
+                        "parameters": [],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": value_properties,
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+
+    def test_undescribed_value_field_raises(self) -> None:
+        with pytest.raises(SentryApiBuildError, match="'name' is missing a description"):
+            custom_postprocessing_hook(self._result({"name": {"type": "string"}}), None)
+
+    def test_described_value_fields_pass(self) -> None:
+        # Should not raise.
+        custom_postprocessing_hook(
+            self._result({"name": {"type": "string", "description": "The file name."}}), None
+        )
 
 
 class FixIssueRoutesTest(TestCase):

@@ -13,8 +13,11 @@ from sentry.utils.safe import safe_execute
     silo_mode=SiloMode.CELL,
 )
 def user_report(
-    project_id: int, report: Mapping[str, Any] | None = None, report_id: int | None = None, **kwargs
-):
+    project_id: int,
+    report: Mapping[str, Any] | None = None,
+    report_id: int | None = None,
+    **kwargs: object,
+) -> None:
     """
     Create and send a UserReport.
 
@@ -33,5 +36,5 @@ def user_report(
         user_report = UserReport.objects.get(id=report_id)
         serialized_report = serialize(user_report, AnonymousUser(), UserReportWithGroupSerializer())
         safe_execute(mail_adapter.handle_user_report, report=serialized_report, project=project)
-    else:
+    elif report is not None:
         safe_execute(mail_adapter.handle_user_report, report=report, project=project)

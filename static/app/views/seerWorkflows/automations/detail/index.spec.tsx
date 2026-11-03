@@ -22,8 +22,12 @@ describe('AutomationDetail', () => {
     MockApiClient.clearMockResponses();
   });
 
-  function mockConfigs(configs: SeerWorkflowConfigResponse[]) {
-    return MockApiClient.addMockResponse({url: configsUrl, body: {configs}});
+  function mockConfig(config: SeerWorkflowConfigResponse) {
+    return MockApiClient.addMockResponse({
+      url: configsUrl,
+      body: {configs: [config]},
+      match: [MockApiClient.matchQuery({id: '42'})],
+    });
   }
 
   function renderDetail(
@@ -42,7 +46,7 @@ describe('AutomationDetail', () => {
   }
 
   it('shows the strategy label and description of the matching config', async () => {
-    mockConfigs([SeerWorkflowConfigFixture({id: '42', strategy: 'agentic_triage'})]);
+    mockConfig(SeerWorkflowConfigFixture({id: '42', strategy: 'agentic_triage'}));
     renderDetail();
     await findLoadedPage();
 
@@ -54,7 +58,7 @@ describe('AutomationDetail', () => {
   });
 
   it('falls back to the raw strategy for unknown strategies', async () => {
-    mockConfigs([SeerWorkflowConfigFixture({id: '42', strategy: 'custom_strategy'})]);
+    mockConfig(SeerWorkflowConfigFixture({id: '42', strategy: 'custom_strategy'}));
     renderDetail();
     await findLoadedPage();
 
@@ -64,32 +68,32 @@ describe('AutomationDetail', () => {
   });
 
   it('shows the next run for daily schedules', async () => {
-    mockConfigs([
+    mockConfig(
       SeerWorkflowConfigFixture({
         id: '42',
         strategy: 'daily_strategy',
         schedule: 'daily',
-      }),
-    ]);
+      })
+    );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();
   });
 
   it('hides the next run for non-daily schedules', async () => {
-    mockConfigs([
+    mockConfig(
       SeerWorkflowConfigFixture({
         id: '42',
         strategy: 'weekly_strategy',
         schedule: 'weekly',
-      }),
-    ]);
+      })
+    );
     renderDetail();
     await findLoadedPage();
     expect(screen.queryByText(/Next run/)).not.toBeInTheDocument();
   });
 
-  it('shows a loading indicator until configs load', async () => {
-    mockConfigs([SeerWorkflowConfigFixture({id: '42'})]);
+  it('shows a loading indicator until the config loads', async () => {
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
     renderDetail();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Automations'})).toBeInTheDocument();
@@ -98,8 +102,12 @@ describe('AutomationDetail', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('shows not found when no config matches the id', async () => {
-    const request = mockConfigs([SeerWorkflowConfigFixture({id: '1'})]);
+  it('shows not found when the config does not exist', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: configsUrl,
+      body: {configs: []},
+      match: [MockApiClient.matchQuery({id: '42'})],
+    });
     renderDetail();
     await waitFor(() => expect(request).toHaveBeenCalled());
 
@@ -107,15 +115,23 @@ describe('AutomationDetail', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 
-  it('shows not found without requesting configs when automations are disabled', () => {
-    const request = mockConfigs([SeerWorkflowConfigFixture({id: '42'})]);
+  it('shows an error with retry when the config fails to load', async () => {
+    MockApiClient.addMockResponse({url: configsUrl, statusCode: 500});
+    renderDetail();
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it('shows not found without requesting the config when automations are disabled', () => {
+    const request = mockConfig(SeerWorkflowConfigFixture({id: '42'}));
     renderDetail(undefined, OrganizationFixture());
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
 
   it('links the tabs relative to the automation', async () => {
-    mockConfigs([SeerWorkflowConfigFixture({id: '42'})]);
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
     renderDetail();
     await findLoadedPage();
 
@@ -131,7 +147,7 @@ describe('AutomationDetail', () => {
     ['/organizations/org-slug/seer/automations/42/', 'Configuration'],
     ['/organizations/org-slug/seer/automations/42/runs/', 'Runs'],
   ])('selects the matching tab for %s', async (pathname, tabName) => {
-    mockConfigs([SeerWorkflowConfigFixture({id: '42'})]);
+    mockConfig(SeerWorkflowConfigFixture({id: '42'}));
     renderDetail(pathname);
 
     expect(await screen.findByRole('tab', {name: tabName})).toHaveAttribute(

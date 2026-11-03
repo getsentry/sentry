@@ -20,12 +20,13 @@ from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test
@@ -429,7 +430,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         self.slack_request.authorize()
         self.slack_request.validate_integration()
 
-    def _add_second_org(self, slug: str = "second-org"):
+    def _add_second_org(self, slug: str = "second-org") -> Organization:
         org = self.create_organization(slug=slug, owner=self.slack_user)
         self.create_organization_integration(organization_id=org.id, integration=self.integration)
         return org
@@ -460,27 +461,27 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         slack_request.validate_integration()
         return slack_request
 
-    def test_identity_not_linked(self):
-        with assume_test_silo_mode_of(self.identity):
+    def test_identity_not_linked(self) -> None:
+        with assume_test_silo_mode_of(Identity):
             self.identity.delete()
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED
 
-    def test_no_organization_integrations(self):
+    def test_no_organization_integrations(self) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             OrganizationIntegration.objects.filter(integration_id=self.integration.id).delete()
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_INTEGRATION
 
-    def test_org_not_found(self):
+    def test_org_not_found(self) -> None:
         self.organization.delete()
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
-    def test_org_not_active(self):
+    def test_org_not_active(self) -> None:
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
@@ -490,20 +491,20 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=False,
     )
-    def test_org_no_seer_access(self, mock_access):
+    def test_org_no_seer_access(self, mock_access: MagicMock) -> None:
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
-    def test_user_not_member(self):
+    def test_user_not_member(self) -> None:
         non_member = self.create_user()
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(user=non_member)
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
-    def test_user_membership_unapproved(self):
+    def test_user_membership_unapproved(self) -> None:
         OrganizationMember.objects.filter(
             user_id=self.slack_user.id, organization_id=self.organization.id
         ).update(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
@@ -515,7 +516,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_resolves_valid_organization(self, mock_access):
+    def test_resolves_valid_organization(self, mock_access: MagicMock) -> None:
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
@@ -524,7 +525,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=False,
     )
-    def test_control_silo_skips_access_check(self, mock_has_access):
+    def test_control_silo_skips_access_check(self, mock_has_access: MagicMock) -> None:
         """
         In control silo, has_access is not consulted (it depends on subscription context
         that getsentry's FlagpoleFeatureHandler does not populate in control silo).
@@ -541,7 +542,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_cell_silo_uses_full_access_check(self, mock_has_access):
+    def test_cell_silo_uses_full_access_check(self, mock_has_access: MagicMock) -> None:
         """
         In cell silo, has_access (the subscription-gated check) is the gate.
         """
@@ -557,7 +558,9 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_multi_org_resolves_from_message_link(self, mock_access, mock_get_thread_history):
+    def test_multi_org_resolves_from_message_link(
+        self, mock_access: MagicMock, mock_get_thread_history: MagicMock
+    ) -> None:
         other_org = self._add_second_org()
         slack_request = self._build_request(
             text=f"<@U_BOT> what about <https://{other_org.slug}.sentry.io/issues/123/> ?"
@@ -573,7 +576,9 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_multi_org_resolves_from_thread(self, mock_access, mock_get_thread_history):
+    def test_multi_org_resolves_from_thread(
+        self, mock_access: MagicMock, mock_get_thread_history: MagicMock
+    ) -> None:
         other_org = self._add_second_org()
         mock_get_thread_history.return_value = [
             {"user": "U_OTHER", "text": f"<https://{other_org.slug}.sentry.io/issues/42/>"},
@@ -588,7 +593,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_multi_org_ignores_link_for_unavailable_org(self, mock_access):
+    def test_multi_org_ignores_link_for_unavailable_org(self, mock_access: MagicMock) -> None:
         self._add_second_org()
         slack_request = self._build_request(
             text="<@U_BOT> <https://sentry.io/organizations/not-my-org/issues/123/>"
@@ -602,9 +607,11 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_multi_org_resolves_from_preference(self, mock_access, mock_get_thread_history):
+    def test_multi_org_resolves_from_preference(
+        self, mock_access: MagicMock, mock_get_thread_history: MagicMock
+    ) -> None:
         other_org = self._add_second_org()
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: other_org.id})
 
         slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
@@ -617,8 +624,10 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=True,
     )
-    def test_multi_org_ignores_stale_preference(self, mock_access, mock_get_thread_history):
-        with assume_test_silo_mode_of(self.identity):
+    def test_multi_org_ignores_stale_preference(
+        self, mock_access: MagicMock, mock_get_thread_history: MagicMock
+    ) -> None:
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: 9999999})
 
         slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")

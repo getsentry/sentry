@@ -644,7 +644,7 @@ export function CommandPalette({
                       <Text size="xs" variant="muted">
                         {t('Ask Seer')}
                       </Text>
-                      <Hotkey variant="debossed" value="tab" />
+                      <Hotkey variant="debossed" value="Tab" />
                     </Flex>
                   ) : (
                     <AnimatePresence mode="popLayout">
@@ -1207,21 +1207,21 @@ function CommandPaletteHints() {
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
-              <Hotkey variant="debossed" value="up" />
-              <Hotkey variant="debossed" value="down" />
+              <Hotkey variant="debossed" value="ArrowUp" />
+              <Hotkey variant="debossed" value="ArrowDown" />
             </Flex>
             <Text size="xs" variant="muted">
               {t('Move')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="enter" />
+            <Hotkey variant="debossed" value="Enter" />
             <Text size="xs" variant="muted">
               {t('Select')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="shift+enter" />
+            <Hotkey variant="debossed" value="Shift+Enter" />
             <Text size="xs" variant="muted">
               {t('New tab')}
             </Text>
@@ -1231,7 +1231,7 @@ function CommandPaletteHints() {
           <Text size="xs" variant="muted">
             {t('Toggle Command Palette')}
           </Text>
-          <Hotkey variant="debossed" value="mod+k" />
+          <Hotkey variant="debossed" value="Mod+K" />
         </Flex>
       </Flex>
     </Stack>

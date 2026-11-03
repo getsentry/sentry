@@ -16,8 +16,8 @@ const DASHBOARD_QUERY_PRIORITY_OPTIONS: Array<{
   label: string;
   value: DashboardQueryPriority;
 }> = [
-  {value: 'normal', label: t('Normal'), details: t('Relatively Accurate')},
-  {value: 'faster', label: t('Faster'), details: t('Low Accuracy')},
+  {value: 'normal', label: t('Normal'), details: t('Balance speed and accuracy')},
+  {value: 'faster', label: t('Faster'), details: t('Faster with reduced accuracy')},
 ];
 
 const queryPriorityParser = parseAsStringLiteral(DASHBOARD_QUERY_PRIORITIES).withDefault(

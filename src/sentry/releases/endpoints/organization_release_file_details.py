@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
 from sentry.apidocs.constants import (
@@ -27,6 +28,16 @@ from sentry.releases.endpoints.project_release_file_details import (
 )
 
 
+def has_release_download_permission(request: Request, release: Release) -> bool:
+    # Release files are shared by every project on the release, so allow the download
+    # only if the project-level endpoint would allow it for one of those projects.
+    return any(
+        has_download_permission(request, project)
+        for project in release.projects.select_related("organization")
+        if request.access.has_project_access(project)
+    )
+
+
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class OrganizationReleaseFileDetailsEndpoint(
@@ -38,6 +49,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="getOrganizationReleaseFile",
@@ -64,7 +76,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         },
     )
     def get(
-        self, request: Request, organization, version, file_id
+        self, request: Request, organization: Organization, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         """
         Return metadata for an individual file within a release. Does not return the file
@@ -82,7 +94,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             request,
             release,
             file_id,
-            check_permission_fn=lambda: request.access.has_scope("project:write"),
+            check_permission_fn=lambda: has_release_download_permission(request, release),
         )
 
     @extend_schema(
@@ -101,7 +113,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         },
     )
     def put(
-        self, request: Request, organization: Organization, version, file_id
+        self, request: Request, organization: Organization, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update metadata of an existing release file. Currently only the name of the file
@@ -130,7 +142,9 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version, file_id) -> Response[None]:
+    def delete(
+        self, request: Request, organization: Organization, version: str, file_id: str
+    ) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage.

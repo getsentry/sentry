@@ -7,8 +7,12 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
-from sentry import quotas
-from sentry.constants import DataCategory
+from sentry import features, quotas
+from sentry.constants import (
+    ENABLE_SEER_CODING_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    DataCategory,
+)
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
@@ -22,14 +26,20 @@ from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     AutofixFeaturePayload,
+    AutofixSingleRunFeaturePayload,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
     SolutionStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_automation_handoff,
+    is_free_cohort_org,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -52,6 +62,7 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     enable_bash_mode: bool = False
     flush: bool = True
+    single_run: bool = False
 
 
 def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
@@ -93,6 +104,25 @@ def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
     return agent_run
 
 
+def is_single_run_start(group: Group, args: AutofixFeatureArgs) -> bool:
+    # Only fresh root-cause starts qualify: later steps and retries continue step-by-step runs,
+    # and coding-agent handoff only exists in that flow (AIML-3808).
+    if args.step != AutofixStep.ROOT_CAUSE or args.existing_run_id is not None:
+        return False
+    if get_automation_handoff(group.project.get_option) is not None:
+        return False
+    return args.single_run or features.has("organizations:autofix-single-run", group.organization)
+
+
+def _single_run_stopping_point(group: Group, args: AutofixFeatureArgs) -> AutofixStoppingPoint:
+    if args.stopping_point is not None:
+        return args.stopping_point
+    return AutofixStoppingPoint(
+        group.project.get_option("sentry:seer_automated_run_stopping_point")
+        or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
+    )
+
+
 def trigger_autofix_feature(
     group: Group,
     args: AutofixFeatureArgs,
@@ -120,22 +150,55 @@ def trigger_autofix_feature(
             )
             raise NoSeerQuotaException()
 
-    payload = AutofixFeaturePayload(
-        group_id=group.id,
-        project_id=group.project_id,
-        short_id=group.qualified_short_id or str(group.id),
-        title=group.title or "Unknown error",
-        culprit=group.culprit or "unknown",
-        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
-        step=args.step,
-        existing_run_id=args.existing_run_id,
-        insert_index=args.insert_index,
-        user_context=args.user_context,
-        stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
-        step_args=args.step_args,
-    )
+    single_run = is_single_run_start(group, args)
+    stopping_point = _single_run_stopping_point(group, args) if single_run else args.stopping_point
+    on_completion_hook = extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True)
+    short_id = group.qualified_short_id or str(group.id)
+    title = group.title or "Unknown error"
+    culprit = group.culprit or "unknown"
 
-    enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
+    payload: AutofixFeaturePayload | AutofixSingleRunFeaturePayload
+    if single_run:
+        if not isinstance(args.step_args, RCAStepArgs):
+            raise ValueError("Single runs need root cause step args")
+        payload = AutofixSingleRunFeaturePayload(
+            group_id=group.id,
+            project_id=group.project_id,
+            short_id=short_id,
+            title=title,
+            culprit=culprit,
+            on_completion_hook=on_completion_hook,
+            intelligence_level=args.step_args.intelligence_level,
+            reasoning_effort=args.step_args.reasoning_effort,
+            repo_pins=args.step_args.repo_pins,
+            user_context=args.user_context,
+            should_run_repo_checks=args.enable_bash_mode,
+        )
+        enable_coding = stopping_point in (
+            AutofixStoppingPoint.CODE_CHANGES,
+            AutofixStoppingPoint.OPEN_PR,
+        ) and bool(
+            group.organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            )
+        )
+    else:
+        payload = AutofixFeaturePayload(
+            group_id=group.id,
+            project_id=group.project_id,
+            short_id=short_id,
+            title=title,
+            culprit=culprit,
+            on_completion_hook=on_completion_hook,
+            step=args.step,
+            existing_run_id=args.existing_run_id,
+            insert_index=args.insert_index,
+            user_context=args.user_context,
+            stopping_point=(args.stopping_point.value if args.stopping_point is not None else None),
+            step_args=args.step_args,
+        )
+        enable_coding = args.step in (AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION)
+
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
@@ -151,24 +214,28 @@ def trigger_autofix_feature(
         enable_coding=enable_coding,
         enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
+    if args.step == AutofixStep.PR_ITERATION and features.has(
+        "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
+    ):
+        agent_run_options["pin_to_pr_head"] = True
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,
     }
     # Store the stopping point here for delivery to use when advancing steps.
-    if args.stopping_point is not None:
-        extras["stopping_point"] = args.stopping_point.value
+    if stopping_point is not None:
+        extras["stopping_point"] = stopping_point.value
 
     user_org_context = collect_user_org_context(args.user, group.organization)
     if is_new_run:
         run = client.start_feature_run(
-            feature_id=FEATURE_ID,
+            feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
             agent_run_options=agent_run_options,
-            title=f"Autofix RCA — {payload.short_id}",
+            title=f"Autofix — {short_id}" if single_run else f"Autofix RCA — {short_id}",
             flush=args.flush,
             extras=extras,
         )
@@ -193,7 +260,11 @@ def trigger_autofix_feature(
 
     metrics.incr(
         "autofix_feature.trigger",
-        tags={"referrer": args.referrer.value, "step": args.step.value},
+        tags={
+            "referrer": args.referrer.value,
+            "step": args.step.value,
+            "mode": "single_run" if single_run else "steps",
+        },
         sample_rate=1,
     )
 
@@ -205,7 +276,8 @@ def trigger_autofix_feature(
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
             "referrer": args.referrer.value,
-            "stopping_point": args.stopping_point,
+            "stopping_point": stopping_point,
+            "single_run": single_run,
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "has_user_context": args.user_context is not None,

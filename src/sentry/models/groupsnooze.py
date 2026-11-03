@@ -97,6 +97,8 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self) -> bool:
+        assert self.window is not None
+        assert self.count is not None
         cache_key = f"groupsnooze:v1:{self.id}:test_frequency_rate:events_seen_counter"
 
         cache_ttl = self.window * 60  # Redis TTL in seconds (window is in minutes)
@@ -157,6 +159,8 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self) -> bool:
+        assert self.user_window is not None
+        assert self.user_count is not None
         cache_key = f"groupsnooze:v1:{self.id}:test_user_rate:events_seen_counter"
 
         cache_ttl = self.user_window * 60  # Redis TTL in seconds (window is in minutes)
@@ -199,6 +203,7 @@ class GroupSnooze(Model):
         return True
 
     def test_user_counts(self, group: Group) -> bool:
+        assert self.user_count is not None
         cache_key = f"groupsnooze:v1:{self.id}:test_user_counts:events_seen_counter"
         CACHE_TTL = 3600  # Redis TTL in seconds
 
