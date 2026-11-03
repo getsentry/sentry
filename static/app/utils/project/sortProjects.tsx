@@ -3,11 +3,14 @@ type SortableProject = {
   slug: string;
 };
 
+// Natural order, so `project-2` comes before `project-10`.
+const compareSlugs = new Intl.Collator(undefined, {numeric: true}).compare;
+
 function projectDisplayCompare(a: SortableProject, b: SortableProject): number {
   if (a.isBookmarked !== b.isBookmarked) {
     return a.isBookmarked ? -1 : 1;
   }
-  return a.slug.localeCompare(b.slug);
+  return compareSlugs(a.slug, b.slug);
 }
 
 /**
@@ -42,6 +45,6 @@ export function sortProjectsByBookmarkAndMembership<T extends MemberSortableProj
     if (a.isMember !== b.isMember) {
       return a.isMember ? -1 : 1;
     }
-    return a.slug.localeCompare(b.slug);
+    return compareSlugs(a.slug, b.slug);
   });
 }

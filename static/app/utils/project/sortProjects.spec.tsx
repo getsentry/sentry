@@ -29,6 +29,14 @@ describe('sortProjects', () => {
 
     expect(sortedProjects).toEqual(expected);
   });
+
+  it('sorts numbers in slugs by numeric value', () => {
+    const projects = ['web10', 'web2', 'web1'].map(slug =>
+      ProjectFixture({isBookmarked: false, slug})
+    );
+
+    expect(sortProjects(projects).map(p => p.slug)).toEqual(['web1', 'web2', 'web10']);
+  });
 });
 
 describe('sortProjectsByBookmarkAndMembership', () => {
@@ -59,5 +67,17 @@ describe('sortProjectsByBookmarkAndMembership', () => {
     expect(
       sortProjectsByBookmarkAndMembership(projects, new Set(['2'])).map(p => p.slug)
     ).toEqual(['b', 'a']);
+  });
+
+  it('sorts numbers in slugs by numeric value', () => {
+    const projects = ['web10', 'web2', 'web1'].map((slug, i) =>
+      ProjectFixture({id: String(i), slug, isBookmarked: false, isMember: true})
+    );
+
+    expect(sortProjectsByBookmarkAndMembership(projects).map(p => p.slug)).toEqual([
+      'web1',
+      'web2',
+      'web10',
+    ]);
   });
 });
