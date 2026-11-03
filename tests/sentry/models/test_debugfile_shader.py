@@ -60,7 +60,7 @@ def test_detect_dxil(tmp_path: Path) -> None:
     assert meta.debug_id == DEBUG_ID
     assert meta.code_id == AFTERMATH_HASH
     assert meta.name == "shader.dxil"
-    assert meta.data == {"type": "dxil", "features": ["symtab"]}
+    assert meta.data == {"features": ["symtab"]}
     assert _get_dif_object_name(meta) == "shader.dxil"
 
 
@@ -107,7 +107,7 @@ def test_detect_dxil_stores_shader_group(
         path, name="shader.dxil", debug_id=DXC_HASH, shader_group=shader_group
     )
 
-    expected: dict[str, object] = {"type": "dxil", "features": ["symtab"]}
+    expected: dict[str, object] = {"features": ["symtab"]}
     if stored is not None:
         expected["shader_group"] = stored
     assert meta.data == expected
@@ -144,7 +144,7 @@ def test_create_dxil_stores_shader_group(default_project: Project, tmp_path: Pat
 
     assert created is True
     dif.refresh_from_db()
-    assert dif.file_type == "dxil"
+    assert dif.file_format == "dxil"
     assert dif.data["shader_group"] == "Group A"
 
 
@@ -159,7 +159,7 @@ def test_reupload_backfills_missing_shader_group(default_project: Project, tmp_p
     assert created is False
     assert second.id == first.id
     first.refresh_from_db()
-    assert first.data == {"type": "dxil", "features": ["symtab"], "shader_group": "Group A"}
+    assert first.data == {"features": ["symtab"], "shader_group": "Group A"}
     assert ProjectDebugFile.objects.filter(project_id=default_project.id).count() == 1
 
 

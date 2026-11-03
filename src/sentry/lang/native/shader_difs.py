@@ -6,7 +6,6 @@ stored as ``code_id``.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -17,8 +16,6 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.objectstore import get_internal_download_url
 from sentry.utils import metrics
-
-logger = logging.getLogger(__name__)
 
 SHADER_DIF_URL_VALIDITY = timedelta(minutes=15)
 
@@ -48,17 +45,13 @@ def missing_shader_difs(response: Mapping[str, Any]) -> list[str]:
 def _presigned_dif(
     project_id: int, dif_type: str, **filters: str
 ) -> tuple[ProjectDebugFile, str] | None:
-    """The newest debug file of ``dif_type`` matching ``filters`` with a presigned GET
-    URL, or None if there is none or it is not in objectstore."""
-    difs = ProjectDebugFile.objects.filter(project_id=project_id, **filters).order_by("-id")
-    dif = next((dif for dif in difs if dif.file_type == dif_type), None)
-    if dif is None:
-        return None
-    if not dif.storage_path:
-        logger.info(
-            "gpu_crash.shader_dif.not_in_objectstore",
-            extra={"dif_id": dif.id, "debug_id": dif.debug_id, "type": dif_type},
-        )
+    """The newest objectstore-backed debug file of ``dif_type`` matching ``filters``
+    with a presigned GET URL, or None if there is none."""
+    difs = ProjectDebugFile.objects.filter(
+        project_id=project_id, storage_path__isnull=False, **filters
+    ).order_by("-id")
+    dif = next((dif for dif in difs if dif.file_format == dif_type), None)
+    if dif is None or not dif.storage_path:
         return None
     url = get_internal_download_url(
         dif.get_objectstore_session(), dif.storage_path, token_validity=SHADER_DIF_URL_VALIDITY

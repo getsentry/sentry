@@ -150,7 +150,7 @@ def _create_dif(
     storage_path: str | None = "difs/shader",
     shader_group: str | None = None,
 ) -> ProjectDebugFile:
-    data: dict[str, Any] = {"type": dif_type, "features": ["symtab"]}
+    data: dict[str, Any] = {"features": ["symtab"]}
     if shader_group is not None:
         data["shader_group"] = shader_group
     return ProjectDebugFile.objects.create(

@@ -1066,7 +1066,7 @@ def detect_dif_from_path(
                 f"Invalid shader_group for dxil (max {SHADER_GROUP_MAX_LENGTH} characters)"
             )
         logger.debug("File loaded as dxil: %s", path)
-        dxil_data: dict[str, Any] = {"type": "dxil", "features": ["symtab"]}
+        dxil_data: dict[str, Any] = {"features": ["symtab"]}
         if shader_group:
             dxil_data["shader_group"] = shader_group
         return [
