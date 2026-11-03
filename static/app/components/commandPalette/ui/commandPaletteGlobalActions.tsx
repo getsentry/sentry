@@ -157,6 +157,13 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/account/notifications/': <IconSubscribed />,
 };
 
+// With settings-v3, the org and account index pages are titled "General" like
+// the project one, so they get the same icon to read as the same page type.
+const SETTINGS_V3_GENERAL_ICONS: Record<string, React.ReactElement> = {
+  '/settings/:orgId/': <IconSettings />,
+  '/settings/account/details/': <IconSettings />,
+};
+
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
@@ -396,6 +403,10 @@ export function GlobalCommandPaletteActions() {
         : [],
     };
   }, [organization, sentryConfig.isSelfHosted, settingsV3]);
+
+  const getSettingsNavItemIcon = (path: string) =>
+    ORG_SETTINGS_ICONS[path] ??
+    (settingsV3 ? SETTINGS_V3_GENERAL_ICONS[path] : undefined);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -654,7 +665,7 @@ export function GlobalCommandPaletteActions() {
           {visibleOrgSettingsNavItems.map(item => (
             <CMDKAction
               key={item.path}
-              display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+              display={{label: item.title, icon: getSettingsNavItemIcon(item.path)}}
               keywords={item.keywords}
               to={item.path}
             />
@@ -670,7 +681,7 @@ export function GlobalCommandPaletteActions() {
             {visibleAccountSettingsNavItems.map(item => (
               <CMDKAction
                 key={item.path}
-                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                display={{label: item.title, icon: getSettingsNavItemIcon(item.path)}}
                 keywords={item.keywords}
                 to={item.path}
               />
