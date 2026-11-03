@@ -22,45 +22,61 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
+MAX_SIZE = 100 * 1024 * 1024
 
-@django_db_all
+
 def test_decompress_segment_success() -> None:
     """Test successful decompression of segment"""
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(compressed_data)
+    compressed, decompressed = decompress_segment(compressed_data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
-    compressed, decompressed = decompress_segment(data)
+    compressed, decompressed = decompress_segment(data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
 
-@django_db_all
 def test_decompress_segment_already_decompressed() -> None:
     """Test handling of already decompressed JSON data"""
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    compressed, decompressed = decompress_segment(data)
+    compressed, decompressed = decompress_segment(data, MAX_SIZE)
     assert compressed == compressed_data
     assert decompressed == data
 
 
-@django_db_all
 def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"hello, world!")
+        decompress_segment(b"hello, world!", MAX_SIZE)
 
 
-@django_db_all
 def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
     with pytest.raises(DropSilently):
-        decompress_segment(b"")
+        decompress_segment(b"", MAX_SIZE)
+
+
+def test_decompress_segment_truncated_stream() -> None:
+    """Test a truncated zlib stream is dropped rather than returning partial output"""
+    compressed_data = zlib.compress(b"[" + b"hello, world!" * 100 + b"]")
+
+    for cut in (1, 4, len(compressed_data) // 2):
+        with pytest.raises(DropSilently):
+            decompress_segment(compressed_data[:-cut], MAX_SIZE)
+
+
+def test_decompress_segment_invalid_checksum() -> None:
+    """Test a zlib stream with a corrupted Adler-32 checksum is dropped"""
+    compressed_data = bytearray(zlib.compress(b"[hello, world!]"))
+    compressed_data[-1] ^= 0xFF
+
+    with pytest.raises(DropSilently):
+        decompress_segment(bytes(compressed_data), MAX_SIZE)
 
 
 def test_decompress_segment_exceeds_max_size() -> None:
@@ -70,9 +86,8 @@ def test_decompress_segment_exceeds_max_size() -> None:
     # A kilobyte of stored input, a megabyte of output on every read.
     assert len(payload) // len(bomb) > 500
 
-    with override_options({"replay.consumer.max-segment-decompressed-size": 1024}):
-        with pytest.raises(DropSilently):
-            decompress_segment(bomb)
+    with pytest.raises(DropSilently):
+        decompress_segment(bomb, 1024)
 
 
 def test_decompress_segment_at_max_size() -> None:
@@ -80,23 +95,20 @@ def test_decompress_segment_at_max_size() -> None:
     data = b"[hello, world!]"
     compressed_data = zlib.compress(data)
 
-    with override_options({"replay.consumer.max-segment-decompressed-size": len(data)}):
-        compressed, decompressed = decompress_segment(compressed_data)
+    compressed, decompressed = decompress_segment(compressed_data, len(data))
     assert compressed == compressed_data
     assert decompressed == data
 
-    with override_options({"replay.consumer.max-segment-decompressed-size": len(data) - 1}):
-        with pytest.raises(DropSilently):
-            decompress_segment(compressed_data)
+    with pytest.raises(DropSilently):
+        decompress_segment(compressed_data, len(data) - 1)
 
 
 def test_decompress_segment_uncompressed_exceeds_max_size() -> None:
     """Test an uncompressed segment larger than the limit is dropped"""
     data = b"[" + b" " * 1024 + b"]"
 
-    with override_options({"replay.consumer.max-segment-decompressed-size": 512}):
-        with pytest.raises(DropSilently):
-            decompress_segment(data)
+    with pytest.raises(DropSilently):
+        decompress_segment(data, 512)
 
 
 @django_db_all

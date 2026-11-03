@@ -56,7 +56,9 @@ def process_message(message: bytes) -> ProcessedEvent | None:
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
     segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
-    compressed, decompressed = decompress_segment(payload)
+    compressed, decompressed = decompress_segment(
+        payload, max_size=options.get("replay.consumer.max-segment-decompressed-size")
+    )
 
     replay_event_json = recording.get("replay_event")
     if replay_event_json:
@@ -110,14 +112,13 @@ def parse_request_message(message: bytes) -> ReplayRecording:
 
 
 @traces.trace
-def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
+def decompress_segment(segment: bytes, max_size: int) -> tuple[bytes, bytes]:
     """Return the compressed and decompressed forms of a recording segment.
 
-    Decompression is bounded by `replay.consumer.max-segment-decompressed-size`. Stored segments are inflated again on every
+    Decompression is bounded by `max_size` bytes. Stored segments are inflated again on every
     read, so a segment with an implausible compression ratio is a durable, repeatable cost on
     the read path -- we drop it here rather than persist it.
     """
-    max_size = options.get("replay.consumer.max-segment-decompressed-size")
     try:
         # Ask for one byte past the limit so an oversized segment is detectable without ever
         # materializing more than `max_size + 1` bytes.
