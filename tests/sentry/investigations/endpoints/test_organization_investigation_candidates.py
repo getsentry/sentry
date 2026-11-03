@@ -38,7 +38,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
@@ -46,7 +46,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         self,
         *,
         detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
-        condition_type: str = Condition.GREATER,
+        condition_type: Condition = Condition.GREATER,
         condition_comparison: Any = 100,
         comparison_delta: int | None = None,
     ) -> tuple[Any, GroupOpenPeriod]:

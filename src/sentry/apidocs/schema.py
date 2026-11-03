@@ -1,12 +1,15 @@
 import contextlib
 import copy
-from collections.abc import Iterator
-from typing import Any
+import inspect
+from collections.abc import Callable, Iterable, Iterator
+from typing import Any, Protocol, cast
 
 from drf_spectacular.drainage import get_override
 from drf_spectacular.openapi import AutoSchema
-from drf_spectacular.plumbing import force_instance, get_doc, is_basic_serializer
+from drf_spectacular.plumbing import get_doc, is_basic_serializer
 from drf_spectacular.utils import OpenApiParameter
+from rest_framework import serializers
+from rest_framework.fields import Field
 
 from sentry.apidocs.omission_apply import (
     OmissionError,
@@ -21,12 +24,24 @@ from sentry.apidocs.omissions import DEPRECATION_REASONS_OVERRIDE, OMISSION_REAS
 from sentry.apidocs.utils import SentryApiBuildError
 
 
+class _SerializerFields(Protocol):
+    fields: Iterable[str]
+
+
+def _force_instance(serializer_or_field: object) -> object:
+    if not inspect.isclass(serializer_or_field):
+        return serializer_or_field
+    if issubclass(serializer_or_field, (serializers.BaseSerializer, Field)):
+        return serializer_or_field()
+    return serializer_or_field
+
+
 class SentrySchema(AutoSchema):
     """DRF Documentation Schema for sentry endpoints"""
 
     @property
-    def view_func(self):
-        return getattr(self.view, self.method.lower())
+    def view_func(self) -> Callable[..., object]:
+        return cast("Callable[..., object]", getattr(self.view, self.method.lower()))
 
     def get_operation_id(self) -> str:
         """
@@ -50,9 +65,11 @@ class SentrySchema(AutoSchema):
         self, serializer: Any, direction: Any, bypass_extensions: bool = False
     ) -> Any:
         """Note which component the serializer is mapped into, for the build's check."""
-        name = self._get_serializer_name(force_instance(serializer), direction, bypass_extensions)
+        name = self._get_serializer_name(_force_instance(serializer), direction, bypass_extensions)
         with placed_at(("components", name)):
-            return super().resolve_serializer(serializer, direction, bypass_extensions)
+            return cast("Callable[..., Any]", super().resolve_serializer)(
+                serializer, direction, bypass_extensions
+            )
 
     def _map_serializer(
         self, serializer: Any, direction: Any, bypass_extensions: bool = False
@@ -60,12 +77,13 @@ class SentrySchema(AutoSchema):
         """Withhold declared choices from the schema of the serializer declaring them.
 
         Components and exploded query parameters are both built here."""
-        instance = force_instance(serializer)
+        instance = _force_instance(serializer)
+        super_map_serializer = cast("Callable[..., Any]", super()._map_serializer)
         if not omissions_enabled():
             with _decorator_exclusions_suspended(instance):
-                return super()._map_serializer(instance, direction, bypass_extensions)
+                return super_map_serializer(instance, direction, bypass_extensions)
 
-        schema = super()._map_serializer(instance, direction, bypass_extensions)
+        schema = super_map_serializer(instance, direction, bypass_extensions)
         rules = _choice_rules(instance)
         try:
             if not in_operation():
@@ -84,7 +102,7 @@ class SentrySchema(AutoSchema):
 
         drf-spectacular takes `required` from the field, which still has one."""
         with placed_at(("operations", self.get_operation_id())):
-            result = super()._process_override_parameters(direction)
+            result = cast("Callable[..., Any]", super()._process_override_parameters)(direction)
         _lift_deprecated(result)
         if not omissions_enabled():
             return result
@@ -95,14 +113,15 @@ class SentrySchema(AutoSchema):
             if isinstance(parameter, OpenApiParameter):
                 source[parameter.name, parameter.location] = parameter
             elif is_basic_serializer(parameter):
-                for name in force_instance(parameter).fields:
+                instance = cast("_SerializerFields", _force_instance(parameter))
+                for name in instance.fields:
                     source[name, OpenApiParameter.QUERY] = parameter
         serializers = {id(p): p for p in source.values() if not isinstance(p, OpenApiParameter)}
         try:
             with placed_at(("operations", self.get_operation_id())):
                 for serializer in serializers.values():
                     owned = {name for (name, _), src in source.items() if src is serializer}
-                    _record(force_instance(serializer), _choice_rules(serializer), owned)
+                    _record(_force_instance(serializer), _choice_rules(serializer), owned)
         except OmissionError as exc:
             raise SentryApiBuildError(str(exc)) from exc
         required: set[tuple[str, str]] = set()
@@ -126,7 +145,7 @@ class SentrySchema(AutoSchema):
 
 def _choice_rules(serializer: Any) -> dict[str, Resolved]:
     try:
-        return choice_rules(force_instance(serializer))
+        return choice_rules(_force_instance(serializer))
     except OmissionError as exc:
         raise SentryApiBuildError(str(exc)) from exc
 

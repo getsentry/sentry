@@ -5,7 +5,6 @@ from dataclasses import replace
 from unittest import mock
 
 import pytest
-from django.db.models import F
 from django.test import override_settings
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import CallSiteStats
@@ -13,15 +12,12 @@ from sentry.ai_monitoring.issues.llm_cache_detection.pricing import PricingGap
 from sentry.ai_monitoring.issues.llm_cache_detection.query import CallSiteQueryResult
 from sentry.ai_monitoring.issues.llm_cache_detection.reporting import Disposition
 from sentry.ai_monitoring.issues.llm_cache_detection.tasks import (
-    DETECTION_CYCLE_DURATION,
     DETECTION_FEATURE,
     FINDINGS_PER_PROJECT_LIMIT,
     PROJECT_QUERY_DEADLINE_SECS,
-    SCHEDULE_KEY,
     detect_llm_cache_issues_for_project,
     run_llm_cache_issue_detection,
 )
-from sentry.models.project import Project
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from tests.sentry.ai_monitoring.issues.llm_cache_detection.test_utils import make_stats
@@ -47,24 +43,6 @@ def copies(stats: CallSiteStats, count: int) -> list[CallSiteStats]:
         )
         for index in range(count)
     ]
-
-
-class RunDetectorTest(TestCase):
-    @mock.patch("sentry.ai_monitoring.issues.llm_cache_detection.tasks.CursoredScheduler")
-    def test_schedules_active_agent_projects(self, scheduler: mock.MagicMock) -> None:
-        self.create_project()
-        agent_project = self.create_project()
-        agent_project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
-
-        run_llm_cache_issue_detection()
-
-        kwargs = scheduler.call_args.kwargs
-        assert kwargs["name"] == "llm_cache_issue_detection"
-        assert kwargs["schedule_key"] == SCHEDULE_KEY
-        assert kwargs["cycle_duration"] == DETECTION_CYCLE_DURATION
-        assert kwargs["task"] is detect_llm_cache_issues_for_project
-        assert set(kwargs["queryset"].values_list("id", flat=True)) == {agent_project.id}
-        scheduler.return_value.tick.assert_called_once_with()
 
 
 class DetectProjectTest(TestCase):

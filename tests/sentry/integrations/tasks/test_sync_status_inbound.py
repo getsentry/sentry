@@ -168,16 +168,18 @@ class TestSyncStatusInbound(TestCase):
             group=self.group, integration=self.integration, key=TEST_ISSUE_KEY
         )
 
-    def _assert_group_resolved(self, group_id: int):
+    def _assert_group_resolved(self, group_id: int) -> None:
         group = Group.objects.get(id=group_id)
         assert group.status == GroupStatus.RESOLVED
 
-    def _assert_group_unresolved(self, group_id: int):
+    def _assert_group_unresolved(self, group_id: int) -> None:
         group = Group.objects.get(id=group_id)
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-    def _assert_resolve_activity_created(self, additional_data=None):
+    def _assert_resolve_activity_created(
+        self, additional_data: dict[str, object] | None = None
+    ) -> None:
         activity = self.group.activity_set.filter(type=ActivityType.SET_RESOLVED.value).first()
         assert activity is not None
         assert activity.data["provider"] == "Example"
@@ -188,7 +190,7 @@ class TestSyncStatusInbound(TestCase):
             for key, value in additional_data.items():
                 assert activity.data.get(key) == value
 
-    def _assert_unresolve_activity_created(self):
+    def _assert_unresolve_activity_created(self) -> None:
         activity = self.group.activity_set.filter(type=ActivityType.SET_UNRESOLVED.value).first()
         assert activity is not None
         assert activity.data["provider"] == "Example"
@@ -196,8 +198,8 @@ class TestSyncStatusInbound(TestCase):
         assert activity.data["integration_id"] == self.integration.id
 
     def _assert_resolve_in_release_activity_created(
-        self, in_next_release=False, additional_data=None
-    ):
+        self, in_next_release: bool = False, additional_data: dict[str, object] | None = None
+    ) -> None:
         activity = self.group.activity_set.filter(
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         ).first()
@@ -215,7 +217,7 @@ class TestSyncStatusInbound(TestCase):
             for key, value in additional_data.items():
                 assert activity.data.get(key) == value
 
-    def _assert_no_resolve_activity(self):
+    def _assert_no_resolve_activity(self) -> None:
         activity_count = self.group.activity_set.filter(
             type=ActivityType.SET_RESOLVED.value
         ).count()

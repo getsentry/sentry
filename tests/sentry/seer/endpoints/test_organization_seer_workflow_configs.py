@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.db import connections, router
 from django.test import override_settings
@@ -24,6 +25,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Detector
+from sentry.utils import json
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -167,7 +169,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert "lastRunStatus" not in response.data["configs"][2]
 
         assert (
-            datetime.fromisoformat(response.json()["configs"][0]["dateLastRun"])
+            datetime.fromisoformat(json.loads(response.content)["configs"][0]["dateLastRun"])
             == latest.date_added
         )
         filtered = self.get_success_response(self.organization.slug, id=config.id)
@@ -295,7 +297,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert response.data["configs"][0]["monitorIds"] == [accessible.id]
         assert response.data["configs"][0]["projects"] == [accessible.project_id]
 
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+    def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
         )
@@ -655,7 +657,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         )
 
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+    def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
         )

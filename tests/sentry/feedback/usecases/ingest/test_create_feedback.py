@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,6 +20,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS_JSON_LENGTH,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
@@ -26,7 +29,7 @@ from tests.sentry.feedback import mock_feedback_event
 
 
 @pytest.fixture(autouse=True)
-def mock_has_seer_access():
+def mock_has_seer_access() -> Iterator[MagicMock]:
     """
     Auto mocks `has_seer_access` so it returns false by default.
     To enable, request the fixture and set mock_has_seer_access.return_value = True
@@ -229,7 +232,7 @@ def test_corrected_still_works() -> None:
 
 
 @pytest.mark.parametrize("environment", ("missing", None, "", "my-environment"))
-def test_fix_for_issue_platform_environment(environment) -> None:
+def test_fix_for_issue_platform_environment(environment: str | None) -> None:
     event = mock_feedback_event(1)
     if environment == "missing":
         event.pop("environment", "")
@@ -244,7 +247,9 @@ def test_fix_for_issue_platform_environment(environment) -> None:
 
 
 @django_db_all
-def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_filters_unreal(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -283,7 +288,9 @@ def test_create_feedback_filters_unreal(default_project, mock_produce_occurrence
 
 
 @django_db_all
-def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_filters_empty(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = {
         "project_id": 1,
         "request": {
@@ -357,8 +364,8 @@ def test_create_feedback_filters_empty(default_project, mock_produce_occurrence_
 
 @django_db_all
 def test_create_feedback_filters_no_contexts_or_message(
-    default_project, mock_produce_occurrence_to_kafka
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event_no_context = {
         "project_id": 1,
         "request": {
@@ -468,15 +475,15 @@ def test_create_feedback_filters_no_contexts_or_message(
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
 @patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer")
 def test_create_feedback_spam_detection_kafka_and_evidence(
-    mock_is_spam_seer,
-    mock_spam_detection_enabled,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    input_message,
-    enabled,
-    expected_result,
-    expected_evidence_display,
-):
+    mock_is_spam_seer: MagicMock,
+    mock_spam_detection_enabled: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    input_message: str,
+    enabled: object,
+    expected_result: object,
+    expected_evidence_display: object,
+) -> None:
     mock_spam_detection_enabled.return_value = enabled
     if enabled:
         mock_is_spam_seer.return_value = expected_result
@@ -517,7 +524,7 @@ def test_create_feedback_spam_detection_kafka_and_evidence(
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled", return_value=True)
 @patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=True)
 def test_create_feedback_spam_detection_set_status_ignored(
-    mock_is_spam_seer, mock_spam_detection_enabled, default_project
+    mock_is_spam_seer: MagicMock, mock_spam_detection_enabled: MagicMock, default_project: Project
 ) -> None:
     event = mock_feedback_event(default_project.id, message="This is definitely spam")
 
@@ -530,8 +537,8 @@ def test_create_feedback_spam_detection_set_status_ignored(
 
 @django_db_all
 def test_create_feedback_evidence_associated_event_id(
-    default_project, mock_produce_occurrence_to_kafka
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = {
         "project_id": default_project.id,
         "request": {
@@ -582,8 +589,8 @@ def test_create_feedback_evidence_associated_event_id(
 
 @django_db_all
 def test_create_feedback_filters_invalid_associated_event_id(
-    default_project, mock_produce_occurrence_to_kafka
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = {
         "project_id": default_project.id,
         "request": {
@@ -624,7 +631,9 @@ def test_create_feedback_filters_invalid_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_tags(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
     event["user"]["email"] = "josh.ferge@sentry.io"
@@ -658,8 +667,8 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
 
 @django_db_all
 def test_create_feedback_tags_no_associated_event_id(
-    default_project, mock_produce_occurrence_to_kafka
-):
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = mock_feedback_event(default_project.id, dt=datetime.now(UTC))
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -674,7 +683,7 @@ def test_create_feedback_tags_no_associated_event_id(
 
 @django_db_all
 def test_create_feedback_tags_skips_email_if_empty(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
 ) -> None:
     event = mock_feedback_event(default_project.id)
     event["user"].pop("email", None)
@@ -692,13 +701,13 @@ def test_create_feedback_tags_skips_email_if_empty(
 @patch("sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled")
 @patch("sentry.feedback.usecases.ingest.create_feedback.is_spam_seer", return_value=False)
 def test_create_feedback_filters_large_message(
-    mock_is_spam_seer,
-    mock_spam_detection_enabled,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    spam_enabled,
-    set_sentry_option,
-):
+    mock_is_spam_seer: MagicMock,
+    mock_spam_detection_enabled: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    spam_enabled: object,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
     """Large messages are filtered before spam detection and producing to kafka."""
     mock_spam_detection_enabled.return_value = spam_enabled
 
@@ -712,7 +721,9 @@ def test_create_feedback_filters_large_message(
 
 
 @django_db_all
-def test_create_feedback_evidence_source(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_evidence_source(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     """We need this evidence field in post process, to determine if we should send alerts."""
     event = mock_feedback_event(default_project.id)
     source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
@@ -724,7 +735,9 @@ def test_create_feedback_evidence_source(default_project, mock_produce_occurrenc
 
 
 @django_db_all
-def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_release(
+    default_project: Project, mock_produce_occurrence_to_kafka: MagicMock
+) -> None:
     event = mock_feedback_event(default_project.id)
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
@@ -735,7 +748,7 @@ def test_create_feedback_release(default_project, mock_produce_occurrence_to_kaf
 
 
 @django_db_all
-def test_create_feedback_issue_updates_project_flag(default_project) -> None:
+def test_create_feedback_issue_updates_project_flag(default_project: Project) -> None:
     event = mock_feedback_event(default_project.id, dt=datetime.now(UTC))
 
     with (
@@ -762,9 +775,9 @@ def test_create_feedback_issue_updates_project_flag(default_project) -> None:
 @django_db_all
 @patch("sentry.feedback.usecases.ingest.create_feedback.get_feedback_title")
 def test_create_feedback_issue_title(
-    mock_get_feedback_title,
-    default_project,
-    mock_produce_occurrence_to_kafka,
+    mock_get_feedback_title: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
 ) -> None:
     """Test that create_feedback_issue uses the formatted feedback message title when seer access is disabled."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
@@ -800,10 +813,10 @@ def test_create_feedback_issue_title(
 @django_db_all
 @patch("sentry.feedback.usecases.ingest.create_feedback.get_feedback_title")
 def test_create_feedback_issue_title_from_seer(
-    mock_get_feedback_title,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    mock_has_seer_access,
+    mock_get_feedback_title: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that create_feedback_issue uses the generated title from Seer."""
     mock_has_seer_access.return_value = True
@@ -830,10 +843,10 @@ def test_create_feedback_issue_title_from_seer(
 @django_db_all
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_create_feedback_issue_title_does_not_throw(
-    mock_make_signed_seer_api_request,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    mock_has_seer_access,
+    mock_make_signed_seer_api_request: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that the title falls back to message-based title if Seer call fails with network error."""
     mock_has_seer_access.return_value = True
@@ -847,10 +860,10 @@ def test_create_feedback_issue_title_does_not_throw(
 @django_db_all
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_create_feedback_issue_title_from_seer_skips_if_spam(
-    mock_make_signed_seer_api_request,
-    default_project,
-    mock_produce_occurrence_to_kafka,
-    mock_has_seer_access,
+    mock_make_signed_seer_api_request: MagicMock,
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test title generation endpoint is not called if marked as spam."""
     mock_has_seer_access.return_value = True
@@ -869,7 +882,9 @@ def test_create_feedback_issue_title_from_seer_skips_if_spam(
 
 @django_db_all
 def test_create_feedback_adds_ai_labels(
-    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
     mock_has_seer_access.return_value = True
@@ -877,7 +892,7 @@ def test_create_feedback_adds_ai_labels(
     event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
     # This assumes that the maximum number of labels allowed is greater than 3
-    def mock_generate_labels(*args, **kwargs):
+    def mock_generate_labels(*args: object, **kwargs: object) -> list[str]:
         return ["User Interface", "Authentication", "Performance"]
 
     with patch(
@@ -903,7 +918,9 @@ def test_create_feedback_adds_ai_labels(
 
 @django_db_all
 def test_create_feedback_handles_label_generation_errors(
-    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
     mock_has_seer_access.return_value = True
@@ -911,7 +928,7 @@ def test_create_feedback_handles_label_generation_errors(
     event["contexts"]["feedback"]["message"] = "This is a valid feedback message"
 
     # Mock generate_labels to raise an exception
-    def mock_generate_labels(*args, **kwargs):
+    def mock_generate_labels(*args: object, **kwargs: object) -> list[str]:
         raise Exception("Label generation failed")
 
     with patch(
@@ -934,7 +951,9 @@ def test_create_feedback_handles_label_generation_errors(
 
 @django_db_all
 def test_create_feedback_truncates_ai_labels_max_list_length(
-    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
     mock_has_seer_access.return_value = True
@@ -945,7 +964,7 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
 
     # Mock generate_labels to return more than MAX_AI_LABELS labels
     # The labels should be sorted alphabetically, so don't store numbers, instead use letters
-    def mock_generate_labels(*args, **kwargs):
+    def mock_generate_labels(*args: object, **kwargs: object) -> list[str]:
         return [f"{alphabet[i]}" for i in range(MAX_AI_LABELS + 5)]
 
     with patch(
@@ -985,7 +1004,9 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
 
 @django_db_all
 def test_create_feedback_truncates_ai_labels_max_json_length(
-    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
+    default_project: Project,
+    mock_produce_occurrence_to_kafka: MagicMock,
+    mock_has_seer_access: MagicMock,
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
     mock_has_seer_access.return_value = True
@@ -994,7 +1015,7 @@ def test_create_feedback_truncates_ai_labels_max_json_length(
     event["contexts"]["feedback"]["message"] = "This is a very complex feedback with many issues"
 
     # The serialized list of labels should be longer than MAX_AI_LABELS_JSON_LENGTH characters, so we should only take the first item
-    def mock_generate_labels(*args, **kwargs):
+    def mock_generate_labels(*args: object, **kwargs: object) -> list[str]:
         return ["a" * (MAX_AI_LABELS_JSON_LENGTH - 50)] * 100
 
     with patch(

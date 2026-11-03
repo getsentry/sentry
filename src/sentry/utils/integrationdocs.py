@@ -37,6 +37,7 @@ def load_doc(path: str) -> dict[str, Any] | None:
 
     try:
         with open(doc_path, encoding="utf-8") as f:
-            return orjson.loads(f.read())
+            doc = orjson.loads(f.read())
     except OSError:
         return None
+    return doc

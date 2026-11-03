@@ -615,7 +615,8 @@ def action_request(**overrides: Any) -> dict[str, Any]:
 
 
 def requested(item: Any) -> dict[str, Any] | None:
-    return validated(ActionRequestedPayloadSerializer, {"request": item})["request"]
+    request = validated(ActionRequestedPayloadSerializer, {"request": item})["request"]
+    return request if isinstance(request, dict) else None
 
 
 def test_action_requested_accepts_the_wire_shape() -> None:

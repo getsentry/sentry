@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
@@ -32,13 +32,19 @@ from sentry.types.actor import Actor
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
-    userNotifiedTimestamp: datetime
-    environmentMutedTimestamp: datetime
+    userNotifiedTimestamp: datetime | None
+    environmentMutedTimestamp: datetime | None
 
 
 @register(MonitorEnvBrokenDetection)
 class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvBrokenDetectionSerializerResponse:
+    def serialize(
+        self,
+        obj: MonitorEnvBrokenDetection,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> MonitorEnvBrokenDetectionSerializerResponse:
         return {
             "userNotifiedTimestamp": obj.user_notified_timestamp,
             "environmentMutedTimestamp": obj.env_muted_timestamp,
@@ -46,8 +52,8 @@ class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSe
 
 
 class MonitorIncidentSerializerResponse(TypedDict):
-    startingTimestamp: datetime
-    resolvingTimestamp: datetime
+    startingTimestamp: datetime | None
+    resolvingTimestamp: datetime | None
     brokenNotice: MonitorEnvBrokenDetectionSerializerResponse | None
 
 
@@ -68,7 +74,13 @@ class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
             for incident in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs) -> MonitorIncidentSerializerResponse:
+    def serialize(
+        self,
+        obj: MonitorIncident,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> MonitorIncidentSerializerResponse:
         return {
             "startingTimestamp": obj.starting_timestamp,
             "resolvingTimestamp": obj.resolving_timestamp,
@@ -81,9 +93,9 @@ class MonitorEnvironmentSerializerResponse(TypedDict):
     status: str
     isMuted: bool
     dateCreated: datetime
-    lastCheckIn: datetime
-    nextCheckIn: datetime
-    nextCheckInLatest: datetime
+    lastCheckIn: datetime | None
+    nextCheckIn: datetime | None
+    nextCheckInLatest: datetime | None
     activeIncident: MonitorIncidentSerializerResponse | None
 
 
@@ -137,7 +149,13 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
             for monitor_env in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs) -> MonitorEnvironmentSerializerResponse:
+    def serialize(
+        self,
+        obj: MonitorEnvironment,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> MonitorEnvironmentSerializerResponse:
         environment = attrs["environment"]
         return {
             "name": environment.name if environment else "[removed]",
@@ -183,10 +201,15 @@ class MonitorBulkEditResponse:
 
 @register(Monitor)
 class MonitorSerializer(Serializer[MonitorSerializerResponse]):
-    def __init__(self, environments=None):
+    def __init__(self, environments: Sequence[Environment] | None = None) -> None:
         self.environments = environments
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Monitor],
+        user: Any,
+        **kwargs: Any,
+    ) -> MutableMapping[Any, Any]:
         # TODO(dcramer): assert on relations
         projects = Project.objects.filter(id__in=[i.project_id for i in item_list])
         projects_data = {
@@ -267,13 +290,19 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
             item: {
                 "project": projects_data[item.project_id] if item.project_id else None,
                 "environments": environment_data[item.id],
-                "owner": actor_data.get(item.owner_actor),
+                "owner": actor_data.get(item.owner_actor) if item.owner_actor else None,
                 "is_muted": is_muted_data[item.id],
             }
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs) -> MonitorSerializerResponse:
+    def serialize(
+        self,
+        obj: Monitor,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> MonitorSerializerResponse:
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
@@ -304,25 +333,37 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     environment: str
     status: str
     duration: int | None
-    dateCreated: datetime
+    dateCreated: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateInProgress: datetime | None
-    dateClock: datetime
-    expectedTime: datetime
+    dateClock: datetime | None
+    expectedTime: datetime | None
     monitorConfig: MonitorConfigSerializerResponse
 
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
-    def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
+    def __init__(
+        self,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_id: int | None = None,
+    ) -> None:
         self.start = start  # timestamp of the beginning of the specified date range
         self.end = end  # timestamp of the end of the specified date range
         self.expand = expand
         self.organization_id = organization_id
         self.project_id = project_id
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[MonitorCheckIn],
+        user: Any,
+        **kwargs: Any,
+    ) -> MutableMapping[Any, Any]:
         # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment")
 
@@ -363,7 +404,11 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
 
             if trace_ids:
                 trace_groups = fetch_associated_groups(
-                    trace_ids, self.organization_id, self.project_id, self.start, self.end
+                    trace_ids,
+                    cast("int", self.organization_id),
+                    cast("int", self.project_id),
+                    self.start,
+                    self.end,
                 )
 
             for checkin in item_list:
@@ -373,7 +418,13 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+    def serialize(
+        self,
+        obj: MonitorCheckIn,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> MonitorCheckInSerializerResponse:
         monitor_config = attrs["monitor_config"]
         config = monitor_config.copy() if monitor_config else {}
         if "schedule_type" in config:
@@ -399,7 +450,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
 
         return result
 
-    def _expand(self, key) -> bool:
+    def _expand(self, key: str) -> bool:
         if self.expand is None:
             return False
 
@@ -409,6 +460,10 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
 @register(CheckinProcessingError)
 class CheckinProcessingErrorSerializer(Serializer[CheckinProcessingErrorData]):
     def serialize(
-        self, obj: CheckinProcessingError, attrs, user, **kwargs
+        self,
+        obj: CheckinProcessingError,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
     ) -> CheckinProcessingErrorData:
         return obj.to_dict()

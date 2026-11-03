@@ -187,6 +187,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         self.block.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
         params = self.execution.result["queryLinks"][0]["params"]
@@ -260,6 +261,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.execution.result is not None
         assert self.execution.result["queryLinks"] == original_links
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
@@ -449,6 +451,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
 
     @patch("sentry.investigations.agent.record_execution_completed")
@@ -780,6 +783,7 @@ class InvestigationAgentTest(TestCase):
             synchronize_execution(self.execution, run_state)
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert self.execution.error is not None
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
 
@@ -812,6 +816,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert self.execution.error is not None
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once_with(self.organization, 42)
 
@@ -1181,6 +1186,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert self.execution.result is not None
         link = self.execution.result["queryLinks"][0]
         assert set(link) == {"kind", "params"}
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}

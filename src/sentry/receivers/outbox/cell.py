@@ -70,7 +70,7 @@ def update_sentry_app_action_data(
     shard_identifier: int,
     object_identifier: int,
     **kwds: Any,
-):
+) -> None:
     try:
         action = Action.objects.get(
             id=shard_identifier,
@@ -185,19 +185,19 @@ def backfill_scm_integration_config(shard_identifier: int, payload: Any, **kwds:
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
-def process_audit_log_event(payload: Any, **kwds: Any):
+def process_audit_log_event(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
-def process_orgauthtoken_update(payload: Any, **kwds: Any):
+def process_orgauthtoken_update(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         orgauthtoken_rpc_service.update_orgauthtoken(**payload)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.USER_IP_EVENT)
-def process_user_ip_event(payload: Any, **kwds: Any):
+def process_user_ip_event(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
 
@@ -205,7 +205,7 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 @receiver(process_cell_outbox, sender=OutboxCategory.PROJECT_UPDATE)
 def process_project_updates(
     object_identifier: int, shard_identifier: int, payload: Any, **kwds: Any
-):
+) -> None:
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     if not payload or "transferred_at" not in payload:
@@ -223,7 +223,7 @@ def process_project_updates(
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
 def process_organization_mapping_customer_id_update(
     object_identifier: int, payload: Any, **kwds: Any
-):
+) -> None:
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
@@ -235,7 +235,9 @@ def process_organization_mapping_customer_id_update(
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
-def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
+def process_disable_auth_provider(
+    object_identifier: int, shard_identifier: int, **kwds: Any
+) -> None:
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()

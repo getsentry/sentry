@@ -954,6 +954,15 @@ register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIA
 register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Jira Forge apps whose invocation tokens we accept, as app ARIs
+# (`ari:cloud:ecosystem::app/<uuid>`). Empty rejects every Forge request.
+register(
+    "jira.forge.app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1550,6 +1559,15 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
+# Requires api.conditional_get.enabled. A browser keeps a cached response for up to
+# the tier's seconds after its endpoint is removed from this list.
+register(
+    "api.conditional_get.max_age_endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
@@ -2756,6 +2774,16 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},

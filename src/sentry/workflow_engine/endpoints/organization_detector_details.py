@@ -113,6 +113,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ALERTS_MONITORS
     permission_classes = (OrganizationDetectorPermission,)
 

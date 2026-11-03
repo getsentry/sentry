@@ -1,5 +1,7 @@
-from datetime import timedelta
-from typing import Any
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.utils import timezone
@@ -12,10 +14,16 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.release import Release
 
 
 @cell_silo_model
@@ -45,13 +53,21 @@ class GroupRelease(Model):
         super().save(*args, **kwargs)
 
     @classmethod
-    def get_cache_key(cls, group_id, release_id, environment):
+    def get_cache_key(cls, group_id: int, release_id: int, environment: str) -> str:
         return "grouprelease:1:{}:{}".format(
             group_id, md5_text(f"{release_id}:{environment}").hexdigest()
         )
 
     @classmethod
-    def get_or_create(cls, group, release, environment, datetime, metrics_tags=None, **kwargs):
+    def get_or_create(
+        cls,
+        group: Group,
+        release: Release,
+        environment: Environment,
+        datetime: datetime,
+        metrics_tags: MutableTags | None = None,
+        **kwargs: object,
+    ) -> GroupRelease:
         cache_key = cls.get_cache_key(group.id, release.id, environment.name)
 
         instance = cache.get(cache_key)

@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -72,8 +73,7 @@ function formatAutomationRows(automations: Automation[]): string {
 
 function AutomationsListInner() {
   const getPaginationCaption = useGetPaginationCaption();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setCursor] = useQueryState('cursor', {history: 'push'});
 
   const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
   const {data, isLoading, isError, isSuccess} = useQuery({
@@ -150,10 +150,7 @@ function AutomationsListInner() {
             pageLinks={pageLinks}
             caption={paginationCaption}
             onCursor={newCursor => {
-              navigate({
-                pathname: location.pathname,
-                query: {...location.query, cursor: newCursor},
-              });
+              setCursor(newCursor ?? null);
             }}
           />
         </div>

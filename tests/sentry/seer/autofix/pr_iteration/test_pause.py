@@ -56,7 +56,7 @@ class PausePrIterationTest(TestCase):
             run_state=run_state,
         )
 
-    def _marker(self) -> dict | None:
+    def _marker(self) -> dict[str, object] | None:
         self.seer_run.refresh_from_db()
         return (self.seer_run.extras or {}).get(PAUSED_EXTRA)
 

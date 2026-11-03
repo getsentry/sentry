@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.incidents.models.alert_rule import AlertRule
@@ -11,8 +12,12 @@ NOT_SET = object()
 
 class BaseAlertRuleSerializerTest:
     def assert_alert_rule_serialized(
-        self, alert_rule, result, skip_dates=False, resolve_threshold=NOT_SET
-    ):
+        self,
+        alert_rule: AlertRule,
+        result: Mapping[str, object],
+        skip_dates: bool = False,
+        resolve_threshold: object = NOT_SET,
+    ) -> None:
         alert_rule_projects = sorted(
             slug
             for slug in AlertRule.objects.filter(id=alert_rule.id).values_list(
@@ -35,11 +40,12 @@ class BaseAlertRuleSerializerTest:
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
-        if alert_rule.created_by_id:
-            created_by = user_service.get_user(user_id=alert_rule.created_by_id)
+        created_by_id: int | None = getattr(alert_rule, "created_by_id", None)
+        if created_by_id:
+            created_by = user_service.get_user(user_id=created_by_id)
             assert created_by is not None
             assert result["createdBy"] == {
-                "id": alert_rule.created_by_id,
+                "id": created_by_id,
                 "name": created_by.get_display_name(),
                 "email": created_by.email,
             }
@@ -65,11 +71,9 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["comparisonDelta"] is None
 
-        if alert_rule.snuba_query.extrapolation_mode is not None:
-            assert (
-                result["extrapolationMode"]
-                == ExtrapolationMode(alert_rule.snuba_query.extrapolation_mode).name.lower()
-            )
+        extrapolation_mode: int | None = alert_rule.snuba_query.extrapolation_mode
+        if extrapolation_mode is not None:
+            assert result["extrapolationMode"] == ExtrapolationMode(extrapolation_mode).name.lower()
         else:
             assert result.get("extrapolationMode") is None
 

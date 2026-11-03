@@ -11,7 +11,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.http import HttpHeaders
+from django.http import HttpHeaders, HttpRequest
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
@@ -99,7 +99,7 @@ class AuthenticationSiloLimit(SiloLimit):
         )
 
 
-def is_internal_relay(request, public_key):
+def is_internal_relay(request: HttpRequest, public_key: str) -> bool:
     """
     Checks if the relay is trusted (authorized for all project configs)
     """
@@ -128,7 +128,7 @@ def is_internal_relay(request, public_key):
     return False
 
 
-def is_static_relay(request):
+def is_static_relay(request: HttpRequest) -> bool:
     """
     Checks if the request comes from a statically configured relay
 
@@ -136,7 +136,7 @@ def is_static_relay(request):
     """
     relay_id = get_header_relay_id(request)
     static_relays = settings.SENTRY_RELAY_STATIC_AUTH
-    relay_info = static_relays.get(relay_id)
+    relay_info = static_relays.get(relay_id) if relay_id is not None else None
 
     if relay_info is not None:
         metrics.incr(
@@ -179,7 +179,7 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
             return None, False  # no Relay found
 
 
-def update_token_access_record(auth: object):
+def update_token_access_record(auth: object) -> None:
     """
     Perform updates to token models for security purposes (i.e. 'date_last_used')
     """
@@ -196,7 +196,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         user: int | User | RpcUser | None | AnonymousUser,
         request_auth: Any,
         entity_id_tag: str | None = None,
-        **tags,
+        **tags: Any,
     ) -> tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
             user = user_service.get_user(user_id=user)
@@ -231,7 +231,7 @@ class StandardAuthentication(QuietBasicAuthentication):
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         raise NotImplementedError
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         auth = get_authorization_header(request).split()
 
         if not self.accepts_auth(auth):
@@ -249,7 +249,7 @@ class StandardAuthentication(QuietBasicAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.CELL)
 class RelayAuthentication(BasicAuthentication):
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[AnonymousUser, None]:
         relay_id = get_header_relay_id(request)
         relay_sig = get_header_relay_signature(request)
         if not relay_id:
@@ -259,7 +259,7 @@ class RelayAuthentication(BasicAuthentication):
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
     def authenticate_credentials(
-        self, relay_id: str, relay_sig: str, request=None
+        self, relay_id: str, relay_sig: str, request: Request | None = None
     ) -> tuple[AnonymousUser, None]:
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
         sentry_sdk.get_isolation_scope().set_attribute("relay_id", relay_id)
@@ -294,7 +294,9 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
-    def authenticate_credentials(self, userid, password, request=None):
+    def authenticate_credentials(
+        self, userid: str, password: str | None, request: HttpRequest | None = None
+    ) -> Any:
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
@@ -325,7 +327,7 @@ class SessionNoAuthTokenAuthentication(SessionAuthentication):
     Rejects any token-based authentication (Bearer, Basic, etc.).
     """
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         # Check if there's any authorization header - if so, reject it
         auth = get_authorization_header(request)
         if auth:
@@ -346,7 +348,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         if not request.data:
             raise AuthenticationFailed("Invalid request")
 
@@ -435,7 +437,7 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         jti_digest = hashlib.sha256(jti.encode()).hexdigest()
         return f"jwt_client_secret:{sentry_app_id}:{jti_digest}"
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         if not request.data:
             raise AuthenticationFailed("Invalid request")
 

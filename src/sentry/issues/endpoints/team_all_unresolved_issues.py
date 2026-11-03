@@ -143,10 +143,10 @@ def calculate_unresolved_counts(
     agg_project_precounts = {
         project.id: copy.deepcopy(date_series_dict) for project in project_list
     }
-    for r in deduped_historical_issue_status_changes:
-        bucket = agg_project_precounts[r["project"]][r["bucket"].isoformat()]
-        bucket["open"] += r.get("open", 0)
-        bucket["closed"] += r.get("closed", 0)
+    for deduped in deduped_historical_issue_status_changes:
+        bucket = agg_project_precounts[deduped["project"]][deduped["bucket"].isoformat()]
+        bucket["open"] += deduped.get("open", 0)
+        bucket["closed"] += deduped.get("closed", 0)
 
     agg_project_counts = {}
     for project, precounts in agg_project_precounts.items():

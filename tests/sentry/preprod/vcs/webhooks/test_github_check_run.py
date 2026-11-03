@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.commitcomparison import CommitComparison
@@ -34,9 +35,9 @@ class HandlePreprodCheckRunEventTest(TestCase):
 
     def _create_preprod_artifact(
         self,
-        state=PreprodArtifact.ArtifactState.PROCESSED,
-        app_id="com.example.app",
-    ):
+        state: int = PreprodArtifact.ArtifactState.PROCESSED,
+        app_id: str = "com.example.app",
+    ) -> PreprodArtifact:
         unique_suffix = str(uuid.uuid4()).replace("-", "")[:8]
         head_sha = unique_suffix.ljust(40, "a")
         base_sha = unique_suffix.ljust(40, "b")
@@ -68,7 +69,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
         external_id: str,
         sender_id: int = 12345,
         sender_login: str = "octocat",
-    ):
+    ) -> dict[str, Any]:
         return {
             "action": action,
             "requested_action": {"identifier": identifier},
@@ -165,7 +166,7 @@ class HandlePreprodCheckRunEventTest(TestCase):
         )
 
     @patch("sentry.analytics.record")
-    def test_creates_approval_for_valid_request(self, mock_analytics) -> None:
+    def test_creates_approval_for_valid_request(self, mock_analytics: MagicMock) -> None:
         artifact = self._create_preprod_artifact()
         event = self._create_webhook_event(
             action="requested_action",
