@@ -55,7 +55,7 @@ def generate_setup_code() -> str:
 @control_silo_model
 class ApiSetupCode(Model):
     """
-    A short-lived, single-use code minted by a signed-in user and exchanged at
+    A short-lived, single-use code minted for a user and exchanged at
     `/oauth/token/` for an OAuth token through the
     `urn:sentry:params:oauth:grant-type:setup_code` grant.
 
@@ -71,7 +71,7 @@ class ApiSetupCode(Model):
     # The OAuth application the code can be redeemed for
     application = FlexibleForeignKey("sentry.ApiApplication")
 
-    # User who minted the code; the issued token belongs to this user
+    # User the code was minted for; the issued token belongs to this user
     user = FlexibleForeignKey("sentry.User", on_delete=models.CASCADE)
 
     # Organization selected when minting (for org-level access apps)

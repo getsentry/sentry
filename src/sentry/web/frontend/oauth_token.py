@@ -102,7 +102,7 @@ class OAuthTokenView(View):
         - `urn:ietf:params:oauth:grant-type:device_code` (RFC 8628 §3.4): requires
           `device_code`. Used by headless clients to poll for authorization.
         - `urn:sentry:params:oauth:grant-type:setup_code`: requires `setup_code`, a
-          single-use code a signed-in user minted for this application. Only
+          single-use code minted for a user and this application. Only
           available to applications listed in `oauth.setup-code.allowed-client-ids`.
 
         Client authentication
@@ -644,7 +644,7 @@ class OAuthTokenView(View):
     def handle_setup_code_grant(
         self, request: Request, application: ApiApplication
     ) -> HttpResponse:
-        """Exchange a single-use setup code minted by a signed-in user for tokens."""
+        """Exchange a single-use setup code for tokens."""
         setup_code_value = request.POST.get("setup_code")
         if not setup_code_value:
             return self.error(request=request, name="invalid_request", reason="missing setup_code")

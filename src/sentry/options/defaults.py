@@ -267,8 +267,8 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# OAuth client IDs that signed-in users may mint one-time setup codes for, and
-# that may redeem them with the setup_code grant. Empty disables setup codes.
+# OAuth client IDs that may redeem one-time setup codes with the setup_code
+# grant. Empty disables setup codes.
 register(
     "oauth.setup-code.allowed-client-ids",
     type=Sequence,
