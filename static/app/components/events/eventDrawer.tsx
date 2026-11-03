@@ -20,29 +20,25 @@ interface DrawerBreadcrumbsProps {
 /**
  * Breadcrumbs for drawers and panels. The page already owns the `<h1>` in the
  * TopBar, so the current location renders without a heading. Unlike the TopBar
- * trail, these are rendered in a `<nav>` landmark.
+ * trail, these are rendered in a `<nav>` landmark. Trailing actions on the
+ * current item render right after it, outside the landmark.
  */
 export function DrawerBreadcrumbs({items = [], current}: DrawerBreadcrumbsProps) {
+  const {trailingActions, ...currentItem} = current;
+
   return (
-    <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" flex="1" minWidth="0">
-      {items.length === 0 ? (
-        <BreadcrumbList.Current item={current} />
-      ) : (
-        <Flex
-          containerType="inline-size"
-          width="100%"
-          align="center"
-          gap="sm"
-          minWidth="0"
-        >
+    <Flex containerType="inline-size" align="center" gap="sm" flex="1" minWidth="0">
+      <Flex as="nav" aria-label={t('Breadcrumbs')} align="center" gap="sm" minWidth="0">
+        {items.length > 0 ? (
           <Flex align="center" gap="sm" minWidth="0" flex="0 1 auto">
             <BreadcrumbList items={items} />
           </Flex>
-          <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-            <BreadcrumbList.Current item={current} />
-          </Flex>
+        ) : null}
+        <Flex align="center" gap="sm" minWidth="0">
+          <BreadcrumbList.Current item={currentItem} />
         </Flex>
-      )}
+      </Flex>
+      <BreadcrumbList.TrailingActions actions={trailingActions} />
     </Flex>
   );
 }

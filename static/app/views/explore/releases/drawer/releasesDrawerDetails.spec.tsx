@@ -109,6 +109,10 @@ describe('ReleasesDrawerDetails', () => {
       'href',
       expect.stringContaining('/releases/test-release/?project=1')
     );
+    // the full-details link is a crumb action, outside the breadcrumb landmark
+    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).not.toContainElement(
+      screen.getByRole('button', {name: 'View Full Details'})
+    );
     // single-project releases don't need a project switcher
     expect(screen.queryByRole('button', {name: /Project/})).not.toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
@@ -192,6 +196,9 @@ describe('ReleasesDrawerDetails', () => {
 
     render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
     expect(await screen.findByText('Release not found')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'View Full Details'})
+    ).not.toBeInTheDocument();
   });
 
   it('reserves the project avatar slot while release meta loads', async () => {

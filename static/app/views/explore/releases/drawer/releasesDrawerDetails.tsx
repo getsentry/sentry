@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconExpand} from '@sentry/icons/expand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -64,16 +65,15 @@ function ReleasesDrawerContent({
   isMetaError,
   isLoadingMeta,
 }: ReleasesDrawerContentProps) {
-  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const releaseProjects = releaseMeta?.projects ?? [];
 
   return (
     <Fragment>
-      <EventNavigator
-        leadingItems={
-          releaseProjects.length > 1 ? (
+      {releaseProjects.length > 1 ? (
+        <EventNavigator
+          leadingItems={
             <CompactSelect
               size="sm"
               value={projectId}
@@ -98,31 +98,9 @@ function ReleasesDrawerContent({
                 <OverlayTrigger.Button {...triggerProps} prefix={t('Project')} />
               )}
             />
-          ) : null
-        }
-        trailingItems={
-          <LinkButton
-            size="sm"
-            to={normalizeUrl({
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(release)}/`,
-                organization,
-              }),
-              query: {
-                project: projectId,
-              },
-            })}
-            onClick={() => {
-              trackAnalytics('releases.drawer_view_full_details', {
-                organization: organization.id,
-                project_id: String(projectId),
-              });
-            }}
-          >
-            {t('View Full Details')}
-          </LinkButton>
-        }
-      />
+          }
+        />
+      ) : null}
 
       <EventDrawerBody>
         <div>
@@ -204,6 +182,7 @@ export function ReleasesDrawerDetails({
   projectId: projectIdProp,
   start,
 }: ReleasesDrawerDetailsProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -284,6 +263,8 @@ export function ReleasesDrawerDetails({
   // show project select if releaseMeta is loaded and there are multiple projects in the release
   const showProjectSelect = releaseMeta && hasMultipleProjects;
 
+  const contentProjectId = projectIdProp || projectId;
+
   return (
     <EventDrawerContainer>
       <DrawerHeader>
@@ -304,6 +285,35 @@ export function ReleasesDrawerDetails({
                   testId="release-project-placeholder"
                 />
               ) : undefined,
+              trailingActions: showContent
+                ? {
+                    type: 'button',
+                    element: (
+                      <LinkButton
+                        size="zero"
+                        variant="transparent"
+                        icon={<IconExpand />}
+                        aria-label={t('View Full Details')}
+                        tooltipProps={{title: t('View Full Details')}}
+                        to={normalizeUrl({
+                          pathname: makeReleasesPathname({
+                            path: `/${encodeURIComponent(release)}/`,
+                            organization,
+                          }),
+                          query: {
+                            project: contentProjectId,
+                          },
+                        })}
+                        onClick={() => {
+                          trackAnalytics('releases.drawer_view_full_details', {
+                            organization: organization.id,
+                            project_id: String(contentProjectId),
+                          });
+                        }}
+                      />
+                    ),
+                  }
+                : undefined,
             }}
           />
         </ErrorBoundary>
@@ -313,7 +323,7 @@ export function ReleasesDrawerDetails({
         {showContent ? (
           <ReleasesDrawerContent
             release={release}
-            projectId={projectIdProp || projectId}
+            projectId={contentProjectId}
             project={project}
             releaseMeta={releaseMeta}
             isMetaError={isMetaError}

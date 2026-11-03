@@ -16,7 +16,6 @@ import {TagDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDrawerCon
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
-import {TagExportDropdown} from './tagExportDropdown';
 import {TagFlagPicker} from './tagFlagPicker';
 import {DrawerTab} from './types';
 
@@ -42,18 +41,7 @@ export function TagsDistributionDrawer({
 
   return (
     <Fragment>
-      {tagKey ? (
-        <EventNavigator
-          trailingItems={
-            <TagExportDropdown
-              organization={organization}
-              project={project}
-              group={group}
-              tagKey={tagKey}
-            />
-          }
-        />
-      ) : (
+      {tagKey ? null : (
         <EventNavigator
           leadingItems={
             <GroupDistributionsSearchInput
