@@ -187,11 +187,7 @@ export function EnvironmentPageFilter({
 
   // EnvironmentPageFilter will try to expand to accommodate the longest env slug.
   const defaultMenuWidth = useMemo(
-    () =>
-      getMenuWidthForLabels(
-        options.slice(0, 25).map(option => String(option.label)),
-        {minWidth: 16, maxWidth: 24, extraWidth: 6}
-      ),
+    () => getMenuWidthForLabels(options.slice(0, 25).map(option => String(option.label))),
     [options]
   );
 
