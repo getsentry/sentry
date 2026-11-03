@@ -12,19 +12,16 @@ import {IconGithub} from '@sentry/icons/github';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconGroup} from '@sentry/icons/group';
 import {IconIssues} from '@sentry/icons/issues';
-import {IconLink} from '@sentry/icons/link';
 import {IconList} from '@sentry/icons/list';
 import {IconLock} from '@sentry/icons/lock';
 import {IconOpen} from '@sentry/icons/open';
 import {IconPlay} from '@sentry/icons/play';
-import {IconRepository} from '@sentry/icons/repository';
 import {IconSearch} from '@sentry/icons/search';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {IconStar} from '@sentry/icons/star';
 import {IconSubscribed} from '@sentry/icons/subscribed';
-import {IconTerminal} from '@sentry/icons/terminal';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
@@ -109,7 +106,6 @@ import {
 } from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
-import {SETTINGS_V3_GENERAL_ICONS} from 'sentry/views/settings/settingsCommandPaletteActions';
 import {
   getSettingsScopeIcon,
   getSettingsScopeTitle,
@@ -146,20 +142,6 @@ const DSN_ICONS: React.ReactElement[] = [
   <IconSettings key="settings" />,
   <IconList key="list" />,
 ];
-
-const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
-  '/settings/:orgId/api-keys/': <IconLock />,
-  '/settings/:orgId/auth-tokens/': <IconLock />,
-  '/settings/:orgId/feature-flags/': <IconFlag />,
-  '/settings/:orgId/projects/': <IconAllProjects />,
-  '/settings/:orgId/integrations/': <IconLink />,
-  '/settings/:orgId/mcp-cli/': <IconTerminal />,
-  '/settings/:orgId/members/': <IconUser />,
-  '/settings/:orgId/repos/': <IconRepository />,
-  '/settings/:orgId/seer/': <IconSeer />,
-  '/settings/:orgId/teams/': <IconGroup />,
-  '/settings/account/notifications/': <IconSubscribed />,
-};
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
@@ -400,10 +382,6 @@ export function GlobalCommandPaletteActions() {
         : [],
     };
   }, [organization, sentryConfig.isSelfHosted, settingsV3]);
-
-  const getSettingsNavItemIcon = (path: string) =>
-    ORG_SETTINGS_ICONS[path] ??
-    (settingsV3 ? SETTINGS_V3_GENERAL_ICONS[path] : undefined);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -662,7 +640,7 @@ export function GlobalCommandPaletteActions() {
           {visibleOrgSettingsNavItems.map(item => (
             <CMDKAction
               key={item.path}
-              display={{label: item.title, icon: getSettingsNavItemIcon(item.path)}}
+              display={{label: item.title, icon: item.icon}}
               keywords={item.keywords}
               to={item.path}
             />
@@ -681,7 +659,7 @@ export function GlobalCommandPaletteActions() {
             {visibleAccountSettingsNavItems.map(item => (
               <CMDKAction
                 key={item.path}
-                display={{label: item.title, icon: getSettingsNavItemIcon(item.path)}}
+                display={{label: item.title, icon: item.icon}}
                 keywords={item.keywords}
                 to={item.path}
               />

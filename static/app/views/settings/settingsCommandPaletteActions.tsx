@@ -1,9 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
-import {IconLock} from '@sentry/icons/lock';
-import {IconMail} from '@sentry/icons/mail';
 import {IconSettings} from '@sentry/icons/settings';
-import {IconSubscribed} from '@sentry/icons/subscribed';
-import {IconUser} from '@sentry/icons/user';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
@@ -21,31 +17,6 @@ import {
 } from 'sentry/views/settings/settingsScope';
 import type {NavigationSection} from 'sentry/views/settings/types';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
-
-const ROUTE_ICONS: Record<string, ReactNode> = {
-  '/settings/account/details/': <IconUser />,
-  '/settings/account/security/': <IconLock />,
-  '/settings/account/notifications/': <IconSubscribed />,
-  '/settings/account/emails/': <IconMail />,
-  '/settings/:orgId/': <IconSettings />,
-  '/settings/:orgId/security-and-privacy/': <IconLock />,
-};
-
-/**
- * With settings-v3, the org and account index pages are both titled "General",
- * like the project one, so they share its icon to read as the same page type.
- * Shared with the global cmd+k settings actions so both lists agree.
- */
-export const SETTINGS_V3_GENERAL_ICONS: Record<string, ReactNode> = {
-  '/settings/:orgId/': <IconSettings />,
-  '/settings/account/details/': <IconSettings />,
-};
-
-function getRouteIcon(route: string, settingsV3: boolean): ReactNode {
-  return (
-    (settingsV3 ? SETTINGS_V3_GENERAL_ICONS[route] : undefined) ?? ROUTE_ICONS[route]
-  );
-}
 
 function normalizeRouteForLookup(route: string): string {
   if (route === '/settings/organization/') {
@@ -108,14 +79,20 @@ function getNavItems(sections: NavigationSection[]) {
   return sections.flatMap(section => section.items);
 }
 
-function getRouteTitleMap(settingsV3: boolean): Map<string, string> {
-  const routeTitleMap = new Map<string, string>();
+type RouteDisplay = {title: string; icon?: ReactNode};
+
+/**
+ * Title and icon of each settings page, keyed by route, taken from the
+ * settings navigation configuration.
+ */
+function getRouteDisplayMap(settingsV3: boolean): Map<string, RouteDisplay> {
+  const routeDisplayMap = new Map<string, RouteDisplay>();
 
   if (!settingsV3) {
     for (const item of getNavItems(getUserOrgNavigationConfiguration())) {
-      routeTitleMap.set(item.path, item.title);
+      routeDisplayMap.set(item.path, {title: item.title, icon: item.icon});
     }
-    return routeTitleMap;
+    return routeDisplayMap;
   }
 
   // With settings-v3, org and account pages live in separate scopes and can
@@ -138,20 +115,20 @@ function getRouteTitleMap(settingsV3: boolean): Map<string, string> {
   for (const [scope, items] of scopedItems) {
     for (const item of items) {
       const isShared = (scopesByTitle.get(item.title)?.size ?? 0) > 1;
-      routeTitleMap.set(
-        item.path,
-        isShared ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title
-      );
+      routeDisplayMap.set(item.path, {
+        title: isShared ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title,
+        icon: item.icon,
+      });
     }
   }
-  return routeTitleMap;
+  return routeDisplayMap;
 }
 
 export function getSettingsFieldSections(
   orgSlug: string,
   settingsV3: boolean
 ): SettingsFieldSection[] {
-  const routeTitleMap = getRouteTitleMap(settingsV3);
+  const routeDisplayMap = getRouteDisplayMap(settingsV3);
 
   const groups = new Map<string, Map<string, FormFieldDefinition>>();
   for (const field of Object.values(FORM_FIELD_REGISTRY)) {
@@ -173,13 +150,14 @@ export function getSettingsFieldSections(
 
   return Array.from(groups.entries())
     .map(([route, fieldMap]): SettingsFieldSection => {
-      const title = routeTitleMap.get(route) ?? titleFromRoute(route);
+      const routeDisplay = routeDisplayMap.get(route);
+      const title = routeDisplay?.title ?? titleFromRoute(route);
       const resolvedPath = resolveRoutePath(route, orgSlug);
 
       return {
         key: route,
         title,
-        icon: getRouteIcon(route, settingsV3),
+        icon: routeDisplay?.icon,
         fields: Array.from(fieldMap.values())
           .filter(
             (f): f is FormFieldDefinition & {label: string} =>
