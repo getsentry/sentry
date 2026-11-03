@@ -1,6 +1,9 @@
 import gzip
 import math
+import os
 from hashlib import sha1
+from io import BytesIO
+from tempfile import SpooledTemporaryFile
 
 import pytest
 import zstandard
@@ -18,6 +21,10 @@ from sentry.api.endpoints.chunk import (
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
+    SPOOL_MAX_MEMORY_SIZE,
+    ChunkTooLarge,
+    _spool_bounded,
+    zstd_chunk,
 )
 from sentry.api.utils import generate_locality_url
 from sentry.models.apitoken import ApiToken
@@ -476,6 +483,51 @@ class ChunkUploadTest(APITestCase):
         stored_checksums = {fb.checksum for fb in file_blobs}
         assert stored_checksums == {checksum1, checksum2}
 
+    def test_upload_compressed_chunk_larger_than_spool_memory(self) -> None:
+        data_zstd = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
+        data_gzip = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
+        checksum_zstd = sha1(data_zstd).hexdigest()
+        checksum_gzip = sha1(data_gzip).hexdigest()
+
+        response = self.client.post(
+            self.url,
+            data={
+                "file": [
+                    SimpleUploadedFile(
+                        checksum_zstd,
+                        zstandard.ZstdCompressor().compress(data_zstd),
+                        content_type="multipart/form-data",
+                    )
+                ]
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+        assert response.status_code == 200, response.content
+
+        response = self.client.post(
+            self.url,
+            data={
+                "file": [
+                    SimpleUploadedFile(
+                        checksum_gzip,
+                        gzip.compress(data_gzip),
+                        content_type="multipart/form-data",
+                    )
+                ]
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+        assert response.status_code == 200, response.content
+
+        with FileBlob.objects.get(checksum=checksum_zstd).getfile() as f:
+            assert f.read() == data_zstd
+        with FileBlob.objects.get(checksum=checksum_gzip).getfile() as f:
+            assert f.read() == data_gzip
+
     def test_upload_content_encoding_zstd_multi_frame(self) -> None:
         """Multi-frame zstd payload should decode fully (read_across_frames)."""
         part_a = b"first frame payload "
@@ -670,3 +722,29 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 400, response.content
         assert response.json() == {"error": "Invalid gzip payload"}
+
+
+def test_spool_bounded_accepts_exactly_the_limit() -> None:
+    chunk = _spool_bounded(BytesIO(b"x" * 10), limit=10, name="chunk")
+    with chunk:
+        assert chunk.size == 10
+        assert chunk.name == "chunk"
+        assert chunk.read() == b"x" * 10
+
+
+def test_spool_bounded_rejects_more_than_the_limit() -> None:
+    with pytest.raises(ChunkTooLarge):
+        _spool_bounded(BytesIO(b"x" * 11), limit=10, name="chunk")
+
+
+def test_large_decompressed_chunk_is_spooled_to_disk() -> None:
+    data = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
+    upload = SimpleUploadedFile("chunk", zstandard.ZstdCompressor().compress(data))
+
+    chunk = zstd_chunk(upload)
+    with chunk:
+        assert isinstance(chunk.file, SpooledTemporaryFile)
+        # A spooled file only has a name once it has rolled over to disk.
+        assert chunk.file.name is not None
+        assert chunk.size == len(data)
+        assert chunk.read() == data
