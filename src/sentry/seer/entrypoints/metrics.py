@@ -71,7 +71,7 @@ class SlackEntrypointInteractionType(StrEnum):
 @dataclass
 class SlackEntrypointEventLifecycleMetric(EventLifecycleMetric):
     interaction_type: SlackEntrypointInteractionType
-    integration_id: int
+    integration_id: int | None
     organization_id: int
 
     def get_extras(self) -> Mapping[str, Any]:
