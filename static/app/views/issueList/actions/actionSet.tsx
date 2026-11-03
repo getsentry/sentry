@@ -17,6 +17,7 @@ import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
@@ -158,6 +159,29 @@ export function ActionSet({
 
   const nestReview = !FOR_REVIEW_QUERIES.includes(query);
 
+  // Only issues loaded on the current page are available to copy
+  const copyDisabledReason = allInQuerySelected
+    ? t('Only available for issues selected on this page')
+    : undefined;
+
+  const handleCopy = (copyType: 'short_ids' | 'links') => {
+    const text = selectedIssues
+      .map(issue => (copyType === 'short_ids' ? issue.shortId : issue.permalink))
+      .join('\n');
+    copyToClipboard(text, {
+      successMessage:
+        copyType === 'short_ids'
+          ? t('Copied %s issue IDs to clipboard', selectedIssues.length)
+          : t('Copied %s issue links to clipboard', selectedIssues.length),
+    });
+    trackAnalytics('issues_stream.copied', {
+      organization,
+      area,
+      copy_type: copyType,
+      count: selectedIssues.length,
+    });
+  };
+
   const handleMergeClick = () => {
     openConfirmModal({
       bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -218,6 +242,20 @@ export function ActionSet({
           confirmText: label('unresolve'),
         });
       },
+    },
+    {
+      key: 'copy-short-ids',
+      label: t('Copy Issue IDs'),
+      disabled: allInQuerySelected,
+      details: copyDisabledReason,
+      onAction: () => handleCopy('short_ids'),
+    },
+    {
+      key: 'copy-links',
+      label: t('Copy Issue Links'),
+      disabled: allInQuerySelected,
+      details: copyDisabledReason,
+      onAction: () => handleCopy('links'),
     },
     {
       key: 'delete',
