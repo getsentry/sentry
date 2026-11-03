@@ -22,6 +22,9 @@ class MemberPermission(OrganizationPermission):
         "PUT": ["member:read", "member:write", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
     type = serializers.ChoiceField(choices=[query_type.value for query_type in SavedQueryType])

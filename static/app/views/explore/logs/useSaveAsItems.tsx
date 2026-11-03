@@ -34,10 +34,14 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useQueryParamsId} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsHasTransformations,
+  useQueryParamsId,
+} from 'sentry/views/explore/queryParams/context';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {isLogsEnabled} from './isLogsEnabled';
@@ -65,6 +69,7 @@ export function useSaveAsItems({
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useLogsSaveQuery();
   const id = useQueryParamsId();
+  const hasTransformations = useQueryParamsHasTransformations();
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const project =
@@ -153,8 +158,20 @@ export function useSaveAsItems({
       };
     });
 
-    return getSaveAsAlertMenuItem({alertsUrls, submenu: true});
-  }, [aggregates, interval, organization, pageFilters, project, search]);
+    return getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    });
+  }, [
+    aggregates,
+    interval,
+    organization,
+    pageFilters,
+    project,
+    search,
+    hasTransformations,
+  ]);
 
   const saveAsDashboard = useMemo(() => {
     const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
@@ -208,6 +225,9 @@ export function useSaveAsItems({
             yAxis: eventView.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
+            transformations: visualize
+              ? visualizesToWidgetTransformations([visualize])
+              : undefined,
           });
         },
       };

@@ -13,8 +13,13 @@ from sentry.testutils.silo import control_silo_test
 class TestValidator(TestCase):
     def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
-        self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.install.sentry_app.proxy_user
+        application = self.install.sentry_app.application
+        assert application is not None
+        user = self.install.sentry_app.proxy_user
+        assert user is not None
+        self.application = application
+        self.client_id = application.client_id
+        self.user = user
         self.validator = Validator(
             install=self.install,
             client_id=self.client_id,
@@ -68,7 +73,7 @@ class TestValidator(TestCase):
         with pytest.raises(SentryAppSentryError) as e:
             self.validator.run()
         assert e.value.message == "Integration does not exist"
-        assert e.value.webhook_context == {"application_id": self.install.sentry_app.application.id}
+        assert e.value.webhook_context == {"application_id": self.application.id}
         assert e.value.public_context == {}
 
     def test_raises_with_invalid_client_id(self) -> None:
@@ -83,15 +88,15 @@ class TestValidator(TestCase):
     def test_raises_when_application_is_inactive(self) -> None:
         from sentry.models.apiapplication import ApiApplicationStatus
 
-        self.install.sentry_app.application.status = ApiApplicationStatus.inactive
-        self.install.sentry_app.application.save()
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
 
         with pytest.raises(SentryAppIntegratorError) as e:
             self.validator.run()
         assert e.value.message == "Application is not active"
         assert e.value.status_code == 401
         assert e.value.webhook_context == {
-            "application_id": self.install.sentry_app.application.id,
+            "application_id": self.application.id,
             "client_id": self.client_id[:4],
         }
         assert e.value.public_context == {}

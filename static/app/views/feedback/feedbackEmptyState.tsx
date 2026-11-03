@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
@@ -12,8 +13,7 @@ import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useF
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -26,7 +26,6 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
-  const location = useLocation();
 
   const selectedProjects = projectIds?.length
     ? projects.filter(({id}) => projectIds.includes(id))
@@ -35,14 +34,10 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
-  const navigate = useNavigate();
+  const [, setProject] = useQueryState('project', pageFilterParsers.project);
   const setProjId = useCallback(() => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, project: projectIds?.[0]},
-      hash: location.hash,
-    });
-  }, [location.hash, location.query, location.pathname, projectIds, navigate]);
+    setProject(projectIds?.[0] ? [projectIds[0]] : null, {history: 'push'});
+  }, [projectIds, setProject]);
 
   useEffect(() => {
     if (issueTab) {

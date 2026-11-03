@@ -51,7 +51,7 @@
 
     <div class="rule">
       <div class="container">
-        {% with rule_details=rules_details|get_item:rule.link_id %}
+        {% with rule_details=rules_details|get_item:rule.workflow_id %}
             This email was triggered by <a href="{% absolute_uri rule_details.status_url %}">{{ rule_details.label }}</a>
         {% endwith %}
       </div>
@@ -69,7 +69,7 @@
                       <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
                   </td>
                   <td class="event-detail">
-                      {% include "sentry/emails/_group.html" with rule_id=rule.link_id %}
+                      {% include "sentry/emails/_group.html" with rule_id=rule.workflow_id %}
                       <div>
                         <small>
                           {% if clock_24_hours %}

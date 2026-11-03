@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping
-from typing import Any
+from collections.abc import Callable, Iterator, Mapping, MutableMapping
+from copy import copy as shallow_copy
+from typing import Any, cast
 
 from django.utils.functional import cached_property
 
@@ -27,7 +28,14 @@ class NodeData(MutableMapping[str, Any]):
     data={...} means, this is an object that should be saved to nodestore.
     """
 
-    def __init__(self, id, data=None, wrapper=None, ref_version=None, ref_func=None):
+    def __init__(
+        self,
+        id: str,
+        data: Mapping[str, Any] | None = None,
+        wrapper: Callable[[Mapping[str, Any]], MutableMapping[str, Any]] | None = None,
+        ref_version: int | None = None,
+        ref_func: Callable[[Any], object] | None = None,
+    ) -> None:
         self.id = id
         self.ref = None
         # ref version is used to discredit a previous ref
@@ -38,28 +46,30 @@ class NodeData(MutableMapping[str, Any]):
         self.wrapper = wrapper
         if data is not None and self.wrapper is not None:
             data = self.wrapper(data)
-        self._node_data = data
+        self._node_data: MutableMapping[str, Any] | None = (
+            cast("MutableMapping[str, Any]", data) if data is not None else None
+        )
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, object]:
         data = dict(self.__dict__)
         data.pop("data", None)
         # downgrade this into a normal dict in case it's a shim dict.
         data["_node_data"] = dict(data["_node_data"].items())
         return data
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, object]) -> None:
         self.__dict__ = state
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self.data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         self.data[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self.data[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.data)
 
     def __len__(self) -> int:
@@ -71,16 +81,16 @@ class NodeData(MutableMapping[str, Any]):
             return f"<{cls_name}: id={self.id} data={self._node_data!r}>"
         return f"<{cls_name}: id={self.id}>"
 
-    def get_ref(self, instance):
+    def get_ref(self, instance: Any) -> object | None:
         if not self.ref_func:
-            return
+            return None
         return self.ref_func(instance)
 
-    def copy(self):
-        return self.data.copy()
+    def copy(self) -> MutableMapping[str, Any]:
+        return shallow_copy(self.data)
 
     @cached_property
-    def data(self):
+    def data(self) -> MutableMapping[str, Any]:
         """
         Get the current data object, fetching from nodestore if necessary.
         """
@@ -90,14 +100,14 @@ class NodeData(MutableMapping[str, Any]):
 
         elif self.id:
             self.bind_data(nodestore.backend.get(self.id) or {})
-            return self._node_data
+            return cast("MutableMapping[str, Any]", self._node_data)
 
-        rv: dict[str, Any] = {}
+        rv: MutableMapping[str, Any] = {}
         if self.wrapper is not None:
             rv = self.wrapper(rv)
         return rv
 
-    def bind_data(self, data, ref=None):
+    def bind_data(self, data: MutableMapping[str, Any], ref: object | None = None) -> None:
         self.ref = data.pop("_ref", ref)
         ref_version = data.pop("_ref_version", None)
         if ref_version == self.ref_version and ref is not None and self.ref != ref:
@@ -108,13 +118,13 @@ class NodeData(MutableMapping[str, Any]):
             data = self.wrapper(data)
         self._node_data = data
 
-    def bind_ref(self, instance):
+    def bind_ref(self, instance: Any) -> None:
         ref = self.get_ref(instance)
         if ref:
             self.data["_ref"] = ref
             self.data["_ref_version"] = self.ref_version
 
-    def save(self, subkeys=None):
+    def save(self, subkeys: dict[str | None, Mapping[str, Any]] | None = None) -> None:
         """
         Write current data back to nodestore.
 
@@ -126,7 +136,7 @@ class NodeData(MutableMapping[str, Any]):
         # We never loaded any data for reading or writing, so there
         # is nothing to save.
         if self._node_data is None:
-            return
+            return None
 
         # We can't put our wrappers into the nodestore, so we need to
         # ensure that the data is converted into a plain old dict

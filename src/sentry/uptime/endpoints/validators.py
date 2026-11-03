@@ -1,12 +1,14 @@
 import logging
 from collections.abc import Sequence
-from typing import Any, override
+from typing import Any, cast, override
 
 import jsonschema
+from django.contrib.auth.models import AnonymousUser
 from django.db import router
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
+from rest_framework.request import Request
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_SUCCESS,
@@ -18,6 +20,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.uptime import checker_api
 from sentry.uptime.models import (
     UptimeSubscription,
@@ -42,7 +45,9 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import CheckConfig, UptimeMonitorMode
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -89,8 +94,8 @@ HEADERS_LIST_SCHEMA = {
 
 
 def compute_http_request_size(
-    method: str, url: str, headers: Sequence[tuple[str, str]], body: str | None
-):
+    method: str, url: str, headers: Sequence[Sequence[str]], body: str | None
+) -> int:
     request_line_size = len(f"{method} {url} HTTP/1.1\r\n")
     headers_size = sum(
         len(key) + len(value.encode("utf-8")) + len("\r\n") for key, value in headers
@@ -101,7 +106,7 @@ def compute_http_request_size(
     return request_line_size + headers_size + body_size
 
 
-def _validate_url(url):
+def _validate_url(url: str) -> str:
     try:
         check_url_limits(url)
     except MaxUrlsForDomainReachedException as e:
@@ -112,7 +117,7 @@ def _validate_url(url):
     return url
 
 
-def _validate_headers(headers):
+def _validate_headers(headers: object) -> object:
     try:
         jsonschema.validate(headers, HEADERS_LIST_SCHEMA)
         return headers
@@ -120,11 +125,11 @@ def _validate_headers(headers):
         raise serializers.ValidationError("Expected array of header tuples.")
 
 
-def _validate_monitor_status(value):
+def _validate_monitor_status(value: str) -> int:
     return MONITOR_STATUSES.get(value, ObjectStatus.ACTIVE)
 
 
-def _validate_mode(mode, request_context):
+def _validate_mode(mode: int, request_context: Request) -> UptimeMonitorMode:
     if not is_active_superuser(request_context):
         raise serializers.ValidationError("Only superusers can modify `mode`")
     try:
@@ -135,7 +140,9 @@ def _validate_mode(mode, request_context):
         )
 
 
-def _validate_request_size(method, url, headers, body):
+def _validate_request_size(
+    method: str, url: str, headers: Sequence[Sequence[str]], body: str | None
+) -> None:
     request_size = compute_http_request_size(
         method,
         url,
@@ -149,8 +156,11 @@ def _validate_request_size(method, url, headers, body):
 
 
 def _validate_check_config(
-    attrs, uptime_subscription: UptimeSubscription | None, organization, user
-):
+    attrs: dict[str, Any],
+    uptime_subscription: UptimeSubscription | None,
+    organization: Organization,
+    user: User | RpcUser | AnonymousUser | None,
+) -> None:
     validated_data = attrs
     if uptime_subscription is not None:
         validated_data = {}
@@ -172,13 +182,15 @@ def _validate_check_config(
 
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
-    check_config = checker_api.create_preview_check(validated_data, region)
+    check_config = checker_api.create_preview_check(
+        cast(checker_api._PreviewCheckData, validated_data), region
+    )
     result = checker_api.invoke_checker_validator(check_config, region)
     if result is not None and result.status_code >= 400:
         raise serializers.ValidationError({"assertion": result.json()})
 
 
-class UptimeValidatorBase(CamelSnakeSerializer):
+class UptimeValidatorBase(CamelSnakeSerializer[Any]):
     url = URLField(required=True, max_length=255)
     timeout_ms = serializers.IntegerField(
         required=True,
@@ -210,7 +222,10 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    def validate(self, attrs):
+    def validate(
+        self,
+        attrs: dict[str, Any],
+    ) -> dict[str, Any]:
         _validate_request_size(
             attrs.get("method", "GET"),
             attrs.get("url", ""),
@@ -224,16 +239,21 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
         _validate_check_config(attrs, None, self.context["organization"], user)
         return attrs
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def create(self, validated_data):
+    def create(
+        self,
+        validated_data: dict[str, Any],
+    ) -> CheckConfig:
         region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
-        return checker_api.create_preview_check(validated_data, region_config)
+        return checker_api.create_preview_check(
+            cast(checker_api._PreviewCheckData, validated_data), region_config
+        )
 
 
 @extend_schema_serializer()
@@ -288,7 +308,10 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def validate(self, attrs):
+    def validate(
+        self,
+        attrs: dict[str, Any],
+    ) -> dict[str, Any]:
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
@@ -326,19 +349,22 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return attrs
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def validate_status(self, value):
+    def validate_status(self, value: str) -> int:
         return _validate_monitor_status(value)
 
-    def validate_mode(self, mode):
+    def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def create(self, validated_data):
+    def create(
+        self,
+        validated_data: dict[str, Any],
+    ) -> Detector:
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
@@ -357,7 +383,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             interval_seconds=validated_data["interval_seconds"],
             timeout_ms=validated_data["timeout_ms"],
             name=validated_data["name"],
-            status=validated_data.get("status"),
+            status=cast(int, validated_data.get("status")),
             mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
             owner=validated_data.get("owner"),
             trace_sampling=validated_data.get("trace_sampling", False),
@@ -378,7 +404,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return detector
 
-    def update(self, instance: Detector, data):
+    def update(
+        self,
+        instance: Detector,
+        data: dict[str, Any],
+    ) -> Detector:
         uptime_subscription = get_uptime_subscription(instance)
 
         url = data["url"] if "url" in data else uptime_subscription.url
@@ -529,16 +559,19 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
             "assertion",
         ]
 
-    def validate_url(self, url):
+    def validate_url(self, url: str) -> str:
         return _validate_url(url)
 
-    def validate_headers(self, headers):
+    def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def validate_mode(self, mode):
+    def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def validate(self, attrs: dict[str, Any]):
+    def validate(
+        self,
+        attrs: dict[str, Any],
+    ) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
         headers = []
@@ -581,7 +614,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         return uptime_subscription
 
 
-class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
+class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer[dict[str, Any]]):
     """
     Validator for the uptime detector config field.
     """
@@ -606,7 +639,11 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
-    def bind(self, field_name, parent):
+    def bind(
+        self,
+        field_name: str,
+        parent: serializers.BaseSerializer[Any],
+    ) -> None:
         super().bind(field_name, parent)
         if not parent:
             return
@@ -763,7 +800,11 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def update_data_source(self, instance: Detector, data_source: dict[str, Any]):
+    def update_data_source(
+        self,
+        instance: Detector,
+        data_source: dict[str, Any],
+    ) -> Detector:
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
             detector=instance,

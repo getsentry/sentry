@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {
   getFieldsForConstructedQuery,
@@ -8,6 +8,7 @@ import {
   encodeCompareCaseInsensitive,
   normalizeCompareQueryParts,
   useReadQueriesFromLocation,
+  useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -108,16 +109,31 @@ describe('normalizeCompareQueryParts', () => {
 });
 
 describe('useReadQueriesFromLocation', () => {
-  function readCaseInsensitive(queries: Array<Record<string, unknown>>) {
+  const pathname = '/organizations/org-slug/explore/traces/compare/';
+
+  const defaultQuery = {
+    yAxes: ['count(span.duration)'],
+    sortBys: [{kind: 'desc', field: 'timestamp'}],
+    fields: ['id', 'span.duration', 'timestamp'],
+    groupBys: [],
+    query: '',
+  };
+
+  function readQueries(queries: string[]) {
     const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/compare/',
-          query: {queries: queries.map(query => JSON.stringify(query))},
-        },
-      },
+      initialRouterConfig: {location: {pathname, query: {queries}}},
     });
-    return result.current.map(query => query.caseInsensitive);
+    return result.current;
+  }
+
+  function readQuery(query: Record<string, unknown>) {
+    return readQueries([JSON.stringify(query)])[0];
+  }
+
+  function readCaseInsensitive(queries: Array<Record<string, unknown>>) {
+    return readQueries(queries.map(query => JSON.stringify(query))).map(
+      query => query.caseInsensitive
+    );
   }
 
   it('keeps an explicit compare query setting', () => {
@@ -135,6 +151,164 @@ describe('useReadQueriesFromLocation', () => {
         {yAxes: ['count(span.duration)'], query: '', caseInsensitive: false},
       ])
     ).toEqual(['0']);
+  });
+
+  it('reads a query when it has a single string sort', () => {
+    const query = readQuery({
+      chartType: ChartType.AREA,
+      fields: ['id', 'timestamp'],
+      groupBys: ['span.op', ''],
+      query: 'span.op:db',
+      sortBys: 'span.op',
+      yAxes: ['count()'],
+      caseInsensitive: '1',
+    });
+
+    expect(query).toEqual({
+      chartType: ChartType.AREA,
+      fields: ['id', 'timestamp'],
+      groupBys: ['span.op', ''],
+      query: 'span.op:db',
+      sortBys: [{kind: 'asc', field: 'span.op'}],
+      yAxes: ['count()'],
+      caseInsensitive: '1',
+    });
+  });
+
+  it.each([
+    ['is not JSON', '{"yAxes":'],
+    ['is blank', ''],
+    ['is null', 'null'],
+    ['is an array', '[{"yAxes":["count()"]}]'],
+    ['has no y axes', '{"query":"span.op:db"}'],
+    ['has y axes that are not an array', '{"yAxes":"count()"}'],
+    ['has a y axis that is not a string', '{"yAxes":["count()",1]}'],
+    ['has no y axis that is a function', '{"yAxes":["span.duration"]}'],
+  ])('reads the default query when the param %s', (_, raw) => {
+    expect(readQueries([raw, '{"yAxes":["p50(span.duration)"]}'])).toEqual([
+      defaultQuery,
+      expect.objectContaining({yAxes: ['p50(span.duration)']}),
+    ]);
+  });
+
+  it('keeps y axes that are not functions when another y axis is', () => {
+    expect(readQuery({yAxes: ['span.duration', 'count()']})?.yAxes).toEqual([
+      'span.duration',
+      'count()',
+    ]);
+  });
+
+  it.each([
+    ['caseInsensitive is true', {caseInsensitive: true}, {}],
+    ['caseInsensitive is 1', {caseInsensitive: 1}, {}],
+    ['caseInsensitive is null', {caseInsensitive: null}, {}],
+    ['chartType is a string number', {chartType: '2'}, {chartType: ChartType.AREA}],
+    ['chartType is null', {chartType: null}, {chartType: ChartType.BAR}],
+    ['chartType is out of range', {chartType: 4}, {}],
+    ['chartType is an enum name', {chartType: 'LINE'}, {}],
+    ['chartType is an object', {chartType: {}}, {}],
+    ['fields is malformed', {fields: 5}, {}],
+    ['fields is stale', {fields: ['id', 'span.op']}, {}],
+    ['an unknown key is present', {visualize: [{yAxes: ['count()']}]}, {}],
+    ['groupBys is null', {groupBys: null}, {}],
+    ['groupBys is a string', {groupBys: 'span.op'}, {}],
+    ['groupBys is a number', {groupBys: 5}, {}],
+    ['groupBys is an object', {groupBys: {}}, {}],
+    ['query is null', {query: null}, {}],
+    ['query is a number', {query: 5}, {}],
+    ['query is a boolean', {query: true}, {}],
+    ['query is an object', {query: {}}, {}],
+    ['sortBys is a number', {sortBys: 5}, {}],
+    ['sortBys is a boolean', {sortBys: true}, {}],
+    ['sortBys is an object', {sortBys: {}}, {}],
+  ])('reads the rest of the query when %s', (_, stored, expected) => {
+    const query = readQuery({yAxes: ['p50(span.duration)'], ...stored});
+
+    expect(query).toEqual({
+      caseInsensitive: undefined,
+      chartType: undefined,
+      fields: ['id', 'span.duration', 'timestamp'],
+      groupBys: [],
+      query: '',
+      sortBys: [{kind: 'desc', field: 'timestamp'}],
+      yAxes: ['p50(span.duration)'],
+      ...expected,
+    });
+  });
+
+  it('reads group bys that are not strings as blank group bys', () => {
+    const query = readQuery({
+      yAxes: ['p50(span.duration)'],
+      groupBys: [null, 'span.op', 1],
+    });
+
+    expect(query).toEqual(
+      expect.objectContaining({
+        groupBys: ['', 'span.op', ''],
+        yAxes: ['p50(span.duration)'],
+      })
+    );
+  });
+
+  it('merges an _if filter into the query when the stored query is not a string', () => {
+    const query = readQuery({yAxes: ['avg_if(`span.op:db`,span.duration)'], query: 5});
+
+    expect(query).toEqual(
+      expect.objectContaining({query: 'span.op:db', yAxes: ['avg(span.duration)']})
+    );
+  });
+
+  it('skips sorts that are not strings', () => {
+    const query = readQuery({
+      yAxes: ['p50(span.duration)'],
+      groupBys: ['span.op'],
+      sortBys: [null, 1, [], '', 'span.op'],
+    });
+
+    expect(query).toEqual(
+      expect.objectContaining({
+        sortBys: [{kind: 'asc', field: 'span.op'}],
+        yAxes: ['p50(span.duration)'],
+      })
+    );
+  });
+
+  it('writes a query that reads back the same when one is updated', () => {
+    const stored = {
+      chartType: ChartType.LINE,
+      caseInsensitive: false,
+      fields: ['id', 'span.duration', 'timestamp'],
+      groupBys: ['span.op'],
+      query: 'span.op:db',
+      sortBys: ['-count(span.duration)'],
+      yAxes: ['count(span.duration)'],
+    };
+    const {result, router} = renderHookWithProviders(
+      () => ({
+        queries: useReadQueriesFromLocation(),
+        updateQuery: useUpdateQueryAtIndex(0),
+      }),
+      {
+        initialRouterConfig: {
+          location: {pathname, query: {queries: [JSON.stringify(stored), '']}},
+        },
+      }
+    );
+    const before = result.current.queries;
+
+    act(() => result.current.updateQuery({}));
+
+    expect(router.location.query.queries).toEqual([
+      JSON.stringify(stored),
+      JSON.stringify({
+        fields: ['id', 'span.duration', 'timestamp'],
+        groupBys: [],
+        query: '',
+        sortBys: ['-timestamp'],
+        yAxes: ['count(span.duration)'],
+      }),
+    ]);
+    expect(result.current.queries).toEqual(before);
   });
 });
 

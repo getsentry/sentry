@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.http.response import HttpResponse
@@ -25,7 +27,7 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 from sentry.users.models.identity import Identity
 
 
-def naive_build_integration(data):
+def naive_build_integration(data: Any) -> Any:
     return data
 
 
@@ -39,14 +41,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
     external_id = "dummy_id-123"
 
     @pytest.fixture(autouse=True)
-    def _modify_provider(self):
+    def _modify_provider(self) -> Generator[None]:
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
         ):
             yield
 
-    def test_with_data(self, *args) -> None:
+    def test_with_data(self, *args: Any) -> None:
         data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -68,7 +70,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_with_customer_domain(self, *args) -> None:
+    def test_with_customer_domain(self, *args: Any) -> None:
         with self.feature({"system:multi-region": True}):
             data = {
                 "external_id": self.external_id,
@@ -94,7 +96,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
                 organization_id=self.organization.id, integration_id=integration.id
             ).exists()
 
-    def test_aliased_integration_key(self, *args) -> None:
+    def test_aliased_integration_key(self, *args: Any) -> None:
         self.provider = AliasedIntegrationProvider
         self.setUp()
 
@@ -113,7 +115,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             provider=self.provider.integration_key, external_id=self.external_id
         ).exists()
 
-    def test_with_expect_exists(self, *args) -> None:
+    def test_with_expect_exists(self, *args: Any) -> None:
         old_integration = self.create_provider_integration(
             provider=self.provider.key, external_id=self.external_id, name="Tester"
         )
@@ -129,7 +131,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_expect_exists_does_not_update(self, *args) -> None:
+    def test_expect_exists_does_not_update(self, *args: Any) -> None:
         old_integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
@@ -154,7 +156,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_with_default_id(self, *args) -> None:
+    def test_with_default_id(self, *args: Any) -> None:
         self.provider.needs_default_identity = True
         data = {
             "external_id": self.external_id,
@@ -187,7 +189,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert Identity.objects.filter(id=org_integration.default_auth_id).exists()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_default_identity_does_update(self, mock_record, *args) -> None:
+    def test_default_identity_does_update(self, mock_record: MagicMock, *args: Any) -> None:
         self.provider.needs_default_identity = True
         old_identity_id = 234567
         integration = self.create_provider_integration(
@@ -236,7 +238,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
 
-    def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args) -> None:
+    def test_existing_identity_becomes_default_auth_on_new_orgintegration(self, *args: Any) -> None:
         # The reinstall flow will result in an existing identity provider, identity
         # and integration records. Ensure that the new organizationintegration gets
         # a default_auth_id set.
@@ -276,7 +278,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         )
         assert org_integration.default_auth_id == identity.id
 
-    def test_new_external_id_same_user(self, *args) -> None:
+    def test_new_external_id_same_user(self, *args: Any) -> None:
         # we need to make sure any other org_integrations have the same
         # identity that we use for the new one
         self.provider.needs_default_identity = True
@@ -317,7 +319,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         for org_integration in org_integrations:
             assert org_integration.default_auth_id == identity.id
 
-    def test_different_user_same_external_id_no_default_needed(self, *args) -> None:
+    def test_different_user_same_external_id_no_default_needed(self, *args: Any) -> None:
         new_user = self.create_user()
         integration = self.create_provider_integration(
             provider=self.provider.key,
@@ -348,7 +350,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     @patch("sentry.integrations.pipeline.logger")
-    def test_disallow_with_no_permission(self, mock_logger, *args) -> None:
+    def test_disallow_with_no_permission(self, mock_logger: MagicMock, *args: Any) -> None:
         member_user = self.create_user()
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user)
@@ -391,7 +393,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         }
         mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
 
-    def test_allow_with_superuser(self, *args) -> None:
+    def test_allow_with_superuser(self, *args: Any) -> None:
         member_user = self.create_user(is_superuser=True)
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
@@ -421,7 +423,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @override_options({"superuser.read-write.ga-rollout": True})
-    def test_allow_with_superuser_su_split(self, *args) -> None:
+    def test_allow_with_superuser_su_split(self, *args: Any) -> None:
         member_user = self.create_user(is_superuser=True)
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user, superuser=True)
@@ -452,7 +454,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.pipeline.logger")
-    def test_disallow_with_removed_membership(self, mock_logger, mock_record, *args) -> None:
+    def test_disallow_with_removed_membership(
+        self, mock_logger: MagicMock, mock_record: MagicMock, *args: Any
+    ) -> None:
         member_user = self.create_user()
         om = self.create_member(user=member_user, organization=self.organization, role="manager")
         self.login_as(member_user)
@@ -518,14 +522,14 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
     external_id = "dummy_id-123"
 
     @pytest.fixture(autouse=True)
-    def _modify_provider(self):
+    def _modify_provider(self) -> Generator[None]:
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
         ):
             yield
 
-    def test_api_finish_pipeline_success(self, *args) -> None:
+    def test_api_finish_pipeline_success(self, *args: Any) -> None:
         data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -545,7 +549,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
 
-    def test_api_finish_pipeline_disallow_with_no_permission(self, *args) -> None:
+    def test_api_finish_pipeline_disallow_with_no_permission(self, *args: Any) -> None:
         member_user = self.create_user()
         self.create_member(user=member_user, organization=self.organization, role="member")
         self.login_as(member_user)
@@ -577,7 +581,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             == "You must be an organization owner, manager or admin to install this integration."
         )
 
-    def test_api_finish_pipeline_disallow_with_removed_membership(self, *args) -> None:
+    def test_api_finish_pipeline_disallow_with_removed_membership(self, *args: Any) -> None:
         member_user = self.create_user()
         om = self.create_member(user=member_user, organization=self.organization, role="manager")
         self.login_as(member_user)
@@ -611,7 +615,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             == "You must be an organization owner, manager or admin to install this integration."
         )
 
-    def test_api_finish_pipeline_disallow_with_no_org_context(self, *args) -> None:
+    def test_api_finish_pipeline_disallow_with_no_org_context(self, *args: Any) -> None:
         data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -631,7 +635,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
             == "You must be an organization owner, manager or admin to install this integration."
         )
 
-    def test_api_finish_pipeline_identity_conflict(self, *args) -> None:
+    def test_api_finish_pipeline_identity_conflict(self, *args: Any) -> None:
         self.provider.needs_default_identity = True
         new_user = self.create_user()
         integration = self.create_provider_integration(
@@ -665,7 +669,7 @@ class ApiFinishPipelineTestCase(IntegrationTestCase):
         )
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id).exists()
 
-    def test_api_finish_pipeline_add_organization_integrity_error(self, *args) -> None:
+    def test_api_finish_pipeline_add_organization_integrity_error(self, *args: Any) -> None:
         data = {
             "external_id": self.external_id,
             "name": "Name",
@@ -689,7 +693,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     external_id = "dummy_id-123"
 
-    def test_install_schedules_repo_sync_and_webhook_update(self, *args) -> None:
+    def test_install_schedules_repo_sync_and_webhook_update(self, *args: Any) -> None:
         self.pipeline.state.data = {
             "external_id": self.external_id,
             "name": "GitLab",
@@ -721,7 +725,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         )
         sync.assert_called_once_with(organization_integration_id=org_integration.id)
 
-    def test_failed_install_does_not_schedule_repo_sync_or_webhook_update(self, *args) -> None:
+    def test_failed_install_does_not_schedule_repo_sync_or_webhook_update(self, *args: Any) -> None:
         with (
             patch.object(
                 self.pipeline, "_install_integration", side_effect=IntegrationError("Deleting")
@@ -738,7 +742,7 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         schedule.assert_not_called()
         sync.assert_not_called()
 
-    def test_different_user_same_external_id(self, *args) -> None:
+    def test_different_user_same_external_id(self, *args: Any) -> None:
         new_user = self.create_user()
         self.setUp()
         integration = self.create_provider_integration(

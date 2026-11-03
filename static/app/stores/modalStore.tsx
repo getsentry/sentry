@@ -6,6 +6,7 @@ import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 export type ModalRenderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
 type State = {
+  modalId: number;
   options: ModalOptions;
   renderer: ModalRenderer | null;
   triggerElement: HTMLElement | null;
@@ -13,6 +14,7 @@ type State = {
 };
 
 const store = createStore<State>()(() => ({
+  modalId: 0,
   renderer: null,
   options: {},
   triggerElement: null,
@@ -36,7 +38,12 @@ export const ModalStore = {
   openModal(renderer: ModalRenderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    store.setState({renderer, options, triggerElement});
+    store.setState(state => ({
+      modalId: state.modalId + 1,
+      renderer,
+      options,
+      triggerElement,
+    }));
   },
 
   setFocusTrap(focusTrap: FocusTrap) {

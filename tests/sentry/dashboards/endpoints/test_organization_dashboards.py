@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -53,7 +55,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             interval="1d",
         )
 
-    def assert_equal_dashboards(self, dashboard, data):
+    def assert_equal_dashboards(self, dashboard: Dashboard, data: Mapping[str, Any]) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -1239,7 +1241,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -1591,7 +1593,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -2192,7 +2194,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert starred_dashboard["projects"] == []
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit: MagicMock) -> None:
         mock_get_dashboard_limit.return_value = 1
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 400
@@ -2203,7 +2205,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_not_bypassed_by_burst_creates(
+        self, mock_get_dashboard_limit: MagicMock
+    ) -> None:
         Dashboard.objects.all().delete()
         mock_get_dashboard_limit.return_value = 2
 
@@ -2225,7 +2229,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_does_not_count_prebuilt_dashboards(
-        self, mock_get_dashboard_limit
+        self, mock_get_dashboard_limit: MagicMock
     ) -> None:
         mock_get_dashboard_limit.return_value = 2
 
@@ -2941,7 +2945,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_succeeds_for_user_without_team_membership(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
         assert self.project  # lazy fixture; the org needs a project
@@ -2961,7 +2965,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Creation must work too, not just validation."""
         org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
@@ -2981,7 +2985,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         org = self.create_organization(owner=self.user, flags=1)
         team = self.create_team(organization=org)
@@ -3008,7 +3012,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_errors_when_no_project_is_accessible(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project."""
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
@@ -3033,7 +3037,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_does_not_error_for_organization_without_projects(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
         empty_org = self.create_organization(owner=self.user)
@@ -3161,6 +3165,71 @@ class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Old Title"
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCase):
+    """With granular scopes, dashboard endpoints require dashboard:* instead of org:read."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"auth.deprecated-scope-translation.enabled": True}))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_org_read_accepted_when_translation_disabled(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    def test_member_session_has_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
 
 
 @with_feature(

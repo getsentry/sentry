@@ -6,7 +6,7 @@ outcome.
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import parse_pull_request_url
@@ -121,10 +121,13 @@ def sync_coding_agent_status(
             handoff.status = status.value
             update_fields = ["status", "date_updated"]
             if agent_url is not None:
-                extras: SeerRunCodingAgentHandoffExtras = {
-                    **handoff.extras,
-                    "agent_url": agent_url,
-                }
+                extras = cast(
+                    "SeerRunCodingAgentHandoffExtras",
+                    {
+                        **handoff.extras,
+                        "agent_url": agent_url,
+                    },
+                )
                 handoff.extras = extras
                 update_fields.append("extras")
             handoff.save(update_fields=update_fields)

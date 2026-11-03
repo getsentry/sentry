@@ -26,7 +26,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -81,7 +80,7 @@ export function AddCodeOwnerModal({
       <Fragment>
         <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
-          <LinkCodeOwners organization={organization} />
+          <LinkCodeOwners organization={organization} project={project} />
         </Body>
       </Fragment>
     );
@@ -260,9 +259,13 @@ function CodeownersFileStatus({
   );
 }
 
-function LinkCodeOwners({organization}: {organization: Organization}) {
-  const baseUrl = `/settings/${organization.slug}/integrations/`;
-
+function LinkCodeOwners({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
   const {
     data: integrations,
     isPending,
@@ -287,30 +290,33 @@ function LinkCodeOwners({organization}: {organization: Organization}) {
       <Fragment>
         <Text as="p">
           {t(
-            "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
+            'Add a code mapping for this project to apply your CODEOWNERS file. Code mappings are managed from Connected Repositories in project settings.'
           )}
         </Text>
-        <Stack gap="md" align="center" paddingTop="xl">
-          {integrations.map(integration => (
-            <LinkButton
-              key={integration.id}
-              to={`${baseUrl}${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
-              icon={getIntegrationIcon(integration.provider.key)}
-            >
-              {integration.name}
-            </LinkButton>
-          ))}
-        </Stack>
+        <Flex justify="center" paddingTop="xl">
+          <LinkButton
+            variant="primary"
+            size="sm"
+            to={`/settings/${organization.slug}/projects/${project.slug}/`}
+          >
+            {t('Go to Connected Repositories')}
+          </LinkButton>
+        </Flex>
       </Fragment>
     );
   }
+
   return (
     <Fragment>
       <Text as="p">
         {t('Install a GitHub or GitLab integration to use this feature.')}
       </Text>
       <Flex justify="center" paddingTop="xl">
-        <LinkButton variant="primary" size="sm" to={baseUrl}>
+        <LinkButton
+          variant="primary"
+          size="sm"
+          to={`/settings/${organization.slug}/integrations/`}
+        >
           {t('Setup Integration')}
         </LinkButton>
       </Flex>

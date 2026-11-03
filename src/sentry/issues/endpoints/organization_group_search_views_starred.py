@@ -16,6 +16,9 @@ class MemberPermission(OrganizationPermission):
         "GET": ["member:read", "user_preference:read"],
     }
 
+    # user_preference:read replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @cell_silo_endpoint
 class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):

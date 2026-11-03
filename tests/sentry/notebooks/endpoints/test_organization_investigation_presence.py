@@ -24,7 +24,7 @@ class OrganizationInvestigationPresenceTest(APITestCase):
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-presence",
+            "sentry-api-0-organization-notebook-presence",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -159,7 +159,7 @@ class OrganizationInvestigationPresenceTest(APITestCase):
         self.login_as(self.user)
         other_org = self.create_organization()
         url = reverse(
-            "sentry-api-0-organization-investigation-presence",
+            "sentry-api-0-organization-notebook-presence",
             kwargs={
                 "organization_id_or_slug": other_org.slug,
                 "investigation_id": self.investigation.id,

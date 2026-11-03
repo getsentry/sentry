@@ -22,8 +22,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -46,6 +44,7 @@ import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import type {SnapshotListViewHandle} from './main/snapshotListView';
 import {type NavButtonRefs, SnapshotMainContent} from './main/snapshotMainContent';
+import type {ViewMode} from './main/snapshotsToolbar';
 import {
   DIFF_TYPE_ORDER,
   type SidebarSection,
@@ -187,11 +186,14 @@ export default function SnapshotsPage() {
   );
   const isNarrow = useResponsivePropValue({zero: true, xl: false});
   const effectiveDiffMode = isNarrow && diffMode === 'split' ? 'wipe' : diffMode;
-  const [viewMode, setViewMode] = useQueryState(
+  const [view, setView] = useQueryState(
     'view',
-    parseAsStringLiteral(['list', 'single'] as const)
-      .withDefault('list')
-      .withOptions(pushHistory)
+    parseAsStringLiteral(['list', 'single', 'solo'] as const)
+  );
+  const viewMode = view === 'single' ? 'single' : 'list';
+  const setViewMode = useCallback(
+    (mode: ViewMode) => setView(mode === 'list' ? null : mode, {history: 'push'}),
+    [setView]
   );
   const replaceHistory = {history: 'replace' as const};
   const [searchQuery, setSearchQuery] = useQueryState(
@@ -267,22 +269,13 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const viewOverride = location.query.view;
   const hasDiffComparison = data?.comparison_type === 'diff';
-  const comparisonType =
-    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
+  const comparisonType = view === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
 
   const isSoloView = comparisonType === 'solo' || comparisonType === 'waiting_for_base';
   const handleToggleView = useCallback(() => {
-    const {view: _view, ...restQuery} = location.query;
-    if (isSoloView) {
-      navigate({...location, query: restQuery}, {replace: true});
-    } else {
-      navigate({...location, query: {...restQuery, view: 'solo'}}, {replace: true});
-    }
-  }, [location, navigate, isSoloView]);
+    setView(isSoloView ? null : 'solo', {history: 'replace'});
+  }, [isSoloView, setView]);
 
   const sidebarItems = useMemo(() => {
     if (!data) {

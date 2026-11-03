@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.tsdb.base import TSDBModel
 
 
@@ -20,7 +21,7 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
     }
     owner = ApiOwner.FOUNDATIONS
 
-    def get(self, request: Request, team) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Retrieve Event Counts for a Team
         ````````````````````````````````
