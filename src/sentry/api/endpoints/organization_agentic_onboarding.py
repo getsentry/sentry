@@ -22,6 +22,7 @@ from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
@@ -168,8 +169,7 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingRunRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
         try:
             run, onboarding_code = get_onboarding_progress_service().create_or_resume(
                 user_id=user_id,
@@ -207,8 +207,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         serializer = AgenticOnboardingStatusRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         values = serializer.validated_data
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
 
         try:
             run, changed, stage_status_changed = get_onboarding_progress_service().update(
