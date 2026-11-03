@@ -12,7 +12,8 @@ type CssNode = {
   nodes?: CssNode[];
   params?: string;
   prop?: string;
-  raws?: {between?: string};
+  raws?: {before?: string; between?: string};
+  selector?: string;
   source?: {
     end?: {line?: number; offset?: number};
     start?: {line?: number; offset?: number};
@@ -48,6 +49,14 @@ export interface ParsedCssAtRule {
   params: string;
 }
 
+export interface ParsedCssSelector {
+  directives: CssDirective[];
+  interpolations: Array<{expression: ESTree.Expression; range: [number, number]}>;
+  line: number | undefined;
+  sourceRange: [number, number];
+  value: string;
+}
+
 const styledSyntax: CssParser = createRequire(import.meta.url)('postcss-styled-syntax');
 const PREFIX = 'styled.div';
 
@@ -75,12 +84,44 @@ function parseCss(source: string): CssDocument | null {
   }
 }
 
+/** Decode JavaScript template escapes after slicing by the original source offsets. */
+export function cookCssTemplateText(raw: string): string {
+  return raw.replace(
+    /\\(?:u\{[\da-fA-F]+\}|u[\da-fA-F]{4}|x[\da-fA-F]{2}|\r\n|[\s\S])/g,
+    escape => {
+      const value = escape.slice(1);
+      if (value.startsWith('u{')) {
+        const point = Number.parseInt(value.slice(2, -1), 16);
+        return point <= 0x10ffff ? String.fromCodePoint(point) : escape;
+      }
+      if (/^[ux][\da-fA-F]+$/.test(value)) {
+        return String.fromCharCode(Number.parseInt(value.slice(1), 16));
+      }
+      const escapes: Record<string, string> = {
+        n: '\n',
+        r: '\r',
+        t: '\t',
+        b: '\b',
+        f: '\f',
+        v: '\v',
+        '0': '\0',
+        '\n': '',
+        '\r': '',
+        '\r\n': '',
+      };
+      return escapes[value] ?? value;
+    }
+  );
+}
+
 /** Parse a complete styled template and map each interpolation to its CSS value declaration. */
 export function parseCssTemplate(
-  template: ESTree.TemplateLiteral,
+  template: ESTree.TemplateLiteral | null,
   source: string,
-  atRules?: ParsedCssAtRule[]
+  atRules?: ParsedCssAtRule[],
+  selectors?: ParsedCssSelector[]
 ): ParsedCssDeclaration[] | null {
+  const templateStart = template?.range[0] ?? 0;
   const parsedSource = `${PREFIX}${source}`;
   const root = parseCss(parsedSource)?.nodes[0];
   if (!root) {
@@ -89,8 +130,42 @@ export function parseCssTemplate(
 
   const declarations: ParsedCssDeclaration[] = [];
   const directives: CssDirective[] = [];
-  const walk = (nodes: CssNode[], isRoot: boolean) => {
+  const walk = (nodes: CssNode[], isRoot: boolean, keyframes = false) => {
     for (const node of nodes) {
+      if (
+        selectors &&
+        !keyframes &&
+        node.type === 'rule' &&
+        node.selector !== undefined &&
+        node.source?.start?.offset !== undefined
+      ) {
+        const selectorStart = node.source.start.offset - PREFIX.length;
+        const end = selectorStart + node.selector.length;
+        let start = selectorStart;
+        // The syntax parser puts standalone interpolations in raws.before.
+        // They can still be component selectors continued on the next line.
+        const beforeStart = selectorStart - (node.raws?.before?.length ?? 0);
+        for (const expression of template?.expressions ?? []) {
+          const from = expression.range[0] - templateStart - 2;
+          const to = expression.range[1] - templateStart + 1;
+          if (from >= beforeStart && to <= selectorStart) {
+            start = Math.min(start, from);
+          }
+        }
+        selectors.push({
+          directives,
+          line: node.source.start.line,
+          sourceRange: [start, end],
+          value: source.slice(start, end),
+          interpolations: (template?.expressions ?? []).flatMap(expression => {
+            const from = expression.range[0] - templateStart - 2;
+            const to = expression.range[1] - templateStart + 1;
+            return from >= start && to <= end
+              ? [{expression, range: [from - start, to - start]}]
+              : [];
+          }),
+        });
+      }
       if (node.type === 'atrule' && node.name && node.params !== undefined) {
         atRules?.push({name: node.name, params: node.params});
       }
@@ -123,20 +198,22 @@ export function parseCssTemplate(
           start === undefined || sourceEnd === undefined
             ? null
             : [start - PREFIX.length, sourceEnd - PREFIX.length];
-        const interpolations = template.expressions.flatMap((expression, index) => {
-          if (
-            sourceStart === undefined ||
-            sourceEnd === undefined ||
-            start === undefined
-          ) {
-            return [];
+        const interpolations = (template?.expressions ?? []).flatMap(
+          (expression, index) => {
+            if (
+              sourceStart === undefined ||
+              sourceEnd === undefined ||
+              start === undefined
+            ) {
+              return [];
+            }
+            const expressionStart = expression.range[0] - templateStart + PREFIX.length;
+            const end = expression.range[1] - templateStart + PREFIX.length;
+            return start <= expressionStart && sourceEnd >= end
+              ? [{expression, index}]
+              : [];
           }
-          const expressionStart = expression.range[0] - template.range[0] + PREFIX.length;
-          const end = expression.range[1] - template.range[0] + PREFIX.length;
-          return start <= expressionStart && sourceEnd >= end
-            ? [{expression, index}]
-            : [];
-        });
+        );
 
         declarations.push({
           directives,
@@ -150,7 +227,11 @@ export function parseCssTemplate(
           valueRange,
         });
       } else if (node.nodes) {
-        walk(node.nodes, false);
+        walk(
+          node.nodes,
+          false,
+          keyframes || (node.type === 'atrule' && /keyframes$/i.test(node.name ?? ''))
+        );
       }
     }
   };

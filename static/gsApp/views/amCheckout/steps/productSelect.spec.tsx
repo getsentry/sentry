@@ -8,23 +8,19 @@ import {
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 async function findLegacySeerOption() {
-  const legacyOptionText = await screen.findByText(/Includes \$25\/mo in credits/);
-  const legacyOption = legacyOptionText.closest('[role="checkbox"]');
-  expect(legacyOption).toBeInTheDocument();
-  return legacyOption!;
+  await screen.findByText(/Includes \$25\/mo in credits/);
+  return screen.getByTestId('product-option-' + AddOnCategory.LEGACY_SEER);
 }
 
 function querySeerOption() {
-  return screen
-    .queryAllByRole('checkbox', {name: 'Add Seer to plan'})
-    .find(option => option.textContent?.includes('/ active contributor / month'));
+  return screen.queryByTestId('product-option-' + AddOnCategory.SEER);
 }
 
 // XXX(isabella): This tests with both legacy Seer and Seer
@@ -106,7 +102,7 @@ describe('ProductSelect', () => {
     );
 
     expect(await findLegacySeerOption()).toBeInTheDocument();
-    expect(querySeerOption()).toBeUndefined();
+    expect(querySeerOption()).not.toBeInTheDocument();
   });
 
   it('renders with correct monthly price and credits for products', async () => {
@@ -147,7 +143,7 @@ describe('ProductSelect', () => {
     );
 
     const legacySeerCheckbox = await findLegacySeerOption();
-    expect(legacySeerCheckbox).toBeChecked();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).toBeChecked();
   });
 
   it('does not render with product selected based on current subscription if plan is trial', async () => {
@@ -161,6 +157,6 @@ describe('ProductSelect', () => {
     );
 
     const legacySeerCheckbox = await findLegacySeerOption();
-    expect(legacySeerCheckbox).not.toBeChecked();
+    expect(within(legacySeerCheckbox).getByRole('checkbox')).not.toBeChecked();
   });
 });

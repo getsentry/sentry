@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -74,6 +74,7 @@ class IntegrationProviderSlug(StrEnum):
     DATADOG = "datadog"
     DATADOG_PAT = "datadog_pat"
     GCP = "gcp"
+    GRAFANA = "grafana"
 
 
 MONITORING_PROVIDERS: frozenset[str] = frozenset(
@@ -183,4 +184,19 @@ class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
     outcome_reason: str | Exception | None = None
-    context_data: dict | None = None
+    context_data: dict[str, object] | None = None
+
+
+HaltReason = Literal[
+    "configuration_error",
+    "connection_reset",
+    "host_timeout",
+    "host_unreachable",
+    "identity_not_found",
+    "identity_not_valid",
+    "installation_suspended",
+    "rate_limited",
+    "too_many_redirects",
+    "unauthorized",
+    "unsupported_response",
+]

@@ -172,6 +172,12 @@ def test_permission_groups() -> None:
         {
             "resource": "members",
             "label": "Organization members",
+            "accessDescriptions": {
+                "read": "View organization members and their membership details.",
+                "write": "Invite members and update their organization membership.",
+                "admin": "Includes write access and allows removing organization members.",
+                "invite": "Invite organization members.",
+            },
             "scopes": ["member:invite"],
             "actions": ["invite"],
             "description": None,
@@ -179,6 +185,11 @@ def test_permission_groups() -> None:
         {
             "resource": "projects",
             "label": "Projects",
+            "accessDescriptions": {
+                "read": "View projects and their settings.",
+                "write": "Create and update projects. Manage project settings and alert rules, including deleting them.",
+                "admin": "Includes write access and allows deleting projects and removing ownership rules.",
+            },
             "scopes": ["project:read", "project:write"],
             "actions": ["read", "write"],
             "description": None,
@@ -192,9 +203,7 @@ def test_permission_groups_cover_all_scopes() -> None:
     assert next(group for group in groups if group["resource"] == "ci")["description"]
     assert next(group for group in groups if group["resource"] == "dashboards")["actions"] == [
         "read",
-        "create",
         "write",
-        "delete",
     ]
 
 
@@ -205,3 +214,71 @@ def test_empty_permission_groups() -> None:
 def test_unknown_permission_group() -> None:
     with pytest.raises(NotImplementedError, match="scopes did not have permission groups"):
         get_permission_groups(["unknown:read"])
+
+
+@pytest.mark.parametrize(
+    "scope, expected",
+    [
+        ("dashboard:read", ["read"]),
+        ("dashboard:write", ["write"]),
+    ],
+)
+def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
+    (group,) = get_permission_groups([scope])
+    assert group["actions"] == expected
+    assert group["accessDescriptions"]["write"] == "Create, update, and delete dashboards."
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["saved_query:read"], ["read"]),
+        (["saved_query:write"], ["write"]),
+        (["saved_query:read", "saved_query:write"], ["read", "write"]),
+    ],
+)
+def test_saved_query_write_does_not_imply_read(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["service_account:read"], ["read"]),
+        (["service_account:write"], ["write"]),
+        (["service_account:read", "service_account:write"], ["read", "write"]),
+    ],
+)
+def test_service_account_actions_are_explicit(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["user_preference:read"], ["read"]),
+        (["user_preference:write"], ["write"]),
+        (["user_preference:read", "user_preference:write"], ["read", "write"]),
+    ],
+)
+def test_user_preference_write_does_not_imply_read(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+
+
+def test_resource_access_descriptions() -> None:
+    groups = get_permission_groups(sorted(settings.SENTRY_SCOPES))
+    for group in groups:
+        assert set(group["actions"]) <= group["accessDescriptions"].keys()
+
+    (projects,) = get_permission_groups(["project:read"])
+    assert projects["actions"] == ["read"]
+    assert "deleting projects" in projects["accessDescriptions"]["admin"]
+    (ci,) = get_permission_groups(["org:ci"])
+    assert ci["accessDescriptions"] == {}
+    assert ci["description"]
+    (tokens,) = get_permission_groups(["org:tokens"])
+    assert tokens["accessDescriptions"] == {}
+    assert tokens["description"]

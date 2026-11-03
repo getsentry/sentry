@@ -1,6 +1,10 @@
+import {useState} from 'react';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
@@ -13,7 +17,7 @@ import {makeLazyloadComponent} from './makeLazyloadComponent';
 function MockComponent(props: {title: string; count?: number}) {
   return (
     <div data-test-id="mock-component">
-      <h1>{props.title}</h1>
+      <Heading as="h1">{props.title}</Heading>
       {props.count && <span>Count: {props.count}</span>}
     </div>
   );
@@ -80,6 +84,32 @@ describe('makeLazyloadComponent', () => {
 
       // Loading fallback should be gone
       expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+
+    it('keeps component state when re-rendering after the initial load', async () => {
+      function StatefulComponent({title}: {title: string}) {
+        const [count, setCount] = useState(0);
+        return (
+          <div>
+            <Heading as="h1">{title}</Heading>
+            <Button onClick={() => setCount(c => c + 1)}>Count: {count}</Button>
+          </div>
+        );
+      }
+      const LazyComponent = makeLazyloadComponent(
+        createMockComponentPromise(StatefulComponent)
+      );
+
+      const {rerender} = render(<LazyComponent title="First" />);
+
+      const button = await screen.findByRole('button', {name: 'Count: 0'});
+      await userEvent.click(button, {delay: null});
+      expect(screen.getByRole('button', {name: 'Count: 1'})).toBeInTheDocument();
+
+      rerender(<LazyComponent title="Second" />);
+
+      expect(screen.getByText('Second')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Count: 1'})).toBeInTheDocument();
     });
 
     it('handles loading errors gracefully', async () => {

@@ -78,7 +78,8 @@ describe('GroupList', () => {
       {organization, initialRouterConfig}
     );
 
-    const row = await screen.findByTestId('group');
+    await screen.findByText(group.shortId);
+    const row = screen.getByTestId('group');
 
     expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
       ['Issue', 'Last Seen', 'Age', 'Graph', 'Events', 'Priority', 'Assignee']

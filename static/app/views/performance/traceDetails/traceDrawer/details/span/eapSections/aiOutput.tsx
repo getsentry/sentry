@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+import {isRecord} from 'sentry/utils/object/isRecord';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
@@ -203,13 +204,7 @@ export function getAIToolOutput(
     }
   }
 
-  if (
-    parsed !== null &&
-    typeof parsed === 'object' &&
-    !Array.isArray(parsed) &&
-    'input' in parsed &&
-    'output' in parsed
-  ) {
+  if (isRecord(parsed) && 'input' in parsed && 'output' in parsed) {
     // Serialize even scalar outputs so false, 0, null, and empty strings remain visible.
     return JSON.stringify(parsed.output);
   }

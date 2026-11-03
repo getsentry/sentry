@@ -437,24 +437,23 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // Links opened with `explorerRunId` keep it in the URL and follow session switches.
   useSyncSeerExplorerRunIdToUrl(runId);
 
+  // Keep the layout alternatives: with Cmd held, browsers may report the base key.
   useHotkeys(
     isModalOpen
       ? []
-      : [
-          {
-            match: [
-              'mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
-              'mod+.', // macOS-friendly alternative
-              'mod+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
-              'mod+shift+.', // AZERTY (French, Belgian): / === Shift+.
-              'mod+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
-            ],
-            callback: () => {
-              toggleSeerExplorer();
-            },
-            includeInputs: true,
-          },
-        ]
+      : (
+          [
+            'Mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
+            'Mod+.', // macOS-friendly alternative
+            'Mod+Shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
+            'Mod+Shift+.', // AZERTY (French, Belgian): / === Shift+.
+            'Mod+Shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
+          ] as const
+        ).map(hotkey => ({
+          hotkey,
+          callback: toggleSeerExplorer,
+          options: {ignoreInputs: false},
+        }))
   );
 
   return (
@@ -465,8 +464,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           <PictureInPicturePortal pipWindow={pipWindow}>
             <SeerExplorerErrorBoundary>
               {/* Pop out the content of whichever surface is active: the decoupled
-                sidebar content when the flag is on (there is no drawer then), or
-                the drawer content otherwise. */}
+                sidebar content when Seer Explorer is enabled (there is no drawer
+                then), or the drawer content otherwise. */}
               {isSidebarMode ? (
                 <SeerExplorerContent
                   key={sidebarKey}

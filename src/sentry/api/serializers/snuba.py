@@ -1,5 +1,17 @@
+from __future__ import annotations
+
 import itertools
-from typing import Any, NotRequired, TypedDict
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, NotRequired, Protocol, TypedDict, cast
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.models.organization import Organization
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
+    from sentry.utils.snuba import SnubaTSResult
 
 
 class StatsTimeSeriesResult(TypedDict):
@@ -26,17 +38,36 @@ class StatsTimeSeriesResult(TypedDict):
     end: NotRequired[int]
 
 
-def value_from_row(row, tagkey):
+class TimeSeriesLookup(Protocol):
+    columns: Sequence[str]
+    name: str
+
+    def serializer(
+        self,
+        organization: Organization | None,
+        item_list: list[tuple[object, ...]],
+        user: User | RpcUser | AnonymousUser | None,
+    ) -> Mapping[tuple[object, ...], object]: ...
+
+
+def value_from_row(row: Mapping[str, object], tagkey: Sequence[str]) -> tuple[object, ...]:
     return tuple(row[k] for k in tagkey)
 
 
-def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default=None):
+def zerofill(
+    data: Sequence[tuple[float, object]],
+    start: datetime,
+    end: datetime,
+    rollup: int,
+    allow_partial_buckets: bool = False,
+    fill_default: object = None,
+) -> list[tuple[float, object]]:
     if fill_default is None:
         fill_default = []
     rv = []
-    end = int(end.timestamp())
+    end_seconds = int(end.timestamp())
     rollup_start = (int(start.timestamp()) // rollup) * rollup
-    rollup_end = (end // rollup) * rollup
+    rollup_end = (end_seconds // rollup) * rollup
 
     # Fudge the end value when we're only getting a single window.
     # This ensure that we get both values for a single large window that
@@ -61,13 +92,13 @@ def zerofill(data, start, end, rollup, allow_partial_buckets=False, fill_default
     # Add any remaining rows that are not aligned to the rollup and are lower than the
     # end date.
     if i < len(data):
-        end_timestamp = end if allow_partial_buckets else rollup_end
+        end_timestamp = end_seconds if allow_partial_buckets else rollup_end
         rv.extend(row for row in data[i:] if row[0] < end_timestamp)
 
     return rv
 
 
-def calculate_time_frame(start, end, rollup):
+def calculate_time_frame(start: datetime, end: datetime, rollup: int) -> dict[str, int]:
     rollup_start = (int(start.timestamp()) // rollup) * rollup
     rollup_end = (int(end.timestamp()) // rollup) * rollup
     if rollup_end - rollup_start == rollup:
@@ -80,12 +111,19 @@ class SnubaTSResultSerializer:
     Serializer for time-series Snuba data.
     """
 
-    def __init__(self, organization, lookup, user):
+    def __init__(
+        self,
+        organization: Organization | None,
+        lookup: TimeSeriesLookup | None,
+        user: User | RpcUser | AnonymousUser | None,
+    ) -> None:
         self.organization = organization
         self.lookup = lookup
         self.user = user
 
-    def get_attrs(self, item_list):
+    def get_attrs(
+        self, item_list: list[tuple[object, ...]]
+    ) -> Mapping[tuple[object, ...], object] | list[tuple[object, ...]]:
         if self.lookup is None:
             return item_list
 
@@ -93,22 +131,25 @@ class SnubaTSResultSerializer:
 
     def serialize(
         self,
-        result,
-        column="count",
-        order=None,
-        allow_partial_buckets=False,
-        zerofill_results=True,
-        extra_columns=None,
-        confidence_column="count",
-    ):
+        result: SnubaTSResult,
+        column: str = "count",
+        order: int | None = None,
+        allow_partial_buckets: bool = False,
+        zerofill_results: bool = True,
+        extra_columns: Sequence[str] | None = None,
+        confidence_column: str = "count",
+    ) -> dict[str, Any]:
         data = [
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
         ]
-        attrs = {}
+        attrs: Mapping[tuple[object, ...], object] = {}
         if self.lookup:
-            attrs = self.get_attrs(
-                [value_from_row(r, self.lookup.columns) for _, v in data for r in v]
+            attrs = cast(
+                Mapping[tuple[object, ...], object],
+                self.get_attrs(
+                    [value_from_row(r, self.lookup.columns) for _, v in data for r in v]
+                ),
             )
         rv = []
         for k, v in data:
@@ -124,7 +165,7 @@ class SnubaTSResultSerializer:
                 row.append(item)
             rv.append((k, row))
 
-        res = {
+        res: StatsTimeSeriesResult = {
             "data": (
                 zerofill(
                     rv,
@@ -172,4 +213,4 @@ class SnubaTSResultSerializer:
             res["start"] = timeframe["start"]
             res["end"] = timeframe["end"]
 
-        return res
+        return dict(res)

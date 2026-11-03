@@ -16,8 +16,7 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import is_considered_sudo
-from sentry.api.exceptions import SudoRequired
+from sentry.api.decorators import require_sudo
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -49,7 +48,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.ingest.legacy_filter_lists import set_list
+from sentry.ingest.legacy_filter_lists import clean_lines, set_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -77,11 +76,11 @@ logger = logging.getLogger(__name__)
 MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
-def coerce_to_string_or_none(value) -> str | None:
+def coerce_to_string_or_none(value: object) -> str | None:
     return None if value is None else str(value)
 
 
-def clean_newline_inputs(value, case_insensitive=True):
+def clean_newline_inputs(value: str, case_insensitive: bool = True) -> list[str]:
     result = []
     for v in value.split("\n"):
         if case_insensitive:
@@ -96,7 +95,7 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
     id = serializers.ChoiceField(required=True, choices=get_supported_biases_ids())
     active = serializers.BooleanField(default=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if data.keys() != {"id", "active"}:
             raise serializers.ValidationError(
                 "Error: Only 'id' and 'active' fields are allowed for bias."
@@ -339,6 +338,10 @@ E.g. `['release', 'environment']`""",
         allow_null=True,
         help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
     )
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text="Apply source server (srcsrv) information from native debug files to symbolicated frames.",
+    )
     scrubIPAddresses = serializers.BooleanField(
         required=False,
         help_text="Discard client IP addresses rather than storing them on events.",
@@ -424,7 +427,7 @@ E.g. `['release', 'environment']`""",
         help_text="The role required to download debug information files, ProGuard mappings and source maps. If not set, inherits from organization setting.",
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, int | None]) -> dict[str, int | None]:
         max_delay = (
             data["digestsMaxDelay"]
             if "digestsMaxDelay" in data
@@ -443,7 +446,7 @@ E.g. `['release', 'environment']`""",
 
         return data
 
-    def validate_allowedDomains(self, value):
+    def validate_allowedDomains(self, value: list[str]) -> list[str]:
         value = list(filter(bool, value))
         if len(value) == 0:
             raise serializers.ValidationError(
@@ -466,14 +469,14 @@ E.g. `['release', 'environment']`""",
             )
         return slug
 
-    def validate_relayPiiConfig(self, value):
+    def validate_relayPiiConfig(self, value: str | None) -> str | None:
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
 
-    def validate_builtinSymbolSources(self, value):
+    def validate_builtinSymbolSources(self, value: list[str]) -> list[str]:
         return value
 
-    def validate_symbolSources(self, sources_json) -> str:
+    def validate_symbolSources(self, sources_json: str) -> str:
         if not sources_json:
             return sources_json
 
@@ -526,7 +529,7 @@ E.g. `['release', 'environment']`""",
 
         return sources_json
 
-    def validate_groupingEnhancements(self, value):
+    def validate_groupingEnhancements(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -538,16 +541,16 @@ E.g. `['release', 'environment']`""",
         return value
 
     # TODO: Once these have been in place for a while we can probably remove them
-    def validate_groupingConfig(self, value):
+    def validate_groupingConfig(self, value: object) -> None:
         raise serializers.ValidationError("Grouping config cannot be manually set.")
 
-    def validate_secondaryGroupingConfig(self, value):
+    def validate_secondaryGroupingConfig(self, value: object) -> None:
         raise serializers.ValidationError("Secondary grouping config cannot be manually set.")
 
-    def validate_secondaryGroupingExpiry(self, value):
+    def validate_secondaryGroupingExpiry(self, value: object) -> None:
         raise serializers.ValidationError("Secondary grouping expiry cannot be manually set.")
 
-    def validate_fingerprintingRules(self, value):
+    def validate_fingerprintingRules(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -558,7 +561,7 @@ E.g. `['release', 'environment']`""",
 
         return value
 
-    def validate_copy_from_project(self, other_project_id):
+    def validate_copy_from_project(self, other_project_id: int) -> int:
         try:
             other_project = Project.objects.filter(
                 id=other_project_id, organization_id=self.context["project"].organization_id
@@ -580,20 +583,20 @@ E.g. `['release', 'environment']`""",
 
         return other_project_id
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str) -> str:
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
 
-    def validate_sensitiveFields(self, value):
+    def validate_sensitiveFields(self, value: list[str]) -> list[str]:
         if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
-    def validate_safeFields(self, value):
+    def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
-    def validate_targetSampleRate(self, value):
+    def validate_targetSampleRate(self, value: float) -> float:
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not has_custom_dynamic_sampling(organization, actor=actor):
@@ -611,7 +614,7 @@ E.g. `['release', 'environment']`""",
 
         return value
 
-    def validate_tempestFetchScreenshots(self, value):
+    def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
             raise serializers.ValidationError(
@@ -619,7 +622,7 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
-    def validate_debugFilesRole(self, value):
+    def validate_debugFilesRole(self, value: str | None) -> str | None:
         if value is None:
             return value
 
@@ -659,9 +662,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (RelaxedProjectAndStaffPermission,)
 
-    def _get_unresolved_count(self, project):
+    def _get_unresolved_count(self, project: Project) -> int:
         queryset = Group.objects.filter(status=GroupStatus.UNRESOLVED, project=project)
 
         resolve_age = project.get_option("sentry:resolve_age", None)
@@ -735,7 +739,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         examples=ProjectExamples.DETAILED_PROJECT,
     )
     def put(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> (
         Response[_ProjectDetailsResponse]
         | Response[None]
@@ -791,7 +795,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         status=403,
                     )
         changed = False
-        changed_proj_settings = {}
+        changed_proj_settings: dict[str, object] = {}
 
         old_slug = None
         if result.get("slug"):
@@ -940,6 +944,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
+                ]
+        if result.get("enableNativeSourceServerMapping") is not None:
+            if project.update_option(
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
+            ):
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
                 ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
@@ -1257,7 +1269,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.RELEASES,
-                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
+                        clean_lines(
+                            FilterTypes.RELEASES,
+                            options[f"filters:{FilterTypes.RELEASES}"].split("\n"),
+                        ),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
@@ -1266,9 +1281,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.ERROR_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.ERROR_MESSAGES,
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1282,9 +1297,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.LOG_MESSAGES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.LOG_MESSAGES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.LOG_MESSAGES,
+                            options[f"filters:{FilterTypes.LOG_MESSAGES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1298,9 +1313,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     set_list(
                         project,
                         FilterTypes.TRACE_METRIC_NAMES,
-                        clean_newline_inputs(
-                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
-                            case_insensitive=False,
+                        clean_lines(
+                            FilterTypes.TRACE_METRIC_NAMES,
+                            options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"].split("\n"),
                         ),
                     )
                 else:
@@ -1371,8 +1386,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # In most cases we want to confirm password before deleting a project, but this isn't
         # necessary if we never received any events in the first place. This allows us to avoid
         # password confirmation in onboarding when undoing project creation.
-        if project.first_event is not None and not is_considered_sudo(request):
-            raise SudoRequired(request.user)
+        if project.first_event is not None:
+            require_sudo(request)
 
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION
@@ -1383,11 +1398,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             common_audit_data = {
                 "organization": project.organization,
                 "target_object": project.id,
-                "transaction_id": scheduled.id,
             }
 
             if request.data.get("origin"):
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
@@ -1398,6 +1413,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             else:
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),
@@ -1413,8 +1429,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def dynamic_sampling_biases_audit_log(
-        self, project, request, old_raw_dynamic_sampling_biases, new_raw_dynamic_sampling_biases
-    ):
+        self,
+        project: Project,
+        request: Request,
+        old_raw_dynamic_sampling_biases: list[dict[str, object]] | None,
+        new_raw_dynamic_sampling_biases: list[dict[str, object]],
+    ) -> None:
         """
         Compares the previous and next dynamic sampling biases object, triggering audit logs according to the changes.
         We are currently verifying the following cases:

@@ -10,12 +10,7 @@ import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
 import type {Params, PlatformOptions} from './utils';
-import {isPagesSetup, isViteSetup} from './utils';
-
-// The date whose Cloudflare runtime defaults the snippets opt into. Today's date
-// gives a new project the newest defaults, and any date from 2024-09-23 on gives
-// `nodejs_compat` the full Node.js API surface the SDK needs.
-const getCompatibilityDate = () => new Date().toISOString().slice(0, 10);
+import {getCompatibilityDate, isPagesSetup, isViteSetup} from './utils';
 
 const getSdkConfigureSnippetToml = () => `
 compatibility_flags = ["nodejs_compat"]

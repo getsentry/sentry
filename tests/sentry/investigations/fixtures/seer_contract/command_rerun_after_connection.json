@@ -1,0 +1,4 @@
+{
+  "provider": "datadog",
+  "type": "rerun_after_connection"
+}

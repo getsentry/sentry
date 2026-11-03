@@ -5,6 +5,7 @@ from collections.abc import Collection
 from typing import Any, TypedDict
 
 from django.http import QueryDict
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
@@ -15,8 +16,23 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.analytics import IntegrationStacktraceLinkEvent
-from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationSerializer,
+    IntegrationSerializerResponse,
+)
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializerResponse,
+)
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.stacktrace_link import StacktraceLinkOutcome, get_stacktrace_config
@@ -37,6 +53,18 @@ class StacktraceLinkContext(TypedDict):
     module: str | None
     package: str | None
     sdk_name: str | None
+
+
+class StacktraceLinkResponseOptional(TypedDict, total=False):
+    sourcePath: str | None
+    attemptedUrl: str | None
+
+
+class StacktraceLinkResponse(StacktraceLinkResponseOptional):
+    error: str | None
+    config: RepositoryProjectPathConfigSerializerResponse | None
+    sourceUrl: str | None
+    integrations: list[IntegrationSerializerResponse]
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
@@ -133,10 +161,11 @@ def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: Collecti
     scope.set_attribute("stacktrace_link.has_integration", len(integrations) > 0)
 
 
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     """
     Returns valid links for source code providers so that
@@ -155,7 +184,52 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     owner = ApiOwner.ISSUES
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="getProjectStacktraceLink",
+        summary="Get a Source Code Link for a Stack Trace Frame",
+        description=(
+            "Resolve a stack trace filename to its linked source file using the project's code "
+            "mappings and connected source code integrations."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                "file",
+                type=str,
+                required=True,
+                description="The file path from the stack trace frame.",
+            ),
+            OpenApiParameter(
+                "platform", type=str, description="The platform associated with the frame."
+            ),
+            OpenApiParameter(
+                "absPath", type=str, description="The absolute path of the stack frame, if known."
+            ),
+            OpenApiParameter(
+                "commitId", type=str, description="The commit ID associated with the event."
+            ),
+            OpenApiParameter(
+                "sdkName", type=str, description="The SDK name associated with the event."
+            ),
+            OpenApiParameter("module", type=str, description="The module name, if known."),
+            OpenApiParameter("package", type=str, description="The package name, if known."),
+            OpenApiParameter("lineNo", type=str, description="The source line number, if known."),
+            OpenApiParameter("groupId", type=str, description="The issue ID, if known."),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "StacktraceLinkResponse", StacktraceLinkResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[StacktraceLinkResponse] | Response[DetailResponse]:
         ctx = generate_context(request.GET)
         filepath = ctx["file"]
         if not filepath:
@@ -204,7 +278,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 error = result["current_config"]["outcome"].get("error")
                 # When no code mapping have been matched we have not attempted a URL
                 if result["current_config"]["outcome"].get("attemptedUrl"):
-                    attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
+                    attempted_url = result["current_config"]["outcome"].get("attemptedUrl")
         try:
             set_tags(scope, result, serialized_integrations)
         except Exception:

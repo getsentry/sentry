@@ -10,13 +10,13 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 import {getActivityNoteAuthor} from './activityItem';
-import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import type {ActivityLineVariant} from './layout';
+import {ActivityLineMarker} from './marker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
 
@@ -40,50 +40,49 @@ export function ActivityLineNote({
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
-  const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker item={activity} showProgress={showProgress} />
-      <ActivityLineNoteHeadline
-        title={t('%s commented', getActivityNoteAuthor(activity))}
-        timestamp={timestamp}
-        variant={inputVariant}
-        actions={
-          !editing && (
-            <CommentActionsDropdown
-              onDelete={onDelete}
-              onEdit={() => setEditing(true)}
-              user={activity.user}
-            />
-          )
-        }
-      />
-      <ActivityLineContent>
-        {editing ? (
-          <ActivityInputFrame>
-            <MentionComposer
-              initialValue={activity.data.text}
-              minHeight={96}
-              mode="edit"
-              onCancel={() => setEditing(false)}
-              onSubmit={async data => {
-                await onUpdate(data);
-                setEditing(false);
-              }}
-              variant={inputVariant}
-            />
-          </ActivityInputFrame>
-        ) : (
-          <ActivityNoteBubble>
-            <NoteBody text={activity.data.text} />
-          </ActivityNoteBubble>
-        )}
-      </ActivityLineContent>
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={<ActivityLineMarker item={activity} />}
+      headline={
+        <ActivityLineNoteHeadline
+          title={t('%s commented', getActivityNoteAuthor(activity))}
+          timestamp={timestamp}
+          variant={inputVariant}
+          actions={
+            !editing && (
+              <CommentActionsDropdown
+                onDelete={onDelete}
+                onEdit={() => setEditing(true)}
+                user={activity.user}
+              />
+            )
+          }
+        />
+      }
+    >
+      {editing ? (
+        <ActivityInputFrame>
+          <MentionComposer
+            initialValue={activity.data.text}
+            minHeight={96}
+            mode="edit"
+            onCancel={() => setEditing(false)}
+            onSubmit={async data => {
+              await onUpdate(data);
+              setEditing(false);
+            }}
+            variant={inputVariant}
+          />
+        </ActivityInputFrame>
+      ) : (
+        <ActivityNoteBubble>
+          <NoteBody text={activity.data.text} />
+        </ActivityNoteBubble>
+      )}
+    </Timeline.Item>
   );
 }
 
@@ -100,8 +99,6 @@ function ActivityLineNoteHeadline({
 }) {
   return (
     <ActivityLineNoteHeadlineLayout
-      column={2}
-      row={1}
       columns={variant === 'compact' ? 'minmax(0, 1fr)' : 'minmax(0, max-content) auto'}
       minWidth={0}
       minHeight="22px"
@@ -138,11 +135,11 @@ function ActivityLineNoteHeadline({
 
 const ActivityLineNoteHeadlineLayout = styled(Grid)`
   position: relative;
-  justify-self: start;
+  width: fit-content;
   max-width: 100%;
 
   &[data-compact='true'] {
-    justify-self: stretch;
+    width: 100%;
   }
 `;
 

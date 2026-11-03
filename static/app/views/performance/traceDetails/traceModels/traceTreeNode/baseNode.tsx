@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
@@ -598,10 +597,6 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   abstract renderWaterfallRow<NodeType extends TraceTree.Node = TraceTree.Node>(
     props: TraceRowProps<NodeType>
-  ): React.ReactNode;
-
-  abstract renderDetails<NodeType extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<NodeType>
   ): React.ReactNode;
 
   abstract matchWithFreeText(key: string): boolean;

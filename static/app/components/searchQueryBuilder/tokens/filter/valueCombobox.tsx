@@ -642,6 +642,7 @@ function ValueComboboxCustomMenu(
     onSelectAbsoluteDate,
     showDatePicker,
     token,
+    valueHint,
     wrapperRef,
   } = useValueComboboxMenuContext();
 
@@ -672,6 +673,7 @@ function ValueComboboxCustomMenu(
       isLoading={isFetching}
       canUseWildcard={canUseWildcard}
       token={token}
+      valueHint={valueHint}
     />
   );
 }
@@ -719,8 +721,10 @@ export function SearchQueryBuilderValueCombobox({
     searchSource,
     recentSearches,
     disallowWildcard,
+    keepOperatorOnValueSelect,
   } = useSearchQueryBuilderConfig();
-  const {wrapperRef: topLevelWrapperRef} = useSearchQueryBuilderLayout();
+  const {wrapperRef: topLevelWrapperRef, showAllFilterValues} =
+    useSearchQueryBuilderLayout();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
   const canSelectMultipleValues = tokenSupportsMultipleValues(
@@ -734,6 +738,7 @@ export function SearchQueryBuilderValueCombobox({
     disallowWildcard || isRegexValue
       ? false
       : keySupportsWildcard(fieldDefinition, valueType);
+  const valueHint = fieldDefinition?.valueHint?.(token.operator);
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
@@ -989,6 +994,7 @@ export function SearchQueryBuilderValueCombobox({
       onSelectAbsoluteDate: handleSelectAbsoluteDate,
       showDatePicker,
       token,
+      valueHint,
       wrapperRef: topLevelWrapperRef,
     }),
     [
@@ -997,6 +1003,7 @@ export function SearchQueryBuilderValueCombobox({
       inputValue,
       isFetching,
       items,
+      valueHint,
       handleBackFromAbsoluteDate,
       handleSaveAbsoluteDate,
       handleSelectAbsoluteDate,
@@ -1140,6 +1147,7 @@ export function SearchQueryBuilderValueCombobox({
       // When selecting from dropdown with no existing value, switch from "contains" to "is"
       let newOp: TermOperator | undefined;
       if (
+        !keepOperatorOnValueSelect &&
         token.operator === TermOperator.CONTAINS &&
         token.value.type === Token.VALUE_TEXT &&
         !token.value.value
@@ -1153,7 +1161,7 @@ export function SearchQueryBuilderValueCombobox({
         filter_value: value,
       });
     },
-    [analyticsData, token, updateFilterValue]
+    [analyticsData, keepOperatorOnValueSelect, token, updateFilterValue]
   );
 
   const addTypedValue = useCallback(
@@ -1409,6 +1417,7 @@ export function SearchQueryBuilderValueCombobox({
           type="button"
           aria-label={t('Edit value: %s', value)}
           onClick={() => editValue(index)}
+          wrapValues={showAllFilterValues}
         >
           {value}
         </ValueChipLabel>
@@ -1424,7 +1433,7 @@ export function SearchQueryBuilderValueCombobox({
   ));
 
   const valueInput = (
-    <ValueInputContainer key="value-input">
+    <ValueInputContainer key="value-input" wrapValues={showAllFilterValues}>
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
@@ -1490,13 +1499,17 @@ export function SearchQueryBuilderValueCombobox({
         <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
       ]
     : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
-  const rowScrolls = canSelectMultipleValues || isRegexValue;
+  // A multi-value row scrolls sideways, unless every value is to stay in view,
+  // in which case the chips wrap onto new lines instead.
+  const rowWraps = canSelectMultipleValues && showAllFilterValues;
+  const rowScrolls = (canSelectMultipleValues || isRegexValue) && !rowWraps;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
+          wrap={rowWraps ? 'wrap' : 'nowrap'}
           gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
@@ -1514,7 +1527,6 @@ export function SearchQueryBuilderValueCombobox({
 
 const ValueEditingChips = styled(Flex)`
   max-width: 100%;
-  flex-wrap: nowrap;
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
@@ -1525,15 +1537,18 @@ const ValueEditingChips = styled(Flex)`
 // in place (so it doesn't push later chips around), but grows to fill the
 // trailing space when it sits at the end of the row (the add-a-value state). The
 // base min-width keeps a mid-row insertion point visible and clickable even when
-// its input is momentarily empty (e.g. right after a comma split).
-const ValueInputContainer = styled('div')`
+// its input is momentarily empty (e.g. right after a comma split). In a wrapping
+// row the trailing input starts from its text width instead of zero, so once the
+// text no longer fits beside the last chip it moves to a new line rather than
+// scrolling inside a sliver.
+const ValueInputContainer = styled('div')<{wrapValues: boolean}>`
   display: flex;
   width: auto;
   min-width: ${p => p.theme.space.lg};
   flex: 0 0 auto;
 
   &:last-child {
-    flex: 1 1 0%;
+    flex: 1 1 ${p => (p.wrapValues ? 'auto' : '0%')};
   }
 `;
 
@@ -1545,6 +1560,7 @@ const ValueChip = styled('span')`
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
   color: ${p => p.theme.tokens.content.accent};
   padding: 0 ${p => p.theme.space['2xs']};
+  max-width: 100%;
   white-space: nowrap;
 `;
 
@@ -1562,9 +1578,10 @@ const chipButton = (p: {theme: Theme}) => css`
   }
 `;
 
-const ValueChipLabel = styled('button')`
+const ValueChipLabel = styled('button')<{wrapValues: boolean}>`
   display: block;
-  max-width: 200px;
+  min-width: 0;
+  max-width: ${p => (p.wrapValues ? 'none' : '200px')};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

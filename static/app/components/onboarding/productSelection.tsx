@@ -369,6 +369,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'node-pi-durable': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'node-cloudflare-workers': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,

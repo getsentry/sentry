@@ -17,11 +17,11 @@ import {
   useInvalidateSavedQuery,
   type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 export type ExploreQueryChangedReason = {
   columns: string[];
@@ -246,28 +246,22 @@ function convertQueryParamsToRequest({
   const {sortBys, fields, search, mode, crossEvents} = queryParams;
   const query = search?.formatString() ?? '';
 
-  const aggregateFields = queryParams.aggregateFields
-    .filter(aggregateField => {
+  const aggregateFields = serializeAggregateFields(
+    queryParams.aggregateFields.filter(aggregateField => {
       if (isGroupBy(aggregateField)) {
         return Boolean(aggregateField.groupBy);
       }
       return true;
     })
-    .map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return {groupBy: aggregateField.groupBy};
-      }
-
-      if (isVisualize(aggregateField)) {
-        const serialized = aggregateField.serialize();
-        return {
-          ...serialized,
-          yAxes: [...serialized.yAxes],
-        };
-      }
-
-      throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-    });
+  ).map(aggregateField => {
+    if (isGroupBy(aggregateField)) {
+      return {groupBy: aggregateField.groupBy};
+    }
+    return {
+      ...aggregateField,
+      yAxes: [...aggregateField.yAxes],
+    };
+  });
 
   return {
     name: title,

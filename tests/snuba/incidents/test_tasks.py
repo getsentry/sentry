@@ -4,7 +4,10 @@ from functools import cached_property
 from arroyo.utils import metrics
 
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
@@ -130,11 +133,13 @@ class HandleSnubaQueryUpdateTest(TestCase):
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
         callback_invoked = []
 
-        def shutdown_callback(*args, **kwargs):
+        def shutdown_callback(
+            update: QuerySubscriptionUpdate, subscription: QuerySubscription
+        ) -> None:
             # We want to just exit after the callback so that we can see the result of
             # processing.
             callback_invoked.append(True)
-            original_callback(*args, **kwargs)
+            original_callback(update, subscription)
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 

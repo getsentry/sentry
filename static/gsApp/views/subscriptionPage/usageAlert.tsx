@@ -184,7 +184,8 @@ export function UsageAlert({subscription, usage}: Props) {
       (acc, [category, currentHistory]) => {
         if (
           currentHistory.reserved === RESERVED_BUDGET_QUOTA ||
-          isUnlimitedReserved(currentHistory.reserved)
+          isUnlimitedReserved(currentHistory.reserved) ||
+          isUnlimitedReserved(currentHistory.prepaid)
         ) {
           return acc;
         }

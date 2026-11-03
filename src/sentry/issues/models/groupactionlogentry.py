@@ -64,6 +64,10 @@ class GroupActionLogEntry(Model):
     data = models.JSONField(default=dict)
 
     # DB-defaulted; backfill code may pass an explicit value.
+    # Defines the log's canonical order. For published actions this is when the outbox
+    # drained, not when publish_action() was called. Usually that's near-immediate, but
+    # with a deferred flush, or during an incident, it can be noticeably later (tens of
+    # seconds to minutes). See the GroupAction docstring before relying on exact times.
     date_added = models.DateTimeField(db_default=Now())
 
     # Primarly intended for debugging; not intended to be relied upon

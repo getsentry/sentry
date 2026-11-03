@@ -48,6 +48,11 @@ class OAuthDeviceContextTest(APITestCase):
                     "scopes": ["project:read"],
                     "actions": ["read"],
                     "description": None,
+                    "accessDescriptions": {
+                        "read": "View projects and their settings.",
+                        "write": "Create and update projects. Manage project settings and alert rules, including deleting them.",
+                        "admin": "Includes write access and allows deleting projects and removing ownership rules.",
+                    },
                 }
             ],
             "userCode": self.device.user_code,

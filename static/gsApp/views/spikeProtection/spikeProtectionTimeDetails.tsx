@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import {IconCalendar} from '@sentry/icons/calendar';
 
-import {AlertBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
+import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 

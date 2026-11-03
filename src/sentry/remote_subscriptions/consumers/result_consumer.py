@@ -43,7 +43,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
     def subscription_model(self) -> type[U]:
         pass
 
-    def __call__(self, identifier: str, result: T):
+    def __call__(self, identifier: str, result: T) -> None:
         with metrics.timer(
             "remote_subscriptions.result_consumer.call_timing",
             tags={"identifier": identifier},
@@ -92,7 +92,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         pass
 
     @abc.abstractmethod
-    def handle_result(self, subscription: U | None, result: T):
+    def handle_result(self, subscription: U | None, result: T) -> None:
         pass
 
 
@@ -275,7 +275,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
         return list(batch_mapping.values())
 
-    def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
+    def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> None:
         """
         Receives batches of messages. This function will take the batch and group them together
         using `build_payload_grouping_key`, which ensures order is preserved. Each group is then
@@ -300,7 +300,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             ]
             wait(futures)
 
-    def process_group(self, items: list[T]):
+    def process_group(self, items: list[T]) -> None:
         """
         Process a group of related messages serially.
         """

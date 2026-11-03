@@ -914,7 +914,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     silo_mode=SiloMode.CONTROL,
 )
 def create_or_update_service_hooks_for_sentry_app(
-    sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
+    sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: object
 ) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.MANAGEMENT,
@@ -1001,7 +1001,7 @@ def _record_metric_alert_sent_analytics(
 def _record_metric_alert_ui_component_analytics(
     organization_id: int,
     sentry_app_id: int,
-    app_platform_event: AppPlatformEvent,
+    app_platform_event: AppPlatformEvent[Mapping[str, Any]],
 ) -> None:
     if not find_alert_rule_action_ui_component(app_platform_event):
         return

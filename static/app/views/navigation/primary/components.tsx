@@ -19,6 +19,7 @@ import {
   Stack,
 } from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Overlay, type OverlayProps, PositionWrapper} from '@sentry/scraps/overlay';
 import {
   OverlayTrigger,
   type OverlayTriggerIconButtonProps,
@@ -27,14 +28,13 @@ import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
@@ -80,6 +80,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         borderBottom="primary"
         width="100%"
         height={`${PRIMARY_HEADER_HEIGHT}px`}
+        flexShrink={0}
         {...props}
       >
         {props.children}
@@ -131,8 +132,6 @@ interface PrimaryNavigationLinkProps
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
-  const {layout, features} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -146,10 +145,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
-      if (isMobile && !features.hover) {
-        e.preventDefault();
-      }
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
         organization,

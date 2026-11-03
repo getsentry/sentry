@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -7,6 +8,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container as LayoutContainer, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -33,6 +35,8 @@ import {
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
 import {FIELD_MAX_WIDTH} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  exceedsApiLimits,
+  isInvalidSuggestedNumber,
   stripNamePrefix,
   toDraft,
   toRequest,
@@ -53,6 +57,8 @@ const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
 ];
 
 const NO_UNIT = 'none';
+
+const DESCRIPTION_MAX_LENGTH = 280;
 
 const UNIT_OPTIONS = [
   {value: NO_UNIT, label: t('No unit')},
@@ -123,6 +129,14 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
   const listPathname = makeSavedFormulasPathname({organization, path: '/'});
 
   async function handleSave() {
+    if (exceedsApiLimits(draft)) {
+      Sentry.captureException(new Error('Formula builder exceeded API limits'), {
+        extra: {
+          params: draft.params.map(param => param.type),
+          references: draft.references.length,
+        },
+      });
+    }
     try {
       await saveFormula(toRequest(draft));
     } catch (error) {
@@ -147,54 +161,77 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
 
       <EditLayout.Body>
         <Stack gap="2xl" maxWidth={maxWidth}>
-          <Flex gap="xl" wrap="wrap">
-            <LabeledField label={t('Formula Name')}>
-              <LayoutContainer width="320px">
-                <Input
-                  value={draft.name}
-                  placeholder={t('Enter formula name')}
-                  aria-label={t('Formula name')}
-                  onChange={event => setDraft({...draft, name: event.target.value})}
+          <Stack gap="xl">
+            <Flex gap="xl" wrap="wrap">
+              <LabeledField label={t('Formula Name')}>
+                <LayoutContainer width="320px">
+                  <Input
+                    value={draft.name}
+                    placeholder={t('Enter formula name')}
+                    aria-label={t('Formula name')}
+                    onChange={event => setDraft({...draft, name: event.target.value})}
+                  />
+                </LayoutContainer>
+              </LabeledField>
+              <LabeledField label={t('Dataset')}>
+                <CompactSelect
+                  value={draft.dataset}
+                  options={DATASET_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
+                      <OptionSizedLabel options={DATASET_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option => setDraft({...draft, dataset: option.value})}
+                />
+              </LabeledField>
+              <LabeledField label={t('Unit')}>
+                <CompactSelect
+                  value={draft.unit ?? NO_UNIT}
+                  options={UNIT_OPTIONS}
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
+                      <OptionSizedLabel options={UNIT_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={option =>
+                    setDraft({
+                      ...draft,
+                      unit: option.value === NO_UNIT ? null : option.value,
+                    })
+                  }
+                />
+              </LabeledField>
+            </Flex>
+
+            <LabeledField label={t('Description')}>
+              <LayoutContainer maxWidth={FIELD_MAX_WIDTH}>
+                <TextArea
+                  autosize
+                  rows={2}
+                  maxLength={DESCRIPTION_MAX_LENGTH}
+                  value={draft.description ?? ''}
+                  placeholder={t(
+                    'Enter a description to help users understand your formula'
+                  )}
+                  aria-label={t('Formula description')}
+                  onChange={event =>
+                    setDraft({...draft, description: event.target.value || null})
+                  }
                 />
               </LayoutContainer>
             </LabeledField>
-            <LabeledField label={t('Dataset')}>
-              <CompactSelect
-                value={draft.dataset}
-                options={DATASET_OPTIONS}
-                trigger={({children, ...triggerProps}) => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
-                    <OptionSizedLabel options={DATASET_OPTIONS}>
-                      {children}
-                    </OptionSizedLabel>
-                  </OverlayTrigger.Button>
-                )}
-                onChange={option => setDraft({...draft, dataset: option.value})}
-              />
-            </LabeledField>
-            <LabeledField label={t('Unit')}>
-              <CompactSelect
-                value={draft.unit ?? NO_UNIT}
-                options={UNIT_OPTIONS}
-                trigger={({children, ...triggerProps}) => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
-                    <OptionSizedLabel options={UNIT_OPTIONS}>{children}</OptionSizedLabel>
-                  </OverlayTrigger.Button>
-                )}
-                onChange={option =>
-                  setDraft({
-                    ...draft,
-                    unit: option.value === NO_UNIT ? null : option.value,
-                  })
-                }
-              />
-            </LabeledField>
-          </Flex>
+          </Stack>
 
           <Container>
             <FormSection title={t('Inputs')}>
               <Stack gap="2xl">
                 <ParametersSection
+                  dataset={draft.dataset}
                   params={draft.params}
                   onChange={params => setDraft({...draft, params})}
                 />
@@ -234,7 +271,9 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
         <Button
           size="sm"
           variant="primary"
-          disabled={!draft.name || !draft.formula}
+          disabled={
+            !draft.name || !draft.formula || draft.params.some(isInvalidSuggestedNumber)
+          }
           busy={isSaving}
           onClick={handleSave}
         >

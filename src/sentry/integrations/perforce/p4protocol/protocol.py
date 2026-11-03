@@ -268,7 +268,7 @@ class P4:
             raw = safe_create_connection((host, port), timeout=self.timeout)
         except RestrictedIPAddress as exc:
             raise P4Exception(f"refused to connect to a disallowed address for {host}: {exc}")
-        except OSError as exc:
+        except Exception as exc:
             raise P4Exception(
                 f"connect to server failed; check P4PORT. TCP connect to {host}:{port} failed: {exc}"
             )

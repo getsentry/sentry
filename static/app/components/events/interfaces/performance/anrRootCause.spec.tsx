@@ -177,6 +177,10 @@ describe('anrRootCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       method: 'GET',
       body: {},

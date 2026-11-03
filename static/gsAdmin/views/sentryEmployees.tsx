@@ -3,9 +3,11 @@ import {IconEdit} from '@sentry/icons/edit';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
-import {ResultGrid} from 'sentry/components/resultGrid';
+import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {Truncate} from 'sentry/components/truncate';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -15,38 +17,27 @@ import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal'
 export function SentryEmployees() {
   const {openModal} = useModal();
 
-  const gridColumns = [
-    <th key="user">User</th>,
-    <th key="email" style={{width: 100, textAlign: 'center'}}>
-      Email
-    </th>,
-    <th key="isActive" style={{width: 100, textAlign: 'center'}}>
-      Active
-    </th>,
-    <th key="isStaff" style={{width: 100, textAlign: 'center'}}>
-      Staff
-    </th>,
-    <th key="isSuperuserRead" style={{width: 100, textAlign: 'center'}}>
-      Superuser Read
-    </th>,
-    <th key="isSuperuserWrite" style={{width: 100, textAlign: 'center'}}>
-      Superuser Write
-    </th>,
-    <th key="permissions" style={{width: 200, textAlign: 'center'}}>
-      Permissions
-    </th>,
+  const gridColumns: ResultGridColumn[] = [
+    {key: 'user', label: 'User'},
+    {key: 'email', label: 'Email', width: 100, align: 'center'},
+    {key: 'isActive', label: 'Active', width: 100, align: 'center'},
+    {key: 'isStaff', label: 'Staff', width: 100, align: 'center'},
+    {key: 'isSuperuserRead', label: 'Superuser Read', width: 100, align: 'center'},
+    {key: 'isSuperuserWrite', label: 'Superuser Write', width: 100, align: 'center'},
+    {key: 'permissions', label: 'Permissions', width: 200, align: 'center'},
   ];
   if (ConfigStore.get('user').permissions.has('users.admin')) {
-    gridColumns.push(
-      <th key="assignPermissions" style={{width: 100, textAlign: 'center'}}>
-        Edit Permissions
-      </th>
-    );
+    gridColumns.push({
+      key: 'assignPermissions',
+      label: 'Edit Permissions',
+      width: 100,
+      align: 'center',
+    });
   }
 
   const getRow = (row: any) => {
     const userRow = [
-      <td key="user">
+      <SimpleTable.RowCell key="user" overflow="visible">
         <Link to={`/_admin/users/${row.id}/`}>
           <UserBadge
             hideEmail
@@ -54,34 +45,36 @@ export function SentryEmployees() {
             displayName={<Truncate maxLength={40} value={row.name} />}
           />
         </Link>
-      </td>,
-      <td key="email" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="email" justify="center">
         {row.email}
-      </td>,
-      <td key="isActive" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="isActive" justify="center">
         {row.isActive ? 'True' : 'False'}
-      </td>,
-      <td key="isStaff" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="isStaff" justify="center">
         {row.isStaff ? 'True' : 'False'}
-      </td>,
-      <td key="isSuperuserRead" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="isSuperuserRead" justify="center">
         {row.isSuperuser ? 'True' : 'False'}
-      </td>,
-      <td key="isSuperuserWrite" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="isSuperuserWrite" justify="center">
         {row.permissions.includes('superuser.write') ? 'True' : 'False'}
-      </td>,
-      <td key="permissions" style={{textAlign: 'center'}}>
-        {row.permissions.map((perm: any, i: any) => {
-          if (row.permissions.length > 1 && i < row.permissions.length - 1) {
-            return perm + ', ';
-          }
-          return perm;
-        })}
-      </td>,
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="permissions" justify="center">
+        <Text align="center">
+          {row.permissions.map((perm: any, i: any) => {
+            if (row.permissions.length > 1 && i < row.permissions.length - 1) {
+              return perm + ', ';
+            }
+            return perm;
+          })}
+        </Text>
+      </SimpleTable.RowCell>,
     ];
     if (ConfigStore.get('user').permissions.has('users.admin')) {
       userRow.push(
-        <td key="assignPermissions" style={{textAlign: 'center'}}>
+        <SimpleTable.RowCell key="assignPermissions" justify="center">
           <Button
             aria-label="Edit Permissions"
             onClick={() => {
@@ -99,7 +92,7 @@ export function SentryEmployees() {
             size="sm"
             icon={<IconEdit size="xs" />}
           />
-        </td>
+        </SimpleTable.RowCell>
       );
     }
     return userRow;

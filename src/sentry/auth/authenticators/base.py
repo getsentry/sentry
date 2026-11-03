@@ -135,7 +135,8 @@ class AuthenticatorInterface:
         a new config is used on first access.
         """
         if self.authenticator is not None:
-            return self.authenticator.config
+            config = self.authenticator.config
+            return config
         rv = getattr(self, "_unbound_config", None)
         if rv is None:
             # Prevent bad recursion if stuff wants to access the default
@@ -217,7 +218,8 @@ class OtpMixin(AuthenticatorInterface):
 
     @property
     def secret(self) -> str:
-        return self.config["secret"]
+        secret = self.config["secret"]
+        return secret
 
     @secret.setter
     def secret(self, secret: str) -> None:

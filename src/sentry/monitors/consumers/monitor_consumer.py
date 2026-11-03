@@ -1117,12 +1117,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
 
-                    # When creating a brand new check-in (not updating an existing one),
-                    # if no monitor config was provided and the monitor was previously
-                    # marked as upserting, mark it as no longer upserting.
-                    if not monitor_config and monitor.is_upserting:
-                        monitor.update(is_upserting=False)
-
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,

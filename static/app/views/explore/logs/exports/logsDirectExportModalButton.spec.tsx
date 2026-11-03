@@ -178,6 +178,54 @@ describe('LogsDirectExportModalButton', () => {
     });
   });
 
+  it('asks the server export to ignore case when the page ignores case', async () => {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsDirectExportModalButton
+          error={null}
+          isLoading={false}
+          tableData={tableData}
+          timeseriesIngestDelay={0n}
+        />
+      </LogsQueryParamsProvider>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...initialRouterConfig.location.query, caseInsensitive: '1'},
+          },
+        },
+      }
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({caseInsensitive: '1'}),
+          }),
+        })
+      );
+    });
+  });
+
   it('exports through the server rather than the rows the table truncated for display', async () => {
     const exportRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,

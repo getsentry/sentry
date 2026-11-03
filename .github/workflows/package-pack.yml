@@ -1,0 +1,55 @@
+name: Package pack
+
+on:
+  push:
+    branches:
+      # Craft release branches for the static/packages/* workspaces
+      # (`releaseBranchPrefix: '{{workspaceName}}/release'` in .craft.yml).
+      - '*/release/**'
+
+jobs:
+  workspace:
+    name: Resolve package workspace
+    runs-on: ubuntu-24.04
+    outputs:
+      name: ${{ steps.resolve.outputs.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: static/packages
+      - name: Resolve workspace from the release branch
+        id: resolve
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          name="${BRANCH%%/*}"
+          if [[ "$name" =~ ^[A-Za-z0-9._-]+$ && -f "static/packages/$name/package.json" ]]; then
+            echo "name=$name" >> "$GITHUB_OUTPUT"
+          else
+            echo "No static/packages workspace for branch $BRANCH; skipping."
+          fi
+
+  pack:
+    # Craft waits for this status context; it must match
+    # `{{workspaceName}}-package-pack` in .craft.yml.
+    name: ${{ needs.workspace.outputs.name }}-package-pack
+    needs: workspace
+    if: needs.workspace.outputs.name != ''
+    runs-on: ubuntu-24.04
+    env:
+      PACKAGE_DIR: static/packages/${{ needs.workspace.outputs.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-node-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Pack release artifact
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: pnpm pack --pack-destination .artifacts
+      - name: Upload release artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # Craft fetches `{{workspaceName}}-tarball` from this workflow.
+          name: ${{ needs.workspace.outputs.name }}-tarball
+          path: ${{ env.PACKAGE_DIR }}/.artifacts/*.tgz
+          include-hidden-files: true
+          if-no-files-found: error

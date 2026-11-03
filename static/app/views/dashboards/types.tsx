@@ -113,10 +113,14 @@ export type WidgetQuery = {
   linkedDashboards?: LinkedDashboard[];
   // Aggregate selected for the Big Number widget builder
   selectedAggregate?: number;
+  // Use only the query name or group value as the series label.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  seriesLabel?: 'query' | 'group';
   // Links the widget query to a slide out panel if exists.
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
+  transformations?: Record<string, string[]>;
 };
 
 type WidgetChangedReason = {

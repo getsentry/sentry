@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
 describe('Discover > ChartFooter', () => {
@@ -101,5 +101,60 @@ describe('Discover > ChartFooter', () => {
     await userEvent.click(screen.getByText('count()'));
     await userEvent.click(screen.getByText('failure_count()'));
     expect(yAxis).toEqual(['count()', 'failure_count()']);
+  });
+
+  describe('dropped data filter note', () => {
+    const queryEventView = EventView.fromSavedQuery({
+      id: '',
+      name: 'test query',
+      version: 2,
+      fields: ['title', 'count()'],
+      query: 'level:error',
+      projects: [parseInt(project.id, 10)],
+    });
+
+    function renderFooter(showDroppedData: boolean, hasDroppedData = true) {
+      render(
+        <ChartFooter
+          total={100}
+          yAxisValue={['count()']}
+          yAxisOptions={yAxisOptions}
+          onAxisChange={() => {}}
+          displayMode={DisplayModes.DEFAULT}
+          displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
+          onDisplayChange={() => {}}
+          onTopEventsChange={() => {}}
+          onIntervalChange={() => {}}
+          topEvents="5"
+          eventView={queryEventView}
+          droppedDataLayer={{
+            dataset: DiscoverDatasets.ERRORS,
+            hasDroppedData,
+            showDroppedData,
+            onChange: () => {},
+          }}
+        />
+      );
+    }
+
+    it('notes that dropped errors ignore the search while the layer is on', () => {
+      renderFooter(true);
+
+      expect(
+        screen.getByText('Dropped errors are not filtered by search')
+      ).toBeInTheDocument();
+    });
+
+    it('omits the note while the layer is off', () => {
+      renderFooter(false);
+
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+    });
+
+    it('omits the note when nothing was dropped', () => {
+      renderFooter(true, false);
+
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+    });
   });
 });

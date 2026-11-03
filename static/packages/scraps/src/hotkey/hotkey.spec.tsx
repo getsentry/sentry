@@ -23,20 +23,20 @@ describe('Hotkey', () => {
     });
 
     it('renders command as ⌘ icon', () => {
-      render(<Hotkey value="command+k" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Mod+K" />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u2318')).toBeInTheDocument();
       expect(screen.getByText('K')).toBeInTheDocument();
     });
 
     it('renders ctrl as ⌃ icon', () => {
-      render(<Hotkey value="ctrl+alt+delete" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Control+Alt+Delete" />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u2303')).toBeInTheDocument();
       expect(screen.getByLabelText('\u2325')).toBeInTheDocument();
       expect(screen.getByText('Del')).toBeInTheDocument();
     });
 
     it('renders option as ⌥ icon', () => {
-      render(<Hotkey value="option+x" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Alt+X" />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u2325')).toBeInTheDocument();
       expect(screen.getByText('X')).toBeInTheDocument();
     });
@@ -48,26 +48,26 @@ describe('Hotkey', () => {
     });
 
     it('renders command as Ctrl text', () => {
-      render(<Hotkey value="command+k" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Mod+K" />, {wrapper: ThemeWrapper});
       expect(screen.getByText('Ctrl')).toBeInTheDocument();
       expect(screen.getByText('K')).toBeInTheDocument();
     });
 
     it('renders ctrl as Ctrl text', () => {
-      render(<Hotkey value="ctrl+alt+delete" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Control+Alt+Delete" />, {wrapper: ThemeWrapper});
       expect(screen.getByText('Ctrl')).toBeInTheDocument();
       expect(screen.getByText('Alt')).toBeInTheDocument();
       expect(screen.getByText('Del')).toBeInTheDocument();
     });
 
     it('renders option as Alt text', () => {
-      render(<Hotkey value="option+x" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Alt+X" />, {wrapper: ThemeWrapper});
       expect(screen.getByText('Alt')).toBeInTheDocument();
       expect(screen.getByText('X')).toBeInTheDocument();
     });
 
     it('renders shift as ⇧ icon', () => {
-      render(<Hotkey value="shift+up" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Shift+ArrowUp" />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u21E7')).toBeInTheDocument();
       expect(screen.getByLabelText('\u2191')).toBeInTheDocument();
     });
@@ -79,7 +79,7 @@ describe('Hotkey', () => {
     });
 
     it('accepts a single string', () => {
-      render(<Hotkey value="command+/" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Mod+/" />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u2318')).toBeInTheDocument();
       expect(screen.getByText('/')).toBeInTheDocument();
     });
@@ -91,7 +91,7 @@ describe('Hotkey', () => {
     });
 
     it('uses first combo from array', () => {
-      render(<Hotkey value={['command+backspace', 'delete']} />, {wrapper: ThemeWrapper});
+      render(<Hotkey value={['Mod+Backspace', 'Delete']} />, {wrapper: ThemeWrapper});
       expect(screen.getByLabelText('\u2318')).toBeInTheDocument();
       expect(screen.getByText('\u232B')).toBeInTheDocument();
     });
@@ -99,7 +99,7 @@ describe('Hotkey', () => {
 
   describe('semantic HTML', () => {
     it('renders nested kbd elements', () => {
-      render(<Hotkey value="command+k" />, {wrapper: ThemeWrapper});
+      render(<Hotkey value="Mod+K" />, {wrapper: ThemeWrapper});
       // Keyboard keys have no implicit ARIA role.
       // eslint-disable-next-line testing-library/no-node-access
       const kbdElements = document.querySelectorAll('kbd');

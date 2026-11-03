@@ -1,0 +1,33 @@
+---
+title: OAuth Authentication
+description: Inline account sign-in within an OAuth authorization request.
+category: patterns
+source: sentry/views/authV2/oauth/oauthAuthentication
+---
+
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {t} from 'sentry/locale';
+
+import {OAuthAuthentication} from 'sentry/views/authV2/oauth/oauthAuthentication';
+import * as Storybook from 'sentry/stories';
+
+The shared account authentication form handles password sign-in, external providers, and MFA. Organization SSO returns to the original OAuth location. The parent keeps application context visible and prepares fresh consent after `onAuthenticated`.
+
+<Storybook.Demo>
+  <Stack gap="lg">
+    <Text as="p" size="sm" variant="muted" align="left">
+      {t('Sign in to authorize this application…')}
+    </Text>
+    <OAuthAuthentication
+      authConfig={{
+        canRegister: false,
+        hasNewsletter: false,
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+      }}
+      returnTo="/oauth/device/?user_code=ABCD-EFGH"
+      onAuthenticated={() => {}}
+    />
+  </Stack>
+</Storybook.Demo>
