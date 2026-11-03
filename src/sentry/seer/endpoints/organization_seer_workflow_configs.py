@@ -513,6 +513,16 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
+            # Narrowing an all-projects config drops future projects the caller may not
+            # see, so it needs the same global access as selecting all projects.
+            if (
+                not all_projects
+                and workflow.filters.all_projects
+                and not request.access.has_global_access
+            ):
+                raise PermissionDenied(
+                    detail="You do not have permission to narrow this config's project scope"
+                )
 
             try:
                 if all_projects:
