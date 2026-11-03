@@ -2,6 +2,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.organization import Organization
@@ -12,6 +13,7 @@ from sentry.notifications.notifications.activity.unassigned import UnassignedAct
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 pytestmark = [requires_snuba]
 
@@ -45,7 +47,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
             message="fix: Critical bug fix",
         )
 
-    def _create_suspect_commit_owner(self, commit, user=None):
+    def _create_suspect_commit_owner(self, commit: Commit, user: User | None = None) -> GroupOwner:
         """Helper to create a GroupOwner record for suspect commit."""
         return GroupOwner.objects.create(
             group=self.group,
@@ -235,7 +237,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         self._create_suspect_commit_owner(self.commit1)
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
         self.organization.refresh_from_db()
-        assert self.organization.flags.enhanced_privacy.is_set is True
+        assert self.organization.flags.enhanced_privacy
 
         activity = Activity.objects.create(
             project=self.project,

@@ -124,7 +124,7 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
         return {"fingerprints": self.fingerprints}
 
 
-_REPLACEMENT_TYPE_LABELS: BidirectionalMapping = BidirectionalMapping(
+_REPLACEMENT_TYPE_LABELS: BidirectionalMapping[type[UnmergeReplacement]] = BidirectionalMapping(
     {
         PrimaryHashUnmergeReplacement: "primary_hash",
     }

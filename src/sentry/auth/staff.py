@@ -19,6 +19,7 @@ from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.staff")
@@ -56,7 +57,7 @@ def is_active_staff(request: HttpRequest | Request) -> bool:
 
 
 # TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user: User | AnonymousUser) -> bool:
+def has_staff_option(user: User | RpcUser | AnonymousUser) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
     If not, it falls back to checking the second option which by email specifies which

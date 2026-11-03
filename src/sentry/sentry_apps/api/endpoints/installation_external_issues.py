@@ -30,6 +30,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializerResponse,
 )
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
 from sentry.users.services.user.serial import serialize_generic_user
@@ -68,7 +69,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         },
     )
     def post(
-        self, request: Request, installation
+        self, request: Request, installation: RpcSentryAppInstallation
     ) -> (
         Response[PlatformExternalIssueSerializerResponse]
         | Response[DetailResponse]

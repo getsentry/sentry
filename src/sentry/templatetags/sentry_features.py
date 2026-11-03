@@ -1,4 +1,6 @@
 from django import template
+from django.template import Context
+from django.template.base import NodeList, Parser, Token
 
 from sentry import features
 
@@ -6,7 +8,7 @@ register = template.Library()
 
 
 @register.tag
-def feature(parser, token):
+def feature(parser: Parser, token: Token) -> "FeatureNode":
     bits = token.split_contents()
     if len(bits) < 2:
         raise template.TemplateSyntaxError(
@@ -29,13 +31,15 @@ def feature(parser, token):
 
 
 class FeatureNode(template.Node):
-    def __init__(self, nodelist_true, nodelist_false, name, params):
+    def __init__(
+        self, nodelist_true: NodeList, nodelist_false: NodeList, name: str, params: list[str]
+    ) -> None:
         self.nodelist_true = nodelist_true
         self.nodelist_false = nodelist_false
         self.name = name
         self.params = [template.Variable(i) for i in params]
 
-    def render(self, context):
+    def render(self, context: Context) -> str:
         params = [i.resolve(context) for i in self.params]
         if "request" in context:
             user = context["request"].user

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import quote
 
@@ -33,6 +34,7 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     ApiRetryError,
 )
+from sentry.shared_integrations.response import MappingApiResponse
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
@@ -72,7 +74,10 @@ class GitLabClientTest(GitLabTestCase):
         identity.save()
 
     def get_stored_identity_data(self) -> dict[str, Any]:
-        return Identity.objects.get(id=self.gitlab_client.identity.id).data
+        return cast(
+            "dict[str, Any]",
+            Identity.objects.get(id=self.gitlab_client.identity.id).data,
+        )
 
 
 @control_silo_test
@@ -282,7 +287,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     def tearDown(self) -> None:
         responses.reset()
 
-    def make_users_request(self):
+    def make_users_request(self) -> MappingApiResponse:
         return self.gitlab_client.get_user()
 
     def add_user_responses_accepting_only_the_fresh_token(self) -> None:
@@ -300,7 +305,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             match=[matchers.header_matcher({"Authorization": "Bearer fresh-token"})],
         )
 
-    def add_refresh_auth(self, success=True):
+    def add_refresh_auth(self, success: bool = True) -> None:
         responses.add(
             responses.POST,
             self.refresh_url,
@@ -308,7 +313,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             json=self.refresh_response if success else {},
         )
 
-    def add_get_user_response(self, success):
+    def add_get_user_response(self, success: bool) -> None:
         responses.add(
             responses.GET,
             self.request_url,
@@ -316,23 +321,23 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             status=200 if success else 401,
         )
 
-    def assert_response_call(self, call, url, status):
+    def assert_response_call(self, call: responses.Call, url: str, status: int) -> None:
         assert call.request.url == url
         assert call.response.status_code == status
 
-    def assert_data(self, data, expected_data):
+    def assert_data(self, data: Mapping[str, Any], expected_data: Mapping[str, Any]) -> None:
         assert data["access_token"] == expected_data["access_token"]
         assert data["refresh_token"] == expected_data["refresh_token"]
         assert data["created_at"] == expected_data["created_at"]
 
-    def assert_request_failed_refresh(self):
+    def assert_request_failed_refresh(self) -> None:
         responses_calls = responses.calls
         assert len(responses_calls) == 2
 
         self.assert_response_call(responses_calls[0], self.request_url, 401)
         self.assert_response_call(responses_calls[1], self.refresh_url, 401)
 
-    def assert_request_with_refresh(self):
+    def assert_request_with_refresh(self) -> None:
         responses_calls = responses.calls
         assert len(responses_calls) == 3
 
@@ -342,14 +347,14 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         assert orjson.loads(responses_calls[2].response.text) == self.request_data
 
-    def assert_identity_was_refreshed(self):
+    def assert_identity_was_refreshed(self) -> None:
         data = self.gitlab_client.identity.data
         self.assert_data(data, self.refresh_response)
 
         data = Identity.objects.get(id=self.gitlab_client.identity.id).data
         self.assert_data(data, self.refresh_response)
 
-    def assert_identity_was_not_refreshed(self):
+    def assert_identity_was_not_refreshed(self) -> None:
         data = self.gitlab_client.identity.data
         self.assert_data(data, self.original_identity_data)
 
@@ -708,7 +713,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             ),
         )
 
-    def set_up_success_responses(self):
+    def set_up_success_responses(self) -> None:
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_1),
@@ -731,7 +736,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
     def make_blame_request(self, file: SourceLineInfo) -> str:
         return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
-    def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
+    def make_blame_response(self, **kwargs: Any) -> list[GitLabFileBlameResponseItem]:
         return [
             GitLabFileBlameResponseItem(
                 lines=[],

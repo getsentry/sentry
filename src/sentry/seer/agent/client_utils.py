@@ -17,6 +17,7 @@ import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.http import HttpRequest
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
@@ -423,7 +424,7 @@ def has_seer_agent_access_with_detail(
 def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
-    request: Request | None = None,
+    request: HttpRequest | Request | None = None,
 ) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(

@@ -1,3 +1,6 @@
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -6,12 +9,14 @@ from django.utils import timezone
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import UNREAL_FEEDBACK_UNATTENDED_MESSAGE, FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import save_userreport, validate_user_report
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def _mock_event(project_id: int, environment: str):
+def _mock_event(project_id: int, environment: str) -> Event:
     return Factories.store_event(
         data={"timestamp": timezone.now().isoformat(), "environment": environment},
         project_id=project_id,
@@ -29,7 +34,7 @@ def mock_report_dict() -> UserReportDict:
 
 
 @pytest.fixture
-def skip_denylist():
+def skip_denylist() -> Iterator[None]:
     with mock.patch(
         "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", return_value=False
     ):
@@ -37,7 +42,7 @@ def skip_denylist():
 
 
 @pytest.fixture
-def skip_filters():
+def skip_filters() -> Iterator[None]:
     with mock.patch(
         "sentry.feedback.usecases.ingest.userreport.validate_user_report",
         return_value=(False, None, None),
@@ -46,7 +51,7 @@ def skip_filters():
 
 
 @pytest.fixture
-def skip_eventstore():
+def skip_eventstore() -> Iterator[None]:
     with mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=None):
         yield
 
@@ -58,8 +63,10 @@ def skip_eventstore():
 
 @django_db_all
 @pytest.mark.parametrize("field", ["comments", "event_id"])
-def test_validator_should_filter_missing_required_field(field, mock_report_dict) -> None:
-    del mock_report_dict[field]
+def test_validator_should_filter_missing_required_field(
+    field: str, mock_report_dict: UserReportDict
+) -> None:
+    del cast(dict[str, object], mock_report_dict)[field]
 
     should_filter, tag, reason = validate_user_report(mock_report_dict, 1)
     assert should_filter is True
@@ -68,7 +75,9 @@ def test_validator_should_filter_missing_required_field(field, mock_report_dict)
 
 
 @django_db_all
-def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option) -> None:
+def test_validator_should_filter_unreal_unattended_message_with_option(
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -86,7 +95,7 @@ def test_validator_should_filter_unreal_unattended_message_with_option(set_sentr
 
 @django_db_all
 def test_validator_should_not_filter_unreal_unattended_message_without_option(
-    set_sentry_option,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
 ) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
@@ -104,7 +113,9 @@ def test_validator_should_not_filter_unreal_unattended_message_without_option(
 
 
 @django_db_all
-def test_validator_should_filter_empty_message_with_option(set_sentry_option) -> None:
+def test_validator_should_filter_empty_message_with_option(
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -121,7 +132,9 @@ def test_validator_should_filter_empty_message_with_option(set_sentry_option) ->
 
 
 @django_db_all
-def test_validator_should_not_filter_empty_message_without_option(set_sentry_option) -> None:
+def test_validator_should_not_filter_empty_message_without_option(
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -204,8 +217,12 @@ def test_validator_strips_comments_whitespace() -> None:
 
 @django_db_all
 def test_save_user_report_basic(
-    default_project, skip_denylist, skip_filters, skip_eventstore, mock_report_dict
-):
+    default_project: Project,
+    skip_denylist: object,
+    skip_filters: object,
+    skip_eventstore: object,
+    mock_report_dict: UserReportDict,
+) -> None:
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
     )
@@ -221,7 +238,9 @@ def test_save_user_report_basic(
 
 
 @django_db_all
-def test_save_user_report_filters_denylist(default_project, skip_filters, mock_report_dict) -> None:
+def test_save_user_report_filters_denylist(
+    default_project: Project, skip_filters: object, mock_report_dict: UserReportDict
+) -> None:
     with mock.patch(
         "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", return_value=True
     ):
@@ -235,9 +254,13 @@ def test_save_user_report_filters_denylist(default_project, skip_filters, mock_r
 @django_db_all
 @pytest.mark.parametrize("field", ["comments", "event_id"])
 def test_save_user_report_filters_missing_required_field(
-    default_project, skip_denylist, skip_eventstore, mock_report_dict, field
-):
-    del mock_report_dict[field]
+    default_project: Project,
+    skip_denylist: object,
+    skip_eventstore: object,
+    mock_report_dict: UserReportDict,
+    field: str,
+) -> None:
+    del cast(dict[str, object], mock_report_dict)[field]
 
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -248,7 +271,7 @@ def test_save_user_report_filters_missing_required_field(
 
 @django_db_all
 def test_save_user_report_missing_name_and_email(
-    default_project, skip_denylist, skip_eventstore
+    default_project: Project, skip_denylist: object, skip_eventstore: object
 ) -> None:
     report: UserReportDict = {
         "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
@@ -267,13 +290,17 @@ def test_save_user_report_missing_name_and_email(
 @django_db_all
 @pytest.mark.parametrize("field", ["name", "email", "comments"])
 def test_save_user_report_filters_too_large_fields(
-    default_project, skip_denylist, skip_eventstore, mock_report_dict, field
-):
+    default_project: Project,
+    skip_denylist: object,
+    skip_eventstore: object,
+    mock_report_dict: UserReportDict,
+    field: str,
+) -> None:
     max_length = UserReport._meta.get_field(field).max_length  # type: ignore[union-attr]
     if not max_length:
         assert False, f"Missing max_length for UserReport {field} field!"
 
-    mock_report_dict[field] = "a" * (max_length + 1)
+    cast(dict[str, object], mock_report_dict)[field] = "a" * (max_length + 1)
 
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -284,8 +311,11 @@ def test_save_user_report_filters_too_large_fields(
 
 @django_db_all
 def test_save_user_report_shims_if_event_found(
-    default_project, skip_denylist, skip_filters, mock_report_dict
-):
+    default_project: Project,
+    skip_denylist: object,
+    skip_filters: object,
+    mock_report_dict: UserReportDict,
+) -> None:
     event = _mock_event(default_project.id, "prod")
     with (
         mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
@@ -303,8 +333,11 @@ def test_save_user_report_shims_if_event_found(
 
 @django_db_all
 def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedback(
-    default_project, skip_denylist, skip_filters, mock_report_dict
-):
+    default_project: Project,
+    skip_denylist: object,
+    skip_filters: object,
+    mock_report_dict: UserReportDict,
+) -> None:
     event = _mock_event(default_project.id, "prod")
     with (
         mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),

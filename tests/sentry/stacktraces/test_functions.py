@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pytest
 
 from sentry.interfaces.stacktrace import Frame
@@ -221,7 +223,7 @@ from sentry.stacktraces.functions import (
         ],
     ],
 )
-def test_trim_native_function_name(input, output) -> None:
+def test_trim_native_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "native") == output
 
 
@@ -235,7 +237,7 @@ def test_trim_native_function_name(input, output) -> None:
         ],
     ],
 )
-def test_trim_csharp_function_name(input, output) -> None:
+def test_trim_csharp_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "csharp") == output
 
 
@@ -268,11 +270,11 @@ def test_trim_csharp_function_name(input, output) -> None:
         ],
     ],
 )
-def test_trim_cocoa_function_name(input, output) -> None:
+def test_trim_cocoa_function_name(input: str, output: str) -> None:
     assert trim_function_name(input, "cocoa") == output
 
 
-def replace_group(value, start):
+def replace_group(value: str, start: int) -> str:
     if start == 0:
         assert value == "anonymous namespace"
         return "(new value)"
@@ -293,7 +295,9 @@ def replace_group(value, start):
         ],
     ],
 )
-def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
+def test_enclosed_string_simple(
+    input: str, start: str, end: str, replacement: str | Callable[[str, int], str], output: str
+) -> None:
     assert replace_enclosed_string(input, start, end, replacement) == output
 
 
@@ -308,7 +312,7 @@ def test_enclosed_string_simple(input, start, end, replacement, output) -> None:
         ["foo bar [baz (blah)]", ["foo", "bar", "[baz (blah)]"]],
     ],
 )
-def test_split_func_tokens(input, output) -> None:
+def test_split_func_tokens(input: str, output: list[str]) -> None:
     assert split_func_tokens(input) == output
 
 
@@ -354,5 +358,7 @@ def test_trim_function_name_cocoa() -> None:
         [{"source_link": "woejfdsiwjidsoi", "lineNo": "7"}, None],
     ],
 )
-def test_get_source_link_for_frame(input, output) -> None:
-    assert get_source_link_for_frame(Frame.to_python(input)) == output
+def test_get_source_link_for_frame(input: dict[str, str], output: str | None) -> None:
+    frame = Frame.to_python(input)
+    assert frame is not None
+    assert get_source_link_for_frame(frame) == output

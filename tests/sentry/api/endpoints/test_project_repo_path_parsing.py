@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -43,7 +45,7 @@ class BaseStacktraceLinkTest(APITestCase):
             },
         )
 
-        return self.client.post(
+        response: Response[Any] = self.client.post(
             url,
             data={
                 "sourceUrl": source_url,
@@ -53,6 +55,7 @@ class BaseStacktraceLinkTest(APITestCase):
                 "platform": platform,
             },
         )
+        return response
 
 
 class PathMappingSerializerTest(TestCase):

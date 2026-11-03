@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -45,7 +46,10 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
     poll_until_done,
 )
-from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import (
+    CodingAgentHandoffResult,
+    launch_coding_agents,
+)
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
@@ -406,7 +410,7 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         ui_tools: str | None = None,
@@ -982,7 +986,10 @@ class SeerAgentClient:
         run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
         if run is None:
             return None
-        return self.get_run(run.run.seer_run_state_id)
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return None
+        return self.get_run(run_state_id)
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(
@@ -1095,7 +1102,7 @@ class SeerAgentClient:
         user_id: int | None = None,
         issue_short_id: str | None = None,
         issue_url: str | None = None,
-    ) -> dict[str, list]:
+    ) -> CodingAgentHandoffResult:
         """
         Launch coding agents for an agent run.
 

@@ -18,7 +18,7 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class _TopValue(TypedDict):
-    name: str
+    name: str | None
     value: int | str
     count: int
 
@@ -54,7 +54,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
 
         dataset = self.get_dataset(request, organization)
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[_KeyTopValues]:
             with traces.start_span(
                 name="discover_query", attributes={"sentry.op": "discover.endpoint"}
             ):

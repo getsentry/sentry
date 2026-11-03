@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
@@ -35,7 +35,7 @@ def _int_or_none(s: str | None) -> int | None:
         return int(s)
 
 
-def _get_producer():
+def _get_producer() -> KafkaProducer:
     return get_arroyo_producer(
         name="sentry.monitors.clock_dispatch",
         topic=Topic.MONITORS_CLOCK_TICK,
@@ -124,7 +124,7 @@ def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
     return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
 
 
-def _dispatch_tick(ts: datetime):
+def _dispatch_tick(ts: datetime) -> None:
     """
     Dispatch a clock tick which will trigger monitor tasks.
 
@@ -150,7 +150,7 @@ def _dispatch_tick(ts: datetime):
     _clock_tick_producer.produce(ArroyoTopic(topic), payload)
 
 
-def try_monitor_clock_tick(ts: datetime, partition: int):
+def try_monitor_clock_tick(ts: datetime, partition: int) -> None:
     """
     Handles triggering the monitor tasks when we've rolled over the minute.
 

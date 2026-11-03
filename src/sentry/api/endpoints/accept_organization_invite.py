@@ -58,9 +58,9 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: str,
         token: str,
         organization_id_or_slug: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         # Demo users will be logged out in get() before processing the invite,
         # so we should fetch the invite context as if they were anonymous.
         # This matches the original behavior where logout happened before get_invite_state().
@@ -93,7 +93,7 @@ class AcceptOrganizationInvite(Endpoint):
         member_id: str,
         token: str,
         invite_context: RpcUserInviteContext,
-        **kwargs,
+        **kwargs: object,
     ) -> Response | HttpResponse:
         # Demo user can't accept invites, this invite is probably meant for another user
         # so we log out the demo user and let the invite flow continue since it can handle
@@ -201,7 +201,7 @@ class AcceptOrganizationInvite(Endpoint):
         request: Request,
         token: str,
         invite_context: RpcUserInviteContext,
-        **kwargs,
+        **kwargs: object,
     ) -> Response:
         if is_demo_user(request.user):
             return Response(status=status.HTTP_403_FORBIDDEN)

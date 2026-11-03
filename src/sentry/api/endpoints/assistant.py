@@ -29,13 +29,13 @@ class AssistantSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=list(zip(VALID_STATUSES, VALID_STATUSES)))
     useful = serializers.BooleanField(required=False)
 
-    def validate_guide_id(self, value):
+    def validate_guide_id(self, value: int) -> int:
         valid_ids = manager.get_valid_ids()
         if value not in valid_ids:
             raise serializers.ValidationError("Not a valid assistant guide_id")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
         guide = attrs.get("guide")
         guide_id = attrs.get("guide_id")
@@ -78,7 +78,7 @@ class AssistantEndpoint(Endpoint):
             [{"guide": key, "seen": id in seen_ids} for key, id in manager.all().items()]
         )
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response | HttpResponse:
         """Mark a guide as viewed or dismissed.
 
         Request is of the form {

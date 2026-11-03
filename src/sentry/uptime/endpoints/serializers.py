@@ -1,6 +1,7 @@
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, Literal, TypedDict, cast, override
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
     Assertion,
@@ -19,6 +20,8 @@ from sentry.uptime.types import (
     IncidentStatus,
     UptimeSummary,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -44,7 +47,13 @@ class UptimeSubscriptionSerializerResponse(TypedDict):
 @register(UptimeSubscription)
 class UptimeSubscriptionSerializer(Serializer[dict[str, Any]]):
     @override
-    def serialize(self, obj: UptimeSubscription, attrs, user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self,
+        obj: UptimeSubscription,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         return {
             "url": obj.url,
             "method": obj.method,
@@ -116,7 +125,13 @@ class UptimeDetectorSerializer(Serializer[UptimeDetectorSerializerResponse]):
             for detector in item_list
         }
 
-    def serialize(self, obj: Detector, attrs, user, **kwargs) -> UptimeDetectorSerializerResponse:
+    def serialize(
+        self,
+        obj: Detector,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> UptimeDetectorSerializerResponse:
         uptime_subscription = attrs["uptime_subscription"]
         detector_state = attrs["detector_state"]
 
@@ -176,7 +191,11 @@ class EapCheckEntrySerializerResponse(TypedDict):
 @register(EapCheckEntry)
 class EapCheckEntrySerializer(Serializer[EapCheckEntrySerializerResponse]):
     def serialize(
-        self, obj: EapCheckEntry, attrs, user, **kwargs
+        self,
+        obj: EapCheckEntry,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> EapCheckEntrySerializerResponse:
         check_status = cast(SerializedCheckStatus, obj.check_status)
 

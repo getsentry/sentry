@@ -14,6 +14,7 @@ from sentry.api.serializers.models.eventuser import EventUserSerializer, EventUs
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.eventuser import EventUser
@@ -86,7 +87,9 @@ class ProjectUsersEndpoint(ProjectEndpoint):
             )
         ],
     )
-    def get(self, request: Request, project) -> Response[list[EventUserSerializerResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[EventUserSerializerResponse]]:
         """
         Return a list of users seen within this project.
         """
@@ -107,7 +110,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
         if field and identifier:
             keyword_filters[field] = [identifier]
 
-        def callback(limit, offset):
+        def callback(limit: int, offset: int) -> list[EventUser]:
             return EventUser.for_projects(
                 projects=[project],
                 keyword_filters=keyword_filters,

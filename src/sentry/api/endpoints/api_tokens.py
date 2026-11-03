@@ -109,7 +109,7 @@ class ApiTokensEndpoint(Endpoint):
         return Response(serializer.errors, status=400)
 
     @method_decorator(never_cache)
-    def delete(self, request: Request):
+    def delete(self, request: Request) -> Response[dict[str, object] | None]:
         user_id = get_appropriate_user_id(request=request)
 
         token_id = request.data.get("tokenId", None)
