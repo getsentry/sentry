@@ -22,7 +22,10 @@ type Props = {
   project: Project;
 };
 
-function formatData(rawData: UsageSeries | undefined, theme: Theme) {
+// The stats endpoint returns its groups in no fixed order, so the series are sorted
+// before the palette is applied. That keeps each filter's color stable across loads
+// and puts the biggest contributor at the bottom of the stack.
+export function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
     return [];
   }
@@ -46,10 +49,16 @@ function formatData(rawData: UsageSeries | undefined, theme: Theme) {
     }
   }
 
-  const fallbackColor = theme.colors.gray200;
-  const statOpsColors = theme.chart.getColorPalette(valuesByName.size);
+  const sortedSeries = Array.from(valuesByName, ([name, values]) => ({
+    name,
+    values,
+    total: values.reduce((sum, value) => sum + value, 0),
+  })).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
-  return Array.from(valuesByName, ([name, values], index) => ({
+  const fallbackColor = theme.colors.gray200;
+  const statOpsColors = theme.chart.getColorPalette(sortedSeries.length);
+
+  return sortedSeries.map(({name, values}, index) => ({
     seriesName: startCase(name),
     color: statOpsColors[index] ?? fallbackColor,
     data: rawData.intervals.map((interval, i) => ({
