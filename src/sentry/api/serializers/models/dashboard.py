@@ -18,6 +18,7 @@ from sentry.models.dashboard import (
     DashboardFavoriteUser,
     DashboardLastVisited,
     DashboardRevision,
+    QueryPriorities,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -736,6 +737,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
     prebuiltId: int | None
+    queryPriority: str
 
 
 @register(Dashboard)
@@ -787,6 +789,9 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         **kwargs: object,
     ) -> DashboardDetailsResponse:
         page_filters, tag_filters = self.get_filters(obj)
+        query_priority = QueryPriorities.get_type_name(obj.query_priority)
+        if query_priority is None:
+            query_priority = "normal"
 
         data: DashboardDetailsResponse = {
             "id": str(obj.id),
@@ -800,6 +805,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "projects": page_filters.get("projects", []),
             "environment": page_filters.get("environment", []),
             "prebuiltId": obj.prebuilt_id,
+            "queryPriority": query_priority,
             **page_filters,
         }
 

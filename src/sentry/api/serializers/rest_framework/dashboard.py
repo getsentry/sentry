@@ -20,7 +20,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, QueryPriorities
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardFieldLink,
@@ -1065,6 +1065,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         allow_null=True,
         help_text="Permissions that restrict users from editing dashboards",
     )
+    query_priority = serializers.ChoiceField(
+        choices=QueryPriorities.as_text_choices(),
+        allow_null=True,
+        help_text="The query priority",
+    )
 
     def validate_projects(self, projects: list[int]) -> set[int]:
         from sentry.api.validators import validate_project_ids
@@ -1246,6 +1251,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
+            query_priority=validated_data["query_priority"],
             **get_creator_reference(self.context["request"]),
         )
 
@@ -1272,6 +1278,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         instance.title = validated_data.get("title", instance.title)
+        instance.query_priority = validated_data.get("query_priority", instance.query_priority)
         instance.save()
 
         if "widgets" in validated_data:
@@ -1692,6 +1699,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
     def remove_missing_queries(self, widget_id: int, keep_ids: list[int]) -> None:
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
+
+    def validate_query_priority(self, query_priority: str) -> int:
+        priority = QueryPriorities.get_id_for_type_name(query_priority)
+        if priority is None:
+            return QueryPriorities.NORMAL
+        return priority
 
 
 class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
