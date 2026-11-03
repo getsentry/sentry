@@ -19,10 +19,12 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.service_accounts.models import ServiceAccountProjectReplica
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.workflow_engine.models import Detector
@@ -80,6 +82,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "version": 4,
             "projects": [project.id],
             "monitorIds": [],
+            "serviceAccountId": None,
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
@@ -520,6 +523,52 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [other_accessible.id]
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
 
+    def test_put_enables_and_pauses_metric_investigations(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert response.data["enabled"] is True
+        assert workflow.matches_scope(self.project.id, None)
+        version = response.data["version"]
+
+        repeated = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert repeated.data["version"] == version
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=False
+        )
+        assert response.data["enabled"] is False
+        assert not workflow.matches_scope(self.project.id, None)
+        assert response.data["monitorIds"] == [monitor.id]
+
+    def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        member, _ = self.create_member_with_project(open_membership=False)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            enabled=True,
+            status_code=403,
+        )
+        assert workflow.get_config().enabled is False
+
+    def test_put_enabled_rejects_other_strategies(self) -> None:
+        config = self.create_config()
+        self.get_error_response(
+            self.organization.slug, config.id, method="put", enabled=True, status_code=400
+        )
+        config.refresh_from_db()
+        assert config.enabled is False
+
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
         workflow = self.create_metric_workflow(monitor_ids=[kept.id, removed.id])
@@ -623,6 +672,87 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         assert self.selected_project_ids(workflow.get_config()) == []
 
+    @with_feature("organizations:service-accounts")
+    def test_agent_projects_remain_independent_when_monitors_change(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        additional_project = self.create_project()
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        with outbox_runner():
+            account = self.create_service_account(
+                self.organization, project_ids=[self.project.id, additional_project.id]
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", serviceAccountId=account.id
+        )
+        assert response.data["serviceAccountId"] == str(account.id)
+        assert response.data["projects"] == [self.project.id]
+        assert response.data["monitorIds"] == [monitor.id]
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", monitorIds=[]
+        )
+        assert response.data["serviceAccountId"] == str(account.id)
+        assert response.data["projects"] == []
+        assert set(
+            ServiceAccountProjectReplica.objects.filter(
+                service_account__service_account_id=account.id
+            ).values_list("project_id", flat=True)
+        ) == {self.project.id, additional_project.id}
+
+    @with_feature("organizations:service-accounts")
+    def test_foreign_service_account_does_not_change_monitor_connections(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        with outbox_runner():
+            foreign = self.create_service_account(self.create_organization())
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            monitorIds=[],
+            serviceAccountId=foreign.id,
+            status_code=409,
+        )
+        assert self.connected_monitor_ids(workflow) == {monitor.id}
+        assert workflow.get_config().service_account_id is None
+
+    @with_feature("organizations:service-accounts")
+    def test_assigning_an_agent_requires_service_account_permissions(self) -> None:
+        member, project = self.create_member_with_project(open_membership=False)
+        workflow = self.create_metric_workflow()
+        with outbox_runner():
+            account = self.create_service_account(self.organization, project_ids=[project.id])
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            serviceAccountId=account.id,
+            status_code=403,
+        )
+        assert workflow.get_config().service_account_id is None
+
+    @with_feature("organizations:service-accounts")
+    def test_cannot_assign_an_agent_with_scopes_the_caller_lacks(self) -> None:
+        workflow = self.create_metric_workflow()
+        with outbox_runner():
+            account = self.create_service_account(self.organization, scope_list=["org:write"])
+        token = self.create_user_auth_token(
+            user=self.user, scope_list=["project:read", "service_account:write"]
+        )
+
+        response = self.client.put(
+            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
+            {"serviceAccountId": account.id},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 403
+        assert workflow.get_config().service_account_id is None
+
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
 
@@ -694,6 +824,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "version": 1,
             "projects": [],
             "monitorIds": [],
+            "serviceAccountId": None,
             "environments": [],
             "filters": {},
             "outputPolicy": {},
@@ -702,6 +833,31 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "dateUpdated": config.date_updated,
         }
         assert config.extras == {}
+
+    @with_feature("organizations:service-accounts")
+    def test_creates_metric_automation_with_broader_agent_access(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        additional_project = self.create_project()
+        with outbox_runner():
+            account = self.create_service_account(
+                self.organization,
+                project_ids=[self.project.id, additional_project.id],
+                scope_list=["org:read", "project:read", "event:read"],
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            monitorIds=[monitor.id],
+            serviceAccountId=account.id,
+            status_code=201,
+        )
+
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert config.service_account_id == account.id
+        assert response.data["serviceAccountId"] == str(account.id)
+        assert response.data["projects"] == [self.project.id]
+        assert response.data["monitorIds"] == [monitor.id]
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()

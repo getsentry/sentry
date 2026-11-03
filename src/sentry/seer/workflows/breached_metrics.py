@@ -176,6 +176,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         name: str | None = None,
+        service_account_id: int | None = None,
     ) -> BreachedMetricWorkflow:
         """Create an automation whose project coverage comes from connected monitors."""
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
@@ -195,6 +196,9 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 )
                 if updated:
                     config.save(using=database, update_fields=[*update_fields, "date_updated"])
+            if service_account_id is not None:
+                workflow.set_service_account(service_account_id)
+                config.refresh_from_db(fields=["service_account_id", "version"])
             transaction.on_commit(
                 partial(
                     logger.info,
@@ -210,6 +214,14 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 using=database,
             )
         return workflow
+
+    def set_enabled(self, enabled: bool) -> None:
+        with self._lock_config() as config:
+            if config.enabled == enabled:
+                return
+            config.enabled = enabled
+            config.version += 1
+            config.save(update_fields=["enabled", "version", "date_updated"])
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""
@@ -257,8 +269,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
         if existing != selected:
             self._replace_monitor_connections(workflow, existing, selected)
-        # TODO(telkins): Propagate the derived projects to the automation's dedicated
-        # service account in a separate step.
         return (
             True,
             update_fields,
