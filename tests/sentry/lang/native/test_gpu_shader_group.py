@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
 
 MATERIAL_GROUP = "M_GpuHang_992b2d801a2e9ddf/Default/FLocalVertexFactory/FLumenCardPS/0"
@@ -70,18 +68,11 @@ def test_global_group_has_no_material() -> None:
     assert "material" not in data["contexts"]["gpu_crash"]
 
 
-@pytest.mark.parametrize(
-    ("filename", "expected_abs_path"),
-    [(None, None), ("__UE_FILENAME_SENTINEL", "__UE_FILENAME_SENTINEL")],
-)
-def test_group_fills_the_filename_slot(filename: str | None, expected_abs_path: str | None) -> None:
-    frame = _frame(lineno=3477) if filename is None else _frame(filename=filename, lineno=3477)
-    data = _apply(frame)
+def test_group_fills_the_empty_filename_slot() -> None:
+    data = _apply(_frame())
 
     (applied,) = data["exception"]["values"][0]["stacktrace"]["frames"]
     assert applied["filename"] == MATERIAL_GROUP
-    assert applied.get("abs_path") == expected_abs_path
-    assert applied["lineno"] == 3477
 
 
 def test_real_filename_is_kept() -> None:

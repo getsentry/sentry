@@ -478,9 +478,6 @@ def _markers_to_breadcrumbs(markers: list[Any]) -> list[dict[str, Any]]:
     return out
 
 
-UE_FILENAME_SENTINEL = "__UE_FILENAME_SENTINEL"
-
-
 def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for raw in teapot_frames:
@@ -514,10 +511,7 @@ def _normalize_gpu_frames(teapot_frames: list[Any]) -> list[dict[str, Any]]:
         if not frame.get("module") and frame.get("package"):
             frame["module"] = frame["package"]
         group = raw_data.get("shader_group")
-        filename = frame.get("filename")
-        if isinstance(group, str) and group and filename in (None, "", UE_FILENAME_SENTINEL):
-            if filename:
-                frame.setdefault("abs_path", filename)
+        if isinstance(group, str) and group and not frame.get("filename"):
             frame["filename"] = group
 
         frame.setdefault("data", {})
