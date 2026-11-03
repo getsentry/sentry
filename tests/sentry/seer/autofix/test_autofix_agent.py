@@ -28,6 +28,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -1803,3 +1804,34 @@ class TestAutofixFunnelAnalytics:
 
         mock_record.assert_called_once_with(event)
         mock_metrics_incr.assert_called_once_with("ai.autofix.solution.completed", sample_rate=1.0)
+
+
+class TestSingleRunStartedEvents(TestCase):
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_single_run_skips_started_events(
+        self, mock_feature, mock_process_autofix_updates, mock_broadcast, *_mocks
+    ) -> None:
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=12345)
+        self.create_seer_agent_run(
+            run=run, source=SINGLE_RUN_FEATURE_ID, group=group, project=self.project
+        )
+        mock_feature.return_value = run
+
+        trigger_autofix_agent(
+            group=group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            single_run=True,
+        )
+
+        assert mock_feature.call_args.args[1].single_run is True
+        mock_broadcast.assert_not_called()
+        mock_process_autofix_updates.assert_not_called()
+        assert not Activity.objects.filter(
+            group=group, type=ActivityType.SEER_RCA_STARTED.value
+        ).exists()

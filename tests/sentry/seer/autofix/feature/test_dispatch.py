@@ -7,7 +7,9 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
 from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -405,3 +407,94 @@ class TestTriggerAutofixFeature(TestCase):
                     existing_run_id=123,
                 ),
             )
+
+
+@django_db_all
+class TestSingleRunStart(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _start(self, **kwargs):
+        args = {
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE,
+            "step": AutofixStep.ROOT_CAUSE,
+            "step_args": RCAStepArgs(),
+            **kwargs,
+        }
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            patch("sentry.seer.autofix.feature.dispatch.require_autofix_run_for_group"),
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            mock_client_cls.return_value.start_feature_run.return_value = fake_run
+            mock_client_cls.return_value.continue_feature_run.return_value = fake_run
+            trigger_autofix_feature(self.group, AutofixFeatureArgs(**args))
+        return mock_client_cls
+
+    def _started_feature_id(self, mock_client_cls) -> str:
+        return mock_client_cls.return_value.start_feature_run.call_args.kwargs["feature_id"]
+
+    def _set_handoff(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+
+    def test_flagged_org_starts_single_run(self) -> None:
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start()
+
+        assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+        payload = mock_client_cls.return_value.start_feature_run.call_args.kwargs["payload"]
+        assert payload["group_id"] == self.group.id
+        assert "step" not in payload
+
+    def test_unflagged_org_starts_steps(self) -> None:
+        mock_client_cls = self._start()
+
+        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
+
+    def test_caller_can_ask_for_single_run(self) -> None:
+        mock_client_cls = self._start(single_run=True)
+
+        assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+
+    def test_handoff_project_never_single_run(self) -> None:
+        self._set_handoff()
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start(single_run=True)
+
+        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
+
+    def test_retry_never_single_run(self) -> None:
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start(single_run=True, existing_run_id=5)
+
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+        mock_client_cls.return_value.continue_feature_run.assert_called_once()
+
+    def test_single_run_stopping_point_sets_coding(self) -> None:
+        cases = [
+            (None, "code_changes", True, True),
+            (None, "root_cause", True, False),
+            (AutofixStoppingPoint.ROOT_CAUSE, "open_pr", True, False),
+            (AutofixStoppingPoint.SOLUTION, "open_pr", True, False),
+            (AutofixStoppingPoint.OPEN_PR, "root_cause", True, True),
+            (AutofixStoppingPoint.OPEN_PR, "open_pr", False, False),
+        ]
+        for caller_stopping_point, project_stopping_point, org_coding, expected in cases:
+            with self.subTest(caller=caller_stopping_point, project=project_stopping_point):
+                self.project.update_option(
+                    "sentry:seer_automated_run_stopping_point", project_stopping_point
+                )
+                self.organization.update_option("sentry:enable_seer_coding", org_coding)
+
+                mock_client_cls = self._start(single_run=True, stopping_point=caller_stopping_point)
+
+                assert mock_client_cls.call_args.kwargs["enable_coding"] is expected
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                assert start_kwargs["agent_run_options"]["enable_coding"] is expected
