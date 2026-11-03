@@ -347,7 +347,10 @@ function EditConnectedMonitorsContent({
       setConnectedIds(newMode === 'specific' ? specificMonitorIds.current : []);
       form?.setValue('projectIds', []);
       form?.setValue('allProjects', newMode === 'allProjects');
-      if (newMode === 'allProjects') {
+      if (
+        newMode === 'allProjects' ||
+        (newMode === 'specific' && specificMonitorIds.current.length > 0)
+      ) {
         errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
       }
     },
