@@ -13,7 +13,11 @@ import {
   webVitalP75Meter,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {webVitalP75Field} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
+import {
+  OPPORTUNITY_SCORE_FIELD,
+  PERFORMANCE_SCORE_FIELD,
+  webVitalP75Field,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const PAGES_TABLE_COLUMNS = [SpanFields.TRANSACTION, SpanFields.PROJECT];
@@ -24,8 +28,8 @@ const PAGES_TABLE_AGGREGATES = [
   webVitalP75Field('cls'),
   webVitalP75Field('ttfb'),
   webVitalP75Field('inp'),
-  'performance_score(measurements.score.total)',
-  'opportunity_score(measurements.score.total)',
+  PERFORMANCE_SCORE_FIELD,
+  OPPORTUNITY_SCORE_FIELD,
 ];
 
 /**
@@ -125,7 +129,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [...PAGES_TABLE_COLUMNS, ...PAGES_TABLE_AGGREGATES],
           aggregates: PAGES_TABLE_AGGREGATES,
           columns: PAGES_TABLE_COLUMNS,
-          orderby: '-opportunity_score(measurements.score.total)',
+          orderby: `-${OPPORTUNITY_SCORE_FIELD}`,
           fieldAliases: [
             t('Pages'),
             t('Project'),
