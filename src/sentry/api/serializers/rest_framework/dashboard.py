@@ -1067,6 +1067,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     )
     query_priority = serializers.ChoiceField(
         choices=QueryPriorities.as_text_choices(),
+        required=False,
         allow_null=True,
         help_text="The query priority",
     )
