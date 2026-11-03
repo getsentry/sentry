@@ -38,6 +38,7 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -453,6 +454,7 @@ class TestTriggerAutofixAgent(TestCase):
             "group_id": self.group.id,
         }
 
+    @with_feature({"organizations:autofix-should-run-repo-checks": False})
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     def test_solution_without_prior_run_routes_to_seer_feature(
@@ -532,6 +534,28 @@ class TestTriggerAutofixAgent(TestCase):
             "actor_user_id": self.user.id,
         }
 
+    @with_feature("organizations:autofix-should-run-repo-checks")
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_repo_checks_flag_enables_bash_mode_for_any_referrer(
+        self, mock_feature: MagicMock, mock_broadcast: MagicMock
+    ) -> None:
+        mock_feature.return_value = self.create_seer_run(
+            organization=self.group.organization,
+            seer_run_state_id=777,
+            type="feature_run",
+        )
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.CODE_CHANGES,
+            referrer=AutofixReferrer.UNKNOWN,
+        )
+
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.enable_bash_mode is True
+        assert feature_trigger.step_args.should_run_repo_checks is True
+
     @patch("sentry.seer.autofix.autofix_agent.record_seer_activity")
     @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -592,6 +616,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         assert mock_record_activity.call_args.kwargs["activity_attribution"] is None
 
+    @with_feature({"organizations:autofix-should-run-repo-checks": False})
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     def test_code_changes_without_prior_run_routes_to_seer_feature(
