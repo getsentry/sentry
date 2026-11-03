@@ -161,6 +161,7 @@ export function LogsInfiniteTable({
     refetch,
     fetchNextPage,
     fetchPreviousPage,
+    canFetchNextPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -381,9 +382,13 @@ export function LogsInfiniteTable({
     });
   });
 
+  // Scrolling to the end would load another page and move the event's row again.
+  const isPseudoRowPastLoadedPages = pseudoRowIndex === -2 && canFetchNextPage;
+
   useEffect(() => {
     if (
       pseudoRowIndex === -1 ||
+      isPseudoRowPastLoadedPages ||
       !tableBodyRef?.current ||
       additionalData?.scrollToDisabled
     ) {
@@ -391,7 +396,13 @@ export function LogsInfiniteTable({
     }
     const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
     return () => clearTimeout(timeoutId);
-  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
+  }, [
+    pseudoRowIndex,
+    isPseudoRowPastLoadedPages,
+    virtualizer,
+    tableBodyRef,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
