@@ -11,9 +11,11 @@ import {
 
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {
+  getExplorerUrl,
   parseRunIdParam,
   SeerExplorerDeepLinkParamProvider,
   TOOL_FORMATTERS,
+  useOpenChangesRepo,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
 } from 'sentry/views/seerExplorer/utils';
@@ -250,5 +252,77 @@ describe('useSyncSeerExplorerRunIdToUrl', () => {
     switchRun(OTHER_UUID);
     expect(router.location.query.explorerRunId).toBeUndefined();
     expect(router.location.query.query).toBe('foo');
+  });
+
+  it("drops the previous run's changes param when the run changes", async () => {
+    const {router, switchRun} = renderSync(UUID, {
+      explorerRunId: UUID,
+      explorerChanges: 'owner/repo',
+    });
+
+    switchRun(OTHER_UUID);
+    await waitFor(() => expect(router.location.query.explorerRunId).toBe(OTHER_UUID));
+    expect(router.location.query.explorerChanges).toBeUndefined();
+  });
+});
+
+describe('useOpenChangesRepo', () => {
+  function renderOpenChanges(
+    runId: SeerExplorerRunId | null,
+    query: Record<string, string>
+  ) {
+    return renderHookWithProviders(() => useOpenChangesRepo(runId), {
+      initialRouterConfig: {location: {pathname: '/issues/', query}},
+    });
+  }
+
+  it("opens a chat link's changes once the link's run is active", () => {
+    const query = {explorerRunId: '5', explorerChanges: 'owner/repo'};
+
+    expect(renderOpenChanges(7, query).result.current[0]).toBeNull();
+    expect(renderOpenChanges(5, query).result.current[0]).toBe('owner/repo');
+  });
+
+  it('keeps a chat link in sync, so browser back closes the changes', async () => {
+    const {result, router} = renderOpenChanges(5, {explorerRunId: '5', query: 'foo'});
+
+    act(() => result.current[1]('owner/repo'));
+    await waitFor(() => expect(result.current[0]).toBe('owner/repo'));
+    expect(router.location.query).toEqual({
+      explorerRunId: '5',
+      explorerChanges: 'owner/repo',
+      query: 'foo',
+    });
+
+    act(() => router.navigate(-1));
+    await waitFor(() => expect(result.current[0]).toBeNull());
+    expect(router.location.query.explorerChanges).toBeUndefined();
+  });
+
+  it('leaves the URL alone without a chat link', () => {
+    const {result, router} = renderOpenChanges(5, {query: 'foo'});
+
+    act(() => result.current[1]('owner/repo'));
+    expect(result.current[0]).toBe('owner/repo');
+    expect(router.location.query).toEqual({query: 'foo'});
+
+    act(() => result.current[1](null));
+    expect(result.current[0]).toBeNull();
+  });
+});
+
+describe('getExplorerUrl', () => {
+  it('links to the given changes, replacing any already in the URL', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/issues/?explorerChanges=owner%2Fold&query=foo'
+    );
+
+    const withChanges = new URL(getExplorerUrl(7, 'owner/repo'));
+    expect(withChanges.searchParams.get('explorerRunId')).toBe('7');
+    expect(withChanges.searchParams.get('explorerChanges')).toBe('owner/repo');
+    expect(withChanges.searchParams.get('query')).toBe('foo');
+    expect(new URL(getExplorerUrl(7)).searchParams.has('explorerChanges')).toBe(false);
   });
 });

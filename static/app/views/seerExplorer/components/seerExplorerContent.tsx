@@ -6,7 +6,6 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
@@ -85,6 +84,7 @@ import type {
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
+  useOpenChangesRepo,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
@@ -470,19 +470,22 @@ export function SeerExplorerContent({
     enabled: copySessionEnabled,
   });
 
+  // The repo whose diff takes over the panel.
+  const [changesRepoName, setChangesRepoName] = useOpenChangesRepo(runId);
+
   const handleCopyLink = useCallback(async () => {
     if (runId === null) {
       return;
     }
     try {
-      const url = getExplorerUrl(runId);
+      const url = getExplorerUrl(runId, changesRepoName);
       await navigator.clipboard.writeText(url);
       addSuccessMessage('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
       addErrorMessage('Failed to copy link to current chat');
     }
-  }, [runId, organization]);
+  }, [runId, changesRepoName, organization]);
 
   const conversationsUrl = useMemo(() => {
     if (runId === null) {
@@ -566,15 +569,8 @@ export function SeerExplorerContent({
     () => getRunChanges(blocks, repoPRStates, prDiffs),
     [blocks, repoPRStates, prDiffs]
   );
-  // The repo whose diff takes over the panel. Tied to its run so switching runs closes it.
-  const [changesView, setChangesView] = useState<{
-    repoName: string;
-    runId: SeerExplorerRunId | null;
-  } | null>(null);
   const openChanges =
-    changesView?.runId === runId
-      ? (runChanges.find(changes => changes.repoName === changesView.repoName) ?? null)
-      : null;
+    runChanges.find(changes => changes.repoName === changesRepoName) ?? null;
 
   // Menu component
   const {menu, closeMenu} = useExplorerMenu({
@@ -938,7 +934,7 @@ export function SeerExplorerContent({
               onPushChanges={readOnly || showLoadError ? undefined : handlePushChanges}
               onOpenChanges={repoName => {
                 closeMenu();
-                setChangesView({repoName, runId});
+                setChangesRepoName(repoName);
               }}
               runId={runId}
               composerRef={composerRef}
@@ -969,7 +965,10 @@ export function SeerExplorerContent({
           </Stack>
           {openChanges && (
             <Container position="absolute" inset="0" background="primary">
-              <RunChangesView changes={openChanges} onBack={() => setChangesView(null)} />
+              <RunChangesView
+                changes={openChanges}
+                onBack={() => setChangesRepoName(null)}
+              />
             </Container>
           )}
         </Stack>
