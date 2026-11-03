@@ -79,7 +79,8 @@ export interface MenuItemProps extends ListItemProps {
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
    * `maxHeight` and `maxWidth` cap its size without forcing smaller
-   * menus to fill those dimensions.
+   * menus to fill those dimensions. Above `virtualizeThreshold` items, it
+   * renders only the visible rows.
    */
   submenu?:
     | boolean
@@ -88,6 +89,12 @@ export interface MenuItemProps extends ListItemProps {
         position?: UseOverlayProps['position'];
         search?: DropdownMenuSearchOptions;
         title?: string;
+        /**
+         * Number of items above which only the visible rows render. A
+         * virtualized sub-menu uses `maxWidth` as its width, because hidden
+         * rows cannot size it, and cannot contain nested sub-menus.
+         */
+        virtualizeThreshold?: number;
       });
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for

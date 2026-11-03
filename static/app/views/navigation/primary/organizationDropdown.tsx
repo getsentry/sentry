@@ -269,6 +269,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       search: {placeholder: t('Search')},
                       maxHeight: 240,
                       maxWidth: 258,
+                      // Organizations can have hundreds of projects.
+                      virtualizeThreshold: 50,
                     },
                     hidden: projects.length === 0,
                     children: [

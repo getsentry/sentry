@@ -468,6 +468,119 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  describe('virtualized submenu', () => {
+    const projects = Array.from({length: 100}, (_, i) => ({
+      key: `project-${i}`,
+      label: `project-${i}`,
+    }));
+
+    const rowHeight = 32;
+    const originalScrollTo = HTMLElement.prototype.scrollTo;
+
+    function mockHeight(
+      property: 'offsetHeight' | 'clientHeight' | 'scrollHeight',
+      menuHeight: number
+    ) {
+      jest.spyOn(HTMLElement.prototype, property, 'get').mockImplementation(function (
+        this: HTMLElement
+      ) {
+        return this.getAttribute('role') === 'menu' ? menuHeight : rowHeight;
+      });
+    }
+
+    beforeEach(() => {
+      // JSDOM has no layout. Give the submenu a fixed height and every row the
+      // same height, so the virtualizer renders a window of rows.
+      mockHeight('offsetHeight', 240);
+      mockHeight('clientHeight', 240);
+      mockHeight('scrollHeight', (projects.length + 1) * rowHeight);
+      // JSDOM does not scroll. Like a browser, emit the scroll event the
+      // virtualizer listens for after the current task.
+      HTMLElement.prototype.scrollTo = function (
+        this: HTMLElement,
+        options?: ScrollToOptions | number
+      ) {
+        this.scrollTop = typeof options === 'object' ? (options.top ?? 0) : 0;
+        setTimeout(() => this.dispatchEvent(new Event('scroll')));
+      };
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      HTMLElement.prototype.scrollTo = originalScrollTo;
+    });
+
+    function renderVirtualizedMenu() {
+      render(
+        <DropdownMenu
+          triggerLabel="Projects"
+          items={[
+            {
+              key: 'all-projects',
+              label: 'All Projects',
+              submenu: {
+                search: {placeholder: 'Search projects'},
+                maxHeight: 240,
+                maxWidth: 258,
+                virtualizeThreshold: 50,
+              },
+              children: [{key: 'my-projects', label: 'My Projects', children: projects}],
+            },
+          ]}
+        />
+      );
+    }
+
+    it('renders only the visible rows of a long submenu', async () => {
+      renderVirtualizedMenu();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+
+      expect(screen.getByRole('group', {name: 'My Projects'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'project-0'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'project-99'})
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole('menuitemradio').length).toBeLessThan(30);
+      expect(
+        screen.getByRole('menuitemradio', {name: 'project-0'}).closest('[data-overlay]')
+      ).toHaveStyle({width: 'min(258px, 100%)'});
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Search projects'}),
+        'project-99'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'project-99'})).toBeInTheDocument();
+    });
+
+    it('moves keyboard focus between search and rows that are not rendered', async () => {
+      renderVirtualizedMenu();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+      const search = screen.getByRole('textbox', {name: 'Search projects'});
+      expect(search).toHaveFocus();
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(screen.getByRole('menuitemradio', {name: 'project-0'})).toHaveFocus();
+      await userEvent.keyboard('{End}');
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'project-99'})
+      ).toHaveFocus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(await screen.findByRole('menuitemradio', {name: 'project-0'})).toHaveFocus();
+      await userEvent.keyboard('{End}');
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'project-99'})
+      ).toHaveFocus();
+      await userEvent.keyboard('{Home}');
+      expect(await screen.findByRole('menuitemradio', {name: 'project-0'})).toHaveFocus();
+      await userEvent.keyboard('{ArrowUp}');
+      expect(search).toHaveFocus();
+    });
+  });
+
   it('returns from the first enabled item to search when a disabled item comes first', async () => {
     render(
       <DropdownMenu
