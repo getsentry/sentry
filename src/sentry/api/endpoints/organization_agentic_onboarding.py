@@ -29,6 +29,7 @@ from sentry.onboarding.agentic_progress.model import (
     OnboardingRunExpired,
     OnboardingRunTerminal,
     ProgressUpdate,
+    RunOrigin,
     RunStatus,
     Stage,
     StageExtra,
@@ -61,6 +62,7 @@ StageStatusValue = Literal["active", "waiting", "completed", "skipped", "failed"
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
     onboarding_code: str
+    origin: RunOrigin | None
 
 
 class AgenticOnboardingStatusRequest(TypedDict):
@@ -88,6 +90,7 @@ class AgenticOnboardingPermission(OrganizationPermission):
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
     onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -176,6 +179,9 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 client_run_id=str(serializer.validated_data["client_run_id"]),
                 onboarding_code=serializer.validated_data["onboarding_code"],
+                origin=RunOrigin(serializer.validated_data["origin"])
+                if serializer.validated_data["origin"] is not None
+                else None,
             )
         except RunOwnershipMismatch:
             return Response({"detail": "Onboarding run not found"}, status=404)
@@ -232,6 +238,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     user_id=user_id,
                     organization_id=organization.id,
                     run_id=run.run_id,
+                    origin=run.origin,
                     stage=values["update"].stage.value,
                     status=values["update"].status.value,
                 )
@@ -243,6 +250,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                         user_id=user_id,
                         organization_id=organization.id,
                         run_id=run.run_id,
+                        origin=run.origin,
                         stage=values["update"].stage.value,
                         status=values["update"].status.value,
                     )
@@ -254,6 +262,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     user_id=user_id,
                     organization_id=organization.id,
                     run_id=run.run_id,
+                    origin=run.origin,
                     status=run.run_status.value,
                 )
             )

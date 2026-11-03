@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
+from sentry.auth.principal import acting_user_id
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -139,7 +140,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         transaction_id = uuid4().hex
         url_data = sign(
             salt=SALT,
-            actor_id=request.user.id,
+            actor_id=acting_user_id(request.user),
             from_organization_id=project.organization_id,
             project_id=project.id,
             user_id=unique_user_ids.pop(),

@@ -258,7 +258,8 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
         orderby = request.GET.getlist("sort", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
-        update_snuba_params_with_timestamp(request, snuba_params)
+        with handle_query_errors():
+            update_snuba_params_with_timestamp(request, snuba_params)
 
         def data_fn(offset: int, limit: int) -> EventsResponse:
             with handle_query_errors():

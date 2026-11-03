@@ -17,7 +17,7 @@ from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.event_search import (
     ParenExpression,
     SearchBoolean,
@@ -168,6 +168,8 @@ class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False)
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

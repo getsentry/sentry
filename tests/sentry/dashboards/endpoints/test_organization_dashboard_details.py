@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.db.models import QuerySet
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -18,6 +19,7 @@ from sentry.explore.translation.dashboards_translation import translate_dashboar
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -41,6 +43,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -4935,6 +4938,26 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.visits == 2
         assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:service-accounts", "organizations:dashboards-user-last-visited"])
+    def test_visit_dashboard_as_service_account(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.post(
+            self.url(self.dashboard.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+
+        assert response.status_code == 204, response.content
+        assert Dashboard.objects.get(id=self.dashboard.id).visits == 2
+        assert not DashboardLastVisited.objects.filter(dashboard=self.dashboard).exists()
 
     def test_visit_dashboard_no_access(self) -> None:
         last_visited = self.dashboard.last_visited

@@ -1,4 +1,5 @@
 from itertools import product
+from unittest.mock import patch
 
 from django.test import override_settings
 from django.urls import reverse
@@ -111,6 +112,50 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "createdBy" in response.data[4]
         assert response.data[4]["createdBy"]["username"] == self.user.username
         assert not response.data[4]["expired"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_shared_queries_without_personal_state(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.features),
+            patch(
+                "sentry.explore.endpoints.explore_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            mine = self.client.get(
+                self.url, {"exclude": "shared"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            starred = self.client.get(
+                self.url, {"starred": "1"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            shared = self.client.get(
+                self.url,
+                {"sortBy": ["myqueries", "starred", "recentlyViewed"]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert mine.status_code == 200, mine.content
+        assert mine.data == []
+        assert starred.status_code == 200, starred.content
+        assert starred.data == []
+        assert shared.status_code == 200, shared.content
+        assert "Test query" in {query["name"] for query in shared.data}
+        assert not any(query["starred"] for query in shared.data)
+        assert not any(query.get("lastVisited") for query in shared.data)
+        capture_exception.assert_not_called()
 
     def test_get_name_filter(self) -> None:
         with self.feature(self.features):
@@ -995,6 +1040,45 @@ class ExploreSavedQueriesTest(APITestCase):
         assert model.created_by_id is None
         assert model.created_by_service_account_id == service_account.id
         assert model.created_by_org_auth_token_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_post_starred_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.features),
+            patch(
+                "sentry.explore.endpoints.explore_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "range": "24h",
+                    "starred": True,
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        query = ExploreSavedQuery.objects.get(id=response.data["id"])
+        assert query.created_by_id is None
+        assert not ExploreSavedQueryStarred.objects.filter(explore_saved_query=query).exists()
+        capture_exception.assert_not_called()
 
     def test_post_with_range(self) -> None:
         """Older clients send `range`. It is stored and returned as `statsPeriod`."""

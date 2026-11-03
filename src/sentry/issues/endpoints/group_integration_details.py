@@ -61,6 +61,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
@@ -137,6 +138,8 @@ ACTION_PARAM = OpenApiParameter(
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 10.0
+
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -717,7 +720,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(status=204)
 
     def _has_issue_feature(
-        self, organization: Organization, user: User | RpcUser | AnonymousUser
+        self,
+        organization: Organization,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal,
     ) -> bool:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user

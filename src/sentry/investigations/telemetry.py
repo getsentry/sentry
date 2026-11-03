@@ -4,7 +4,7 @@ import logging
 
 from django.utils import timezone
 
-from sentry.notebooks.models import Notebook, NotebookBlockExecution
+from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookBlockExecution
 from sentry.notebooks.telemetry import (
     execution_attributes,
     investigation_attributes,
@@ -13,6 +13,26 @@ from sentry.notebooks.telemetry import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _action_request_attributes(action_request: NotebookActionRequest) -> dict[str, str]:
+    attributes = {"kind": action_request.action_kind or "advice"}
+    provider = (action_request.action_payload or {}).get("provider")
+    if provider:
+        attributes["provider"] = str(provider)
+    return attributes
+
+
+def record_action_request_suggested(action_request: NotebookActionRequest) -> None:
+    record_count(
+        "investigations.action_request.suggested", _action_request_attributes(action_request)
+    )
+
+
+def record_action_request_applied(action_request: NotebookActionRequest) -> None:
+    record_count(
+        "investigations.action_request.applied", _action_request_attributes(action_request)
+    )
 
 
 def record_investigation_started(investigation: Notebook) -> None:
