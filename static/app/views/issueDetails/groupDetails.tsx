@@ -95,6 +95,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
+// Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
 const allProjectsQueryParsers = {
   _allp: parseAsString,
   project: parseAsString,
