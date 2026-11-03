@@ -33,7 +33,8 @@ function AutoTopUpFixture(
     enabled: false,
     thresholdCredits: 500,
     topUpCredits: 1000,
-    dailySpendCapCents: 7500,
+    dailyCapCredits: 7500,
+    failedInvoiceGuid: null,
     ...params,
   };
 }
@@ -111,7 +112,7 @@ describe('SeerWalletCard', () => {
         enabled: true,
         thresholdCredits: 1000,
         topUpCredits: 50_000,
-        dailySpendCapCents: 100_000,
+        dailyCapCredits: 100_000,
       })
     );
     render(<SeerWalletCard organization={organization} />);
@@ -163,7 +164,7 @@ describe('SeerWalletCard', () => {
           enabled: true,
           thresholdCredits: 500,
           topUpCredits: 2000,
-          dailySpendCapCents: 7500,
+          dailyCapCredits: 7500,
         },
       })
     );
@@ -209,7 +210,7 @@ describe('SeerWalletCard', () => {
       method: 'PUT',
       statusCode: 400,
       body: {
-        dailySpendCapCents: ['The daily spending cap must cover at least one top-up.'],
+        dailyCapCredits: ['The daily cap must cover at least one top-up.'],
       },
     });
     render(<SeerWalletCard organization={organization} />);
@@ -221,7 +222,7 @@ describe('SeerWalletCard', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(
-      await screen.findByText('The daily spending cap must cover at least one top-up.')
+      await screen.findByText('The daily cap must cover at least one top-up.')
     ).toBeInTheDocument();
   });
 });

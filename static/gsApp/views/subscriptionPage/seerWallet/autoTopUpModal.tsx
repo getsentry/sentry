@@ -22,6 +22,7 @@ import {displayPrice} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
   type SeerWalletAutoTopUp,
+  type SeerWalletAutoTopUpSettings,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 const TOP_UP_PRESETS = [1000, 2000, 5000];
@@ -52,13 +53,11 @@ function AutoTopUpModal({
   const [enabled, setEnabled] = useState(true);
   const [thresholdCredits, setThresholdCredits] = useState(autoTopUp.thresholdCredits);
   const [topUpCredits, setTopUpCredits] = useState(autoTopUp.topUpCredits);
-  const [dailySpendCapDollars, setDailySpendCapDollars] = useState(
-    Math.floor(autoTopUp.dailySpendCapCents / 100)
-  );
+  const [dailyCapCredits, setDailyCapCredits] = useState(autoTopUp.dailyCapCredits);
   const [error, setError] = useState<string | null>(null);
 
   const {mutate: save, isPending} = useMutation({
-    mutationFn: (data: SeerWalletAutoTopUp) =>
+    mutationFn: (data: SeerWalletAutoTopUpSettings) =>
       fetchMutation<SeerWalletAutoTopUp>({
         url: getApiUrl('/customers/$organizationIdOrSlug/seer-wallet/auto-top-up/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -178,19 +177,19 @@ function AutoTopUpModal({
           <Separator orientation="horizontal" border="primary" />
           <Stack gap="sm">
             <Text as="label" htmlFor="seer-auto-top-up-daily-cap">
-              {t('Daily spending cap')}
+              {t('Daily cap')}
             </Text>
             <InputGroup>
-              <InputGroup.LeadingItems disablePointerEvents>
-                <Text variant="muted">$</Text>
-              </InputGroup.LeadingItems>
               <InputGroup.Input
                 id="seer-auto-top-up-daily-cap"
                 inputMode="numeric"
                 disabled={!enabled}
-                value={dailySpendCapDollars.toLocaleString()}
-                onChange={e => setDailySpendCapDollars(parseWholeNumber(e.target.value))}
+                value={dailyCapCredits.toLocaleString()}
+                onChange={e => setDailyCapCredits(parseWholeNumber(e.target.value))}
               />
+              <InputGroup.TrailingItems disablePointerEvents>
+                <Text variant="muted">{t('credits')}</Text>
+              </InputGroup.TrailingItems>
             </InputGroup>
           </Stack>
           {enabled && (
@@ -200,7 +199,7 @@ function AutoTopUpModal({
                 {
                   cost: displayPrice({cents: topUpCostCents}),
                   threshold: thresholdCredits.toLocaleString(),
-                  cap: displayPrice({cents: dailySpendCapDollars * 100}),
+                  cap: displayPrice({cents: dailyCapCredits * creditPriceCents}),
                 }
               )}
             </Text>
@@ -218,7 +217,7 @@ function AutoTopUpModal({
                 enabled,
                 thresholdCredits,
                 topUpCredits,
-                dailySpendCapCents: dailySpendCapDollars * 100,
+                dailyCapCredits,
               })
             }
           >

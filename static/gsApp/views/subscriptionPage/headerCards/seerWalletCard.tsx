@@ -200,9 +200,7 @@ function CreditBreakdown({
               <Text align="left">{t('Up to a maximum of')}</Text>
               <Text align="right">
                 {tct('[credits] / day', {
-                  credits: Math.floor(
-                    autoTopUp.dailySpendCapCents / wallet.creditPriceCents
-                  ).toLocaleString(),
+                  credits: autoTopUp.dailyCapCredits.toLocaleString(),
                 })}
               </Text>
             </Grid>
