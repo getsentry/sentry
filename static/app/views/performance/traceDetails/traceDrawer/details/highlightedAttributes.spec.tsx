@@ -222,6 +222,37 @@ describe('getHighlightedSpanAttributes', () => {
     expect(result.find(attr => attr.name === 'Result Size')?.value).toBe('4.1 kB');
   });
 
+  it('uses the AI trace drawer referrer for the tool result size baseline', async () => {
+    const baselineRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'avg(gen_ai.tool.call.result.size)': 2000}]},
+    });
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      projectId: 1,
+      attributes: {
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'search',
+        'gen_ai.tool.call.result.size': 4000,
+      },
+    });
+    const size = result.find(attr => attr.name === 'Result Size');
+    if (!isValidElement(size?.value)) {
+      throw new Error('Expected tool result size to be a React element');
+    }
+    render(size.value);
+
+    expect(await screen.findByText('100% larger than avg 2 kB')).toBeInTheDocument();
+    expect(baselineRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          referrer: 'api.insights.agent-monitoring.trace-drawer',
+        }),
+      })
+    );
+  });
+
   it('should include tokens attribute when values are present', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
