@@ -2614,7 +2614,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_inbox_item_event(
         inbox_item: InboxItem,
-        type: str = "issue.assigned",
+        type: str = "issue.user_assigned",
         actor: User | RpcUser | None = None,
         **kwargs: Any,
     ) -> InboxItemEvent:
