@@ -53,20 +53,25 @@ class ApiAuthIntegrationTest(APITestCase):
         assert response.status_code == 400
 
     def login(self, password: str = "password") -> Response:
-        return self.client.post(
+        response: Response[Any] = self.client.post(
             reverse("sentry-api-0-auth-login"),
             data={"username": self.user.username, "password": password},
         )
+        return response
 
     def verify_2fa(self, method: str, **data: Any) -> Response:
-        return self.client.post(
+        response: Response[Any] = self.client.post(
             reverse("sentry-api-0-auth-2fa"),
             data={"method": method, **data},
             content_type="application/json",
         )
+        return response
 
     def activate_2fa(self, method: str) -> Response:
-        return self.client.post(reverse("sentry-api-0-auth-2fa-challenge"), data={"method": method})
+        response: Response[Any] = self.client.post(
+            reverse("sentry-api-0-auth-2fa-challenge"), data={"method": method}
+        )
+        return response
 
     def enroll_webauthn(self) -> WebAuthnTestCredential:
         private_key = ec.generate_private_key(ec.SECP256R1())

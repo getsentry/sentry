@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +12,7 @@ from sentry.issue_detection.detectors.utils import (
     safer_urlparse,
     span_has_obfuscated_hostname,
 )
+from sentry.issue_detection.types import Span as IssueSpan
 from sentry.testutils.issue_detection.event_generators import create_span
 
 
@@ -148,7 +149,7 @@ class TestDetectorUtils:
     @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
     def test_span_has_obfuscated_hostname(self, test_case: URLTestCase) -> None:
         span = create_span("http.client", 320415204, f"GET {test_case.url}")
-        assert span_has_obfuscated_hostname(span) == test_case.is_obfuscated
+        assert span_has_obfuscated_hostname(cast(IssueSpan, span)) == test_case.is_obfuscated
 
     @pytest.mark.parametrize("test_case", test_cases, ids=lambda test_case: test_case.url)
     def test_safer_urlparse(self, test_case: URLTestCase) -> None:
@@ -222,10 +223,10 @@ class TestGetNumericValueFromSpan:
         default = 0 if number_type is int else 0.0
 
         result_without_default = get_numeric_value_from_span(
-            span, keys, "dog_detector", number_type
+            cast(IssueSpan, span), keys, "dog_detector", number_type
         )
         result_with_default = get_numeric_value_from_span(
-            span, keys, "dog_detector", number_type, default=default
+            cast(IssueSpan, span), keys, "dog_detector", number_type, default=default
         )
 
         if expected_result is Exception:
@@ -257,8 +258,13 @@ class TestGetNumericValueFromSpan:
         keys = ["dogs_are_great"]
 
         # Returns the default value (if given) or `None` (if not)
-        assert get_numeric_value_from_span(span, keys, "dog_detector", int) is None
-        assert get_numeric_value_from_span(span, keys, "dog_detector", int, default=1231) == 1231
+        assert get_numeric_value_from_span(cast(IssueSpan, span), keys, "dog_detector", int) is None
+        assert (
+            get_numeric_value_from_span(
+                cast(IssueSpan, span), keys, "dog_detector", int, default=1231
+            )
+            == 1231
+        )
         # Either way, missing data isn't invalid data, so there's nothing to log
         assert mock_log_invalid_data.call_count == 0
 
@@ -266,12 +272,12 @@ class TestGetNumericValueFromSpan:
         span = create_span("do.dog.stuff", data={"adopt_dont_shop": 1121, "dogs_are_great": 1231})
         keys = ["dogs_are_great", "adopt_dont_shop"]
 
-        assert get_numeric_value_from_span(span, keys, "dog_detector", int) == 1231
+        assert get_numeric_value_from_span(cast(IssueSpan, span), keys, "dog_detector", int) == 1231
         assert mock_log_invalid_data.call_count == 0
 
     def test_falls_back_to_later_keys(self, mock_log_invalid_data: MagicMock) -> None:
         span = create_span("do.dog.stuff", data={"adopt_dont_shop": 1121})
         keys = ["dogs_are_great", "adopt_dont_shop"]
 
-        assert get_numeric_value_from_span(span, keys, "dog_detector", int) == 1121
+        assert get_numeric_value_from_span(cast(IssueSpan, span), keys, "dog_detector", int) == 1121
         assert mock_log_invalid_data.call_count == 0

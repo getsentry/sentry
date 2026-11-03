@@ -634,7 +634,7 @@ def get_github_enterprise_integration_config(
 
 
 def send_seer_webhook(
-    *, event_name: str, organization_id: int, payload: dict
+    *, event_name: str, organization_id: int, payload: dict[str, Any]
 ) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.

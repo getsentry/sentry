@@ -1,4 +1,5 @@
 import dataclasses
+from collections.abc import Generator
 from threading import local
 from typing import Any
 from unittest import mock
@@ -16,12 +17,12 @@ class StaleDatabaseReads:
     model_signal_handlers: list[tuple[Any, Any]]
     transaction_blocks: list[Any]
 
-    def clear(self):
+    def clear(self) -> None:
         self.model_signal_handlers.clear()
         self.transaction_blocks.clear()
 
 
-def _raise_reports(reports: StaleDatabaseReads):
+def _raise_reports(reports: StaleDatabaseReads) -> None:
     if not reports.model_signal_handlers and not reports.transaction_blocks:
         return
 
@@ -88,14 +89,14 @@ Or like this in pytest-based tests:
 
 
 @pytest.fixture(autouse=True)
-def stale_database_reads():
+def stale_database_reads() -> Generator[StaleDatabaseReads]:
     from taskbroker_client.task import Task
 
     _state = local()
 
     old_send = ModelSignal.send
 
-    def send(self, sender, **named):
+    def send(self: ModelSignal, sender: object, **named: Any) -> Any:
         _state.in_signal_sender = getattr(sender, "__name__", repr(sender))
         try:
             return old_send(self, sender, **named)
@@ -105,7 +106,7 @@ def stale_database_reads():
     old_on_commit = transaction.on_commit
 
     # Needs to be hooked for autocommit
-    def on_commit(*args, **kwargs):
+    def on_commit(*args: Any, **kwargs: Any) -> Any:
         _state.in_on_commit = True
         try:
             return old_on_commit(*args, **kwargs)
@@ -114,7 +115,7 @@ def stale_database_reads():
 
     old_atomic = transaction.atomic
 
-    def atomic(*args, **kwargs):
+    def atomic(*args: Any, **kwargs: Any) -> Any:
         _state.in_atomic = True
         try:
             return old_atomic(*args, **kwargs)
@@ -124,10 +125,10 @@ def stale_database_reads():
     old_run_and_clear_commit_hooks = BaseDatabaseWrapper.run_and_clear_commit_hooks
 
     # Needs to be hooked for running commit hooks inside of TransactionTestCase
-    def run_and_clear_commit_hooks(*args, **kwargs):
+    def run_and_clear_commit_hooks(self: BaseDatabaseWrapper, *args: Any, **kwargs: Any) -> Any:
         _state.in_run_and_clear_commit_hooks = True
         try:
-            return old_run_and_clear_commit_hooks(*args, **kwargs)
+            return old_run_and_clear_commit_hooks(self, *args, **kwargs)
         finally:
             _state.in_run_and_clear_commit_hooks = False
 
@@ -135,7 +136,9 @@ def stale_database_reads():
 
     old_signal_send = Task._signal_send
 
-    def signal_send(self, task, args=(), kwargs=(), **options):
+    def signal_send(
+        self: Task[Any, Any], task: Any, args: Any = (), kwargs: Any = (), **options: Any
+    ) -> Any:
         in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
             _state, "in_run_and_clear_commit_hooks", None
         )

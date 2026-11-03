@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import responses
 from django.db import connections, router, transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -65,7 +65,7 @@ class GitlabRequestParserTest(TestCase):
             },
         )
 
-    def run_parser(self, request):
+    def run_parser(self, request: HttpRequest) -> HttpResponseBase:
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
         return parser.get_response()
 

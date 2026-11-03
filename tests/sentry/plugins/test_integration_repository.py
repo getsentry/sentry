@@ -8,6 +8,7 @@ from django.db import IntegrityError
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH, Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
@@ -22,9 +23,11 @@ class IntegrationRepositoryTestCase(TestCase):
             organization=self.organization, provider="github", external_id="654321"
         )
         self.repo_name = "getsentry/sentry"
-        self.config = {
+        self.repo_external_id = "654321"
+        self.rpc_organization = serialize_rpc_organization(self.organization)
+        self.config: dict[str, str | int] = {
             "identifier": self.repo_name,
-            "external_id": "654321",
+            "external_id": self.repo_external_id,
             "integration_id": self.integration.id,
             "url": "https://github.com/getsentry/sentry",
         }
@@ -65,19 +68,19 @@ class IntegrationRepositoryTestCase(TestCase):
         )
 
     def test_create_repository_truncate_overflows(self, get_jwt: MagicMock) -> None:
-        config = self.config.copy()
-        config["identifier"] = "a" * 510
-        self.provider.create_repository(config, self.organization)
+        identifier = "a" * 510
+        config = {**self.config, "identifier": identifier}
+        self.provider.create_repository(config, self.rpc_organization)
 
         repos = Repository.objects.all()
         assert len(repos) == 1
 
-        assert repos[0].name == config["identifier"][:REPOSITORY_NAME_LENGTH]
-        assert repos[0].url == f"https://github.com/{config['identifier']}"[:REPOSITORY_URL_LENGTH]
+        assert repos[0].name == identifier[:REPOSITORY_NAME_LENGTH]
+        assert repos[0].url == f"https://github.com/{identifier}"[:REPOSITORY_URL_LENGTH]
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository(self, get_jwt: MagicMock) -> None:
-        self.provider.create_repository(self.config, self.organization)
+        self.provider.create_repository(self.config, self.rpc_organization)
 
         repos = Repository.objects.all()
         assert len(repos) == 1
@@ -86,10 +89,10 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository__repo_exists(self, get_jwt: MagicMock) -> None:
-        existing = self._create_repo(external_id=self.config["external_id"])
+        existing = self._create_repo(external_id=self.repo_external_id)
 
         with pytest.raises(RepoExistsError) as exc_info:
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         assert exc_info.value.existing_repo is not None
         assert exc_info.value.existing_repo.id == existing.id
@@ -103,13 +106,13 @@ class IntegrationRepositoryTestCase(TestCase):
             organization=self.organization, provider="github", external_id="123456"
         )
         existing = self._create_repo(
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
             name="getsentry/santry",
             status=ObjectStatus.DISABLED,
             integration_id=integration.id,
         )
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id == existing.id
         assert Repository.objects.count() == 1
@@ -126,7 +129,7 @@ class IntegrationRepositoryTestCase(TestCase):
             organization=self.organization, provider="github", external_id="123456"
         )
         repo = self._create_repo(
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
             name="getsentry/santry",
             status=ObjectStatus.DISABLED,
             integration_id=integration.id,
@@ -136,7 +139,7 @@ class IntegrationRepositoryTestCase(TestCase):
             patch.object(GitHubRepositoryProvider, "can_transfer_repositories", False),
             pytest.raises(RepoExistsError) as exc_info,
         ):
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
@@ -155,11 +158,11 @@ class IntegrationRepositoryTestCase(TestCase):
             name="ghe-org/sentry",
             provider="integrations:github_enterprise",
             integration_id=ghe_integration.id,
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
         Repository.objects.filter(id=ghe_repo.id).update(status=ObjectStatus.DISABLED)
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id != ghe_repo.id
         assert repo.provider == "integrations:github"
@@ -170,10 +173,10 @@ class IntegrationRepositoryTestCase(TestCase):
         assert ghe_repo.status == ObjectStatus.DISABLED
 
     def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
-        repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
+        repo = self._create_repo(external_id=self.repo_external_id, name="getsentry/santry")
 
         with pytest.raises(RepoExistsError) as exc_info:
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         existing = exc_info.value.existing_repo
         assert existing is not None
@@ -183,11 +186,11 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.name == self.repo_name
 
     def test_create_repository__repo_exists_preserves_config(self, get_jwt: MagicMock) -> None:
-        repo = self._create_repo(external_id=self.config["external_id"])
+        repo = self._create_repo(external_id=self.repo_external_id)
         repo.update(config={**repo.config, "webhook_id": "hook-1"})
 
         with pytest.raises(RepoExistsError):
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         repo.refresh_from_db()
         assert repo.config["webhook_id"] == "hook-1"
@@ -203,7 +206,7 @@ class IntegrationRepositoryTestCase(TestCase):
         mock_on_delete.side_effect = IntegrationError
 
         with pytest.raises(RepoExistsError) as exc_info:
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         # Pre-existing repo is under the default external_id=123456, not the
         # config's 654321 — the lookup by (integration_id, external_id) misses,
@@ -211,13 +214,13 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.existing_repo is None
 
     def test_create_repository__integrity_error_attaches_existing(self, get_jwt: MagicMock) -> None:
-        existing = self._create_repo(external_id=self.config["external_id"])
+        existing = self._create_repo(external_id=self.repo_external_id)
 
         with (
             patch("sentry.models.Repository.objects.create", side_effect=IntegrityError),
             pytest.raises(RepoExistsError) as exc_info,
         ):
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         assert exc_info.value.existing_repo is not None
         assert exc_info.value.existing_repo.id == existing.id
@@ -226,11 +229,11 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__activates_existing_hidden_repo(
         self, mock_metrics: MagicMock, get_jwt: MagicMock
     ) -> None:
-        repo = self._create_repo(external_id=self.config["external_id"])
+        repo = self._create_repo(external_id=self.repo_external_id)
         repo.status = ObjectStatus.HIDDEN
         repo.save()
 
-        self.provider.create_repository(self.config, self.organization)
+        self.provider.create_repository(self.config, self.rpc_organization)
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.ACTIVE
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_relink")
@@ -243,11 +246,11 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name="group/project",
             provider="integrations:gitlab",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
         other.update(status=ObjectStatus.HIDDEN)
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id != other.id
         assert repo.provider == "integrations:github"
@@ -258,11 +261,11 @@ class IntegrationRepositoryTestCase(TestCase):
         self, get_jwt: MagicMock
     ) -> None:
         orphan = self.create_repo(
-            project=self.project, name=self.repo_name, external_id=self.config["external_id"]
+            project=self.project, name=self.repo_name, external_id=self.repo_external_id
         )
         orphan.update(status=ObjectStatus.HIDDEN)
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id == orphan.id
         orphan.refresh_from_db()
@@ -276,7 +279,7 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name="group/hidden",
             provider="integrations:gitlab",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
         hidden.update(status=ObjectStatus.HIDDEN)
         unlinked = self.create_repo(
@@ -288,7 +291,7 @@ class IntegrationRepositoryTestCase(TestCase):
         other_config = {**self.config, "external_id": "999", "identifier": "getsentry/other"}
 
         created, reactivated, missing = self.provider.create_repositories(
-            [self.config, other_config], self.organization
+            [self.config, other_config], self.rpc_organization
         )
 
         assert {repo.external_id for repo in created} == {self.config["external_id"], "999"}
@@ -306,14 +309,14 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name=self.repo_name,
             provider="integrations:github",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
         hidden.update(status=ObjectStatus.HIDDEN)
         orphan = self.create_repo(project=self.project, name="getsentry/other", external_id="999")
         other_config = {**self.config, "external_id": "999", "identifier": "getsentry/other"}
 
         created, reactivated, missing = self.provider.create_repositories(
-            [self.config, other_config], self.organization
+            [self.config, other_config], self.rpc_organization
         )
 
         assert created == []
@@ -334,12 +337,12 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name=self.repo_name,
             provider="github",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
-        existing = self._create_repo(external_id=self.config["external_id"])
+        existing = self._create_repo(external_id=self.repo_external_id)
 
         with pytest.raises(RepoExistsError) as exc_info:
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         assert exc_info.value.existing_repo is not None
         assert exc_info.value.existing_repo.id == existing.id
@@ -353,18 +356,20 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name=self.repo_name,
             provider="github",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
         legacy.update(status=ObjectStatus.HIDDEN)
-        self._create_repo(external_id=self.config["external_id"])
+        self._create_repo(external_id=self.repo_external_id)
 
         created, reactivated, missing = self.provider.create_repositories(
-            [self.config], self.organization
+            [self.config], self.rpc_organization
         )
 
         assert created == []
         assert reactivated == []
-        assert missing == [self.provider.build_repository_config(self.organization, self.config)]
+        assert missing == [
+            self.provider.build_repository_config(self.rpc_organization, self.config)
+        ]
         legacy.refresh_from_db()
         assert (legacy.status, legacy.provider) == (ObjectStatus.HIDDEN, "github")
 
@@ -375,10 +380,10 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name="group/project",
             provider="gitlab",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id != other.id
         other.refresh_from_db()
@@ -390,10 +395,10 @@ class IntegrationRepositoryTestCase(TestCase):
             project=self.project,
             name=self.repo_name,
             provider="github",
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
         )
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.rpc_organization)
 
         assert repo.id == legacy.id
         legacy.refresh_from_db()
@@ -401,12 +406,12 @@ class IntegrationRepositoryTestCase(TestCase):
         assert legacy.integration_id == self.integration.id
 
     def test_create_repository__only_activates_hidden_repo(self, get_jwt: MagicMock) -> None:
-        repo = self._create_repo(external_id=self.config["external_id"])
+        repo = self._create_repo(external_id=self.repo_external_id)
         repo.status = ObjectStatus.PENDING_DELETION
         repo.save()
 
         with pytest.raises(RepoExistsError) as exc_info:
-            self.provider.create_repository(self.config, self.organization)
+            self.provider.create_repository(self.config, self.rpc_organization)
 
         assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
@@ -414,11 +419,11 @@ class IntegrationRepositoryTestCase(TestCase):
 
     def test_create_repositories__adopts_unlinked_active_repo(self, get_jwt: MagicMock) -> None:
         # ACTIVE unlinked rows are adopted, not reported as already-active/not-created
-        repo = self._create_repo(external_id=self.config["external_id"])
+        repo = self._create_repo(external_id=self.repo_external_id)
         Repository.objects.filter(id=repo.id).update(integration_id=None)
 
         created, updated, not_created = self.provider.create_repositories(
-            [self.config], self.organization
+            [self.config], self.rpc_organization
         )
 
         assert created == []
@@ -435,12 +440,12 @@ class IntegrationRepositoryTestCase(TestCase):
             name=self.repo_name,
             provider="github",
             integration_id=None,
-            external_id=self.config["external_id"],
+            external_id=self.repo_external_id,
             url="https://github.com/" + self.repo_name,
         )
 
         created, updated, not_created = self.provider.create_repositories(
-            [self.config], self.organization
+            [self.config], self.rpc_organization
         )
 
         assert created == []
@@ -454,10 +459,10 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repositories__already_active_on_integration_is_not_created(
         self, get_jwt: MagicMock
     ) -> None:
-        self._create_repo(external_id=self.config["external_id"])
+        self._create_repo(external_id=self.repo_external_id)
 
         created, updated, not_created = self.provider.create_repositories(
-            [self.config], self.organization
+            [self.config], self.rpc_organization
         )
 
         assert created == []
@@ -468,10 +473,10 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repositories__reactivating_hidden_is_not_already_active(
         self, get_jwt: MagicMock
     ) -> None:
-        repo = self._create_repo(external_id=self.config["external_id"], status=ObjectStatus.HIDDEN)
+        repo = self._create_repo(external_id=self.repo_external_id, status=ObjectStatus.HIDDEN)
 
         created, updated, not_created = self.provider.create_repositories(
-            [self.config], self.organization
+            [self.config], self.rpc_organization
         )
 
         assert created == []
@@ -487,9 +492,11 @@ class CreateRepositoriesTest(TestCase):
         self.integration = self.create_integration(
             organization=self.organization, provider="github", external_id="654321"
         )
-        self.config = {
+        self.repo_external_id = "654321"
+        self.rpc_organization = serialize_rpc_organization(self.organization)
+        self.config: dict[str, str | int] = {
             "identifier": "getsentry/sentry",
-            "external_id": "654321",
+            "external_id": self.repo_external_id,
             "integration_id": self.integration.id,
         }
 
@@ -503,7 +510,7 @@ class CreateRepositoriesTest(TestCase):
             provider="integrations:github",
             organization_id=self.organization.id,
             integration_id=self.integration.id,
-            external_id="654321",
+            external_id=self.repo_external_id,
             status=status,
         )
 
@@ -511,7 +518,7 @@ class CreateRepositoriesTest(TestCase):
         repo = self._existing(ObjectStatus.ACTIVE)
 
         created, reactivated, _ = self.provider.create_repositories(
-            configs=[self.config], organization=self.organization
+            configs=[self.config], organization=self.rpc_organization
         )
 
         assert (created, reactivated) == ([], [])
@@ -522,7 +529,7 @@ class CreateRepositoriesTest(TestCase):
         repo = self._existing(ObjectStatus.DISABLED)
 
         created, reactivated, _ = self.provider.create_repositories(
-            configs=[self.config], organization=self.organization
+            configs=[self.config], organization=self.rpc_organization
         )
 
         assert created == []

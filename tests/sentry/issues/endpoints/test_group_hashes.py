@@ -77,7 +77,11 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         # Merge the events
         eventstream = SnubaEventStream()
-        state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        target_group_id = event1.group_id
+        assert target_group_id is not None
+        merged_group_id = event2.group_id
+        assert merged_group_id is not None
+        state = eventstream.start_merge(self.project.id, [merged_group_id], target_group_id)
         assert state is not None
 
         eventstream.end_merge(state)
@@ -119,7 +123,11 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         # Merge the events
         eventstream = SnubaEventStream()
-        state = eventstream.start_merge(self.project.id, [event2.group_id], event1.group_id)
+        target_group_id = event1.group_id
+        assert target_group_id is not None
+        merged_group_id = event2.group_id
+        assert merged_group_id is not None
+        state = eventstream.start_merge(self.project.id, [merged_group_id], target_group_id)
         assert state is not None
 
         eventstream.end_merge(state)

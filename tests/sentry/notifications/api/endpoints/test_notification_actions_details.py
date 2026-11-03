@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Callable, MutableMapping
 from typing import Any, TypeVar
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, _patch, patch
 
 from rest_framework import serializers, status
 
@@ -65,7 +67,9 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    def mock_msg_schedule_response(self, channel_id, result_name="channel"):
+    def mock_msg_schedule_response(
+        self, channel_id: str, result_name: str = "channel"
+    ) -> _patch[MagicMock]:
         body = {
             "ok": True,
             result_name: channel_id,
@@ -73,7 +77,9 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         }
         return mock_slack_response("chat_scheduleMessage", body=body)
 
-    def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
+    def mock_msg_delete_scheduled_response(
+        self, channel_id: str, result_name: str = "channel"
+    ) -> _patch[MagicMock]:
         if channel_id == "channel_not_found":
             body = {"ok": False, "error": "channel_not_found"}
         else:
@@ -96,8 +102,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         This only tests 'GET' since members aren't granted project:write scopes so they 403 before
         reaching any endpoint logic (for PUT/DELETE)
         """
-        self.organization.flags = 0
-        self.organization.save()
+        self.organization.update(flags=0)
+        self.organization.refresh_from_db()
         action = self.create_notification_action(
             organization=self.organization,
             projects=[self.create_project(organization=self.organization)],

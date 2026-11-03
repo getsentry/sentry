@@ -58,7 +58,7 @@ class JiraInstalledTest(APITestCase):
             headers={**(headers or {}), "alg": jira_signing_algorithm},
         )
 
-    def jwt_token_cdn(self):
+    def jwt_token_cdn(self) -> str:
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
     def body(self, client_key: str | None = None) -> Mapping[str, Any]:

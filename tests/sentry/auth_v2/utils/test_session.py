@@ -13,22 +13,22 @@ EXPIRY_DATE = datetime(2023, 12, 31)
 class MockSession(SessionBase):
     """Mock session class for testing."""
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self) -> None:
+        self.data: dict[str, object] = {}
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: object = None) -> object:
         return self.data.get(key, default)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> object:
         return self.data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: object) -> None:
         self.data[key] = value
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         return key in self.data
 
-    def get_expiry_date(self, **kwargs):
+    def get_expiry_date(self, **kwargs: object) -> datetime:
         return EXPIRY_DATE
 
 
@@ -87,7 +87,7 @@ class SessionBuilderTest(TestCase):
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-    def create_mock_user(self, **kwargs):
+    def create_mock_user(self, **kwargs: bool) -> Mock:
         # Default attributes that should all evaluate to False
         attributes = {
             "has_verified_primary_email": True,

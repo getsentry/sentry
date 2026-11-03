@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, cast
 
 import sentry_sdk
 from django.db.models import F
@@ -67,10 +68,14 @@ from sentry.signals import (
     project_transferred,
     transaction_processed,
 )
-from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
-from sentry.utils.safe import get_path
+from sentry.utils.safe import PathSearchable, get_path
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
+    from sentry.models.organizationmember import OrganizationMember
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger("sentry")
 
@@ -84,8 +89,8 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
-def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
-    if user and has_user(user):
+def get_owner_id(project: Project, user: RequestPrincipal | None = None) -> int | None:
+    if user is not None and has_user(user):
         return user.id
 
     # this is either the organizations owners user id or None
@@ -93,30 +98,39 @@ def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
 
 
 @project_created.connect(weak=False, dispatch_uid="record_new_project")
-def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
+def record_new_project(
+    project: Project,
+    user: RequestPrincipal | None = None,
+    user_id: int | None = None,
+    origin: str | None = None,
+    **kwargs: object,
+) -> None:
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
     scope.set_attribute("project_id", project.id)
     scope.set_extra("source", "record_new_project")
     scope.set_attribute("source", "record_new_project")
 
+    default_user_id: int | str | None
+
     if user_id is not None:
         default_user_id = user_id
-    elif has_user(user):
+    elif user is not None and has_user(user):
         user_id = default_user_id = acting_user_id(user)
     else:
         user_id = default_user_id = get_owner_id(project, user)
-        if user_id is None:
-            logger.warning(
-                "Cannot initiate onboarding for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            sentry_sdk.capture_message(
-                f"Cannot initiate onboarding for organization ({project.organization_id}) due to missing owners",
-                level="warning",
-            )
-            # XXX(dcramer): we cannot setup onboarding tasks without a user
-            return
+
+    if user_id is None:
+        logger.warning(
+            "Cannot initiate onboarding for organization (%s) due to missing owners",
+            project.organization_id,
+        )
+        sentry_sdk.capture_message(
+            f"Cannot initiate onboarding for organization ({project.organization_id}) due to missing owners",
+            level="warning",
+        )
+        # XXX(dcramer): we cannot setup onboarding tasks without a user
+        return
 
     try:
         analytics.record(
@@ -149,7 +163,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         )
         analytics.record(
             SecondPlatformAddedEvent(
-                user_id=default_user_id,
+                user_id=user_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
@@ -157,7 +171,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
 
 @first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
-def record_first_event(project, event, **kwargs):
+def record_first_event(project: Project, event: Event, **kwargs: object) -> None:
     if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -174,7 +188,7 @@ def record_first_event(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
             has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=get_path(event, "sdk", "name"),
+            sdk_name=get_path(cast("PathSearchable", event), "sdk", "name"),
         )
     )
 
@@ -201,7 +215,7 @@ def record_first_event(project, event, **kwargs):
 
 
 @first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
-def record_first_transaction(project, event, **kwargs):
+def record_first_transaction(project: Project, event: Event, **kwargs: object) -> None:
     complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.FIRST_TRANSACTION,
@@ -218,7 +232,7 @@ def record_first_transaction(project, event, **kwargs):
 
 
 @first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
-def record_first_profile(project, **kwargs):
+def record_first_profile(project: Project, **kwargs: object) -> None:
     analytics.record(
         FirstProfileSentEvent(
             user_id=get_owner_id(project),
@@ -230,7 +244,7 @@ def record_first_profile(project, **kwargs):
 
 
 @first_replay_received.connect(weak=False, dispatch_uid="onboarding.record_first_replay")
-def record_first_replay(project, **kwargs):
+def record_first_replay(project: Project, **kwargs: object) -> None:
     logger.info("record_first_replay_start")
     completed = complete_onboarding_task(
         organization=project.organization,
@@ -252,7 +266,7 @@ def record_first_replay(project, **kwargs):
 
 
 @first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
-def record_first_flag(project, **kwargs):
+def record_first_flag(project: Project, **kwargs: object) -> None:
     analytics.record(
         FirstFlagSentEvent(
             organization_id=project.organization_id,
@@ -263,7 +277,7 @@ def record_first_flag(project, **kwargs):
 
 
 @first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
-def record_first_feedback(project, **kwargs):
+def record_first_feedback(project: Project, **kwargs: object) -> None:
     analytics.record(
         FirstFeedbackSentEvent(
             user_id=get_owner_id(project),
@@ -277,7 +291,7 @@ def record_first_feedback(project, **kwargs):
 @first_new_feedback_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_new_feedback"
 )
-def record_first_new_feedback(project, **kwargs):
+def record_first_new_feedback(project: Project, **kwargs: object) -> None:
     try:
         analytics.record(
             FirstNewFeedbackSentEvent(
@@ -292,7 +306,9 @@ def record_first_new_feedback(project, **kwargs):
 
 
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
-def record_first_cron_monitor(project, user, from_upsert, **kwargs):
+def record_first_cron_monitor(
+    project: Project, user: RequestPrincipal | None, from_upsert: bool, **kwargs: object
+) -> None:
     analytics.record(
         FirstCronMonitorCreated(
             user_id=get_owner_id(project, user),
@@ -304,7 +320,9 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
 
 
 @cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
-def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+def record_cron_monitor_created(
+    project: Project, user: RequestPrincipal | None, from_upsert: bool, **kwargs: object
+) -> None:
     analytics.record(
         CronMonitorCreated(
             user_id=get_owner_id(project, user),
@@ -318,7 +336,7 @@ def record_cron_monitor_created(project, user, from_upsert, **kwargs):
 @first_cron_checkin_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_cron_checkin"
 )
-def record_first_cron_checkin(project, monitor_id, **kwargs):
+def record_first_cron_checkin(project: Project, monitor_id: str, **kwargs: object) -> None:
     analytics.record(
         FirstCronCheckinSent(
             user_id=get_owner_id(project),
@@ -332,7 +350,7 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 @first_insight_span_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_insight_span"
 )
-def record_first_insight_span(project, module: InsightModules, **kwargs):
+def record_first_insight_span(project: Project, module: InsightModules, **kwargs: object) -> None:
     analytics.record(
         FirstInsightSpanSentEvent(
             user_id=get_owner_id(project),
@@ -345,7 +363,7 @@ def record_first_insight_span(project, module: InsightModules, **kwargs):
 
 
 @first_log_received.connect(weak=False, dispatch_uid="onboarding.record_first_log")
-def record_first_log(project, **kwargs):
+def record_first_log(project: Project, **kwargs: object) -> None:
     analytics.record(
         FirstLogSentEvent(
             user_id=get_owner_id(project),
@@ -359,7 +377,7 @@ def record_first_log(project, **kwargs):
 @first_trace_metric_received.connect(
     weak=False, dispatch_uid="onboarding.record_first_trace_metric"
 )
-def record_first_trace_metric(project, **kwargs):
+def record_first_trace_metric(project: Project, **kwargs: object) -> None:
     analytics.record(
         FirstTraceMetricSentEvent(
             user_id=get_owner_id(project),
@@ -372,7 +390,12 @@ def record_first_trace_metric(project, **kwargs):
 
 # TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
-def record_member_invited(member, user, **kwargs):
+def record_member_invited(
+    member: OrganizationMember,
+    user: RequestPrincipal | None,
+    referrer: str | None = None,
+    **kwargs: object,
+) -> None:
     complete_onboarding_task(
         organization=member.organization,
         task=OnboardingTask.INVITE_MEMBER,
@@ -381,18 +404,18 @@ def record_member_invited(member, user, **kwargs):
     analytics.record(
         MemberInvitedEvent(
             invited_member_id=member.id,
-            inviter_user_id=user.id if user else None,
+            inviter_user_id=acting_user_id(user) if user is not None else None,
             organization_id=member.organization_id,
-            referrer=kwargs.get("referrer"),
+            referrer=referrer,
         )
     )
 
 
-def _record_release_received(project, event, **kwargs):
-    return record_release_received(project, event.data.get("release"), **kwargs)
+def _record_release_received(project: Project, event: Event, **kwargs: object) -> None:
+    return record_release_received(project, event.data.get("release"))
 
 
-def record_release_received(project, release, **kwargs):
+def record_release_received(project: Project, release: str | None, **kwargs: object) -> None:
     if not release:
         return
 
@@ -426,7 +449,9 @@ transaction_processed.connect(_record_release_received, weak=False)
 @first_event_with_minified_stack_trace_received.connect(
     weak=False, dispatch_uid="onboarding.record_event_with_first_minified_stack_trace_for_project"
 )
-def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
+def record_event_with_first_minified_stack_trace_for_project(
+    project: Project, event: Event, **kwargs: object
+) -> None:
     if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -448,7 +473,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
 
 
 @event_processed.connect(weak=False, dispatch_uid="onboarding.record_sourcemaps_received")
-def record_sourcemaps_received(project, event, **kwargs):
+def record_sourcemaps_received(project: Project, event: Event, **kwargs: object) -> None:
     if not has_sourcemap(event):
         return
 
@@ -482,7 +507,9 @@ def record_sourcemaps_received(project, event, **kwargs):
 @event_processed.connect(
     weak=False, dispatch_uid="onboarding.record_sourcemaps_received_for_project"
 )
-def record_sourcemaps_received_for_project(project, event, **kwargs):
+def record_sourcemaps_received_for_project(
+    project: Project, event: Event, **kwargs: object
+) -> None:
     if not has_sourcemap(event):
         return
 
@@ -516,7 +543,9 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
 
 
 @alert_rule_created.connect(weak=False, dispatch_uid="onboarding.record_alert_rule_created")
-def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+def record_alert_rule_created(
+    user: RequestPrincipal | None, project: Project, rule_type: str, **kwargs: object
+) -> None:
     # The quick start now only has a task for issue alert rules.
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
     if rule_type == "metric":
@@ -525,15 +554,15 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     complete_onboarding_task(
         organization=project.organization,
         task=OnboardingTask.ALERT_RULE,
-        user_id=user.id if user else None,
+        user_id=acting_user_id(user) if user is not None else None,
         project_id=project.id,
     )
 
 
 @integration_added.connect(weak=False, dispatch_uid="onboarding.record_integration_added")
 def record_integration_added(
-    integration_id: int, organization_id: int, user_id: int | None, **kwargs
-):
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs: object
+) -> None:
     integration: RpcIntegration | None = integration_service.get_integration(
         integration_id=integration_id
     )
@@ -556,7 +585,7 @@ def record_integration_added(
 
 
 @project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
-def record_project_transferred(old_org_id: int, project: Project, **kwargs):
+def record_project_transferred(old_org_id: int, project: Project, **kwargs: object) -> None:
     analytics.record(
         ProjectTransferredEvent(
             old_organization_id=old_org_id,

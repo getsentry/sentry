@@ -13,7 +13,7 @@ class AssistantActivityTest(APITestCase):
     endpoint = "sentry-api-0-assistant"
 
     @cached_property
-    def guides(self):
+    def guides(self) -> dict[str, int]:
         return manager.all()
 
     def setUp(self) -> None:
@@ -54,7 +54,7 @@ class AssistantActivityUpdateTest(APITestCase):
     method = "put"
 
     @cached_property
-    def guides(self):
+    def guides(self) -> dict[str, int]:
         return manager.all()
 
     def setUp(self) -> None:

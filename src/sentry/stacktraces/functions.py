@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -100,7 +100,7 @@ def replace_enclosed_string(
     return "".join(rv)
 
 
-def split_func_tokens(s):
+def split_func_tokens(s: str) -> list[str]:
     if s and _function_token_break_re.search(s) is None:
         return [s]
 
@@ -132,7 +132,7 @@ def split_func_tokens(s):
     return ["".join(x) for x in rv]
 
 
-def trim_function_name(function, platform, normalize_lambdas=True):
+def trim_function_name(function: str, platform: str | None, normalize_lambdas: bool = True) -> str:
     """Given a function value from the frame's function attribute this returns
     a trimmed version that can be stored in `function_name`.  This is only used
     if the client did not supply a value itself already.
@@ -144,7 +144,7 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     return function
 
 
-def trim_csharp_function_name(function):
+def trim_csharp_function_name(function: str) -> str:
     """This trims off signatures from C# frames.  This takes advantage of the
     Unity not emitting any return values and using a space before the argument
     list.
@@ -157,7 +157,9 @@ def trim_csharp_function_name(function):
     return function.split(" (", 1)[0]
 
 
-def trim_native_function_name(function, platform, normalize_lambdas=True):
+def trim_native_function_name(
+    function: str, platform: str | None, normalize_lambdas: bool = True
+) -> str:
     if function in ("<redacted>", "<unknown>"):
         return function
 
@@ -169,7 +171,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         return function
 
     # Remove special `[clone .foo]` annotations for cloned/split functions
-    def process_brackets(value, start):
+    def process_brackets(value: str, start: int) -> str:
         if value.startswith("clone ."):
             return ""
         return "[%s]" % value
@@ -214,7 +216,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         function = _anon_namespace_re.sub("〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
-    def process_args(value, start):
+    def process_args(value: str, start: int) -> str:
         value = value.strip()
         if value in ("anonymous namespace", "operator"):
             return "(%s)" % value
@@ -228,7 +230,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     # Resolve generic types, but special case rust which uses things like
     # <Foo as Bar>::baz to denote traits.
-    def process_generics(value, start):
+    def process_generics(value: str, start: int) -> str:
         # Special case for lambdas
         if value == "lambda" or _lambda_re.match(value):
             return "<%s>" % value
@@ -318,7 +320,9 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     return _windecl_hash.sub("\\1", function) if "@" in function else function
 
 
-def get_function_name_for_frame(frame, platform=None):
+def get_function_name_for_frame(
+    frame: Frame | Mapping[str, Any], platform: str | None = None
+) -> str | None:
     """Given a frame object or dictionary this returns the actual function
     name trimmed.
     """
@@ -333,6 +337,7 @@ def get_function_name_for_frame(frame, platform=None):
     rv = frame.get("function")
     if rv:
         return trim_function_name(rv, frame.get("platform") or platform)
+    return None
 
 
 def get_source_link_for_frame(frame: Frame) -> str | None:

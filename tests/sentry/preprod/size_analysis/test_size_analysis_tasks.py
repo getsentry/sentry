@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from django.utils import timezone
@@ -19,6 +20,7 @@ from sentry.preprod.size_analysis.tasks import (
     maybe_emit_issues_from_diff_size_results,
 )
 from sentry.testutils.cases import TestCase
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -28,12 +30,12 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
 
     def _create_artifact_with_metrics(
         self,
-        max_install_size=5000000,
-        max_download_size=2000000,
-        date_added=None,
-        app_name=None,
-        **kwargs,
-    ):
+        max_install_size: int = 5000000,
+        max_download_size: int = 2000000,
+        date_added: datetime | None = None,
+        app_name: str | None = None,
+        **kwargs: Any,
+    ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_id="com.example.app",
@@ -51,7 +53,12 @@ class MaybeEmitIssuesFromDiffSizeResultsTest(TestCase):
         )
         return artifact
 
-    def _create_diff_detector(self, threshold_type="absolute_diff", comparison=500000, **kwargs):
+    def _create_diff_detector(
+        self,
+        threshold_type: str = "absolute_diff",
+        comparison: int = 500000,
+        **kwargs: Any,
+    ) -> Detector:
         condition_group = self.create_data_condition_group(
             organization=self.project.organization,
         )
@@ -350,7 +357,7 @@ class MaybeEmitIssuesFromSizeResultsTest(TestCase):
 
 
 class GetPlatformTest(TestCase):
-    def _make_artifact(self, artifact_type):
+    def _make_artifact(self, artifact_type: int | None) -> PreprodArtifact:
         file = self.create_file(name="test", type="application/octet-stream")
         return self.create_preprod_artifact(
             project=self.project, file_id=file.id, artifact_type=artifact_type

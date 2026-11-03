@@ -67,6 +67,9 @@ class EventErrorApiContext(TypedDict):
     data: dict[str, Any]
 
 
+ErrorData = dict[str, Any]
+
+
 class EventError:
     _messages: dict[str, str] = {
         EventErrorType.UNKNOWN_ERROR: "Unknown error",
@@ -114,22 +117,23 @@ class EventError:
     }
 
     @classmethod
-    def get_message(cls, data):
+    def get_message(cls, data: ErrorData) -> str:
         return cls(data).message
 
-    def __init__(self, data):
+    def __init__(self, data: ErrorData) -> None:
         self._data = data
 
     @property
-    def type(self):
-        return self._data["type"]
+    def type(self) -> str:
+        error_type = self._data["type"]
+        return error_type
 
     @property
-    def data(self):
+    def data(self) -> ErrorData:
         return {k: v for k, v in self._data.items() if k != "type"}
 
     @property
-    def message(self):
+    def message(self) -> str:
         return self._messages.get(self._data["type"], self._messages["unknown_error"])
 
     def get_api_context(self) -> EventErrorApiContext:

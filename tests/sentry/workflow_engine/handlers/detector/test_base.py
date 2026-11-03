@@ -31,7 +31,6 @@ from sentry.workflow_engine.processors import (
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
     ConditionError,
-    DataConditionResult,
     DataSourceTypeHandler,
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -121,19 +120,23 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | Non
     """
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("dedupe", 0)
+        value = data_packet.packet.get("dedupe", 0)
+        return value if isinstance(value, int) else 0
 
     def extract_value(
         self, data_packet: DataPacket[dict[str, Any]]
     ) -> int | None | DetectorGroupValues[int | None]:
         if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+            value = data_packet.packet["value"]
+            assert isinstance(value, int)
+            return value
 
         group_vals = data_packet.packet.get("group_vals", 0)
 
         if isinstance(group_vals, dict):
             return DetectorGroupValues(group_vals)
 
+        assert isinstance(group_vals, int) or group_vals is None
         return group_vals
 
     def create_occurrence(
@@ -148,7 +151,8 @@ class MockTriggeredDetectorHandler(DetectorHandler[dict[str, Any], int]):
     """Triggers at HIGH for every packet, without evaluating its conditions."""
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("value", 0)
+        value: int = data_packet.packet.get("value", 0)
+        return value
 
     def evaluate(
         self,
@@ -219,7 +223,9 @@ class MockUnconditionedDetectorHandler(BaseDetectorHandler[dict[str, Any], int])
     threshold = 5
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet["value"]
+        value = data_packet.packet["value"]
+        assert isinstance(value, int)
+        return value
 
     def evaluate(
         self,
@@ -360,7 +366,7 @@ class ConditionDetectorHandlerTest(BaseGroupTypeTest):
         self.handler = MockDefaultDetectorHandler(self.detector)
 
     def create_condition_detector(
-        self, condition_result: DataConditionResult = DetectorPriorityLevel.HIGH
+        self, condition_result: int | None = DetectorPriorityLevel.HIGH
     ) -> Detector:
         detector = self.create_detector(
             project=self.project,

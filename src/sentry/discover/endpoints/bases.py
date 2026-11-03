@@ -1,9 +1,12 @@
 from django.db.models import Exists, OuterRef, QuerySet
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.principal import is_acting_user, owned_by_acting_user
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 
 
 class DiscoverSavedQueryPermission(OrganizationPermission):
@@ -15,7 +18,12 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Organization | RpcOrganization | RpcUserOrganizationContext | DiscoverSavedQuery,
+    ) -> bool:
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 
@@ -43,7 +51,7 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
 
 
 def filter_to_accessible_discover_queries(
-    request, queryset: QuerySet[DiscoverSavedQuery]
+    request: Request, queryset: QuerySet[DiscoverSavedQuery]
 ) -> QuerySet[DiscoverSavedQuery]:
     """
     Filter a ``DiscoverSavedQuery`` queryset to only those rows the request actor can access.
