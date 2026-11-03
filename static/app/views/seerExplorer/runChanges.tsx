@@ -19,7 +19,7 @@ import {parseFilePatch} from 'sentry/views/seerWorkflows/overview/filePatch';
 const PATCH_CUTOFF_METADATA_KEY = 'patch_cutoff';
 const CONTEXT_LINES = 3;
 
-export interface ChangeSet {
+interface ChangeSet {
   added: number;
   /** One patch per file, except while Seer is still merging a block's edits. Sorted by path. */
   files: ExplorerFilePatch[];
