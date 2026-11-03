@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowSnapshot(TypedDict):
     id: int
-    type: str
+    type: Workflow.Type
     enabled: bool
     environment_id: int | None
     status: int
@@ -139,7 +139,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         return {
             "id": self.id,
-            "type": self.type,
+            "type": Workflow.Type(self.type),
             "enabled": self.enabled,
             "environment_id": environment_id,
             "status": self.status,
