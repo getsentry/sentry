@@ -113,7 +113,8 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuWidth="100%"
+          // Same max width as the environment page filter menu
+          menuWidth="24em"
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (

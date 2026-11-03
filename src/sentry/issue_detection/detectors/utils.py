@@ -622,3 +622,18 @@ def get_span_description(span: Span, strip: bool = True, caller: str | None = No
             },
         )
         return description
+
+
+def is_redis_span(span: Span) -> bool:
+    """
+    Redis spans used a dedicated `db.redis` op, but newer SDKs report them with the generic
+    `db.query` op, so the database system is the reliable signal.
+    """
+    op = span.get("op") or ""
+    if op.startswith("db.redis"):
+        return True
+
+    data = span.get("data") or {}
+    sentry_tags = span.get("sentry_tags") or {}
+    db_system = data.get("db.system.name") or data.get("db.system") or sentry_tags.get("system")
+    return isinstance(db_system, str) and db_system.lower() == "redis"
