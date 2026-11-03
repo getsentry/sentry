@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from time import time
 from unittest.mock import MagicMock, patch
 
@@ -224,7 +224,7 @@ class AutoResolutionReopeningTest(APITestCase):
         group = self.create_group(last_seen=now - timedelta(days=1))
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        def reopen_before_update():
+        def reopen_before_update() -> datetime:
             group.update(status=GroupStatus.RESOLVED)
             response = self.client.put(
                 f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
