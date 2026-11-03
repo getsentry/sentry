@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {
   createContext,
   useCallback,
@@ -9,17 +10,12 @@ import {
   useState,
 } from 'react';
 import {AnimatePresence} from 'framer-motion';
-import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useOverlayContext, type DrawerLocation} from '@sentry/scraps/overlayContext';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
-
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {DrawerComponents} from './components';
 
@@ -69,7 +65,7 @@ export interface DrawerOptions {
    * Callback to determine whether the drawer should close when the location changes.
    * Defaults to closing in 'blocking' mode, staying open in 'passive' mode.
    */
-  shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
+  shouldCloseOnLocationChange?: (nextLocation: DrawerLocation) => boolean;
 }
 
 interface DrawerRenderProps {
@@ -116,17 +112,26 @@ const DrawerContext = createContext<DrawerContextType>({
 });
 
 function shouldCloseOnInteractOutsideByDefault(element: Element) {
-  if (document.getElementById('modal-portal')?.contains(element)) {
-    return false;
-  }
-
   const overlay = element.closest('[data-overlay]');
   return !overlay || overlay.hasAttribute('data-drawer-backdrop');
 }
 
-export function GlobalDrawer({children}: any) {
-  const location = useLocation();
-  const {t} = useTranslation();
+export interface GlobalDrawerProps {
+  children: React.ReactNode;
+}
+
+function DrawerBoundary({children}: React.PropsWithChildren) {
+  return children;
+}
+
+export function GlobalDrawer({children}: GlobalDrawerProps) {
+  const {drawer} = useOverlayContext();
+  const {
+    location,
+    boundaryComponent: Boundary = DrawerBoundary,
+    shouldCloseOnInteractOutside:
+      defaultShouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault,
+  } = drawer ?? {};
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();
@@ -168,6 +173,7 @@ export function GlobalDrawer({children}: any) {
     () => {
       if (
         // No need to close drawer if it is not open
+        location !== undefined &&
         currentDrawerConfigRef.current !== undefined &&
         // Otherwise, when the location changes, check callback or default based on mode
         (currentDrawerConfigRef.current.options?.shouldCloseOnLocationChange?.(
@@ -193,14 +199,14 @@ export function GlobalDrawer({children}: any) {
   }, [currentDrawerConfig, handleClose]);
   const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
   useOnClickOutside(panelRef, e => {
-    if (!defined(e?.target)) {
+    if (e.target === null) {
       handleClickOutside();
       return;
     }
 
     const shouldClose = shouldCloseOnInteractOutside
       ? shouldCloseOnInteractOutside(e.target as Element)
-      : shouldCloseOnInteractOutsideByDefault(e.target as Element);
+      : defaultShouldCloseOnInteractOutside(e.target as Element);
 
     if (!shouldClose) {
       return;
@@ -229,11 +235,7 @@ export function GlobalDrawer({children}: any) {
     <DrawerContext
       value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setPlacement}}
     >
-      <ErrorBoundary
-        mini
-        allowDismiss
-        message={t('There was a problem rendering the drawer.')}
-      >
+      <Boundary>
         <AnimatePresence>
           {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
             <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
@@ -256,7 +258,7 @@ export function GlobalDrawer({children}: any) {
             </DrawerComponents.DrawerPanel>
           )}
         </AnimatePresence>
-      </ErrorBoundary>
+      </Boundary>
       {children}
     </DrawerContext>
   );
@@ -321,5 +323,3 @@ export function useDrawerPlacement({minWidth, topOffset}: DrawerPlacement): void
     };
   }, [setPlacement, minWidth, topOffset]);
 }
-
-export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';
