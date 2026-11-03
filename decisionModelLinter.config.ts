@@ -193,6 +193,37 @@ const frontend = {
         },
       ],
     },
+    usesUrlQueryParamWithoutNuqs: {
+      // Rule ignores replace the suite's, so the suite's test and story globs are repeated.
+      ignores: [
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
+        '**/*.stories.tsx',
+        '**/__stories__/**',
+        'static/app/utils/url/**',
+        'static/app/utils/queryString.tsx',
+        'static/app/views/explore/queryParams/parsers.ts',
+        'static/app/components/pageFilters/**',
+        'static/app/router/legacy/**',
+      ],
+      prompt:
+        "Does the code read a query parameter of the current page's URL, or navigate or link to the current page with a changed query, without nuqs? Reading means taking a value from location.query (directly or through decodeScalar, decodeList, decodeInteger, decodeBoolean, or decodeSorts), from location.search or window.location.search with URLSearchParams or qs.parse, or from useSearchParams. Navigating or linking to the current page means calling navigate, or setting the to of a Link or LinkButton, with the current pathname (...location, location.pathname, a pathname taken from useLocation(), or no pathname) and a query built from location.query, for example navigate({...location, query: {...location.query, cursor}}). Using useQueryState, useQueryStates, createLoader, createSerializer, or Sentry helpers built on them such as loadQueryParamsFromLocation and applyQueryParamsUpdates does not count. Neither do links or navigation to a different pathname, even when they copy location.query to keep page filters. Reading route path parameters from useParams, location.pathname, location.hash, or location.state does not count either, nor do URLs that are not the current page's address, nor passing the whole location, query, or search string along without reading a parameter from it.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "The code reads a query parameter of the current page's URL, or navigates or links to the current page with a changed query, without nuqs.",
+          severity: 'warn',
+          report:
+            'URL query params should be read and updated through nuqs, with `useQueryState` or `useQueryStates` in React or `createLoader` elsewhere, and a parser (for repeated-key lists, `parseAsStringArray`). Page filters should come from `usePageFilters`. This file reads or updates a query param through `location.query` or another API.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            "The current page's query parameters are only read or updated through nuqs, or the code reads or updates no query parameter of the current page, or only passes the whole location, query, or search string along.",
+        },
+      ],
+    },
   },
 } satisfies Suite;
 
