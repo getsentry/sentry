@@ -20,6 +20,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -302,6 +303,42 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
 
         assert OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member
+        ).exists()
+
+
+SERVICE_ACCOUNT_SECRET = "member-team-details-test-viewer-context-secret"
+
+
+@override_settings(SEER_API_SHARED_SECRET=SERVICE_ACCOUNT_SECRET)
+class CreateAsServiceAccountTest(OrganizationMemberTeamTestBase):
+    method = "post"
+
+    def test_all_projects_service_account_cannot_add_member_to_team(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read"], all_projects=True
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key=SERVICE_ACCOUNT_SECRET,
+        )
+
+        with self.feature("organizations:service-accounts"):
+            self.get_error_response(
+                self.org.slug,
+                self.member.id,
+                self.team.slug,
+                status_code=403,
+                extra_headers={"HTTP_X_VIEWER_CONTEXT": viewer_context},
+            )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+        assert not OrganizationAccessRequest.objects.filter(
+            team=self.team, member=self.member
         ).exists()
 
 

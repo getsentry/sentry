@@ -1733,6 +1733,10 @@ dependencies = [
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8154c13f58d4de5d3a856bb6c909c7370f41fb876a5952a503af6b975265f4ba" },
     { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f8af0507bf6118b054a9765fb2e402f18a8b70c964f420d95b525eb711122d62" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:5226ec8452627293d5e60b0de1d7fd2654929ddd8eb9d3cbca221ce0fadde66b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c3bbb9c0eecdf599e4db9b372fa9cc55be12e80a0d9c6d307950a39050cb0e37" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:cc2e3fe7bc4993626ef6b6fa855defafa1d6f8996aa1caef2deb83c5ac4d043a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_31_aarch64.whl", hash = "sha256:5dc5a22995d20b58527d1209be0abcec693ac37c49ea7f43867be2dc1aeaa7e7" },
     { url = "https://pypi.devinfra.sentry.io/wheels/pydantic-1.10.26-py3-none-any.whl", hash = "sha256:c43ad70dc3ce7787543d563792426a16fd7895e14be4b194b5665e36459dd917" },
 ]
 
@@ -2451,7 +2455,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=14.0.0a4" },
-    { name = "taskbroker-client", specifier = ">=0.20.32" },
+    { name = "taskbroker-client", specifier = ">=0.20.33" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2844,7 +2848,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.32"
+version = "0.20.33"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
@@ -2861,7 +2865,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.32-py3-none-any.whl", hash = "sha256:f519142f82ac157d99c051bf6afb8e22d5b9e327d7a894efcde1b98a267009e4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.33-py3-none-any.whl", hash = "sha256:d612a6d938bf50537c32166bef3e048ed8b847ad62de3c0206021487a370b3bc" },
 ]
 
 [[package]]

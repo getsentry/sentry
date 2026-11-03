@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
@@ -28,8 +29,9 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import NoAccess, from_request
+from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
@@ -39,12 +41,17 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
@@ -261,6 +268,38 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
 
+    def _service_account_request(self, organization: Organization) -> Request:
+        service_account = self.create_service_account(
+            organization=organization, scope_list=["org:read"]
+        )
+        request = drf_request_from_request(self.make_request(method="GET"))
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=service_account.id,
+                organization_id=organization.id,
+                name=service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=service_account.id,
+                organization_id=organization.id,
+                scopes=["org:read"],
+            ),
+        )
+        return request
+
+    def test_service_account_gets_its_credential_access(self) -> None:
+        request = self._service_account_request(self.org)
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, ServiceAccountAccess)
+        assert request.access.has_scope("org:read")
+
+    def test_service_account_has_no_access_to_another_org(self) -> None:
+        request = self._service_account_request(self.create_organization())
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, NoAccess)
+
     def test_org_auth_token_passes_2fa(self) -> None:
         self.org_require_2fa()
 
@@ -467,6 +506,52 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         assert not permission.is_not_2fa_compliant(request=drf_request, organization=self.org)
 
 
+class DeprecatedScopesPermission(OrganizationPermission):
+    scope_map = {"GET": ["org:read", "project:read", "member:read", "org:write", "dashboard:read"]}
+    rejects_deprecated_scopes = True
+
+
+class RejectsDeprecatedScopesTest(TestCase):
+    def allowed_scopes(self, permission_cls, organization=None) -> set[str]:
+        request = drf_request_from_request(self.make_request(method="GET"))
+        return permission_cls().get_allowed_scopes(request, organization or self.organization)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == {"org:write", "dashboard:read"}
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes_with_organization_context(self) -> None:
+        organization_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.user.id
+        )
+        assert organization_context is not None
+        assert self.allowed_scopes(DeprecatedScopesPermission, organization_context) == {
+            "org:write",
+            "dashboard:read",
+        }
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_without_granular_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_keeps_deprecated_scopes_without_translation(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_unless_opted_in(self) -> None:
+        assert self.allowed_scopes(OrganizationPermission) == {"org:read", "org:write", "org:admin"}
+
+
 class BaseOrganizationEndpointTest(TestCase):
     @cached_property
     def endpoint(self):
@@ -502,6 +587,52 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+@all_silo_test
+class DetermineAccessHydrationTest(TestCase):
+    def test_member_access_omits_full_organization_resources(self) -> None:
+        user = self.create_user()
+        org = self.create_organization(flags=0)
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
+        self.create_member(user=user, organization=org, role="member", teams=[team])
+        other_team = self.create_team(organization=org)
+        other_project = self.create_project(organization=org, teams=[other_team])
+        request = drf_request_from_request(self.make_request(user=user))
+
+        with (
+            mock.patch.object(
+                DatabaseBackedOrganizationService,
+                "get_access_context",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_access_context,
+            ) as get_org,
+            assert_no_organization_resource_hydration(),
+        ):
+            OrganizationPermission().determine_access(request, org)
+
+        get_org.assert_called_once()
+        assert get_org.call_args.kwargs["organization_id"] == org.id
+        assert get_org.call_args.kwargs["user_id"] == user.id
+        assert get_org.call_args.kwargs["include_resource_ids"] is False
+        assert request.access.accessible_team_ids == frozenset({team.id})
+        assert request.access.accessible_project_ids == frozenset({project.id})
+        assert not request.access.has_team_access(other_team)
+        assert not request.access.has_project_access(other_project)
+
+    def test_existing_context_is_reused(self) -> None:
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        context = organization_service.get_access_context(organization_id=org.id, user_id=user.id)
+        assert context is not None
+        request = drf_request_from_request(self.make_request(user=user))
+
+        with mock.patch.object(organization_service, "get_access_context") as get_org:
+            OrganizationPermission().determine_access(request, context)
+
+        get_org.assert_not_called()
+        assert request.access.has_scope("org:read")
 
 
 class ControlSiloOrganizationEndpointTest(TestCase):
@@ -914,12 +1045,16 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert first_cache_key != second_cache_key
 
     def build_service_account_request(
-        self, organization: Organization | None = None, params: dict[str, str] | None = None
+        self,
+        organization: Organization | None = None,
+        params: dict[str, str] | None = None,
+        all_projects: bool = False,
     ):
         service_account = self.create_service_account(
             organization=organization or self.org,
             scope_list=["project:releases"],
-            project_ids=[self.project_1.id] if organization is None else [],
+            project_ids=[self.project_1.id] if organization is None and not all_projects else [],
+            all_projects=all_projects,
         )
         request = RequestFactory().get("/", params or {})
         request.session = SessionBase()
@@ -957,11 +1092,17 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
 
-    def test_service_account_release_projects_with_open_membership(self) -> None:
+    def test_service_account_release_projects_ignore_open_membership(self) -> None:
         self.org.flags.allow_joinleave = True
         self.org.save()
         endpoint = OrganizationReleasesBaseEndpoint()
         request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_projects_with_all_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request(all_projects=True)
 
         assert {p.id for p in endpoint.get_projects(request, self.org)} == {
             self.project_1.id,

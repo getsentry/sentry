@@ -9,6 +9,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -484,6 +485,233 @@ describe('DetectorEdit', () => {
           })
         );
       });
+    });
+
+    it('keeps the source headers when reopening an edited uptime copy', async () => {
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        projectId: project.id,
+      });
+      const sourceDataSource = sourceDetector.dataSources[0];
+      sourceDataSource.queryObj.headers = [['Authorization', 'Bearer secret']];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        sourceDetector.type,
+        sourceDetector.id
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({name: 'Edited copy'}),
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Edited copy',
+              dataSources: [
+                expect.objectContaining({
+                  headers: [['Authorization', 'Bearer secret']],
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it.each([
+      [
+        'another host',
+        {url: 'https://attacker.example/collect'},
+        'https://attacker.example/collect',
+        [],
+      ],
+      [
+        'another path',
+        {url: 'https://example.com/v1/projects/prod'},
+        'https://example.com/v1/projects/prod',
+        [],
+      ],
+      ['another method', {method: 'DELETE'}, 'https://example.com', []],
+      ['another project', {projectId: '999'}, 'https://example.com', []],
+      [
+        'a URL with credentials',
+        {url: 'https://user:pass@attacker.example'},
+        'https://example.com',
+        [['Authorization', 'Bearer secret']],
+      ],
+      [
+        'the same request',
+        {url: 'https://example.com', method: 'GET'},
+        'https://example.com',
+        [['Authorization', 'Bearer secret']],
+      ],
+    ])(
+      'only keeps the source headers when an uptime copy draft sets %s',
+      async (_, draftRequest, expectedUrl, expectedHeaders) => {
+        const sourceDetector = UptimeDetectorFixture({
+          id: 'source-uptime',
+          projectId: project.id,
+        });
+        sourceDetector.dataSources[0].queryObj.headers = [
+          ['Authorization', 'Bearer secret'],
+        ];
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+          body: sourceDetector,
+        });
+        const mockCreateDetector = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          method: 'POST',
+          body: UptimeDetectorFixture({id: 'copied-uptime'}),
+        });
+        const duplicateRouterConfig = getDuplicateRouterConfig(
+          sourceDetector.type,
+          sourceDetector.id
+        );
+
+        render(<DetectorNewSettings />, {
+          organization: organizationWithMonitorDuplication,
+          initialRouterConfig: {
+            ...duplicateRouterConfig,
+            location: {
+              ...duplicateRouterConfig.location,
+              query: {
+                ...duplicateRouterConfig.location.query,
+                draft: JSON.stringify({name: 'Edited copy', ...draftRequest}),
+              },
+            },
+          },
+        });
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Create Monitor'})
+        );
+
+        await waitFor(() => {
+          expect(mockCreateDetector).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSources: [
+                  expect.objectContaining({headers: expectedHeaders, url: expectedUrl}),
+                ],
+              }),
+            })
+          );
+        });
+      }
+    );
+
+    it('keeps the draft project when reopening an uptime copy moved to another project', async () => {
+      const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+      ProjectsStore.loadInitialData([project, otherProject]);
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        projectId: project.id,
+      });
+      sourceDetector.dataSources[0].queryObj.headers = [
+        ['Authorization', 'Bearer secret'],
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        sourceDetector.type,
+        sourceDetector.id
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({name: 'Moved copy', projectId: otherProject.id}),
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              projectId: otherProject.id,
+              dataSources: [expect.objectContaining({headers: []})],
+            }),
+          })
+        );
+      });
+    });
+
+    it('opens an uptime draft when its duplicated monitor cannot be loaded', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/missing-uptime/`,
+        statusCode: 404,
+        body: {},
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        'uptime_domain_failure',
+        'missing-uptime'
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({
+                name: 'Shared copy',
+                url: 'https://shared.example.com',
+              }),
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
+        'https://shared.example.com'
+      );
+      expect(
+        screen.queryByText('The monitor to duplicate could not be loaded.')
+      ).not.toBeInTheDocument();
     });
 
     it('rejects a source monitor whose type does not match the create form', async () => {
@@ -1149,6 +1377,213 @@ describe('DetectorEdit', () => {
     });
   });
 
+  describe('Metric Detector URL draft', () => {
+    const newMetricQuery = {detectorType: 'metric_issue', project: project.id};
+
+    function getRouterConfig(query: Record<string, string>) {
+      return {
+        ...initialRouterConfig,
+        location: {...initialRouterConfig.location, query},
+      };
+    }
+
+    function getDraft(router: {location: {query: Record<string, unknown>}}) {
+      const draft = router.location.query.draft;
+      return typeof draft === 'string' ? JSON.parse(draft) : undefined;
+    }
+
+    it('writes edits to the URL draft when a field changes', async () => {
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig({
+          ...newMetricQuery,
+          dataset: 'errors',
+          aggregate: 'count()',
+        }),
+      });
+
+      await userEvent.type(
+        await screen.findByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+
+      await waitFor(() => {
+        expect(getDraft(router)).toEqual(
+          expect.objectContaining({
+            aggregateFunction: 'count()',
+            dataset: 'errors',
+            highThreshold: '100',
+            projectId: project.id,
+          })
+        );
+      });
+      expect(getDraft(router)).not.toHaveProperty('name');
+    });
+
+    it('does not write a draft when nothing has changed', async () => {
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig(newMetricQuery),
+      });
+
+      await screen.findByRole('spinbutton', {name: 'High threshold'});
+      await act(() => new Promise(resolve => setTimeout(resolve, 500)));
+
+      expect(router.location.query.draft).toBeUndefined();
+    });
+
+    it('keeps a typed name in the URL draft', async () => {
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig(newMetricQuery),
+      });
+
+      await userEvent.click(await screen.findByTestId('editable-text-label'));
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Monitor Name'}));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Monitor Name'}),
+        'Typed name'
+      );
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(getDraft(router)).toEqual(expect.objectContaining({name: 'Typed name'}));
+      });
+    });
+
+    it('does not load the duplicated monitor when the URL has a draft', async () => {
+      const sourceRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organizationWithMonitorDuplication.slug}/detectors/1/`,
+        body: MetricDetectorFixture({id: '1'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({highThreshold: '75'}),
+          duplicateFrom: '1',
+        }),
+      });
+
+      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
+        75
+      );
+      expect(sourceRequest).not.toHaveBeenCalled();
+    });
+
+    it('prefills from the URL draft and submits', async () => {
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            aggregateFunction: 'count_unique(user)',
+            dataset: 'errors',
+            environment: 'production',
+            highThreshold: '250',
+            name: 'Shared monitor',
+            projectId: project.id,
+            query: '',
+          }),
+        }),
+      });
+
+      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
+        250
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(createDetector).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              name: 'Shared monitor',
+              conditionGroup: expect.objectContaining({
+                conditions: expect.arrayContaining([
+                  expect.objectContaining({comparison: 250, type: 'gt'}),
+                ]),
+              }),
+              dataSources: [
+                expect.objectContaining({
+                  aggregate: 'count_unique(tags[sentry:user])',
+                  environment: 'production',
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    }, 10000);
+
+    it('falls back to a writable project when the draft project is not writable', async () => {
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            highThreshold: '75',
+            name: 'Other project',
+            projectId: '999999',
+          }),
+        }),
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(createDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({projectId: project.id}),
+          })
+        );
+      });
+    }, 10000);
+  });
+
+  describe('Mobile Build Detector URL draft', () => {
+    it('restores a mobile build draft from the URL', async () => {
+      render(<DetectorNewSettings />, {
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'preprod-size-monitors-frontend'],
+        }),
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              detectorType: 'preprod_size_analysis',
+              draft: JSON.stringify({
+                measurement: 'download_size',
+                name: 'Shared app size',
+              }),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Shared app size'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('radio', {name: 'Download Size'})).toBeChecked();
+    });
+  });
+
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
@@ -1250,6 +1685,12 @@ describe('DetectorEdit', () => {
   });
 
   describe('Uptime Detector', () => {
+    // Tests run debounces synchronously, so typing writes the URL draft on every keystroke.
+    async function pasteInto(textbox: HTMLElement, text: string) {
+      await userEvent.click(textbox);
+      await userEvent.paste(text);
+    }
+
     const uptimeRouterConfig = {
       ...initialRouterConfig,
       location: {
@@ -1274,10 +1715,12 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Uptime Monitor{enter}');
 
-      const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my uptime monitor description');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'description'}),
+        'This is my uptime monitor description'
+      );
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
@@ -1286,14 +1729,14 @@ describe('DetectorEdit', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
 
       // Add headers
-      const headerNameInput = screen.getByRole('textbox', {
-        name: 'Name of header 1',
-      });
-      await userEvent.type(headerNameInput, 'X-API-Key');
-      const headerValueInput = screen.getByRole('textbox', {
-        name: 'Value of X-API-Key',
-      });
-      await userEvent.type(headerValueInput, 'secret-key-123');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Name of header 1'}),
+        'X-API-Key'
+      );
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Value of X-API-Key'}),
+        'secret-key-123'
+      );
 
       // Add body
       const bodyInput = screen.getByRole('textbox', {name: 'Body'});
@@ -1387,6 +1830,99 @@ describe('DetectorEdit', () => {
       expect(screen.queryByText('staging')).not.toBeInTheDocument();
     });
 
+    async function fillUptimeRequest() {
+      await pasteInto(
+        await screen.findByRole('textbox', {name: 'URL'}),
+        'https://uptime.example.com'
+      );
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Name of header 1'}),
+        'Authorization'
+      );
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Value of Authorization'}),
+        'Bearer secret'
+      );
+      await pasteInto(screen.getByRole('textbox', {name: 'Body'}), '{"token": "secret"}');
+    }
+
+    function getDraftValues(router: {location: {query: Record<string, unknown>}}) {
+      const draft = router.location.query.draft;
+      return typeof draft === 'string' ? JSON.parse(draft) : undefined;
+    }
+
+    it('leaves headers and body out of the URL draft', async () => {
+      const {router} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: uptimeRouterConfig,
+      });
+
+      await fillUptimeRequest();
+      // A last edit, so the asserted draft is written after the headers and body.
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
+
+      await waitFor(() => {
+        expect(getDraftValues(router)?.traceSampling).toBe(true);
+      });
+      const values = getDraftValues(router);
+      expect(values).toEqual(
+        expect.objectContaining({method: 'POST', url: 'https://uptime.example.com'})
+      );
+      expect(JSON.stringify(values)).not.toContain('secret');
+    });
+
+    it('does not restore headers or a URL with credentials from a link', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              draft: JSON.stringify({
+                headers: [['Authorization', 'Bearer secret']],
+                name: 'Shared uptime',
+                url: 'https://user:secret@shared.example.com',
+              }),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByRole('heading', {name: 'Shared uptime'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'URL'})).toHaveValue('');
+      expect(screen.getByRole('textbox', {name: 'Name of header 1'})).toHaveValue('');
+    });
+
+    it('restores an uptime draft from the URL', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              draft: JSON.stringify({
+                method: 'POST',
+                name: 'Shared uptime',
+                url: 'https://shared.example.com',
+              }),
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByRole('textbox', {name: 'URL'})).toHaveValue(
+        'https://shared.example.com'
+      );
+      expect(screen.getByRole('heading', {name: 'Shared uptime'})).toBeInTheDocument();
+    });
+
     it('submits custom thresholds when changed', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
@@ -1399,7 +1935,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig: uptimeRouterConfig,
       });
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime-custom.example.com'
       );
@@ -1475,6 +2011,12 @@ describe('DetectorEdit', () => {
   });
 
   describe('Cron Detector', () => {
+    function getSpinbuttonByName(name: string) {
+      return screen
+        .getAllByRole('spinbutton')
+        .find(element => element.getAttribute('name') === name)!;
+    }
+
     const cronRouterConfig = {
       ...initialRouterConfig,
       location: {
@@ -1529,6 +2071,87 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('restores an edited cron draft when the URL is reopened', async () => {
+      const {router, unmount} = render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+      await screen.findByText('Set margins');
+      expect(screen.getByText('Select Instrumentation Method')).toBeInTheDocument();
+      const gracePeriod = getSpinbuttonByName('checkinMargin');
+      await userEvent.clear(gracePeriod);
+      await userEvent.type(gracePeriod, '7');
+      await waitFor(() => {
+        expect(router.location.query.draft).toContain('"checkinMargin":7');
+      });
+      const sharedQuery = {...router.location.query} as Record<string, string>;
+      unmount();
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {...cronRouterConfig.location, query: sharedQuery},
+        },
+      });
+
+      await screen.findByText('Set margins');
+      expect(getSpinbuttonByName('checkinMargin')).toHaveValue(7);
+      expect(screen.getByTestId('form-sections')).toBeVisible();
+    });
+
+    it('shows the guide when a draft link also has auto-instrumentation guide params', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {
+            ...cronRouterConfig.location,
+            query: {
+              ...cronRouterConfig.location.query,
+              platform: 'php',
+              guide: 'upsert',
+              draft: JSON.stringify({checkinMargin: ''}),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).not.toBeVisible();
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('does not open a guide for the restored project when given a draft link', async () => {
+      const phpProject = ProjectFixture({id: '3', slug: 'php-project', platform: 'php'});
+      ProjectsStore.loadInitialData([project, phpProject]);
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...cronRouterConfig,
+          location: {
+            ...cronRouterConfig.location,
+            query: {
+              detectorType: 'monitor_check_in_failure',
+              draft: JSON.stringify({checkinMargin: '', projectId: phpProject.id}),
+            },
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText('Select Instrumentation Method')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('form-sections')).toBeVisible();
+      expect(getSpinbuttonByName('checkinMargin')).toHaveValue(null);
     });
 
     it('submits crons config with changes', async () => {

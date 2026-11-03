@@ -189,6 +189,7 @@ function Graph({
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
+  const isDroppedDataLoaded = defined(droppedEvents);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
@@ -289,9 +290,10 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
+      {isDroppedDataLoaded ? (
         <DroppedDataLayerControl
           dataset={DiscoverDatasets.OURLOGS}
+          hasDroppedData={canShowDroppedData}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
@@ -378,23 +380,34 @@ function Graph({
         }
         Footer={
           visualize.visible && (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              <ConfidenceFooter
-                chartInfo={chartInfo}
-                isLoading={chartInfo.timeseriesResult.isPending}
-                rawLogCounts={rawLogCounts}
-                hasUserQuery={!!userQuery}
-                disabled={
-                  !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
-                }
-              />
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={DiscoverDatasets.OURLOGS}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  <ConfidenceFooter
+                    chartInfo={chartInfo}
+                    isLoading={chartInfo.timeseriesResult.isPending}
+                    rawLogCounts={rawLogCounts}
                     hasUserQuery={!!userQuery}
+                    disabled={
+                      !hasValidConditionalFilter ||
+                      (tableIsPending ? false : tableIsEmpty)
+                    }
                   />
-                ) : null}
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={DiscoverDatasets.OURLOGS}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {showTransformationControls ? (
                   <AddTransformationButton
                     traceItemDataset={TraceItemDataset.LOGS}
@@ -403,7 +416,7 @@ function Graph({
                   />
                 ) : null}
               </Flex>
-            </Flex>
+            </Container>
           )
         }
         height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}

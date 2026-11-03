@@ -1060,6 +1060,12 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
     def validate_query_transformation_updates(self, widgets: list[dict[str, Any]]) -> None:
+        # We only want to count queries that have an id, those without one are duplicates
+        for widget in widgets:
+            if widget.get("id"):
+                continue
+            for query in widget.get("queries", []):
+                query.pop("id", None)
         query_ids = [
             query["id"]
             for widget in widgets

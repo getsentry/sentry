@@ -4,12 +4,12 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
-from sentry.investigations.services import (
+from sentry.notebooks.models import NotebookBlockExecution, NotebookBlockExecutionStatus
+from sentry.notebooks.services import (
     mark_block_execution_cancelled,
     mark_block_execution_resumed,
     mark_block_execution_stopping,
 )
-from sentry.notebooks.models import NotebookBlockExecution, NotebookBlockExecutionStatus
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -37,7 +37,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
 
     def execution_url(self, execution: NotebookBlockExecution) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -118,7 +118,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert execution.completed_at is not None
 
-    @patch("sentry.investigations.services.executions.record_execution_cancelled")
+    @patch("sentry.notebooks.services.executions.record_execution_cancelled")
     def test_stop_closes_a_pending_execution_that_never_reached_seer(
         self, record_cancelled: MagicMock
     ) -> None:
@@ -166,7 +166,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             input_snapshot={"projectIds": [self.project.id]},
         )
         execution_url = reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -175,7 +175,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             },
         )
         title_url = reverse(
-            "sentry-api-0-organization-investigation-title-generation",
+            "sentry-api-0-organization-notebook-title-generation",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

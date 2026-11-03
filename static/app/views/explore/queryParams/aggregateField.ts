@@ -1,7 +1,4 @@
-import type {Location} from 'history';
-
 import {defined} from 'sentry/utils/defined';
-import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {
@@ -87,13 +84,10 @@ function gatherChartGroups(aggregateFields: readonly AggregateField[]): Aggregat
   return gathered;
 }
 
-export function getAggregateFieldsFromLocation(
-  location: Location,
-  key: string,
+export function getAggregateFields(
+  rawAggregateFields: readonly string[],
   options?: ParseVisualizeOptions
 ): AggregateField[] | null {
-  const rawAggregateFields = decodeList(location.query?.[key]);
-
   if (rawAggregateFields.length <= 0) {
     return null;
   }

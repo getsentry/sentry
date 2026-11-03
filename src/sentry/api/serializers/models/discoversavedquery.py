@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import (
     DatasetSourcesTypes,
@@ -105,22 +106,24 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         organization = item_list[0].organization if item_list else None
 
+        starred_queries: dict[int, int | None] = {}
         user_last_visited: dict[int, datetime] = {}
-        starred_queries = dict(
-            DiscoverSavedQueryStarred.objects.filter(
-                discover_saved_query__in=item_list,
-                user_id=user.id,
-                organization=item_list[0].organization if item_list else None,
-                starred=True,
-            ).values_list("discover_saved_query_id", "position")
-        )
-        user_last_visited = dict(
-            DiscoverSavedQueryLastVisited.objects.filter(
-                discover_saved_query__in=item_list,
-                user_id=user.id,
-                organization=organization,
-            ).values_list("discover_saved_query_id", "last_visited")
-        )
+        if has_user(user):
+            starred_queries = dict(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("discover_saved_query_id", "position")
+            )
+            user_last_visited = dict(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=organization,
+                ).values_list("discover_saved_query_id", "last_visited")
+            )
 
         service_serialized = user_service.serialize_many(
             filter={
@@ -130,7 +133,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                     if discover_saved_query.created_by_id
                 ]
             },
-            as_user=user if user.id else None,
+            as_user=user if has_user(user) else None,
         )
         serialized_users = {user["id"]: user for user in service_serialized}
 

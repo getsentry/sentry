@@ -61,6 +61,7 @@ EXPOSABLE_FEATURES = [
     "organizations:tracemetrics-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
+    "organizations:relay-heroku-log-drain-endpoint",
     "organizations:relay-playstation-ingestion",
     "organizations:gpu-crash-symbolication",
     "projects:span-v2-attachment-processing",

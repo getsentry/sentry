@@ -12,10 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.investigations import (
-    InvestigationValidationError,
-    resolve_investigation_source,
-)
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.services.orchestration import (
     agentic_breached_metric_source_key,
     create_agentic_breached_metric_investigation,
@@ -25,6 +22,7 @@ from sentry.investigations.services.orchestration import (
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery

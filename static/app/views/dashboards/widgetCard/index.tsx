@@ -100,6 +100,7 @@ type Props = {
   hasEditAccess?: boolean;
   index?: string;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -343,6 +344,7 @@ function WidgetCard(props: Props) {
         widget,
         props.widgetLimitReached,
         props.hasEditAccess,
+        props.isPrebuiltDashboard,
         location,
         props.onDelete,
         props.onDuplicate,

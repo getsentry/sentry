@@ -11,9 +11,11 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth import access
+from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.query import in_iexact
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.organizations.services.organization import organization_service
@@ -54,11 +56,10 @@ class ProjectIndexEndpoint(Endpoint):
             if request.auth.organization_id is None or request.auth.user_id is None:
                 raise PermissionDenied
             else:
-                org_context = organization_service.get_organization_by_id(
-                    id=request.auth.organization_id,
+                org_context = organization_service.get_access_context(
+                    organization_id=request.auth.organization_id,
                     user_id=request.auth.user_id,
-                    include_projects=False,
-                    include_teams=False,
+                    include_resource_ids=False,
                 )
                 if org_context is None:
                     queryset = queryset.none()
@@ -67,11 +68,18 @@ class ProjectIndexEndpoint(Endpoint):
                     queryset = queryset.filter(organization_id=request.auth.organization_id)
                     if not agent_access.has_global_access:
                         queryset = queryset.filter(id__in=agent_access.accessible_project_ids)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(organization_id=request.auth.organization_id)
+                # A service account without open membership reaches only its linked projects.
+                token_access = access.from_auth(
+                    request.auth,
+                    Organization.objects.get_from_cache(id=request.auth.organization_id),
+                )
+                if not token_access.has_global_access:
+                    queryset = queryset.filter(id__in=token_access.accessible_project_ids)
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):

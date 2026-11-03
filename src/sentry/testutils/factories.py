@@ -205,6 +205,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowTriggerBinding,
 )
+from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -3412,11 +3414,20 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_config(
-        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+        organization,
+        *,
+        trigger_actions: Sequence[Action] = (),
+        monitors: Sequence[Detector] = (),
+        **kwargs,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
+        if monitors:
+            BreachedMetricWorkflow(
+                config_id=config.id, organization_id=config.organization_id
+            ).set_monitor_selection([monitor.id for monitor in monitors])
+            config.refresh_from_db()
         return config
 
     @staticmethod
@@ -3440,6 +3451,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_run_execution(run, **kwargs) -> SeerWorkflowRunExecution:
         return SeerWorkflowRunExecution.objects.create(run=run, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_workflow_output_link(execution, **kwargs) -> SeerWorkflowOutputLink:
+        return SeerWorkflowOutputLink.objects.create(execution=execution, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

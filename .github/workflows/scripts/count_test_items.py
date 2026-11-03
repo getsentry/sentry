@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
+import json
 import math
+import os
 import re
 from pathlib import Path
 
@@ -87,3 +89,18 @@ def count_tests_in_file(filepath: Path) -> int:
             )
             total += math.prod(counts, start=1)
     return total
+
+
+def estimate_file_seconds(files: list[str], durations_file: Path) -> dict[str, float]:
+    """Seconds per file from `durations_file`, estimated from test counts for new files."""
+    durations = json.loads(durations_file.read_text())
+    known: dict[str, float] = durations["files"]
+    seconds: dict[str, float] = {}
+    for path in files:
+        if path in known:
+            seconds[path] = known[path]
+        elif os.path.basename(path).startswith("test_"):
+            seconds[path] = count_tests_in_file(Path(path)) * durations["seconds_per_test"]
+        else:
+            seconds[path] = 0.0
+    return seconds

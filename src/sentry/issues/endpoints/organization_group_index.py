@@ -149,7 +149,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
@@ -317,6 +317,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.GROUP_STATS_PERIOD,

@@ -10,6 +10,8 @@ import orjson
 import pytest
 from django.core import mail
 from django.db import router
+from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
@@ -51,6 +53,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, crea
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -2056,6 +2059,30 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_remove(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:admin"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert Organization.objects.get(id=self.organization.id).status == OrganizationStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(object_id=self.organization.id).exists()
 
     def test_can_remove_as_owner(self) -> None:
         owners = self.organization.get_owners()
