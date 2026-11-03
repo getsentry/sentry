@@ -115,6 +115,8 @@ LATEST_RELEASE_TTAS = {
     "python-tryton": 3605,
     "python-wsgi": 4657,
     "react-native": 54047,
+    # Expo apps use the React Native SDK and ship through the same app stores.
+    "expo": 54047,
     "ruby": 3990,
     "ruby-rack": 4599,
     "ruby-rails": 4421,
