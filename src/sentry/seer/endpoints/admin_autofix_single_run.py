@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
+from sentry.auth.principal import require_user
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
@@ -52,9 +53,10 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 status=400,
             )
 
+        user = require_user(request)
         with viewer_context_scope(
             ViewerContext(
-                actor=Actor(type=ActorType.USER, actor_id=request.user.id),
+                actor=Actor(type=ActorType.USER, actor_id=user.id),
                 organization_id=organization.id,
             )
         ):
@@ -63,8 +65,8 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=AutofixReferrer.ADMIN,
-                    user=request.user,
-                    actor_user_id=request.user.id,
+                    user=user,
+                    actor_user_id=user.id,
                     single_run=True,
                 )
             except NoSeerQuotaException:
