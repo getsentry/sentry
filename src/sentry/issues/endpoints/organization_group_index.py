@@ -453,10 +453,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 return response
 
         # If group ids specified, just ignore any query components
-        try:
-            group_ids = set(map(int, request.GET.getlist("group")))
-        except ValueError:
-            return Response({"detail": "Group ids must be integers"}, status=400)
+        group_ids = set(to_valid_int_id_list("group", request.GET.getlist("group")))
 
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
