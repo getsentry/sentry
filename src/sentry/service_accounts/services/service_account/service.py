@@ -7,6 +7,7 @@ from abc import abstractmethod
 from datetime import datetime
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
+from sentry.service_accounts.services.service_account.model import RpcServiceAccount
 from sentry.silo.base import SiloMode
 
 
@@ -38,6 +39,48 @@ class ServiceAccountService(RpcService):
         `previous_organization_id` accounts linked before `transferred_at`. The second case
         covers a project that came back to that org before this ran.
         """
+
+    @rpc_method
+    @abstractmethod
+    def get_service_account(
+        self, *, organization_id: int, service_account_id: int
+    ) -> RpcServiceAccount | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def create_service_account(
+        self,
+        *,
+        organization_id: int,
+        name: str,
+        scope_list: list[str],
+        project_ids: list[int],
+        all_projects: bool,
+        created_by_id: int | None,
+    ) -> RpcServiceAccount:
+        """Callers must authorize the grant and write the audit log."""
+
+    @rpc_method
+    @abstractmethod
+    def update_service_account(
+        self,
+        *,
+        organization_id: int,
+        service_account_id: int,
+        scope_list: list[str],
+        project_ids: list[int],
+        all_projects: bool,
+    ) -> RpcServiceAccount | None:
+        """
+        Replace an account's scopes and projects. Returns None when the account isn't in
+        `organization_id`. Callers must authorize the grant and write the audit log.
+        """
+
+    @rpc_method
+    @abstractmethod
+    def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
+        pass
 
 
 service_account_service = ServiceAccountService.create_delegation()

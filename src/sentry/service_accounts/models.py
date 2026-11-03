@@ -104,6 +104,21 @@ class ServiceAccount(ReplicatedControlModel):
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         return service_account_outboxes(self.id, self.organization_id, shard_identifier)
 
+    def replace_projects(self, project_ids: Iterable[int]) -> None:
+        project_ids = set(project_ids)
+        existing = set()
+        # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
+        for link in ServiceAccountProject.objects.filter(service_account=self):
+            if link.project_id in project_ids:
+                existing.add(link.project_id)
+            else:
+                link.delete()
+        ServiceAccountProject.objects.bulk_create(
+            ServiceAccountProject(service_account=self, project_id=project_id)
+            for project_id in project_ids
+            if project_id not in existing
+        )
+
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import cell_replica_service
         from sentry.service_accounts.services.service_account.serial import (
