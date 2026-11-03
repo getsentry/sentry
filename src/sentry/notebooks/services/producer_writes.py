@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any
 from uuid import UUID
@@ -21,6 +22,7 @@ from sentry.notebooks.models import (
     NotebookBlockExecutor,
     NotebookBlockKind,
     NotebookProject,
+    NotebookStatus,
 )
 from sentry.utils import json
 
@@ -30,6 +32,45 @@ class Unset:
 
 
 UNSET = Unset()
+
+
+class NotebookWrites:
+    """A locked notebook that producer block writes go through. Open one with notebook_writes()."""
+
+    def __init__(self, notebook: Notebook) -> None:
+        self._notebook = notebook
+        self._open = True
+        self.changed = False
+
+    @property
+    def notebook(self) -> Notebook:
+        if not self._open:
+            raise RuntimeError("This notebook_writes() block has exited.")
+        return self._notebook
+
+    def mark_changed(self) -> None:
+        self.changed = True
+
+
+@contextmanager
+def notebook_writes(notebook: Notebook) -> Iterator[NotebookWrites]:
+    """Lock an active notebook for producer writes, and bump its version once if they changed it."""
+
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        locked = Notebook.objects.select_for_update().get(id=notebook.id)
+        if locked.status == NotebookStatus.ARCHIVED:
+            raise serializers.ValidationError({"detail": "Archived investigations are read-only."})
+        notebook.status = locked.status
+        notebook.version = locked.version
+        writes = NotebookWrites(notebook)
+        try:
+            yield writes
+        finally:
+            writes._open = False
+        if writes.changed:
+            notebook.version += 1
+            notebook.date_updated = timezone.now()
+            notebook.save(update_fields=["version", "date_updated"])
 
 
 def _default_display(kind: str) -> dict[str, Any]:
@@ -44,7 +85,7 @@ def _default_display(kind: str) -> dict[str, Any]:
 
 
 def upsert_block(
-    notebook: Notebook,
+    writes: NotebookWrites,
     *,
     key: str,
     revision: int,
@@ -71,6 +112,7 @@ def upsert_block(
     left UNSET keeps the block's value, and generated_content falls back to content.
     """
 
+    notebook = writes.notebook
     with transaction.atomic(using=router.db_for_write(NotebookBlock)):
         block = _live_block(notebook, key)
         if block is None:
@@ -163,6 +205,10 @@ def upsert_block(
             block.version += 1
         block.save()
         execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
+        if execution is not None and execution.block_id != block.id:
+            raise serializers.ValidationError(
+                {"requestId": "This execution request ID is already in use."}
+            )
         result = (
             query_result
             if kind == NotebookBlockKind.QUERY and complete
@@ -308,15 +354,16 @@ def upsert_block(
                 "date_updated",
             ]
         )
-        return block
+    writes.mark_changed()
+    return block
 
 
 def append_block_content(
-    notebook: Notebook, *, key: str, revision: int, text: str, reset: bool = False
+    writes: NotebookWrites, *, key: str, revision: int, text: str, reset: bool = False
 ) -> bool:
     """Stream text into a started text block. Returns whether the block changed."""
 
-    block = _live_block(notebook, key)
+    block = _live_block(writes.notebook, key)
     if block is None or block.kind != NotebookBlockKind.TEXT:
         raise serializers.ValidationError({"payload": "Text block was not started."})
     _check_revision(block, revision)
@@ -331,21 +378,23 @@ def append_block_content(
     block.generated_content = text if reset else block.generated_content + text
     block.version += 1
     block.save(update_fields=["content", "generated_content", "version", "date_updated"])
+    writes.mark_changed()
     return True
 
 
-def move_block(notebook: Notebook, *, key: str, revision: int, position: int) -> None:
-    block = _live_block(notebook, key)
+def move_block(writes: NotebookWrites, *, key: str, revision: int, position: int) -> None:
+    block = _live_block(writes.notebook, key)
     if block is None:
         raise serializers.ValidationError({"payload": "Report block was not found."})
     _check_revision(block, revision)
     block.position = position
     block.version += 1
     block.save(update_fields=["position", "version", "date_updated"])
+    writes.mark_changed()
 
 
 def remove_blocks(
-    notebook: Notebook,
+    writes: NotebookWrites,
     *,
     revision: int | None = None,
     key: str | None = None,
@@ -369,7 +418,7 @@ def remove_blocks(
         raise ValueError("remove_blocks needs a filter or all_blocks=True.")
 
     blocks = NotebookBlock.objects.filter(
-        notebook=notebook,
+        notebook=writes.notebook,
         producer_revision__isnull=False,
         producer_key__isnull=False,
         deleted_at__isnull=True,
@@ -387,6 +436,8 @@ def remove_blocks(
     NotebookBlock.objects.filter(id__in=[block_id for block_id, _ in removed]).update(
         deleted_at=now, date_updated=now
     )
+    if removed:
+        writes.mark_changed()
     return [block_key for _, block_key in removed if block_key is not None]
 
 

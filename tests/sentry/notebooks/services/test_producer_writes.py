@@ -10,14 +10,18 @@ from rest_framework import serializers
 
 from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
 from sentry.notebooks.models import (
+    Notebook,
     NotebookBlock,
     NotebookBlockExecutionStatus,
     NotebookBlockKind,
+    NotebookStatus,
 )
 from sentry.notebooks.services.producer_writes import (
     UNSET,
+    NotebookWrites,
     append_block_content,
     move_block,
+    notebook_writes,
     remove_blocks,
     upsert_block,
 )
@@ -35,7 +39,7 @@ class UpsertBlockTest(TestCase):
         super().setUp()
         self.notebook = self.create_notebook(organization=self.organization)
 
-    def upsert(self, **values: Any) -> NotebookBlock:
+    def upsert(self, notebook: Notebook | None = None, **values: Any) -> NotebookBlock:
         arguments: dict[str, Any] = {
             "key": "summary",
             "revision": 0,
@@ -48,7 +52,12 @@ class UpsertBlockTest(TestCase):
             "input_snapshot": {"orchestrationRunId": 1},
             **values,
         }
-        return upsert_block(self.notebook, **arguments)
+        with notebook_writes(notebook or self.notebook) as writes:
+            return upsert_block(writes, **arguments)
+
+    def remove(self, **filters: Any) -> list[str]:
+        with notebook_writes(self.notebook) as writes:
+            return remove_blocks(writes, **filters)
 
     def test_creates_block_and_completed_execution(self) -> None:
         block = self.upsert(title="Summary")
@@ -163,7 +172,7 @@ class UpsertBlockTest(TestCase):
 
     def test_removed_block_comes_back_in_its_revision(self) -> None:
         block = self.upsert(revision=1)
-        remove_blocks(self.notebook, key="summary")
+        self.remove(key="summary")
 
         restored = self.upsert(revision=1, content="Restored")
 
@@ -173,7 +182,7 @@ class UpsertBlockTest(TestCase):
     def test_removed_block_still_rejects_an_older_revision(self) -> None:
         self.upsert(revision=1)
         newest = self.upsert(revision=2)
-        remove_blocks(self.notebook, key="summary")
+        self.remove(key="summary")
 
         with pytest.raises(serializers.ValidationError):
             self.upsert(revision=1, content="Late")
@@ -187,7 +196,7 @@ class UpsertBlockTest(TestCase):
 
     def test_removed_block_is_not_reused_by_a_new_revision(self) -> None:
         block = self.upsert(revision=1)
-        remove_blocks(self.notebook, key="summary")
+        self.remove(key="summary")
 
         replacement = self.upsert(revision=2)
 
@@ -234,6 +243,66 @@ class UpsertBlockTest(TestCase):
         assert query.current_execution is not None
         assert query.current_execution.result == QUERY_RESULT
 
+    def test_request_id_of_another_block_is_rejected(self) -> None:
+        request_id = uuid4()
+        other = self.upsert(
+            notebook=self.create_notebook(organization=self.organization),
+            request_id=request_id,
+        )
+
+        with pytest.raises(serializers.ValidationError) as error:
+            self.upsert(request_id=request_id)
+
+        assert error.value.detail == {"requestId": "This execution request ID is already in use."}
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+        assert other.current_execution is not None
+        other.current_execution.refresh_from_db()
+        assert other.current_execution.block_id == other.id
+
+
+class NotebookWritesTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.notebook = self.create_notebook(organization=self.organization)
+
+    def upsert(self, writes: NotebookWrites, key: str) -> NotebookBlock:
+        return upsert_block(
+            writes,
+            key=key,
+            revision=0,
+            kind=NotebookBlockKind.TEXT,
+            request_id=uuid4(),
+            complete=True,
+            position=0,
+            content="Report",
+            project_ids=[self.project.id],
+            input_snapshot={},
+        )
+
+    def test_bumps_version_once_when_writes_change_the_notebook(self) -> None:
+        with notebook_writes(self.notebook) as writes:
+            self.upsert(writes, "a")
+            self.upsert(writes, "b")
+
+        self.notebook.refresh_from_db()
+        assert self.notebook.version == 2
+
+    def test_keeps_version_when_nothing_changed(self) -> None:
+        with notebook_writes(self.notebook) as writes:
+            assert remove_blocks(writes, all_blocks=True) == []
+
+        self.notebook.refresh_from_db()
+        assert self.notebook.version == 1
+
+    def test_rejects_archived_notebook(self) -> None:
+        self.notebook.update(status=NotebookStatus.ARCHIVED)
+
+        with pytest.raises(serializers.ValidationError):
+            with notebook_writes(self.notebook) as writes:
+                self.upsert(writes, "a")
+
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
 
 class AppendBlockContentTest(TestCase):
     def setUp(self) -> None:
@@ -241,31 +310,34 @@ class AppendBlockContentTest(TestCase):
         self.notebook = self.create_notebook(organization=self.organization)
 
     def start(self, revision: int = 1, kind: str = NotebookBlockKind.TEXT) -> NotebookBlock:
-        return upsert_block(
-            self.notebook,
-            key="summary",
-            revision=revision,
-            kind=kind,
-            request_id=uuid4(),
-            complete=False,
-            position=0,
-            project_ids=[self.project.id],
-            input_snapshot={},
-        )
+        with notebook_writes(self.notebook) as writes:
+            return upsert_block(
+                writes,
+                key="summary",
+                revision=revision,
+                kind=kind,
+                request_id=uuid4(),
+                complete=False,
+                position=0,
+                project_ids=[self.project.id],
+                input_snapshot={},
+            )
+
+    def append(self, **values: Any) -> bool:
+        with notebook_writes(self.notebook) as writes:
+            return append_block_content(writes, key="summary", **values)
 
     def test_appends_and_resets_content(self) -> None:
         started = self.start()
 
-        assert append_block_content(self.notebook, key="summary", revision=1, text="Hel")
-        assert append_block_content(self.notebook, key="summary", revision=1, text="lo")
+        assert self.append(revision=1, text="Hel")
+        assert self.append(revision=1, text="lo")
         block = NotebookBlock.objects.get(id=started.id)
         assert block.content == "Hello"
         assert block.generated_content == "Hello"
         assert block.version == started.version + 2
 
-        assert append_block_content(
-            self.notebook, key="summary", revision=1, text="Bye", reset=True
-        )
+        assert self.append(revision=1, text="Bye", reset=True)
         block.refresh_from_db()
         assert block.content == "Bye"
         assert block.current_execution_id == started.current_execution_id
@@ -273,28 +345,29 @@ class AppendBlockContentTest(TestCase):
 
     def test_a_rewrite_ignores_text_until_it_completes(self) -> None:
         self.start(revision=1)
-        upsert_block(
-            self.notebook,
-            key="summary",
-            revision=1,
-            kind=NotebookBlockKind.TEXT,
-            request_id=uuid4(),
-            complete=True,
-            content="Done",
-            project_ids=[self.project.id],
-            input_snapshot={},
-        )
+        with notebook_writes(self.notebook) as writes:
+            upsert_block(
+                writes,
+                key="summary",
+                revision=1,
+                kind=NotebookBlockKind.TEXT,
+                request_id=uuid4(),
+                complete=True,
+                content="Done",
+                project_ids=[self.project.id],
+                input_snapshot={},
+            )
         self.start(revision=2)
 
-        assert not append_block_content(self.notebook, key="summary", revision=2, text="more")
+        assert not self.append(revision=2, text="more")
         assert NotebookBlock.objects.get(notebook=self.notebook).content == "Done"
 
     def test_rejects_text_for_a_block_not_started_in_this_revision(self) -> None:
         self.start(revision=1)
-        append_block_content(self.notebook, key="summary", revision=1, text="Old")
+        self.append(revision=1, text="Old")
 
         with pytest.raises(serializers.ValidationError):
-            append_block_content(self.notebook, key="summary", revision=2, text="New")
+            self.append(revision=2, text="New")
 
         block = NotebookBlock.objects.get(notebook=self.notebook)
         assert block.producer_revision == 1
@@ -302,25 +375,23 @@ class AppendBlockContentTest(TestCase):
 
     def test_needs_a_live_text_block(self) -> None:
         with pytest.raises(serializers.ValidationError):
-            append_block_content(self.notebook, key="summary", revision=1, text="x")
+            self.append(revision=1, text="x")
 
         self.start(kind=NotebookBlockKind.QUERY)
         with pytest.raises(serializers.ValidationError):
-            append_block_content(self.notebook, key="summary", revision=1, text="x")
+            self.append(revision=1, text="x")
 
     def test_rejects_an_older_revision(self) -> None:
         self.start(revision=2)
 
         with pytest.raises(serializers.ValidationError):
-            append_block_content(self.notebook, key="summary", revision=1, text="x")
+            self.append(revision=1, text="x")
 
     def test_rejects_text_over_the_size_limit(self) -> None:
         self.start()
 
         with pytest.raises(serializers.ValidationError):
-            append_block_content(
-                self.notebook,
-                key="summary",
+            self.append(
                 revision=1,
                 text="x" * (MAX_MARKDOWN_CHARS + 1),
             )
@@ -331,9 +402,11 @@ class MoveBlockTest(TestCase):
         notebook = self.create_notebook(organization=self.organization)
         block = self.create_notebook_block(notebook=notebook, producer_key="a", producer_revision=1)
 
-        move_block(notebook, key="a", revision=2, position=3)
+        with notebook_writes(notebook) as writes:
+            move_block(writes, key="a", revision=2, position=3)
         with pytest.raises(serializers.ValidationError):
-            move_block(notebook, key="a", revision=0, position=5)
+            with notebook_writes(notebook) as writes:
+                move_block(writes, key="a", revision=0, position=5)
 
         block.refresh_from_db()
         assert block.position == 3
@@ -362,7 +435,8 @@ class RemoveBlocksTest(TestCase):
         kept = self.create_notebook_block(notebook=notebook, producer_key="b", producer_revision=1)
         user_block = self.create_notebook_block(notebook=notebook)
 
-        assert remove_blocks(notebook, revision=1, key="a") == ["a"]
+        with notebook_writes(notebook) as writes:
+            assert remove_blocks(writes, revision=1, key="a") == ["a"]
 
         removed.refresh_from_db()
         kept.refresh_from_db()
@@ -375,10 +449,11 @@ class RemoveBlocksTest(TestCase):
         notebook = self.create_notebook(organization=self.organization)
         block = self.create_notebook_block(notebook=notebook, producer_key="a", producer_revision=1)
 
-        with pytest.raises(ValueError):
-            remove_blocks(notebook)
+        with notebook_writes(notebook) as writes:
+            with pytest.raises(ValueError):
+                remove_blocks(writes)
 
-        assert remove_blocks(notebook, all_blocks=True) == ["a"]
+            assert remove_blocks(writes, all_blocks=True) == ["a"]
         block.refresh_from_db()
         assert block.deleted_at is not None
 
@@ -392,9 +467,10 @@ class RemoveBlocksTest(TestCase):
         )
         kept = self.create_notebook_block(notebook=notebook, producer_key="c", producer_revision=1)
 
-        assert remove_blocks(notebook, block_ids=[replaced.id, rewritten.id], revision_below=2) == [
-            "a"
-        ]
+        with notebook_writes(notebook) as writes:
+            removed = remove_blocks(writes, block_ids=[replaced.id, rewritten.id], revision_below=2)
+
+        assert removed == ["a"]
 
         for block in (replaced, rewritten, kept):
             block.refresh_from_db()
