@@ -1169,18 +1169,17 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         definitions = get_column_definitions(SupportedTraceItemType(dataset))
 
         def data_fn(offset: int, limit: int) -> list[TagValue]:
-            executor = TraceItemAttributeValuesAutocompletionExecutor(
-                organization=organization,
-                snuba_params=snuba_params,
-                key=key,
-                query=substring_match,
-                limit=limit,
-                offset=offset,
-                definitions=definitions,
-                supports_arrays=supports_arrays,
-            )
-
             with handle_query_errors():
+                executor = TraceItemAttributeValuesAutocompletionExecutor(
+                    organization=organization,
+                    snuba_params=snuba_params,
+                    key=key,
+                    query=substring_match,
+                    limit=limit,
+                    offset=offset,
+                    definitions=definitions,
+                    supports_arrays=supports_arrays,
+                )
                 tag_values = executor.execute()
             tag_values.sort(
                 key=lambda tag: (

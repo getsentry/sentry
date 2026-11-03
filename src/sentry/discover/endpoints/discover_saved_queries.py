@@ -39,7 +39,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user
+from sentry.auth.principal import acting_user_id, has_user, is_owned_by_acting_user
 from sentry.discover.endpoints.bases import (
     DiscoverSavedQueryPermission,
     filter_to_accessible_discover_queries,
@@ -175,7 +175,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         elif sort_by == "myqueries":
             order_by = [
                 Case(
-                    When(created_by_id=request.user.id, then=-1),
+                    When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1),
                     default="created_by_id",
                     output_field=IntegerField(),
                 ),
@@ -264,9 +264,10 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         model.set_projects(data["project_ids"])
 
         try:
-            if request.user.is_authenticated and request.data.get("starred"):
+            user_id = acting_user_id(request.user)
+            if user_id is not None and request.data.get("starred"):
                 DiscoverSavedQueryStarred.objects.insert_starred_query(
-                    organization, request.user.id, model, starred=True
+                    organization, user_id, model, starred=True
                 )
         except Exception as err:
             sentry_sdk.capture_exception(err)

@@ -8,7 +8,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
-interface DroppedDataFilterNoteProps {
+export interface DroppedDataFilterNoteProps {
   dataset: DiscoverDatasets;
   hasUserQuery: boolean;
   showIcon?: Responsive<boolean>;
