@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import EnvironmentProject
+from sentry.models.project import Project
 
 
 @extend_schema(tags=["Environments"])
@@ -38,6 +39,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="listProjectEnvironments",
@@ -59,7 +61,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
     def get(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[DetailResponse]:
         """
         Lists a project's environments.
@@ -95,9 +97,9 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
             )
 
         add_visibility_filters = environment_visibility_filter_options[visibility]
-        queryset = add_visibility_filters(queryset)
+        visible_queryset = add_visibility_filters(queryset)
 
-        items: list[EnvironmentProject] = list(queryset)
+        items: list[EnvironmentProject] = list(visible_queryset)
         return Response(serialize(items, request.user, EnvironmentProjectSerializer()))
 
     @extend_schema(
@@ -119,7 +121,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
     def put(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[ValidationErrorResponse]:
         """
         Bulk update the visibility for a project's environments.

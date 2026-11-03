@@ -30,7 +30,7 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
 
     permission_classes = (SentryIsAuthenticated,)
 
-    def get(self, request: Request, installation_id):
+    def get(self, request: Request, installation_id: str) -> HttpResponse:
         try:
             integration = Integration.objects.get(
                 provider=IntegrationProviderSlug.GITHUB.value,

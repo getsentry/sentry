@@ -7,7 +7,9 @@ import re
 import tempfile
 import uuid
 from collections import Counter
+from collections.abc import Sequence
 from datetime import datetime
+from types import TracebackType
 from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 import orjson
@@ -82,12 +84,18 @@ class AssembleResult(NamedTuple):
     # Temporary in-memory object representing the file used for efficiency.
     bundle_temp_file: IO[bytes]
 
-    def delete_bundle(self):
+    def delete_bundle(self) -> None:
         self.bundle.delete()
         self.bundle_temp_file.close()
 
 
-def _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks) -> list[int] | None:
+def _get_assemble_file_blob_ids(
+    task: str,
+    org_or_project: Organization | Project,
+    name: str,
+    checksum: str,
+    chunks: Sequence[str],
+) -> list[int] | None:
     """Validates uploaded chunks and returns their IDs in assembly order."""
     from sentry.models.files.fileblob import FileBlob
 
@@ -143,7 +151,14 @@ def _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks) ->
 
 
 @traces.trace
-def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
+def assemble_file(
+    task: str,
+    org_or_project: Organization | Project,
+    name: str,
+    checksum: str,
+    chunks: Sequence[str],
+    file_type: str,
+) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
 
@@ -177,7 +192,13 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
 
 @traces.trace
-def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
+def assemble_file_blobs(
+    task: str,
+    org_or_project: Organization | Project,
+    name: str,
+    checksum: str,
+    chunks: Sequence[str],
+) -> IO[bytes] | None:
     """Assembles uploaded chunks into a temporary file without creating a ``File``."""
     from sentry.models.files.fileblob import FileBlob
 
@@ -220,7 +241,7 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
     return temp_file
 
 
-def _get_cache_key(task, scope, checksum):
+def _get_cache_key(task: str, scope: int, checksum: str) -> str:
     """Computes the cache key for assemble status.
 
     ``task`` must be one of the ``AssembleTask`` values. The scope can be the
@@ -249,7 +270,7 @@ def _get_redis_cluster_for_assemble() -> RedisCluster:
 
 
 @traces.trace
-def get_assemble_status(task, scope, checksum):
+def get_assemble_status(task: str, scope: int, checksum: str) -> tuple[str | None, str | None]:
     """
     Checks the current status of an assembling task.
 
@@ -269,7 +290,9 @@ def get_assemble_status(task, scope, checksum):
 
 
 @traces.trace
-def set_assemble_status(task, scope, checksum, state, detail=None):
+def set_assemble_status(
+    task: str, scope: int, checksum: str, state: str | None, detail: str | None = None
+) -> None:
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
@@ -279,7 +302,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
 
 
 @traces.trace
-def delete_assemble_status(task, scope, checksum):
+def delete_assemble_status(task: str, scope: int, checksum: str) -> None:
     """
     Deletes the status of an assembling task.
     """
@@ -294,7 +317,14 @@ def delete_assemble_status(task, scope, checksum):
     processing_deadline_duration=60 * 5,
     silo_mode=SiloMode.CELL,
 )
-def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
+def assemble_dif(
+    project_id: int,
+    name: str,
+    checksum: str,
+    chunks: Sequence[str],
+    debug_id: str | None = None,
+    **kwargs: object,
+) -> None:
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
@@ -436,7 +466,7 @@ class ArtifactBundlePostAssembler:
         dist: str | None,
         project_ids: list[int],
         is_release_bundle_migration: bool = False,
-    ):
+    ) -> None:
         self.assemble_result = assemble_result
         self._validate_bundle_guarded()
 
@@ -446,7 +476,7 @@ class ArtifactBundlePostAssembler:
         self.project_ids = project_ids
         self.is_release_bundle_migration = is_release_bundle_migration
 
-    def _validate_bundle_guarded(self):
+    def _validate_bundle_guarded(self) -> None:
         try:
             self._validate_bundle()
         except AssembleArtifactsTooLargeError:
@@ -456,7 +486,7 @@ class ArtifactBundlePostAssembler:
             self._cleanup_invalid_bundle()
             raise AssembleArtifactsError("the bundle is invalid")
 
-    def _validate_bundle(self):
+    def _validate_bundle(self) -> None:
         self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
@@ -469,16 +499,21 @@ class ArtifactBundlePostAssembler:
                     f"({info.file_size} > {MAX_SOURCE_FILE_SIZE} bytes)"
                 )
 
-    def _cleanup_invalid_bundle(self):
+    def _cleanup_invalid_bundle(self) -> None:
         metrics.incr("tasks.assemble.invalid_bundle")
         # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
         # avoid orphan entries.
         self.delete_bundle_file_object()
 
-    def __enter__(self):
+    def __enter__(self) -> ArtifactBundlePostAssembler:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         # In case any exception happens in the `with` block, we will capture it, and we want to delete the actual `File`
         # object created in the database, to avoid orphan entries.
         if exc_type is not None:
@@ -486,10 +521,10 @@ class ArtifactBundlePostAssembler:
 
         self.archive.close()
 
-    def delete_bundle_file_object(self):
+    def delete_bundle_file_object(self) -> None:
         self.assemble_result.delete_bundle()
 
-    def post_assemble(self):
+    def post_assemble(self) -> None:
         if self.archive.artifact_count == 0:
             metrics.incr("tasks.assemble.artifact_bundle.discarded_empty_bundle")
             self.delete_bundle_file_object()
@@ -743,6 +778,7 @@ class ArtifactBundlePostAssembler:
             if existing_artifact_bundle is None:
                 file = self.assemble_result.bundle
 
+                assert file.size is not None
                 metrics.distribution(
                     "storage.put.size",
                     file.size,
@@ -801,7 +837,7 @@ class ArtifactBundlePostAssembler:
 
                 return existing_artifact_bundle, False
 
-    def _remove_duplicate_artifact_bundles(self, ids: list[int]):
+    def _remove_duplicate_artifact_bundles(self, ids: list[int]) -> None:
         # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
         # all ArtifactBundle(s) with the specific bundle_id.
         if not ids:
@@ -812,7 +848,9 @@ class ArtifactBundlePostAssembler:
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @traces.trace
-    def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
+    def _index_bundle_if_needed(
+        self, artifact_bundle: ArtifactBundle, release: str, dist: str
+    ) -> None:
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
@@ -847,15 +885,15 @@ class ArtifactBundlePostAssembler:
     silo_mode=SiloMode.CELL,
 )
 def assemble_artifacts(
-    org_id,
-    version,
-    checksum,
-    chunks,
+    org_id: int,
+    version: str,
+    checksum: str,
+    chunks: Sequence[str],
     # These params have been added for supporting artifact bundles assembling.
-    project_ids=None,
-    dist=None,
-    is_release_bundle_migration=False,
-    **kwargs,
+    project_ids: list[int] | None = None,
+    dist: str | None = None,
+    is_release_bundle_migration: bool = False,
+    **kwargs: object,
 ) -> None:
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.

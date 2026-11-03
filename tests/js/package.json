@@ -70,6 +70,7 @@
     "./heatMapSeries": "./fixtures/heatMapSeries.tsx",
     "./iframeScrollTo": "./sentry-test/iframeScrollTo.ts",
     "./image": "./fixtures/image.ts",
+    "./inboxItem": "./fixtures/inboxItem.ts",
     "./initializeOrg": "./sentry-test/initializeOrg.tsx",
     "./installWizard": "./fixtures/installWizard.ts",
     "./instrumentedEnv/userEventIntegration": "./sentry-test/instrumentedEnv/userEventIntegration.ts",

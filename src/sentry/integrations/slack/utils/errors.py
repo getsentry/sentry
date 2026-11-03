@@ -1,10 +1,19 @@
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 from sentry_sdk import capture_message
 from slack_sdk.errors import SlackApiError, SlackRequestError
 
 _logger = logging.getLogger(__name__)
+
+
+class TypedSlackApiError(SlackApiError):
+    """SlackApiError with the constructor contract slack_sdk omits."""
+
+    def __init__(self, message: str, response: object) -> None:
+        cast("Callable[[str, object], None]", super().__init__)(message, response)
 
 
 @dataclass(frozen=True, eq=True)

@@ -18,7 +18,7 @@ PREPROD_PRODUCER_MOCK_PATH = "sentry.preprod.eap.write._eap_producer.produce"
 
 
 class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
-    def test_write_and_read_size_metric_round_trip(self):
+    def test_write_and_read_size_metric_round_trip(self) -> None:
         commit_comparison = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_sha="abc123def456",
@@ -127,7 +127,7 @@ class PreprodEAPIntegrationTest(TestCase, SnubaTestCase):
         assert response.column_values[columns["git_head_sha"]].results[0].val_str == "abc123def456"
         assert response.column_values[columns["git_head_ref"]].results[0].val_str == "main"
 
-    def test_write_multiple_size_metrics_same_artifact(self):
+    def test_write_multiple_size_metrics_same_artifact(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.PROCESSED,

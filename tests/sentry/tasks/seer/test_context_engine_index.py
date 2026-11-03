@@ -1,10 +1,12 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 import orjson
 import pytest
 from django.test import override_settings
 from urllib3.response import HTTPResponse
 
+from sentry.models.organization import Organization
 from sentry.seer.agent.context_engine_utils import ProjectEventCounts
 from sentry.tasks.seer.context_engine_index import (
     get_allowed_org_ids_context_engine_indexing,
@@ -60,7 +62,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_calls_seer_endpoint_with_correct_payload(self, mock_urlopen):
+    def test_calls_seer_endpoint_with_correct_payload(self, mock_urlopen: MagicMock) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         event_counts = {
@@ -112,7 +114,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
         assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_project_knowledge_index_request")
-    def test_raises_on_seer_error(self, mock_request):
+    def test_raises_on_seer_error(self, mock_request: MagicMock) -> None:
         mock_request.return_value.status = 500
 
         with override_options({"explorer.context_engine_indexing.enable": True}):
@@ -140,7 +142,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
 @django_db_all
 class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
-    def _create_org_with_github(self):
+    def _create_org_with_github(self) -> Organization:
         org = self.create_organization()
         self.create_integration(
             organization=org,
@@ -159,7 +161,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
-        def feature_enabled_for_test_orgs(_flag_name: str, org, *args, **kwargs) -> bool:
+        def feature_enabled_for_test_orgs(
+            _flag_name: str, org: Organization, *args: object, **kwargs: object
+        ) -> bool:
             return org.id in org_ids
 
         with freeze_time(frozen_time):
@@ -272,7 +276,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         target_slot = int(md5_text(str(org_with_github.id)).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
-        def feature_enabled_for_all(_flag_name: str, org, *args, **kwargs) -> bool:
+        def feature_enabled_for_all(
+            _flag_name: str, org: Organization, *args: object, **kwargs: object
+        ) -> bool:
             return True
 
         with freeze_time(frozen_time):
@@ -332,7 +338,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_option_disabled(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         with override_options({"explorer.context_engine_indexing.enable": False}):
             index_repos(self.org.id)
@@ -340,7 +346,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_feature_flag_disabled(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         with override_options({"explorer.context_engine_indexing.enable": True}):
             index_repos(self.org.id)
@@ -348,7 +354,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_returns_early_when_no_projects(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         org_without_projects = self.create_organization()
         with override_options({"explorer.context_engine_indexing.enable": True}):
@@ -358,7 +364,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_calls_seer_with_correct_org_and_repos(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         self.create_seer_project_repository(project=self.project1, repository=self.repo1)
         self.create_seer_project_repository(project=self.project2, repository=self.repo2)
@@ -402,7 +408,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_deduplicates_repos_across_projects(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         self.create_seer_project_repository(project=self.project1, repository=self.repo1)
         self.create_seer_project_repository(project=self.project2, repository=self.repo1)
@@ -430,7 +436,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_uses_seer_project_preferences_if_available(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         mock_make_org_repo_knowledge_index_request.return_value.status = 200
         # Map project2 to the same repo as project1
@@ -466,7 +472,7 @@ class TestIndexRepos(TestCase):
 
     @mock.patch("sentry.tasks.seer.context_engine_index.make_org_repo_knowledge_index_request")
     def test_skips_projects_without_seer_repositories(
-        self, mock_make_org_repo_knowledge_index_request
+        self, mock_make_org_repo_knowledge_index_request: MagicMock
     ) -> None:
         mock_make_org_repo_knowledge_index_request.return_value.status = 200
 
@@ -489,7 +495,9 @@ class TestIndexRepos(TestCase):
 class TestScheduleContextEngineIndexingTasks(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_global_knowledge_index_sends_system_viewer_context(self, mock_urlopen) -> None:
+    def test_global_knowledge_index_sends_system_viewer_context(
+        self, mock_urlopen: MagicMock
+    ) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         index_sentry_knowledge()
@@ -508,8 +516,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         "sentry.tasks.seer.context_engine_index.get_allowed_org_ids_context_engine_indexing"
     )
     def test_dispatches_for_allowed_orgs(
-        self, mock_get_orgs, mock_index, mock_build, mock_index_repos
-    ):
+        self,
+        mock_get_orgs: MagicMock,
+        mock_index: MagicMock,
+        mock_build: MagicMock,
+        mock_index_repos: MagicMock,
+    ) -> None:
         org1 = self.create_organization()
         org2 = self.create_organization()
         mock_get_orgs.return_value = [org1.id, org2.id]
@@ -536,8 +548,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
         "sentry.tasks.seer.context_engine_index.get_allowed_org_ids_context_engine_indexing"
     )
     def test_dispatches_index_repos_on_sunday(
-        self, mock_get_orgs, mock_index, mock_build, mock_index_repos
-    ):
+        self,
+        mock_get_orgs: MagicMock,
+        mock_index: MagicMock,
+        mock_build: MagicMock,
+        mock_index_repos: MagicMock,
+    ) -> None:
         org1 = self.create_organization()
         mock_get_orgs.return_value = [org1.id]
 
@@ -557,7 +573,9 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
     @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.seer.context_engine_index.index_org_project_knowledge.apply_async")
-    def test_noop_when_no_allowed_orgs(self, mock_index, mock_build, mock_index_repos):
+    def test_noop_when_no_allowed_orgs(
+        self, mock_index: MagicMock, mock_build: MagicMock, mock_index_repos: MagicMock
+    ) -> None:
         with override_options({"explorer.context_engine_indexing.enable": True}):
             schedule_context_engine_indexing_tasks()
 

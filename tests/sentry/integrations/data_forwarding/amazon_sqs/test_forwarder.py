@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from botocore.exceptions import ClientError
@@ -36,7 +36,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         self.forwarder = AmazonSQSForwarder()
 
     @patch("boto3.client")
-    def test_simple_notification(self, mock_client):
+    def test_simple_notification(self, mock_client: MagicMock) -> None:
         event = self.store_event(
             data={
                 "exception": {"type": "ValueError", "value": "foo bar"},
@@ -61,7 +61,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         )
 
     @patch("boto3.client")
-    def test_token_error(self, mock_client):
+    def test_token_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "InvalidClientTokenId", "Message": "Invalid token"}},
             "SendMessage",
@@ -75,7 +75,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         self.forwarder.post_process(event, self.data_forwarder_project)
 
     @patch("boto3.client")
-    def test_message_group_error(self, mock_client):
+    def test_message_group_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {
                 "Error": {
@@ -94,7 +94,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         self.forwarder.post_process(event, self.data_forwarder_project)
 
     @patch("boto3.client")
-    def test_pass_message_group_id(self, mock_client):
+    def test_pass_message_group_id(self, mock_client: MagicMock) -> None:
         self.data_forwarder.config["message_group_id"] = "my_group"
         self.data_forwarder.save()
 
@@ -113,7 +113,7 @@ class AmazonSQSDataForwarderTest(TestCase):
         assert "MessageDeduplicationId" in call_args
 
     @patch("boto3.client")
-    def test_use_s3_bucket(self, mock_client):
+    def test_use_s3_bucket(self, mock_client: MagicMock) -> None:
         self.data_forwarder.config["s3_bucket"] = "my_bucket"
         self.data_forwarder.save()
 
@@ -160,7 +160,7 @@ class AmazonSQSDataForwarderTest(TestCase):
 
     @patch("boto3.client")
     @override_options({"data-forwarding.task-rollout-rate": 1.0})
-    def test_forward_event_from_task(self, mock_client) -> None:
+    def test_forward_event_from_task(self, mock_client: MagicMock) -> None:
         self.data_forwarder.config["message_group_id"] = "my_group"
         self.data_forwarder.config["s3_bucket"] = "my_bucket"
         self.data_forwarder.save()

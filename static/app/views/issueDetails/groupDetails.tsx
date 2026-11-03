@@ -4,8 +4,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import {parseAsBoolean, useQueryState} from 'nuqs';
-import * as qs from 'query-string';
+import {
+  createLoader,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
@@ -52,6 +58,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -87,6 +94,28 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
+
+// Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
+const allProjectsQueryParsers = {
+  _allp: parseAsString,
+  project: parseAsString,
+};
+
+const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
+
+const seerRedirectQueryParsers = {
+  seerDrawer: parseAsStringLiteral(['true']),
+  seerDrawerAction: parseAsString,
+};
+
+const trackViewQueryParsers = {
+  alert_date: parseAsString,
+  alert_rule_id: parseAsString,
+  alert_type: parseAsString,
+  notification_uuid: parseAsString,
+  query: parseAsString,
+  ref_fallback: parseAsString,
+};
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -239,6 +268,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState(false);
+  const [, setAllProjectsQuery] = useQueryStates(allProjectsQueryParsers);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
@@ -363,8 +393,9 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
   useEffect(() => {
-    const locationQuery = qs.parse(window.location.search) || {};
-    const allProjectsFlag = locationQuery._allp;
+    const {_allp: allProjectsFlag, project: urlProject} = loadAllProjectsQuery(
+      window.location.search
+    );
 
     // We use _allp as a temporary measure to know they came from the
     // issue list page with no project selected (all projects included in
@@ -379,26 +410,23 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     // to the issue list page with no project selected instead of the
     // locked project.
     if (
-      locationQuery.project === undefined &&
+      urlProject === null &&
       !allProjectsFlag &&
       !allProjectChanged &&
       group?.project.id
     ) {
-      locationQuery.project = group?.project.id;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      setAllProjectsQuery({project: group.project.id});
     }
 
     if (allProjectsFlag && !allProjectChanged) {
-      delete locationQuery.project;
       // We delete _allp from the URL to keep the hack a bit cleaner, but
       // this is not an ideal solution and will ultimately be replaced with
       // something smarter.
-      delete locationQuery._allp;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      setAllProjectsQuery({_allp: null, project: null});
       // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
-  }, [group?.project.id, allProjectChanged, navigate]);
+  }, [group?.project.id, allProjectChanged, setAllProjectsQuery]);
 
   const errorType =
     groupError instanceof RequestError
@@ -484,7 +512,7 @@ function useTrackView({
 }) {
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
-    location.query;
+    loadQueryParamsFromLocation(trackViewQueryParsers, location);
   const groupEventType = useLoadedEventType();
   const user = useUser();
 
@@ -494,20 +522,18 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
-    query: typeof query === 'string' ? query : undefined,
+    query: query ?? undefined,
     // Alert properties track if the user came from email/slack alerts
-    alert_date:
-      typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-    alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-    alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-    ref_fallback,
+    alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+    alert_rule_id: alert_rule_id ?? undefined,
+    alert_type: alert_type ?? undefined,
+    ref_fallback: ref_fallback ?? undefined,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
     enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_seer_access: hasAutofixQuota,
-    notification_uuid:
-      typeof notification_uuid === 'string' ? notification_uuid : undefined,
+    notification_uuid: notification_uuid ?? undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -548,8 +574,7 @@ function GroupDetailsContentError({
   onRetry: () => void;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
-  const projectId = location.query.project;
+  const [projectId] = useQueryState('project', parseAsString);
 
   const {projects} = useProjects();
   const project = projects.find(proj => proj.id === projectId);
@@ -641,7 +666,11 @@ function GroupDetailsContentInner({
   // Autofix has its own tab behind the flag, so legacy `?seerDrawer=true` links
   // are redirected there instead of opening the drawer. This reads the router
   // location, which updates with the redirect, so it renders only once.
-  const redirectToAutofixTab = autofixPage && location.query.seerDrawer === 'true';
+  const seerRedirectQuery = loadQueryParamsFromLocation(
+    seerRedirectQueryParsers,
+    location
+  );
+  const redirectToAutofixTab = autofixPage && seerRedirectQuery.seerDrawer === 'true';
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -745,10 +774,7 @@ function GroupDetailsContentInner({
           makeSeerLocation({
             organization,
             groupId: group.id,
-            action:
-              typeof location.query.seerDrawerAction === 'string'
-                ? location.query.seerDrawerAction
-                : undefined,
+            action: seerRedirectQuery.seerDrawerAction ?? undefined,
             query: location.query,
           })
         )}

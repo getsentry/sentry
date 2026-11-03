@@ -17,7 +17,7 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
         self.root = self.create_project(organization=self.organization, teams=[self.team])
         self.other = self.create_project(organization=self.organization, teams=[self.team])
 
-    def store_span(
+    def store_root_span(
         self,
         project: Project,
         root: Project | None = None,
@@ -71,11 +71,11 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
             )
 
     def test_counts_received_spans_by_root_and_owning_project(self) -> None:
-        self.store_span(self.root, root=self.root)
+        self.store_root_span(self.root, root=self.root)
         # Sampled at 1/2, so it stands for 2 received spans.
-        self.store_span(self.root, root=self.root, sample_rate=0.5)
-        self.store_span(self.other, root=self.root)
-        self.store_span(self.other, root=self.other)
+        self.store_root_span(self.root, root=self.root, sample_rate=0.5)
+        self.store_root_span(self.other, root=self.root)
+        self.store_root_span(self.other, root=self.other)
 
         data = self.get_counts()
 
@@ -89,8 +89,8 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
         assert data["end"] - data["start"] == timedelta(days=1)
 
     def test_span_without_dsc_project_counts_under_its_own_project(self) -> None:
-        self.store_span(self.other)
-        self.store_span(self.other, root=self.other)
+        self.store_root_span(self.other)
+        self.store_root_span(self.other, root=self.other)
 
         data = self.get_counts()
 
@@ -98,16 +98,16 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
 
     def test_ignores_traces_rooted_outside_the_organization(self) -> None:
         foreign_root = self.create_project(organization=self.create_organization())
-        self.store_span(self.other, root=foreign_root)
-        self.store_span(self.other, root=self.other)
+        self.store_root_span(self.other, root=foreign_root)
+        self.store_root_span(self.other, root=self.other)
 
         data = self.get_counts()
 
         assert data["data"] == [[self.row(self.other, self.other, 1)]]
 
     def test_stats_period_selects_spans_by_time(self) -> None:
-        self.store_span(self.root, root=self.root, start_ts=before_now(days=5))
-        self.store_span(self.root, root=self.root)
+        self.store_root_span(self.root, root=self.root, start_ts=before_now(days=5))
+        self.store_root_span(self.root, root=self.root)
 
         assert self.get_counts(statsPeriod="24h")["data"] == [[self.row(self.root, self.root, 1)]]
 
@@ -117,8 +117,8 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
 
     def test_environment_filters_spans(self) -> None:
         self.create_environment(project=self.root, name="prod")
-        self.store_span(self.root, root=self.root, environment="prod")
-        self.store_span(self.root, root=self.root, environment="dev")
+        self.store_root_span(self.root, root=self.root, environment="prod")
+        self.store_root_span(self.root, root=self.root, environment="dev")
 
         data = self.get_counts(environment="prod")
 

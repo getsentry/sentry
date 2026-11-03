@@ -44,7 +44,7 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
   const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.subject?.title ?? t('Unavailable');
+  const title = item.title ?? t('Unavailable');
 
   return (
     <Container position="relative" padding="xl" borderBottom="primary">
@@ -98,7 +98,7 @@ function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
             </Flex>
             <Container column="3" row="2" minWidth={0}>
               <Text size="sm" variant="muted" ellipsis>
-                {item.latestEvent.title}
+                {item.latestEvent.summary}
               </Text>
             </Container>
           </Grid>

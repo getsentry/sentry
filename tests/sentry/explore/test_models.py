@@ -55,7 +55,7 @@ class TraceItemAttributeContextTest(TestCase):
             item_type=TraceItemTypes.SPANS,
             attribute_type=TraceItemAttributeTypes.STRING,
         )
-        assert description.project_id is None
+        assert not description.project_id
         assert description.examples == []
 
     def test_unique_project_scoped(self) -> None:

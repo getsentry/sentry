@@ -41,6 +41,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event_a.group is not None
         add_group_to_inbox(self.event_a.group, GroupInboxReason.NEW)
         self.event_b = self.store_event(
             data={
@@ -51,6 +52,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event_b.group is not None
         add_group_to_inbox(self.event_b.group, GroupInboxReason.NEW)
 
     def test_with_onboarding(self) -> None:
@@ -80,6 +82,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -100,6 +103,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -120,6 +124,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -140,7 +145,9 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
 
         group1 = self.event_a.group
+        assert group1 is not None
         group2 = self.event_b.group
+        assert group2 is not None
 
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()

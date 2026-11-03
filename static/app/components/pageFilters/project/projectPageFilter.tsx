@@ -30,6 +30,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -379,24 +380,15 @@ export function ProjectPageFilter({
         ? memberProjectIds(projects)
         : urlProjectSelection;
 
-    const listSort = (project: Project) =>
-      bookmarkedSnapshotRef.current
-        ? [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !bookmarkedSnapshotRef.current.has(project.id),
-            !project.isMember,
-            project.slug,
-          ]
-        : [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !project.isMember,
-            project.slug,
-          ];
-
+    // sortBy is stable, so selected projects move to the top and keep their
+    // relative order.
     const projectItems = sortBy(
-      [...memberProjectList, ...nonMemberProjectList],
-      // oxlint-disable-next-line react/refs
-      listSort
+      sortProjectsByBookmarkAndMembership(
+        [...memberProjectList, ...nonMemberProjectList],
+        // oxlint-disable-next-line react/refs
+        bookmarkedSnapshotRef.current
+      ),
+      project => !lastSelected.includes(parseInt(project.id, 10))
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];

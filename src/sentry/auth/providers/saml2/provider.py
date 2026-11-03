@@ -22,6 +22,7 @@ from rest_framework.request import Request
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
+from sentry.auth.principal import acting_user_id
 from sentry.auth.provider import Provider
 from sentry.auth.store import FLOW_LOGIN
 from sentry.auth.view import AuthView
@@ -482,7 +483,10 @@ def handle_saml_single_logout(request: Request) -> OneLogin_Saml2_Auth:
     """
     # Do not handle SLO if a user is in more than 1 organization
     # Propagating it to multiple IdPs results in confusion for the user
-    organizations = user_service.get_organizations(user_id=request.user.id)
+    user_id = acting_user_id(request.user)
+    if user_id is None:
+        return
+    organizations = user_service.get_organizations(user_id=user_id)
     if not len(organizations) == 1:
         return
 

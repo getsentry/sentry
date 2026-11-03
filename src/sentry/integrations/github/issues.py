@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, NoReturn
+from typing import Any, NoReturn, cast
 
 from django.urls import reverse
 
@@ -18,7 +18,9 @@ from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.organizations.services.organization.service import organization_service
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -116,7 +118,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return body[:-2]
 
-    def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
+    def get_group_description(
+        self, group: Group, event: Event | GroupEvent | None, **kwargs: Any
+    ) -> str:
         output = self.get_group_link(group, **kwargs)
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
@@ -158,7 +162,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: Any
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
@@ -174,6 +178,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         """
         kwargs["link_referrer"] = "github_integration"
 
+        org: Organization | RpcOrganization
         if group:
             fields = super().get_create_issue_config(group, user, **kwargs)
             org = group.organization
@@ -185,7 +190,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             assert org_context is not None
             org = org_context.organization
 
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         prefetch_options = features.has("organizations:github-issue-form-prefetch", org, actor=user)
         if prefetch_options:
             defaults = self.get_project_defaults(group.project_id) if group else {}
@@ -293,7 +299,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
 
@@ -374,7 +382,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"repo": "Repository does not belong to this installation"})
         return {"repo": repo.name, "externalIssue": match[3]}
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
+    def get_issue(self, issue_id: str | int, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
         repo = data.get("repo")
         issue_num = data.get("externalIssue")
