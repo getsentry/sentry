@@ -64,6 +64,9 @@ class SentryAppEventType(StrEnum):
     SEER_PR_READY_FOR_REVIEW = "seer.pr_ready_for_review"
     SEER_ITERATION_STARTED = "seer.iteration_started"
     SEER_ITERATION_COMPLETED = "seer.iteration_completed"
+    # Internal only: delivered to Seer entrypoints (e.g. Slack), never to Sentry Apps.
+    # Deliberately left out of EVENT_EXPANSION until its payload is settled.
+    SEER_ERRORED = "seer.errored"
 
     # preprod artifact webhooks
     PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED = "preprod_artifact.size_analysis_completed"

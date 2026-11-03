@@ -163,7 +163,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if current_step == AutofixStep.PR_ITERATION:
             cls._complete_pr_iteration(organization, run_id, state, group_id, run_referrer)
         else:
-            cls._complete_autofix_step(organization, run_id, state, group_id, run_referrer)
+            cls._complete_autofix_step(
+                organization, run_id, state, group_id, run_referrer, current_step
+            )
 
     @classmethod
     def _complete_autofix_step(
@@ -173,12 +175,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
         group_id: int | None,
         run_referrer: AutofixReferrer | None,
+        current_step: AutofixStep | None,
     ) -> None:
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
 
         if not cls._run_completed(organization, run_id, state):
+            if state.status == "error":
+                cls._notify_entrypoints_of_failure(organization, run_id, state, group, current_step)
             return
 
         cls._record_triggered(organization, run_id, group)
@@ -274,6 +279,34 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             tags={"status": state.status},
         )
         return False
+
+    @classmethod
+    def _notify_entrypoints_of_failure(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+        current_step: AutofixStep | None,
+    ) -> None:
+        """
+        Tells entrypoints (e.g. a Slack thread waiting on the run) that the run failed.
+        SEER_ERRORED is internal only: no Sentry App webhook and no issue activity.
+        """
+        if not SeerAutofixOperator.has_access(organization=organization):
+            return
+        process_autofix_updates.apply_async(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {
+                    "run_id": run_id,
+                    "group_id": group.id,
+                    "failure_reason": state.failure_reason,
+                    "step": current_step.value if current_step is not None else None,
+                },
+                "organization_id": organization.id,
+            }
+        )
 
     @classmethod
     def _record_triggered(cls, organization: Organization, run_id: int, group: Group) -> None:

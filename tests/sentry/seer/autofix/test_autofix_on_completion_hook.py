@@ -64,6 +64,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
 from sentry.seer.models.seer_api_models import SeerApiError
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -1500,6 +1501,81 @@ class TestFailedRunCompletionHook(TestCase):
         AutofixOnCompletionHook.execute(self.organization, 123)
 
         mock_complete.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.trigger_autofix_agent")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    @patch(f"{HOOK_PATH}.process_autofix_updates.apply_async")
+    @patch(f"{HOOK_PATH}.SeerAutofixOperator.has_access", return_value=True)
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_notifies_entrypoints_only(
+        self,
+        mock_fetch: MagicMock,
+        mock_has_access: MagicMock,
+        mock_process: MagicMock,
+        mock_broadcast: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        for failure_reason in ("timeout", None):
+            with self.subTest(failure_reason=failure_reason):
+                mock_process.reset_mock()
+                mock_fetch.return_value = run_state(
+                    blocks=[root_cause_memory_block()],
+                    metadata={
+                        "group_id": self.group.id,
+                        "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+                    },
+                    status="error",
+                    failure_reason=failure_reason,
+                )
+
+                AutofixOnCompletionHook.execute(self.organization, 123)
+
+                mock_process.assert_called_once_with(
+                    kwargs={
+                        "event_type": SentryAppEventType.SEER_ERRORED,
+                        "event_payload": {
+                            "run_id": 123,
+                            "group_id": self.group.id,
+                            "failure_reason": failure_reason,
+                            "step": AutofixStep.ROOT_CAUSE.value,
+                        },
+                        "organization_id": self.organization.id,
+                    }
+                )
+        mock_broadcast.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.process_autofix_updates.apply_async")
+    @patch(f"{HOOK_PATH}.SeerAutofixOperator.has_access", return_value=False)
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_without_entrypoint_access_notifies_nothing(
+        self, mock_fetch: MagicMock, mock_has_access: MagicMock, mock_process: MagicMock
+    ) -> None:
+        mock_fetch.return_value = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+            status="error",
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_process.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.process_autofix_updates.apply_async")
+    @patch(f"{HOOK_PATH}.SeerAutofixOperator.has_access", return_value=True)
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_run_awaiting_user_input_does_not_notify_entrypoints(
+        self, mock_fetch: MagicMock, mock_has_access: MagicMock, mock_process: MagicMock
+    ) -> None:
+        mock_fetch.return_value = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+            status="awaiting_user_input",
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_process.assert_not_called()
 
 
 class TestPipelineConstants(TestCase):

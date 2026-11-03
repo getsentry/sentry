@@ -75,6 +75,12 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
 
+# Events delivered to entrypoints. SEER_ERRORED has no activity type: a failed run is shown
+# only in entrypoints, not on the issue or to Sentry Apps.
+SEER_ENTRYPOINT_EVENT_TYPES: frozenset[SentryAppEventType] = frozenset(
+    {*SEER_EVENT_TO_ACTIVITY_TYPE, SentryAppEventType.SEER_ERRORED}
+)
+
 
 class SeerActivityAttribution(TypedDict):
     referrer: AutofixReferrer
@@ -879,7 +885,7 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if event_type not in SEER_ENTRYPOINT_EVENT_TYPES:
             lifecycle.record_halt(halt_reason="skipped")
             return
 

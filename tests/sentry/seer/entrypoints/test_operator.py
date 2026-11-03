@@ -469,6 +469,46 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
+    def test_process_autofix_updates_errored_reaches_entrypoints_without_activity(
+        self, mock_autofix_cache_get: MagicMock, _mock_has_access: MagicMock
+    ) -> None:
+        cache_payload = self.entrypoint.create_autofix_cache_payload()
+        mock_autofix_cache_get.return_value = SeerOperatorCacheResult(
+            payload=cache_payload, source="run_id", key="abc"
+        )
+        mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+        event_payload = {
+            "run_id": MOCK_RUN_ID,
+            "group_id": self.group.id,
+            "failure_reason": "timeout",
+            "step": "root_cause",
+        }
+        activity_count = Activity.objects.filter(group=self.group).count()
+
+        with (
+            override_options({"issues.record-seer-actions-as-activities": True}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {MockAutofixEntrypoint.key: mock_entrypoint_cls},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
+            event_type=SentryAppEventType.SEER_ERRORED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+        assert Activity.objects.filter(group=self.group).count() == activity_count
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
