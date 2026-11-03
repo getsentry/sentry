@@ -159,7 +159,8 @@ def trigger_autofix_feature(
 
     payload: AutofixFeaturePayload | AutofixSingleRunFeaturePayload
     if single_run:
-        assert isinstance(args.step_args, RCAStepArgs)
+        if not isinstance(args.step_args, RCAStepArgs):
+            raise ValueError("Single runs need root cause step args")
         payload = AutofixSingleRunFeaturePayload(
             group_id=group.id,
             project_id=group.project_id,
