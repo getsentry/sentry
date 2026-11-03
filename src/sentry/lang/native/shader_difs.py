@@ -7,7 +7,6 @@ stored as ``code_id``.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
@@ -18,16 +17,6 @@ from sentry.objectstore import get_internal_download_url
 from sentry.utils import metrics
 
 SHADER_DIF_URL_VALIDITY = timedelta(minutes=15)
-
-
-@dataclass
-class ShaderDifs:
-    """Entries for teapot's ``shader_binaries`` request array."""
-
-    binaries: list[dict[str, str]] = field(default_factory=list)
-
-    def __bool__(self) -> bool:
-        return bool(self.binaries)
 
 
 def missing_shader_difs(response: Mapping[str, Any]) -> list[str]:
@@ -42,39 +31,35 @@ def missing_shader_difs(response: Mapping[str, Any]) -> list[str]:
     return code_ids
 
 
-def _presigned_dif(
-    project_id: int, dif_type: str, **filters: str
-) -> tuple[ProjectDebugFile, str] | None:
-    """The newest objectstore-backed debug file of ``dif_type`` matching ``filters``
-    with a presigned GET URL, or None if there is none."""
+def _find_dxil(project_id: int, code_id: str) -> ProjectDebugFile | None:
+    """The newest objectstore-backed dxil debug file with ``code_id``."""
     difs = ProjectDebugFile.objects.filter(
-        project_id=project_id, storage_path__isnull=False, **filters
+        project_id=project_id, code_id=code_id, storage_path__isnull=False
     ).order_by("-id")
-    dif = next((dif for dif in difs if dif.file_format == dif_type), None)
-    if dif is None or not dif.storage_path:
-        return None
-    url = get_internal_download_url(
-        dif.get_objectstore_session(), dif.storage_path, token_validity=SHADER_DIF_URL_VALIDITY
-    )
-    return dif, url
+    return next((dif for dif in difs if dif.file_format == "dxil"), None)
 
 
-def resolve_shader_difs(project: Project, response: Mapping[str, Any]) -> ShaderDifs:
-    """Look up every shader binary teapot reported missing and presign the ones we hold."""
+def resolve_shader_difs(project: Project, response: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Entries for teapot's ``shader_binaries`` request array: every shader binary it
+    reported missing that we hold, with a presigned URL."""
     code_ids = missing_shader_difs(response)
-    resolved = ShaderDifs()
+    resolved: list[dict[str, str]] = []
     found: list[ProjectDebugFile] = []
 
-    for code_id in dict.fromkeys(code_ids):
-        dxil_match = _presigned_dif(project.id, "dxil", code_id=code_id.lower())
-        if dxil_match is None:
+    for code_id in dict.fromkeys(code_id.lower() for code_id in code_ids):
+        dxil = _find_dxil(project.id, code_id)
+        if dxil is None or not dxil.storage_path:
             continue
-        dxil, url = dxil_match
         found.append(dxil)
-        entry = {"code_id": code_id.lower(), "storage_url": url}
+        url = get_internal_download_url(
+            dxil.get_objectstore_session(),
+            dxil.storage_path,
+            token_validity=SHADER_DIF_URL_VALIDITY,
+        )
+        entry = {"code_id": code_id, "storage_url": url}
         if group := (dxil.data or {}).get("shader_group"):
             entry["group"] = group
-        resolved.binaries.append(entry)
+        resolved.append(entry)
 
     if code_ids:
         metrics.incr("tasks.gpu_crash.shader_difs.missing", amount=len(code_ids))

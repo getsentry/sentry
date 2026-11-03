@@ -11,7 +11,7 @@ import pytest
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.lang.native.shader_difs import ShaderDifs, missing_shader_difs, resolve_shader_difs
+from sentry.lang.native.shader_difs import missing_shader_difs, resolve_shader_difs
 from sentry.lang.native.teapot import TeapotClient, TeapotUnavailable
 from sentry.models.debugfile import DIF_MIMETYPES, ProjectDebugFile
 from sentry.models.project import Project
@@ -66,16 +66,14 @@ def _completed() -> dict[str, Any]:
     return {"status": "completed", "fault_category": "shader_hang", "missing_difs": []}
 
 
-def _resolved() -> ShaderDifs:
-    return ShaderDifs(
-        binaries=[
-            {
-                "code_id": AFTERMATH_HASH,
-                "storage_url": "http://objectstore/dxil?sig=x",
-                "group": SHADER_GROUP,
-            }
-        ]
-    )
+def _resolved() -> list[dict[str, str]]:
+    return [
+        {
+            "code_id": AFTERMATH_HASH,
+            "storage_url": "http://objectstore/dxil?sig=x",
+            "group": SHADER_GROUP,
+        }
+    ]
 
 
 @pytest.fixture
@@ -100,7 +98,7 @@ def test_client_second_round_sends_shader_binaries(teapot_session: mock.Mock) ->
     with mock.patch("sentry.lang.native.teapot.requests.post") as mock_post:
         mock_post.return_value = _FakeResponse(200, _completed())
         TeapotClient(_FakeProject(), "abc").symbolicate(
-            _FakeAttachment(), [], shader_binaries=resolved.binaries
+            _FakeAttachment(), [], shader_binaries=resolved
         )
 
     kwargs = mock_post.call_args.kwargs
@@ -110,7 +108,7 @@ def test_client_second_round_sends_shader_binaries(teapot_session: mock.Mock) ->
     body = orjson.loads(kwargs["data"])
     assert body["event_id"] == "abc"
     assert body["dump"] == {"storage_url": "http://objectstore/dump-obj-id?sig=abc"}
-    assert body["shader_binaries"] == resolved.binaries
+    assert body["shader_binaries"] == resolved
 
 
 def test_client_first_round_omits_shader_binaries(teapot_session: mock.Mock) -> None:
@@ -194,7 +192,7 @@ def test_resolve_shader_difs_presigns_objectstore_rows(
     resolved = resolve_shader_difs(default_project, _partial())
 
     assert bool(resolved) is True
-    assert resolved.binaries == [
+    assert resolved == [
         {
             "code_id": AFTERMATH_HASH,
             "storage_url": "http://objectstore/difs/dxil?sig=x",
@@ -214,7 +212,7 @@ def test_resolve_shader_difs_matches_code_id_case_insensitively(
 
     resolved = resolve_shader_difs(default_project, response)
 
-    assert resolved.binaries == [
+    assert resolved == [
         {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/difs/shader?sig=x"}
     ]
 
@@ -282,7 +280,7 @@ def test_task_runs_second_round_with_resolved_difs(
     assert resolve.call_args.args[1] is partial
     assert teapot.call_count == 2
     second = teapot.call_args_list[1]
-    assert second.kwargs == {"shader_binaries": _resolved().binaries}
+    assert second.kwargs == {"shader_binaries": _resolved()}
     assert apply.call_args.args[1] is completed
     circuit_breaker.record_success.assert_called_once()
     circuit_breaker.record_error.assert_not_called()
@@ -296,7 +294,7 @@ def test_task_keeps_first_response_when_nothing_resolved(default_project: Projec
         override_options({"teapot.enabled": True}),
         mock.patch(FIND_DUMP, return_value=_FakeAttachment()),
         mock.patch(FIND_SHADERS, return_value=[]),
-        mock.patch(RESOLVE, return_value=ShaderDifs()),
+        mock.patch(RESOLVE, return_value=[]),
         mock.patch(SUBMIT_TEAPOT, return_value=partial) as teapot,
         mock.patch(APPLY, return_value=data) as apply,
     ):
