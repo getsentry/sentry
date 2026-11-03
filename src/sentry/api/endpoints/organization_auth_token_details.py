@@ -22,6 +22,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
 
@@ -101,7 +102,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         analytics.record(
             OrgAuthTokenDeleted(
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 organization_id=organization.id,
             )
         )

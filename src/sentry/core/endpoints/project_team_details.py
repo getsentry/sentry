@@ -36,6 +36,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (ProjectTeamsPermission,)
 

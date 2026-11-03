@@ -65,6 +65,11 @@ class ScopesTest(TestCase):
             granted = {role["id"] for role in roles if SERVICE_ACCOUNT_SCOPES <= role["scopes"]}
             assert granted == {"manager", "owner"}
 
+    def test_service_account_read_granted_to_org_readers(self) -> None:
+        for roles in (settings.SENTRY_ROLES, settings.SENTRY_GRANULAR_ROLES):
+            granted = {role["id"] for role in roles if "service_account:read" in role["scopes"]}
+            assert granted == {"member", "admin", "manager", "owner"}
+
     def test_service_account_scopes_not_grantable_to_non_humans(self) -> None:
         assert SERVICE_ACCOUNT_SCOPES <= SENTRY_SCOPES
         assert SERVICE_ACCOUNT_SCOPES.isdisjoint(GRANTABLE_SCOPES)

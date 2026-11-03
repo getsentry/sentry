@@ -270,6 +270,7 @@
     "@floating-ui/react-dom": "^2.1.9",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
+    "@react-aria/focus": "3.22.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
     "@react-aria/numberfield": "3.13.1",

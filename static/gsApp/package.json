@@ -26,6 +26,7 @@
     "js-cookie": "3.0.7",
     "lodash": "^4.18.1",
     "moment-timezone": "0.6.2",
+    "nuqs": "2.10.2",
     "query-string": "7.0.1",
     "react": "19.3.0",
     "react-router": "8.4.0",
