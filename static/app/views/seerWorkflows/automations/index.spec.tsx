@@ -44,7 +44,7 @@ describe('AutomationsList', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it('renders only cards returned by the configs API', async () => {
+  it('renders a card for each automation returned by the API', async () => {
     mockConfigs([
       SeerWorkflowConfigFixture({id: '1', strategy: 'agentic_triage'}),
       SeerWorkflowConfigFixture({id: '2', strategy: 'custom_strategy'}),
@@ -63,7 +63,7 @@ describe('AutomationsList', () => {
     expect(getCard('custom_strategy').getByText('No description')).toBeInTheDocument();
   });
 
-  it('opens the selected automation and loads its real runs', async () => {
+  it('opens the selected automation and loads its run history', async () => {
     mockConfigs([
       SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'}),
     ]);
@@ -113,7 +113,7 @@ describe('AutomationsList', () => {
     expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
   });
 
-  it('shows an empty state without demo cards when there are no configs', async () => {
+  it('shows an empty state when there are no automations', async () => {
     mockConfigs([]);
 
     render(<AutomationsList />, {organization});
