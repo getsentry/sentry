@@ -118,7 +118,7 @@ class ApiTokensEndpoint(Endpoint):
                 # guaranteeing that it will eventually be valid in all regions.
                 logger.warning(
                     "api_tokens.outbox-flush-failure",
-                    extra={"token_id": token.id, "user_id": request.user.id},
+                    extra={"token_id": token.id, "user_id": user.id},
                     exc_info=True,
                 )
 
