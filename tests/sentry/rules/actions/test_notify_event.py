@@ -9,7 +9,7 @@ class NotifyEventActionTest(RuleTestCase):
     rule_cls = NotifyEventAction
 
     def test_noop(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
         rule = self.get_rule()
         results = list(rule.after(event=event))
         assert len(results) == 0

@@ -55,7 +55,7 @@ class PromptsActivitySerializer(serializers.Serializer):
         help_text="The new prompt status: `snoozed`, `dismissed`, or `visible`.",
     )
 
-    def validate_feature(self, value):
+    def validate_feature(self, value: str | None) -> str:
         if value is None:
             raise serializers.ValidationError("Must specify feature name")
         if not prompt_config.has(value):
@@ -110,7 +110,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
         },
     )
     def get(
-        self, request: Request, organization: Organization, **kwargs
+        self, request: Request, organization: Organization, **kwargs: object
     ) -> (
         Response[PromptsActivityResponse]
         | Response[DetailResponse]
@@ -171,7 +171,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization: Organization, **kwargs) -> Response:
+    def put(self, request: Request, organization: Organization, **kwargs: object) -> Response:
         """
         Snooze, dismiss, or restore a feature prompt for the current user.
         """

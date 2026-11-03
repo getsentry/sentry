@@ -5,8 +5,10 @@ from enum import Enum
 from typing import Any, Literal, TypedDict
 
 import pytest
+from django.http import HttpRequest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from jsonschema.exceptions import ValidationError
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
 
@@ -32,6 +34,17 @@ from sentry.notebooks.endpoints.organization_investigation_block_details import 
 from sentry.notebooks.endpoints.schema import InvestigationSchema
 from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
+
+
+def test_null_only_response_field() -> None:
+    schema = resolve_type_hint(type(None))
+    validator = OAS30Validator(schema)
+
+    validator.validate(None)
+    with pytest.raises(ValidationError):
+        validator.validate("123")
+    with pytest.raises(ValidationError):
+        validator.validate({})
 
 
 class NestedDict(TypedDict):
@@ -62,9 +75,15 @@ class BasicSerializer(Serializer):
         raise NotImplementedError
 
 
-class FailSerializer(Serializer):
-    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any):
-        raise NotImplementedError
+FailSerializer = type(
+    "FailSerializer",
+    (Serializer,),
+    {
+        "serialize": lambda self, obj, attrs, user, **kwargs: (_ for _ in ()).throw(
+            NotImplementedError()
+        )
+    },
+)
 
 
 def test_sentry_response_serializer_extension() -> None:
@@ -243,13 +262,15 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
         ),
     ],
 )
-def test_investigation_polymorphic_requests_match_validation(serializer, payload, valid) -> None:
+def test_investigation_polymorphic_requests_match_validation(
+    serializer: type[serializers.Serializer], payload: dict[str, object], valid: bool
+) -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
         schema = InvestigationSchema()
 
         @extend_schema(request=serializer, responses={204: None})
-        def post(self, request):
+        def post(self, request: HttpRequest) -> None:
             pass
 
     schema = generate_schema("investigations/", view=ExampleEndpoint)

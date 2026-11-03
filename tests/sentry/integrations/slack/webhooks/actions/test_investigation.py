@@ -4,13 +4,13 @@ from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.webhooks.actions.investigation import (
     InvalidInvestigationActionValue,
     MissingInvestigationAction,
@@ -332,7 +332,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
     @with_feature(FEATURES)
     def test_slack_error_during_update_still_creates_investigation(self) -> None:
-        self.mock_update.side_effect = SlackApiError(
+        self.mock_update.side_effect = TypedSlackApiError(
             "error", _slack_response({"ok": False, "error": "message_not_found"})
         )
 
@@ -351,7 +351,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
     def test_slack_error_during_started_message_still_creates_investigation(
         self, mock_record_sent: MagicMock
     ) -> None:
-        self.mock_post_message.side_effect = SlackApiError(
+        self.mock_post_message.side_effect = TypedSlackApiError(
             "error", _slack_response({"ok": False, "error": "invalid_blocks"})
         )
 

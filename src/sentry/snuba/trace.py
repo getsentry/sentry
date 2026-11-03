@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast
 
 from sentry_sdk import traces
 
@@ -48,6 +48,9 @@ from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba import bulk_snuba_queries
 from sentry.utils.snuba_rpc import table_rpc
+
+if TYPE_CHECKING:
+    from sentry_sdk._types import AttributeValue as SpanAttributeValue
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
@@ -870,8 +873,8 @@ def query_trace_data(
 
     id_to_span = {event["id"]: event for event in spans_data}
     id_to_error: dict[str, Any] = {}
-    for event in errors_data:
-        id_to_error.setdefault(event["trace.span"], []).append(event)
+    for error_event in errors_data:
+        id_to_error.setdefault(error_event["trace.span"], []).append(error_event)
     id_to_occurrence = defaultdict(list)
     with traces.start_span(
         name="process.occurrence_data", attributes={"sentry.op": "process.occurrence_data"}
@@ -879,7 +882,10 @@ def query_trace_data(
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
+                sdk_span.set_attribute(
+                    "evidence_data.empty",
+                    cast("SpanAttributeValue", event["occurrence"].evidence_data),
+                )
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
     with traces.start_span(

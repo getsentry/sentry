@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase
 
 import pytest
@@ -630,7 +631,7 @@ def test_count_default_argument() -> None:
         ("min", Function.FUNCTION_MIN),
     ],
 )
-def test_monoid_functions(function_name, proto_function) -> None:
+def test_monoid_functions(function_name: str, proto_function: Function.ValueType) -> None:
     resolver = SearchResolver(
         params=SnubaParams(), config=SearchResolverConfig(), definitions=OURLOG_DEFINITIONS
     )
@@ -671,7 +672,7 @@ def test_monoid_functions(function_name, proto_function) -> None:
         },
     ],
 )
-def test_attribute_search(test_case) -> None:
+def test_attribute_search(test_case: dict[str, Any]) -> None:
     attribute_definition = test_case["attribute_definition"]
     search_term = test_case["search_term"]
     expected_value = test_case["expected_value"]

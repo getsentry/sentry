@@ -59,12 +59,16 @@ class RedisQuota(Quota):
             raise AssertionError("unreachable")
 
     def __get_redis_key(
-        self, quota: QuotaConfig, timestamp: float, shift: int, organization_id: int
+        self,
+        quota: QuotaConfig,
+        window: int,
+        timestamp: float,
+        shift: int,
+        organization_id: int,
     ) -> str:
         scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
         local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
-        interval = quota.window
-        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
+        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // window)}"
 
     def get_quotas(
         self,
@@ -186,12 +190,14 @@ class RedisQuota(Quota):
         pipe = client.pipeline()
 
         for quota in quotas:
+            if quota.window is None:
+                continue
             shift = project.organization_id % quota.window
             # kind of arbitrary, but seems like we don't want this to expire til we're
             # sure the window is over?
             expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
             return_key = self.get_refunded_quota_key(
-                self.__get_redis_key(quota, timestamp, shift, project.organization_id)
+                self.__get_redis_key(quota, quota.window, timestamp, shift, project.organization_id)
             )
             pipe.incr(return_key, quantity)
             pipe.expireat(return_key, int(expiry))

@@ -1,9 +1,21 @@
 import inspect
+from collections.abc import Sequence
+from typing import Any, cast
 
-from snuba_sdk import AliasedExpression, BooleanCondition, Column, Function, Granularity, Op
+from snuba_sdk import (
+    AliasedExpression,
+    BooleanCondition,
+    Column,
+    Condition,
+    Function,
+    Granularity,
+    Op,
+    OrderBy,
+)
 from snuba_sdk.query import Query
 
 from sentry.exceptions import InvalidParams
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
@@ -25,7 +37,7 @@ class MQBQueryTransformationException(Exception):
     pass
 
 
-def _get_derived_op_metric_field_from_snuba_function(function: Function):
+def _get_derived_op_metric_field_from_snuba_function(function: Function) -> MetricField:
     if len(function.parameters) == 0 or not isinstance(function.parameters[0], Column):
         raise MQBQueryTransformationException(
             "The first parameter of a function should be a column of the metric MRI"
@@ -55,7 +67,9 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
     )
 
 
-def _transform_select(query_select):
+def _transform_select(
+    query_select: Sequence[Column | AliasedExpression | Function],
+) -> list[MetricField]:
     select = []
     for select_field in query_select:
         if isinstance(select_field, (Column, AliasedExpression)):
@@ -99,7 +113,9 @@ def _transform_select(query_select):
     return select
 
 
-def _transform_groupby(query_groupby):
+def _transform_groupby(
+    query_groupby: Sequence[Column | AliasedExpression | Function],
+) -> tuple[list[MetricGroupByField] | None, bool, int | None]:
     mq_groupby = []
     interval = None
     include_series = False
@@ -172,12 +188,14 @@ def _transform_groupby(query_groupby):
                 )
         else:
             raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
-    return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
+    return mq_groupby if len(mq_groupby) > 0 else None, include_series, cast("int | None", interval)
 
 
-def _get_mq_dict_params_and_conditions_from(conditions):
-    mq_dict = {}
-    converted_conditions = []
+def _get_mq_dict_params_and_conditions_from(
+    conditions: Sequence[BooleanCondition | Condition],
+) -> tuple[dict[str, Any], list[BooleanCondition | Condition | MetricConditionField]]:
+    mq_dict: dict[str, Any] = {}
+    converted_conditions: list[BooleanCondition | Condition | MetricConditionField] = []
 
     for condition in conditions:
         if isinstance(condition, BooleanCondition):
@@ -227,8 +245,8 @@ def _get_mq_dict_params_and_conditions_from(conditions):
     return mq_dict, converted_conditions
 
 
-def _transform_orderby(query_orderby):
-    mq_orderby = []
+def _transform_orderby(query_orderby: Sequence[OrderBy]) -> list[MetricOrderByField] | None:
+    mq_orderby: list[MetricOrderByField] = []
     for orderby_field in query_orderby:
         orderby_exp = orderby_field.exp
 
@@ -261,7 +279,11 @@ def _transform_orderby(query_orderby):
     return mq_orderby if len(mq_orderby) > 0 else None
 
 
-def _derive_mri_to_apply(project_ids, select, orderby):
+def _derive_mri_to_apply(
+    project_ids: Sequence[int],
+    select: Sequence[MetricField],
+    orderby: Sequence[MetricOrderByField] | None,
+) -> str:
     mri_dictionary = {
         "generic_metrics_counters": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
     }
@@ -278,6 +300,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                     break
 
     if has_order_by_team_key_transaction:
+        assert orderby is not None
         entities = set()
 
         if len(orderby) == 1:
@@ -289,7 +312,9 @@ def _derive_mri_to_apply(project_ids, select, orderby):
             for select_field in select:
                 if select_field.op != TEAM_KEY_TRANSACTION_OP:
                     expr = metric_object_factory(select_field.op, select_field.metric_mri)
-                    entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
+                    entity = expr.get_entity(
+                        cast("Sequence[Project]", project_ids), use_case_id=UseCaseID.TRANSACTIONS
+                    )
                     if isinstance(entity, str):
                         entities.add(entity)
         else:
@@ -305,7 +330,10 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                         expr = metric_object_factory(
                             orderby_field.field.op, orderby_field.field.metric_mri
                         )
-                        entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
+                        entity = expr.get_entity(
+                            cast("Sequence[Project]", project_ids),
+                            use_case_id=UseCaseID.TRANSACTIONS,
+                        )
                         if isinstance(entity, str):
                             entities.add(entity)
 
@@ -320,11 +348,13 @@ def _derive_mri_to_apply(project_ids, select, orderby):
     return mri_to_apply
 
 
-def _transform_team_key_transaction_in_select(mri_to_apply, select):
+def _transform_team_key_transaction_in_select(
+    mri_to_apply: str, select: Sequence[MetricField] | None
+) -> list[MetricField] | None:
     if select is None:
         return select
 
-    def _select_predicate(select_field):
+    def _select_predicate(select_field: MetricField) -> MetricField:
         if select_field.op == TEAM_KEY_TRANSACTION_OP:
             return MetricField(
                 op=select_field.op,
@@ -338,11 +368,16 @@ def _transform_team_key_transaction_in_select(mri_to_apply, select):
     return list(map(_select_predicate, select))
 
 
-def _transform_team_key_transaction_in_where(mri_to_apply, where):
+def _transform_team_key_transaction_in_where(
+    mri_to_apply: str,
+    where: Sequence[BooleanCondition | Condition | MetricConditionField] | None,
+) -> list[BooleanCondition | Condition | MetricConditionField] | None:
     if where is None:
         return where
 
-    def _where_predicate(where_field):
+    def _where_predicate(
+        where_field: BooleanCondition | Condition | MetricConditionField,
+    ) -> BooleanCondition | Condition | MetricConditionField:
         if (
             isinstance(where_field, MetricConditionField)
             and where_field.lhs.op == TEAM_KEY_TRANSACTION_OP
@@ -363,11 +398,13 @@ def _transform_team_key_transaction_in_where(mri_to_apply, where):
     return list(map(_where_predicate, where))
 
 
-def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
+def _transform_team_key_transaction_in_groupby(
+    mri_to_apply: str, groupby: Sequence[MetricGroupByField] | None
+) -> list[MetricGroupByField] | None:
     if groupby is None:
         return groupby
 
-    def _groupby_predicate(groupby_field):
+    def _groupby_predicate(groupby_field: MetricGroupByField) -> MetricGroupByField:
         if (
             isinstance(groupby_field.field, MetricField)
             and groupby_field.field.op == TEAM_KEY_TRANSACTION_OP
@@ -386,11 +423,13 @@ def _transform_team_key_transaction_in_groupby(mri_to_apply, groupby):
     return list(map(_groupby_predicate, groupby))
 
 
-def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
+def _transform_team_key_transaction_in_orderby(
+    mri_to_apply: str, orderby: Sequence[MetricOrderByField] | None
+) -> list[MetricOrderByField] | None:
     if orderby is None:
         return orderby
 
-    def _orderby_predicate(orderby_field):
+    def _orderby_predicate(orderby_field: MetricOrderByField) -> MetricOrderByField:
         if isinstance(orderby_field.field, MetricField):
             if orderby_field.field.op == TEAM_KEY_TRANSACTION_OP:
                 return MetricOrderByField(
@@ -408,7 +447,7 @@ def _transform_team_key_transaction_in_orderby(mri_to_apply, orderby):
     return list(map(_orderby_predicate, orderby))
 
 
-def _transform_team_key_transaction_fake_mri(mq_dict):
+def _transform_team_key_transaction_fake_mri(mq_dict: dict[str, Any]) -> dict[str, Any]:
     if "project_ids" not in mq_dict:
         raise MQBQueryTransformationException("Missing project_id in query")
     mri_to_apply = _derive_mri_to_apply(

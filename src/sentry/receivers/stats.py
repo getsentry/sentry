@@ -1,9 +1,10 @@
+from django.db.models import Model
 from django.db.models.signals import post_save
 
 from sentry.utils import metrics
 
 
-def record_instance_creation(instance, created, **kwargs):
+def record_instance_creation(instance: Model, created: bool, **kwargs: object) -> None:
     if not created:
         return
 

@@ -1,4 +1,4 @@
-import {Fragment, useContext, useMemo, useRef} from 'react';
+import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
@@ -15,6 +15,10 @@ import {
   useReserveLeadingSlot,
   type ListItemProps,
 } from '@sentry/scraps/menu';
+
+export const ListBoxDetailsHoverContext = createContext<
+  ((isHovered: boolean, event: React.PointerEvent) => void) | undefined
+>(undefined);
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -57,6 +61,7 @@ export function ListBoxOption({
     useOption({key: item.key, 'aria-label': item['aria-label']}, listState, ref);
 
   const {search, highlightSearch} = useContext(ControlContext);
+  const onDetailsHoverChange = useContext(ListBoxDetailsHoverContext);
   const renderedLabel =
     highlightSearch && search && typeof label === 'string' ? (
       <HighlightText text={label} query={search} />
@@ -144,6 +149,7 @@ export function ListBoxOption({
       }}
       trailingItems={trailingItems}
       showDetailsInOverlay={showDetailsInOverlay}
+      onDetailsHoverChange={onDetailsHoverChange}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
       data-test-id={item.key}

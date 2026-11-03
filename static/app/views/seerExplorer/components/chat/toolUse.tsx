@@ -10,7 +10,7 @@ import {
   type ToolCallStatus,
 } from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';

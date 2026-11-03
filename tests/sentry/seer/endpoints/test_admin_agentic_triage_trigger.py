@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from rest_framework.response import Response
+
 from sentry.testutils.cases import APITestCase
 
 
@@ -13,7 +15,7 @@ class SeerAdminAgenticTriageTriggerTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: object, **params: object) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 

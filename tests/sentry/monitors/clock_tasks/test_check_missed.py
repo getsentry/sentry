@@ -448,11 +448,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
     def assert_state_does_not_change_for_status(
         self,
-        state,
-        mock_produce_task,
-        is_muted=False,
-        environment_is_muted=False,
-    ):
+        state: int,
+        mock_produce_task: mock.MagicMock,
+        is_muted: bool = False,
+        environment_is_muted: bool = False,
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 

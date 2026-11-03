@@ -137,8 +137,8 @@ class BaseTeamSerializerResponse(TypedDict):
     dateCreated: datetime | None
     isMember: bool
     teamRole: str | None
-    flags: dict[str, Any]
-    access: frozenset[str]  # scopes granted by teamRole
+    flags: dict[str, bool]
+    access: list[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -172,7 +172,7 @@ class BaseTeamSerializer(Serializer):
         collapse: Sequence[str] | None = None,
         expand: Sequence[str] | None = None,
         access: Access | None = None,
-    ):
+    ) -> None:
         self.collapse = collapse
         self.expand = expand
         self.access = access
@@ -313,7 +313,7 @@ class BaseTeamSerializer(Serializer):
             "isMember": attrs["is_member"],
             "teamRole": attrs["team_role"],
             "flags": {"idp:provisioned": bool(obj.idp_provisioned)},
-            "access": attrs["access"],
+            "access": sorted(attrs["access"]),
             "hasAccess": attrs["has_access"],
             "isPending": attrs["pending_request"],
             "memberCount": attrs["member_count"],
