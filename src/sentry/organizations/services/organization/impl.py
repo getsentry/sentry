@@ -95,7 +95,6 @@ from sentry.tasks.auth.auth import email_unlink_notifications
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
-from sentry.utils import metrics
 from sentry.utils.audit import create_org_delete_log
 
 
@@ -491,6 +490,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         org_member: OrganizationMember | None = None
         try:
+            # This transaction is required to bind the member to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
             with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
                 if user_id is not None:
                     org_member = OrganizationMember.objects.filter(
@@ -525,13 +527,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     "organization_member_id": org_member.id,
                 },
                 exc_info=True,
-            )
-            metrics.incr(
-                "organization_member.outbox_flush_deferred",
-                tags={
-                    "category": "ORGANIZATION_MEMBER_UPDATE",
-                    "callsite": "add_organization_member",
-                },
             )
         return serialize_member(org_member)
 
@@ -620,13 +615,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     "organization_member_id": model.id,
                 },
                 exc_info=True,
-            )
-            metrics.incr(
-                "organization_member.outbox_flush_deferred",
-                tags={
-                    "category": "ORGANIZATION_MEMBER_UPDATE",
-                    "callsite": "update_membership_flags",
-                },
             )
 
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:

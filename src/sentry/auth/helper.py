@@ -50,11 +50,7 @@ from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSession
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.view import AuthView
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
-from sentry.hybridcloud.models.outbox import (
-    OutboxDatabaseError,
-    OutboxFlushError,
-    outbox_context,
-)
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -440,8 +436,11 @@ class AuthIdentityHandler:
 
         auth_identity: AuthIdentity | None = None
         try:
-            # prioritize identifying by the SSO provider's user ID
-            with transaction.atomic(router.db_for_write(AuthIdentity)):
+            # This transaction is required to bind the identity to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(AuthIdentity))):
+                # prioritize identifying by the SSO provider's user ID
                 auth_identity = self._get_auth_identity(ident=self.identity["id"])
                 if auth_identity is None:
                     # otherwise look for an already attached identity
@@ -508,10 +507,6 @@ class AuthIdentityHandler:
                     "auth_provider_id": self.auth_provider.id,
                 },
                 exc_info=True,
-            )
-            metrics.incr(
-                "auth_identity.outbox_flush_deferred",
-                tags={"category": "AUTH_IDENTITY_UPDATE", "callsite": "sso_attach_identity"},
             )
 
         if member is None:
@@ -940,7 +935,10 @@ class AuthIdentityHandler:
     def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
         auth_identity: AuthIdentity | None = None
         try:
-            with transaction.atomic(router.db_for_write(User)):
+            # This transaction is required to bind the identity to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(User))):
                 user = User.objects.create(
                     username=uuid4().hex,
                     email=self.identity["email"],
@@ -999,10 +997,6 @@ class AuthIdentityHandler:
                     "auth_identity_id": auth_identity.id,
                 },
                 exc_info=True,
-            )
-            metrics.incr(
-                "auth_identity.outbox_flush_deferred",
-                tags={"category": "AUTH_IDENTITY_UPDATE", "callsite": "sso_new_user"},
             )
         except Exception as e:
             raise NewUserTransactionFailed from e
