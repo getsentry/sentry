@@ -14,15 +14,15 @@ from sentry.investigations.endpoints.serializers.action_request import (
     InvestigationActionRequestSerializer,
     InvestigationActionRequestSerializerResponse,
 )
-from sentry.investigations.endpoints.serializers.block import (
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.services.action_requests import STALE
+from sentry.notebooks.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
 )
-from sentry.investigations.endpoints.serializers.parameter import (
+from sentry.notebooks.endpoints.serializers.parameter import (
     InvestigationParameterSerializerResponse,
 )
-from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.action_requests import STALE
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,

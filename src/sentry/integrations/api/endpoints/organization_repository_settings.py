@@ -68,6 +68,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsPermission,)
 
     @extend_schema(

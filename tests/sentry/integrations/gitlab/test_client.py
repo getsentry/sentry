@@ -30,6 +30,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
+    ApiPaginationTruncated,
     ApiRateLimitedError,
     ApiRetryError,
 )
@@ -461,19 +462,24 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             json={"text": 200},
         )
 
-        source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
+        with mock.patch.object(
+            self.installation,
+            "check_file",
+            wraps=self.installation.check_file,
+        ) as mock_check_file:
+            source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
         assert (
             source_url
             == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
         )
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        mock_check_file.assert_called_once_with(
+            self.repo,
+            path,
+            ref,
+        )
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch(
@@ -494,14 +500,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         source_url = self.installation.get_stacktrace_link(self.repo, path, "master", None)
         assert source_url is None
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch("requests.sessions.Session.send")
@@ -521,14 +522,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         with pytest.raises(ApiHostError):
             self.installation.get_stacktrace_link(self.repo, path, "master", None)
 
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.HALTED
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.HALTED
 
     @mock.patch(
         "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",
@@ -553,6 +549,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
 
         assert result == GITLAB_CODEOWNERS
+        mock_check_file.assert_called_once_with(
+            self.config.project_repository.repository,
+            "CODEOWNERS",
+            self.config.default_branch,
+        )
 
         assert (
             len(mock_record.mock_calls) == 2
@@ -1055,6 +1056,59 @@ class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
 
 @control_silo_test
 class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
+    @responses.activate
+    def test_project_webhook_listing_paginates(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(
+            responses.GET,
+            hooks_url,
+            status=200,
+            json=[{"id": 1}, {"id": 2}],
+        )
+        responses.add(
+            responses.GET,
+            hooks_url,
+            status=200,
+            json=[{"id": 3}],
+        )
+        self.gitlab_client.page_size = 2
+
+        with mock.patch.object(self.gitlab_client, "get", wraps=self.gitlab_client.get) as get:
+            hooks = self.gitlab_client.get_project_webhooks(self.gitlab_id)
+
+        assert hooks == [{"id": 1}, {"id": 2}, {"id": 3}]
+        assert [request.kwargs["timeout"] for request in get.call_args_list] == [
+            GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+            GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+        ]
+        assert [response.request.url for response in responses.calls] == [
+            f"{hooks_url}?page=1&per_page=2",
+            f"{hooks_url}?page=2&per_page=2",
+        ]
+
+    @responses.activate
+    def test_project_webhook_listing_fails_closed_at_page_limit(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.GET, hooks_url, status=200, json=[{"id": 1}, {"id": 2}])
+        responses.add(responses.GET, hooks_url, status=200, json=[{"id": 3}, {"id": 4}])
+        self.gitlab_client.page_size = 2
+        self.gitlab_client.page_number_limit = 2
+
+        with pytest.raises(ApiPaginationTruncated) as excinfo:
+            self.gitlab_client.get_project_webhooks(self.gitlab_id)
+
+        assert excinfo.value.partial_data == [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}]
+
+    @responses.activate
+    def test_get_project_webhook_has_request_timeout(self) -> None:
+        hooks_url = f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/hooks"
+        responses.add(responses.GET, f"{hooks_url}/7", status=200, json={"id": 7})
+
+        with mock.patch.object(self.gitlab_client, "get", wraps=self.gitlab_client.get) as get:
+            assert self.gitlab_client.get_project_webhook(self.gitlab_id, 7) == {"id": 7}
+
+        assert get.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+
     @responses.activate
     @mock.patch("sentry.shared_integrations.client.base.metrics.incr")
     def test_hook_calls_are_tagged_by_request_type(self, mock_incr: mock.MagicMock) -> None:

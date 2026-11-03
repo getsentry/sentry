@@ -12,11 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    organization_project_ids,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
@@ -30,6 +25,11 @@ from sentry.investigations.services import (
     update_investigation_with_orchestration,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    organization_project_ids,
+    service_error,
+)
 from sentry.notebooks.models import Notebook, NotebookStatus
 
 

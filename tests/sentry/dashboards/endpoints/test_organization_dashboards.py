@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -3163,6 +3164,71 @@ class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
         assert self.dashboard.title == "Old Title"
 
 
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCase):
+    """With granular scopes, dashboard endpoints require dashboard:* instead of org:read."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"auth.deprecated-scope-translation.enabled": True}))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_org_read_accepted_when_translation_disabled(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    def test_member_session_has_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+
 @with_feature(
     [
         "organizations:dashboards-basic",
@@ -3566,6 +3632,45 @@ class OrganizationDashboardTransformationsTest(APITestCase):
         query = DashboardWidgetQuery.objects.get(id=query_id)
         assert query.aggregates == ["count()", "count()"]
         assert query.transformations == {}
+
+    def test_duplicated_widget_can_copy_query_ids(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query = widget["queries"][0]
+        duplicate = {
+            "title": widget["title"],
+            "displayType": widget["displayType"],
+            "widgetType": widget["widgetType"],
+            "queries": [
+                {
+                    "id": query["id"],
+                    "fields": query["fields"],
+                    "aggregates": query["aggregates"],
+                    "columns": query["columns"],
+                    "conditions": query["conditions"],
+                    "name": query["name"],
+                    "orderby": query["orderby"],
+                    "transformations": query["transformations"],
+                }
+            ],
+        }
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {"id": widget["id"], "queries": [{"id": query["id"]}]},
+                    duplicate,
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        assert len(widgets) == 2
+        copied_query_ids = {widget["queries"][0]["id"] for widget in widgets}
+        assert query["id"] in copied_query_ids
+        assert len(copied_query_ids) == 2
 
     def test_query_from_another_dashboard_cannot_supply_aggregate_bounds(self) -> None:
         response = self.client.post(self.url, self.data)

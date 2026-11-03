@@ -8,7 +8,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from sentry.auth.principal import set_request_principal
 from sentry.auth.superuser import Superuser
+from sentry.viewer_context import get_viewer_context, viewer_context_scope
 
 __all__ = ("ApiClient", "ApiError", "client")
 
@@ -30,7 +32,12 @@ class ApiClient:
 
     ApiError: TypeAlias = ApiError
 
-    def request(
+    def request(self, *args, **kwargs):
+        # The called view sets its own caller on the viewer context; keep it out of ours.
+        with viewer_context_scope(get_viewer_context()):
+            return self._request(*args, **kwargs)
+
+    def _request(
         self,
         method,
         path,
@@ -65,8 +72,7 @@ class ApiClient:
         mock_request.__from_api_client__ = True
 
         if request:
-            mock_request.auth = getattr(request, "auth", None)
-            mock_request.user = request.user
+            set_request_principal(mock_request, request.user, getattr(request, "auth", None))
 
             if is_sudo is None:
                 mock_request.is_sudo = lambda: request.is_sudo()
@@ -79,8 +85,7 @@ class ApiClient:
             else:
                 mock_request.superuser = Superuser(mock_request)
         else:
-            mock_request.auth = auth
-            mock_request.user = user or AnonymousUser()
+            set_request_principal(mock_request, user or AnonymousUser(), auth)
             mock_request.is_sudo = lambda: is_sudo
             mock_request.session = {}
             mock_request.superuser = Superuser(mock_request)

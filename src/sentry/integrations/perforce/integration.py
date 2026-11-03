@@ -240,7 +240,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
 
         return False
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+    def _check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
         """
         Check if a file exists in the Perforce depot and return the URL.
 

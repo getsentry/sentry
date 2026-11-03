@@ -19,6 +19,7 @@ from sentry.api.serializers.models.userreport import UserReportSerializerRespons
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
 from sentry.eventtypes import EventTypeStr
 from sentry.grouping.api import GroupingConfig
+from sentry.incidents.typings.metric_issue_evidence import MetricIssueOccurrenceResponse
 from sentry.interfaces.sdk import EventSdkApiContext
 from sentry.interfaces.user import EventUserApiContext
 from sentry.issues.issue_occurrence import IssueOccurrenceResponse
@@ -176,7 +177,9 @@ class BaseEventSerializerResponse(TypedDict):
     type: EventTypeStr
     metadata: dict[str, Any]
     errors: list[EventErrorApiContext]
-    occurrence: IssueOccurrenceResponse | None
+    # Typed variants come first: generated clients try `anyOf` members in order, and the
+    # catch-all `IssueOccurrenceResponse` also matches every typed occurrence.
+    occurrence: MetricIssueOccurrenceResponse | IssueOccurrenceResponse | None
     _meta: dict[str, Any]
 
 

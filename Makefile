@@ -254,8 +254,10 @@ test-relay-integration:
 		-vv
 	@echo ""
 
-test-api-docs: build-api-docs build-investigation-api-docs
+validate-api-docs: build-api-docs build-investigation-api-docs
 	pnpm run validate-api-examples
+
+test-api-docs: validate-api-docs
 	python3 -b -m pytest tests/apidocs --reuse-db
 	@echo ""
 

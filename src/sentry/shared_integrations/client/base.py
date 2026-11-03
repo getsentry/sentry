@@ -22,6 +22,7 @@ from ..exceptions import (
     ApiConnectionResetError,
     ApiError,
     ApiHostError,
+    ApiPaginationTruncated,
     ApiRetryError,
     ApiTimeoutError,
 )
@@ -506,13 +507,14 @@ class BaseApiClient:
         gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
         get_results: Callable[[Any], Sequence[_TPaginatedResult]],
         *args: Any,
+        raise_on_page_limit: bool = False,
         **kwargs: Any,
     ) -> list[_TPaginatedResult]:
         page_size = self.page_size
         output: list[_TPaginatedResult] = []
 
         for i in range(self.page_number_limit):
-            resp = self.get(path, params=gen_params(i, page_size))
+            resp = self.get(path, *args, params=gen_params(i, page_size), **kwargs)
             results = get_results(resp)
             num_results = len(results)
 
@@ -520,4 +522,9 @@ class BaseApiClient:
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output
+        if raise_on_page_limit:
+            raise ApiPaginationTruncated(
+                output,
+                f"pagination stopped at page_number_limit={self.page_number_limit}",
+            )
         return output

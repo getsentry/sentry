@@ -61,6 +61,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     def convert_args(
         self,

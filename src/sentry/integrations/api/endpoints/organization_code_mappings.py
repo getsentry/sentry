@@ -228,6 +228,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     @extend_schema(

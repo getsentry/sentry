@@ -285,6 +285,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     permission_classes = (GroupAutofixPermission,)
@@ -665,6 +666,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
                     "status": state.status,
+                    "failure_reason": state.failure_reason,
                     "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (

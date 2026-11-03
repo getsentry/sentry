@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import options, release_health
+from sentry import release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
@@ -317,6 +317,7 @@ class OrganizationReleaseDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationRelease",
@@ -602,10 +603,7 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        data: ReleaseSerializerResponse = serialize(
-            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-        )
+        data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
         return Response(data)
 
     @extend_schema(

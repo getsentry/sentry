@@ -17,7 +17,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '1',
       subjectType: 'issue',
-      subjectId: '101',
+      subjectId: '7656018581',
       subject: {title: "TypeError: Cannot read properties of undefined (reading 'id')"},
       unreadEventCount: 2,
       latestEvent: {
@@ -75,7 +75,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '4',
       subjectType: 'issue',
-      subjectId: '103',
+      subjectId: '7431429026',
       subject: {title: 'ChunkLoadError: Loading chunk 42 failed'},
       unreadEventCount: 0,
       latestEvent: {

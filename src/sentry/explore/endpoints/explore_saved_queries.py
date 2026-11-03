@@ -29,6 +29,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.explore.endpoints.bases import (
     ExploreSavedQueryPermission,
     filter_to_accessible_explore_queries,
@@ -564,7 +565,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=acting_user_id(request.user),
         )
 
         model.set_projects(data["project_ids"])
