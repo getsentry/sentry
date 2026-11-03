@@ -72,7 +72,7 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
             except NoSeerQuotaException:
                 return Response({"detail": "Organization has no Seer quota"}, status=400)
             except SeerPermissionError as e:
-                return Response({"detail": str(e)}, status=400)
+                return Response({"detail": e.message}, status=400)
 
         return Response(
             {
