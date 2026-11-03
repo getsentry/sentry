@@ -597,6 +597,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:search-query-builder-humanized-esq", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Enable the experimental Relay Browser Report integration
-    manager.add("organizations:browser-report-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:browser-report-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # fmt: on
