@@ -210,6 +210,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
@@ -279,7 +280,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             "preprod_snapshot.deleted",
             extra={
                 "preprod_artifact_id": artifact.id,
-                "user_id": request.user.id if request.user else None,
+                "user_id": acting_user_id(request.user),
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
                 "artifacts_deleted": result.artifacts_deleted,
@@ -701,6 +702,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ProjectReleasePermission,)
 
     rate_limits = RateLimitConfig(

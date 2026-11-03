@@ -1,4 +1,5 @@
 import {
+  parseAsBaseVisualizeList,
   parseVisualize,
   Visualize,
   VisualizeEquation,
@@ -172,5 +173,80 @@ describe('VisualizeFunction', () => {
     expect(visualize).toEqual([
       new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
     ]);
+  });
+});
+
+describe('parseVisualize', () => {
+  it.each([
+    null,
+    'count(span.duration)',
+    [],
+    {},
+    {yAxes: 'count(span.duration)'},
+    {yAxes: [1]},
+  ])('rejects %j', value => {
+    expect(parseVisualize(value)).toEqual([]);
+  });
+
+  it.each(['LINE', '1', 99, null])(
+    'uses the default chart type when the chart type is %j',
+    chartType => {
+      const visualizes = parseVisualize({yAxes: ['avg(span.duration)'], chartType});
+      expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
+    }
+  );
+
+  it.each([null, 'false', 0, ''])(
+    'keeps the series visible when visible is %j',
+    visible => {
+      const visualizes = parseVisualize({yAxes: ['avg(span.duration)'], visible});
+      expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
+    }
+  );
+
+  it.each([null, 123, ['equation|count(span.duration)']])(
+    'ignores a malformed internal expression %j',
+    internalExpression => {
+      const visualizes = parseVisualize({
+        yAxes: ['equation|count(span.duration)'],
+        internalExpression,
+      });
+      expect(visualizes).toEqual([
+        new VisualizeEquation('equation|count(span.duration)'),
+      ]);
+    }
+  );
+});
+
+describe('parseAsBaseVisualizeList', () => {
+  it('round trips valid visualizes', () => {
+    const raw = [
+      JSON.stringify({yAxes: ['count(span.duration)'], chartType: ChartType.BAR}),
+      JSON.stringify({
+        yAxes: ['equation|count(span.duration) * 2'],
+        internalExpression: 'equation|count(span.duration) * 2',
+        transformations: ['fill(locf)'],
+        visible: false,
+      }),
+    ];
+    const parsed = parseAsBaseVisualizeList.parse(raw);
+    expect(parsed && parseAsBaseVisualizeList.serialize(parsed)).toEqual(raw);
+  });
+
+  it('skips entries that are not valid visualizes', () => {
+    const parsed = parseAsBaseVisualizeList.parse([
+      '{',
+      'null',
+      JSON.stringify({yAxes: [1]}),
+      JSON.stringify({yAxes: ['count(span.duration)']}),
+    ]);
+    expect(parsed).toEqual([{yAxes: ['count(span.duration)']}]);
+  });
+
+  it('drops unknown keys', () => {
+    const parsed = parseAsBaseVisualizeList.parse([
+      JSON.stringify({yAxes: ['count(span.duration)'], unknown: true}),
+    ]);
+    expect(parsed).toEqual([{yAxes: ['count(span.duration)']}]);
   });
 });

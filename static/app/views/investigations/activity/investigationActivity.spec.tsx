@@ -20,7 +20,7 @@ const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
   location: {

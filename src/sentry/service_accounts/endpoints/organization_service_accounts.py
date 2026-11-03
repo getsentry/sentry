@@ -231,10 +231,10 @@ class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
 
 class ServiceAccountPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:admin"],
-        "PUT": ["org:admin"],
-        "DELETE": ["org:admin"],
+        "GET": ["service_account:read"],
+        "POST": ["service_account:write"],
+        "PUT": ["service_account:write"],
+        "DELETE": ["service_account:write"],
     }
 
 

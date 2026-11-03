@@ -1,5 +1,8 @@
+from typing import Any
+
 from sentry.ingest.inbound_filters import (
     _browser_extensions_filter,
+    _FilterSpec,
     _legacy_browsers_filter,
     _localhost_filter,
     _web_crawlers_filter,
@@ -14,10 +17,10 @@ pytestmark = [requires_kafka]
 
 
 class FilterTests(RelayStoreHelper, TransactionTestCase):
-    def _get_message(self):
+    def _get_message(self) -> dict[str, Any]:
         return {}
 
-    def _set_filter_state(self, flt, state):
+    def _set_filter_state(self, flt: _FilterSpec, state: str) -> None:
         ProjectOption.objects.set_value(project=self.project, key=f"filters:{flt.id}", value=state)
 
     def test_should_not_filter_simple_messages(self) -> None:
@@ -25,7 +28,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         message = self._get_message()
         self.post_and_retrieve_event(message)
 
-    def _get_message_with_bad_ip(self):
+    def _get_message_with_bad_ip(self) -> Any:
         message = self._get_message()
         set_path(message, "user", "ip_address", value="127.0.0.1")
         return message
@@ -41,7 +44,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         message = self._get_message_with_bad_ip()
         self.post_and_retrieve_event(message)
 
-    def _get_message_with_bad_extension(self):
+    def _get_message_with_bad_extension(self) -> Any:
         message = self._get_message()
         set_path(message, "platform", value="javascript")
         set_path(
@@ -62,7 +65,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         message = self._get_message_with_bad_extension()
         self.post_and_retrieve_event(message)
 
-    def _get_message_from_webcrawler(self):
+    def _get_message_from_webcrawler(self) -> Any:
         message = self._get_message()
         set_path(
             message,
@@ -86,7 +89,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         message = self._get_message_from_webcrawler()
         self.post_and_retrieve_event(message)
 
-    def _get_message_from_legacy_browser(self):
+    def _get_message_from_legacy_browser(self) -> Any:
         ie_5_user_agent = (
             "Mozilla/4.0 (compatible; MSIE 5.50; Windows NT; SiteKiosk 4.9; SiteCoach 1.0)"
         )

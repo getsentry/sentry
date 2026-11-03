@@ -177,7 +177,7 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
-    steps: list[dict] = []
+    steps: list[dict[str, Any]] = []
     coding_agents: dict[str, CodingAgentState] = {}
 
     class Config:
@@ -899,7 +899,7 @@ def has_project_connected_repos(organization: Organization, project: Project) ->
 def get_autofix_repos_from_project_code_mappings(
     project: Project,
     code_mappings: list[RepositoryProjectPathConfig] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
         return settings.SEER_AUTOFIX_FORCE_USE_REPOS
@@ -907,7 +907,10 @@ def get_autofix_repos_from_project_code_mappings(
     if code_mappings is None:
         code_mappings = get_sorted_code_mapping_configs(project)
 
-    repos: dict[tuple, dict] = {}
+    repos: dict[
+        tuple[object, object, object],
+        dict[str, Any],
+    ] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository
         repo_name_sections = get_repo_url_path(repo).split("/")

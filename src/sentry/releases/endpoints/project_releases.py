@@ -36,9 +36,11 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -81,7 +83,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_PROJECT_RELEASES,
     )
-    def get(self, request: Request, project) -> Response[list[ReleaseSerializerResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ReleaseSerializerResponse]]:
         """
         Retrieve a list of releases for a given project.
         """
@@ -134,7 +136,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         examples=ReleaseExamples.CREATE_RELEASE,
     )
     def post(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new release and/or associate a project with a release. Releases are used by
@@ -226,7 +228,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=project.organization_id,
                     project_ids=[project.id],
                     user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
@@ -243,9 +245,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.
-            data: ReleaseSerializerResponse = serialize(
-                release, request.user, no_snuba_for_release_creation=True
-            )
+            data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
         scope.set_attribute("failure_reason", "serializer_error")

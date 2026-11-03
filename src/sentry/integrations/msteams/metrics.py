@@ -1,3 +1,5 @@
+from typing import NoReturn
+
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -41,7 +43,7 @@ def record_lifecycle_termination_level(
             lifecycle.record_failure(translated_error)
 
 
-def translate_msteams_api_error(error: ApiError) -> None:
+def translate_msteams_api_error(error: ApiError) -> NoReturn:
     if isinstance(error, (ApiUnauthorized, ApiRateLimitedError)):
         # 401 Unauthorized means expired/invalid credentials — a configuration issue, not a failure.
         # TODO(ecosystem): We should batch rate-limiting on a per-organization basis

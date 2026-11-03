@@ -440,7 +440,9 @@ class GetStacktraceStringTest(TestCase):
         minified_frames: Literal["all", "some", "none"] = "none",
     ) -> list[dict[str, Any]]:
         if minified_frames == "all":
-            make_context_line = lambda i: "{snip}" + context_line_factory(i) + "{snip}"
+            make_context_line: Callable[[int], str] = (
+                lambda i: "{snip}" + context_line_factory(i) + "{snip}"
+            )
         elif minified_frames == "some":
             make_context_line = lambda i: (
                 "{snip}" + context_line_factory(i) + "{snip}"

@@ -171,7 +171,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.create_workflow_action(workflow=self.error_workflow)
 
         process_workflows_event(
-            project_id=self.project.id,
             event_id=self.event.event_id,
             group_id=self.group.id,
             occurrence_id=self.group_event.occurrence_id,
@@ -207,7 +206,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.create_workflow_action(workflow=self.error_workflow)
 
         process_workflows_event(
-            project_id=self.project.id,
             event_id=self.event.event_id,
             group_id=self.group.id,
             occurrence_id=self.group_event.occurrence_id,
@@ -246,7 +244,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         process_workflows_event(
-            project_id=self.project.id,
             event_id=self.event.event_id,
             group_id=self.group.id,
             occurrence_id=self.group_event.occurrence_id,
@@ -765,13 +762,13 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         )
 
         # Create Activity update
-        self.event = Activity.objects.create(
+        activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
         )
         self.event_data = WorkflowEventData(
-            event=self.event,
+            event=activity,
             group=self.group,
         )
         triggered_workflows, queue_items_by_workflow_id, _, _ = evaluate_workflow_triggers(
@@ -1229,13 +1226,13 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        self.event = Activity.objects.create(
+        activity = Activity.objects.create(
             project=self.project,
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
         )
         self.event_data = WorkflowEventData(
-            event=self.event,
+            event=activity,
             group=self.group,
         )
 

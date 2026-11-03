@@ -759,6 +759,23 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Bound GitLab project webhook reconciliation independently in each cell region. These
+# options intentionally describe repositories rather than HTTP requests: one repair can
+# make several requests, so production values should leave room below GitLab's API limit.
+register(
+    "gitlab.webhook-reconcile.rate-limit.burst",
+    default=10,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.per-second",
+    default=2,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
@@ -953,6 +970,15 @@ register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOM
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Jira Forge apps whose invocation tokens we accept, as app ARIs
+# (`ari:cloud:ecosystem::app/<uuid>`). Empty rejects every Forge request.
+register(
+    "jira.forge.app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1550,6 +1576,15 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
+# Requires api.conditional_get.enabled. A browser keeps a cached response for up to
+# the tier's seconds after its endpoint is removed from this list.
+register(
+    "api.conditional_get.max_age_endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
@@ -2756,6 +2791,16 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},

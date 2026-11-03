@@ -1,8 +1,9 @@
 from collections import namedtuple
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import md5
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -76,7 +77,10 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_id", "occurrence_id"],
             groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            filter_keys={
+                "project_id": [self.project.id],
+                "event_id": cast("Sequence[int]", [event.event_id]),
+            },
             tenant_ids={"referrer": "r", "organization_id": 1},
         )
         assert len(result["data"]) == 1

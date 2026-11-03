@@ -10,6 +10,9 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
@@ -43,7 +46,11 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint, MonitorCheckInMix
         },
     )
     def get(
-        self, request: Request, organization, project, monitor
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
     ) -> Response[list[MonitorCheckInSerializerResponse]]:
         """
         Retrieve a list of check-ins for a monitor

@@ -11,6 +11,8 @@ from sentry.data_export.processors.issues_by_tag import (
     IssuesByTagProcessor,
 )
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.web.frontend.base import ProjectView, cell_silo_view
@@ -24,7 +26,7 @@ class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
     def get_header(self) -> tuple[str, ...]:
         return tuple(IssuesByTagProcessor.get_header_fields(self.key))
 
-    def get_row(self, item: GroupTagValueAndEventUser) -> tuple[str, ...]:
+    def get_row(self, item: GroupTagValueAndEventUser) -> tuple[str | int | None, ...]:
         fields = IssuesByTagProcessor.get_header_fields(self.key)
         item_dict = IssuesByTagProcessor.serialize_row(item, self.key)
         return tuple(item_dict[field] for field in fields)
@@ -45,7 +47,14 @@ class GroupTagExportView(ProjectView):
         }
     )
 
-    def get(self, request: Request, organization, project, group_id, key) -> HttpResponseBase:
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        group_id: int | str,
+        key: str,
+    ) -> HttpResponseBase:
         # If the environment doesn't exist then the tag can't possibly exist
         try:
             environment_id = get_environment_id(request, project.organization_id)

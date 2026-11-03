@@ -2,7 +2,7 @@ import logging
 import threading
 import time
 import uuid
-from collections.abc import Generator, MutableSequence
+from collections.abc import Generator, MutableSequence, Sequence
 from datetime import datetime, timedelta
 from typing import Any, cast
 from unittest import mock
@@ -295,7 +295,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             end=now + timedelta(days=1),
             selected_columns=["event_id"],
             groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            filter_keys=cast(
+                "dict[str, Sequence[int]]",
+                {"project_id": [self.project.id], "event_id": [event.event_id]},
+            ),
             tenant_ids={"organization_id": 1, "referrer": "r"},
         )
         assert len(result["data"]) == 1
@@ -328,7 +331,10 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_ids"],
             groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            filter_keys=cast(
+                "dict[str, Sequence[int]]",
+                {"project_id": [self.project.id], "event_id": [event.event_id]},
+            ),
             tenant_ids={"organization_id": 1, "referrer": "r"},
         )
         assert len(result["data"]) == 1

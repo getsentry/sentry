@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from .actions import EnhancementAction
 from .matchers import EnhancementMatch
@@ -28,11 +28,11 @@ class EnhancementRule:
     def __repr__(self) -> str:
         return f"<EnhancementRule {self.text}>"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.text)
 
-    def __eq__(self, other):
-        return self.text == other.text
+    def __eq__(self, other: object) -> bool:
+        return self.text == cast("EnhancementRule", other).text
 
     @property
     def text(self) -> str:

@@ -111,7 +111,10 @@ class ResolvedColumn:
         if self.normalizer is None:
             return value
         if isinstance(value, list):
-            return [self.normalizer(item) for item in value]
+            return cast(
+                "Sequence[float] | Sequence[str]",
+                [self.normalizer(item) for item in value],
+            )
         return self.normalizer(value)
 
     def validate(self, value: Any) -> None:
