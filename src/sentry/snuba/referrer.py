@@ -400,6 +400,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
 
     # AI Agents
+    API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
     API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
         "api.insights.agent-monitoring.trace-drawer-tool-usage"
     )
