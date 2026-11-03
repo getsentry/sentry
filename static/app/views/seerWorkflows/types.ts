@@ -76,6 +76,7 @@ export type SeerWorkflowConfigResponse = {
   environments: string[];
   filters: Record<string, unknown>;
   id: string;
+  monitorIds: number[];
   outputPolicy: Record<string, unknown>;
   /**
    * [-1] for all projects, [] for none, otherwise selected project IDs
@@ -83,6 +84,7 @@ export type SeerWorkflowConfigResponse = {
   projects: number[];
   schedule: string;
   seededDefault: string | null;
+  serviceAccountId: string | null;
   strategy: string;
   version: number;
   /**
@@ -93,6 +95,7 @@ export type SeerWorkflowConfigResponse = {
    * Status of the latest visible run. Omitted if there are none
    */
   lastRunStatus?: SeerAutomationRunStatus;
+  name?: string;
 };
 
 export type SeerWorkflowConfigsResponse = {

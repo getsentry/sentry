@@ -124,8 +124,12 @@ function AutomationCard({config}: {config: AutomationConfig}) {
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
 
-  const {enabled, trigger, tokensPerMonth, costPerRun} = config;
-  const title = strategyMeta?.label ?? config.strategy;
+  const {enabled, tokensPerMonth, costPerRun} = config;
+  const trigger =
+    config.strategy === 'breached_metric_investigation'
+      ? t('When a metric monitor breaches')
+      : config.trigger;
+  const title = config.name ?? strategyMeta?.label ?? config.strategy;
   const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
     ? ['all']
