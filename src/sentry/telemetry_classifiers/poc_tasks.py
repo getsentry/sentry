@@ -45,7 +45,7 @@ _MESSAGE_FIELD = "gen_ai.input.messages"
 class _ConversationRef:
     project_id: int
     conversation_id: str
-    last_span_timestamp: str
+    last_span_timestamp: float
 
 
 class _ClassifierMessage(TypedDict):
@@ -57,7 +57,7 @@ class _ConversationContext(TypedDict):
     organization_id: int
     project_id: int
     conversation_id: str
-    last_span_timestamp: str
+    last_span_timestamp: float
 
 
 def _scan_window(scan_time: datetime) -> tuple[datetime, datetime]:
@@ -102,7 +102,7 @@ def _fetch_conversations(
         _ConversationRef(
             project_id=project.id,
             conversation_id=row["gen_ai.conversation.id"],
-            last_span_timestamp=str(row["max(timestamp)"]),
+            last_span_timestamp=float(row["max(timestamp)"]),
         )
         for row in result.get("data", [])
     ]
@@ -173,11 +173,9 @@ def _user_messages_from_rows(
 def _fetch_conversation_rows(
     project: Project,
     conversation_id: str,
-    last_span_timestamp: str,
+    last_span_timestamp: float,
 ) -> tuple[list[dict[str, Any]], bool]:
-    last_span_time = datetime.fromisoformat(last_span_timestamp.replace("Z", "+00:00"))
-    if last_span_time.tzinfo is None:
-        last_span_time = last_span_time.replace(tzinfo=UTC)
+    last_span_time = datetime.fromtimestamp(last_span_timestamp, tz=UTC)
 
     conversation_filter = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
     result = Spans.run_table_query(
@@ -292,7 +290,7 @@ def _classify_user_frustration(
 def classify_conversation(
     project_id: int,
     conversation_id: str,
-    last_span_timestamp: str,
+    last_span_timestamp: float,
 ) -> None:
     """Fetch one conversation once, then run its classifiers."""
     try:

@@ -58,19 +58,19 @@ class FetchConversationsTest(BaseAIConversationsTestCase):
             limit=100,
         )
 
-        assert [(item.project_id, item.conversation_id) for item in conversations] == [
-            (self.project.id, "eligible")
+        assert conversations == [
+            _ConversationRef(
+                project_id=self.project.id,
+                conversation_id="eligible",
+                last_span_timestamp=(scan_time - timedelta(minutes=22)).timestamp(),
+            )
         ]
 
 
 def test_claim_conversations_returns_new_claims() -> None:
     conversations = [
-        _ConversationRef(
-            project_id=1, conversation_id="conversation-a", last_span_timestamp="first"
-        ),
-        _ConversationRef(
-            project_id=1, conversation_id="conversation-a", last_span_timestamp="second"
-        ),
+        _ConversationRef(project_id=1, conversation_id="conversation-a", last_span_timestamp=1.0),
+        _ConversationRef(project_id=1, conversation_id="conversation-a", last_span_timestamp=2.0),
     ]
     client = MagicMock()
     pipeline = client.pipeline.return_value.__enter__.return_value
@@ -159,7 +159,7 @@ class FetchConversationRowsTest(BaseAIConversationsTestCase):
         rows, source_truncated = _fetch_conversation_rows(
             self.project,
             "conversation",
-            (start + timedelta(seconds=3)).isoformat(),
+            (start + timedelta(seconds=3)).timestamp(),
         )
         messages, input_truncated = _user_messages_from_rows(
             rows, source_truncated=source_truncated
@@ -187,9 +187,9 @@ class ClassifyConversationTest(TestCase):
             ) as mock_run,
             patch("sentry.telemetry_classifiers.poc_tasks.logger.info") as mock_log,
         ):
-            classify_conversation(self.project.id, "conversation", "last-span-timestamp")
+            classify_conversation(self.project.id, "conversation", 1_735_689_600.0)
 
-        mock_fetch.assert_called_once_with(self.project, "conversation", "last-span-timestamp")
+        mock_fetch.assert_called_once_with(self.project, "conversation", 1_735_689_600.0)
         mock_run.assert_called_once_with(
             "conversation_user_frustration",
             {"messages": messages},
@@ -202,7 +202,7 @@ class ClassifyConversationTest(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "conversation_id": "conversation",
-                "last_span_timestamp": "last-span-timestamp",
+                "last_span_timestamp": 1_735_689_600.0,
                 "classifier": "user_frustration",
                 "probability": 0.9,
                 "message_count": 1,
@@ -222,7 +222,7 @@ class ClassifyConversationTest(TestCase):
             ),
             patch("sentry.telemetry_classifiers.poc_tasks.logger.error") as mock_log,
         ):
-            classify_conversation(self.project.id, "conversation", "last-span-timestamp")
+            classify_conversation(self.project.id, "conversation", 1_735_689_600.0)
 
         mock_log.assert_called_once_with(
             "telemetry_classifiers.conversation.failed",
@@ -230,7 +230,7 @@ class ClassifyConversationTest(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "conversation_id": "conversation",
-                "last_span_timestamp": "last-span-timestamp",
+                "last_span_timestamp": 1_735_689_600.0,
                 "classifier": "user_frustration",
                 "reason": "invalid_response",
             },
@@ -249,7 +249,7 @@ class ClassifyConversationTest(TestCase):
             patch("sentry.telemetry_classifiers.poc_tasks.logger.exception"),
             pytest.raises(SeerApiError),
         ):
-            classify_conversation(self.project.id, "conversation", "last-span-timestamp")
+            classify_conversation(self.project.id, "conversation", 1_735_689_600.0)
 
 
 @cell_silo_test
@@ -294,19 +294,19 @@ class ScheduleConversationClassifiersTest(TestCase):
             _ConversationRef(
                 project_id=first_project.id,
                 conversation_id="one",
-                last_span_timestamp="v1",
+                last_span_timestamp=1.0,
             ),
             _ConversationRef(
                 project_id=first_project.id,
                 conversation_id="two",
-                last_span_timestamp="v1",
+                last_span_timestamp=2.0,
             ),
         ]
         second_conversations = [
             _ConversationRef(
                 project_id=second_project.id,
                 conversation_id="three",
-                last_span_timestamp="v1",
+                last_span_timestamp=3.0,
             )
         ]
         mock_now.return_value = now
@@ -330,12 +330,12 @@ class ScheduleConversationClassifiersTest(TestCase):
             call(
                 project_id=first_project.id,
                 conversation_id="one",
-                last_span_timestamp="v1",
+                last_span_timestamp=1.0,
             ),
             call(
                 project_id=second_project.id,
                 conversation_id="three",
-                last_span_timestamp="v1",
+                last_span_timestamp=3.0,
             ),
         ]
         mock_log.assert_called_once_with(
