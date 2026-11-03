@@ -573,7 +573,11 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           disabled={hasTransformations}
           tooltipProps={
             hasTransformations
-              ? {title: t('Queries with transformations cannot be saved yet.')}
+              ? {
+                  title: t(
+                    'Dashboard widgets and monitors do not support transformations yet.'
+                  ),
+                }
               : undefined
           }
         />
