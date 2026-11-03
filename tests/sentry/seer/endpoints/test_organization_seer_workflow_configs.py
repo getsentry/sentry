@@ -24,7 +24,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
@@ -1085,8 +1085,8 @@ class WithNoAccessIdsTest(TestCase):
             self.create_detector(project=project, type=MetricIssue.slug)
             for project in self.no_access
         ]
-        readable_pairs = [(m.id, m.project_id) for m in readable_monitors]
-        no_access_pairs = [(m.id, m.project_id) for m in no_access_monitors]
+        readable_pairs = [ConnectedMonitor(m.id, m.project_id) for m in readable_monitors]
+        no_access_pairs = [ConnectedMonitor(m.id, m.project_id) for m in no_access_monitors]
         no_access_ids = {m.id for m in no_access_monitors}
         requested = [readable_monitors[0].id]
         curr_cases = [
