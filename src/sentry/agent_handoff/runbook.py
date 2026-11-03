@@ -1,0 +1,69 @@
+import html
+import re
+import shlex
+
+from jinja2 import Environment, PackageLoader, StrictUndefined
+
+# Markdown labels and shell blocks are escaped for their respective contexts below.
+_ENVIRONMENT = Environment(
+    loader=PackageLoader("sentry", "templates"),
+    autoescape=False,
+    undefined=StrictUndefined,
+    keep_trailing_newline=True,
+)
+
+_MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+.!|~>-])")
+
+
+def _escape_label(value: str) -> str:
+    """Keep untrusted context on one line, outside Markdown instructions or HTML."""
+    single_line = " ".join(value.split())
+    printable = "".join(character for character in single_line if character.isprintable())
+    return _MARKDOWN_SPECIAL.sub(r"\\\1", html.escape(printable, quote=False))
+
+
+def _code_block(value: str, language: str = "bash") -> str:
+    # Minted codes are opaque; keep even unexpected backticks inside their code block.
+    fence = "`" * max(3, max((len(run) + 1 for run in re.findall(r"`+", value)), default=0))
+    return f"{fence}{language}\n{value}\n{fence}"
+
+
+def render_agent_runbook(
+    *,
+    organization_slug: str,
+    organization_name: str,
+    user_email: str,
+    sentry_url: str,
+    client_id: str,
+    setup_code: str,
+    onboarding_run_code: str,
+) -> str:
+    """Render a private guide from already-authorized context and minted credentials."""
+    instance_environment = (
+        f"SENTRY_HOST={shlex.quote(sentry_url)} SENTRY_URL={shlex.quote(sentry_url)}"
+    )
+    setup_environment = (
+        f"{instance_environment} SENTRY_CLIENT_ID={shlex.quote(client_id)} "
+        f"SENTRY_SETUP_CODE={shlex.quote(setup_code)}"
+    )
+    auth_status = _code_block(f"{instance_environment} sentry auth status --fresh --json")
+    installer = _code_block(
+        "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
+    )
+    bootstrap = _code_block(
+        f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
+    )
+    run_context = _code_block(onboarding_run_code, "text")
+
+    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
+        {
+            "sentry_url": _escape_label(sentry_url),
+            "user_email": _escape_label(user_email),
+            "organization_name": _escape_label(organization_name),
+            "organization_slug": _escape_label(organization_slug),
+            "run_context": run_context,
+            "auth_status": auth_status,
+            "installer": installer,
+            "bootstrap": bootstrap,
+        },
+    )
