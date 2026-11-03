@@ -691,7 +691,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.get(path)
+        return self.get(path, timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT)
 
     def update_project_webhook(
         self,
