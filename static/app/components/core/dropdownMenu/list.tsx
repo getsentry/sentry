@@ -10,7 +10,7 @@ import {
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import {getInteractionModality, useKeyboard} from '@react-aria/interactions';
+import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
 import {useMenu, useMenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
@@ -18,8 +18,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
-import type {Key, Node} from '@react-types/shared';
-import type {VirtualItem} from '@tanstack/react-virtual';
+import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -28,7 +27,6 @@ import {
   Header,
   ReserveLeadingSlot,
   Search,
-  SectionSeparator,
   Title,
 } from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -36,7 +34,6 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
@@ -47,8 +44,14 @@ import type {
   MenuItemProps,
 } from './item';
 import {DropdownMenuItem} from './item';
-import {DropdownMenuSection} from './section';
+import {DropdownMenuSection, DropdownMenuSeparator} from './section';
 import {useSafetyTriangle} from './useSafetyTriangle';
+import {
+  canVirtualizeMenu,
+  DropdownMenuVirtualCollection,
+  hasSubmenuItems,
+  useVirtualMenu,
+} from './virtualCollection';
 
 export interface DropdownMenuListProps
   extends
@@ -201,180 +204,10 @@ function DropdownMenuCollection({
               size={size}
               state={state}
             />
-            {showSeparator && (
-              <Stack
-                as="li"
-                justify="center"
-                height="8px"
-                padding="0 lg 0 xl"
-                {...separatorProps}
-                role="presentation"
-              >
-                <SectionSeparator />
-              </Stack>
-            )}
+            {showSeparator && <DropdownMenuSeparator separatorProps={separatorProps} />}
           </Fragment>
         );
       })}
-    </Fragment>
-  );
-}
-
-type VirtualRow =
-  | {section: Node<MenuItemProps>; type: 'heading'}
-  | {
-      hasGapAfter: boolean;
-      node: Node<MenuItemProps>;
-      type: 'item';
-      section?: Node<MenuItemProps>;
-    }
-  | {type: 'separator'};
-
-const VIRTUAL_ROW_HEIGHT_ESTIMATES = {
-  heading: 36,
-  item: 32,
-  separator: 8,
-} satisfies Record<VirtualRow['type'], number>;
-
-/**
- * Flattens the collection into the rows that `DropdownMenuCollection` renders,
- * so the virtualizer can measure and position each one.
- */
-function getVirtualRows(collection: Array<Node<MenuItemProps>>): VirtualRow[] {
-  return collection.flatMap((node, i): VirtualRow[] => {
-    const rows: VirtualRow[] = [];
-    if (node.type === 'section') {
-      if (node.rendered) {
-        rows.push({type: 'heading', section: node});
-      }
-      const children = [...node.childNodes];
-      children.forEach((child, childIndex) =>
-        rows.push({
-          type: 'item',
-          node: child,
-          section: node,
-          hasGapAfter: childIndex < children.length - 1,
-        })
-      );
-    } else {
-      rows.push({type: 'item', node, hasGapAfter: false});
-    }
-
-    const next = collection[i + 1];
-    if (next && (node.type === 'section' || next.type === 'section')) {
-      rows.push({type: 'separator'});
-    }
-    return rows;
-  });
-}
-
-interface DropdownMenuVirtualCollectionProps extends Omit<
-  DropdownMenuCollectionProps,
-  'collection' | 'disableTextSelection' | 'size'
-> {
-  measureElement: (element: Element | null) => void;
-  paddingBottom: number;
-  paddingTop: number;
-  rows: VirtualRow[];
-  virtualItems: VirtualItem[];
-}
-
-type IndexedVirtualRow = {index: number; row: VirtualRow};
-
-function DropdownMenuVirtualCollection({
-  rows,
-  virtualItems,
-  paddingTop,
-  paddingBottom,
-  measureElement,
-  separatorProps,
-  closeOnSelect,
-  onClose,
-  state,
-}: DropdownMenuVirtualCollectionProps) {
-  // Visible rows are contiguous, so each section appears in at most one segment.
-  const segments: Array<{rows: IndexedVirtualRow[]; section?: Node<MenuItemProps>}> = [];
-  for (const {index} of virtualItems) {
-    const row = rows[index];
-    if (!row) {
-      continue;
-    }
-    const section = row.type === 'separator' ? undefined : row.section;
-    const segment = segments.at(-1);
-    if (section && segment?.section === section) {
-      segment.rows.push({index, row});
-    } else {
-      segments.push({section, rows: [{index, row}]});
-    }
-  }
-
-  const renderRow = ({index, row}: IndexedVirtualRow) => {
-    if (row.type === 'heading') {
-      // Rendered by its section.
-      return null;
-    }
-    if (row.type === 'separator') {
-      return (
-        <Stack
-          key={`separator-${index}`}
-          ref={measureElement}
-          data-index={index}
-          as="li"
-          justify="center"
-          height="8px"
-          padding="0 lg 0 xl"
-          {...separatorProps}
-          role="presentation"
-        >
-          <SectionSeparator />
-        </Stack>
-      );
-    }
-    return (
-      <Container
-        key={row.node.key}
-        ref={measureElement}
-        data-index={index}
-        as="li"
-        role="presentation"
-        paddingBottom={row.hasGapAfter ? '2xs' : undefined}
-      >
-        <DropdownMenuItem
-          renderAs="div"
-          node={row.node}
-          state={state}
-          onClose={onClose}
-          closeOnSelect={closeOnSelect}
-        />
-      </Container>
-    );
-  };
-
-  return (
-    <Fragment>
-      {paddingTop > 0 && (
-        <Container as="li" role="presentation" height={`${paddingTop}px`} />
-      )}
-      {segments.map(segment => {
-        if (!segment.section) {
-          return segment.rows.map(renderRow);
-        }
-        const heading = segment.rows.find(({row}) => row.type === 'heading');
-        return (
-          <DropdownMenuSection
-            key={segment.section.key}
-            node={segment.section}
-            virtualHeadingProps={
-              heading ? {ref: measureElement, 'data-index': heading.index} : null
-            }
-          >
-            {segment.rows.map(renderRow)}
-          </DropdownMenuSection>
-        );
-      })}
-      {paddingBottom > 0 && (
-        <Container as="li" role="presentation" height={`${paddingBottom}px`} />
-      )}
     </Fragment>
   );
 }
@@ -415,71 +248,24 @@ function DropdownMenuList({
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  const virtualRows = useMemo(
-    () => (virtualized ? getVirtualRows(stateCollection) : []),
-    [virtualized, stateCollection]
-  );
-  const {virtualizer, virtualItems, paddingTop, paddingBottom} = useVirtualRows({
-    count: virtualRows.length,
+  const virtualMenu = useVirtualMenu({
+    collection: stateCollection,
     enabled: virtualized,
-    getScrollElement: () => menuRef.current,
-    estimateSize: index =>
-      VIRTUAL_ROW_HEIGHT_ESTIMATES[virtualRows[index]?.type ?? 'item'],
+    menuRef,
+    state,
   });
-  const enabledVirtualKeys = useMemo(
-    () =>
-      virtualRows.flatMap(row =>
-        row.type === 'item' && !state.disabledKeys.has(row.node.key) ? [row.node.key] : []
-      ),
-    [virtualRows, state.disabledKeys]
-  );
-
-  // React Aria cannot scroll to rows that are not rendered, so follow keyboard
-  // focus here. Pointer focus only reaches rendered rows.
-  const {focusedKey, isFocused} = state.selectionManager;
-  useEffect(() => {
-    if (
-      !virtualized ||
-      !isFocused ||
-      focusedKey === null ||
-      getInteractionModality() !== 'keyboard'
-    ) {
-      return;
-    }
-    const index = virtualRows.findIndex(
-      row => row.type === 'item' && row.node.key === focusedKey
-    );
-    if (index !== -1) {
-      virtualizer.scrollToIndex(index, {align: 'auto'});
-    }
-  }, [virtualized, isFocused, focusedKey, virtualRows, virtualizer]);
-
-  // A virtualized menu does not render every item, so compare keys instead of
-  // the rendered elements. Read the key from the element, because React Aria
-  // moves the focused key before this menu's key handler runs.
   const isFirstEnabledItem = (element: EventTarget | null) =>
     virtualized
-      ? isMenuItemWithKey(element, enabledVirtualKeys[0])
+      ? virtualMenu.isFirstEnabledItem(element)
       : element === getEnabledMenuItems(menuRef.current)[0];
   const isLastEnabledItem = (element: EventTarget | null) =>
     virtualized
-      ? isMenuItemWithKey(element, enabledVirtualKeys.at(-1))
+      ? virtualMenu.isLastEnabledItem(element)
       : element === getEnabledMenuItems(menuRef.current).at(-1);
-  const focusFirstEnabledItem = () => {
-    if (!virtualized) {
-      getEnabledMenuItems(menuRef.current)[0]?.focus();
-      return;
-    }
-    const firstKey = enabledVirtualKeys[0];
-    if (firstKey === undefined || !menuRef.current) {
-      return;
-    }
-    // The first item renders once the list scrolls back to the top, then
-    // focuses itself because it is the focused key.
-    menuRef.current.scrollTop = 0;
-    state.selectionManager.setFocused(true);
-    state.selectionManager.setFocusedKey(firstKey);
-  };
+  const focusFirstEnabledItem = () =>
+    virtualized
+      ? virtualMenu.focusFirstEnabledItem()
+      : getEnabledMenuItems(menuRef.current)[0]?.focus();
 
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -635,11 +421,7 @@ function DropdownMenuList({
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     {virtualized ? (
                       <DropdownMenuVirtualCollection
-                        rows={virtualRows}
-                        virtualItems={virtualItems}
-                        paddingTop={paddingTop}
-                        paddingBottom={paddingBottom}
-                        measureElement={virtualizer.measureElement}
+                        {...virtualMenu.collectionProps}
                         closeOnSelect={closeOnSelect}
                         onClose={onClose}
                         separatorProps={separatorProps}
@@ -743,14 +525,6 @@ function getEnabledMenuItems(menu: HTMLElement | null): HTMLElement[] {
   ).filter(item => item.getAttribute('aria-disabled') !== 'true');
 }
 
-function isMenuItemWithKey(element: EventTarget | null, key: Key | undefined) {
-  return (
-    key !== undefined &&
-    element instanceof HTMLElement &&
-    element.dataset.key === `${key}`
-  );
-}
-
 /**
  * Recursively finds and returns disabled items
  */
@@ -778,17 +552,11 @@ export type DropdownMenuContentProps = Omit<
   items: MenuItemProps[];
   search?: DropdownMenuSearchOptions;
   /**
-   * Number of items above which only the visible rows render.
+   * Number of items above which only the visible rows render. Ignored, with a
+   * development warning, when the menu contains nested sub-menus.
    */
   virtualizeThreshold?: number;
 };
-
-function countMenuItems(items: MenuItemProps[]): number {
-  return items.reduce(
-    (count, item) => count + (item.children && !item.submenu ? item.children.length : 1),
-    0
-  );
-}
 
 export function DropdownMenuContent({
   items,
@@ -810,9 +578,17 @@ export function DropdownMenuContent({
     [visibleItems]
   );
 
-  const virtualized =
-    virtualizeThreshold !== undefined &&
-    countMenuItems(visibleItems) > virtualizeThreshold;
+  const virtualized = canVirtualizeMenu(visibleItems, virtualizeThreshold);
+  const hasNestedSubmenus =
+    virtualizeThreshold !== undefined && hasSubmenuItems(activeItems);
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && hasNestedSubmenus) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'DropdownMenu: `virtualizeThreshold` is ignored because the menu contains nested sub-menus.'
+      );
+    }
+  }, [hasNestedSubmenus]);
 
   return (
     <DropdownMenuList

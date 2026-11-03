@@ -1,10 +1,47 @@
 import {useMenuSection} from '@react-aria/menu';
+import type {useSeparator} from '@react-aria/separator';
 import type {Node} from '@react-types/shared';
 
 import type {FlexProps} from '@sentry/scraps/layout';
-import {SectionGroup, SectionLabel, SectionList} from '@sentry/scraps/menu';
+import {Stack} from '@sentry/scraps/layout';
+import {
+  SectionGroup,
+  SectionLabel,
+  SectionList,
+  SectionSeparator,
+} from '@sentry/scraps/menu';
 
 import type {MenuItemProps} from './item';
+
+interface DropdownMenuSeparatorProps {
+  separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
+}
+
+/**
+ * The divider rendered between sections and their neighboring items.
+ */
+export function DropdownMenuSeparator({
+  separatorProps,
+  ref,
+  'data-index': dataIndex,
+}: DropdownMenuSeparatorProps) {
+  return (
+    <Stack
+      ref={ref}
+      data-index={dataIndex}
+      as="li"
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...separatorProps}
+      role="presentation"
+    >
+      <SectionSeparator />
+    </Stack>
+  );
+}
 
 type DropdownMenuSectionProps = {
   children: React.ReactNode;

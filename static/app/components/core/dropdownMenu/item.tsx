@@ -92,7 +92,8 @@ export interface MenuItemProps extends ListItemProps {
         /**
          * Number of items above which only the visible rows render. A
          * virtualized sub-menu uses `maxWidth` as its width, because hidden
-         * rows cannot size it, and cannot contain nested sub-menus.
+         * rows cannot size it. Ignored, with a development warning, when the
+         * sub-menu contains its own nested sub-menus.
          */
         virtualizeThreshold?: number;
       });

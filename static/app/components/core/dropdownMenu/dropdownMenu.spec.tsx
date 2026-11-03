@@ -579,6 +579,40 @@ describe('DropdownMenu', () => {
       await userEvent.keyboard('{ArrowUp}');
       expect(search).toHaveFocus();
     });
+
+    it('renders every row and warns when the submenu has nested submenus', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      render(
+        <DropdownMenu
+          triggerLabel="Projects"
+          items={[
+            {
+              key: 'all-projects',
+              label: 'All Projects',
+              submenu: {maxHeight: 240, maxWidth: 258, virtualizeThreshold: 50},
+              children: [
+                ...projects,
+                {
+                  key: 'nested',
+                  label: 'Nested',
+                  submenu: true,
+                  children: [{key: 'nested-child', label: 'Nested child'}],
+                },
+              ],
+            },
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+
+      expect(screen.getByRole('menuitemradio', {name: 'project-99'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Nested'})).toBeInTheDocument();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('`virtualizeThreshold` is ignored')
+      );
+    });
   });
 
   it('returns from the first enabled item to search when a disabled item comes first', async () => {
