@@ -1,6 +1,5 @@
 import logging
 import time
-from collections import defaultdict
 
 import sentry_sdk
 from django.db import connections, router, transaction
@@ -141,31 +140,27 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         # it could be possible that refrequent invalidations cause the task to take excessive time
         # to complete.
         for organization in Organization.objects.filter(id=organization_id):
-            projects = list(Project.objects.filter(organization_id=organization_id))
-            # Fetch the keys of all projects in a single query instead of one query per
-            # project, which would be an N+1 for organizations with many projects.
-            keys_by_project_id: dict[int, list[ProjectKey]] = defaultdict(list)
-            for key in ProjectKey.objects.filter(
-                project_id__in=[project.id for project in projects]
-            ).order_by("id"):
-                keys_by_project_id[key.project_id].append(key)
-
-            for project in projects:
-                project.set_cached_field_value("organization", organization)
-                for key in keys_by_project_id.get(project.id, []):
-                    key.set_cached_field_value("project", project)
-                    # If we find the config in the cache it means it was active.  As such we want to
-                    # recalculate it.  If the config was not there at all, we leave it and avoid the
-                    # cost of re-computation.
-                    if projectconfig_cache.backend.get(key.public_key) is not None:
-                        yield key.public_key, compute_projectkey_config(key)
-                        action = "recompute"
-                    else:
-                        action = "not-cached"
-                    metrics.incr(
-                        "relay.projectconfig_cache.invalidation.recompute",
-                        tags={"action": action, "scope": "organization"},
-                    )
+            # Fetch the keys of all projects in the organization, together with their
+            # project, in a single query instead of one query per project.
+            keys = (
+                ProjectKey.objects.filter(project__organization_id=organization_id)
+                .select_related("project")
+                .order_by("project_id", "id")
+            )
+            for key in keys:
+                key.project.set_cached_field_value("organization", organization)
+                # If we find the config in the cache it means it was active.  As such we want to
+                # recalculate it.  If the config was not there at all, we leave it and avoid the
+                # cost of re-computation.
+                if projectconfig_cache.backend.get(key.public_key) is not None:
+                    yield key.public_key, compute_projectkey_config(key)
+                    action = "recompute"
+                else:
+                    action = "not-cached"
+                metrics.incr(
+                    "relay.projectconfig_cache.invalidation.recompute",
+                    tags={"action": action, "scope": "organization"},
+                )
     elif project_id:
         for project in Project.objects.filter(id=project_id):
             for key in ProjectKey.objects.filter(project_id=project_id):

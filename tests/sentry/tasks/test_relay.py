@@ -561,9 +561,9 @@ class TestInvalidationTask:
             assert list(compute_configs(organization_id=default_organization.id)) == []
 
         assert set(seen_keys) == expected_keys
-        # One query each for the organization, its projects and all their keys,
+        # One query for the organization and one for all keys with their projects,
         # independent of the number of projects.
-        assert len(queries.captured_queries) == 3
+        assert len(queries.captured_queries) == 2
 
     @mock.patch(
         "sentry.tasks.relay._schedule_invalidate_project_config",
