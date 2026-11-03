@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from functools import partial
 from time import monotonic
-
-from django.db.models import F
 
 from sentry import features
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
@@ -33,13 +30,11 @@ from sentry.ai_monitoring.issues.llm_cache_detection.resolution import (
     probe,
     resolve_candidate,
 )
-from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import ai_model_metadata_config
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils.cursored_scheduler import CursoredScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +43,6 @@ FINDINGS_PER_PROJECT_LIMIT = 5
 MAX_WARMTH_PROBES_PER_PROJECT = 20
 PROJECT_QUERY_DEADLINE_SECS = 300
 PROJECT_PROCESSING_DEADLINE_SECS = 600
-DETECTION_CYCLE_DURATION = timedelta(days=1)
-SCHEDULE_KEY = "llm-cache-issue-detection"
 
 
 @instrumented_task(
@@ -59,17 +52,7 @@ SCHEDULE_KEY = "llm-cache-issue-detection"
     silo_mode=SiloMode.CELL,
 )
 def run_llm_cache_issue_detection() -> None:
-    """Schedule one detection cycle across active Agent Monitoring projects."""
-    CursoredScheduler(
-        name="llm_cache_issue_detection",
-        schedule_key=SCHEDULE_KEY,
-        queryset=Project.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring),
-        ),
-        task=detect_llm_cache_issues_for_project,
-        cycle_duration=DETECTION_CYCLE_DURATION,
-    ).tick()
+    """No-op kept registered so activations queued before unscheduling drain cleanly."""
 
 
 @instrumented_task(

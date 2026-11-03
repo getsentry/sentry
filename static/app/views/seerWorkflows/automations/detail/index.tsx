@@ -19,7 +19,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   getNextUpdate,
-  PLACEHOLDER_CONFIGS,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -44,22 +43,17 @@ export default function AutomationDetail() {
   const {automationId} = useParams<{automationId: string}>();
   const basePath = getAutomationDetailPath(organization.slug, automationId);
 
-  // TEMPORARY: placeholder configs are only known to the frontend
-  const placeholderConfig = PLACEHOLDER_CONFIGS.find(c => c.id === automationId);
   const {data, isPending, isError, refetch} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
-        path:
-          automationsEnabled && !placeholderConfig
-            ? {organizationIdOrSlug: organization.slug}
-            : skipToken,
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {id: automationId},
         staleTime: 0,
       }
     )
   );
-  const config: AutomationConfig | undefined = placeholderConfig ?? data?.configs[0];
+  const config: AutomationConfig | undefined = data?.configs[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]

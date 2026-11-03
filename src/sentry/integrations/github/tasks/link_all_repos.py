@@ -48,7 +48,7 @@ def link_all_repos(
     integration_key: str,
     integration_id: int,
     organization_id: int,
-):
+) -> None:
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.LINK_ALL_REPOS,
         integration_id=integration_id,

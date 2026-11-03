@@ -193,20 +193,25 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
 
     if subscription.subscription_id is not None and subscription.snuba_query is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
-        try:
-            entity_key = get_entity_key_from_snuba_query(
-                subscription.snuba_query,
-                subscription.project.organization_id,
-                subscription.project_id,
-                skip_field_validation_for_entity_subscription_deletion=True,
+        if query_dataset == Dataset.PerformanceMetrics:
+            # Snuba dropped the generic_metrics dataset and its subscriptions, and the indexer
+            # can no longer resolve the tags these queries use, so only the local rows remain.
+            metrics.incr("snuba.subscriptions.delete.removed_dataset")
+        else:
+            try:
+                entity_key = get_entity_key_from_snuba_query(
+                    subscription.snuba_query,
+                    subscription.project.organization_id,
+                    subscription.project_id,
+                    skip_field_validation_for_entity_subscription_deletion=True,
+                )
+            except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+                raise SubscriptionError(e)
+            _delete_from_snuba(
+                query_dataset,
+                subscription.subscription_id,
+                entity_key,
             )
-        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
-            raise SubscriptionError(e)
-        _delete_from_snuba(
-            query_dataset,
-            subscription.subscription_id,
-            entity_key,
-        )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
         snuba_query = subscription.snuba_query
@@ -304,7 +309,8 @@ def _create_snql_in_snuba(
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
-    return orjson.loads(response.data)["subscription_id"]
+    subscription_id = orjson.loads(response.data)["subscription_id"]
+    return subscription_id
 
 
 def _create_rpc_in_snuba(

@@ -395,7 +395,7 @@ def compare(
     # the way.
     def load_data(
         side: Side, src: IO[bytes], decrypt_with: IO[bytes], decrypt_with_gcp_kms: IO[bytes]
-    ) -> dict[str, Any]:
+    ) -> list[Any]:
         decryptor = get_decryptor_from_flags(decrypt_with, decrypt_with_gcp_kms)
 
         # Decrypt the tarball, if the user has indicated that this is one by using either of the

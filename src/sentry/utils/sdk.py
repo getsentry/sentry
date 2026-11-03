@@ -44,6 +44,7 @@ from sentry.viewer_context import set_viewer_context_organization
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.projectkey import ProjectKey
     from sentry.organizations.services.organization import RpcOrganization
 
 
@@ -123,7 +124,7 @@ def _current_stack_filenames() -> Generator[str]:
         f = f.f_back
 
 
-def is_current_event_safe():
+def is_current_event_safe() -> bool:
     """
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
@@ -146,7 +147,7 @@ def is_current_event_safe():
     return True
 
 
-def set_current_event_project(project_id):
+def set_current_event_project(project_id: int) -> None:
     """
     Set the current project on the SDK isolation scope for outgoing crash reports.
 
@@ -163,7 +164,7 @@ def set_current_event_project(project_id):
     scope.set_attribute("project", project_id)
 
 
-def get_project_key():
+def get_project_key() -> ProjectKey | None:
     from sentry.models.projectkey import ProjectKey
 
     if not settings.SENTRY_PROJECT:
@@ -199,7 +200,7 @@ def get_project_key():
     return key
 
 
-def traces_sampler(sampling_context):
+def traces_sampler(sampling_context: dict[str, Any]) -> float:
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path:
         if wsgi_path in SAMPLED_ROUTES:
@@ -226,7 +227,7 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def profiles_sampler(sampling_context):
+def profiles_sampler(sampling_context: dict[str, Any]) -> float:
     PROFILES_SAMPLING_RATE = {
         "consumer.join": options.get("consumer.join.profiling.rate"),
         "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
@@ -374,7 +375,7 @@ def _set_resource_attributes() -> None:
         global_scope.set_attribute(key, value)
 
 
-def configure_sdk():
+def configure_sdk() -> None:
     """
     Setup and initialize the Sentry SDK.
     """
@@ -558,8 +559,11 @@ def check_current_scope_transaction(
 
 
 def capture_exception_with_scope_check(
-    error, scope: Scope | None = None, request: Request | None = None, **scope_args
-):
+    error: BaseException,
+    scope: Scope | None = None,
+    request: Request | None = None,
+    **scope_args: Any,
+) -> str | None:
     """
     A wrapper around `sentry_sdk.capture_exception` which checks scope `transaction` against the
     given Request object, to help debug scope bleed problems.
@@ -664,7 +668,7 @@ def bind_ambiguous_org_context(
     scope.set_attribute("organization.source", source or "unknown")
 
 
-def get_trace_id():
+def get_trace_id() -> str | None:
     span = traces.get_current_span()
     if isinstance(span, traces.StreamedSpan):
         return span.trace_id
@@ -751,7 +755,7 @@ class SentrySDKLogger:
 
     DEFAULT_MAX_DEPTH = 6
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.trace = functools.partial(self._log_to_sentry, "trace")
         self.debug = functools.partial(self._log_to_sentry, "debug")
         self.info = functools.partial(self._log_to_sentry, "info")

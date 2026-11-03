@@ -77,7 +77,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-attachments",
         url_names=["sentry-api-0-group-attachments"],
     )
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List Event Attachments
         ``````````````````````

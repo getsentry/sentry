@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from functools import reduce
 from operator import or_
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
@@ -17,11 +18,11 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+from sentry.auth.principal import acting_user_id, owned_by_acting_user, require_user
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
-from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
@@ -36,20 +37,30 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    def _get_serializer(self, request: Request):
+    def _get_serializer(self, request: Request) -> type[BroadcastSerializer]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_objects(self, items, request):
+    def _serialize_objects(self, items: Any, request: Request) -> Any:
         serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
-    def _secondary_filtering(self, request: Request, organization_slug, queryset):
+    def _secondary_filtering(
+        self,
+        request: Request,
+        organization_slug: RpcOrganization | str | None,
+        queryset: Any,
+    ) -> list[Broadcast]:
         # used in the SAAS product
         return list(queryset)
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         organization_id_or_slug: int | str | None = None
         if args and args[0] is not None:
             organization_id_or_slug = args[0]
@@ -66,7 +77,10 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return (args, kwargs)
 
     def get(
-        self, request: Request, organization: RpcOrganization | None = None, **kwargs
+        self,
+        request: Request,
+        organization: RpcOrganization | None = None,
+        **kwargs: Any,
     ) -> Response:
         limit = None
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
@@ -161,17 +175,18 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 unseen_queryset = queryset
             else:
                 unseen_queryset = queryset.exclude(
-                    id__in=queryset.filter(broadcastseen__user_id=request.user.id).values("id")
+                    id__in=queryset.filter(
+                        owned_by_acting_user(request.user, "broadcastseen__user_id")
+                    ).values("id")
                 )
 
             broadcast_ids = list(unseen_queryset.values_list("id", flat=True))
             if broadcast_ids:
+                user_id = require_user(request).id
                 seen_at = timezone.now()
                 db = router.db_for_write(BroadcastSeen)
                 seen_rows = [
-                    BroadcastSeen(
-                        broadcast_id=broadcast_id, user_id=request.user.id, date_seen=seen_at
-                    )
+                    BroadcastSeen(broadcast_id=broadcast_id, user_id=user_id, date_seen=seen_at)
                     for broadcast_id in broadcast_ids
                 ]
                 with transaction.atomic(using=db):
@@ -200,13 +215,13 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 date_expires=result.get("dateExpires"),
                 media_url=result.get("mediaUrl"),
                 category=result.get("category"),
-                created_by_id=User.objects.get(id=request.user.id),
+                created_by_id_id=acting_user_id(request.user),
             )
             logger.info(
                 "broadcasts.create",
                 extra={
                     "ip_address": request.META["REMOTE_ADDR"],
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "broadcast_id": broadcast.id,
                 },
             )
@@ -214,7 +229,9 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         if result.get("hasSeen"):
             try:
                 with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
-                    BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
+                    BroadcastSeen.objects.create(
+                        broadcast=broadcast, user_id=require_user(request).id
+                    )
             except IntegrityError:
                 pass
 

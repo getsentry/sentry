@@ -83,6 +83,7 @@ class GroupSnoozeTest(
             )
 
         group = event.group
+        assert group is not None
         snooze = GroupSnooze.objects.create(group=group, user_count=5, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
@@ -98,6 +99,7 @@ class GroupSnoozeTest(
                 },
                 project_id=self.project.id,
             ).group
+        assert group is not None
 
         snooze = GroupSnooze.objects.create(group=group, user_count=5, user_window=60)
         assert not snooze.is_valid(test_rates=True)
@@ -143,6 +145,7 @@ class GroupSnoozeTest(
                 },
                 project_id=self.project.id,
             ).group
+        assert group is not None
         snooze = GroupSnooze.objects.create(group=group, count=5, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 

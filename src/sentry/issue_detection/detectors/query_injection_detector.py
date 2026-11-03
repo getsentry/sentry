@@ -7,6 +7,7 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
     get_span_description,
+    is_redis_span,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -131,7 +132,7 @@ class QueryInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if not op or not op.startswith("db") or is_redis_span(span):
             return False
 
         description = get_span_description(span)

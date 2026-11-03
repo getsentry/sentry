@@ -250,7 +250,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
-    def set_primary_key_maps(self, left_pk_map: PrimaryKeyMap, right_pk_map: PrimaryKeyMap):
+    def set_primary_key_maps(self, left_pk_map: PrimaryKeyMap, right_pk_map: PrimaryKeyMap) -> None:
         """Call this function before running the comparator, to ensure that it has access to the latest mapping information for both sides of the comparison."""
 
         self.left_pk_map = left_pk_map
@@ -393,7 +393,7 @@ class UserPasswordObfuscatingComparator(ObfuscatingComparator):
     - If the right side is `is_unclaimed = False`, make sure that the password stays the same.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("password")
 
     def compare(self, on: InstanceID, left: Any, right: Any) -> list[ComparatorFinding]:
@@ -503,7 +503,7 @@ class IgnoredComparator(JSONScrubbingComparator):
 class RegexComparator(JSONScrubbingComparator, ABC):
     """Comparator that ensures that both sides match a certain regex."""
 
-    def __init__(self, regex: re.Pattern, *fields: str):
+    def __init__(self, regex: re.Pattern[str], *fields: str) -> None:
         self.regex = regex
         super().__init__(*fields)
 
@@ -743,7 +743,7 @@ class DataSourceComparator(IgnoredComparator):
     need to verify that both sides have a valid source_id value, without comparing the actual values.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("source_id")
 
 

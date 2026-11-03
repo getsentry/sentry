@@ -20,7 +20,10 @@ import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  useMetricsQueryParamsHasTransformations,
+  useMultiMetricsQueryParams,
+} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   isVisualize,
@@ -51,6 +54,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
   const {data: savedQuery} = useGetSavedQuery(id ?? undefined);
 
   const metricQueries = useMultiMetricsQueryParams();
+  const hasTransformations = useMetricsQueryParamsHasTransformations();
   const {addToDashboard} = useAddMetricToDashboard();
 
   const project =
@@ -158,8 +162,17 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
-  }, [metricQueries, organization, project, pageFilters, options.interval]);
+    return [
+      getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations}),
+    ];
+  }, [
+    metricQueries,
+    organization,
+    project,
+    pageFilters,
+    options.interval,
+    hasTransformations,
+  ]);
 
   const addToDashboardItems = useMemo(() => {
     return [

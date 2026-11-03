@@ -8,6 +8,7 @@ It reuses the core coding agent infrastructure from sentry.seer.autofix.coding_a
 from __future__ import annotations
 
 import logging
+from typing import NotRequired, TypedDict
 
 import sentry_sdk
 from requests import HTTPError
@@ -33,6 +34,24 @@ from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
+
+
+class CodingAgentHandoffFailure(TypedDict):
+    repo_name: str
+    error_message: str
+    failure_type: str
+    github_installation_id: NotRequired[str]
+    github_installation_url: NotRequired[str]
+
+
+class CodingAgentHandoffSuccess(TypedDict):
+    repo_name: str
+    coding_agent_state: dict[str, object]
+
+
+class CodingAgentHandoffResult(TypedDict):
+    successes: list[CodingAgentHandoffSuccess]
+    failures: list[CodingAgentHandoffFailure]
 
 
 def _github_installation_for_repo(
@@ -103,7 +122,7 @@ def launch_coding_agents(
     user_id: int | None = None,
     issue_short_id: str | None = None,
     issue_url: str | None = None,
-) -> dict[str, list]:
+) -> CodingAgentHandoffResult:
     """
     Launch coding agents for an agent run.
 
@@ -131,8 +150,8 @@ def launch_coding_agents(
     client, installation = _resolve_client(organization, integration_id, provider, user_id)
     is_github_copilot = provider == "github_copilot"
 
-    successes = []
-    failures = []
+    successes: list[CodingAgentHandoffSuccess] = []
+    failures: list[CodingAgentHandoffFailure] = []
     states_to_store: list[CodingAgentState] = []
 
     for repo in repos:
@@ -196,7 +215,7 @@ def launch_coding_agents(
                     failure_type = "cursor_github_access"
                     error_message = "Cursor does not have GitHub access to this repository. Please install the Cursor GitHub App to grant access."
 
-            failure: dict = {
+            failure: CodingAgentHandoffFailure = {
                 "repo_name": repo_name,
                 "error_message": error_message,
                 "failure_type": failure_type,

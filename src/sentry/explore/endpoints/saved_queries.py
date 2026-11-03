@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from django.db.models import (
@@ -274,10 +274,11 @@ def build_combined_queryset(
         if name not in columns:
             columns.append(name)
 
-    return (
+    return cast(
+        "QuerySet[DiscoverSavedQuery, dict[str, Any]]",
         discover_queryset.values(*columns)
         .union(explore_queryset.values(*columns), all=True)
-        .order_by(*order_by)
+        .order_by(*order_by),
     )
 
 
@@ -345,7 +346,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -446,7 +447,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
             user_id=request.user.id,
         )
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[object]:
             return list(combined[offset : offset + limit])
 
         return self.paginate(

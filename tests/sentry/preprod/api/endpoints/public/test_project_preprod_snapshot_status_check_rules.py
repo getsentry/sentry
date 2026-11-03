@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -11,6 +13,7 @@ from sentry.preprod.vcs.status_checks.snapshots.config import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -22,20 +25,27 @@ class ProjectPreprodSnapshotStatusCheckRulesEndpointTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
 
-    def _get_url(self, organization_slug=None, project_slug=None):
+    def _get_url(
+        self, organization_slug: str | None = None, project_slug: str | None = None
+    ) -> str:
         return reverse(
             self.endpoint,
             args=[organization_slug or self.organization.slug, project_slug or self.project.slug],
         )
 
-    def _get_with_user_token(self, scope_list=None, user=None, url=None):
+    def _get_with_user_token(
+        self,
+        scope_list: list[str] | None = None,
+        user: User | None = None,
+        url: str | None = None,
+    ) -> Any:
         token = self.create_user_auth_token(
             user or self.user,
             scope_list=scope_list or ["project:read"],
         )
         return self.client.get(url or self._get_url(), HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def _get_with_org_token(self, scope_list=None):
+    def _get_with_org_token(self, scope_list: list[str] | None = None) -> Any:
         token_str = generate_token(self.organization.slug, "")
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrgAuthToken.objects.create(

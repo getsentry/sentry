@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import (
     HeaderBlock,
     MarkdownTextObject,
@@ -13,6 +12,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.provider import (
@@ -40,6 +40,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
@@ -121,7 +122,12 @@ class SlackNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
-        assert SlackNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            SlackNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
 
     def test_staging_resolves_slack_renderers(self) -> None:
         data = MetricAlertNotificationData(
@@ -438,7 +444,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             headers={},
             status_code=400,
         )
-        mock_client_instance.chat_postMessage.side_effect = SlackApiError(
+        mock_client_instance.chat_postMessage.side_effect = TypedSlackApiError(
             message="channel_not_found", response=error_response
         )
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Final
 
@@ -162,7 +162,7 @@ def is_subscribed(stored_events: Collection[str], event: str) -> bool:
 
 
 def find_alert_rule_action_ui_component(
-    app_platform_event: AppPlatformEvent[dict[str, Any]],
+    app_platform_event: AppPlatformEvent[Mapping[str, Any]],
 ) -> bool:
     """
     Returns True if the metric alert event contains a sentry app action with UI component settings.

@@ -22,6 +22,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
 
@@ -57,17 +58,19 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
+        **kwargs: object,
     ) -> Response:
         return Response(serialize(instance, request.user, token=None))
 
     def put(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response:
         name = request.data.get("name")
 
         if not name:
@@ -87,8 +90,8 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         request: Request,
         organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response:
         instance.update(date_deactivated=timezone.now())
 
         self.create_audit_entry(
@@ -101,7 +104,7 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         analytics.record(
             OrgAuthTokenDeleted(
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 organization_id=organization.id,
             )
         )

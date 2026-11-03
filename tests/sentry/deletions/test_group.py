@@ -53,6 +53,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=self._generate_data(fingerprint="group1"),
             project_id=self.project.id,
         )
+        assert event.group is not None
         UserReport.objects.create(
             group_id=event.group.id, project_id=event.project_id, name="With group id"
         )
@@ -137,7 +138,8 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             )
 
         assert not Group.objects.filter(id=event.group.id).exists()
-        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert other_event.group is not None
+        assert not Group.objects.filter(id=other_event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(other_event))
 
@@ -150,7 +152,9 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         other_group = other_event.group
+        assert other_group is not None
         group = self.event.group
+        assert group is not None
         history_one = self.create_group_history(group=group, status=GroupHistoryStatus.ONGOING)
         history_two = self.create_group_history(
             group=group,
@@ -182,6 +186,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         os.environ["_SENTRY_CLEANUP"] = "1"
         try:
             group = self.event.group
+            assert group is not None
 
             with self.tasks():
                 delete_groups_for_project(
@@ -215,27 +220,28 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data=self._generate_data(fingerprint="group3"),
             project_id=self.project.id,
         )
+        assert other_event.group is not None
 
         hashes = [
             grouphash.hash
             for grouphash in GroupHash.objects.filter(
-                project_id=self.project.id, group_id__in=[event.group.id, other_event.group_id]
+                project_id=self.project.id, group_id__in=[event.group.id, other_event.group.id]
             )
         ]
 
         with self.tasks():
             delete_groups_for_project(
-                object_ids=[event.group.id, other_event.group_id],
+                object_ids=[event.group.id, other_event.group.id],
                 transaction_id=uuid4().hex,
                 project_id=self.project.id,
             )
 
         assert not Group.objects.filter(id=event.group.id).exists()
-        assert not Group.objects.filter(id=other_event.group_id).exists()
+        assert not Group.objects.filter(id=other_event.group.id).exists()
         assert not nodestore.backend.get(self._get_node_id(event))
         assert not nodestore.backend.get(self._get_node_id(other_event))
 
-        assert Group.objects.filter(id=keep_event.group_id).exists()
+        assert Group.objects.filter(id=keep_event.group.id).exists()
         assert nodestore.backend.get(self._get_node_id(keep_event))
 
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
@@ -260,11 +266,14 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["invalid-group"]},
             project_id=self.project.id,
         ).group
+        assert error_group is not None
+        assert invalid_group is not None
         keep_event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["keep-group"]},
             project_id=self.project.id,
         )
         keep_group = keep_event.group
+        assert keep_group is not None
 
         Group.objects.filter(id=invalid_group.id).update(type=10000000)
 
@@ -306,6 +315,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert event_a.group_id is not None
         grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
         assert grouphash_a.metadata is not None
         assert grouphash_a.metadata.seer_matched_grouphash is None
@@ -360,6 +370,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         num_additional_grouphashes = 5
         # Create events with group hashes
         event_a = self.store_event(data={"fingerprint": ["a"]}, project_id=self.project.id)
+        assert event_a.group_id is not None
         grouphash_a = GroupHash.objects.get(group_id=event_a.group_id)
 
         # Create multiple events with different group hashes that reference grouphash_a
@@ -424,6 +435,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert GroupHash.objects.filter(project=self.project).count() == 2
 
+        assert event_1.group is not None
         delete_project_group_hashes(
             project_id=self.project.id,
             group_ids_filter=[event_1.group.id],
@@ -513,7 +525,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         return results[0] if results else None
 
     @property
-    def tenant_ids(self) -> dict[str, str]:
+    def tenant_ids(self) -> dict[str, str | int]:
         return {"referrer": self.referrer, "organization_id": self.organization.id}
 
     @mock.patch("sentry.deletions.tasks.nodestore.bulk_snuba_queries")
@@ -532,6 +544,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         # Assertions after creation
         assert occurrence_event.id != event.event_id
         assert event.group_id != issue_platform_group.id
+        assert event.group is not None
         assert event.group.issue_category == GroupCategory.ERROR
         assert issue_platform_group.issue_category == GroupCategory.FEEDBACK
         assert issue_platform_group.type == FeedbackGroup.type_id
@@ -559,7 +572,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             )
 
         # The original error event and group still exist
-        assert Group.objects.filter(id=event.group_id).exists()
+        assert Group.objects.filter(id=event.group.id).exists()
         assert nodestore.backend.get(event_node_id)
         assert self.select_error_events(self.project.id) == expected_error
 

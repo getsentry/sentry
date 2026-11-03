@@ -34,6 +34,7 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.INTEGRATION_PLATFORM
 
     @extend_schema(

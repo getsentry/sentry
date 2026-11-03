@@ -135,7 +135,7 @@ class DiscordRequest:
             return None
         return f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
 
-    def _get_context(self):
+    def _get_context(self) -> None:
         context = integration_service.get_integration_identity_context(
             integration_provider=IntegrationProviderSlug.DISCORD.value,
             integration_external_id=self.guild_id,
@@ -239,7 +239,7 @@ class DiscordRequest:
     def _log_request(self) -> None:
         self._info("discord.request")
 
-    def _info(self, key: str, extra=None) -> None:
+    def _info(self, key: str, extra: dict[str, object] | None = None) -> None:
         if not extra:
             extra = {**self.logging_data}
         logger.info(key, extra=extra)

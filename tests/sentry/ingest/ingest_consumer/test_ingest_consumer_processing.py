@@ -4,9 +4,11 @@ import datetime
 import time
 import uuid
 import zipfile
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager
 from io import BytesIO
-from typing import Any
-from unittest.mock import patch
+from typing import Any, ContextManager
+from unittest.mock import MagicMock, patch
 
 import msgpack
 import orjson
@@ -16,7 +18,9 @@ from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
+from django.core.cache.backends.base import BaseCache
 from django.utils import timezone
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.attachments import (
     CachedAttachment,
@@ -42,6 +46,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import V2_PREFIX, EventAttachment, PendingEventAttachment
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
@@ -50,7 +55,7 @@ from sentry.services.eventstore.processing import (
     transaction_processing_store,
 )
 from sentry.tasks.store import save_event_attachments
-from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
@@ -74,29 +79,29 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
-def get_normalized_event(data, project):
+def get_normalized_event(data: dict[str, Any], project: Project) -> dict[str, Any]:
     mgr = EventManager(data, project=project)
     mgr.normalize()
     return dict(mgr.get_data())
 
 
 @pytest.fixture
-def save_event_transaction():
+def save_event_transaction() -> Generator[MagicMock]:
     with patch("sentry.ingest.consumer.processors.save_event_transaction") as mck:
         yield mck
 
 
 @pytest.fixture
-def save_event_feedback():
+def save_event_feedback() -> Generator[MagicMock]:
     with patch("sentry.ingest.consumer.processors.save_event_feedback") as mck:
         yield mck
 
 
 @pytest.fixture
-def preprocess_event():
+def preprocess_event() -> Generator[list[dict[str, object]]]:
     calls = []
 
-    def inner(**kwargs):
+    def inner(**kwargs: object) -> None:
         calls.append(kwargs)
 
     with patch("sentry.ingest.consumer.processors.preprocess_event", inner):
@@ -108,12 +113,12 @@ def preprocess_event():
     "rate,disable_store,expected_writes", [(0.0, True, 1), (1.0, False, 1), (1.0, True, 0)]
 )
 def test_ingest_conditions_working_payload_write(
-    default_project,
-    preprocess_event,
-    rate,
-    disable_store,
-    expected_writes,
-):
+    default_project: Project,
+    preprocess_event: list[dict[str, object]],
+    rate: float,
+    disable_store: bool,
+    expected_writes: int,
+) -> None:
     data = get_normalized_event({"message": "inline event"}, default_project)
     data["type"] = "error"
     with (
@@ -142,7 +147,9 @@ def test_ingest_conditions_working_payload_write(
 
 
 @django_db_all
-def test_ingest_inline_only_event_saves_without_working_payload(default_project, task_runner):
+def test_ingest_inline_only_event_saves_without_working_payload(
+    default_project: Project, task_runner: Callable[[], ContextManager[None]]
+) -> None:
     payload = get_normalized_event({"message": "inline event"}, default_project)
     event_id = payload["event_id"]
     with (
@@ -173,7 +180,11 @@ def test_ingest_inline_only_event_saves_without_working_payload(default_project,
 
 
 @django_db_all
-def test_deduplication_works(default_project, task_runner, preprocess_event) -> None:
+def test_deduplication_works(
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    preprocess_event: list[dict[str, object]],
+) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     project_id = default_project.id
@@ -204,7 +215,9 @@ def test_deduplication_works(default_project, task_runner, preprocess_event) -> 
 
 
 @django_db_all
-def test_process_event_from_kafka(default_project, preprocess_event) -> None:
+def test_process_event_from_kafka(
+    default_project: Project, preprocess_event: list[dict[str, object]]
+) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     project_id = default_project.id
@@ -236,7 +249,7 @@ def test_process_event_from_kafka(default_project, preprocess_event) -> None:
 
 @django_db_all
 def test_process_event_from_kafka_inlines_preprocess_save_event_with_option(
-    default_project, preprocess_event
+    default_project: Project, preprocess_event: list[dict[str, object]]
 ) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
@@ -271,9 +284,9 @@ def test_process_event_from_kafka_inlines_preprocess_save_event_with_option(
 
 @django_db_all
 def test_process_event_from_kafka_transaction_spawns_save_event_transaction_by_default(
-    default_project,
-    preprocess_event,
-    save_event_transaction,
+    default_project: Project,
+    preprocess_event: list[dict[str, object]],
+    save_event_transaction: MagicMock,
 ) -> None:
     project_id = default_project.id
     now = datetime.datetime.now()
@@ -323,9 +336,9 @@ def test_process_event_from_kafka_transaction_spawns_save_event_transaction_by_d
 
 @django_db_all
 def test_process_event_from_kafka_transaction_saves_inline_with_option(
-    default_project,
-    preprocess_event,
-    save_event_transaction,
+    default_project: Project,
+    preprocess_event: list[dict[str, object]],
+    save_event_transaction: MagicMock,
 ) -> None:
     project_id = default_project.id
     now = datetime.datetime.now()
@@ -378,12 +391,12 @@ def test_process_event_from_kafka_transaction_saves_inline_with_option(
 @pytest.mark.parametrize("disable_store,expected_writes", [(False, 1), (True, 0)])
 @pytest.mark.parametrize("save_synchronously", (False, True))
 def test_inline_transaction(
-    default_project,
-    save_event_transaction,
-    disable_store,
-    expected_writes,
-    save_synchronously,
-):
+    default_project: Project,
+    save_event_transaction: MagicMock,
+    disable_store: bool,
+    expected_writes: int,
+    save_synchronously: bool,
+) -> None:
     data = get_normalized_event(
         {
             "type": "transaction",
@@ -426,11 +439,11 @@ def test_inline_transaction(
 
 @django_db_all
 def test_transactions_spawn_save_event_transaction(
-    default_project,
-    task_runner,
-    preprocess_event,
-    save_event_transaction,
-):
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    preprocess_event: list[dict[str, object]],
+    save_event_transaction: MagicMock,
+) -> None:
     project_id = default_project.id
     now = datetime.datetime.now()
     event = {
@@ -475,7 +488,7 @@ def test_transactions_spawn_save_event_transaction(
 
 
 @django_db_all
-def test_accountant_transaction(default_project) -> None:
+def test_accountant_transaction(default_project: Project) -> None:
     storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
     broker = LocalBroker(storage)
     topic = Topic("shared-resources-usage")
@@ -521,9 +534,9 @@ def test_accountant_transaction(default_project) -> None:
 
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
-    payload = msg1.payload
-    assert payload is not None
-    formatted = loads(payload.value.decode("utf-8"))
+    consumed_payload = msg1.payload
+    assert consumed_payload is not None
+    formatted = loads(consumed_payload.value.decode("utf-8"))
     assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
     assert formatted["app_feature"] == "transactions"
     assert formatted["usage_unit"] == "bytes"
@@ -532,8 +545,11 @@ def test_accountant_transaction(default_project) -> None:
 
 @django_db_all
 def test_feedbacks_spawn_save_event_feedback(
-    default_project, task_runner, preprocess_event, save_event_feedback
-):
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    preprocess_event: list[dict[str, object]],
+    save_event_feedback: MagicMock,
+) -> None:
     with patch("sentry.features.has", return_value=True):
         project_id = default_project.id
         now = datetime.datetime.now()
@@ -584,7 +600,12 @@ def test_feedbacks_spawn_save_event_feedback(
 
 @django_db_all
 @pytest.mark.parametrize("missing_chunks", (True, False))
-def test_with_attachments(default_project, task_runner, missing_chunks, django_cache) -> None:
+def test_with_attachments(
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    missing_chunks: bool,
+    django_cache: BaseCache,
+) -> None:
     retention_days = 66
 
     with patch("sentry.features.has", return_value=True):
@@ -658,7 +679,10 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @django_db_all
 @pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
 def test_save_cached_attachments_with_optional_event_cache_key(
-    default_project, task_runner, django_cache, cache_key
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    django_cache: BaseCache,
+    cache_key: str | None,
 ) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
@@ -715,7 +739,12 @@ class TestDeobfuscateViewHierarchy:
     @django_db_all
     @requires_symbolicator
     @thread_leak_allowlist(reason="django dev server", issue=97036)
-    def test_deobfuscate_view_hierarchy(self, default_project, task_runner, live_server) -> None:
+    def test_deobfuscate_view_hierarchy(
+        self,
+        default_project: Project,
+        task_runner: Callable[[], ContextManager[None]],
+        live_server: LiveServer,
+    ) -> None:
         with override_options({"system.url-prefix": live_server.url}):
             do_process_view_hierarchy(default_project, task_runner)
 
@@ -724,7 +753,10 @@ class TestDeobfuscateViewHierarchy:
     @requires_symbolicator
     @thread_leak_allowlist(reason="django dev server", issue=97036)
     def test_deobfuscate_view_hierarchy_with_objectstore_attachment(
-        self, default_project, task_runner, live_server
+        self,
+        default_project: Project,
+        task_runner: Callable[[], ContextManager[None]],
+        live_server: LiveServer,
     ) -> None:
         with override_options({"system.url-prefix": live_server.url}):
             # this stores the attachment during processing in objectstore:
@@ -739,7 +771,10 @@ class TestSymbolicateFlamegraph:
     @requires_symbolicator
     @thread_leak_allowlist(reason="django dev server", issue=97036)
     def test_symbolicate_flamegraph_attachment(
-        self, default_project, task_runner, live_server
+        self,
+        default_project: Project,
+        task_runner: Callable[[], ContextManager[None]],
+        live_server: LiveServer,
     ) -> None:
         do_process_flamegraph(default_project, task_runner, live_server)
 
@@ -748,12 +783,20 @@ class TestSymbolicateFlamegraph:
     @requires_symbolicator
     @thread_leak_allowlist(reason="django dev server", issue=97036)
     def test_symbolicate_stored_flamegraph_attachment(
-        self, default_project, task_runner, live_server
+        self,
+        default_project: Project,
+        task_runner: Callable[[], ContextManager[None]],
+        live_server: LiveServer,
     ) -> None:
         do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=True)
 
 
-def do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=False):
+def do_process_flamegraph(
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    live_server: LiveServer,
+    use_objectstore: bool = False,
+) -> None:
     default_project.update_option("sentry:builtin_symbol_sources", [])
     event = get_normalized_event(
         {"platform": "other", "message": "Flamegraph symbolication"}, default_project
@@ -841,7 +884,9 @@ def do_process_flamegraph(default_project, task_runner, live_server, use_objects
         assert orjson.loads(stored.payload.read()) == processed
 
 
-def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
+def do_process_view_hierarchy(
+    project: Project, task_runner: Callable[[], ContextManager[None]], use_objectstore: bool = False
+) -> None:
     payload = get_normalized_event(
         {
             "message": "hello world",
@@ -933,7 +978,10 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
 @requires_symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_process_stored_attachment(
-    default_project, task_runner, set_sentry_option, live_server
+    default_project: Project,
+    task_runner: Callable[[], ContextManager[None]],
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    live_server: LiveServer,
 ) -> None:
     with set_sentry_option("system.url-prefix", live_server.url):
         payload = get_normalized_event(
@@ -1019,8 +1067,13 @@ def test_process_stored_attachment(
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
-    default_project, factories, feature_enabled, attachment, with_group, django_cache
-):
+    default_project: Project,
+    factories: Factories,
+    feature_enabled: bool,
+    attachment: tuple[bytes | list[bytes], str, str],
+    with_group: bool,
+    django_cache: BaseCache,
+) -> None:
     retention_days = 66
 
     with patch("sentry.features.has", return_value=feature_enabled):
@@ -1034,6 +1087,7 @@ def test_individual_attachments(
                 data={"event_id": event_id, "message": "existence is pain"}, project_id=project_id
             )
 
+            assert event.group is not None
             group_id = event.group.id
             assert group_id, "this test requires a group to work"
 
@@ -1081,21 +1135,24 @@ def test_individual_attachments(
     if not feature_enabled:
         assert not attachments
     else:
-        (attachment,) = attachments
-        assert attachment.name == "foo.txt"
+        (stored_attachment,) = attachments
+        assert stored_attachment.name == "foo.txt"
         if with_group:
-            assert attachment.group_id == group_id
-        assert attachment.content_type == content_type
+            assert isinstance(stored_attachment, EventAttachment)
+            assert stored_attachment.group_id == group_id
+        assert stored_attachment.content_type == content_type
 
-        with attachment.getfile() as file_contents:
+        with stored_attachment.getfile() as file_contents:
             assert file_contents.read() == expected_content
 
-        delta = attachment.final_expiry_date() - (now + datetime.timedelta(days=retention_days))
+        delta = stored_attachment.final_expiry_date() - (
+            now + datetime.timedelta(days=retention_days)
+        )
         assert abs(delta.total_seconds()) < 3600
 
 
 @django_db_all
-def test_userreport(django_cache, default_project) -> None:
+def test_userreport(django_cache: BaseCache, default_project: Project) -> None:
     """
     Test that user_report-type kafka messages end up in a user report being
     persisted. We additionally test some logic around upserting data in
@@ -1133,7 +1190,9 @@ def test_userreport(django_cache, default_project) -> None:
 
 
 @django_db_all
-def test_individual_attachment_before_event(django_cache, default_project, factories) -> None:
+def test_individual_attachment_before_event(
+    django_cache: BaseCache, default_project: Project, factories: Factories
+) -> None:
     """
     An attachment that is ingested before its event is parked in
     `PendingEventAttachment` and promoted once the event arrives.
@@ -1221,7 +1280,9 @@ def test_individual_attachment_before_event(django_cache, default_project, facto
 
 
 @django_db_all
-def test_individual_attachment_before_transaction(django_cache, default_project) -> None:
+def test_individual_attachment_before_transaction(
+    django_cache: BaseCache, default_project: Project
+) -> None:
     """
     An attachment can also be parked ahead of a *transaction*.
 
@@ -1321,7 +1382,7 @@ def test_individual_attachment_before_transaction(django_cache, default_project)
 
 
 @django_db_all
-def test_userreport_reverse_order(django_cache, default_project) -> None:
+def test_userreport_reverse_order(django_cache: BaseCache, default_project: Project) -> None:
     """
     Test that ingesting a userreport before the event works. This is relevant
     for unreal crashes where the userreport is processed immediately in the
@@ -1364,7 +1425,9 @@ def test_userreport_reverse_order(django_cache, default_project) -> None:
 
 
 @django_db_all
-def test_individual_attachments_missing_chunks(default_project, factories) -> None:
+def test_individual_attachments_missing_chunks(
+    default_project: Project, factories: Factories
+) -> None:
     with patch("sentry.features.has", return_value=True):
         event_id = "515539018c9b4260a6f999572f1661ee"
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
@@ -1392,7 +1455,7 @@ def test_individual_attachments_missing_chunks(default_project, factories) -> No
 
 
 @django_db_all
-def test_collect_span_metrics(default_project) -> None:
+def test_collect_span_metrics(default_project: Project) -> None:
     with Feature({"organizations:dynamic-sampling": True, "organization:am3-tier": True}):
         with patch("sentry.ingest.consumer.processors.metrics") as mock_metrics:
             assert mock_metrics.incr.call_count == 0

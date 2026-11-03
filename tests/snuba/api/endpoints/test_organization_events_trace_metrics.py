@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.test import override_settings
@@ -110,7 +111,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_sum(self):
+    def test_sum(self) -> None:
         self.store_eap_items(
             [self.create_trace_metric("test_metric", i + 1, "counter") for i in range(6)]
         )
@@ -133,7 +134,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert meta["fields"]["sum(value)"] == "number"
         assert meta["dataset"] == "tracemetrics"
 
-    def test_sum_with_counter_metric_type(self):
+    def test_sum_with_counter_metric_type(self) -> None:
         counter_metrics = [
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
@@ -158,7 +159,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert meta["fields"]["sum(value,request_count,counter,-)"] == "number"
         assert meta["dataset"] == "tracemetrics"
 
-    def test_sum_with_distribution_metric_type(self):
+    def test_sum_with_distribution_metric_type(self) -> None:
         gauge_metrics = [
             self.create_trace_metric("request_duration", 75.0, "distribution"),
             self.create_trace_metric("request_duration", 80.0, "distribution"),
@@ -309,7 +310,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             "per_second(value, cpu_usage, gauge, -)": pytest.approx(2 / 600, abs=0.001)
         }
 
-    def test_list_metrics(self):
+    def test_list_metrics(self) -> None:
         trace_metrics = [
             *[self.create_trace_metric("foo", 1, "counter") for _ in range(1)],
             *[self.create_trace_metric("bar", 1, "gauge") for _ in range(2)],
@@ -365,7 +366,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_aggregation_embedded_metric_name(self):
+    def test_aggregation_embedded_metric_name(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("foo", 1, "counter"),
@@ -384,7 +385,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {"count(value,foo,counter,-)": 2},
         ]
 
-    def test_aggregation_embedded_metric_name_formula(self):
+    def test_aggregation_embedded_metric_name_formula(self) -> None:
         trace_metrics = [
             *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
             self.create_trace_metric("bar", 594, "counter"),
@@ -404,7 +405,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             {"per_second(value,foo,counter,-)": 0.01},
         ]
 
-    def test_aggregation_multiple_embedded_same_metric_name(self):
+    def test_aggregation_multiple_embedded_same_metric_name(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "distribution"),
             self.create_trace_metric("foo", 2, "distribution"),
@@ -429,7 +430,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_aggregation_multiple_embedded_different_metric_name(self):
+    def test_aggregation_multiple_embedded_different_metric_name(self) -> None:
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("foo", 2, "counter"),
@@ -465,7 +466,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             },
         ]
 
-    def test_mixing_all_metrics_and_one_metric(self):
+    def test_mixing_all_metrics_and_one_metric(self) -> None:
         response = self.do_request(
             {
                 "field": [
@@ -485,7 +486,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         }
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
-    def test_no_project_sent_trace_metrics(self):
+    def test_no_project_sent_trace_metrics(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -508,7 +509,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
     @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
-    def test_sent_trace_metrics_project_optimization(self, mock_table_rpc):
+    def test_sent_trace_metrics_project_optimization(self, mock_table_rpc: MagicMock) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
 
@@ -544,7 +545,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
 
-    def test_aggregate_with_unit_returns_unit_in_meta(self):
+    def test_aggregate_with_unit_returns_unit_in_meta(self) -> None:
         """Test that when a unit is specified in the aggregate, it appears in meta["units"]."""
         trace_metrics = [
             self.create_trace_metric(
@@ -580,7 +581,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             meta["units"]["avg(value,request_duration,distribution,millisecond)"] == "millisecond"
         )
 
-    def test_count_aggregates_return_number_in_meta(self):
+    def test_count_aggregates_return_number_in_meta(self) -> None:
         trace_metrics = [
             self.create_trace_metric(
                 "request_duration", 100.0, "distribution", metric_unit="millisecond"
@@ -623,7 +624,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             meta["units"]["count_unique(value,request_duration,distribution,millisecond)"] is None
         )
 
-    def test_aggregate_without_unit_returns_null_unit_in_meta(self):
+    def test_aggregate_without_unit_returns_null_unit_in_meta(self) -> None:
         """Test that when no unit is specified (using '-'), meta["units"] is null for that field."""
         trace_metrics = [
             self.create_trace_metric("request_count", 5.0, "counter"),
@@ -649,7 +650,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert "units" in meta, "meta should contain 'units' key"
         assert meta["units"]["sum(value,request_count,counter,-)"] is None
 
-    def test_aggregate_with_unit_filters_for_correct_items(self):
+    def test_aggregate_with_unit_filters_for_correct_items(self) -> None:
         trace_metrics = [
             self.create_trace_metric(
                 "request_duration", 100.0, "distribution", metric_unit="millisecond"
@@ -677,7 +678,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,millisecond)"] == 2
 
-    def test_aggregate_with_placeholder_unit_selects_all_items(self):
+    def test_aggregate_with_placeholder_unit_selects_all_items(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_duration", 100.0, "distribution"),
             self.create_trace_metric(
@@ -703,7 +704,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,-)"] == 3
 
-    def test_aggregate_with_none_unit_defined_only_selects_items_with_no_unit(self):
+    def test_aggregate_with_none_unit_defined_only_selects_items_with_no_unit(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_duration", 100.0, "distribution"),
             self.create_trace_metric(
@@ -729,7 +730,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,none)"] == 1
 
-    def test_aggregation_with_none_includes_items_with_none_explicitly_set(self):
+    def test_aggregation_with_none_includes_items_with_none_explicitly_set(self) -> None:
         trace_metrics = [
             self.create_trace_metric(
                 "request_duration", 100.0, "distribution", metric_unit="millisecond"
@@ -752,7 +753,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count(value,request_duration,distribution,none)"] == 1
 
-    def test_count_if_with_arbitrary_search_term(self):
+    def test_count_if_with_arbitrary_search_term(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
             self.create_trace_metric(
@@ -779,7 +780,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert len(data) == 1
         assert data[0]["count_if(`release:abcdef`,value,request_duration,distribution,none)"] == 1
 
-    def test_count_if_with_quotes(self):
+    def test_count_if_with_quotes(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
             self.create_trace_metric(
@@ -813,7 +814,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             == 1
         )
 
-    def test_count_if_in_equation(self):
+    def test_count_if_in_equation(self) -> None:
         trace_metrics = [
             self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
             self.create_trace_metric(
@@ -847,7 +848,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             == 2
         )
 
-    def test_p50_if_with_arbitrary_search_term(self):
+    def test_p50_if_with_arbitrary_search_term(self) -> None:
         trace_metrics = [
             self.create_trace_metric(
                 "request_duration", 1000000.0, "distribution", metric_unit="none"
@@ -883,7 +884,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             == 200
         )
 
-    def test_errors_if_query_in_query(self):
+    def test_errors_if_query_in_query(self) -> None:
         trace_metrics = [
             self.create_trace_metric(
                 "request_duration", 1000000.0, "distribution", metric_unit="none"

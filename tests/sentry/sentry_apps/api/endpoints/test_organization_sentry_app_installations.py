@@ -45,6 +45,12 @@ class SentryAppInstallationsTest(APITestCase):
             user=self.user,
             prevent_token_exchange=True,
         )
+        installation_grant = self.installation.api_grant
+        installation2_grant = self.installation2.api_grant
+        assert installation_grant is not None
+        assert installation2_grant is not None
+        self.installation_grant = installation_grant
+        self.installation2_grant = installation2_grant
 
 
 @control_silo_test
@@ -64,7 +70,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 },
                 "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
-                "code": self.installation2.api_grant.code,
+                "code": self.installation2_grant.code,
                 "status": "installed",
             }
         ]
@@ -80,7 +86,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 },
                 "organization": {"slug": self.super_org.slug, "id": self.super_org.id},
                 "uuid": self.installation.uuid,
-                "code": self.installation.api_grant.code,
+                "code": self.installation_grant.code,
                 "status": "installed",
             }
         ]
@@ -146,7 +152,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
                 },
                 "organization": {"slug": self.org.slug, "id": self.org.id},
                 "uuid": self.installation2.uuid,
-                "code": self.installation2.api_grant.code,
+                "code": self.installation2_grant.code,
                 "status": "installed",
             }
         ]

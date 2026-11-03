@@ -62,7 +62,7 @@ def _fetch_run_outputs(
         return {}
 
     answers_by_state_id = get_run_questions(
-        [run.seer_run_state_id for run in qualifying],
+        [run.seer_run_state_id for run in qualifying if run.seer_run_state_id is not None],
         organization,
         questions=questions,
         user_id=user_id,
@@ -75,10 +75,12 @@ def _fetch_run_outputs(
             output["question"] = q["question"]
         return output
 
-    return {
-        run.id: [to_output(q) for q in answers_by_state_id.get(run.seer_run_state_id, [])]
-        for run in qualifying
-    }
+    output: dict[int, list[RunQuestionOutput]] = {}
+    for run in qualifying:
+        state_id = run.seer_run_state_id
+        assert state_id is not None
+        output[run.id] = [to_output(q) for q in answers_by_state_id.get(state_id, [])]
+    return output
 
 
 class OrganizationSeerRunsPermission(OrganizationPermission):
