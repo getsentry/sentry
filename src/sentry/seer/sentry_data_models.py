@@ -142,10 +142,6 @@ class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
 
-class OrganizationAutofixConsentResponse(BaseModel):
-    consent: bool
-
-
 class GitHubEnterpriseConfigSuccessResponse(BaseModel):
     success: Literal[True] = True
     base_url: str
