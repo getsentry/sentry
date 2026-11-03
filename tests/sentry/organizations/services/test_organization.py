@@ -13,11 +13,17 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.models.team import TeamStatus
+from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
+from sentry.organizations.services.organization.serial import (
+    serialize_rpc_organization,
+    serialize_rpc_team,
+)
 from sentry.organizations.services.organization.service import organization_service
+from sentry.projects.services.project.serial import serialize_project
 from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 
 
@@ -26,6 +32,92 @@ def count_organization_reads(queries: CaptureQueriesContext) -> int:
         f'FROM "{Organization._meta.db_table}" ' in query["sql"]
         for query in queries.captured_queries
     )
+
+
+@all_silo_test
+class OrganizationResourceSerializationTest(TestCase):
+    def test_resources_match_model_serializers_without_model_loading(self) -> None:
+        org = self.create_organization()
+        projects = [
+            self.create_project(organization=org, status=status)
+            for status in (
+                ObjectStatus.ACTIVE,
+                ObjectStatus.PENDING_DELETION,
+                ObjectStatus.DELETION_IN_PROGRESS,
+                ObjectStatus.DISABLED,
+            )
+        ]
+        projects.append(
+            self.create_project(
+                organization=org,
+                platform="python",
+                first_event=before_now(days=1),
+                external_id="external-project",
+            )
+        )
+        teams = [
+            self.create_team(organization=org, status=status)
+            for status in (
+                TeamStatus.ACTIVE,
+                TeamStatus.PENDING_DELETION,
+                TeamStatus.DELETION_IN_PROGRESS,
+            )
+        ]
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        self.create_team(organization=other_org)
+
+        with assume_test_silo_mode_of(Project):
+            Project.objects.filter(id=projects[0].id).update(slug="")
+            projects[0].slug = ""
+            expected = serialize_rpc_organization(org, include_projects=False, include_teams=False)
+        expected.projects = [serialize_project(project) for project in projects]
+        expected.teams = [serialize_rpc_team(team) for team in teams]
+
+        connection = connections[router.db_for_read(Project)]
+        with (
+            CaptureQueriesContext(connection) as queries,
+            mock.patch.object(Project, "from_db", side_effect=AssertionError("Project loaded")),
+            mock.patch.object(Team, "from_db", side_effect=AssertionError("Team loaded")),
+        ):
+            context = organization_service.get_organization_by_id(id=org.id)
+
+        assert context is not None
+        context.organization.projects.sort(key=lambda project: project.id)
+        context.organization.teams.sort(key=lambda team: team.id)
+        expected.projects.sort(key=lambda project: project.id)
+        expected.teams.sort(key=lambda team: team.id)
+        assert context.organization.dict() == expected.dict()
+        for model in (Project, Team):
+            assert (
+                sum(
+                    f'FROM "{model._meta.db_table}" ' in query["sql"]
+                    for query in queries.captured_queries
+                )
+                == 1
+            )
+
+    def test_only_requested_collections_are_queried(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        team = self.create_team(organization=org)
+        for include_projects, include_teams, query_count in (
+            (True, True, 2),
+            (True, False, 1),
+            (False, True, 1),
+            (False, False, 0),
+            (None, None, 0),
+        ):
+            with (
+                self.subTest(include_projects=include_projects, include_teams=include_teams),
+                assume_test_silo_mode_of(Project),
+                self.assertNumQueries(query_count, using=router.db_for_read(Project)),
+            ):
+                result = serialize_rpc_organization(
+                    org, include_projects=include_projects, include_teams=include_teams
+                )
+            assert [p.id for p in result.projects] == [project.id] * bool(include_projects)
+            assert [t.id for t in result.teams] == [team.id] * bool(include_teams)
 
 
 @all_silo_test

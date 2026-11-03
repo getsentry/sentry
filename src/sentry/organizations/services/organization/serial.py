@@ -20,7 +20,7 @@ from sentry.organizations.services.organization import (
     RpcTeam,
     RpcTeamMember,
 )
-from sentry.projects.services.project.serial import serialize_project
+from sentry.projects.services.project import RpcProject
 
 
 def escape_flag_name(flag_name: str) -> str:
@@ -143,10 +143,23 @@ def serialize_rpc_organization(
     )
 
     if include_projects:
-        projects = Project.objects.filter(organization=org)
-        rpc_org.projects.extend(serialize_project(project) for project in projects)
+        projects = Project.objects.filter(organization=org).values(
+            "id",
+            "slug",
+            "name",
+            "organization_id",
+            "status",
+            "first_event",
+            "platform",
+            "external_id",
+        )
+        for project in projects:
+            project["slug"] = project["slug"] or ""
+            rpc_org.projects.append(RpcProject(**project))
     if include_teams:
-        teams = Team.objects.filter(organization=org)
-        rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
+        teams = Team.objects.filter(organization=org).values(
+            "id", "slug", "name", "organization_id", "status"
+        )
+        rpc_org.teams.extend(RpcTeam(**team) for team in teams)
 
     return rpc_org
