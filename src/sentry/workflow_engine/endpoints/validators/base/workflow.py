@@ -391,9 +391,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         org = self.context["organization"]
         assert isinstance(org, Organization)
+
+        # hidden workflows do not count towards user limit
         workflow_count = Workflow.objects.filter(
             organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
         ).count()
+
         if features.has("organizations:more-workflows", org):
             max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:
