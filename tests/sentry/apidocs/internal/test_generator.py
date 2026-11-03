@@ -245,6 +245,28 @@ class TestPostprocessing:
 
         assert processed["paths"][notes]["get"][PATH_ALIASES_EXTENSION] == [notes, comments]
 
+    def test_drops_the_parameter_for_a_spelled_out_alternation(self) -> None:
+        # Issue endpoints declare `var`, the published build's `{var}` for `(?:issues|groups)`.
+        path = f"{PREFIX}/issues/{{issue_id}}/"
+        var = {"in": "path", "name": "var", "required": True, "schema": {"type": "string"}}
+        issue_id = {
+            "in": "path",
+            "name": "issue_id",
+            "required": True,
+            "schema": {"type": "string"},
+        }
+        result = {
+            "components": {"schemas": {}},
+            "paths": {path: {"get": {"operationId": "issue", "parameters": [var, issue_id]}}},
+        }
+
+        with _internal_build():
+            _build().public_spellings[path] = f"{PREFIX}/{{var}}/{{issue_id}}/"
+            _build().admitted = {(path, "get"): _Admitted(ApiPublishStatus.PRIVATE, ())}
+            processed = internal_postprocessing_hook(result, None)
+
+        assert processed["paths"][path]["get"]["parameters"] == [issue_id]
+
     def test_published_build_stamps_nothing(self) -> None:
         result = {
             "components": {"schemas": {}},

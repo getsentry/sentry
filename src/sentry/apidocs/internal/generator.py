@@ -49,6 +49,7 @@ _DESCRIPTION = (
 
 # Literal alternations such as `(?:issues|groups)` or `(?:user-feedback|user-reports)`.
 _ALTERNATION = re.compile(r"\(\?:([a-z-]+(?:\|[a-z-]+)+)\)")
+_VARIABLE = re.compile(r"\{([^}]+)\}")
 
 
 @dataclass(frozen=True)
@@ -185,9 +186,13 @@ def _composed_names(permission: Any) -> set[str]:
 def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     """Stamp what preprocessing read and each path's aliases, then postprocess as published."""
     build = _build()
+    paths = result["paths"]
     # Before the published build's postprocessing, which can rewrite path keys.
-    for path, operations in result["paths"].items():
+    for path, operations in paths.items():
         aliases = build.path_aliases.get(path)
+        # Issue endpoints declare a `var` parameter for the published build's `{var}`
+        # spelling of `(?:issues|groups)`, which it drops along with the `{var}`.
+        spelled_out = _variables(build.public_spellings.get(path, path)) - _variables(path)
         for method, operation in operations.items():
             admitted = build.admitted.get((path, method))
             if admitted is not None:
@@ -195,7 +200,17 @@ def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> 
                 operation[PERMISSIONS_EXTENSION] = list(admitted.permissions)
             if aliases is not None:
                 operation[PATH_ALIASES_EXTENSION] = list(aliases)
+            if spelled_out and "parameters" in operation:
+                operation["parameters"] = [
+                    parameter
+                    for parameter in operation["parameters"]
+                    if not (parameter.get("in") == "path" and parameter.get("name") in spelled_out)
+                ]
     return custom_postprocessing_hook(result, generator, in_reference=_in_reference, **kwargs)
+
+
+def _variables(path: str) -> set[str]:
+    return set(_VARIABLE.findall(path))
 
 
 def _in_reference(operation: Mapping[str, Any]) -> bool:
