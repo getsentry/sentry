@@ -60,24 +60,26 @@ Every `FAIL` line from the counter's `diff` mode must appear in the PR body unde
 
 ### Test policy (owner, 2026-11-03)
 
-Full-tree mypy is the proof of a typing change. Add a runtime test only when it checks something mypy cannot. Most pure contract repairs need no new test.
+Full-tree mypy is the proof of a typing change. Tests are proportional to regression risk; they are never an automatic requirement. Most contract repairs, and every removal of unreachable code, ship with no new test (C1/#129702 is the reference).
 
-- **Add a test when:**
-  - the repair relies on a runtime fact the types don't show, such as DRF call order, Django field behavior, or a dependency's actual return value (C1's test checks that blank input still becomes `None` through a real serializer);
-  - the PR changes behavior (the test must fail before the change);
+- **A test must exercise what the PR changes.** A test that would pass both before and after the PR only describes existing behavior, so it does not belong in this PR. That includes tests of code the PR leaves untouched (C1's blank-to-`None` path lives in the unchanged `run_validation`).
+- **Add a test only when:**
+  - the PR changes runtime behavior, so the test must fail before the change;
   - the PR adds a parser, `TypeGuard`, or `TypeIs` (test the false branch and one malformed input);
-  - a `None`/absent state now handled at runtime has no existing test (search the existing tests first).
+  - the repair's safety depends on a runtime fact the types don't show, and no existing test covers it.
+- **Search existing coverage before adding anything,** including integration and endpoint tests. Search both the dict form and the keyword form (`"resolveAge": ""` and `resolveAge=""`). Missing one form caused the C1 mistake.
 - **Don't add:**
   - tests of dependency behavior (DRF parsing, `min_value`, `allow_null`, `required`);
   - smoke or "returns without error" tests;
   - an `assert_type` for every annotation;
   - parametrized grids beyond the cases at risk;
   - cases that duplicate existing coverage.
-- **Size:** the smallest test that fails when the fact breaks. That is usually one case per contract and well under the size of the code change. If tests outweigh the source diff, justify it or cut.
-- **Mutation check:** before committing, break the guarded line (for example, delete the branch), confirm the test fails, then revert. A test that still passes gets deleted.
+- **Size:** the smallest test that fails when the changed behavior breaks. That is usually one case, and one parametrized test across sibling classes rather than a file per class.
+- **Mutation check:** before committing, break the guarded line, confirm the test fails, then revert. A test that still passes gets deleted.
 - **`assert_type`:** only where an `Any` receiver used to erase a precise type (C14, C15). There mypy alone would not notice the precise type decaying back to `Any`, and `assert_type` fails on `Any`.
 - **Negative type tests** that expect a mypy diagnostic use the `call_mypy` harness pattern from `tests/tools/mypy_helpers/test_plugin.py`, never an ignore.
 - **Location:** extend the test file that mirrors the source module (`tests/AGENTS.md`). Create one only when none exists.
+- **The PR description names the existing test** that covers unchanged behavior a reviewer might worry about, instead of adding a new one.
 
 ### Delegated (executor decides within the bound, and states the choice in the PR body)
 
@@ -286,38 +288,38 @@ Statuses: `todo`, `draft #N`, `merged #N`, `parked: <cause>; retry when <conditi
 
 ### Items
 
-| ID    | Status        | Notes                                        |
-| ----- | ------------- | -------------------------------------------- |
-| G1    | todo          |                                              |
-| B1    | todo          |                                              |
-| B2    | todo          |                                              |
-| B3    | todo          |                                              |
-| C1    | draft #129702 | Override deleted; `MissedMarginField` typed. |
-| C2    | todo          |                                              |
-| C3    | todo          |                                              |
-| C4    | todo          |                                              |
-| C5    | todo          |                                              |
-| C6    | todo          |                                              |
-| C7    | todo          |                                              |
-| C8    | todo          |                                              |
-| C9    | todo          |                                              |
-| C10   | todo          |                                              |
-| C11   | todo          |                                              |
-| C12   | todo          |                                              |
-| C13   | todo          |                                              |
-| C14   | todo          |                                              |
-| C15   | todo          |                                              |
-| C16   | todo          |                                              |
-| C17a  | todo          |                                              |
-| C17b  | todo          |                                              |
-| C18   | todo          |                                              |
-| C19   | todo          |                                              |
-| C20a  | todo          |                                              |
-| C20b  | todo          |                                              |
-| C20c  | todo          |                                              |
-| C21   | todo          |                                              |
-| C22   | todo          |                                              |
-| Close | todo          | Phase 4 review                               |
+| ID    | Status        | Notes                                                                                                |
+| ----- | ------------- | ---------------------------------------------------------------------------------------------------- |
+| G1    | todo          |                                                                                                      |
+| B1    | todo          |                                                                                                      |
+| B2    | todo          |                                                                                                      |
+| B3    | todo          |                                                                                                      |
+| C1    | draft #129702 | Overrides deleted; `MissedMarginField` typed; no new tests (covered by `test_resolve_age` and mypy). |
+| C2    | todo          |                                                                                                      |
+| C3    | todo          |                                                                                                      |
+| C4    | todo          |                                                                                                      |
+| C5    | todo          |                                                                                                      |
+| C6    | todo          |                                                                                                      |
+| C7    | todo          |                                                                                                      |
+| C8    | todo          |                                                                                                      |
+| C9    | todo          |                                                                                                      |
+| C10   | todo          |                                                                                                      |
+| C11   | todo          |                                                                                                      |
+| C12   | todo          |                                                                                                      |
+| C13   | todo          |                                                                                                      |
+| C14   | todo          |                                                                                                      |
+| C15   | todo          |                                                                                                      |
+| C16   | todo          |                                                                                                      |
+| C17a  | todo          |                                                                                                      |
+| C17b  | todo          |                                                                                                      |
+| C18   | todo          |                                                                                                      |
+| C19   | todo          |                                                                                                      |
+| C20a  | todo          |                                                                                                      |
+| C20b  | todo          |                                                                                                      |
+| C20c  | todo          |                                                                                                      |
+| C21   | todo          |                                                                                                      |
+| C22   | todo          |                                                                                                      |
+| Close | todo          | Phase 4 review                                                                                       |
 
 ### Discovered during the campaign
 
