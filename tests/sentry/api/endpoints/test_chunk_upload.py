@@ -21,7 +21,6 @@ from sentry.api.endpoints.chunk import (
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
     MAX_REQUEST_SIZE,
-    SPOOL_MAX_MEMORY_SIZE,
     ChunkTooLarge,
     _spool_bounded,
     zstd_chunk,
@@ -483,9 +482,15 @@ class ChunkUploadTest(APITestCase):
         stored_checksums = {fb.checksum for fb in file_blobs}
         assert stored_checksums == {checksum1, checksum2}
 
-    def test_upload_compressed_chunk_larger_than_spool_memory(self) -> None:
-        data_zstd = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
-        data_gzip = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
+    @override_options(
+        {
+            "chunk-upload.spool-decompressed-chunks": True,
+            "chunk-upload.spool-max-memory-size": 1024,
+        }
+    )
+    def test_upload_compressed_chunks_spooled_to_disk(self) -> None:
+        data_zstd = os.urandom(4096)
+        data_gzip = os.urandom(4096)
         checksum_zstd = sha1(data_zstd).hexdigest()
         checksum_gzip = sha1(data_gzip).hexdigest()
 
@@ -725,7 +730,7 @@ class ChunkUploadTest(APITestCase):
 
 
 def test_spool_bounded_accepts_exactly_the_limit() -> None:
-    chunk = _spool_bounded(BytesIO(b"x" * 10), limit=10, name="chunk")
+    chunk = _spool_bounded(BytesIO(b"x" * 10), limit=10, name="chunk", max_memory_size=4)
     with chunk:
         assert chunk.size == 10
         assert chunk.name == "chunk"
@@ -734,17 +739,28 @@ def test_spool_bounded_accepts_exactly_the_limit() -> None:
 
 def test_spool_bounded_rejects_more_than_the_limit() -> None:
     with pytest.raises(ChunkTooLarge):
-        _spool_bounded(BytesIO(b"x" * 11), limit=10, name="chunk")
+        _spool_bounded(BytesIO(b"x" * 11), limit=10, name="chunk", max_memory_size=4)
 
 
 def test_large_decompressed_chunk_is_spooled_to_disk() -> None:
-    data = os.urandom(SPOOL_MAX_MEMORY_SIZE * 2)
+    data = os.urandom(4096)
     upload = SimpleUploadedFile("chunk", zstandard.ZstdCompressor().compress(data))
 
-    chunk = zstd_chunk(upload)
+    chunk = zstd_chunk(upload, spool_max_memory_size=1024)
     with chunk:
         assert isinstance(chunk.file, SpooledTemporaryFile)
         # A spooled file only has a name once it has rolled over to disk.
         assert chunk.file.name is not None
+        assert chunk.size == len(data)
+        assert chunk.read() == data
+
+
+def test_decompressed_chunk_stays_in_memory_without_spooling() -> None:
+    data = os.urandom(4096)
+    upload = SimpleUploadedFile("chunk", zstandard.ZstdCompressor().compress(data))
+
+    chunk = zstd_chunk(upload, spool_max_memory_size=None)
+    with chunk:
+        assert isinstance(chunk.file, BytesIO)
         assert chunk.size == len(data)
         assert chunk.read() == data

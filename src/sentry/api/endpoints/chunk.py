@@ -1,6 +1,7 @@
 import logging
 import re
 from gzip import BadGzipFile, GzipFile
+from io import BytesIO
 from tempfile import SpooledTemporaryFile
 from typing import TypedDict
 
@@ -38,8 +39,6 @@ from sentry.utils.http import absolute_uri
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 8
-# Decompressed chunks larger than this are written to a temporary file.
-SPOOL_MAX_MEMORY_SIZE = 1024 * 1024
 DECOMPRESS_READ_SIZE = 256 * 1024
 HASH_ALGORITHM = "sha1"
 SENTRYCLI_SEMVER_RE = re.compile(r"^sentry-cli\/(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)")
@@ -90,16 +89,16 @@ def _read_bounded(reader, limit):
             raise ChunkTooLarge("Chunk size too large")
 
 
-def _spool_bounded(reader, limit: int, name: str) -> File:
+def _spool_bounded(reader, limit: int, name: str, max_memory_size: int) -> File:
     """Decompress ``reader`` into a temporary file; raise :class:`ChunkTooLarge` past ``limit``.
 
     A request holds every chunk until all of them are stored, so decompressed
     chunks kept in memory would hold up to ``MAX_REQUEST_SIZE`` per request in
-    the worker. A spooled file keeps at most ``SPOOL_MAX_MEMORY_SIZE`` of each
-    chunk in memory, the same as uncompressed chunks, which Django already
-    writes to temporary files.
+    the worker. A spooled file keeps at most ``max_memory_size`` of each chunk
+    in memory, the same as uncompressed chunks, which Django already writes to
+    temporary files.
     """
-    spool = SpooledTemporaryFile(max_size=SPOOL_MAX_MEMORY_SIZE)
+    spool = SpooledTemporaryFile(max_size=max_memory_size)
     size = 0
     try:
         while True:
@@ -119,19 +118,29 @@ def _spool_bounded(reader, limit: int, name: str) -> File:
     return chunk
 
 
-def gzip_chunk(file) -> File:
+def _decompress_bounded(reader, name: str, spool_max_memory_size: int | None) -> File:
+    limit = settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
+    if spool_max_memory_size is not None:
+        return _spool_bounded(reader, limit, name, spool_max_memory_size)
+    data = _read_bounded(reader, limit)
+    chunk = File(BytesIO(data), name=name)
+    chunk.size = len(data)
+    return chunk
+
+
+def gzip_chunk(file, spool_max_memory_size: int | None) -> File:
     reader = GzipFile(fileobj=file, mode="rb")
-    return _spool_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE, file.name)
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
 
 
-def zstd_chunk(file) -> File:
+def zstd_chunk(file, spool_max_memory_size: int | None) -> File:
     # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
     # (which reads across concatenated gzip members) and matches the
     # convention in `src/sentry/models/eventattachment.py`. Without it a
     # multi-frame zstd payload would silently decode only the first frame
     # and produce a misleading checksum-mismatch error.
     reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
-    return _spool_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE, file.name)
+    return _decompress_bounded(reader, file.name, spool_max_memory_size)
 
 
 class ChunkUploadPermission(OrganizationReleasePermission):
@@ -356,7 +365,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         try:
             return self._store_chunks(request, organization, encoding, files, logger)
         finally:
-            # Decompressed chunks are spooled to temporary files. Close them as
+            # Decompressed chunks may be spooled to temporary files. Close them as
             # soon as the request is done instead of waiting for garbage collection.
             for file in files:
                 file.close()
@@ -371,9 +380,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
     ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
         checksums = []
         total_size = 0
+        spool_max_memory_size = (
+            options.get("chunk-upload.spool-max-memory-size")
+            if options.get("chunk-upload.spool-decompressed-chunks")
+            else None
+        )
 
         try:
-            for chunk, name in get_files(request, encoding):
+            for chunk, name in get_files(request, encoding, spool_max_memory_size):
                 # Track the chunk before validating it, so the caller closes it
                 # even when it is rejected.
                 files.append(chunk)
@@ -413,16 +427,16 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str):
+def get_files(request: Request, encoding: str, spool_max_memory_size: int | None):
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
-            yield gzip_chunk(chunk), chunk.name
+            yield gzip_chunk(chunk, spool_max_memory_size), chunk.name
         elif encoding == "zstd":
-            yield zstd_chunk(chunk), chunk.name
+            yield zstd_chunk(chunk, spool_max_memory_size), chunk.name
         else:
             yield chunk, chunk.name
 
     # Legacy: older clients send gzipped chunks under `file_gzip` with no
     # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        yield gzip_chunk(chunk), chunk.name
+        yield gzip_chunk(chunk, spool_max_memory_size), chunk.name
