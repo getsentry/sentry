@@ -15,6 +15,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
+from sentry.integrations.services.repository.constants import RESERVED_REPOSITORY_CONFIG_KEYS
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
     RpcRepointIntegrationResult,
@@ -41,6 +42,18 @@ def _reload_project_option_caches(project_ids: tuple[int, ...], option_key: str)
             "repository_service.repoint_organization_integration_data",
             option_key,
         )
+
+
+def _preserve_reserved_config(
+    *, current: dict[str, Any], proposed: dict[str, Any]
+) -> dict[str, Any]:
+    config = proposed.copy()
+    for key in RESERVED_REPOSITORY_CONFIG_KEYS:
+        if key in current:
+            config[key] = current[key]
+        else:
+            config.pop(key, None)
+    return config
 
 
 class DatabaseBackedRepositoryService(RepositoryService):
@@ -120,6 +133,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
             del update_dict["id"]
 
             for field_name, field_value in update_dict.items():
+                if field_name == "config":
+                    field_value = _preserve_reserved_config(
+                        current=repository.config,
+                        proposed=field_value,
+                    )
                 setattr(repository, field_name, field_value)
 
             repository.save()
@@ -187,6 +205,11 @@ class DatabaseBackedRepositoryService(RepositoryService):
             for repository in repositories:
                 repo_update = update_mapping[repository.id]
                 for field_name, field_value in repo_update.items():
+                    if field_name == "config":
+                        field_value = _preserve_reserved_config(
+                            current=repository.config,
+                            proposed=field_value,
+                        )
                     setattr(repository, field_name, field_value)
 
             Repository.objects.bulk_update(repositories, fields=list(fields_to_update))

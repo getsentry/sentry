@@ -7,6 +7,9 @@ from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.repository.constants import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY as RESERVED_RECONCILIATION_KEY,
+)
 from sentry.integrations.services.repository.model import RpcRepointIntegrationResult
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.services.repository.service import repository_service
@@ -647,6 +650,85 @@ class RepointOrganizationIntegrationDataTest(TestCase):
             "external_actors": 0,
             "project_options": 0,
         }
+
+
+@cell_silo_test
+class ReservedRepositoryConfigTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+        )
+        self.repo.update(config={"provider_key": "old"})
+        self.reconciliation_state = {
+            "status": "pending",
+            "generation": "generation-1",
+        }
+
+    def test_single_update_preserves_current_reserved_state(self) -> None:
+        stale_update = serialize_repository(self.repo)
+        stale_update.config = {"provider_key": "new"}
+        self.repo.update(
+            config={
+                "provider_key": "old",
+                RESERVED_RECONCILIATION_KEY: self.reconciliation_state,
+            }
+        )
+
+        repository_service.update_repository(
+            organization_id=self.organization.id,
+            update=stale_update,
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.config == {
+            "provider_key": "new",
+            RESERVED_RECONCILIATION_KEY: self.reconciliation_state,
+        }
+
+    def test_single_update_does_not_restore_stale_reserved_state(self) -> None:
+        stale_update = serialize_repository(self.repo)
+        stale_update.config = {
+            "provider_key": "new",
+            RESERVED_RECONCILIATION_KEY: self.reconciliation_state,
+        }
+
+        repository_service.update_repository(
+            organization_id=self.organization.id,
+            update=stale_update,
+        )
+
+        self.repo.refresh_from_db()
+        assert self.repo.config == {"provider_key": "new"}
+
+    def test_bulk_update_preserves_current_reserved_state(self) -> None:
+        other_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+        )
+        other_repo.update(config={"provider_key": "old"})
+        stale_updates = [serialize_repository(repo) for repo in (self.repo, other_repo)]
+        for update in stale_updates:
+            update.config = {"provider_key": "new"}
+        for repo in (self.repo, other_repo):
+            repo.update(
+                config={
+                    "provider_key": "old",
+                    RESERVED_RECONCILIATION_KEY: self.reconciliation_state,
+                }
+            )
+
+        repository_service.update_repositories(
+            organization_id=self.organization.id,
+            updates=stale_updates,
+        )
+
+        for repo in (self.repo, other_repo):
+            repo.refresh_from_db()
+            assert repo.config == {
+                "provider_key": "new",
+                RESERVED_RECONCILIATION_KEY: self.reconciliation_state,
+            }
 
 
 @cell_silo_test

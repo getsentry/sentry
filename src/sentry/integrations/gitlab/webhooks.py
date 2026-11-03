@@ -26,6 +26,8 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
@@ -239,9 +241,12 @@ class GitlabWebhook(SCMWebhook, ABC):
         path_from_event = project["path_with_namespace"]
 
         if repo.url != url_from_event or repo.config.get("path") != path_from_event:
-            repo.update(
-                url=url_from_event,
-                config=dict(repo.config, path=path_from_event),
+            update = serialize_repository(repo)
+            update.url = url_from_event
+            update.config = {**repo.config, "path": path_from_event}
+            repository_service.update_repository(
+                organization_id=repo.organization_id,
+                update=update,
             )
 
 

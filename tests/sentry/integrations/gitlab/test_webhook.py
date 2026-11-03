@@ -21,6 +21,9 @@ from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.gitlab.webhooks import IssuesEventWebhook, MergeEventWebhook
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.repository.constants import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -870,10 +873,15 @@ class WebhookTest(GitLabWebhookTestCase):
         repo_out_of_date_path = self.create_gitlab_repo(
             name="Cool Group / Sentry", url="http://example.com/cool-group/sentry"
         )
+        reconciliation_state = {
+            "status": "pending",
+            "generation": "generation-1",
+        }
         repo_out_of_date_path.update(
             config=dict(
                 repo_out_of_date_path.config,
                 path="uncool-group/sentry",  # path out of date
+                **{GITLAB_WEBHOOK_RECONCILIATION_KEY: reconciliation_state},
             )
         )
 
@@ -890,6 +898,9 @@ class WebhookTest(GitLabWebhookTestCase):
         # path has been updated
         repo_out_of_date_path.refresh_from_db()
         assert repo_out_of_date_path.config["path"] == "cool-group/sentry"
+        assert (
+            repo_out_of_date_path.config[GITLAB_WEBHOOK_RECONCILIATION_KEY] == reconciliation_state
+        )
 
     def test_update_repo_url(self) -> None:
         repo_out_of_date_url = self.create_gitlab_repo(
