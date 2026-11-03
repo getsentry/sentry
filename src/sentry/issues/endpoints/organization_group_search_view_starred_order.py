@@ -16,6 +16,9 @@ class MemberPermission(OrganizationPermission):
         "PUT": ["member:read", "member:write", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
     view_ids = serializers.ListField(child=serializers.IntegerField(), required=True, min_length=0)

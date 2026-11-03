@@ -18,6 +18,9 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @cell_silo_endpoint
 class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
