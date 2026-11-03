@@ -17,6 +17,14 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
 MAX_CROSS_EVENT_RANGE = timedelta(days=7)
+TRANSFORMATIONS_HELP_TEXT = (
+    "An ordered list of fill(...) and smooth(...) expressions for this visualization's yAxes. "
+    "At most one fill and one smooth operation are allowed, in either order. "
+    "Strings retain their original whitespace and order. "
+    "An omitted field stays absent. An empty list explicitly stores no transformations. "
+    "On update, replacing a visualization without this field removes its previous pipeline. "
+    "Saving this field, including an empty list, requires the interpolation and smoothing feature."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +33,13 @@ class AggregateFieldData(TypedDict, total=False):
     chartType: int
     yAxes: list[str]
     groupBy: str
+    transformations: list[str]
 
 
 class VisualizeData(TypedDict):
     yAxes: list[str]
     chartType: NotRequired[int]
+    transformations: NotRequired[list[str]]
 
 
 class CrossEventData(TypedDict):
@@ -81,7 +91,9 @@ class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text=TRANSFORMATIONS_HELP_TEXT,
     )
 
 
@@ -94,7 +106,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text=TRANSFORMATIONS_HELP_TEXT,
     )
 
     # group bys
@@ -283,7 +297,9 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
         help_text="The name of environments to filter by.",
     )
     interval = serializers.CharField(
-        required=False, allow_null=True, help_text="Resolution of the time series."
+        required=False,
+        allow_null=True,
+        help_text="The bucket duration, such as `15s`, `1m`, or `1h`. Omit or set to null to use the default interval.",
     )
     crossEvents = ListField(
         child=CrossEventSerializer(),

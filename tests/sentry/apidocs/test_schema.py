@@ -22,7 +22,11 @@ from sentry.api.helpers.timeseries_transformations import (
     SmaSmoothTransformation,
     get_transformations,
 )
+from sentry.apidocs.hooks import dereference_schema
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
+from sentry.explore.endpoints.explore_saved_query_detail import ExploreSavedQueryDetailEndpoint
+from sentry.explore.endpoints.serializers import QuerySerializer
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.snuba.rpc_dataset_common import ProcessedTimeseries, TimeseriesTransformationFlags
 from sentry.utils.snuba import SnubaTSResult
@@ -245,9 +249,12 @@ def test_timeseries_response_serialization_matches_schema() -> None:
         view=OrganizationEventsTimeseriesEndpoint,
     )
     response_schema = schema["components"]["schemas"]["OrganizationEventsTimeseriesResponse"]
-    row_schema = response_schema["properties"]["timeSeries"]["items"]["properties"]["values"][
-        "items"
-    ]
+    series_schema = response_schema["properties"]["timeSeries"]["items"]
+    row_schema = series_schema["properties"]["values"]["items"]
+    assert row_schema["properties"]["value"]["nullable"] is True
+    assert row_schema["properties"]["comparisonValue"]["nullable"] is True
+    assert "comparisonValue" not in row_schema["required"]
+    assert series_schema["properties"]["meta"]["properties"]["valueUnit"]["nullable"] is True
     for name in ("filled", "smoothed", "comparisonFilled", "comparisonSmoothed"):
         assert row_schema["properties"][name] == {"type": "boolean"}
         assert name not in row_schema["required"]
@@ -330,3 +337,71 @@ def test_timeseries_response_serialization_matches_schema() -> None:
         }
     ]
     OAS30Validator(response_schema).validate({"timeSeries": comparison_series})
+
+
+@pytest.mark.parametrize(
+    "route,view,method,status_code",
+    [
+        (
+            "api/0/organizations/<str:organization_id_or_slug>/explore/saved/",
+            ExploreSavedQueriesEndpoint,
+            "post",
+            "201",
+        ),
+        (
+            "api/0/organizations/<str:organization_id_or_slug>/explore/saved/<int:id>/",
+            ExploreSavedQueryDetailEndpoint,
+            "put",
+            "200",
+        ),
+    ],
+)
+@pytest.mark.parametrize("visualization_field", ["visualize", "aggregateField"])
+def test_saved_query_transformation_schemas(
+    route: str,
+    view: type[Endpoint],
+    method: str,
+    status_code: str,
+    visualization_field: str,
+) -> None:
+    schema = generate_schema(route, view=view)
+    path = "/" + route.replace(
+        "<str:organization_id_or_slug>", "{organization_id_or_slug}"
+    ).replace("<int:id>", "{id}")
+    operation = schema["paths"][path][method]
+    components = schema["components"]["schemas"]
+    request_schema = dereference_schema(
+        operation["requestBody"]["content"]["application/json"]["schema"], components
+    )
+    query_schema = dereference_schema(request_schema["properties"]["query"]["items"], components)
+    visualization_schema = dereference_schema(
+        query_schema["properties"][visualization_field]["items"], components
+    )
+    response_schema = dereference_schema(
+        operation["responses"][status_code]["content"]["application/json"]["schema"], components
+    )
+    response_visualization_schema = response_schema["properties"]["query"]["items"]["properties"][
+        visualization_field
+    ]["items"]
+    entries = [
+        {"yAxes": ["count()"]},
+        {"yAxes": ["count()"], "transformations": []},
+        {
+            "yAxes": ["count()"],
+            "transformations": ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
+        },
+    ]
+    serializer = QuerySerializer(data={"mode": "aggregate", visualization_field: entries})
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.data[visualization_field] == entries
+
+    for entry_schema in (visualization_schema, response_visualization_schema):
+        transformations = entry_schema["properties"]["transformations"]
+        assert transformations["type"] == "array"
+        assert transformations["items"]["type"] == "string"
+        assert "transformations" not in entry_schema.get("required", [])
+        validator = OAS30Validator(entry_schema)
+        for entry in serializer.data[visualization_field]:
+            validator.validate(entry)
+        with pytest.raises(ValidationError):
+            validator.validate({"yAxes": ["count()"], "transformations": None})
