@@ -40,6 +40,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
 from sentry.conf.types.sentry_config import SentryMode
@@ -391,7 +392,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            "SCIMMemberReplace", fields={"sentryOrgRole": serializers.CharField()}
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -672,7 +673,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization,
                     email=result["email"],
                     role=result["role"],
-                    inviter_id=request.user.id,
+                    inviter_id=acting_user_id(request.user),
                 )
 
                 # TODO: are invite tokens needed for SAML orgs?

@@ -1,74 +1,52 @@
 import type {FocusTrap} from 'focus-trap';
-import {createStore} from 'reflux';
+import {createStore} from 'zustand';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 
-import type {StrictStoreDefinition} from './types';
-
-type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
+export type ModalRenderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
 type State = {
   modalId: number;
   options: ModalOptions;
-  renderer: Renderer | null;
+  renderer: ModalRenderer | null;
+  triggerElement: HTMLElement | null;
   focusTrap?: FocusTrap;
-  triggerElement?: HTMLElement | null;
 };
 
-interface ModalStoreDefinition extends StrictStoreDefinition<State> {
-  closeModal(): void;
-  init(): void;
-  openModal(renderer: Renderer, options: ModalOptions): void;
-  reset(): void;
-  setFocusTrap(focusTrap: FocusTrap): void;
+const store = createStore<State>()(() => ({
+  modalId: 0,
+  renderer: null,
+  options: {},
+  triggerElement: null,
+}));
+
+export function isModalOpen(state: Pick<State, 'renderer'>): boolean {
+  return state.renderer !== null;
 }
 
-const storeConfig: ModalStoreDefinition = {
-  state: {modalId: 0, renderer: null, options: {}},
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset();
-  },
-
-  getState() {
-    return this.state;
-  },
+export const ModalStore = {
+  ...store,
 
   reset() {
-    this.state = {
-      modalId: this.state.modalId,
-      renderer: null,
-      options: {},
-      focusTrap: this.state.focusTrap,
-    };
+    store.setState({renderer: null, options: {}, triggerElement: null});
   },
 
   closeModal() {
-    this.reset();
-    this.trigger(this.state);
+    ModalStore.reset();
   },
 
-  openModal(renderer: Renderer, options: ModalOptions) {
+  openModal(renderer: ModalRenderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.state = {
-      modalId: this.state.modalId + 1,
+    store.setState(state => ({
+      modalId: state.modalId + 1,
       renderer,
       options,
-      focusTrap: this.state.focusTrap,
       triggerElement,
-    };
-    this.trigger(this.state);
+    }));
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    this.state = {
-      ...this.state,
-      focusTrap,
-    };
+    store.setState({focusTrap});
   },
 };
-
-export const ModalStore = createStore(storeConfig);

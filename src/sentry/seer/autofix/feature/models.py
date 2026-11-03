@@ -12,6 +12,7 @@ from sentry.seer.autofix.steps import AutofixStep
 FEATURE_ID = "autofix"
 # In-flight runs started before the rename still deliver and persist this id.
 LEGACY_FEATURE_ID = "autofix_rca"
+SINGLE_RUN_FEATURE_ID = "autofix_single_run"
 
 
 class RepoPin(BaseModel):

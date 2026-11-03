@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
@@ -15,6 +16,9 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["member:read", "member:write", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
@@ -50,7 +54,7 @@ class OrganizationGroupSearchViewStarredOrderEndpoint(OrganizationEndpoint):
             with transaction.atomic(using=router.db_for_write(GroupSearchViewStarred)):
                 GroupSearchViewStarred.objects.reorder_starred_views(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     new_view_positions=view_ids,
                 )
         except IntegrityError as e:

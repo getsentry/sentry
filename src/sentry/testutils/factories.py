@@ -128,6 +128,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
@@ -2837,6 +2838,21 @@ class Factories:
         query = ExploreSavedQuery.objects.create(organization=organization, **kwargs)
         query.set_projects([project.id for project in projects])
         return query
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_search_view(
+        organization: Organization,
+        user_id: int,
+        projects: Sequence[Project] = (),
+        **kwargs: Any,
+    ) -> GroupSearchView:
+        kwargs.setdefault("name", petname.generate(2, " ", letters=10).title())
+        kwargs.setdefault("query", "is:unresolved")
+        kwargs.setdefault("query_sort", "date")
+        view = GroupSearchView.objects.create(organization=organization, user_id=user_id, **kwargs)
+        view.projects.set(projects)
+        return view
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

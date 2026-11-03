@@ -1,4 +1,3 @@
-import builtins
 from typing import Any
 
 from django.db import router, transaction
@@ -8,9 +7,9 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
-from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorType
 
 
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
@@ -30,9 +29,9 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
         help_text="Automatically resolve an issue if it hasn't been seen for this many hours. Set to `0` to disable auto-resolve.",
     )
 
-    def validate_type(self, value: str) -> builtins.type[GroupType]:
+    def validate_type(self, value: str) -> DetectorType:
         type = super().validate_type(value)
-        if type.slug != "error":
+        if type != DetectorType.ERROR:
             raise serializers.ValidationError("Detector type must be error")
 
         return type

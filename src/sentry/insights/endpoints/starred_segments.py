@@ -48,6 +48,9 @@ class MemberPermission(OrganizationPermission):
         "DELETE": ["member:read", "member:write", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint

@@ -69,6 +69,9 @@ class PromptsActivityPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin", "user_preference:write"],
     }
 
+    # user_preference:read and user_preference:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
