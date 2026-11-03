@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
@@ -6,6 +7,7 @@ import requests
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -26,7 +28,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.min_ago_iso = self.min_ago.isoformat()
         self.features = {"organizations:discover-basic": True}
 
-    def assert_facet(self, response, key, expected):
+    def assert_facet(self, response: Response, key: str, expected: Sequence[object]) -> None:
         actual = None
         for facet in response.data:
             if facet["key"] == key:
@@ -34,8 +36,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 break
         assert actual is not None, f"Could not find {key} facet in {response.data}"
         assert "topValues" in actual
-        key = lambda row: row["name"] if row["name"] is not None else ""
-        assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
+        sort_key = lambda row: row["name"] if row["name"] is not None else ""
+        assert sorted(expected, key=sort_key) == sorted(actual["topValues"], key=sort_key)
 
     def test_performance_view_feature(self) -> None:
         self.features.update(

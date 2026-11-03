@@ -14,13 +14,13 @@ from sentry.types.actor import Actor, ActorType
 
 
 def add_notification_setting_option(
-    scope_type,
-    scope_identifier,
-    type,
-    value,
-    user_id=None,
-    team_id=None,
-):
+    scope_type: NotificationScopeEnum,
+    scope_identifier: int,
+    type: NotificationSettingEnum,
+    value: NotificationSettingsOptionEnum,
+    user_id: int | None = None,
+    team_id: int | None = None,
+) -> NotificationSettingOption:
     return NotificationSettingOption.objects.create(
         scope_type=scope_type.value,
         scope_identifier=scope_identifier,
@@ -32,14 +32,14 @@ def add_notification_setting_option(
 
 
 def add_notification_setting_provider(
-    scope_type,
-    scope_identifier,
-    provider,
-    type,
-    value,
-    user_id=None,
-    team_id=None,
-):
+    scope_type: NotificationScopeEnum,
+    scope_identifier: int,
+    provider: ExternalProviderEnum,
+    type: NotificationSettingEnum,
+    value: NotificationSettingsOptionEnum,
+    user_id: int | None = None,
+    team_id: int | None = None,
+) -> NotificationSettingProvider:
     return NotificationSettingProvider.objects.create(
         scope_type=scope_type.value,
         scope_identifier=scope_identifier,

@@ -25,6 +25,10 @@ from sentry.users.models.user import User
 from sentry.utils.audit import get_api_key_for_audit_log
 
 
+class _AuthenticatedRequest(Request):
+    user: User
+
+
 class ApproveInviteRequestSerializer(serializers.Serializer[dict[str, Any]]):
     approve = serializers.BooleanField(required=True, write_only=True)
 
@@ -87,7 +91,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def put(
         self,
-        request: Request,
+        request: _AuthenticatedRequest,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
@@ -180,7 +184,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def delete(
         self,
-        request: Request,
+        request: _AuthenticatedRequest,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:

@@ -385,10 +385,10 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
-    def _dialog_success(self, org_integration) -> HttpResponseBase:
+    def _dialog_success(self, org_integration: OrganizationIntegration) -> HttpResponseBase:
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
-    def _dialog_response(self, data, success) -> HttpResponseBase:
+    def _dialog_response(self, data: object, success: bool) -> HttpResponseBase:
         document_origin = "document.origin"
         if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'

@@ -47,7 +47,7 @@ class SeerAgentChatStateResponse(BaseModel):
     sentry_run_id: str | None
 
 
-class CodeModeField(serializers.Field):
+class CodeModeField(serializers.Field[str | None, str | None, str | None, object]):
     """Accepts 'off'|'only', plus the retired 'on' and booleans from stored frontend settings.
 
     True and 'on' read as 'only'. DRF's CharField rejects raw booleans before the field-level

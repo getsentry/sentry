@@ -526,7 +526,8 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         command.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        assert self.orchestration_run.error is None
+        assert not self.orchestration_run.error
+        assert self.orchestration_run.projection is not None
         assert self.orchestration_run.projection["errors"] == []
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
@@ -623,6 +624,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
 
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["code"] == "seer_command_dispatch_failed"
         assert command.error["retryable"] is True
 
@@ -713,6 +715,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             "retryable": False,
         }
         assert later_command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert later_command.error is not None
         assert later_command.error["code"] == "earlier_command_conflicted"
 
         with mock.patch(
@@ -857,6 +860,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert self.orchestration_run.status == "completed"
         assert self.orchestration_run.last_event_sequence == 1
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["reason"] == "workflow_version_conflict"
 
     @mock.patch("sentry.tasks.seer.investigation.current_task")

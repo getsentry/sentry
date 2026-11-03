@@ -8,8 +8,8 @@ from collections.abc import Callable, Collection
 from datetime import datetime
 from typing import Any, Literal
 
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
+from sentry.auth.principal import RequestPrincipal, acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
@@ -45,7 +46,10 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
     poll_until_done,
 )
-from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import (
+    CodingAgentHandoffResult,
+    launch_coding_agents,
+)
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
@@ -66,8 +70,6 @@ from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils.prompts import (
     get_prompt_activities_for_user,
     seer_monitoring_provider_dont_ask_feature,
@@ -315,7 +317,7 @@ class SeerAgentClient:
     def __init__(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser | None = None,
+        user: RequestPrincipal | None = None,
         project: Project | None = None,
         group: Group | None = None,
         category_key: str | None = None,
@@ -339,6 +341,7 @@ class SeerAgentClient:
     ):
         self.organization = organization
         self.user = user
+        self._user_id = acting_user_id(user) if user is not None else None
         self.project = project
         self.group = group
         self.custom_tools = custom_tools or []
@@ -391,8 +394,8 @@ class SeerAgentClient:
 
     def _build_viewer_context(self) -> SeerViewerContext:
         context = SeerViewerContext(organization_id=self.organization.id)
-        if self.user and hasattr(self.user, "id") and self.user.id is not None:
-            context["user_id"] = self.user.id
+        if self._user_id is not None:
+            context["user_id"] = self._user_id
         return context
 
     def start_run(
@@ -406,7 +409,7 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         ui_tools: str | None = None,
@@ -515,11 +518,7 @@ class SeerAgentClient:
             )
         )
 
-        user_id = (
-            self.user.id
-            if self.user and hasattr(self.user, "id") and self.user.id is not None
-            else None
-        )
+        user_id = self._user_id
 
         def _create_agent_run(run: SeerRun) -> None:
             if record_in_history:
@@ -587,11 +586,7 @@ class SeerAgentClient:
         Explicit agent_run_options override any options derived from organization
         configuration.
         """
-        user_id = (
-            self.user.id
-            if self.user and hasattr(self.user, "id") and self.user.id is not None
-            else None
-        )
+        user_id = self._user_id
 
         def _create_agent_run(run: SeerRun) -> None:
             SeerAgentRun.objects.create(
@@ -830,11 +825,7 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        monitoring_user_id = (
-            self.user.id
-            if self.user and not isinstance(self.user, AnonymousUser) and self.user.id is not None
-            else None
-        )
+        monitoring_user_id = self._user_id
         monitoring_provider_connections = get_monitoring_provider_connections(
             self.organization, monitoring_user_id
         )
@@ -932,7 +923,7 @@ class SeerAgentClient:
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> QuerySet[SeerRun]:
-        user_id = int(self.user.id) if self.user is not None and self.user.id is not None else None
+        user_id = self._user_id
         queryset = queryset_for_query(query, self.organization, user_id)
         queryset = queryset.filter(
             Q(agent__project_id__isnull=True) | Q(agent__project_id__in=accessible_project_ids)
@@ -954,13 +945,8 @@ class SeerAgentClient:
             run__organization_id=self.organization.id,
             source=self.category_key or "",
         )
-        if (
-            only_current_user
-            and self.user
-            and hasattr(self.user, "id")
-            and self.user.id is not None
-        ):
-            qs = qs.filter(run__user_id=int(self.user.id))
+        if only_current_user and self._user_id is not None:
+            qs = qs.filter(run__user_id=self._user_id)
         if group_id is not None:
             qs = qs.filter(group_id=group_id)
         elif self.category_value is not None:
@@ -982,7 +968,10 @@ class SeerAgentClient:
         run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
         if run is None:
             return None
-        return self.get_run(run.run.seer_run_state_id)
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return None
+        return self.get_run(run_state_id)
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(
@@ -1095,7 +1084,7 @@ class SeerAgentClient:
         user_id: int | None = None,
         issue_short_id: str | None = None,
         issue_url: str | None = None,
-    ) -> dict[str, list]:
+    ) -> CodingAgentHandoffResult:
         """
         Launch coding agents for an agent run.
 

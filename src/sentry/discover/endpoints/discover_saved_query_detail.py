@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -42,14 +44,21 @@ class DiscoverSavedQueryBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (DiscoverSavedQueryPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, query_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        query_id: int | str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["query"] = DiscoverSavedQuery.objects.get(
                 Q(is_homepage=False) | Q(is_homepage__isnull=True),
                 id=to_valid_int_id("query_id", query_id, raise_404=True),
-                organization=kwargs["organization"],
+                organization=cast(Organization, kwargs["organization"]),
             )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
@@ -65,8 +74,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
@@ -85,7 +95,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_GET_RESPONSE,
     )
     def get(
-        self, request: Request, organization, query: DiscoverSavedQuery
+        self, request: Request, organization: Organization, query: DiscoverSavedQuery
     ) -> Response[DiscoverSavedQueryResponse]:
         """
         Retrieve a saved query.
@@ -170,7 +180,9 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, query) -> Response[None]:
+    def delete(
+        self, request: Request, organization: Organization, query: DiscoverSavedQuery
+    ) -> Response[None]:
         """
         Delete a saved query.
         """
@@ -195,7 +207,7 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
@@ -222,7 +234,7 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        query.visits = F("visits") + 1
+        query.visits = cast(int, F("visits") + 1)
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

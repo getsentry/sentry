@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from snuba_sdk import Limit
@@ -16,12 +17,12 @@ from sentry.utils.dates import to_datetime
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-def timestamp(d):
+def timestamp(d: datetime) -> int:
     t = int(d.timestamp())
     return t - (t % 3600)
 
 
-def has_shape(data, shape):
+def has_shape(data: Any, shape: Any) -> bool:
     """
     Determine if a data object has the provided shape
 
@@ -886,7 +887,14 @@ class AddJitterToSeriesTest(TestCase):
     def setUp(self) -> None:
         self.db = SnubaTSDB()
 
-    def run_test(self, end, interval, jitter, expected_start, expected_end):
+    def run_test(
+        self,
+        end: datetime,
+        interval: timedelta,
+        jitter: int,
+        expected_start: datetime,
+        expected_end: datetime,
+    ) -> None:
         start = end - interval
         rollup, rollup_series = self.db.get_optimal_rollup_series(start, end)
         series = self.db._add_jitter_to_series(rollup_series, start, rollup, jitter)

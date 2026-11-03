@@ -1,0 +1,12 @@
+class Keys:
+    ENTER: str
+    BACKSPACE: str
+    END: str
+    ESCAPE: str
+    TAB: str
+    RETURN: str
+    SPACE: str
+    ARROW_UP: str
+    ARROW_DOWN: str
+    ARROW_LEFT: str
+    ARROW_RIGHT: str

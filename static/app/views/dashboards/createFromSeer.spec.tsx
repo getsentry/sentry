@@ -113,6 +113,44 @@ describe('CreateFromSeer', () => {
     });
   });
 
+  it('pushes the run id into the URL while keeping other params when a prompt is generated', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/generate/',
+      method: 'POST',
+      body: {run_id: String(SEER_RUN_ID)},
+    });
+    MockApiClient.addMockResponse({
+      url: SEER_API_URL,
+      body: MOCKED_PROCESSING_SESSION,
+    });
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(<CreateFromSeer />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/new/from-seer/',
+          query: {project: '1'},
+        },
+      },
+    });
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/Add details like what you are looking for/),
+      'errors by browser'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Generate'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Generating Dashboard'})
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: '1', seerRunId: String(SEER_RUN_ID)});
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
   it('shows loading state while session is processing', () => {
     MockApiClient.addMockResponse({
       url: SEER_API_URL,

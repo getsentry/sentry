@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.auth.principal import acting_user_id
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
@@ -152,7 +153,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             PreprodArtifactApiAssembleEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
 

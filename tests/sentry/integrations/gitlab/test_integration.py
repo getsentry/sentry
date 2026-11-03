@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import orjson
@@ -9,6 +9,7 @@ import responses
 from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.constants import ObjectStatus
@@ -18,6 +19,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabInte
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
 from sentry.integrations.gitlab.utils import build_integration_external_id
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -25,6 +27,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import ExternalProviders
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
@@ -39,13 +42,15 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
 
-def assert_proxy_request(request, is_proxy=True):
-    assert (PROXY_BASE_PATH in request.url) == is_proxy
+def assert_proxy_request(request: PreparedRequest, is_proxy: bool = True) -> None:
+    url = cast(str, request.url)
+    assert (PROXY_BASE_PATH in url) == is_proxy
     assert (PROXY_OI_HEADER in request.headers) == is_proxy
     assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
     # The following Gitlab headers don't appear in proxied requests
@@ -280,7 +285,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         external_id: str | None = None,
         issue_key: str = "example.gitlab.com/group-x:cool-group/sentry#45",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[RpcUser, GitlabIntegration, ExternalIssue, Integration, Group]:
         """
         Common setup for assignee sync tests.
 
@@ -288,7 +293,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             tuple: (user, installation, external_issue, integration, group)
         """
 
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
         integration = Integration.objects.get(provider=self.provider)
 
         installation = get_installation_of_type(
@@ -313,7 +318,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
+        return serialize_rpc_user(user), installation, external_issue, integration, group
 
     @responses.activate
     @with_feature("organizations:integrations-gitlab-project-management")
@@ -674,7 +679,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
     def test_legacy_version_does_not_gate_webhook_reconciliation(self) -> None:
         self.assert_config_schedules_reconciliation({"gitlab_webhook_version": 2})
 
-    def assert_config_schedules_reconciliation(self, config) -> None:
+    def assert_config_schedules_reconciliation(self, config: dict[str, Any]) -> None:
         integration = Integration.objects.get(provider=self.provider)
         org_integration = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
@@ -1237,7 +1242,10 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         return self._advance_step(data, organization)
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("GitLab pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _run_pipeline(self, organization: Organization | None = None, **overrides: Any) -> Any:
         self._stub_gitlab_oauth()
@@ -1794,6 +1802,7 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
             in_progress=in_progress,
         )
         metadata = integration.metadata
+        assert organization_integration.default_auth_id is not None
         identity = Identity.objects.get(id=organization_integration.default_auth_id)
         identity_data = identity.data
 

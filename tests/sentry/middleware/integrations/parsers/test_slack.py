@@ -55,7 +55,9 @@ class SlackRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def _make_parser_with_seer_event(self, event_type: str = "app_mention", event_id: str = "E1"):
+    def _make_parser_with_seer_event(
+        self, event_type: str = "app_mention", event_id: str = "E1"
+    ) -> SlackRequestParser:
         data = {
             "type": "event_callback",
             "team_id": self.integration.external_id,
@@ -280,7 +282,9 @@ class SlackRequestParserTest(TestCase):
         mock_slack_task.apply_async.assert_not_called()
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
-    def test_skips_async_response_if_org_integration_missing(self, mock_slack_task):
+    def test_skips_async_response_if_org_integration_missing(
+        self, mock_slack_task: MagicMock
+    ) -> None:
         response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         data = {
             "payload": json.dumps(
@@ -490,7 +494,7 @@ class SlackRequestParserTest(TestCase):
 
     def _make_link_identity_action_data(
         self, slack_user_id: str = "U1234567890", response_url: str = ""
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             "payload": json.dumps(
                 {
@@ -520,7 +524,7 @@ class SlackRequestParserTest(TestCase):
         mock_slack_task.apply_async.assert_not_called()
 
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply):
+    def test_seer_event_acks_200_and_enqueues_routing_task(self, mock_apply: MagicMock) -> None:
         parser = self._make_parser_with_seer_event(event_type="app_mention")
         response = parser.get_response()
 
@@ -539,7 +543,7 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_seer_event_dedupes_by_event_id(self, mock_apply):
+    def test_seer_event_dedupes_by_event_id(self, mock_apply: MagicMock) -> None:
         event_id = "EvDEDUP1"
 
         first = self._make_parser_with_seer_event(
@@ -556,7 +560,7 @@ class SlackRequestParserTest(TestCase):
         mock_apply.assert_called_once()
 
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_seer_event_releases_claim_on_schedule_failure(self, mock_apply):
+    def test_seer_event_releases_claim_on_schedule_failure(self, mock_apply: MagicMock) -> None:
         # Claim must not stick if apply_async fails — otherwise Slack retries
         # ACK as duplicates and Seer never runs for the TTL window.
         event_id = "EvSCHEDFAIL"
@@ -577,7 +581,7 @@ class SlackRequestParserTest(TestCase):
         assert mock_apply.call_count == 2
 
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_seer_event_different_event_ids_are_not_deduped(self, mock_apply):
+    def test_seer_event_different_event_ids_are_not_deduped(self, mock_apply: MagicMock) -> None:
         self._make_parser_with_seer_event(event_type="app_mention", event_id="EvA").get_response()
         self._make_parser_with_seer_event(event_type="app_mention", event_id="EvB").get_response()
 
@@ -602,7 +606,7 @@ class SlackRequestParserTest(TestCase):
 
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
-    def test_non_seer_event_not_routed_through_task(self, mock_apply):
+    def test_non_seer_event_not_routed_through_task(self, mock_apply: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/slack/event/",

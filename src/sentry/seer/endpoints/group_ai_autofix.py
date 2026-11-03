@@ -202,7 +202,7 @@ def _check_autofix_setup(organization: Organization, project: Project) -> str | 
     return None
 
 
-class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
+class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
     """Serializer for the agent-based autofix requests."""
 
     step = serializers.ChoiceField(
@@ -285,6 +285,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     permission_classes = (GroupAutofixPermission,)
@@ -386,7 +387,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         referrer = _parse_autofix_referrer(data.get("referrer"), request)
 
-        run_id: int
+        run_id: int | None
         sentry_run_id: str | None
 
         match step:

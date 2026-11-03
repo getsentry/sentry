@@ -60,7 +60,7 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             producing_seer_run_id=seer_run.seer_run_state_id,
         )
         duplicate_url = reverse(
-            "sentry-api-0-organization-investigation-duplicate",
+            "sentry-api-0-organization-notebook-duplicate",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": source.id,

@@ -85,6 +85,7 @@ import {
   isConditionalAggregateYAxisValid,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -459,6 +460,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
 
     return [
       getSaveAsAlertMenuItem({
+        disabled: hasTransformations,
         to: getAlertsUrl({
           project,
           query: search.formatString(),
@@ -539,6 +541,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
             yAxis: visualize.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
+            transformations: visualizesToWidgetTransformations([visualize]),
           });
         },
       },
@@ -553,8 +556,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     pageFilters,
     projects,
     search,
-    visualize.chartType,
-    visualize.yAxis,
+    visualize,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -570,12 +573,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {title: t('Queries with transformations cannot be saved yet.')}
-              : undefined
-          }
         />
       )}
       position="bottom-end"

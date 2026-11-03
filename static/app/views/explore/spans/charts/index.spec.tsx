@@ -14,11 +14,7 @@ import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeB
 import * as chartVisualization from 'sentry/views/explore/components/chart/chartVisualization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import {
-  parseVisualize,
-  Visualize,
-  VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {canShareChart} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {defaultVisualizes} from 'sentry/views/explore/spans/spansQueryParams';
@@ -213,7 +209,9 @@ describe('ExploreCharts', () => {
       const [serialized, setSerialized] = useState<BaseVisualize[]>(initialVisualizes);
       const visualizes = useMemo(
         () =>
-          serialized.flatMap(value => parseVisualize(value, {groupYAxes: canShareChart})),
+          serialized.flatMap(value =>
+            Visualize.fromJSON(value, {groupYAxes: canShareChart})
+          ),
         [serialized]
       );
       const timeseriesResult = useMemo(
