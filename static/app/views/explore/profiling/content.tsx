@@ -341,6 +341,9 @@ function TransactionsTab({onDataState, selection}: TabbedContentProps) {
         pageLinks={
           transactions.status === 'success' ? transactions.data.headers.Link : null
         }
+        onCursor={newCursor =>
+          setQueryParams({cursor: newCursor ?? null}, {history: 'push'})
+        }
       />
     </Stack>
   );

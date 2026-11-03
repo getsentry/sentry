@@ -59,6 +59,7 @@ export function ReleaseListInner({
 }: Props) {
   const location = useLocation();
   const [healthStatsPeriod] = useQueryState('healthStatsPeriod', parseAsString);
+  const [, setCursor] = useQueryState('cursor', parseAsString);
   const hasReleasesSetup = selectedProject?.features.includes('releases');
   const shouldShowLoadingIndicator =
     (loading && !reloading) || (loading && !releases?.length);
@@ -139,7 +140,10 @@ export function ReleaseListInner({
                 showReleaseAdoptionStages={showReleaseAdoptionStages}
               />
             ))}
-            <Pagination pageLinks={releasesPageLinks} />
+            <Pagination
+              pageLinks={releasesPageLinks}
+              onCursor={cursor => setCursor(cursor ?? null, {history: 'push'})}
+            />
           </Fragment>
         );
       }}

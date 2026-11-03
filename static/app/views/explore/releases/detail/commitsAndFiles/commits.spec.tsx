@@ -5,7 +5,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
@@ -210,6 +210,36 @@ describe('Commits', () => {
       expect.objectContaining({
         query: expect.objectContaining({repo_name: 'getsentry/sentry-frontend'}),
       })
+    );
+  });
+
+  it('pushes the next cursor and requests the next page when Next is clicked', async () => {
+    const commitsMock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
+        release.version
+      )}/commits/`,
+      body: [CommitFixture()],
+      headers: {
+        Link: '<http://127.0.0.1:8000/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/?cursor=0:40:0>; rel="next"; results="true"; cursor="0:40:0"',
+      },
+    });
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    const {router} = renderComponent({query: {project: '1'}, onNuqsUrlUpdate});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({cursor: '0:40:0', project: '1'})
+    );
+    const [{searchParams, options}] = onNuqsUrlUpdate.mock.calls[0]!;
+    expect(searchParams.get('cursor')).toBe('0:40:0');
+    expect(options.history).toBe('push');
+    expect(commitsMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({cursor: '0:40:0'})})
     );
   });
 

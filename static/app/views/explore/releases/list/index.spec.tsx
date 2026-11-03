@@ -351,6 +351,44 @@ describe('ReleasesList', () => {
     expect(options.history).toBe('push');
   });
 
+  it('pushes the next cursor and requests the next page when Next is clicked', async () => {
+    endpointMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [ReleaseFixture({version: '1.0.0'})],
+      headers: {
+        Link: '<http://127.0.0.1:8000/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+      },
+    });
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    const {router} = render(<ReleasesList />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {query: 'derp'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:20:0'));
+    expect(router.location.query.query).toBe('derp');
+    const [{searchParams, options}] = onNuqsUrlUpdate.mock.calls[0]!;
+    expect(searchParams.get('cursor')).toBe('0:20:0');
+    expect(options.history).toBe('push');
+    expect(endpointMock).toHaveBeenLastCalledWith(
+      `/organizations/${organization.slug}/releases/`,
+      expect.objectContaining({
+        query: expect.objectContaining({cursor: '0:20:0', query: 'derp'}),
+      })
+    );
+  });
+
   it('replaces an unsupported stats period with the closest supported one when the page loads', async () => {
     const onNuqsUrlUpdate = jest.fn<
       ReturnType<OnUrlUpdateFunction>,

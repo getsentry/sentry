@@ -44,7 +44,7 @@ interface FilesChangedProps {
 function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChangedProps) {
   const location = useLocation();
   const params = useParams<{release: string}>();
-  const [{activeRepo, cursor}] = useQueryStates({
+  const [{activeRepo, cursor}, setQueryParams] = useQueryStates({
     activeRepo: parseAsString,
     cursor: parseAsString,
   });
@@ -121,7 +121,12 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                   </Panel>
                 );
               })}
-              <Pagination pageLinks={fileListPageLinks} />
+              <Pagination
+                pageLinks={fileListPageLinks}
+                onCursor={newCursor =>
+                  setQueryParams({cursor: newCursor ?? null}, {history: 'push'})
+                }
+              />
             </Fragment>
           ) : (
             <EmptyState>

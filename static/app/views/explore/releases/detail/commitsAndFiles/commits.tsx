@@ -43,7 +43,7 @@ interface CommitsProps {
 function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
   const location = useLocation();
   const params = useParams<{release: string}>();
-  const [{activeRepo, cursor}] = useQueryStates({
+  const [{activeRepo, cursor}, setQueryParams] = useQueryStates({
     activeRepo: parseAsString,
     cursor: parseAsString,
   });
@@ -99,7 +99,12 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
                 ))}
               </PanelBody>
             </Panel>
-            <Pagination pageLinks={data?.headers.Link} />
+            <Pagination
+              pageLinks={data?.headers.Link}
+              onCursor={newCursor =>
+                setQueryParams({cursor: newCursor ?? null}, {history: 'push'})
+              }
+            />
           </Fragment>
         ) : (
           <EmptyState>
