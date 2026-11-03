@@ -86,3 +86,20 @@ class AutofixFeaturePayload(BaseModel):
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None
+
+
+class AutofixSingleRunFeaturePayload(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    group_id: int
+    project_id: int
+    short_id: str
+    title: str
+    culprit: str
+    on_completion_hook: OnCompletionHookDefinition
+    intelligence_level: Literal["low", "medium", "high"] = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
+    repo_pins: RepoPins | None = None
+    user_context: str | None = None
+    should_run_repo_checks: bool = False
