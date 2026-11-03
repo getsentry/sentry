@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import orjson
+from jwt import PyJWTError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,6 +15,7 @@ from sentry.integrations.jira.forge.invocation_token import (
     verify_forge_invocation_token,
 )
 from sentry.integrations.jira.tasks import sync_forge_installation
+from sentry.utils import jwt
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 from .base import JiraWebhookBase
@@ -59,6 +61,13 @@ class JiraForgeInstallationWebhook(JiraWebhookBase):
         system_token = request.headers.get("X-Forge-OAuth-System")
         if not system_token:
             return self.respond({"detail": "Missing Forge system token"}, status=400)
+        # Read the expiry here so a malformed token is rejected instead of failing the task.
+        try:
+            expires_at = jwt.peek_claims(system_token).get("exp")
+        except PyJWTError:
+            expires_at = None
+        if not isinstance(expires_at, int):
+            return self.respond({"detail": "Invalid Forge system token"}, status=400)
 
         # Encrypted so the token stays out of task arguments and error reports.
         key_id, fernet = FernetKeyStore.get_primary_fernet()
@@ -69,6 +78,7 @@ class JiraForgeInstallationWebhook(JiraWebhookBase):
                     "cloud_id": cloud_id,
                     "api_base_url": invocation.api_base_url,
                     "system_token": system_token,
+                    "system_token_expires_at": expires_at,
                 }
             )
         ).decode()

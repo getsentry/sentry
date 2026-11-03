@@ -9,7 +9,6 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
-from sentry.utils import jwt
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 FORGE_INSTALLATION_PAYLOAD_TTL = 15 * 60
@@ -101,7 +100,7 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
         "installation_id": payload["installation_id"],
         "api_base_url": api_base_url,
         "system_token": system_token,
-        "system_token_expires_at": jwt.peek_claims(system_token)["exp"],
+        "system_token_expires_at": payload["system_token_expires_at"],
     }
     with transaction.atomic(using=router.db_for_write(Integration)):
         integration = Integration.objects.select_for_update().get(id=integration.id)

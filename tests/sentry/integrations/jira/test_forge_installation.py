@@ -115,6 +115,10 @@ class JiraForgeInstallationWebhookTest(APITestCase):
         mock_verify.return_value = _invocation()
         response = self.client.post(self.url, headers={"Authorization": "Bearer fit"})
         assert response.status_code == 400
+        response = self.client.post(
+            self.url, headers={"Authorization": "Bearer fit", "X-Forge-OAuth-System": "not-a-jwt"}
+        )
+        assert response.status_code == 400
 
         assert not mock_task.delay.called
 
@@ -136,6 +140,7 @@ class SyncForgeInstallationTest(TestCase):
             "cloud_id": CLOUD_ID,
             "api_base_url": API_BASE_URL,
             "system_token": SYSTEM_TOKEN,
+            "system_token_expires_at": SYSTEM_TOKEN_EXPIRES_AT,
         }
         with patch(
             "sentry.integrations.jira.tasks.FernetKeyStore.get_fernet_for_key_id",
