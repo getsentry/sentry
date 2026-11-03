@@ -33,7 +33,7 @@ def owner() -> User:
 
 
 @pytest.fixture
-def organization(owner: User) -> None:
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 

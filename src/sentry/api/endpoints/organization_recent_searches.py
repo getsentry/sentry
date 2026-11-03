@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -8,8 +10,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
+from sentry.users.models.user import User
 
 
 class RecentSearchSerializer(serializers.Serializer):
@@ -33,7 +37,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationRecentSearchPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List recent searches for a User within an Organization
         ``````````````````````````````````````````````````````
@@ -52,7 +56,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"detail": "Invalid input for `limit`. Error: %s" % str(e)}, status=400)
 
-        query_kwargs = {
+        query_kwargs: dict[str, object] = {
             "organization": organization,
             "user_id": request.user.id,
             "type": search_type,
@@ -67,7 +71,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         return Response(serialize(recent_searches, request.user))
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = RecentSearchSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -81,7 +85,9 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
                 defaults={"last_seen": timezone.now()},
             )
             if created:
-                remove_excess_recent_searches(organization, request.user, result["type"])
+                remove_excess_recent_searches(
+                    organization, cast(User, request.user), result["type"]
+                )
             status = 201 if created else 204
 
             return Response(status=status)

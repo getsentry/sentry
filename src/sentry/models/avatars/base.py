@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from io import BytesIO
-from typing import ClassVar, Self
+from typing import IO, ClassVar, Self
 from urllib.parse import urljoin
 from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
+from django.db.models.base import ModelBase
 from django.utils.encoding import force_bytes
 from PIL import Image
 
@@ -43,12 +45,24 @@ class AvatarBase(Model):
 
     url_path = "avatar"
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not self.ident:
             self.ident = uuid4().hex
-        return super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def get_file(self):
+    def get_file(self) -> File | ControlFile | None:
         file_id = getattr(self, self.file_write_fk(), None)
         if file_id is None:
             return None
@@ -63,22 +77,24 @@ class AvatarBase(Model):
             self.update(**update)
             return None
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         file = self.get_file()
         if file:
             file.delete()
-        return super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size: int) -> str:
         raise NotImplementedError
 
-    def clear_cached_photos(self):
+    def clear_cached_photos(self) -> None:
         cache.delete_many([self.get_cache_key(x) for x in self.ALLOWED_SIZES])
 
-    def get_cached_photo(self, size):
+    def get_cached_photo(self, size: int) -> bytes | None:
         file = self.get_file()
         if not file:
-            return
+            return None
         if size not in self.ALLOWED_SIZES:
             size = min(self.ALLOWED_SIZES, key=lambda x: abs(x - size))
         cache_key = self.get_cache_key(size)
@@ -126,7 +142,14 @@ class AvatarBase(Model):
         return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 
     @classmethod
-    def save_avatar(cls, relation, type, avatar=None, filename=None, color=None) -> Self:
+    def save_avatar(
+        cls,
+        relation: Mapping[str, Model],
+        type: str,
+        avatar: IO[bytes] | str | None = None,
+        filename: str = "",
+        color: bool | None = None,
+    ) -> Self:
         if avatar:
             # Create an instance of the current class so we can
             # access where new files should be stored.
@@ -149,9 +172,11 @@ class AvatarBase(Model):
             using=router.db_for_write(cls),
         ):
             if relation.get("sentry_app") and color is not None:
-                instance, created = cls.objects.get_or_create(**relation, color=color)
+                instance, created = cls.objects.get_or_create(
+                    defaults=None, **relation, color=color
+                )
             else:
-                instance, created = cls.objects.get_or_create(**relation)
+                instance, created = cls.objects.get_or_create(defaults=None, **relation)
             file = instance.get_file()
             if file and photo:
                 file.delete()

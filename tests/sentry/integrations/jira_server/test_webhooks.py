@@ -14,8 +14,9 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
@@ -154,14 +155,14 @@ class JiraServerWebhookEndpointTest(APITestCase):
         link_group(self.organization, self.integration, group)
         return group
 
-    def _create_jira_member(self, email: str):
+    def _create_jira_member(self, email: str) -> User:
         member = self.create_user(email=email)
         self.create_member(organization=self.organization, user=member, teams=[self.team])
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=member).update(is_verified=True)
         return member
 
-    def _assignee_payload(self, assignee: dict | None, updated: str) -> dict:
+    def _assignee_payload(self, assignee: dict[str, str] | None, updated: str) -> dict[str, object]:
         return {
             "changelog": {"items": [{"field": "assignee"}], "id": 12345},
             "issue": {
@@ -232,7 +233,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch.object(JiraServerIntegration, "sync_status_inbound")
     def test_post_update_status_sets_viewer_context(self, mock_sync: MagicMock) -> None:
-        captured_contexts: list = []
+        captured_contexts: list[ViewerContext | None] = []
 
         def capture_context(*args: object, **kwargs: object) -> None:
             captured_contexts.append(get_viewer_context())

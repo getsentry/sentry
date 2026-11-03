@@ -5,7 +5,7 @@ from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnviron
 
 def monitor_has_newer_status_affecting_checkins(
     monitor_env: MonitorEnvironment, timestamp: datetime
-):
+) -> bool:
     return MonitorCheckIn.objects.filter(
         monitor_environment=monitor_env,
         date_added__gt=timestamp,
@@ -18,7 +18,7 @@ def update_monitor_environment(
     last_checkin: datetime | None,
     expected_ts: datetime,
     monitor_status: int | None = None,
-):
+) -> None:
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(expected_ts)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(expected_ts)

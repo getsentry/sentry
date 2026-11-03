@@ -35,15 +35,15 @@ def validate(
         """Keeps track of the next ordinal to be assigned for a given model kind."""
 
         # The `value` being tracked is either the custom ordering tuple for this model (see: `BaseModel::get_relocation_ordinal_fields()` method), or otherwise just the pk.
-        max_seen_ordinal_value: int | tuple | None
+        max_seen_ordinal_value: int | tuple[Any, ...] | None
         next_ordinal: int
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.max_seen_ordinal_value = None
             self.next_ordinal = 1
 
         def assign(
-            self, obj: Any, ordinal_value: int | tuple, side: Side
+            self, obj: Any, ordinal_value: int | tuple[Any, ...], side: Side
         ) -> tuple[InstanceID, list[ComparatorFinding]]:
             """Assigns the next available ordinal to the supplied `obj` model."""
 
@@ -87,7 +87,7 @@ def validate(
 
         model_map: ModelMap = defaultdict(ordereddict)
         ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)
-        need_ordering: dict[NormalizedModelName, dict[tuple, Any]] = defaultdict(dict)
+        need_ordering: dict[NormalizedModelName, dict[tuple[Any, ...], Any]] = defaultdict(dict)
         pks_to_usernames: dict[int, str] = dict()
 
         for model in models:

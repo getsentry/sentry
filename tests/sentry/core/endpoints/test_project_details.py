@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
@@ -31,6 +32,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
@@ -40,7 +42,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
-def first_symbol_source_id(sources_json):
+def first_symbol_source_id(sources_json: bytes | str) -> Any:
     sources = orjson.loads(sources_json)
     return sources[0]["id"]
 
@@ -1398,7 +1400,7 @@ class ProjectUpdateTest(APITestCase):
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
-    def symbol_sources(self):
+    def symbol_sources(self) -> list[dict[str, Any]]:
         project = Project.objects.get(id=self.project.id)
         source1 = {
             "id": "honk",
@@ -1544,11 +1546,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.create_project_rule(project=self.other_project, name="rule3")
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1568,7 +1570,7 @@ class CopyProjectSettingsTest(APITestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=()):
+    def assert_settings_not_copied(self, project: Project, teams: Sequence[Team] = ()) -> None:
         for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
@@ -1712,7 +1714,7 @@ class ProjectDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
     @mock.patch("sentry.db.pending_deletion.uuid4")
-    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
+    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin: mock.MagicMock) -> None:
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
 
         with self.settings(SENTRY_PROJECT=0):
@@ -1764,8 +1766,8 @@ class ProjectDeleteTest(APITestCase):
         "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
-        self, mock_call_seer_delete_project_grouping_records
-    ):
+        self, mock_call_seer_delete_project_grouping_records: mock.MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
@@ -1818,7 +1820,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
         self.login_as(user=self.user)
         self._apply_old_date_to_project_and_org()
 
-    def _apply_old_date_to_project_and_org(self):
+    def _apply_old_date_to_project_and_org(self) -> None:
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
         old_date = datetime.now(tz=timezone.utc) - timedelta(
@@ -2006,7 +2008,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,
-    ):
+    ) -> None:
         """
         Test for case when a user is an old plan but tries to update dynamic sampling biases that is a
         feature of new plans

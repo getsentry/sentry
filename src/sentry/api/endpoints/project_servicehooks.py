@@ -20,6 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import (
     ServiceHookSerializer,
@@ -38,7 +39,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, request: Request, project):
+    def has_feature(self, request: Request, project: Project) -> bool:
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
     @extend_schema(
@@ -58,7 +59,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response[list[ServiceHookSerializerResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ServiceHookSerializerResponse]]:
         """
         Return a list of service hooks bound to a project.
 
@@ -102,7 +105,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project) -> Response[ServiceHookSerializerResponse]:
+    def post(self, request: Request, project: Project) -> Response[ServiceHookSerializerResponse]:
         """
         Register a new service hook on a project.
 

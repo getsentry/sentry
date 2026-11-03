@@ -210,10 +210,14 @@ class ExploreSavedParamsSerializer(Serializer[ExploreSavedParam]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ExploreSavedParam:
+        assert obj.order is not None
+        assert obj.param_type is not None
+        param_type = ParamItemTypes.get_type_name(obj.param_type)
+        assert param_type is not None
         return {
             "name": obj.name,
             "order": obj.order,
-            "type": ParamItemTypes.get_type_name(obj.param_type),
+            "type": param_type,
             "value": obj.value,
         }
 
@@ -258,7 +262,8 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         # Make sure that we use the prefetch
         variables = list(obj.variables.all())
         params = sorted(
-            (var for var in variables if var.kind == KindItemTypes.PARAM), key=lambda var: var.order
+            (var for var in variables if var.kind == KindItemTypes.PARAM),
+            key=lambda var: var.order if var.order is not None else 0,
         )
         # order by name so references return in a consistent order
         references = sorted(
@@ -266,11 +271,13 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             key=lambda var: var.name,
         )
 
+        dataset = ExploreSavedQueryDataset.get_type_name(obj.dataset)
+        assert dataset is not None
         data: ExploreSavedFormulaResponse = {
             "formula": obj.formula,
             "id": str(obj.id),
             "name": obj.name,
-            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "dataset": dataset,
             "description": obj.description,
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
