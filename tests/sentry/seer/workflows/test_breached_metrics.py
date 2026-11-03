@@ -720,7 +720,6 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         return group_event, detector
 
 
-@with_feature("organizations:seer-automations")
 class GetConfigMonitorsBulkTest(TestCase):
     def test_returns_monitors_and_projects_for_metric_configs(self) -> None:
         first_project, second_project, hidden_project = (self.create_project() for _ in range(3))
@@ -751,6 +750,7 @@ class GetConfigMonitorsBulkTest(TestCase):
         }
 
 
+@with_feature("organizations:seer-automations")
 class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
     def setUp(self) -> None:
         super().setUp()
