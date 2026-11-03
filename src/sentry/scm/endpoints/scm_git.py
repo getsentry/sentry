@@ -41,7 +41,7 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 def make_git_server() -> GitServer:
     fetchers = make_fetchers()
     return GitServer(
-        public_keys=_grant_public_keys(),
+        public_keys=settings.SCM_GIT_GRANT_PUBLIC_KEYS,
         fetch_repository=fetchers.fetch_repository,
         fetch_provider=fetchers.fetch_provider,
         get_token=fetch_access_token,
@@ -76,6 +76,7 @@ class ScmGitEndpoint(Endpoint):
 
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.CODING_WORKFLOWS
+    # Each request is authorized by its grant, which _relay verifies.
     authentication_classes = ()
     permission_classes = ()
     # git's bodies are packs and git asks for its own media types, so nothing is parsed or
@@ -86,19 +87,32 @@ class ScmGitEndpoint(Endpoint):
 
     @traces.trace
     def get(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
-        return self._relay(request, int(repository_id), route)
+        return self._relay(request, repository_id, route)
 
     @traces.trace
     def post(self, request: Request, repository_id: str, route: str) -> HttpResponseBase:
-        return self._relay(request, int(repository_id), route)
+        return self._relay(request, repository_id, route)
 
-    def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
+    def _relay(self, request: Request, raw_repository_id: str, route: str) -> HttpResponseBase:
+        # The route's \d also matches other scripts' digits, and int() refuses a string of more
+        # than 4,300 digits with a ValueError. 19 ASCII digits hold any Repository.id.
+        if not (raw_repository_id.isascii() and len(raw_repository_id) <= 19):
+            return _refuse(
+                "repository_id_invalid",
+                404,
+                "The URL does not name a repository by its Sentry id.",
+                context={},
+                tags={},
+            )
+        repository_id = int(raw_repository_id)
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
         # database. GitServer verifies the JWT again, which costs one Ed25519 signature check.
         context = {"repository_id": str(repository_id)}
         try:
-            grant = verify_grant(_grant_public_keys(), request.headers.get(GRANT_HEADER, ""))
+            grant = verify_grant(
+                settings.SCM_GIT_GRANT_PUBLIC_KEYS, request.headers.get(GRANT_HEADER, "")
+            )
         except GitGrantKeyError as e:
             # No grant could verify against the key list. That's Sentry's misconfiguration, not the
             # grant's fault, so it's a 500 rather than a 403. Seer fails a checkout on a 500 at
@@ -147,10 +161,6 @@ class ScmGitEndpoint(Endpoint):
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
         )
-
-
-def _grant_public_keys() -> list[str]:
-    return settings.SCM_GIT_GRANT_PUBLIC_KEYS
 
 
 def _request_body(request: HttpRequest) -> Readable | None:

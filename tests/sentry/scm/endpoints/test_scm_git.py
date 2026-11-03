@@ -261,6 +261,39 @@ class ScmGitEndpointTest(TestCase):
         finally:
             sentry_sdk.get_global_scope().set_client(previous_client)
 
+    def fetch_refs_by_raw_id(self, raw_repository_id: str) -> HttpResponseBase:
+        return self.client.get(
+            f"/api/0/internal/scm-git/repositories/{raw_repository_id}.git/info/refs"
+            "?service=git-upload-pack",
+            headers={GRANT_HEADER: self.fetch_grant()},
+        )
+
+    @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_a_repository_id_longer_than_int_parses(
+        self, mock_record_count: mock.MagicMock
+    ) -> None:
+        # int() refuses a string of more than 4,300 digits.
+        response = self.fetch_refs_by_raw_id("4" * 4301)
+
+        self.assert_refused(response, 404, b"does not name a repository by its Sentry id")
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed", 1, {"code": "repository_id_invalid"}
+        )
+
+    @responses.activate
+    def test_refuses_a_repository_id_with_more_digits_than_any_repository(self) -> None:
+        response = self.fetch_refs_by_raw_id("4" * 20)
+
+        self.assert_refused(response, 404, b"does not name a repository by its Sentry id")
+
+    @responses.activate
+    def test_refuses_a_repository_id_in_other_scripts_digits(self) -> None:
+        # Arabic-Indic digits, which the route's \d matches and int() would read as 42.
+        response = self.fetch_refs_by_raw_id("\u0664\u0662")
+
+        self.assert_refused(response, 404, b"does not name a repository by its Sentry id")
+
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
@@ -684,18 +717,12 @@ class ScmGitEndpointTest(TestCase):
         "/api/0/internal/scm-git/repositories/42/info/refs",
         "/api/0/internal/scm-git/repositories/42.git/",
         "/api/0/internal/scm-git/repositories/42.git",
-        # More digits than any Repository.id, which int() would refuse with a 500 at 4,301.
-        f"/api/0/internal/scm-git/repositories/{'4' * 20}.git/info/refs",
-        # Arabic-Indic digits, which int() would read as 42.
-        "/api/0/internal/scm-git/repositories/\u0664\u0662.git/info/refs",
     ],
     ids=[
         "name",
         "no-git-suffix",
         "nothing-after-git",
         "no-slash-after-git",
-        "20-digits",
-        "arabic-indic",
     ],
 )
 def test_does_not_route(path: str) -> None:
