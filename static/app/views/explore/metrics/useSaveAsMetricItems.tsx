@@ -181,7 +181,6 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         key: 'add-to-dashboard',
         label: t('Dashboard widget'),
         textValue: t('Dashboard widget'),
-        disabled: hasTransformations,
         submenu: true,
         children: [
           ...(metricQueries.length > 1
@@ -216,7 +215,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         ],
       },
     ];
-  }, [addToDashboard, metricQueries, hasTransformations]);
+  }, [addToDashboard, metricQueries]);
 
   return useMemo(() => {
     return [...saveAsItems, ...saveAsAlertItems, ...addToDashboardItems];

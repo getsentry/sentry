@@ -172,20 +172,15 @@ export function ToolbarSaveAs() {
     getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
   );
 
-  const disableAddToDashboard =
-    hasTransformations || !organization.features.includes('dashboards-edit');
+  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
   const chartOptions = useMemo(() => {
-    return visualizeYAxes.map((yAxis, index) => {
-      const dedupedYAxes = [yAxis];
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(withReadableConditionalFilter(yaxis));
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+    return visualizes.map((visualize, index) => {
+      const func = parseFunction(withReadableConditionalFilter(visualize.yAxis));
 
       return {
         key: String(index),
-        label: formattedYAxes.filter(Boolean).join(', '),
+        label: func ? prettifyParsedFunction(func) : visualize.yAxis,
         onAction: () => {
           if (disableAddToDashboard) {
             return;
@@ -200,7 +195,7 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
+  }, [addToDashboard, disableAddToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
