@@ -845,6 +845,11 @@ class ServiceAccountAccess(DbAccess):
         self._all_projects = all_projects
         super().__init__(sso_is_valid=True, scopes=frozenset(scopes))
 
+    @property
+    def has_all_projects(self) -> bool:
+        """Whether the account explicitly has access to current and future active projects."""
+        return self._all_projects
+
     def has_team_access(self, team: Team) -> bool:
         return False
 

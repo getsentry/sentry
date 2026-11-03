@@ -4,12 +4,11 @@ from collections.abc import Iterable
 
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.auth.access import from_service_account_auth
+from sentry.auth.access import ServiceAccountAccess, from_service_account_auth
 from sentry.models.organization import Organization
 from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.services.notebooks import _validate_project_ids
 from sentry.service_accounts.auth import authenticate_service_account
-from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.viewer_context import Actor, ActorType, ViewerContext
 
 
@@ -24,10 +23,12 @@ def resolve_investigation_service_account(
     authenticated = authenticate_service_account(context)
     if authenticated is None:
         raise PermissionDenied
-    principal, token = authenticated
+    _, token = authenticated
     access = from_service_account_auth(token, organization.id)
-    if not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES) or not (
-        has_investigations_access(organization)
+    if (
+        not isinstance(access, ServiceAccountAccess)
+        or not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES)
+        or not has_investigations_access(organization)
     ):
         raise PermissionDenied
 
@@ -38,12 +39,6 @@ def resolve_investigation_service_account(
     else:
         # The account is already authenticated. An empty selection needs the explicit
         # all-project grant, including access to future projects.
-        has_all_projects_grant = ServiceAccountReplica.objects.filter(
-            service_account_id=principal.service_account_id,
-            organization_id=organization.id,
-            is_active=True,
-            all_projects=True,
-        ).exists()
-        if not has_all_projects_grant:
+        if not access.has_all_projects:
             raise PermissionDenied
     return context

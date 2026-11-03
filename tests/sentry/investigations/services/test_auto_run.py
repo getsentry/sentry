@@ -29,7 +29,7 @@ from sentry.notebooks.models import (
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import MissingViewerContextError
-from sentry.service_accounts.models import ServiceAccountProject
+from sentry.service_accounts.models import ServiceAccountProject, ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
@@ -1118,7 +1118,11 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
         # Individual grants cover every current project, but not the empty selection's future ones.
         assert list(self.organization.project_set.values_list("id", flat=True)) == [self.project.id]
-        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        with mock.patch.object(
+            ServiceAccountReplica.objects, "filter", wraps=ServiceAccountReplica.objects.filter
+        ) as account_lookup:
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        assert account_lookup.call_count == 2
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"

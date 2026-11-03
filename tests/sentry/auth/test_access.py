@@ -1413,6 +1413,7 @@ class ServiceAccountAccessTest(TestCase):
         result = self._access()
 
         assert isinstance(result, access.ServiceAccountAccess)
+        assert not result.has_all_projects
         assert not result.has_global_access
         assert not result.has_open_membership
         assert result.has_scope("project:read")
@@ -1456,6 +1457,8 @@ class ServiceAccountAccessTest(TestCase):
 
         result = self._access()
 
+        assert isinstance(result, access.ServiceAccountAccess)
+        assert result.has_all_projects
         # Org-wide access would also cover team and member actions, so it stays off.
         assert not result.has_global_access
         assert not result.has_open_membership
