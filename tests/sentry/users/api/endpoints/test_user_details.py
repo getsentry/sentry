@@ -760,6 +760,7 @@ class UserDetailsSuspensionTest(UserDetailsTest):
     def test_superuser_cannot_suspend_sentry_app_user(self) -> None:
         sentry_app = self.create_sentry_app(name="test-app", organization=self.organization)
         self.login_as(user=self.superuser, superuser=True)
+        assert sentry_app.proxy_user is not None
         resp = self.get_error_response(
             sentry_app.proxy_user.id, isSuspended="true", status_code=400
         )

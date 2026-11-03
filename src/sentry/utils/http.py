@@ -264,7 +264,8 @@ def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
     family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
     if not family or family in MCP_CATCHALL_CLIENT_FAMILIES:
         return None
-    return LEGACY_MCP_CLIENT_FAMILY_ALIASES.get(family, family)
+    alias = LEGACY_MCP_CLIENT_FAMILY_ALIASES.get(family, family)
+    return alias
 
 
 def percent_encode(val: str) -> str:
@@ -341,7 +342,7 @@ def request_body_stream(
     if uwsgi:
         if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
 
-            def stream_generator():
+            def stream_generator() -> Generator[bytes]:
                 while True:
                     chunk = uwsgi.chunked_read()
                     if not chunk:

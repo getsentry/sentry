@@ -16,6 +16,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
   tag: Tag;
+  linksAsText?: boolean;
   size?: 'sm' | 'md';
 };
 
@@ -44,10 +45,10 @@ export function ValueType({
   return toTitleCase(fieldDefinition?.valueType ?? defaultType);
 }
 
-export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
+export function KeyDescription({linksAsText, size = 'sm', tag}: KeyDescriptionProps) {
   return (
     <DescriptionWrapper size={size}>
-      <KeyDetails tag={tag} linksAsText />
+      <KeyDetails tag={tag} linksAsText={linksAsText} />
     </DescriptionWrapper>
   );
 }

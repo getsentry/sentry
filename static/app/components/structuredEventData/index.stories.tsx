@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';

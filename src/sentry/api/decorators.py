@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Concatenate
+from typing import Concatenate, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.http.response import HttpResponseBase
@@ -52,7 +52,7 @@ def sudo_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
         require_sudo(request)
         return func(self, request, *args, **kwargs)
 
-    return wrapped
+    return cast("_RFMethod[T, P]", wrapped)
 
 
 def primary_email_verification_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
@@ -62,4 +62,4 @@ def primary_email_verification_required[T, **P](func: _RFMethod[T, P]) -> _RFMet
             raise PrimaryEmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 
-    return wrapped
+    return cast("_RFMethod[T, P]", wrapped)

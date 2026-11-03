@@ -71,7 +71,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         group_event = self.event.for_group(self.group)
 
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
-        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
@@ -79,7 +79,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
         self.assert_does_not_pass(
-            self.dc, WorkflowEventData(event=self.event, group=self.event.group)
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
         )
 
     def test_category_v2(self) -> None:
@@ -116,9 +116,11 @@ class TestIssueCategoryCondition(ConditionTestCase):
         group_event = self.event.for_group(self.group)
 
         self.dc.update(comparison={"value": GroupCategory.ERROR.value, "include": False})
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
+        )
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value, "include": False})
-        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

@@ -279,7 +279,8 @@ class GroupAction(BaseModel, abc.ABC):
 
     def json_dict(self) -> dict[str, Any]:
         """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
-        return orjson.loads(self.json())
+        data = orjson.loads(self.json())
+        return data
 
 
 class ViewAction(GroupAction):

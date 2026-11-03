@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -44,6 +44,7 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.issues.action_log import (
     action_context_scope,
     publish_action,
@@ -60,6 +61,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
@@ -90,8 +92,8 @@ def _get_external_issue_link_lock(
 class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
     # Exactly one of these is present on a given response, selected by the `action`
     # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
-    linkIssueConfig: list[dict[str, Any]]
-    createIssueConfig: list[dict[str, Any]]
+    linkIssueConfig: list[IntegrationIssueConfigField]
+    createIssueConfig: list[IntegrationIssueConfigField]
 
 
 class ExternalIssueLinkResponse(TypedDict):
@@ -103,7 +105,7 @@ class ExternalIssueLinkResponse(TypedDict):
 
 
 class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse]):
-    def __init__(self, action: str, config: list[dict[str, Any]]) -> None:
+    def __init__(self, action: str, config: list[IntegrationIssueConfigField]) -> None:
         self.action = action
         self.config = config
 
@@ -116,8 +118,8 @@ class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse
     ) -> IntegrationIssueConfigResponse:
         base = IntegrationSerializer().serialize(obj, attrs, user)
         if self.action == "link":
-            return {**base, "linkIssueConfig": self.config}
-        return {**base, "createIssueConfig": self.config}
+            return cast("IntegrationIssueConfigResponse", {**base, "linkIssueConfig": self.config})
+        return cast("IntegrationIssueConfigResponse", {**base, "createIssueConfig": self.config})
 
 
 ACTION_PARAM = OpenApiParameter(
@@ -143,6 +145,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT", "DELETE"})
 
     @extend_schema(
         operation_id="Retrieve an Integration's Issue Config for an Issue",
@@ -715,7 +718,9 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         return Response(status=204)
 
     def _has_issue_feature(
-        self, organization: Organization, user: User | RpcUser | AnonymousUser
+        self,
+        organization: Organization,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal,
     ) -> bool:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user

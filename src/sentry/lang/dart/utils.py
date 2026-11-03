@@ -66,7 +66,7 @@ def get_debug_meta_image_ids(event: dict[str, Any]) -> set[str]:
     }
 
 
-def generate_dart_symbols_map(debug_ids: list[str], project: Project):
+def generate_dart_symbols_map(debug_ids: list[str], project: Project) -> dict[str, str] | None:
     """
     Fetches and returns the dart symbols mapping for the first available debug_id.
     There should only be one mapping file per Flutter build, so we return the first mapping found.
@@ -159,7 +159,7 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
                     exception["value"] = new_value
 
 
-def has_native_frames_in_stacktraces(data) -> bool:
+def has_native_frames_in_stacktraces(data: Mapping[str, object]) -> bool:
     for stacktrace_info in find_stacktraces_in_data(data):
         frames = stacktrace_info.get_frames()
         if frames and any(frame.get("platform") == "native" for frame in frames):

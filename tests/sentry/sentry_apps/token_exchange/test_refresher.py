@@ -26,15 +26,23 @@ from sentry.testutils.silo import control_silo_test
 class TestRefresher(TestCase):
     def setUp(self) -> None:
         self.install = self.create_sentry_app_installation()
-        self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.install.sentry_app.proxy_user
-
-        self.token = self.install.api_token
+        application = self.install.sentry_app.application
+        assert application is not None
+        user = self.install.sentry_app.proxy_user
+        assert user is not None
+        token = self.install.api_token
+        assert token is not None
+        assert token.refresh_token is not None
+        self.application = application
+        self.client_id = application.client_id
+        self.user = user
+        self.token = token
+        self.refresh_token = token.refresh_token
 
         self.refresher = Refresher(
             install=self.install,
             client_id=self.client_id,
-            refresh_token=self.token.refresh_token,
+            refresh_token=self.refresh_token,
             user=self.user,
         )
 
@@ -52,7 +60,9 @@ class TestRefresher(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_validates_token_belongs_to_sentry_app(self, mock_record: MagicMock) -> None:
         new_install = self.create_sentry_app_installation()
-        refresh_token = new_install.api_token.refresh_token
+        new_token = new_install.api_token
+        assert new_token is not None
+        refresh_token = new_token.refresh_token
 
         assert refresh_token is not None
         self.refresher.refresh_token = refresh_token
@@ -189,7 +199,7 @@ class TestRefresher(TestCase):
 
         assert e.value.message == "Sentry App does not exist on attached Application"
         assert e.value.webhook_context == {
-            "application_id": self.install.sentry_app.application.id,
+            "application_id": self.application.id,
             "installation_uuid": self.install.uuid,
             "client_id": self.client_id[:SENSITIVE_CHARACTER_LIMIT],
         }
@@ -216,7 +226,7 @@ class TestRefresher(TestCase):
         Refresher(
             install=self.install,
             client_id=self.client_id,
-            refresh_token=self.token.refresh_token,
+            refresh_token=self.refresh_token,
             user=self.user,
         ).run()
 

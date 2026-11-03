@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -76,7 +76,9 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
             max_download_size=500,
         )
 
-    def _get_url(self, head_artifact_id=None, base_artifact_id=None):
+    def _get_url(
+        self, head_artifact_id: int | None = None, base_artifact_id: int | None = None
+    ) -> str:
         head_artifact_id = head_artifact_id or self.head_artifact.id
         base_artifact_id = base_artifact_id or self.base_artifact.id
         return reverse(
@@ -401,7 +403,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert watch_comparison_data["comparison_id"] == watch_comparison.id
 
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
-    def test_post_comparison_success(self, mock_apply_async):
+    def test_post_comparison_success(self, mock_apply_async: MagicMock) -> None:
         """Test POST endpoint successfully triggers comparison and creates PENDING records"""
         response = self.get_success_response(
             self.organization.slug,
@@ -567,7 +569,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
     def test_post_comparison_existing_failed_comparison_auto_retries(
-        self, mock_apply_async
+        self, mock_apply_async: MagicMock
     ) -> None:
         """Test POST endpoint auto-retries when all existing comparisons are failed"""
         self.create_preprod_artifact_size_comparison(
@@ -612,7 +614,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert "base has 1 metric(s)" in detail
 
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
-    def test_post_comparison_multiple_metrics(self, mock_apply_async):
+    def test_post_comparison_multiple_metrics(self, mock_apply_async: MagicMock) -> None:
         """Test POST endpoint handles multiple size metrics correctly and creates PENDING records"""
         # Create additional size metrics
         head_watch_metric = self.create_preprod_artifact_size_metrics(
@@ -737,7 +739,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
     )
-    def test_get_returns_404_for_expired_head_artifact(self, mock_cutoff):
+    def test_get_returns_404_for_expired_head_artifact(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = timezone.now() - timedelta(days=30)
         self.head_artifact.date_added = timezone.now() - timedelta(days=60)
         self.head_artifact.save()
@@ -753,7 +755,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare.get_size_retention_cutoff"
     )
-    def test_get_returns_404_for_expired_base_artifact(self, mock_cutoff):
+    def test_get_returns_404_for_expired_base_artifact(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = timezone.now() - timedelta(days=30)
         self.base_artifact.date_added = timezone.now() - timedelta(days=60)
         self.base_artifact.save()
@@ -767,7 +769,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.data["detail"] == "This build's size data has expired."
 
     @patch("sentry.preprod.size_analysis.tasks.manual_size_analysis_comparison.apply_async")
-    def test_post_rerun_as_staff_deletes_and_recreates(self, mock_apply_async):
+    def test_post_rerun_as_staff_deletes_and_recreates(self, mock_apply_async: MagicMock) -> None:
         """Test POST with rerun=true as active staff deletes existing and creates new comparisons"""
         self.create_preprod_artifact_size_comparison(
             head_size_analysis=self.head_size_metric,
@@ -794,7 +796,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert data["comparisons"][0]["state"] == PreprodArtifactSizeComparison.State.PENDING
         mock_apply_async.assert_called_once()
 
-    def test_post_rerun_as_non_staff_returns_403(self):
+    def test_post_rerun_as_non_staff_returns_403(self) -> None:
         """Test POST with rerun=true as non-staff returns 403"""
         self.create_preprod_artifact_size_comparison(
             head_size_analysis=self.head_size_metric,
@@ -809,7 +811,7 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert response.status_code == 403
         assert response.json()["detail"] == "Only staff can rerun comparisons."
 
-    def test_post_rerun_as_inactive_staff_raises_staff_required(self):
+    def test_post_rerun_as_inactive_staff_raises_staff_required(self) -> None:
         """Test POST with rerun=true as is_staff user without active staff session raises StaffRequired"""
         self.create_preprod_artifact_size_comparison(
             head_size_analysis=self.head_size_metric,

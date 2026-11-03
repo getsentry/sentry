@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -724,9 +724,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm

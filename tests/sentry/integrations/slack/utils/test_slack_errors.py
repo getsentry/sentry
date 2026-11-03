@@ -15,6 +15,8 @@ from sentry.integrations.slack.utils.errors import (
     RATE_LIMITED,
     SLACK_SDK_ERROR_CATEGORIES,
     SLACK_SDK_HALT_ERROR_CATEGORIES,
+    SlackSdkErrorCategory,
+    TypedSlackApiError,
     unpack_slack_api_error,
 )
 
@@ -29,14 +31,14 @@ def _make_slack_api_error(error: str) -> SlackApiError:
         headers={},
         status_code=200,
     )
-    return SlackApiError(
+    return TypedSlackApiError(
         message=f"The request to the Slack API failed. (error: {error})", response=response
     )
 
 
 class TestUnpackSlackApiError:
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_fatal_error(self, mock_capture):
+    def test_fatal_error(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("fatal_error")
         result = unpack_slack_api_error(exc)
         assert result is FATAL_ERROR
@@ -44,7 +46,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_internal_error(self, mock_capture):
+    def test_internal_error(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("internal_error")
         result = unpack_slack_api_error(exc)
         assert result is INTERNAL_ERROR
@@ -52,7 +54,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_invalid_blocks(self, mock_capture):
+    def test_invalid_blocks(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("invalid_blocks")
         result = unpack_slack_api_error(exc)
         assert result is INVALID_BLOCKS
@@ -60,7 +62,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_invalid_attachments(self, mock_capture):
+    def test_invalid_attachments(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("invalid_attachments")
         result = unpack_slack_api_error(exc)
         assert result is INVALID_ATTACHMENTS
@@ -68,7 +70,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_invalid_auth(self, mock_capture):
+    def test_invalid_auth(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("invalid_auth")
         result = unpack_slack_api_error(exc)
         assert result is INVALID_AUTH
@@ -76,7 +78,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_non_json_response(self, mock_capture):
+    def test_non_json_response(self, mock_capture: MagicMock) -> None:
         response = SlackResponse(
             client=MagicMock(),
             http_verb="POST",
@@ -89,14 +91,14 @@ class TestUnpackSlackApiError:
             headers={},
             status_code=200,
         )
-        exc = SlackApiError(message="The request to the Slack API failed.", response=response)
+        exc = TypedSlackApiError(message="The request to the Slack API failed.", response=response)
         result = unpack_slack_api_error(exc)
         assert result is NON_JSON_RESPONSE
         assert result in SLACK_SDK_HALT_ERROR_CATEGORIES
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_preexisting_category_channel_not_found(self, mock_capture):
+    def test_preexisting_category_channel_not_found(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("channel_not_found")
         result = unpack_slack_api_error(exc)
         assert result is CHANNEL_NOT_FOUND
@@ -104,7 +106,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_preexisting_category_ratelimited(self, mock_capture):
+    def test_preexisting_category_ratelimited(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("ratelimited")
         result = unpack_slack_api_error(exc)
         assert result is RATE_LIMITED
@@ -112,7 +114,7 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_all_categories_recognized(self, mock_capture):
+    def test_all_categories_recognized(self, mock_capture: MagicMock) -> None:
         for category in SLACK_SDK_ERROR_CATEGORIES:
             if category is NON_JSON_RESPONSE:
                 continue
@@ -122,21 +124,21 @@ class TestUnpackSlackApiError:
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_slack_request_error_string_fallback(self, mock_capture):
+    def test_slack_request_error_string_fallback(self, mock_capture: MagicMock) -> None:
         exc = SlackRequestError("channel_not_found\nsome extra detail")
         result = unpack_slack_api_error(exc)
         assert result is CHANNEL_NOT_FOUND
         mock_capture.assert_not_called()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_slack_request_error_unknown(self, mock_capture):
+    def test_slack_request_error_unknown(self, mock_capture: MagicMock) -> None:
         exc = SlackRequestError("something_completely_new")
         result = unpack_slack_api_error(exc)
         assert result is None
         mock_capture.assert_called_once()
 
     @patch("sentry.integrations.slack.utils.errors.capture_message")
-    def test_unknown_error_fires_capture_message(self, mock_capture):
+    def test_unknown_error_fires_capture_message(self, mock_capture: MagicMock) -> None:
         exc = _make_slack_api_error("totally_new_error")
         result = unpack_slack_api_error(exc)
         assert result is None
@@ -153,7 +155,9 @@ class TestUnpackSlackApiError:
             (NON_JSON_RESPONSE, True),
         ],
     )
-    def test_halt_classification(self, category, expected_halt):
+    def test_halt_classification(
+        self, category: SlackSdkErrorCategory, expected_halt: bool
+    ) -> None:
         if expected_halt:
             assert category in SLACK_SDK_HALT_ERROR_CATEGORIES
         else:

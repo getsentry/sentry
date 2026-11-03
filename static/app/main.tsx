@@ -3,7 +3,6 @@ import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {setApiNavigate} from 'sentry/api';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
@@ -13,6 +12,7 @@ import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/docume
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';

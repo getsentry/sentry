@@ -6,7 +6,11 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-function renderKeyDescription(tag: Tag, fieldDefinitionGetter?: FieldDefinitionGetter) {
+function renderKeyDescription(
+  tag: Tag,
+  fieldDefinitionGetter?: FieldDefinitionGetter,
+  linksAsText?: boolean
+) {
   render(
     <SearchQueryBuilderProvider
       fieldDefinitionGetter={fieldDefinitionGetter}
@@ -15,7 +19,7 @@ function renderKeyDescription(tag: Tag, fieldDefinitionGetter?: FieldDefinitionG
       initialQuery=""
       searchSource="test"
     >
-      <KeyDescription tag={tag} />
+      <KeyDescription tag={tag} linksAsText={linksAsText} />
     </SearchQueryBuilderProvider>
   );
 }
@@ -95,10 +99,11 @@ describe('KeyDescription', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders description links as text when shown in a menu', () => {
+  it('renders description links as text when asked to', () => {
     renderKeyDescription(
       {key: 'db.system', name: 'db.system', kind: FieldKind.TAG},
-      key => getFieldDefinition(key, 'span')
+      key => getFieldDefinition(key, 'span'),
+      true
     );
 
     expect(screen.getByText(/OpenTelemetry docs/)).toBeInTheDocument();

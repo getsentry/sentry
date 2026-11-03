@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import fetch_snuba_query
@@ -67,7 +68,7 @@ class DetectorStateTest(TestCase):
             self.create_data_condition(
                 condition_group=group,
                 type=condition_type,
-                comparison=500.0,
+                comparison=cast("str | int | Mapping[str, object]", 500.0),
                 condition_result=result,
             )
         detector = self.create_detector(

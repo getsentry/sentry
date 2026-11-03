@@ -93,13 +93,13 @@ class BaseQueryBuilder:
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
-    def get_middle(self):
+    def get_middle(self) -> datetime:
         """Get the middle for comparison functions"""
         if self.start is None or self.end is None:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
 
-    def first_half_condition(self):
+    def first_half_condition(self) -> Function:
         """Create the first half condition for percent_change functions"""
         return Function(
             "less",
@@ -109,7 +109,7 @@ class BaseQueryBuilder:
             ],
         )
 
-    def second_half_condition(self):
+    def second_half_condition(self) -> Function:
         """Create the second half condition for percent_change functions"""
         return Function(
             "greaterOrEquals",
@@ -164,7 +164,7 @@ class BaseQueryBuilder:
                 environments = []  # type: ignore[unreachable]
 
         user_id = params.get("user_id")
-        user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -1218,7 +1218,7 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
-    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 
@@ -1228,7 +1228,7 @@ class BaseQueryBuilder:
             if not value.is_event_id():
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
 
-    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 

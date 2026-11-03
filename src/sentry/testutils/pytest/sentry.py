@@ -159,7 +159,7 @@ def _forbid_single_host_flushall() -> None:
 
     flushall = Redis.flushall
 
-    def guarded_flushall(self: Redis, *args: Any, **kwargs: Any) -> Any:
+    def guarded_flushall(self: Redis[str], *args: Any, **kwargs: Any) -> Any:
         # Prefixed cluster clients only delete the keys of this worker.
         if isinstance(self, RedisCluster):
             return flushall(self, *args, **kwargs)

@@ -1,6 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -18,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeList} from 'sentry/utils/queryString';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
@@ -71,10 +72,13 @@ export function WebVitalsDetailPanel({
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
-  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
-  const subregions = decodeList(
-    location.query[SpanFields.USER_GEO_SUBREGION]
-  ) as SubregionCode[];
+  const [browserNames] = useQueryState(SpanFields.BROWSER_NAME, parseAsStringArray);
+  const [subregionCodes] = useQueryState(
+    SpanFields.USER_GEO_SUBREGION,
+    parseAsStringArray
+  );
+  const browserTypes = decodeBrowserTypes(browserNames);
+  const subregions = subregionCodes as SubregionCode[];
 
   const {dashboard: linkedWebVitalsSummaryDashboard} = useGetPrebuiltDashboard(
     dashboardFilters === undefined ? undefined : PrebuiltDashboardId.WEB_VITALS_SUMMARY

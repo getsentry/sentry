@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
@@ -32,6 +33,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -161,7 +163,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        (serialized_run,) = response.json()["runs"]
+        (serialized_run,) = json.loads(response.content)["runs"]
         (serialized_execution,) = serialized_run["executions"]
         assert serialized_run["status"] == serialized_execution["status"] == "failed"
         assert serialized_run["error"] == error
@@ -184,7 +186,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             run.update(extras={"error": error})
             execution.update(extras={"error": error})
             response = self.get_success_response(self.organization.slug, config=self.config.id)
-            (serialized_run,) = response.json()["runs"]
+            (serialized_run,) = json.loads(response.content)["runs"]
             unknown = {"code": "unknown", "message": "No error details are available."}
             assert serialized_run["error"] == (None if error is None else unknown)
             assert serialized_run["executions"][0]["error"] == unknown
@@ -215,7 +217,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        runs = response.json()["runs"]
+        runs = json.loads(response.content)["runs"]
         assert [run["status"] for run in runs] == [None, "complete", "running", "queued"]
         for run_data in runs:
             assert "error" not in run_data
@@ -476,7 +478,9 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["outputs"] == []
         assert investigation.title not in response.content.decode()
 
-    def create_run(self, *, project_ids: Sequence[int] | None = None, **kwargs) -> SeerWorkflowRun:
+    def create_run(
+        self, *, project_ids: Sequence[int] | None = None, **kwargs: object
+    ) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)
         kwargs.setdefault(
             "extras",
@@ -608,7 +612,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["status"] == "failed"
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
-    def trigger(self):
+    def trigger(self) -> SeerAgentRun:
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
@@ -617,7 +621,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             run__workflow_execution__run_id=response.data["runId"]
         )
 
-    def result(self):
+    def result(self) -> dict[str, Any]:
         return {
             "schema_version": 1,
             "data": {

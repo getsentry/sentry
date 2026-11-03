@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -43,8 +43,8 @@ from tests.sentry.feedback import MockSeerResponse
 )
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_get_feedback_title_from_seer_invalid_response(
-    mock_make_seer_request, status_code, json_data
-):
+    mock_make_seer_request: MagicMock, status_code: int, json_data: object
+) -> None:
     """Test the get_feedback_title_from_seer function with various invalid responses."""
     mock_response = MockSeerResponse(status_code, json_data)
     mock_make_seer_request.return_value = mock_response
@@ -53,7 +53,7 @@ def test_get_feedback_title_from_seer_invalid_response(
 
 
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
-def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
+def test_get_feedback_title_from_seer_http_error(mock_make_seer_request: MagicMock) -> None:
     """Test the get_feedback_title_from_seer function with HTTP error response."""
     mock_response = MockSeerResponse(500, {})
     mock_make_seer_request.return_value = mock_response
@@ -62,7 +62,7 @@ def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
 
 
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
-def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
+def test_get_feedback_title_from_seer_exception(mock_make_seer_request: MagicMock) -> None:
     """Test the get_feedback_title_from_seer function with exception during API call."""
     mock_make_seer_request.side_effect = Exception("Network error")
     assert get_feedback_title_from_seer("Login button broken", 123) is None
@@ -70,7 +70,7 @@ def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
 
 
 @patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
-def test_get_feedback_title_from_seer_success(mock_make_seer_request):
+def test_get_feedback_title_from_seer_success(mock_make_seer_request: MagicMock) -> None:
     """Test the get_feedback_title_from_seer function with successful response."""
     mock_response = MockSeerResponse(200, {"title": "Login Button Issue"})
     mock_make_seer_request.return_value = mock_response
