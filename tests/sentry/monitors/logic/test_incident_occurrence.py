@@ -341,6 +341,9 @@ class IncidentOccurrenceTestCase(TestCase):
         team = self.create_team(organization=self.organization)
         self.monitor.update(owner_team_id=team.id)
         self.monitor.refresh_from_db()
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+        detector.update(owner_team_id=team.id)
         other_org = self.create_organization()
         team.update(organization_id=other_org.id)
 
@@ -354,6 +357,8 @@ class IncidentOccurrenceTestCase(TestCase):
         self.monitor.refresh_from_db()
         assert self.monitor.owner_team_id is None
         assert self.monitor.owner_user_id is None
+        detector.refresh_from_db()
+        assert detector.owner_team_id is None
         assert mock_produce_occurrence_to_kafka.call_count == 1
         kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
         occurrence = kwargs["occurrence"]

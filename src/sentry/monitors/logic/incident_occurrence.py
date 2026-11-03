@@ -22,6 +22,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.logic.monitor_status import sync_cron_detector_name_and_owner
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
@@ -157,6 +158,7 @@ def send_incident_occurrence(
             # If the owner is no longer valid, unassign it from the monitor
             owner_actor = None
             monitor_env.monitor.update(owner_user_id=None, owner_team_id=None)
+            sync_cron_detector_name_and_owner(monitor_env.monitor)
 
     failure_reason = get_failure_reason(previous_checkins)
 
