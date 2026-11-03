@@ -15,6 +15,7 @@ from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,
+    _get_commits,
     _get_serialized_committers_from_group_owners,
     _match_commits_paths,
     dedupe_commits,
@@ -236,6 +237,37 @@ class MatchCommitsPathTestCase(CommitTestCase):
                 ],
             )
         ) == {commit_1, commit_2}
+
+
+class GetCommitsTestCase(CommitTestCase):
+    def test_dedupes_commits_shared_between_releases(self) -> None:
+        commit_1 = self.create_commit()
+        commit_2 = self.create_commit()
+        commit_3 = self.create_commit()
+        release_1 = self.create_release(project=self.project, version="1.0")
+        release_2 = self.create_release(project=self.project, version="2.0")
+        for order, (release, commit) in enumerate(
+            [
+                (release_1, commit_1),
+                (release_1, commit_2),
+                (release_2, commit_2),
+                (release_2, commit_3),
+            ]
+        ):
+            ReleaseCommit.objects.create(
+                organization_id=self.organization.id,
+                release=release,
+                commit=commit,
+                order=order,
+            )
+
+        # First call reads from the database and fills the cache, second reads the cache
+        for _ in range(2):
+            assert [c.id for c in _get_commits([release_1, release_2])] == [
+                commit_1.id,
+                commit_2.id,
+                commit_3.id,
+            ]
 
 
 class GetPreviousReleasesTestCase(TestCase):
