@@ -897,7 +897,7 @@ def _build_github_oauth_url(pipeline: IntegrationPipeline) -> str:
     return (
         f"{ghip.get_oauth_authorize_url()}"
         f"?client_id={ghip.get_oauth_client_id()}"
-        f"&state={pipeline.signature}"
+        f"&state={pipeline.get_or_create_state_nonce()}"
         f"&redirect_uri={redirect_uri}"
     )
 
@@ -1134,12 +1134,12 @@ class OAuthLoginApiStep:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
             lifecycle.add_extra("organization_id", pipeline.organization.id)
 
-            if installation_id := validated_data.get("installation_id"):
-                pipeline.bind_state("installation_id", installation_id)
-
-            if validated_data["state"] != pipeline.signature:
+            if not pipeline.verify_state_nonce(validated_data.get("state")):
                 lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
                 return PipelineStepResult.error(GitHubInstallationError.INVALID_STATE)
+
+            if installation_id := validated_data.get("installation_id"):
+                pipeline.bind_state("installation_id", installation_id)
 
             try:
                 result = exchange_github_oauth(code=validated_data["code"])

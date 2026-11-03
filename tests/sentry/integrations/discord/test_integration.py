@@ -417,6 +417,16 @@ class DiscordApiPipelineTest(APITestCase):
         assert resp.status_code == 400
 
     @responses.activate
+    def test_oauth_step_invalid_state(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step(
+            {"code": "auth-code", "state": "not-the-issued-state", "guildId": self.guild_id}
+        )
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert not Integration.objects.filter(provider="discord").exists()
+
+    @responses.activate
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def test_full_pipeline_flow(self, mock_set_application_command: mock.MagicMock) -> None:
         responses.add(

@@ -161,7 +161,7 @@ class MsTeamsApiStep:
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         return {
             "appDirectoryInstall": True,
-            "state": pipeline.signature,
+            "state": pipeline.get_or_create_state_nonce(),
         }
 
     def get_serializer_cls(self) -> type:
@@ -173,7 +173,7 @@ class MsTeamsApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        if validated_data["state"] != pipeline.signature:
+        if not pipeline.verify_state_nonce(validated_data.get("state")):
             return PipelineStepResult.error("An error occurred while validating your request.")
         return PipelineStepResult.advance()
 

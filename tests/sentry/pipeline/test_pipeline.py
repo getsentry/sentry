@@ -10,7 +10,7 @@ from django.http.response import HttpResponseBase
 from rest_framework import serializers
 
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.pipeline.base import ERR_MISMATCHED_USER, Pipeline
+from sentry.pipeline.base import ERR_MISMATCHED_USER, STATE_NONCE_KEY, Pipeline
 from sentry.pipeline.provider import PipelineProvider
 from sentry.pipeline.store import PipelineSessionStore
 from sentry.pipeline.types import PipelineStepAction, PipelineStepResult
@@ -395,6 +395,45 @@ class PipelineTestCase(TestCase):
             idp.delete()
 
             assert DummyPipeline.get_for_request(self.request) is None
+
+    def _nonce_pipeline(self) -> DummyPipeline:
+        with patch("sentry.pipeline.base.bind_organization_context"):
+            pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+        return pipeline
+
+    def test_state_nonce_is_bound_once_and_reused(self) -> None:
+        pipeline = self._nonce_pipeline()
+
+        nonce = pipeline.get_or_create_state_nonce()
+
+        assert nonce
+        assert nonce != pipeline.signature
+        assert pipeline.fetch_state(STATE_NONCE_KEY) == nonce
+        assert pipeline.get_or_create_state_nonce() == nonce
+
+    def test_state_nonce_differs_between_pipelines(self) -> None:
+        first = self._nonce_pipeline().get_or_create_state_nonce()
+        second = self._nonce_pipeline().get_or_create_state_nonce()
+
+        assert first != second
+
+    def test_verify_state_nonce_accepts_only_the_issued_value(self) -> None:
+        pipeline = self._nonce_pipeline()
+        nonce = pipeline.get_or_create_state_nonce()
+
+        assert pipeline.verify_state_nonce(nonce)
+        assert not pipeline.verify_state_nonce(nonce + "x")
+        assert not pipeline.verify_state_nonce(pipeline.signature)
+        assert not pipeline.verify_state_nonce("")
+        assert not pipeline.verify_state_nonce(None)
+
+    def test_verify_state_nonce_fails_when_none_was_issued(self) -> None:
+        pipeline = self._nonce_pipeline()
+
+        assert not pipeline.verify_state_nonce("")
+        assert not pipeline.verify_state_nonce(None)
+        assert not pipeline.verify_state_nonce("anything")
 
 
 @control_silo_test

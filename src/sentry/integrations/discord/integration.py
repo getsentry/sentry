@@ -204,7 +204,7 @@ class DiscordOAuthApiStep:
                 "appDirectoryInstall": True,
                 "code": pipeline.fetch_state("code"),
                 "guildId": pipeline.fetch_state("guild_id"),
-                "state": pipeline.signature,
+                "state": pipeline.get_or_create_state_nonce(),
             }
 
         params = urlencode(
@@ -213,7 +213,7 @@ class DiscordOAuthApiStep:
                 "permissions": self.permissions,
                 "scope": " ".join(self.scopes),
                 "response_type": "code",
-                "state": pipeline.signature,
+                "state": pipeline.get_or_create_state_nonce(),
                 "redirect_uri": self.redirect_url,
             }
         )
@@ -228,7 +228,7 @@ class DiscordOAuthApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        if validated_data["state"] != pipeline.signature:
+        if not pipeline.verify_state_nonce(validated_data.get("state")):
             return PipelineStepResult.error("An error occurred while validating your request.")
 
         pipeline.bind_state("guild_id", validated_data["guild_id"])

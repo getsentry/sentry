@@ -1630,7 +1630,7 @@ class JiraConfirmInstallStep:
         return {
             "baseUrl": metadata.get("base_url", ""),
             "organization": pipeline.organization.name if pipeline.organization else "",
-            "state": pipeline.signature,
+            "state": pipeline.get_or_create_state_nonce(),
         }
 
     def get_serializer_cls(self) -> type:
@@ -1642,7 +1642,7 @@ class JiraConfirmInstallStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        if validated_data["state"] != pipeline.signature:
+        if not pipeline.verify_state_nonce(validated_data.get("state")):
             return PipelineStepResult.error("An error occurred while validating your request.")
         return PipelineStepResult.advance()
 

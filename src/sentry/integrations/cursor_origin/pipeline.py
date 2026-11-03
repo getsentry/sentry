@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import secrets
 from typing import Any, TypedDict
 
 import jwt
@@ -41,19 +40,6 @@ class InstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
     # before the pipeline began and the installation is already bound to state.
     installation_receipt = serializers.CharField(required=False)
     state = serializers.CharField(required=True)
-
-
-def _install_state(pipeline: IntegrationPipeline) -> str:
-    """The anti-forgery value for this install, generated once per pipeline.
-
-    `pipeline.signature` hashes the pipeline's shape, so it is the same value for
-    every user and cannot tie a receipt to the session that asked for it.
-    """
-    state = pipeline.fetch_state("install_state")
-    if not state:
-        state = secrets.token_urlsafe(32)
-        pipeline.bind_state("install_state", state)
-    return state
 
 
 class ExternalInstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -146,7 +132,7 @@ class CursorOriginInstallApiStep:
     step_name = "install"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> InstallStepData:
-        install_state = _install_state(pipeline)
+        install_state = pipeline.get_or_create_state_nonce()
         return {
             "installUrl": build_install_url(state=install_state, redirect_uri=_redirect_uri()),
             "originInitiated": bool(pipeline.fetch_state("installation_id")),
@@ -162,8 +148,8 @@ class CursorOriginInstallApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        install_state = pipeline.fetch_state("install_state")
-        if not install_state or validated_data["state"] != install_state:
+        install_state = validated_data["state"]
+        if not pipeline.verify_state_nonce(install_state):
             return PipelineStepResult.error("Invalid state, please try the installation again.")
 
         # An install started from Origin arrives with the installation already bound by

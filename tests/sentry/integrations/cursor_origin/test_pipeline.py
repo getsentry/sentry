@@ -25,6 +25,7 @@ from sentry.integrations.cursor_origin.pipeline import (
     verify_receipt,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.pipeline.base import STATE_NONCE_KEY, Pipeline
 from sentry.pipeline.types import PipelineStepAction, PipelineStepResult
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
@@ -193,16 +194,28 @@ class VerifyReceiptTest(TestCase):
         assert self._verify(receipt, state=None) is None
 
 
+def _mock_pipeline(bound: dict[str, str]) -> mock.Mock:
+    """A pipeline whose state is `bound`, with the real nonce helpers on top."""
+    pipeline = mock.Mock(signature="pipeline-shape-hash")
+    pipeline.fetch_state.side_effect = bound.get
+    pipeline.bind_state.side_effect = bound.__setitem__
+    pipeline.get_or_create_state_nonce.side_effect = lambda: Pipeline.get_or_create_state_nonce(
+        pipeline
+    )
+    pipeline.verify_state_nonce.side_effect = lambda state: Pipeline.verify_state_nonce(
+        pipeline, state
+    )
+    return pipeline
+
+
 @control_silo_test
 class InstallStepTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.private, self.public = _signing_key()
-        self.pipeline = mock.Mock(signature="pipeline-shape-hash")
         # What the step generated when it built the install URL.
-        self.bound: dict[str, str] = {"install_state": STATE}
-        self.pipeline.fetch_state.side_effect = self.bound.get
-        self.pipeline.bind_state.side_effect = self.bound.__setitem__
+        self.bound: dict[str, str] = {STATE_NONCE_KEY: STATE}
+        self.pipeline = _mock_pipeline(self.bound)
 
     def _post(self, **data: str) -> PipelineStepResult:
         with (
@@ -243,14 +256,12 @@ class InstallStepTest(TestCase):
     def test_the_install_url_carries_a_value_of_its_own(self) -> None:
         """Not `pipeline.signature`, which is one constant for every user."""
         bound: dict[str, str] = {}
-        pipeline = mock.Mock(signature="pipeline-shape-hash")
-        pipeline.fetch_state.side_effect = bound.get
-        pipeline.bind_state.side_effect = bound.__setitem__
+        pipeline = _mock_pipeline(bound)
 
         step_data = self._step_data(pipeline)
 
-        assert bound["install_state"] != pipeline.signature
-        assert f"state={bound['install_state']}" in step_data["installUrl"]
+        assert bound[STATE_NONCE_KEY] != pipeline.signature
+        assert f"state={bound[STATE_NONCE_KEY]}" in step_data["installUrl"]
 
     def test_the_install_url_keeps_the_value_across_a_reload(self) -> None:
         """The user already opened a URL carrying it, so it cannot be regenerated."""

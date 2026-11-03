@@ -17,7 +17,7 @@ from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2CallbackView, OAuth2Logi
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.pipeline.base import Pipeline
+from sentry.pipeline.base import STATE_NONCE_KEY, Pipeline
 from sentry.pipeline.types import PipelineStepAction
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
@@ -218,11 +218,18 @@ class OAuth2LoginViewTest(TestCase):
 
 
 class _FakePipelineContext:
-    """Minimal pipeline-like object for testing OAuth2ApiStep."""
+    """Minimal pipeline-like object for testing OAuth2ApiStep.
 
-    def __init__(self, signature: str = "test-signature") -> None:
-        self.signature = signature
+    `state_nonce` is what an earlier GET of the step would have issued; leave it
+    unset for a pipeline that never built an authorize URL.
+    """
+
+    signature = "test-signature"
+
+    def __init__(self, state_nonce: str | None = None) -> None:
         self._state: dict[str, Any] = {}
+        if state_nonce is not None:
+            self.bind_state(STATE_NONCE_KEY, state_nonce)
 
     def bind_state(self, key: str, value: Any) -> None:
         self._state[key] = value
@@ -231,6 +238,12 @@ class _FakePipelineContext:
         if key is None:
             return self._state
         return self._state.get(key)
+
+    def get_or_create_state_nonce(self) -> str:
+        return Pipeline.get_or_create_state_nonce(cast(Pipeline[Any, Any], self))
+
+    def verify_state_nonce(self, state: str | None) -> bool:
+        return Pipeline.verify_state_nonce(cast(Pipeline[Any, Any], self), state)
 
 
 @control_silo_test
@@ -247,7 +260,7 @@ class OAuth2ApiStepGetStepDataTest(TestCase):
         )
 
     def test_returns_oauth_url(self) -> None:
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="abc123"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext())
         request = RequestFactory().get("/")
         data = self.step.get_step_data(ctx, request)
 
@@ -261,8 +274,33 @@ class OAuth2ApiStepGetStepDataTest(TestCase):
         assert query["client_id"] == ["123456"]
         assert query["response_type"] == ["code"]
         assert query["scope"] == ["all-the-things"]
-        assert query["state"] == ["abc123"]
         assert "redirect_uri" in query
+
+        # `state` is a value of this pipeline's own, not the shape hash shared
+        # by every pipeline of this kind, and it is bound so the POST can check it.
+        nonce = ctx.fetch_state(STATE_NONCE_KEY)
+        assert query["state"] == [nonce]
+        assert nonce != ctx.signature
+
+    def test_state_is_stable_across_reloads(self) -> None:
+        """The user may already hold a URL carrying it, so it cannot change."""
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext())
+        request = RequestFactory().get("/")
+
+        first = self.step.get_step_data(ctx, request)["oauthUrl"]
+        second = self.step.get_step_data(ctx, request)["oauthUrl"]
+
+        assert first == second
+
+    def test_state_differs_between_pipelines(self) -> None:
+        request = RequestFactory().get("/")
+        first = cast(Pipeline[Any, Any], _FakePipelineContext())
+        second = cast(Pipeline[Any, Any], _FakePipelineContext())
+
+        self.step.get_step_data(first, request)
+        self.step.get_step_data(second, request)
+
+        assert first.fetch_state(STATE_NONCE_KEY) != second.fetch_state(STATE_NONCE_KEY)
 
     def test_serializer_requires_code_and_state(self) -> None:
         ser_cls = self.step.get_serializer_cls()
@@ -301,7 +339,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
             "https://example.org/oauth/token",
             json={"access_token": "a-fake-token"},
         )
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -317,13 +355,29 @@ class OAuth2ApiStepHandlePostTest(TestCase):
         assert data["client_secret"] == "secret-value"
 
     def test_invalid_state(self) -> None:
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="correct-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="correct-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "wrong-state"}, ctx, self.request
         )
 
         assert result.action == PipelineStepAction.ERROR
         assert "detail" in result.data
+
+    def test_pipeline_signature_is_not_accepted_as_state(self) -> None:
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="correct-state"))
+        result = self.step.handle_post(
+            {"code": "auth-code", "state": ctx.signature}, ctx, self.request
+        )
+
+        assert result.action == PipelineStepAction.ERROR
+
+    def test_state_without_issued_nonce_is_rejected(self) -> None:
+        """A pipeline that never built an authorize URL has nothing to match."""
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext())
+        result = self.step.handle_post({"code": "auth-code", "state": ""}, ctx, self.request)
+
+        assert result.action == PipelineStepAction.ERROR
+        assert ctx.fetch_state("data") is None
 
     @responses.activate
     def test_ssl_error(self) -> None:
@@ -333,7 +387,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=ssl_error
         )
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -349,7 +403,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=connection_error
         )
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -360,7 +414,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
     @responses.activate
     def test_empty_response_body(self) -> None:
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -376,7 +430,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
             json={"error": "unauthorized"},
             status=401,
         )
-        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(state_nonce="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )

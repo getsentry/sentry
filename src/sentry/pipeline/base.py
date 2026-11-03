@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import abc
 import logging
+import secrets
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, Self
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
+from django.utils.crypto import constant_time_compare
 
 from sentry import analytics
 from sentry.db.models.base import Model
@@ -26,6 +28,9 @@ from .views.nested import NestedPipelineView
 logger = logging.getLogger(__name__)
 
 ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
+
+# Pipeline state key holding the per-session OAuth ``state`` value.
+STATE_NONCE_KEY = "state_nonce"
 
 
 class _HasKey(Protocol):
@@ -262,6 +267,33 @@ class Pipeline[M: Model, S: PipelineSessionStore](abc.ABC):
         data[key] = value
 
         self.state.data = data
+
+    def get_or_create_state_nonce(self) -> str:
+        """The anti-forgery value a step hands to a third party and expects back.
+
+        Generated once per pipeline session and kept across reloads of the step,
+        since the user may already hold a URL that carries it. Check what comes
+        back with ``verify_state_nonce``.
+
+        ``signature`` is not suitable for this: it hashes the pipeline's view
+        classes, so it is the same value for every user and session.
+        """
+        nonce = self.fetch_state(STATE_NONCE_KEY)
+        if not nonce:
+            nonce = secrets.token_urlsafe(32)
+            self.bind_state(STATE_NONCE_KEY, nonce)
+        return nonce
+
+    def verify_state_nonce(self, state: str | None) -> bool:
+        """Whether ``state`` is the nonce this pipeline issued.
+
+        Fails when either side is missing, so a step that never issued a nonce
+        does not accept an empty one.
+        """
+        nonce = self.fetch_state(STATE_NONCE_KEY)
+        if not state or not nonce:
+            return False
+        return constant_time_compare(state, nonce)
 
     @property
     def step_index(self) -> int:

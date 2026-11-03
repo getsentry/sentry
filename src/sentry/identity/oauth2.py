@@ -298,7 +298,7 @@ class OAuth2ApiStep:
                 "client_id": self.client_id,
                 "response_type": "code",
                 "scope": self.scope,
-                "state": pipeline.signature,
+                "state": pipeline.get_or_create_state_nonce(),
                 "redirect_uri": absolute_uri(self.redirect_url),
                 **self.extra_authorize_params,
             }
@@ -323,9 +323,7 @@ class OAuth2ApiStep:
         pipeline: Pipeline[Any, Any],
         request: HttpRequest,
     ) -> PipelineStepResult:
-        state = validated_data["state"]
-
-        if state != pipeline.signature:
+        if not pipeline.verify_state_nonce(validated_data.get("state")):
             return PipelineStepResult.error(ERR_INVALID_STATE)
 
         code = self.extract_code(validated_data, pipeline)

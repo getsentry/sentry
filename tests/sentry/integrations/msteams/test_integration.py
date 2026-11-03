@@ -96,6 +96,13 @@ class MsTeamsApiPipelineTest(APITestCase):
         resp = self._initialize_pipeline(initial_data={"signedParams": tampered})
         assert resp.status_code == 400
 
+    @responses.activate
+    def test_advance_with_invalid_state_errors(self) -> None:
+        self._initialize_pipeline(initial_data={"signedParams": self._signed_params("team")})
+        resp = self._advance_step({"state": "not-the-issued-state"})
+        assert resp.status_code == 400
+        assert not Integration.objects.filter(provider=self.provider.key).exists()
+
     def _complete_install(self, installation_type: str) -> str:
         """Run the full API pipeline and return the post-install card body."""
         responses.add(
