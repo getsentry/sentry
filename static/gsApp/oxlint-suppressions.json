@@ -312,11 +312,6 @@
       "count": 2
     }
   },
-  "views/subscriptionPage/paymentHistory.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 2
-    }
-  },
   "views/subscriptionPage/pendingChanges.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
