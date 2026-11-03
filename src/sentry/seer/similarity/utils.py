@@ -1,6 +1,7 @@
 import logging
 import os
 import threading
+import time
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
@@ -497,6 +498,12 @@ def project_is_seer_eligible(project: Project) -> bool:
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_region_enabled
+
+
+def set_default_project_similarity_grouping(project: Project) -> None:
+    """Called once at project creation time to opt the project into Seer similarity grouping."""
+    if project_is_seer_eligible(project):
+        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
 
 def set_default_project_autofix_automation_tuning(
