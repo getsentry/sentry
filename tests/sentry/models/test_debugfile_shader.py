@@ -149,38 +149,6 @@ def test_create_dxil_stores_shader_group(default_project: Project, tmp_path: Pat
 
 
 @django_db_all
-def test_reupload_backfills_missing_shader_group(default_project: Project, tmp_path: Path) -> None:
-    first, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
-    assert created is True
-    assert "shader_group" not in first.data
-
-    second, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
-
-    assert created is False
-    assert second.id == first.id
-    first.refresh_from_db()
-    assert first.data == {"features": ["symtab"], "shader_group": "Group A"}
-    assert ProjectDebugFile.objects.filter(project_id=default_project.id).count() == 1
-
-
-@pytest.mark.parametrize("reupload_group", ("Group B", None))
-@django_db_all
-def test_reupload_keeps_existing_shader_group(
-    default_project: Project, tmp_path: Path, reupload_group: str | None
-) -> None:
-    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
-
-    second, created = _create_shader_dif(
-        default_project, tmp_path, "a.dxil", DXIL_BYTES, reupload_group
-    )
-
-    assert created is False
-    assert second.id == first.id
-    first.refresh_from_db()
-    assert first.data["shader_group"] == "Group A"
-
-
-@django_db_all
 def test_assemble_backfills_shader_group_for_known_checksum(
     default_project: Project, tmp_path: Path
 ) -> None:

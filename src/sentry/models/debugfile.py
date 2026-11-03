@@ -549,13 +549,6 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
     )
 
 
-def _backfill_shader_group(dif: ProjectDebugFile, meta: DifMeta) -> None:
-    """A re-upload of the same dxil binary may carry the shader group an earlier cook did not."""
-    shader_group = (meta.data or {}).get("shader_group")
-    if shader_group and not (dif.data or {}).get("shader_group"):
-        dif.update(data={**(dif.data or {}), "shader_group": shader_group})
-
-
 def _get_fileobj_checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
     file_size = 0
     hasher = hashlib.sha1()
@@ -590,7 +583,6 @@ def create_dif_from_file(
     dif = find_existing_dif(project, meta, checksum)
 
     if dif is not None:
-        _backfill_shader_group(dif, meta)
         return dif, False
 
     object_name = _get_dif_object_name(meta)
@@ -677,7 +669,6 @@ def create_dif_from_fileobj(
     dif = find_existing_dif(project, meta, checksum)
 
     if dif is not None:
-        _backfill_shader_group(dif, meta)
         return dif, False
 
     object_name = _get_dif_object_name(meta)
