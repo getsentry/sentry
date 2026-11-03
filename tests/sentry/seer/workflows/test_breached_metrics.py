@@ -34,9 +34,11 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
+    ConnectedMonitors,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
     MetricBreachTrigger,
+    get_config_monitors_bulk,
 )
 from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
@@ -719,6 +721,36 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
 
 
 @with_feature("organizations:seer-automations")
+class GetConfigMonitorsBulkTest(TestCase):
+    def test_returns_monitors_and_projects_for_metric_configs(self) -> None:
+        first_project, second_project, hidden_project = (self.create_project() for _ in range(3))
+        monitors = [
+            self.create_detector(project=first_project, type=MetricIssue.slug),
+            self.create_detector(project=first_project, type=MetricIssue.slug),
+            self.create_detector(project=second_project, type=MetricIssue.slug),
+        ]
+        hidden = self.create_detector(project=hidden_project, type=MetricIssue.slug)
+        connected = BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id, monitor_ids=[*(m.id for m in monitors), hidden.id]
+        ).get_config()
+        unconnected = BreachedMetricWorkflow.create_with_monitors(self.organization.id).get_config()
+        triage = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+
+        result = get_config_monitors_bulk(
+            [connected, unconnected, triage],
+            accessible_project_ids=[first_project.id, second_project.id],
+        )
+
+        assert result == {
+            connected.id: ConnectedMonitors(
+                monitor_ids=sorted(m.id for m in monitors),
+                project_ids=sorted([first_project.id, second_project.id]),
+            )
+        }
+
+
 class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
     def setUp(self) -> None:
         super().setUp()

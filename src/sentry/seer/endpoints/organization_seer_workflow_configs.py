@@ -24,7 +24,7 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
@@ -39,6 +39,8 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     BreachedMetricWorkflow,
+    ConnectedMonitors,
+    get_config_monitors_bulk,
     get_monitor_project_ids,
 )
 from sentry.seer.workflows.registry import get_seer_workflow
@@ -49,7 +51,6 @@ from sentry.seer.workflows.workflow import (
     WorkflowUpdateError,
 )
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.workflow_engine.models import DetectorWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -528,7 +529,7 @@ def serialize_workflow_configs(
     selected_projects = get_selected_project_ids(
         configs, accessible_project_ids=accessible_project_ids
     )
-    connected_monitors = get_connected_monitors(
+    connected_monitors = get_config_monitors_bulk(
         configs, accessible_project_ids=accessible_project_ids
     )
     last_runs = get_config_last_runs(
@@ -560,44 +561,6 @@ def get_selected_project_ids(
     for config_id, project_id in links.values_list("config_id", "project_id"):
         selected_projects[config_id].append(project_id)
     return selected_projects
-
-
-@dataclass(frozen=True)
-class ConnectedMonitors:
-    monitor_ids: list[int]
-    project_ids: list[int]
-
-
-def get_connected_monitors(
-    configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
-) -> dict[int, ConnectedMonitors]:
-    """Return the active monitors connected to each metric automation, and their projects."""
-    config_ids_by_workflow_id = {
-        config.backing_workflow_id: config.id
-        for config in configs
-        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        and config.backing_workflow_id is not None
-    }
-    monitor_ids: defaultdict[int, set[int]] = defaultdict(set)
-    project_ids: defaultdict[int, set[int]] = defaultdict(set)
-    connections = DetectorWorkflow.objects.filter(
-        workflow_id__in=config_ids_by_workflow_id,
-        workflow__status=ObjectStatus.ACTIVE,
-        detector__status=ObjectStatus.ACTIVE,
-        detector__project__status=ObjectStatus.ACTIVE,
-        detector__project_id__in=accessible_project_ids,
-    ).values_list("workflow_id", "detector_id", "detector__project_id")
-    for workflow_id, detector_id, project_id in connections:
-        config_id = config_ids_by_workflow_id[workflow_id]
-        monitor_ids[config_id].add(detector_id)
-        project_ids[config_id].add(project_id)
-    return {
-        config_id: ConnectedMonitors(
-            monitor_ids=sorted(monitor_ids[config_id]),
-            project_ids=sorted(project_ids[config_id]),
-        )
-        for config_id in monitor_ids
-    }
 
 
 def get_config_last_runs(

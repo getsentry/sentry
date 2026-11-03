@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -117,6 +118,44 @@ MetricBreachAdmission = Annotated[
 
 class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
+
+
+@dataclass(frozen=True)
+class ConnectedMonitors:
+    monitor_ids: list[int]
+    project_ids: list[int]
+
+
+def get_config_monitors_bulk(
+    configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
+) -> dict[int, ConnectedMonitors]:
+    """Return the active monitors connected to each metric automation, and their projects."""
+    config_ids_by_workflow_id = {
+        config.backing_workflow_id: config.id
+        for config in configs
+        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        and config.backing_workflow_id is not None
+    }
+    monitor_ids: defaultdict[int, set[int]] = defaultdict(set)
+    project_ids: defaultdict[int, set[int]] = defaultdict(set)
+    connections = DetectorWorkflow.objects.filter(
+        workflow_id__in=config_ids_by_workflow_id,
+        workflow__status=ObjectStatus.ACTIVE,
+        detector__status=ObjectStatus.ACTIVE,
+        detector__project__status=ObjectStatus.ACTIVE,
+        detector__project_id__in=accessible_project_ids,
+    ).values_list("workflow_id", "detector_id", "detector__project_id")
+    for workflow_id, detector_id, project_id in connections:
+        config_id = config_ids_by_workflow_id[workflow_id]
+        monitor_ids[config_id].add(detector_id)
+        project_ids[config_id].add(project_id)
+    return {
+        config_id: ConnectedMonitors(
+            monitor_ids=sorted(monitor_ids[config_id]),
+            project_ids=sorted(project_ids[config_id]),
+        )
+        for config_id in monitor_ids
+    }
 
 
 def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organization) -> list[int]:
