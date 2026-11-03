@@ -1,3 +1,5 @@
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -12,6 +14,7 @@ import {
   modifyFilterValue,
   multiSelectTokenValue,
   replaceFreeTextTokens,
+  useQueryBuilderState,
 } from './useQueryBuilderState';
 
 function getFirstFilterToken(
@@ -290,6 +293,7 @@ describe('multiSelectTokenValue', () => {
     const state = {
       query,
       committedQuery: query,
+      committedQueryFromInitialQuery: false,
       focusOverride: null,
       clearAskSeerFeedback: false,
     };
@@ -394,6 +398,7 @@ describe('typed filter keys containing colons', () => {
     const state = {
       query,
       committedQuery: query,
+      committedQueryFromInitialQuery: false,
       focusOverride: null,
       clearAskSeerFeedback: false,
     };
@@ -561,6 +566,7 @@ describe('syntax-bearing filter keys', () => {
     const state = {
       query,
       committedQuery: query,
+      committedQueryFromInitialQuery: false,
       focusOverride: null,
       clearAskSeerFeedback: false,
     };
@@ -572,5 +578,43 @@ describe('syntax-bearing filter keys', () => {
         value: 'alternate_fictional_value',
       }).query
     ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
+  });
+});
+
+describe('useQueryBuilderState', () => {
+  function useTestQueryBuilderState() {
+    return useQueryBuilderState({
+      disabled: false,
+      displayAskSeerFeedback: false,
+      getFieldDefinition: () => null,
+      initialQuery: 'a',
+      parseQuery: query => parseQueryBuilderValue(query, () => null),
+      searchSource: 'test',
+      setDisplayAskSeerFeedback: jest.fn(),
+    });
+  }
+
+  it('marks the committed query as from initialQuery when initialQuery commits it', () => {
+    const {result} = renderHook(useTestQueryBuilderState);
+
+    act(() => {
+      result.current.dispatch({type: 'UPDATE_QUERY', query: 'b', fromInitialQuery: true});
+    });
+
+    expect(result.current.state.committedQuery).toBe('b');
+    expect(result.current.state.committedQueryFromInitialQuery).toBe(true);
+  });
+
+  it('does not mark the committed query as from initialQuery when the user commits an earlier synced query', () => {
+    const {result} = renderHook(useTestQueryBuilderState);
+
+    act(() => {
+      result.current.dispatch({type: 'UPDATE_QUERY', query: 'b', fromInitialQuery: true});
+      result.current.dispatch({type: 'UPDATE_QUERY', query: 'c', fromInitialQuery: true});
+      result.current.dispatch({type: 'UPDATE_QUERY', query: 'b'});
+    });
+
+    expect(result.current.state.committedQuery).toBe('b');
+    expect(result.current.state.committedQueryFromInitialQuery).toBe(false);
   });
 });
