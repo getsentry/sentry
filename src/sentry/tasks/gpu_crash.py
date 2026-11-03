@@ -143,14 +143,11 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "project_missing"})
             return False
 
+        teapot_dump = cast(TeapotAttachment, dump)
+        teapot_shaders = cast(Sequence[TeapotAttachment], shaders)
         try:
             with metrics.timer("tasks.gpu_crash.teapot"):
-                response = submit_to_teapot(
-                    project,
-                    event_id,
-                    cast(TeapotAttachment, dump),
-                    cast(Sequence[TeapotAttachment], shaders),
-                )
+                response = submit_to_teapot(project, event_id, teapot_dump, teapot_shaders)
         except TeapotUnavailable:
             # A genuine outage — feed the breaker so repeated failures trip it.
             breaker.record_error()
@@ -164,7 +161,9 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             return False
         breaker.record_success()
 
-        response = _maybe_resolve_shader_difs(project, event_id, dump, shaders, response)
+        response = _maybe_resolve_shader_difs(
+            project, event_id, teapot_dump, teapot_shaders, response
+        )
 
         applied = apply_gpu_crash_symbolication(data, response)
         metrics.incr(
@@ -188,7 +187,7 @@ def _maybe_resolve_shader_difs(
     project: Project,
     event_id: str,
     dump: TeapotAttachment,
-    shaders: list[Any],
+    shaders: Sequence[TeapotAttachment],
     response: dict[str, Any],
 ) -> dict[str, Any]:
     """Second teapot round with presigned URLs for the shader DIFs it reported missing.
