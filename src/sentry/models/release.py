@@ -686,7 +686,7 @@ class Release(Model):
                 else:
                     update_kwargs = {"release_id": to_release.id}
                 if model is GroupRelease:
-                    # Dual-write: .update() skips GroupRelease.save(), so mirror the shadow here.
+                    # Dual-write: .update() skips GroupRelease.save(), so mirror new_release_id here.
                     update_kwargs["new_release_id"] = to_release.id
                 try:
                     with atomic_transaction(using=router.db_for_write(model)):
