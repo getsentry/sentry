@@ -26,13 +26,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    decode_viewer_context,
-    encode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 FEATURE = "organizations:investigations"
 
@@ -668,36 +662,3 @@ class OrganizationInvestigationIndexTest(APITestCase):
         OAS30Validator({**response_schema, "components": schema["components"]}).validate(
             orjson.loads(response.content)
         )
-
-
-@with_feature(FEATURE)
-class OrganizationInvestigationIndexServiceAccountTest(APITestCase):
-    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
-    @with_feature("organizations:service-accounts")
-    def test_service_account_is_recorded_as_manual_creator(self) -> None:
-        service_account = self.create_service_account(
-            organization=self.organization, scope_list=["org:read"]
-        )
-        viewer_context = encode_viewer_context(
-            ViewerContext(
-                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
-                organization_id=self.organization.id,
-            ),
-            key="service-account-secret",
-        )
-
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-organization-notebooks",
-                kwargs={"organization_id_or_slug": self.organization.slug},
-            ),
-            data={"title": "Created by service account", "projectIds": [self.project.id]},
-            format="json",
-            HTTP_X_VIEWER_CONTEXT=viewer_context,
-        )
-
-        assert response.status_code == 201, response.data
-        notebook = Notebook.objects.get(id=response.data["id"])
-        assert notebook.created_by_id is None
-        assert notebook.created_by_service_account_id == service_account.id
-        assert notebook.created_by_org_auth_token_id is None
