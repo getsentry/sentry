@@ -67,6 +67,7 @@ frontend_lint:
 
 api_url_codegen:
   - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'
+  - added|modified: 'static/app/utils/api/apiContracts.generated.ts'
 
 embed_widget_schema:
   - added|modified: 'static/app/components/seer/markdown/embeds/schemas.ts'
