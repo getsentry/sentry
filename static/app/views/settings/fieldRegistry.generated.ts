@@ -13,6 +13,13 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -73,13 +80,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-  },
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',

@@ -72,7 +72,7 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "import styled from '@emotion/styled'; const DrawerContainer = styled.div`@media (max-width: 800px) { overflow-x: auto; pointer-events: auto; }`;",
     },
     {
-      filename: '/project/static/packages/scraps/src/slideOverPanel/slideOverPanel.tsx',
+      filename: '/project/static/packages/scraps/src/slideOverPanel.tsx',
       code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
   ],

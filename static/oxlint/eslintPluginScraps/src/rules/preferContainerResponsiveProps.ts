@@ -87,7 +87,7 @@ function allowsViewportSizing(
     );
   }
   return (
-    filename.endsWith('/static/packages/scraps/src/slideOverPanel/slideOverPanel.tsx') &&
+    filename.endsWith('/static/packages/scraps/src/slideOverPanel.tsx') &&
     name === '_SlideOverPanel' &&
     hasOnlyAllowedMediaDeclarations(
       node,
