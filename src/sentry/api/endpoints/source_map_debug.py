@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Annotated, Any, Literal, NamedTuple, TypedDict, cast
+from typing import Annotated, Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -49,7 +49,8 @@ from sentry.utils.safe import get_path
 
 
 def _sourcemap_header(headers: Mapping[str, object]) -> str | None:
-    return cast("str | None", headers.get("sourcemap", headers.get("x-sourcemap")))
+    value = headers.get("sourcemap", headers.get("x-sourcemap"))
+    return value if isinstance(value, str) else None
 
 
 from sentry.utils.urls import non_standard_url_join
