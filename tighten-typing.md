@@ -5,8 +5,8 @@
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
 - **Baseline revision:** `1cd41fc29e1` (`origin/master`, 2026-11-03).
 - **Remaining (sweep counter, `master` + open campaign drafts):** cast 1202, Any 3355, type-ignore 13, fixed-name-reflection 79.
-- **Items:** 1 of 31 in draft (C1, #129702); 0 of 159 sweep packages. **Red:** none. **Parked:** none.
-- **Next:** G1, then B1.
+- **Items:** 2 of 31 in draft (C1 #129702, B1 #129704); 0 of 159 sweep packages. **Red:** none. **Parked:** none.
+- **Next:** G1, then B2.
 
 The executor rewrites this block in place after every accepted slice. The **Ledger** is the single tracker for all work: every item, every audit finding (through its item), and every sweep package has a row there.
 
@@ -110,7 +110,7 @@ Full-tree mypy is the proof of a typing change. Tests are proportional to regres
   | tests/sentry/api          | 28   | 85  | 4 reflection           |
 
 - **Pinned dependency versions:** sentry-relay 0.10.1, google-cloud-storage 2.18.0, selenium 4.16.0, djangorestframework 3.18.2, django-stubs 5.2.9, djangorestframework-stubs 3.16.8.
-- **Known red:** none in mypy. No full pytest run has been made, so treat any failure in a test file the PR doesn't touch as pre-existing until it reproduces on `origin/master`.
+- **Known red:** none in mypy. Snuba-backed tests (e.g. `tests/sentry/integrations/slack/test_unfurl.py`) need `.venv/bin/devservices up` (`devservices` is not on a non-direnv shell's PATH). After `master` gains a migration, `--reuse-db` fails with `UndefinedColumn`; run once with `--create-db` (about 20 s for one file). No full pytest run has been made, so treat any failure in a test file the PR doesn't touch as pre-existing until it reproduces on `origin/master`.
 - **Gotcha:** `.venv` is an editable install pointing at `/Users/josh/dev/sentry/src` (`easy-install.pth`). In a worktree, prefix **both** pytest and mypy with `PYTHONPATH=$PWD/src` (the Django mypy plugin imports `sentry` at runtime), and check once with `python -c 'import sentry; print(sentry.__file__)'`. Never copy `.mypy_cache` from another checkout: a cache built on a different revision produced false errors in C1. A cold full mypy run takes 19 s wall. Create worktrees with `git -c core.hooksPath=/dev/null worktree add ...`; the repo's post-checkout hook otherwise starts devservices and runs migrations.
 
 ## Sequence
@@ -288,38 +288,38 @@ Statuses: `todo`, `draft #N`, `merged #N`, `parked: <cause>; retry when <conditi
 
 ### Items
 
-| ID    | Status        | Notes                                                                                                |
-| ----- | ------------- | ---------------------------------------------------------------------------------------------------- |
-| G1    | todo          |                                                                                                      |
-| B1    | todo          |                                                                                                      |
-| B2    | todo          |                                                                                                      |
-| B3    | todo          |                                                                                                      |
-| C1    | draft #129702 | Overrides deleted; `MissedMarginField` typed; no new tests (covered by `test_resolve_age` and mypy). |
-| C2    | todo          |                                                                                                      |
-| C3    | todo          |                                                                                                      |
-| C4    | todo          |                                                                                                      |
-| C5    | todo          |                                                                                                      |
-| C6    | todo          |                                                                                                      |
-| C7    | todo          |                                                                                                      |
-| C8    | todo          |                                                                                                      |
-| C9    | todo          |                                                                                                      |
-| C10   | todo          |                                                                                                      |
-| C11   | todo          |                                                                                                      |
-| C12   | todo          |                                                                                                      |
-| C13   | todo          |                                                                                                      |
-| C14   | todo          |                                                                                                      |
-| C15   | todo          |                                                                                                      |
-| C16   | todo          |                                                                                                      |
-| C17a  | todo          |                                                                                                      |
-| C17b  | todo          |                                                                                                      |
-| C18   | todo          |                                                                                                      |
-| C19   | todo          |                                                                                                      |
-| C20a  | todo          |                                                                                                      |
-| C20b  | todo          |                                                                                                      |
-| C20c  | todo          |                                                                                                      |
-| C21   | todo          |                                                                                                      |
-| C22   | todo          |                                                                                                      |
-| Close | todo          | Phase 4 review                                                                                       |
+| ID    | Status        | Notes                                                                                                                                   |
+| ----- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| G1    | todo          |                                                                                                                                         |
+| B1    | draft #129704 | Explicit skip; `build_widget_timeseries_params` raises its `ValueError` again. One test, sharing the unsupported-type skip test's body. |
+| B2    | todo          |                                                                                                                                         |
+| B3    | todo          |                                                                                                                                         |
+| C1    | draft #129702 | Overrides deleted; `MissedMarginField` typed; no new tests (covered by `test_resolve_age` and mypy).                                    |
+| C2    | todo          |                                                                                                                                         |
+| C3    | todo          |                                                                                                                                         |
+| C4    | todo          |                                                                                                                                         |
+| C5    | todo          |                                                                                                                                         |
+| C6    | todo          |                                                                                                                                         |
+| C7    | todo          |                                                                                                                                         |
+| C8    | todo          |                                                                                                                                         |
+| C9    | todo          |                                                                                                                                         |
+| C10   | todo          |                                                                                                                                         |
+| C11   | todo          |                                                                                                                                         |
+| C12   | todo          |                                                                                                                                         |
+| C13   | todo          |                                                                                                                                         |
+| C14   | todo          |                                                                                                                                         |
+| C15   | todo          |                                                                                                                                         |
+| C16   | todo          |                                                                                                                                         |
+| C17a  | todo          |                                                                                                                                         |
+| C17b  | todo          |                                                                                                                                         |
+| C18   | todo          |                                                                                                                                         |
+| C19   | todo          |                                                                                                                                         |
+| C20a  | todo          |                                                                                                                                         |
+| C20b  | todo          |                                                                                                                                         |
+| C20c  | todo          |                                                                                                                                         |
+| C21   | todo          |                                                                                                                                         |
+| C22   | todo          |                                                                                                                                         |
+| Close | todo          | Phase 4 review                                                                                                                          |
 
 ### Discovered during the campaign
 
