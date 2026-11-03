@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
@@ -224,33 +224,6 @@ def get_context(group: Group, rules: list[NotificationOrigin] | None = None) -> 
                 context_text += f"{c}: *{v}*   "
 
     return context_text.rstrip()
-
-
-class OptionGroup(TypedDict):
-    label: Mapping[str, str]
-    options: Sequence[Mapping[str, Any]]
-
-
-def get_option_groups(group: Group) -> Sequence[OptionGroup]:
-    all_members = group.project.get_members_as_rpc_users()
-    members = list({m.id: m for m in all_members}.values())
-    teams = group.project.teams.all()
-
-    option_groups = []
-    if teams:
-        team_option_group: OptionGroup = {
-            "label": {"type": "plain_text", "text": "Teams"},
-            "options": format_actor_options_slack(teams),
-        }
-        option_groups.append(team_option_group)
-
-    if members:
-        member_option_group: OptionGroup = {
-            "label": {"type": "plain_text", "text": "People"},
-            "options": format_actor_options_slack(members),
-        }
-        option_groups.append(member_option_group)
-    return option_groups
 
 
 def get_suggested_assignees(

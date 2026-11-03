@@ -17,7 +17,6 @@ from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     format_release_tag,
     get_context,
-    get_option_groups,
     get_tags,
 )
 from sentry.integrations.slack.message_builder.routing import encode_action_id
@@ -533,25 +532,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
         )
-
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.get_option_groups",
-        wraps=get_option_groups,
-    )
-    def test_build_group_block_prune_duplicate_assignees(
-        self, mock_get_option_groups: MagicMock
-    ) -> None:
-        user2 = self.create_user()
-        self.create_member(user=user2, organization=self.organization)
-        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
-        project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
-        group = self.create_group(project=project2)
-
-        SlackIssuesMessageBuilder(group).build()
-
-        team_option_groups, member_option_groups = mock_get_option_groups(group)
-        assert len(team_option_groups["options"]) == 2
-        assert len(member_option_groups["options"]) == 2
 
     def test_build_group_attachment_issue_alert(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
