@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -415,7 +416,7 @@ class TestSingleRunStart(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _start(self, **kwargs):
+    def _start(self, **kwargs: Any) -> MagicMock:
         args = {
             "referrer": AutofixReferrer.AGENTIC_TRIAGE,
             "step": AutofixStep.ROOT_CAUSE,
@@ -434,7 +435,7 @@ class TestSingleRunStart(TestCase):
             trigger_autofix_feature(self.group, AutofixFeatureArgs(**args))
         return mock_client_cls
 
-    def _started_feature_id(self, mock_client_cls) -> str:
+    def _started_feature_id(self, mock_client_cls: MagicMock) -> str:
         return mock_client_cls.return_value.start_feature_run.call_args.kwargs["feature_id"]
 
     def _set_handoff(self) -> None:

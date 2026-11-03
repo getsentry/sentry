@@ -1813,7 +1813,11 @@ class TestSingleRunStartedEvents(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     def test_single_run_skips_started_events(
-        self, mock_feature, mock_process_autofix_updates, mock_broadcast, *_mocks
+        self,
+        mock_feature: MagicMock,
+        mock_process_autofix_updates: MagicMock,
+        mock_broadcast: MagicMock,
+        *_mocks: MagicMock,
     ) -> None:
         group = self.create_group(project=self.project)
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=12345)
