@@ -14,6 +14,7 @@ from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSec
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth import access
+from sentry.auth.principal import acting_user_id
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -532,7 +533,7 @@ class SentryAppStatsPermission(SentryPermission):
                 extra={
                     "sentry_app_id": sentry_app.id,
                     "owner_org_id": sentry_app.owner_id,
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                 },
             )
             return False
@@ -563,7 +564,7 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
                 extra={
                     "sentry_app_id": sentry_app.id,
                     "owner_org_id": sentry_app.owner_id,
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                 },
             )
             return False

@@ -41,7 +41,7 @@ def serialize(
     environment_ids: list[int],
     projects: list[Project],
     current_project_meta: dict[str, Any] | None = None,
-    no_snuba_for_release_creation: bool = False,
+    skip_snuba: bool = False,
 ) -> list[ReleaseSerializerResponse]:
     if not releases:
         return []
@@ -96,7 +96,7 @@ def serialize(
             {r.version: r.id for r in releases},
             organization_id,
             project_ids,
-            no_snuba_for_release_creation=no_snuba_for_release_creation,
+            skip_snuba=skip_snuba,
             fetch_first_last_seen=tagstore.backend.get_release_tags,
         )
 
@@ -170,7 +170,7 @@ def get_release_project_first_last_seen(
     release_version_and_id_map: dict[str, int],
     organization_id: int,
     project_ids: list[int],
-    no_snuba_for_release_creation: bool,
+    skip_snuba: bool,
     fetch_first_last_seen: Callable[[int, list[int], int | None, list[str]], list[Any]],
 ) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
@@ -186,7 +186,7 @@ def get_release_project_first_last_seen(
         rid: None for rid in release_version_and_id_map.values()
     }
 
-    if no_snuba_for_release_creation:
+    if skip_snuba:
         tag_values = []
     else:
         tag_values = fetch_first_last_seen(

@@ -285,6 +285,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     permission_classes = (GroupAutofixPermission,)
