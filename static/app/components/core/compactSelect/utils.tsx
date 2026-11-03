@@ -510,17 +510,31 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
   return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }
 
+interface MenuWidthForLabelsOptions {
+  /**
+   * Reserve extra room for trailing action buttons on each option, such as
+   * the bookmark star and settings link in the project page filter.
+   */
+  hasTrailingActions?: boolean;
+}
+
 /**
- * Computes a menu width that expands to fit the longest label. The width is
- * between 22 and 28em. Each character is estimated to take ~0.6em, and 12em is
- * added to account for padding, leading checkboxes or avatars, and trailing
- * buttons. This is a heuristic based on character count, not a measured width.
+ * Computes a menu width that expands to fit the longest label. Each character
+ * is estimated to take ~0.6em, plus room for padding and leading items such as
+ * a checkbox or avatar. This is a heuristic based on character count, not a
+ * measured width.
  */
-export function getMenuWidthForLabels(labels: readonly string[]): string {
+export function getMenuWidthForLabels(
+  labels: readonly string[],
+  {hasTrailingActions = false}: MenuWidthForLabelsOptions = {}
+): string {
   const longestLabelLength = labels.reduce(
     (longest, label) => Math.max(longest, label.length),
     0
   );
+  const [minWidth, maxWidth, extraWidth] = hasTrailingActions
+    ? [22, 28, 12]
+    : [16, 24, 6];
 
-  return `${Math.max(22, Math.min(28, longestLabelLength * 0.6 + 12))}em`;
+  return `${Math.max(minWidth, Math.min(maxWidth, longestLabelLength * 0.6 + extraWidth))}em`;
 }

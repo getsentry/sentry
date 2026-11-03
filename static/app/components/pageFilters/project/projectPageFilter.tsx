@@ -573,7 +573,11 @@ export function ProjectPageFilter({
   // code this callback depends on. Revisit once those bailouts are fixed.
   // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(
-    () => getMenuWidthForLabels(options.map(option => option.textValue ?? '')),
+    () =>
+      getMenuWidthForLabels(
+        options.map(option => option.textValue ?? ''),
+        {hasTrailingActions: true}
+      ),
     [options]
   );
 
