@@ -39,6 +39,13 @@
   `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible
 
+### Settings Navigation
+
+- `useSettingsV3()` gates the new settings navigation (`organizations:settings-v3`). Keep the old behavior when it is off.
+- `useSettingsScope()` derives the scope (`org`, `project`, `account`) from the URL. `getSettingsScopeTitle` gives each scope's title.
+- Under v3, account pages appear only in the Account scope, never in the organization navigation.
+- Pass `settingsV3` to the navigation config functions (`getUserOrgNavigationConfiguration`, `getUserNavigationConfiguration`, `getNavigationConfiguration`), including from Cmd+K and other callers.
+
 ### Frontend API Calls
 
 Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecated `useApiQuery`/`getApiQueryData`/`setApiQueryData`. `staleTime` is required. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
