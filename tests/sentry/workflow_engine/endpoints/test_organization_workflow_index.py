@@ -661,29 +661,23 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_three.id),
         }
 
-    def test_filter_by_hidden_workflow_type_returns_nothing(self) -> None:
+    def test_filter_by_hidden_workflow_type_returns_error(self) -> None:
         self.create_workflow(
             organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
         )
 
-        response = self.get_success_response(self.organization.slug, qs_params={"type": "inbox"})
-
-        assert response.data == []
-
-    def test_filter_with_multiple_types_drops_hidden_types(self) -> None:
-        self.create_workflow(
-            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"type": "inbox"}, status_code=400
         )
 
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"type": ["alert", "inbox"]}
+        assert "Invalid workflow type" in str(response.data)
+
+    def test_filter_with_multiple_types_including_hidden_type_returns_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"type": ["alert", "inbox"]}, status_code=400
         )
 
-        assert {w["id"] for w in response.data} == {
-            str(self.workflow.id),
-            str(self.workflow_two.id),
-            str(self.workflow_three.id),
-        }
+        assert "inbox" in str(response.data)
 
     def test_filter_by_invalid_workflow_type_returns_error(self) -> None:
         response = self.get_error_response(
