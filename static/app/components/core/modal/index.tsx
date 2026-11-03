@@ -305,7 +305,7 @@ export function GlobalModal() {
                       {...p}
                     >
                       <ErrorBoundary
-                        key={modalId}
+                        resetKey={modalId}
                         mini
                         allowDismiss
                         onDismiss={onCloseButtonClick}
