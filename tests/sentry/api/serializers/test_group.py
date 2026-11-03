@@ -22,6 +22,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -371,6 +372,16 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         group = self.create_group()
         result = serialize(group)
         assert not result["isSubscribed"]
+
+    def test_service_account(self) -> None:
+        group = self.create_group()
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=group.project.organization_id, name="deploy-bot"
+        )
+        result = serialize(group, principal)
+        assert result["isBookmarked"] is False
+        assert result["hasSeen"] is False
+        assert result["isSubscribed"] is False
 
     def test_reprocessing(self) -> None:
         from sentry.reprocessing2 import start_group_reprocessing

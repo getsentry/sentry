@@ -9,6 +9,7 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
+from sentry.auth.principal import has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -246,7 +247,8 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                 self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
-        if user_persisted_fields:
+        # Per-user defaults need a person, which a service account isn't.
+        if user_persisted_fields and has_user(user):
             user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(key="issue:defaults", project_id=project.id)
             options = user_option_service.get_many(
@@ -390,11 +392,14 @@ def where_should_sync(
     else:
         ois = integration_service.get_organization_integrations(integration_id=integration.id)
 
-    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+    ois_by_org_id = {oi.organization_id: oi for oi in ois}
+    organizations = Organization.objects.filter(id__in=ois_by_org_id)
     ret = []
     for organization in organizations.filter(**kwargs):
         if features.has("organizations:integrations-issue-sync", organization):
             installation = integration.get_installation(organization_id=organization.id)
+            # Reuse the org integration fetched above instead of another RPC per org.
+            installation.org_integration = ois_by_org_id[organization.id]
             if isinstance(installation, IssueBasicIntegration) and installation.should_sync(key):
                 ret.append(organization)
     return ret

@@ -21,6 +21,13 @@ WORKFLOW_RUNS_RESPONSE = [
                             "dateAdded": "2025-01-01T10:00:10Z",
                             "dateUpdated": "2025-01-01T10:02:00Z",
                             "dateCompleted": "2025-01-01T10:02:00Z",
+                            "outputs": [
+                                {
+                                    "type": "investigation",
+                                    "id": "301",
+                                    "title": "Checkout latency",
+                                }
+                            ],
                         }
                     ],
                 }
@@ -41,7 +48,7 @@ WORKFLOW_RUNS_RESPONSE = [
                     "dateAdded": "2025-01-02T10:00:00Z",
                     "dateUpdated": "2025-01-02T10:00:20Z",
                     "dateCompleted": "2025-01-02T10:00:20Z",
-                    "error": {"code": "unknown", "message": "No error details are available."},
+                    "error": None,
                     "executions": [
                         {
                             "id": "202",
@@ -50,6 +57,7 @@ WORKFLOW_RUNS_RESPONSE = [
                             "dateAdded": "2025-01-02T10:00:10Z",
                             "dateUpdated": "2025-01-02T10:00:20Z",
                             "dateCompleted": "2025-01-02T10:00:20Z",
+                            "outputs": [],
                             "error": {
                                 "code": "dispatch_failed",
                                 "message": "Could not start execution.",

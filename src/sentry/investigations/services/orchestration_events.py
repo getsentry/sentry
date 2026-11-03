@@ -15,10 +15,8 @@ from rest_framework.exceptions import APIException
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
-    MAX_MARKDOWN_CHARS,
     OrchestrationProjectionSerializer,
     valid_action_requests,
-    validate_text_result,
 )
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -44,6 +42,7 @@ from sentry.investigations.services.orchestration import (
     schedule_orchestration_commands,
 )
 from sentry.models.project import Project
+from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS, validate_text_result
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -1113,9 +1112,14 @@ def _lock_run_after_investigation(
 
 def schedule_investigation_updates(investigation_id: int, database: str) -> None:
     from sentry.seer.entrypoints.operator import process_investigation_updates
+    from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 
     transaction.on_commit(
         lambda: process_investigation_updates.delay(investigation_id=investigation_id),
+        using=database,
+    )
+    transaction.on_commit(
+        lambda: finish_investigation_executions.delay(investigation_id=investigation_id),
         using=database,
     )
 

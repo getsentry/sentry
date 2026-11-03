@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {Responsive} from '@sentry/scraps/layout';
-import {getRadius, rc} from '@sentry/scraps/layout';
+import {getRadius} from '@sentry/scraps/layout';
+import {rc} from '@sentry/scraps/layout/styles';
 import type {RadiusSize} from '@sentry/scraps/theme';
 
 export interface ImageProps extends Omit<

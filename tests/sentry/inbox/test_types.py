@@ -6,10 +6,17 @@ from unittest.mock import patch
 
 import pytest
 from django.db import connections
+from openapi_schema_validator import OAS30Validator
 
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
-from sentry.inbox.issue import ISSUE_MENTIONED, IssueMentionedData
+from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.response_types import (
+    InboxItemEventResponse,
+    InboxItemResponse,
+    InboxUnreadCountResponse,
+)
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
     InboxActor,
@@ -65,13 +72,20 @@ class MentionedData(InboxEventData):
     comment_id: int
 
 
+@pytest.mark.parametrize(
+    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxUnreadCountResponse]
+)
+def test_response_types_support_openapi(response_type: type) -> None:
+    OAS30Validator.check_schema(resolve_type_hint(response_type))
+
+
 @patch.dict(inbox_item_type_registry.registrations, clear=True)
 @patch.dict(inbox_item_event_type_registry.registrations, clear=True)
 def test_register_types() -> None:
     issue_type = StubItemType[Group]("test.issue")
     reference_type = StubItemType[SubjectReference]("test.reference")
     issue_event = InboxEventType(
-        event_type="test.issue.mentioned",
+        event_type="test.issue.user_mentioned",
         item_type=issue_type,
         data_class=MentionedData,
     )
@@ -108,7 +122,7 @@ class RecordTest(TestCase):
         other = self.create_user()
 
         with patch("sentry.inbox.types.metrics.incr") as incr:
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                 recipient_user_ids=iter([actor.id, self.user.id, other.id, self.user.id]),
@@ -126,17 +140,17 @@ class RecordTest(TestCase):
             assert item.last_read_at is None
             assert event.actor_type == InboxActorType.USER
             assert event.actor_id == actor.id
-            assert event.type == "issue.mentioned"
+            assert event.type == "issue.user_mentioned"
             assert event.data == {"summary": "Mentioned you", "comment_id": 123}
         incr.assert_any_call(
-            "inbox.events.recorded", amount=2, tags={"event_type": "issue.mentioned"}
+            "inbox.events.recorded", amount=2, tags={"event_type": "issue.user_mentioned"}
         )
 
     def test_no_other_recipients(self) -> None:
         group = self.group
         for recipients in ([], [123, 123]):
             with self.assertNumQueries(0):
-                ISSUE_MENTIONED.record(
+                ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                     recipient_user_ids=recipients,
@@ -155,7 +169,7 @@ class RecordTest(TestCase):
                     }
                 ),
             ):
-                ISSUE_MENTIONED.record(
+                ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                     recipient_user_ids=[self.user.id],
@@ -169,14 +183,14 @@ class RecordTest(TestCase):
 
     def test_record_after_ui_rollback(self) -> None:
         with self.feature("organizations:universal-inbox"):
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="First mention", comment_id=123),
                 recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
         with self.feature({"organizations:universal-inbox": False}):
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Another mention", comment_id=456),
                 recipient_user_ids=[self.user.id],
@@ -198,7 +212,7 @@ class RecordTest(TestCase):
         activity_at, updated_at = item.last_activity_at, item.date_updated
 
         with self.feature({"organizations:universal-inbox-recording": False}):
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                 recipient_user_ids=[self.user.id],
@@ -245,7 +259,7 @@ class RecordTest(TestCase):
         foreign_updated_at = foreign.date_updated
 
         with patch("sentry.inbox.types.metrics.incr") as incr:
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                 recipient_user_ids=[self.user.id],
@@ -266,7 +280,7 @@ class RecordTest(TestCase):
         assert event.actor_type == InboxActorType.SYSTEM
         assert event.actor_id is None
         incr.assert_any_call(
-            "inbox.events.recorded", amount=1, tags={"event_type": "issue.mentioned"}
+            "inbox.events.recorded", amount=1, tags={"event_type": "issue.user_mentioned"}
         )
 
     def test_event_failure_rolls_back_item(self) -> None:
@@ -277,7 +291,7 @@ class RecordTest(TestCase):
             ),
             pytest.raises(RuntimeError, match="write failed"),
         ):
-            ISSUE_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                 recipient_user_ids=[self.user.id],
@@ -301,7 +315,7 @@ class RecordConcurrencyTest(TransactionTestCase):
 
         def record(comment_id: int) -> None:
             try:
-                ISSUE_MENTIONED.record(
+                ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(summary="Mentioned you", comment_id=comment_id),
                     recipient_user_ids=[user.id],

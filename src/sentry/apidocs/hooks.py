@@ -216,9 +216,10 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
-        idempotent_methods: frozenset[str] = getattr(
-            callback.view_class, "idempotent_methods", frozenset()
+        declared_idempotent: frozenset[str] | None = getattr(
+            callback.view_class, "idempotent_methods", None
         )
+        idempotent_methods = declared_idempotent or frozenset()
         if not idempotent_methods <= callback.view_class.publish_status.keys():
             raise SentryApiBuildError(
                 f"Endpoint {callback.view_class} declares idempotent_methods that it does not implement: {sorted(idempotent_methods - callback.view_class.publish_status.keys())}.",
@@ -239,6 +240,10 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
             if status is not None and status.is_published:
+                if declared_idempotent is None and method not in _SAFE_METHODS:
+                    raise SentryApiBuildError(
+                        f"Endpoint {callback.view_class} publishes {method} but does not declare idempotent_methods. List the methods a client may resend after a timeout or 5xx without changing the outcome, or set `idempotent_methods = frozenset()` if there are none. See src/sentry/apidocs/README.md.",
+                    )
                 # only pass declared public methods of the endpoint
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))

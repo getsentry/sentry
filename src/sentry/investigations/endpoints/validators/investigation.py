@@ -4,11 +4,11 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationSourceField,
     validate_agentic_source,
 )
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookStatus
 
 
@@ -112,9 +112,3 @@ class PermissionsUpdateValidator(StrictCamelSnakeValidator):
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Team IDs must be unique.")
         return value
-
-
-class FavoriteUpdateValidator(StrictCamelSnakeValidator):
-    should_favorite = serializers.BooleanField(
-        help_text="Whether this investigation is a favorite for the authenticated user."
-    )

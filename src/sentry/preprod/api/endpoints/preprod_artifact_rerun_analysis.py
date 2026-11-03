@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
+from sentry.auth.principal import acting_user_id
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunAnalysisEvent
@@ -57,7 +58,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             PreprodArtifactApiRerunAnalysisEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(head_artifact_id),
             )
         )
@@ -86,7 +87,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
             "preprod_artifact.rerun_analysis",
             extra={
                 "preprod_artifact_id": head_artifact_id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": organization.id,
                 "project_id": head_artifact.project.id,
             },
@@ -142,7 +143,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             PreprodArtifactApiRerunAnalysisEvent(
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(preprod_artifact_id),
             )
         )
@@ -168,7 +169,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
             "preprod_artifact.admin_rerun_analysis",
             extra={
                 "preprod_artifact_id": preprod_artifact_id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
                 "cleanup_stats": asdict(cleanup_stats),
@@ -240,7 +241,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                 PreprodArtifactApiRerunAnalysisEvent(
                     organization_id=organization.id,
                     project_id=artifact.project.id,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                     artifact_id=str(artifact_id),
                 )
             )
@@ -272,7 +273,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
                     "preprod_artifact.admin_batch_rerun_analysis",
                     extra={
                         "preprod_artifact_id": artifact_id,
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                         "organization_id": organization.id,
                         "project_id": artifact.project.id,
                         "cleanup_stats": asdict(cleanup_stats),

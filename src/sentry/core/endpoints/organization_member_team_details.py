@@ -32,6 +32,7 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
+from sentry.auth.principal import require_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
@@ -164,6 +165,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST", "DELETE"})
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (OrganizationTeamMemberPermission,)
 
@@ -338,6 +340,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+        # Without a team grant, the fallback files an access request with the caller as
+        # requester, which needs a user.
+        require_user(request)
 
         if not organization_roles.get(member.role).is_team_roles_allowed:
             return Response(

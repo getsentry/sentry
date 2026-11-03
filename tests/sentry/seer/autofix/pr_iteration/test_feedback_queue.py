@@ -284,7 +284,7 @@ class StopCommandEndToEndTest(TestCase):
         )
 
     def _handle(self, body: str) -> None:
-        with self.feature("organizations:autofix-pr-iteration-manual"), self.tasks():
+        with self.tasks():
             handle_issue_comment_for_autofix_iteration(
                 event=self._event(body),
                 organization=self.organization,
