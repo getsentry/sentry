@@ -1,6 +1,8 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.integrations.models.external_actor import ExternalActor
@@ -46,6 +48,83 @@ class ScheduleGitlabProjectWebhooksTest(TestCase):
         delay.assert_called_once_with(
             organization_id=self.organization.id, integration_id=123, force=True
         )
+
+
+@all_silo_test
+class GetRepositoriesTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="1",
+            provider="github",
+        )
+        self.provider = "integrations:github"
+        self.first_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            external_id="100",
+            provider=self.provider,
+            integration_id=self.integration.id,
+        )
+        self.second_repo = self.create_repo(
+            project=self.project,
+            name="getsentry/snuba",
+            external_id="200",
+            provider=self.provider,
+            integration_id=self.integration.id,
+        )
+        self.create_repo(
+            project=self.project,
+            name="getsentry/relay",
+            external_id="300",
+            provider=self.provider,
+            integration_id=self.integration.id,
+        )
+
+    def test_filters_by_external_ids(self) -> None:
+        repositories = repository_service.get_repositories(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_ids=["100", "200"],
+            providers=[self.provider],
+        )
+
+        assert {repo.id for repo in repositories} == {self.first_repo.id, self.second_repo.id}
+
+    def test_empty_external_ids_returns_no_repositories(self) -> None:
+        assert (
+            repository_service.get_repositories(
+                organization_id=self.organization.id,
+                external_ids=[],
+            )
+            == []
+        )
+
+    def test_external_ids_survive_rpc_serialization(self) -> None:
+        response = dispatch_to_local_service(
+            "repository",
+            "get_repositories",
+            {
+                "organization_id": self.organization.id,
+                "external_ids": ["200"],
+            },
+        )
+
+        assert [repo["id"] for repo in response["value"]] == [self.second_repo.id]
+
+
+@cell_silo_test
+class GetRepositoriesValidationTest(TestCase):
+    def test_rejects_singular_and_plural_external_id_filters(self) -> None:
+        with pytest.raises(
+            ValueError,
+            match="external_id and external_ids cannot both be provided",
+        ):
+            repository_service.get_repositories(
+                organization_id=self.organization.id,
+                external_id="100",
+                external_ids=["100"],
+            )
 
 
 @cell_silo_test

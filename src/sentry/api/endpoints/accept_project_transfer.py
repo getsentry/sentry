@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     OrganizationWithProjectsAndTeamsSerializer,
 )
+from sentry.auth.principal import require_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.core.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
@@ -76,6 +77,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
+        user = require_user(request)
 
         try:
             data = request.GET["data"]
@@ -83,13 +85,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            _payload, project = self.get_validated_data(data, request.user)
+            _payload, project = self.get_validated_data(data, user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        organizations = Organization.objects.get_organizations_where_user_is_owner(
-            user_id=request.user.id
-        )
+        organizations = Organization.objects.get_organizations_where_user_is_owner(user_id=user.id)
 
         return Response(
             {
@@ -108,6 +108,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
     def post(self, request: Request) -> Response:
         if not request.user.is_authenticated:
             return Response(status=400)
+        user = require_user(request)
 
         try:
             data = request.data["data"]
@@ -115,7 +116,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            payload, project = self.get_validated_data(data, request.user)
+            payload, project = self.get_validated_data(data, user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -136,7 +137,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         # check if user is an owner of the organization
         is_org_owner = request.access.has_role_in_organization(
-            role=roles.get_top_dog().id, organization=organization, user_id=request.user.id
+            role=roles.get_top_dog().id, organization=organization, user_id=user.id
         )
 
         if not is_org_owner:

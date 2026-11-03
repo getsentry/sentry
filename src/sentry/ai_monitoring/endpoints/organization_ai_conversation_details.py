@@ -322,7 +322,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="retrieveOrganizationAIConversation",

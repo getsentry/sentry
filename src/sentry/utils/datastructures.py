@@ -4,10 +4,11 @@ from typing import TypeVar, overload
 __unset__ = object()
 
 KT = TypeVar("KT", bound=Hashable)
+VT = TypeVar("VT", bound=Hashable)
 DT = TypeVar("DT")
 
 
-class BidirectionalMapping(MutableMapping[KT, object]):
+class BidirectionalMapping(MutableMapping[KT, VT]):
     """\
     An associative data structure in which the ``(key, value)`` pairs form a
     one-to-one correspondence in both directions.
@@ -17,16 +18,16 @@ class BidirectionalMapping(MutableMapping[KT, object]):
     provided to ``get_key``.
     """
 
-    def __init__(self, data: MutableMapping[KT, object]) -> None:
+    def __init__(self, data: MutableMapping[KT, VT]) -> None:
         self.__data = data
-        self.__inverse = {v: k for k, v in self.__data.items()}
+        self.__inverse: dict[object, KT] = {v: k for k, v in self.__data.items()}
         if len(self.__data) != len(self.__inverse):
             raise ValueError("duplicate value provided")
 
-    def __getitem__(self, key: KT) -> object:
+    def __getitem__(self, key: KT) -> VT:
         return self.__data[key]
 
-    def __setitem__(self, key: KT, value: object) -> None:
+    def __setitem__(self, key: KT, value: VT) -> None:
         if not isinstance(key, Hashable):
             raise TypeError("key must be hashable")
 

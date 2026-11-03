@@ -4,7 +4,6 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, ClassVar, cast
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.db.models.base import ModelBase
@@ -27,18 +26,17 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         scope: str | None = None,
         is_team_admin: bool = False,
     ) -> Sequence[Team]:

@@ -64,6 +64,7 @@ EXPOSABLE_FEATURES = [
     "organizations:relay-heroku-log-drain-endpoint",
     "organizations:relay-playstation-ingestion",
     "organizations:gpu-crash-symbolication",
+    "organizations:browser-report-ingestion",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",

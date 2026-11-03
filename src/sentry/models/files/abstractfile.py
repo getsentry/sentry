@@ -286,7 +286,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         )
 
     @traces.trace
-    def getfile(self, mode: str | None = None, prefetch: bool = False) -> FileObj[bytes]:
+    def getfile(self, mode: str | None = None, prefetch: bool = False) -> Any:
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.

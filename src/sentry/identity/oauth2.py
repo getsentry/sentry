@@ -122,7 +122,8 @@ class OAuth2Provider(Provider):
     def get_oauth_authorize_url(self) -> str:
         return self._get_oauth_parameter("authorize_url")
 
-    def get_oauth_client_id(self) -> str:
+    # Any, as on master: getsentry overrides this with an option value typed `str | int`.
+    def get_oauth_client_id(self) -> Any:
         return self._get_oauth_parameter("client_id")
 
     def get_oauth_client_secret(self) -> str:

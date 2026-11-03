@@ -10,7 +10,7 @@ from bitfield.query import BitQueryExactLookupStub
 from bitfield.types import Bit, BitHandler
 
 if TYPE_CHECKING:
-    _BigIntegerFieldBase = BigIntegerField[int, int]
+    _BigIntegerFieldBase = BigIntegerField[Any, Any]
 else:
     _BigIntegerFieldBase = BigIntegerField
 
@@ -118,7 +118,7 @@ class BitField(_BigIntegerFieldBase):
         if len(flag_definitions) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
 
-        self._arg_flags = flags
+        self._arg_flags = flag_definitions
 
         flags_list: list[str] = []
         labels: list[str] = []
@@ -128,6 +128,7 @@ class BitField(_BigIntegerFieldBase):
                 labels.append(flag[1])
             else:
                 flags_list.append(flag)
+                labels.append(flag)
 
         if isinstance(default, (list, tuple, set, frozenset)):
             new_value = 0

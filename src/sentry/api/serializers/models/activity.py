@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -79,7 +80,7 @@ def serialize_activity_source(source: str | None) -> str | None:
 def serialize_group_notes(
     group: Group,
     notes: Sequence[Activity],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
 ) -> list[GroupNoteSerializerResponse]:
     if not notes:
         return []

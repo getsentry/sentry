@@ -22,6 +22,7 @@ from ..exceptions import (
     ApiConnectionResetError,
     ApiError,
     ApiHostError,
+    ApiPaginationTruncated,
     ApiRetryError,
     ApiTimeoutError,
 )
@@ -442,10 +443,10 @@ class BaseApiClient:
         return session.send(request, **session_settings)
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return cast("Callable[..., BaseApiResponse]", self._request)(*args, **kwargs)
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        return self._request(*args, **kwargs)
 
-    def delete(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("DELETE", path, *args, **kwargs)
 
     def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
@@ -493,26 +494,10 @@ class BaseApiClient:
             self.set_cache(key, result, cache_time)
         return result
 
-    @overload
-    def get_cached(
-        self, path: str, *args: Any, raw_response: Literal[True], **kwargs: Any
-    ) -> Response: ...
-    @overload
-    def get_cached(
-        self, path: str, *args: Any, raw_response: Literal[False] = ..., **kwargs: Any
-    ) -> BaseApiResponse: ...
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse | Response:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    @overload
-    def get(
-        self, path: str, *args: Any, raw_response: Literal[True], **kwargs: Any
-    ) -> Response: ...
-    @overload
-    def get(
-        self, path: str, *args: Any, raw_response: Literal[False] = ..., **kwargs: Any
-    ) -> BaseApiResponse: ...
-    def get(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse | Response:
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("GET", path, *args, **kwargs)
 
     def get_mapping(self, path: str, *args: Any, **kwargs: Any) -> MappingApiResponse:
@@ -539,20 +524,20 @@ class BaseApiClient:
     def get_cached_sequence(self, path: str, *args: Any, **kwargs: Any) -> SequenceApiResponse:
         return _sequence_response(self.get_cached(path, *args, **kwargs))
 
-    def patch(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
+    def patch(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("PATCH", path, *args, **kwargs)
 
-    def post(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
+    def post(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("POST", path, *args, **kwargs)
 
-    def put(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
+    def put(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("PUT", path, *args, **kwargs)
 
     def head(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("HEAD", path, *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
-        return cast(BaseApiResponse, self._get_cached(path, "HEAD", *args, **kwargs))
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
         self,
@@ -560,13 +545,14 @@ class BaseApiClient:
         gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
         get_results: Callable[[Any], Sequence[_TPaginatedResult]],
         *args: Any,
+        raise_on_page_limit: bool = False,
         **kwargs: Any,
     ) -> list[_TPaginatedResult]:
         page_size = self.page_size
         output: list[_TPaginatedResult] = []
 
         for i in range(self.page_number_limit):
-            resp = self.get(path, params=gen_params(i, page_size))
+            resp = self.get(path, *args, params=gen_params(i, page_size), **kwargs)
             results = get_results(resp)
             num_results = len(results)
 
@@ -574,4 +560,9 @@ class BaseApiClient:
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output
+        if raise_on_page_limit:
+            raise ApiPaginationTruncated(
+                output,
+                f"pagination stopped at page_number_limit={self.page_number_limit}",
+            )
         return output
