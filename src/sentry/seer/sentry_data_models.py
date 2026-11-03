@@ -286,7 +286,7 @@ class EventFilterKeyEntry(BaseModel):
 class EventFilterKeysResponse(BaseModel):
     __root__: dict[str, EventFilterKeyEntry]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, dict[str, Any]]:
         # Unwrap to the bare `{key: {...}}` map the seer caller expects.
         return {k: v.dict(**kwargs) for k, v in self.__root__.items()}
 
@@ -394,7 +394,7 @@ class AttributeValuesResponse(BaseModel):
 
     __root__: dict[str, list[str]]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, list[str]]:
         # Pre-typed code returned `{field: sorted_list, ...}` directly — unwrap so
         # the dispatcher and downstream consumers see the bare map.
         return dict(self.__root__)
@@ -856,7 +856,7 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
 

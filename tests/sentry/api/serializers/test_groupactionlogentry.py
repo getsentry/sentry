@@ -429,6 +429,94 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             idempotency_key=f"first_seen:{group_id or self.group.id}",
         )
 
+    def test_feed_filters_audit_events_before_limiting(self) -> None:
+        first_seen = self._first_seen()
+        created = self.create_group_action_log_entry(
+            type=GroupActionType.CREATE_ISSUE,
+            data={
+                "provider": "Example",
+                "title": "APP-42",
+                "location": "https://example.com/42",
+                "new": True,
+            },
+        )
+        merged = self.create_group_action_log_entry(
+            type=GroupActionType.MERGE_FROM_OTHER,
+            data={"counterpart_group_ids": [42]},
+        )
+        # Newer non-user-visible rows must neither appear nor consume the page.
+        for action_type in (
+            GroupActionType.CREATE_EXTERNAL_ISSUE,
+            GroupActionType.LINK_EXTERNAL_ISSUE,
+            GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+            GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+            GroupActionType.MERGE_INTO_OTHER,
+            GroupActionType.DEPLOY,
+            GroupActionType.NEW_PROCESSING_ISSUES,
+            GroupActionType.BOOKMARK,
+            GroupActionType.SUBSCRIBE,
+            GroupActionType.UNSUBSCRIBE,
+            GroupActionType.DELETE,
+            GroupActionType.AUTOFIX_PR_CREATED,
+            GroupActionType.ROOT_CAUSE_IDENTIFIED,
+            GroupActionType.AUTOFIX_CODING_COMPLETE,
+        ):
+            self.create_group_action_log_entry(type=action_type)
+
+        items = self._activity_items(limit=2)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("merge", str(merged.id)),
+            ("create_issue", str(created.id)),
+            ("first_seen", str(first_seen.id)),
+        ]
+
+    def test_unlinks_are_served_with_lowercase_types_and_original_data(self) -> None:
+        for action_type, type_name, data in (
+            (
+                GroupActionType.UNLINK_EXTERNAL_ISSUE,
+                "unlink_external_issue",
+                {"provider": "github", "external_issue_key": "org/repo#42"},
+            ),
+            (
+                GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+                "unlink_platform_external_issue",
+                {
+                    "service_type": "example",
+                    "display_name": "APP-42",
+                    "web_url": "https://example.com/42",
+                },
+            ),
+        ):
+            entry = self.create_group_action_log_entry(type=action_type, data=data)
+
+            items = self._activity_items(limit=1)
+
+            assert items[0]["id"] == str(entry.id)
+            assert items[0]["type"] == type_name
+            assert items[0]["data"] == data
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_first_seen_only_log_serves_notes_without_fallback(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "live"})
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        first_seen = self._first_seen()
+
+        items = self._activity_items()
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", str(note.id)),
+            ("first_seen", str(first_seen.id)),
+        ]
+
+    def test_hidden_only_log_falls_back_to_activity(self) -> None:
+        self.create_group_action_log_entry(type=GroupActionType.LINK_EXTERNAL_ISSUE)
+
+        with action_log_activity_enabled():
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+
+        assert items is None
+
     def test_logged_first_seen_is_not_duplicated(self) -> None:
         first_seen = self._first_seen()
         resolve = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)

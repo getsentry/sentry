@@ -30,7 +30,7 @@ class RuleValidator:
     def _is_all_stars(self) -> bool:
         return self._is_string_all_stars(self._rule)
 
-    def _is_string_all_stars(self, string) -> bool:
+    def _is_string_all_stars(self, string: str) -> bool:
         return set(string) <= self._char_domain
 
     def _is_schema_and_all_stars(self) -> bool:

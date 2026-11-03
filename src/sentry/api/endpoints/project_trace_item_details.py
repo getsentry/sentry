@@ -1,7 +1,7 @@
 import time
 import uuid
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from google.protobuf.json_format import MessageToDict
@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.conditional_get import CacheTier, ConditionalGetResponseMixin
 from sentry.api.exceptions import BadRequest
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.staff import is_active_staff
@@ -57,9 +58,9 @@ _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
 
 
 def _parse_scalar(
-    column_type: ColumnType, value_type, value: str
+    column_type: ColumnType, value_type: str, value: str
 ) -> tuple[ScalarValueType, ScalarType]:
-    parsed_value_type = value_type[3:].lower()
+    parsed_value_type = cast("ScalarType", value_type[3:].lower())
     match column_type:
         case "number":
             if value_type in _NUMERIC_COERCIONS:
@@ -111,7 +112,7 @@ def _get_value_from_attribute(
 
 
 def convert_rpc_attribute_to_json(
-    attributes: list[dict],
+    attributes: list[dict[str, Any]],
     trace_item_type: SupportedTraceItemType,
     include_internal: bool = False,
     include_arrays: bool = False,
@@ -207,9 +208,9 @@ def convert_rpc_attribute_to_json(
 
 
 def serialize_meta(
-    attributes: list[dict],
+    attributes: list[dict[str, Any]],
     trace_item_type: SupportedTraceItemType,
-) -> dict:
+) -> dict[str, Any]:
     internal_name = ""
     attribute = {}
     meta_result = {}
@@ -296,7 +297,7 @@ def _normalize_breadcrumbs(breadcrumbs: Any) -> None:
                 sentry_sdk.capture_exception(e)
 
 
-def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
+def serialize_event(attributes: list[dict[str, Any]]) -> dict[str, Any] | None:
     """A few event fields (contexts, extra, breadcrumbs) are stored as
     JSON-serialized strings under internal `sentry.event.serialized_*`
     attributes. Parse any that are present back into JSON and return them,
@@ -326,7 +327,7 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
     return result or None
 
 
-def serialize_links(attributes: list[dict]) -> list[dict] | None:
+def serialize_links(attributes: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     attribute_map = {attribute["name"]: attribute for attribute in attributes}
     link_attribute = get_attribute(attribute_map, "sentry.links")
@@ -346,7 +347,7 @@ def serialize_links(attributes: list[dict]) -> list[dict] | None:
         return None
 
 
-def serialize_link(link: dict) -> dict:
+def serialize_link(link: dict[str, Any]) -> dict[str, Any]:
     clean_link = {
         "itemId": link["span_id"],
         "traceId": link["trace_id"],
@@ -365,7 +366,7 @@ def serialize_link(link: dict) -> dict:
     return clean_link
 
 
-def serialize_link_attribute(name: str, value: Any) -> dict | None:
+def serialize_link_attribute(name: str, value: Any) -> dict[str, Any] | None:
     """
     Serializes a single span link attribute, returning `None` for unsupported
     values. The stored value shape depends on the ingest pipeline: the
@@ -422,11 +423,13 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
 
 
 @cell_silo_endpoint
-class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
+class ProjectTraceItemDetailsEndpoint(ConditionalGetResponseMixin, ProjectEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    # Deletion, retention, and flag rollouts can still change a written item.
+    cache_tier = CacheTier.STABLE
 
     @staticmethod
     def get(request: Request, project: Project, item_id: str) -> Response:

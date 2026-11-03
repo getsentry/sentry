@@ -20,11 +20,12 @@ from sentry.apidocs.parameters import CursorQueryParam
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.utils.dates import epoch
 
 
-class UserReportSerializer(serializers.ModelSerializer):
+class UserReportSerializer(serializers.ModelSerializer[UserReport]):
     class Meta:
         model = UserReport
         fields = ("name", "email", "comments", "event_id")
@@ -48,7 +49,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         summary="List a Project's User Feedback",
         parameters=[CursorQueryParam],
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's User Feedback
         ``````````````````````````````
@@ -100,7 +101,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             **paginate_kwargs,
         )
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Submit User Feedback
         ````````````````````

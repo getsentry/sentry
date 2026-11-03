@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -39,10 +40,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
@@ -204,8 +202,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -324,15 +321,9 @@ export function Onboarding() {
         // Remount when the integration or runtime changes so the stepper doesn't
         // carry over stale per-step state from the previous selection.
         key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
-        initialStep={decodeInteger(location.query.guidedStep)}
+        initialStep={guidedStep ?? undefined}
         onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
+          setGuidedStep(step, {history: 'push'});
         }}
       >
         {steps.map((step, index) => (

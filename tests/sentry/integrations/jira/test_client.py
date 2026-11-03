@@ -43,7 +43,7 @@ class JiraClientTest(TestCase):
 
     @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
     def test_set_issue_property(self) -> None:
-        with mock.patch.object(self.jira_client, "put") as put:
+        with mock.patch.object(self.jira_client, "put_mapping") as put:
             self.jira_client.set_issue_property("ABC-123", 2)
 
         put.assert_called_once_with(

@@ -1,4 +1,4 @@
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
@@ -11,9 +11,11 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
 
   const lines = [];
   // canonical source: @sentry/scraps/<component> (no deep imports)
-  const importSpecifier = props.exports.module.startsWith('@sentry/scraps/')
-    ? props.exports.module.split('/').slice(0, 3).join('/')
-    : props.exports.module;
+  const importSpecifier =
+    props.exports.module.startsWith('@sentry/scraps/') &&
+    props.exports.module !== '@sentry/scraps/code'
+      ? props.exports.module.split('/').slice(0, 3).join('/')
+      : props.exports.module;
 
   if (Object.entries(props.exports.exports).length > 0) {
     const entries = Object.entries(props.exports.exports);

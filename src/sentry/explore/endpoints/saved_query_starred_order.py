@@ -19,8 +19,11 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["member:read", "member:write"],
+        "PUT": ["member:read", "member:write", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):

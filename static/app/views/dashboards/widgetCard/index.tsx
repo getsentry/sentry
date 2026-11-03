@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -100,6 +100,7 @@ type Props = {
   hasEditAccess?: boolean;
   index?: string;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -119,6 +120,10 @@ type Props = {
   windowWidth?: number;
 };
 
+const widgetViewerParsers = Object.fromEntries(
+  Object.values(WidgetViewerQueryField).map(field => [field, parseAsString])
+);
+
 type Data = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -135,6 +140,9 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [, setWidgetViewerParams] = useQueryStates(widgetViewerParsers, {
+    history: 'replace',
+  });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -312,11 +320,7 @@ function WidgetCard(props: Props) {
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
-          const query = omit(location.query, Object.values(WidgetViewerQueryField));
-          navigate(
-            {pathname: location.pathname, query},
-            {preventScrollReset: true, replace: true}
-          );
+          setWidgetViewerParams(null);
         },
       });
     }
@@ -343,6 +347,7 @@ function WidgetCard(props: Props) {
         widget,
         props.widgetLimitReached,
         props.hasEditAccess,
+        props.isPrebuiltDashboard,
         location,
         props.onDelete,
         props.onDuplicate,

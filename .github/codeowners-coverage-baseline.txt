@@ -2164,7 +2164,6 @@ tests/sentry/quotas/__init__.py
 tests/sentry/quotas/test_base.py
 tests/sentry/quotas/test_redis.py
 tests/sentry/ratelimits/__init__.py
-tests/sentry/ratelimits/test_cardinality.py
 tests/sentry/ratelimits/test_config.py
 tests/sentry/ratelimits/test_leaky_bucket.py
 tests/sentry/ratelimits/test_redis.py
@@ -2343,7 +2342,6 @@ tests/sentry/testutils/thread_leaks/test_sentry.py
 tests/sentry/tsdb/__init__.py
 tests/sentry/tsdb/test_base.py
 tests/sentry/tsdb/test_redis.py
-tests/sentry/tsdb/test_redissnuba.py
 tests/sentry/tsdb/test_snuba.py
 tests/sentry/types/__init__.py
 tests/sentry/types/test_actor.py

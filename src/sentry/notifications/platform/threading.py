@@ -109,6 +109,8 @@ class ThreadingConfig(ThreadingLookup):
     object_type: NotRequired[NotificationThreadObjectType | None]
     object_id: NotRequired[int | None]
 
+    integration_id: NotRequired[int | None]
+
 
 class ThreadingService:
     """
@@ -182,6 +184,7 @@ class ThreadingService:
                     "key_data": threading_config["key_data"],
                     "object_type": threading_config.get("object_type"),
                     "object_id": threading_config.get("object_id"),
+                    "integration_id": threading_config.get("integration_id"),
                     "provider_data": threading_config["provider_data"] or {},
                 },
             )
@@ -217,6 +220,19 @@ class ThreadingService:
         return ThreadingService._create_thread_and_record(
             threading_config, external_message_id, thread_key
         )
+
+    @staticmethod
+    def get_threads_for_object(
+        *,
+        object_type: NotificationThreadObjectType,
+        object_id: int,
+        provider_key: NotificationProviderKey | None = None,
+    ) -> list[NotificationThread]:
+        """Return all threads for the object. If provider_key is set, return only its threads."""
+        queryset = NotificationThread.objects.filter(object_type=object_type, object_id=object_id)
+        if provider_key is not None:
+            queryset = queryset.filter(provider_key=provider_key)
+        return list(queryset)
 
     @staticmethod
     def store_existing_thread(

@@ -5,7 +5,9 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
-from sentry.investigations.access import has_investigations_access
+from sentry.inbox.issue import record_issue_pr_ready_for_review
+from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
+from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -16,6 +18,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notebooks.access import has_investigations_access
 from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
@@ -44,6 +47,7 @@ from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
     SeerInvestigationEntrypoint,
+    SeerOperatorCacheResult,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
@@ -55,6 +59,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.safe import get_path, safe_execute
 from sentry.viewer_context import ActorId, ActorType
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
@@ -316,6 +321,7 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             # Let the entrypoint signal to the external service that the run started
@@ -407,10 +413,12 @@ class SeerAutofixOperator[CachePayloadT]:
             lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
             try:
                 with lock.acquire():
-                    non_failed = [a for a in coding_agents if a.status != CodingAgentStatus.FAILED]
+                    non_failed = [
+                        a for a in coding_agents if a.status != CodingAgentStatus.FAILED.value
+                    ]
                     if non_failed:
                         has_complete_stage = any(
-                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                            a.status == CodingAgentStatus.COMPLETED.value for a in non_failed
                         )
                         lifecycle.add_extra("active_agents", str(len(non_failed)))
                         with SeerOperatorEventLifecycleMetric(
@@ -582,7 +590,7 @@ class SeerAgentOperator[CachePayloadT]:
                 # Discovery uses the local run mirror; continue/start stays remote.
                 existing_run = client.latest_run(only_current_user=False)
 
-                if existing_run is not None:
+                if existing_run is not None and existing_run.run.seer_run_state_id is not None:
                     run_id = client.continue_run(
                         run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
@@ -604,6 +612,7 @@ class SeerAgentOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(
@@ -769,6 +778,22 @@ def _create_seer_activity(
         data=activity_data if activity_data else None,
         send_notification=False,
     )
+    if event_type == SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+        pr_urls = [
+            pr_url
+            for pr in get_path(event_payload, "pull_requests", default=[])
+            if (pr_url := get_path(pr, "pull_request", "pr_url"))
+        ]
+        if pr_urls:
+            safe_execute(
+                record_issue_pr_ready_for_review,
+                group=group,
+                pr_urls=pr_urls,
+                seer_run_id=event_payload["run_id"],
+                actor=InboxActor.user(actor_user_id)
+                if actor_user_id is not None
+                else INBOX_SYSTEM_ACTOR,
+            )
 
 
 def record_seer_activity(
@@ -890,7 +915,7 @@ def process_autofix_updates(
                 logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
                 continue
 
-            cache_result = SeerOperatorAutofixCache.get(
+            cache_result: SeerOperatorCacheResult[object] | None = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:

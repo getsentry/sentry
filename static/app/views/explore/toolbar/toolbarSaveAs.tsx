@@ -168,21 +168,19 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
+  items.push(
+    getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
+  );
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
   const chartOptions = useMemo(() => {
-    return visualizeYAxes.map((yAxis, index) => {
-      const dedupedYAxes = [yAxis];
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(withReadableConditionalFilter(yaxis));
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+    return visualizes.map((visualize, index) => {
+      const func = parseFunction(withReadableConditionalFilter(visualize.yAxis));
 
       return {
         key: String(index),
-        label: formattedYAxes.filter(Boolean).join(', '),
+        label: func ? prettifyParsedFunction(func) : visualize.yAxis,
         onAction: () => {
           if (disableAddToDashboard) {
             return;
@@ -197,7 +195,7 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
+  }, [addToDashboard, disableAddToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
@@ -290,12 +288,6 @@ export function ToolbarSaveAs() {
               {...mergeProps(triggerProps, containerProps)}
               showChevron={false}
               variant="primary"
-              disabled={hasTransformations}
-              tooltipProps={
-                hasTransformations
-                  ? {title: t('Queries with transformations cannot be saved yet.')}
-                  : undefined
-              }
               aria-label={t('Save as')}
             >
               {shouldHighlightSaveButton ? t('Save') : t('Save as')}

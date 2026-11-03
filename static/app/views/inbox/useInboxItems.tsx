@@ -17,7 +17,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '1',
       subjectType: 'issue',
-      subjectId: '101',
+      subjectId: '7656018581',
       subject: {title: "TypeError: Cannot read properties of undefined (reading 'id')"},
       unreadEventCount: 2,
       latestEvent: {
@@ -36,7 +36,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '2',
       subjectType: 'notebook',
-      subjectId: '203',
+      subjectId: '1000210',
       subject: {title: 'OperationalError: could not connect to server'},
       unreadEventCount: 1,
       latestEvent: {
@@ -55,7 +55,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '3',
       subjectType: 'notebook',
-      subjectId: '201',
+      subjectId: '1000209',
       subject: {title: 'Checkout latency regression'},
       unreadEventCount: 0,
       latestEvent: {
@@ -75,7 +75,7 @@ function makeMockInboxItems(): InboxItem[] {
     {
       id: '4',
       subjectType: 'issue',
-      subjectId: '103',
+      subjectId: '7431429026',
       subject: {title: 'ChunkLoadError: Loading chunk 42 failed'},
       unreadEventCount: 0,
       latestEvent: {
@@ -90,25 +90,6 @@ function makeMockInboxItems(): InboxItem[] {
       isUnread: false,
       lastActivityAt: minutesAgo(60 * 26),
       lastReadAt: minutesAgo(60 * 25),
-    },
-    {
-      id: '5',
-      subjectType: 'notebook',
-      subjectId: '202',
-      subject: {title: 'Payment retries failing in EU'},
-      unreadEventCount: 0,
-      latestEvent: {
-        id: '1005',
-        type: 'notebook.mentioned',
-        actor: sam,
-        data: {commentId: '556'},
-        title: 'Sam Lee mentioned you in this notebook',
-        preview: 'Does this line up with what you saw in the retry queue last week?',
-        dateAdded: minutesAgo(60 * 72),
-      },
-      isUnread: false,
-      lastActivityAt: minutesAgo(60 * 72),
-      lastReadAt: minutesAgo(60 * 70),
     },
   ];
 }

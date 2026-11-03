@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import secrets
+from collections.abc import Mapping
 from time import time
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
@@ -63,7 +64,8 @@ def _redirect_url(pipeline: IdentityPipeline) -> str:
     )
 
     # Use configured redirect_url if specified for the pipeline if available
-    return pipeline.config.get("redirect_url", associate_url)
+    redirect_url = pipeline.config.get("redirect_url", associate_url)
+    return redirect_url
 
 
 class OAuth2Provider(Provider):
@@ -81,7 +83,7 @@ class OAuth2Provider(Provider):
 
     oauth_scopes: tuple[str, ...] = ()
 
-    def _get_oauth_parameter(self, parameter_name):
+    def _get_oauth_parameter(self, parameter_name: str) -> str:
         """
         Lookup an OAuth parameter for the provider. Depending on the context of the
         pipeline using the provider, the parameter may come from 1 of 3 places:
@@ -103,7 +105,7 @@ class OAuth2Provider(Provider):
             pass
 
         if self.config.get(parameter_name):
-            return self.config.get(parameter_name)
+            return cast("str", self.config.get(parameter_name))
 
         model = self.pipeline.provider_model
         if model and model.config.get(parameter_name) is not None:
@@ -111,25 +113,26 @@ class OAuth2Provider(Provider):
 
         raise KeyError(f'Unable to resolve OAuth parameter "{parameter_name}"')
 
-    def get_oauth_access_token_url(self):
+    def get_oauth_access_token_url(self) -> str:
         return self._get_oauth_parameter("access_token_url")
 
-    def get_oauth_refresh_token_url(self):
+    def get_oauth_refresh_token_url(self) -> str:
         raise NotImplementedError
 
-    def get_oauth_authorize_url(self):
+    def get_oauth_authorize_url(self) -> str:
         return self._get_oauth_parameter("authorize_url")
 
-    def get_oauth_client_id(self):
+    # Any, as on master: getsentry overrides this with an option value typed `str | int`.
+    def get_oauth_client_id(self) -> Any:
         return self._get_oauth_parameter("client_id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return self._get_oauth_parameter("client_secret")
 
-    def get_oauth_scopes(self):
+    def get_oauth_scopes(self) -> tuple[str, ...]:
         return self.config.get("oauth_scopes", self.oauth_scopes)
 
-    def get_refresh_token_headers(self):
+    def get_refresh_token_headers(self) -> dict[str, str] | None:
         return None
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
@@ -173,7 +176,7 @@ class OAuth2Provider(Provider):
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
-    def get_oauth_data(self, payload):
+    def get_oauth_data(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         data = {"access_token": payload["access_token"]}
         if "expires_in" in payload:
             data["expires"] = int(time()) + int(payload["expires_in"])
@@ -185,7 +188,11 @@ class OAuth2Provider(Provider):
         return data
 
     def get_refresh_token(
-        self, refresh_token, url: str, identity: Identity | RpcIdentity, **kwargs: Any
+        self,
+        refresh_token: str,
+        url: str,
+        identity: Identity | RpcIdentity,
+        **kwargs: Any,
     ) -> Response:
         data = self.get_refresh_token_params(refresh_token, identity, **kwargs)
 
@@ -229,7 +236,7 @@ class OAuth2Provider(Provider):
         identity_service.update_data(identity_id=identity.id, data=identity.data)
 
 
-def record_event(event: IntegrationPipelineViewType, provider: str):
+def record_event(event: IntegrationPipelineViewType, provider: str) -> IntegrationPipelineViewEvent:
     from sentry.identity import default_manager as identity_manager
     from sentry.integrations.base import IntegrationDomain
 
@@ -366,17 +373,25 @@ class OAuth2ApiStep:
             content_type = req.headers.get("Content-Type", "").lower()
             if content_type.startswith("application/x-www-form-urlencoded"):
                 return dict(parse_qsl(body.decode("utf-8")))
-            return orjson.loads(body)
+            data = orjson.loads(body)
+            return data
         except orjson.JSONDecodeError as e:
             raise OAuth2ApiStepError("Could not decode a JSON response, please try again.") from e
 
 
 class OAuth2LoginView:
     authorize_url: str | None = None
-    client_id: str | None = None
+    client_id: str | int | None = None
     scope = ""
 
-    def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
+    def __init__(
+        self,
+        authorize_url: str | None = None,
+        client_id: str | int | None = None,
+        scope: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
@@ -385,13 +400,13 @@ class OAuth2LoginView:
         if scope is not None:
             self.scope = scope
 
-    def get_scope(self):
+    def get_scope(self) -> str:
         return self.scope
 
-    def get_authorize_url(self):
+    def get_authorize_url(self) -> str | None:
         return self.authorize_url
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         return {
             "client_id": self.client_id,
             "response_type": "code",
@@ -423,10 +438,17 @@ class OAuth2LoginView:
 
 class OAuth2CallbackView:
     access_token_url: str | None = None
-    client_id: str | None = None
+    client_id: str | int | None = None
     client_secret: str | None = None
 
-    def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
+    def __init__(
+        self,
+        access_token_url: str | None = None,
+        client_id: str | int | None = None,
+        client_secret: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
@@ -435,7 +457,7 @@ class OAuth2CallbackView:
         if client_secret is not None:
             self.client_secret = client_secret
 
-    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | int | None]:
         return {
             "grant_type": "authorization_code",
             "code": code,
@@ -492,7 +514,8 @@ class OAuth2CallbackView:
                 content_type = req.headers.get("Content-Type", "").lower()
                 if content_type.startswith("application/x-www-form-urlencoded"):
                     return dict(parse_qsl(body.decode("utf-8")))
-                return orjson.loads(body)
+                data = orjson.loads(body)
+                return data
             except orjson.JSONDecodeError:
                 lifecycle.record_failure(
                     "json_error",

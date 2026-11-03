@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any, Protocol, TypedDict, cast
 
 from django.conf import settings
 from django.core.cache import cache
@@ -14,13 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 class SdkSetupState:
-    def __init__(self, sdk_name, sdk_version, modules, integrations):
-        self.sdk_name = sdk_name
-        self.sdk_version = sdk_version
-        self.modules = dict(modules or ())
-        self.integrations = list(integrations or ())
+    def __init__(
+        self,
+        sdk_name: str | None,
+        sdk_version: str | None,
+        modules: Mapping[str, str] | Sequence[tuple[str, str]] | None,
+        integrations: Sequence[str] | None,
+    ) -> None:
+        self.sdk_name: str | None = sdk_name
+        self.sdk_version: str | None = sdk_version
+        self.modules: dict[str, str] = dict(modules or ())
+        self.integrations: list[str] = list(integrations or ())
 
-    def copy(self):
+    def copy(self) -> SdkSetupState:
         return type(self)(
             sdk_name=self.sdk_name,
             sdk_version=self.sdk_version,
@@ -29,7 +36,7 @@ class SdkSetupState:
         )
 
     @classmethod
-    def from_event_json(cls, event_data):
+    def from_event_json(cls, event_data: Mapping[str, object]) -> SdkSetupState:
         sdk_name = get_path(event_data, "sdk", "name")
         if sdk_name:
             sdk_name = sdk_name.lower().rsplit(":", 1)[0]
@@ -46,33 +53,61 @@ class SdkSetupState:
 
 
 class SdkIndexState:
-    def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None):
-        self.sdk_versions = sdk_versions or get_sdk_versions()
-        self.deprecated_sdks = deprecated_sdks or settings.DEPRECATED_SDKS
-        self.sdk_supported_modules = sdk_supported_modules or SDK_SUPPORTED_MODULES
+    def __init__(
+        self,
+        sdk_versions: Mapping[str, str] | None = None,
+        deprecated_sdks: Mapping[str, str] | None = None,
+        sdk_supported_modules: Sequence[SupportedModule] | None = None,
+    ) -> None:
+        self._sdk_index: Mapping[str, Any] | None = None
+        self._sdk_urls: dict[str, str] | None = None
+        self.sdk_versions: Mapping[str, str] = sdk_versions or get_sdk_versions(
+            self._get_sdk_index()
+        )
+        self.deprecated_sdks: Mapping[str, str] = deprecated_sdks or settings.DEPRECATED_SDKS
+        self.sdk_supported_modules: Sequence[SupportedModule] = (
+            sdk_supported_modules or SDK_SUPPORTED_MODULES
+        )
+
+    def _get_sdk_index(self) -> Mapping[str, Any]:
+        # Read once per instance: computing sdkUrl per suggestion used to hit the cache each time.
+        if self._sdk_index is None:
+            try:
+                self._sdk_index = get_sdk_index()
+            except Exception:
+                logger.exception("sentry-release-registry.sdk-index")
+                self._sdk_index = {}
+        return self._sdk_index
+
+    @property
+    def sdk_urls(self) -> dict[str, str]:
+        if self._sdk_urls is None:
+            self._sdk_urls = get_sdk_urls(self._get_sdk_index())
+        return self._sdk_urls
 
 
 class Suggestion:
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
         raise NotImplementedError()
 
-    def __eq__(self, other):
-        return self.to_json() == other.to_json()
+    def __eq__(self, other: object) -> bool:
+        # sdkUrl is derived from the SDK name, so it does not affect equality.
+        return self.to_json({}) == cast(Suggestion, other).to_json({})
 
 
 class EnableIntegrationSuggestion(Suggestion):
-    def __init__(self, integration_name, integration_url):
+    def __init__(self, integration_name: str, integration_url: str) -> None:
         self.integration_name = integration_name
         self.integration_url = integration_url
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
         return {
             "type": "enableIntegration",
             "integrationName": self.integration_name,
             "integrationUrl": self.integration_url,
         }
 
-    def get_new_state(self, old_state):
+    def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
         if self.integration_name in old_state.integrations:
             return old_state
 
@@ -82,26 +117,31 @@ class EnableIntegrationSuggestion(Suggestion):
 
 
 class UpdateSDKSuggestion(Suggestion):
-    def __init__(self, sdk_name, new_sdk_version, ignore_patch_version):
+    def __init__(
+        self, sdk_name: str, new_sdk_version: str | None, ignore_patch_version: bool
+    ) -> None:
         self.sdk_name = sdk_name
         self.new_sdk_version = new_sdk_version
         self.ignore_patch_version = ignore_patch_version
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
         return {
             "type": "updateSdk",
             "sdkName": self.sdk_name,
             "newSdkVersion": self.new_sdk_version,
-            "sdkUrl": get_sdk_urls().get(self.sdk_name),
+            "sdkUrl": sdk_urls.get(self.sdk_name),
         }
 
-    def get_new_state(self, old_state):
+    def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
         if self.new_sdk_version is None:
             return old_state
 
         new_sdk_version = self.new_sdk_version
         if self.ignore_patch_version:
             new_sdk_version = ".".join(v for v in new_sdk_version.split(".")[:2])
+
+        if old_state.sdk_version is None:
+            return old_state
 
         try:
             has_newer_version = Version(old_state.sdk_version) < Version(new_sdk_version)
@@ -123,18 +163,18 @@ class ChangeSDKSuggestion(Suggestion):
         multiple SDKs in e.g. .NET.
     """
 
-    def __init__(self, new_sdk_name, module_names=None):
+    def __init__(self, new_sdk_name: str, module_names: Sequence[str] | None = None) -> None:
         self.new_sdk_name = new_sdk_name
         self.module_names = module_names
 
-    def to_json(self):
+    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]:
         return {
             "type": "changeSdk",
             "newSdkName": self.new_sdk_name,
-            "sdkUrl": get_sdk_urls().get(self.new_sdk_name),
+            "sdkUrl": sdk_urls.get(self.new_sdk_name),
         }
 
-    def get_new_state(self, old_state):
+    def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState:
         if old_state.sdk_name == self.new_sdk_name:
             return old_state
 
@@ -151,7 +191,13 @@ class SupportedModule(TypedDict):
     sdk_version_added: str
     module_name: str
     module_version_min: str
-    suggestion: Suggestion
+    suggestion: StatefulSuggestion
+
+
+class StatefulSuggestion(Protocol):
+    def to_json(self, sdk_urls: Mapping[str, str]) -> dict[str, object]: ...
+
+    def get_new_state(self, old_state: SdkSetupState) -> SdkSetupState: ...
 
 
 SDK_SUPPORTED_MODULES: list[SupportedModule] = [
@@ -356,7 +402,7 @@ SDK_SUPPORTED_MODULES: list[SupportedModule] = [
 ]
 
 
-def get_sdk_index():
+def get_sdk_index() -> dict[str, dict[str, object]]:
     """
     Get the SDK index from cache, if available.
 
@@ -368,27 +414,29 @@ def get_sdk_index():
     return cache.get(SDK_INDEX_CACHE_KEY) or {}
 
 
-def get_sdk_versions():
+def get_sdk_versions(sdk_index: Mapping[str, Any]) -> dict[str, str]:
     try:
-        rv = settings.SDK_VERSIONS
-        rv.update((key, info["version"]) for (key, info) in get_sdk_index().items())
+        rv = dict(settings.SDK_VERSIONS)
+        rv.update((key, info["version"]) for (key, info) in sdk_index.items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-versions")
         return {}
 
 
-def get_sdk_urls():
+def get_sdk_urls(sdk_index: Mapping[str, Any]) -> dict[str, str]:
     try:
         rv = dict(settings.SDK_URLS)
-        rv.update((key, info.get("main_docs_url", "")) for (key, info) in get_sdk_index().items())
+        rv.update((key, info.get("main_docs_url", "")) for (key, info) in sdk_index.items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-urls")
         return {}
 
 
-def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
+def _get_suggested_updates_step(
+    setup_state: SdkSetupState, index_state: SdkIndexState, ignore_patch_version: bool
+) -> Iterator[StatefulSuggestion]:
     if not setup_state.sdk_name or not setup_state.sdk_version:
         return
 
@@ -435,8 +483,11 @@ def _get_suggested_updates_step(setup_state, index_state, ignore_patch_version):
 
 
 def get_suggested_updates(
-    setup_state, index_state=None, parent_suggestions=None, ignore_patch_version=True
-):
+    setup_state: SdkSetupState,
+    index_state: SdkIndexState | None = None,
+    parent_suggestions: list[StatefulSuggestion] | None = None,
+    ignore_patch_version: bool = True,
+) -> Iterator[dict[str, object]]:
     if index_state is None:
         index_state = SdkIndexState()
 
@@ -460,7 +511,7 @@ def get_suggested_updates(
         new_setup_states.append(new_setup_state)
 
     for new_setup_state, suggestion in zip(new_setup_states, rv):
-        json = suggestion.to_json()
+        json = suggestion.to_json(index_state.sdk_urls)
         json["enables"] = list(
             get_suggested_updates(
                 new_setup_state, parent_suggestions=parent_suggestions + rv, index_state=index_state

@@ -31,10 +31,6 @@ from sentry.investigations.seer_client import (
     dispatch_investigation_orchestration_command,
     get_investigation_orchestration_run,
 )
-from sentry.investigations.services import (
-    mark_block_execution_dispatch_failed,
-    mark_block_execution_dispatch_started,
-)
 from sentry.investigations.services.action_kinds.connect_telemetry import (
     TELEMETRY_FEATURE,
     ConnectTelemetryAppliedDetails,
@@ -59,6 +55,10 @@ from sentry.investigations.services.orchestration_events import (
 from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookBlockExecution
+from sentry.notebooks.services import (
+    mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
@@ -103,7 +103,7 @@ def _mark_create_dispatch_failed(run_id: int) -> None:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         run = _lock_orchestration_run(run_id)
-        if run is None or run.seer_run_id is not None:
+        if run is None or run.seer_run_id:
             return
         detail = {
             "code": "seer_dispatch_failed",
@@ -379,7 +379,7 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
     )
     if run is None:
         return
-    if run.seer_run_id is not None:
+    if run.seer_run_id:
         dispatch_investigation_orchestration_commands.delay(run.id)
         return
     viewer_context = SeerViewerContext(organization_id=run.investigation.organization_id)

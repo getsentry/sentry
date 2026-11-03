@@ -1,5 +1,6 @@
 from itertools import product
 
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
@@ -21,7 +22,9 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ExploreSavedQueriesTest(APITestCase):
@@ -391,6 +394,74 @@ class ExploreSavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_get_saved_query_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [{"fields": ["formula.apdex(span.duration,300)"], "mode": "samples"}],
+        }
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_search_querystring_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [
+                {"query": ["field:foo formula.apdex(span.duration,300):>0.7"], "mode": "samples"}
+            ],
+        }
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_get_saved_query_with_formula_dont_get_similar(self) -> None:
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query={
+                "range": "24h",
+                "query": [{"fields": ["formula.apdex(span.duration, 300)"], "mode": "samples"}],
+            },
+        )
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="non formula query",
+            query={
+                "range": "24h",
+                "query": [{"query": ["field:formula.apdex(span.duration,300)"], "mode": "samples"}],
+            },
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
 
     def test_get_hides_queries_when_no_project_access(self) -> None:
         # Disable Open Membership so project-level access actually applies.
@@ -890,6 +961,40 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+        model = ExploreSavedQuery.objects.get(id=data["id"])
+        assert model.created_by_id == self.user.id
+        assert model.created_by_service_account_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_post_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org,
+            scope_list=["org:read", "project:read"],
+            project_ids=self.project_ids,
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        with self.feature({**self.features, "organizations:service-accounts": True}):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "service account query",
+                    "projects": self.project_ids,
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        model = ExploreSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id is None
+        assert model.created_by_service_account_id == service_account.id
+        assert model.created_by_org_auth_token_id is None
 
     def test_post_with_range(self) -> None:
         """Older clients send `range`. It is stored and returned as `statsPeriod`."""
@@ -2218,3 +2323,24 @@ class ExploreSavedQueryScopeTest(APITestCase):
         self._use_token(["saved_query:read", "saved_query:write"])
         assert self.client.get(self.details_url).status_code == 200
         assert self.client.delete(self.details_url).status_code == 204
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
