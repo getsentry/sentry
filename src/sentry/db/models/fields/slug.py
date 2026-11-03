@@ -1,24 +1,37 @@
+from typing import TYPE_CHECKING
+
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models import SlugField
 from django.db.models.lookups import Lookup
+from django.db.models.sql.compiler import SQLCompiler
 
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.utils.slug import no_numeric_validator, org_slug_validator
 
 DEFAULT_SLUG_MAX_LENGTH = 50
 
+if TYPE_CHECKING:
+    _SlugField = SlugField[str, str]
+    _Lookup = Lookup[str | int]
+else:
+    _SlugField = SlugField
+    _Lookup = Lookup
 
-class SentrySlugField(SlugField):
+
+class SentrySlugField(_SlugField):
     default_validators = [*SlugField.default_validators, no_numeric_validator]
 
 
-class SentryOrgSlugField(SlugField):
+class SentryOrgSlugField(_SlugField):
     default_validators = [*SlugField.default_validators, org_slug_validator]
 
 
-class IdOrSlugLookup(Lookup):
+class IdOrSlugLookup(_Lookup):
     lookup_name = "id_or_slug"
 
-    def as_sql(self, compiler, connection):
+    def as_sql(
+        self, compiler: SQLCompiler, connection: BaseDatabaseWrapper
+    ) -> tuple[str, list[str | int] | tuple[str | int, ...]]:
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
 

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from django.db.models import QuerySet
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
@@ -95,7 +98,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             order=0,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-details",
             kwargs={
@@ -104,7 +107,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             },
         )
 
-    def assert_serialized_dashboard(self, data, dashboard):
+    def assert_serialized_dashboard(self, data: Mapping[str, Any], dashboard: Dashboard) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -939,6 +942,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
+        Dashboard.objects.filter(id=self.dashboard.id).update(created_by_id=self.user.id)
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=2,
@@ -955,18 +959,18 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
-    def get_widget_queries(self, widget):
+    def get_widget_queries(self, widget: DashboardWidget) -> QuerySet[DashboardWidgetQuery]:
         return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
 
-    def assert_no_changes(self):
+    def assert_no_changes(self) -> None:
         self.assert_dashboard_and_widgets(self.widget_ids)
 
-    def assert_dashboard_and_widgets(self, widget_ids):
+    def assert_dashboard_and_widgets(self, widget_ids: Sequence[int]) -> None:
         assert Dashboard.objects.filter(
             organization=self.organization, id=self.dashboard.id
         ).exists()
 
-        widgets = self.get_widgets(self.dashboard)
+        widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == len(list(widget_ids))
 
         for widget, id in zip(widgets, widget_ids):
@@ -1458,7 +1462,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -1831,7 +1835,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert translated_widget_query.orderby == ""
 
     def test_update_widget_title(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -1997,7 +2001,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_remove_widget_and_add_new(self) -> None:
         # Remove a widget from the middle of the set and put a new widget there
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
@@ -2321,7 +2325,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -2879,7 +2883,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2896,7 +2900,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2916,7 +2920,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3096,7 +3100,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3132,7 +3136,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3163,7 +3167,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3190,7 +3194,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3236,7 +3240,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -4910,7 +4914,7 @@ class OrganizationDashboardDetailsOnDemandTransactionLikeTest(
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
             kwargs={
@@ -4958,7 +4962,7 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         # Both users have favorited the dashboard
         self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -5018,9 +5022,9 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
     features = ["organizations:dashboards-starred"]
 
-    def do_request(self, *args, **kwargs):
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         with self.feature(self.features):
-            return super().do_request(*args, **kwargs)
+            return super().do_request(method, url, data)
 
     def setUp(self) -> None:
         super().setUp()
@@ -5033,7 +5037,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
             dashboard=self.dashboard,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -5093,7 +5097,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
 @with_feature("organizations:granular-permission-scopes")
 class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id: int) -> str:
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={

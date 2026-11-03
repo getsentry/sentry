@@ -1,6 +1,7 @@
 import csv
 import io
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -31,13 +32,13 @@ def _col(row: list[str], name: str) -> str:
 
 class BuildsExportEndpointTest(APITestCase):
     @cached_property
-    def user_auth_token(self):
+    def user_auth_token(self) -> str:
         auth_token = self.create_user_auth_token(
             self.user, scope_list=["org:admin", "project:admin"]
         )
         return auth_token.token
 
-    def _request(self, query, token=None):
+    def _request(self, query: dict[str, object], token: str | None = None) -> Any:
         token = self.user_auth_token if token is None else token
         url = reverse(
             "sentry-api-0-organization-builds-export",
@@ -46,7 +47,7 @@ class BuildsExportEndpointTest(APITestCase):
         )
         return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
-    def _csv_rows(self, response) -> list[list[str]]:
+    def _csv_rows(self, response: Any) -> list[list[str]]:
         assert response.status_code == 200, (
             f"status {response.status_code} body {response.getvalue()!r}"
         )
@@ -54,7 +55,7 @@ class BuildsExportEndpointTest(APITestCase):
         content = b"".join(response.streaming_content).decode("utf-8")
         return list(csv.reader(io.StringIO(content)))
 
-    def _create_installable_build(self, **kwargs) -> PreprodArtifact:
+    def _create_installable_build(self, **kwargs: Any) -> PreprodArtifact:
         # Installable per is_installable_artifact(): an installable file (default APK,
         # so no iOS signature check applies). Tests that want a non-installable build
         # call create_preprod_artifact directly.
@@ -275,7 +276,7 @@ class BuildsExportEndpointTest(APITestCase):
         assert _col(rows[1], "artifact_id") == str(middle.id)
 
     @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
-    def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
+    def test_excludes_expired_artifacts(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = before_now(days=30)
         self._create_installable_build(app_id="recent.app", date_added=before_now(days=10))
         self._create_installable_build(app_id="expired.app", date_added=before_now(days=60))

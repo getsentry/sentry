@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -31,6 +31,9 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
 from sentry.utils.email import MessageBuilder
+
+if TYPE_CHECKING:
+    from sentry.plugins.providers import IntegrationRepositoryProvider
 
 REPOSITORY_NAME_LENGTH = 500
 REPOSITORY_URL_LENGTH = 512
@@ -178,19 +181,21 @@ class Repository(Model):
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
-    def has_integration_provider(self):
-        return self.provider and self.provider.startswith("integrations:")
+    def has_integration_provider(self) -> bool:
+        return bool(self.provider and self.provider.startswith("integrations:"))
 
-    def get_provider(self):
+    def get_provider(self) -> IntegrationRepositoryProvider | None:
         from sentry.plugins.base import bindings
 
         if not self.has_integration_provider():
             return None
 
-        provider_cls = bindings.get("integration-repository.provider").get(self.provider)
-        return provider_cls(self.provider)
+        provider = self.provider
+        assert provider is not None
+        provider_cls = bindings.get("integration-repository.provider").get(provider)
+        return provider_cls(provider)
 
-    def generate_delete_fail_email(self, error_message):
+    def generate_delete_fail_email(self, error_message: str) -> MessageBuilder:
         provider = self.get_provider()
         new_context = {
             "repo": self,
@@ -205,7 +210,7 @@ class Repository(Model):
             html_template="sentry/emails/unable-to-delete-repo.html",
         )
 
-    def send_delete_fail_email(self, error_message, actor_email):
+    def send_delete_fail_email(self, error_message: str, actor_email: str) -> None:
         from sentry.notifications.platform.service import NotificationService
         from sentry.notifications.platform.target import GenericNotificationTarget
         from sentry.notifications.platform.templates.repository import UnableToDeleteRepository
@@ -306,7 +311,7 @@ class Repository(Model):
         )
 
 
-def on_delete(instance, actor: RpcUser | None = None, **kwargs):
+def on_delete(instance: Repository, actor: RpcUser | None = None, **kwargs: object) -> None:
     """
     Remove webhooks for repository providers that use repository level webhooks.
     This is called from sentry.deletions.tasks.run_deletion()
@@ -315,7 +320,7 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     if not instance.provider:
         return
 
-    def handle_exception(e):
+    def handle_exception(e: Exception) -> None:
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -328,7 +333,9 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
 
     if instance.has_integration_provider():
         try:
-            instance.get_provider().on_delete_repository(repo=instance)
+            provider = instance.get_provider()
+            assert provider is not None
+            provider.on_delete_repository(repo=instance)
         except Exception as exc:
             handle_exception(exc)
 

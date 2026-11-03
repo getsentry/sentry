@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 from scm.errors import (
     ProviderNotFound,
@@ -13,17 +14,24 @@ from sentry.testutils.cases import APITestCase
 _MAKE_SCM = "sentry.integrations.api.endpoints.organization_pull_request_files.make_scm"
 
 
-def _page(files, next_cursor=""):
+def _page(files: list[dict[str, str | None]], next_cursor: str = "") -> dict[str, object]:
     return {"data": files, "meta": {"next_cursor": next_cursor}}
 
 
 class _FakeScm:
-    def __init__(self, pages=None, error=None):
+    def __init__(
+        self, pages: list[dict[str, object]] | None = None, error: SCMError | None = None
+    ) -> None:
         self._pages = list(pages or [])
         self._error = error
         self.calls: list[str] = []
 
-    def get_pull_request_files(self, pull_request_id, pagination=None, request_options=None):
+    def get_pull_request_files(
+        self,
+        pull_request_id: str,
+        pagination: dict[str, object] | None = None,
+        request_options: dict[str, object] | None = None,
+    ) -> dict[str, object]:
         self.calls.append(pull_request_id)
         if self._error is not None:
             raise self._error
@@ -49,13 +57,18 @@ class OrganizationPullRequestFilesTest(APITestCase):
             key="42",
         )
 
-    def _set_scm(self, mock_make_scm, pages=None, error=None):
+    def _set_scm(
+        self,
+        mock_make_scm: MagicMock,
+        pages: list[dict[str, object]] | None = None,
+        error: SCMError | None = None,
+    ) -> _FakeScm:
         scm = _FakeScm(pages=pages, error=error)
         mock_make_scm.return_value = scm
         return scm
 
     @mock.patch(_MAKE_SCM)
-    def test_returns_files_with_patches(self, mock_make_scm):
+    def test_returns_files_with_patches(self, mock_make_scm: MagicMock) -> None:
         scm = self._set_scm(
             mock_make_scm,
             pages=[_page([{"filename": "src/foo.py", "patch": "@@ -1 +1 @@\n-old\n+new"}])],
@@ -70,13 +83,13 @@ class OrganizationPullRequestFilesTest(APITestCase):
         assert scm.calls[0] == "42"
 
     @mock.patch(_MAKE_SCM)
-    def test_binary_file_patch_is_null(self, mock_make_scm):
+    def test_binary_file_patch_is_null(self, mock_make_scm: MagicMock) -> None:
         self._set_scm(mock_make_scm, pages=[_page([{"filename": "image.png", "patch": None}])])
         response = self.get_success_response(self.organization.slug, self.pull_request.id)
         assert response.data == {"files": [{"path": "image.png", "patch": None}]}
 
     @mock.patch(_MAKE_SCM)
-    def test_paginates_across_pages(self, mock_make_scm):
+    def test_paginates_across_pages(self, mock_make_scm: MagicMock) -> None:
         self._set_scm(
             mock_make_scm,
             pages=[
@@ -87,7 +100,7 @@ class OrganizationPullRequestFilesTest(APITestCase):
         response = self.get_success_response(self.organization.slug, self.pull_request.id)
         assert [f["path"] for f in response.data["files"]] == ["a.py", "b.py"]
 
-    def test_pull_request_in_other_org_returns_404(self):
+    def test_pull_request_in_other_org_returns_404(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         other_repo = self.create_repo(
             project=self.create_project(organization=other_org),
@@ -102,40 +115,145 @@ class OrganizationPullRequestFilesTest(APITestCase):
         )
         self.get_error_response(self.organization.slug, other_pull_request.id, status_code=404)
 
-    def test_nonexistent_pull_request_returns_404(self):
+    def test_nonexistent_pull_request_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, 999999, status_code=404)
 
-    def test_non_numeric_pull_request_id_returns_404(self):
+    def test_non_numeric_pull_request_id_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, "not-a-number", status_code=404)
 
     @mock.patch(_MAKE_SCM)
-    def test_inactive_repository_returns_404(self, mock_make_scm):
+    def test_inactive_repository_returns_404(self, mock_make_scm: MagicMock) -> None:
         mock_make_scm.side_effect = RepositoryInactive()
         self.get_error_response(self.organization.slug, self.pull_request.id, status_code=404)
 
     @mock.patch(_MAKE_SCM)
-    def test_unsupported_provider_returns_empty(self, mock_make_scm):
+    def test_unsupported_provider_returns_empty(self, mock_make_scm: MagicMock) -> None:
         mock_make_scm.side_effect = ProviderNotFound()
         response = self.get_success_response(self.organization.slug, self.pull_request.id)
         assert response.data == {"files": []}
 
     @mock.patch(_MAKE_SCM)
-    def test_provider_without_files_capability_returns_empty(self, mock_make_scm):
+    def test_provider_without_files_capability_returns_empty(
+        self, mock_make_scm: MagicMock
+    ) -> None:
         mock_make_scm.return_value = object()
         response = self.get_success_response(self.organization.slug, self.pull_request.id)
         assert response.data == {"files": []}
 
     @mock.patch(_MAKE_SCM)
-    def test_provider_error_returns_502(self, mock_make_scm):
+    def test_provider_error_returns_502(self, mock_make_scm: MagicMock) -> None:
         self._set_scm(mock_make_scm, error=SCMError("boom"))
         self.get_error_response(self.organization.slug, self.pull_request.id, status_code=502)
 
     @mock.patch(_MAKE_SCM)
-    def test_pull_request_missing_on_provider_returns_404(self, mock_make_scm):
+    def test_pull_request_missing_on_provider_returns_404(self, mock_make_scm: MagicMock) -> None:
         self._set_scm(mock_make_scm, error=ResourceNotFound())
         self.get_error_response(self.organization.slug, self.pull_request.id, status_code=404)
 
     @mock.patch(_MAKE_SCM)
-    def test_provider_rate_limited_returns_429(self, mock_make_scm):
+    def test_provider_rate_limited_returns_429(self, mock_make_scm: MagicMock) -> None:
         self._set_scm(mock_make_scm, error=RateLimitExceeded())
         self.get_error_response(self.organization.slug, self.pull_request.id, status_code=429)
+
+
+class OrganizationRepositoryPullRequestFilesTest(APITestCase):
+    endpoint = "sentry-api-0-organization-repository-pull-request-files"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            integration_id=123,
+            url="https://github.com/getsentry/sentry",
+        )
+
+    @mock.patch(_MAKE_SCM)
+    def test_returns_files_by_repo_name_and_number(self, mock_make_scm: MagicMock) -> None:
+        mock_make_scm.return_value = _FakeScm(
+            pages=[
+                _page(
+                    [
+                        {
+                            "filename": "src/new_name.py",
+                            "status": "renamed",
+                            "previous_filename": "src/old_name.py",
+                            "patch": "@@ -1 +1 @@\n-old\n+new",
+                        }
+                    ]
+                )
+            ]
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        )
+        assert response.data == {
+            "files": [
+                {
+                    "path": "src/new_name.py",
+                    "patch": "@@ -1 +1 @@\n-old\n+new",
+                    "status": "renamed",
+                    "previousPath": "src/old_name.py",
+                }
+            ]
+        }
+        mock_make_scm.assert_called_once_with(
+            self.organization.id, self.repo.id, referrer="pull-request-files"
+        )
+        assert mock_make_scm.return_value.calls == ["42"]
+
+    def test_requires_repo_and_numeric_number(self) -> None:
+        self.get_error_response(self.organization.slug, status_code=400)
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "abc"},
+            status_code=400,
+        )
+
+    def test_repo_in_other_org_returns_404(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        self.create_repo(
+            project=self.create_project(organization=other_org),
+            name="other/repo",
+            provider="integrations:github",
+            integration_id=456,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "other/repo", "number": "1"},
+            status_code=404,
+        )
+
+    def test_repo_without_integration_returns_404(self) -> None:
+        self.create_repo(project=self.project, name="getsentry/plain", provider="github")
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/plain", "number": "1"},
+            status_code=404,
+        )
+
+    @mock.patch(_MAKE_SCM)
+    def test_provider_error_returns_502(self, mock_make_scm: MagicMock) -> None:
+        mock_make_scm.return_value = _FakeScm(error=SCMError("boom"))
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "42"},
+            status_code=502,
+        )
+
+    @mock.patch(_MAKE_SCM)
+    def test_ambiguous_repo_name_returns_404(self, mock_make_scm: MagicMock) -> None:
+        self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github_enterprise",
+            integration_id=456,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "42"},
+            status_code=404,
+        )
+        mock_make_scm.assert_not_called()

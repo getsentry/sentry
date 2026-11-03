@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 from collections import namedtuple
+from collections.abc import Mapping
 from functools import cached_property
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -8,11 +12,15 @@ from django.urls import reverse
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
+from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
+
+if TYPE_CHECKING:
+    from django.test.client import _MonkeyPatchedWSGIResponse
 
 
 class DummyOAuth2Login(OAuth2Login):
@@ -40,13 +48,13 @@ class DummyOAuth2Provider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
-    def build_config(self, state):
+    def build_config(self, state: object) -> dict[str, object]:
         raise NotImplementedError
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> list[AuthView]:
         return [DummyOAuth2Login(), DummyOAuth2Callback()]
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         return state["data"]
 
 
@@ -70,15 +78,15 @@ class AuthOAuth2Test(AuthProviderTestCase):
         )
 
     @cached_property
-    def login_path(self):
+    def login_path(self) -> str:
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     @cached_property
-    def sso_path(self):
+    def sso_path(self) -> str:
         return reverse("sentry-auth-sso")
 
-    def initiate_oauth_flow(self, http_host=None):
-        kwargs = {}
+    def initiate_oauth_flow(self, http_host: str | None = None) -> str:
+        kwargs: dict[str, Any] = {}
         if http_host is not None:
             kwargs["HTTP_HOST"] = http_host
         else:
@@ -97,19 +105,22 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert query["client_id"][0] == "my_client_id"
         assert "state" in query
 
-        return query["state"][0]
+        state = query["state"][0]
+        if not isinstance(state, str):
+            raise TypeError("OAuth authorize redirect carries no state")
+        return state
 
     @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
     def initiate_callback(
         self,
-        state,
-        auth_data,
-        urlopen,
-        expect_success=True,
-        customer_domain="",
-        has_2fa=False,
-        **kwargs,
-    ):
+        state: str,
+        auth_data: dict[str, str],
+        urlopen: mock.MagicMock,
+        expect_success: bool = True,
+        customer_domain: str = "",
+        has_2fa: bool = False,
+        **kwargs: Any,
+    ) -> _MonkeyPatchedWSGIResponse:
         headers = {"Content-Type": "application/json"}
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
 

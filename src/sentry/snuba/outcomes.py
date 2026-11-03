@@ -187,7 +187,7 @@ class KeyDimension(Dimension[int]):
         pass
 
 
-class ReasonDimension(Dimension):
+class ReasonDimension(Dimension[str]):
     def resolve_filter(self, raw_filter: Sequence[str]) -> list[str]:
         return [
             "smart_rate_limit" if reason == "spike_protection" else reason for reason in raw_filter
@@ -205,7 +205,7 @@ COLUMN_MAP = {
     "sum(times_seen)": TimesSeenField(),
 }
 
-DIMENSION_MAP: Mapping[str, Dimension] = {
+DIMENSION_MAP: Mapping[str, Dimension[Any]] = {
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
@@ -459,8 +459,10 @@ dropped_outcomes = [
 ]
 
 
-def _split_rows_groupby(rows, groupby):
-    groups: dict[frozenset[str], list[object]] = {}
+def _split_rows_groupby(
+    rows: list[dict[str, Any]] | None, groupby: Sequence[SimpleGroupBy]
+) -> dict[frozenset[tuple[str, Any]], list[dict[str, Any]]]:
+    groups: dict[frozenset[tuple[str, Any]], list[dict[str, Any]]] = {}
     if rows is None:
         return groups
     for row in rows:
@@ -478,13 +480,16 @@ def _split_rows_groupby(rows, groupby):
 class _RawSessionsResult(TypingTypedDict):
     start: str
     end: str
-    query: str
+    query: list[Any]
     intervals: list[str]
     groups: list[_StatsGroup]
 
 
 def massage_sessions_result(
-    query, result_totals, result_timeseries, ts_col="bucketed_started"
+    query: QueryDefinition,
+    result_totals: ResultSet,
+    result_timeseries: ResultSet | None,
+    ts_col: str = "bucketed_started",
 ) -> _RawSessionsResult:
     """
     Post-processes the query result.
@@ -521,14 +526,17 @@ def massage_sessions_result(
     total_groups = _split_rows_groupby(result_totals, query.groupby)
     timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
 
-    def make_timeseries(rows, group):
-        for row in rows:
-            row[ts_col] = row[ts_col][:19] + "Z"
+    def make_timeseries(
+        rows: list[dict[str, Any]], group: Mapping[str, Any]
+    ) -> dict[str, list[float | None]]:
+        for span_row in rows:
+            span_row[ts_col] = span_row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
         fields: list[tuple[str, Field, list[float | None]]]
         fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
+        row: dict[str, Any] | None
 
         while group_index < len(rows):
             row = rows[group_index]
@@ -549,7 +557,9 @@ def massage_sessions_result(
 
         return {name: series for (name, field, series) in fields}
 
-    def make_totals(totals, group):
+    def make_totals(
+        totals: Sequence[dict[str, Any] | None], group: Mapping[str, Any]
+    ) -> dict[str, int]:
         return {
             name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
         }
@@ -625,7 +635,9 @@ class _Period(TypingTypedDict):
 
 
 def massage_sessions_result_summary(
-    query, result_totals, outcome_query=None
+    query: QueryDefinition,
+    result_totals: ResultSet,
+    outcome_query: Sequence[str] | None = None,
 ) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], _Period]:
     """
     Post-processes the query result.
@@ -667,13 +679,19 @@ def massage_sessions_result_summary(
     """
     total_groups = _split_rows_groupby(result_totals, query.groupby)
 
-    def make_totals(totals, group):
+    def make_totals(
+        totals: Sequence[dict[str, Any] | None], group: Mapping[str, Any]
+    ) -> dict[str, int]:
         return {
             name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
         }
 
     def get_category_stats(
-        reason, totals, outcome, category, category_stats: _CategoryStats | None = None
+        reason: str | None,
+        totals: Mapping[str, int],
+        outcome: str,
+        category: str,
+        category_stats: _CategoryStats | None = None,
     ) -> _CategoryStats:
         if not category_stats:
             category_stats = {
@@ -705,14 +723,14 @@ def massage_sessions_result_summary(
     keys = set(total_groups.keys())
     projects: dict[int, dict[str, dict[str, _CategoryStats]]] = {}
 
-    for key in keys:
-        by = dict(key)
+    for group_key in keys:
+        by = dict(group_key)
         project_id = by["project"]
         outcome = by["outcome"]
         category = by["category"]
         reason = by.get("reason")  # optional
 
-        totals = make_totals(total_groups.get(key, [None]), by)
+        totals = make_totals(total_groups.get(group_key, [None]), by)
 
         projects.setdefault(project_id, {"categories": {}})
 
@@ -737,7 +755,7 @@ def massage_sessions_result_summary(
         categories = values["categories"]
         project_dict: _Project = {"id": key, "slug": project_id_to_slug[key], "stats": []}
 
-        for key, stats in categories.items():
+        for category_key, stats in categories.items():
             project_dict["stats"].append(stats)
 
         project_dict["stats"].sort(key=lambda d: d["category"])
@@ -751,7 +769,7 @@ def massage_sessions_result_summary(
     }
 
 
-def get_timestamps(query):
+def get_timestamps(query: QueryDefinition) -> list[str]:
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.

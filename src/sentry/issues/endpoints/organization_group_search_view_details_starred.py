@@ -16,7 +16,7 @@ class StarViewSerializer(serializers.Serializer):
     starred = serializers.BooleanField(required=True)
     position = serializers.IntegerField(required=False)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if not data["starred"] and "position" in data:
             raise serializers.ValidationError("Position is only allowed when starring a view.")
         return data
@@ -26,6 +26,9 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "POST": ["member:read", "member:write", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 @cell_silo_endpoint

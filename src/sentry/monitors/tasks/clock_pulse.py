@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from cachetools.func import ttl_cache
 from confluent_kafka.admin import (  # type: ignore[attr-defined]
     AdminClient,
@@ -32,7 +32,7 @@ logger = logging.getLogger("sentry")
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 
-def _get_producer():
+def _get_producer() -> KafkaProducer:
     return get_arroyo_producer(
         name="sentry.monitors.tasks.clock_pulse",
         topic=Topic.INGEST_MONITORS,
@@ -65,7 +65,7 @@ def _get_partitions() -> Mapping[int, PartitionMetadata]:
     namespace=crons_tasks,
     silo_mode=SiloMode.CELL,
 )
-def clock_pulse(current_datetime=None):
+def clock_pulse(current_datetime: datetime | None = None) -> None:
     """
     This task is run once a minute when to produce 'clock pulses' into the
     monitor ingest topic. This is to ensure there is always a message in the

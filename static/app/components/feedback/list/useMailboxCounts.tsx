@@ -1,16 +1,14 @@
 import {useMemo} from 'react';
-import {useQueryStates} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {useLocation} from 'sentry/utils/useLocation';
 
 interface Props {
   organization: Organization;
@@ -19,6 +17,7 @@ interface Props {
 const mailboxCountsParsers = {
   ...pageFilterParsers,
   field: parseAsStringArray,
+  query: parseAsString.withDefault(''),
 };
 
 // The keys here are the different search terms that we're using:
@@ -34,8 +33,8 @@ type HookReturnType = {
 export function useMailboxCounts({
   organization,
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
-  const location = useLocation();
-  const locationQuery = decodeScalar(location.query.query, '');
+  const [locationFields] = useQueryStates(mailboxCountsParsers);
+  const locationQuery = locationFields.query;
   const {listHeadTime} = useFeedbackApiOptions();
 
   // We should fetch the counts while taking the query into account
@@ -49,8 +48,6 @@ export function useMailboxCounts({
   );
 
   const mailboxQuery = useMemo(() => Object.values(MAILBOX), [MAILBOX]);
-
-  const [locationFields] = useQueryStates(mailboxCountsParsers);
 
   // The request is keyed off this object, so it has to stay referentially stable
   // across renders that don't change the filters.

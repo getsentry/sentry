@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Generic, NamedTuple, TypeVar
+from typing import Any, Generic, NamedTuple, TypeVar
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
@@ -45,7 +45,7 @@ class DatetimeSafeDjangoJSONEncoder(DjangoJSONEncoder):
     `DjangoJSONEncoder` drops these by default.
     """
 
-    def default(self, obj):
+    def default(self, obj: object) -> Any:
         if isinstance(obj, datetime):
             return obj.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
         return super().default(obj)

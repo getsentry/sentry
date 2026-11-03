@@ -9,6 +9,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import owned_by_acting_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
@@ -31,7 +32,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
             return Response(status=400)
 
         queryset = ApiAuthorization.objects.filter(
-            user_id=request.user.id, application__status=ApiApplicationStatus.active
+            owned_by_acting_user(request.user), application__status=ApiApplicationStatus.active
         ).select_related("application")
 
         return self.paginate(
@@ -52,14 +53,14 @@ class ApiAuthorizationsEndpoint(Endpoint):
 
         try:
             api_authorization = ApiAuthorization.objects.get(
-                user_id=request.user.id, id=authorization
+                owned_by_acting_user(request.user), id=authorization
             )
         except ApiAuthorization.DoesNotExist:
             return Response(status=404)
 
         with outbox_context(transaction.atomic(using=router.db_for_write(ApiToken)), flush=False):
             for token in ApiToken.objects.filter(
-                user_id=request.user.id,
+                owned_by_acting_user(request.user),
                 application=api_authorization.application_id,
                 scoping_organization_id=api_authorization.organization_id,
             ):
@@ -69,7 +70,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
         # that may not have been exchanged for a token yet
         with outbox_context(transaction.atomic(using=router.db_for_write(ApiGrant)), flush=False):
             for grant in ApiGrant.objects.filter(
-                user_id=request.user.id,
+                owned_by_acting_user(request.user),
                 application=api_authorization.application_id,
                 organization_id=api_authorization.organization_id,
             ):

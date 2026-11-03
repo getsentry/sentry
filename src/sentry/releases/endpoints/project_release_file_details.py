@@ -1,5 +1,6 @@
 import posixpath
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Mapping
+from typing import Any
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -33,6 +34,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, delete_from_artifact_index, read_artifact_index
 from sentry.releases.endpoints.project_release_files import pseudo_releasefile
@@ -47,7 +49,7 @@ class ReleaseFileSerializer(serializers.Serializer):
     )
 
 
-def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
+def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> dict[str, object]:
     index = read_artifact_index(release, dist)
     if index is None:
         raise ResourceDoesNotExist
@@ -63,22 +65,22 @@ def _get_from_index(release: Release, dist: Distribution | None, url: str) -> Re
 
 
 class ClosesDependentFiles:
-    def __init__(self, f, *closables) -> None:
+    def __init__(self, f: Any, *closables: Any) -> None:
         self._f = f
         self._closables = closables
 
-    def close(self):
+    def close(self) -> None:
         self._f.close()
         for closable in self._closables:
             closable.close()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         return self._f
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self._f, attr)
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         ret = list(super().__dir__())
         ret.extend(dir(self._f))
         ret.sort()
@@ -92,21 +94,21 @@ class ReleaseFileDetailsMixin:
     """
 
     @staticmethod
-    def download(releasefile):
+    def download(releasefile: ReleaseFile) -> FileResponse:
         file = releasefile.file
         fp = file.getfile()
         response = FileResponse(
             fp,
             content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-        response["Content-Length"] = file.size
+        response["Content-Length"] = str(file.size)
         response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
             " ".join(releasefile.name.split())
         )
         return response
 
     @staticmethod
-    def download_from_archive(release, entry):
+    def download_from_archive(release: Release, entry: Mapping[str, Any]) -> FileResponse:
         archive_ident = entry["archive_ident"]
 
         archive_file = ReleaseFile.objects.get(release_id=release.id, ident=archive_ident)
@@ -126,7 +128,11 @@ class ReleaseFileDetailsMixin:
         return response
 
     @staticmethod
-    def _get_releasefile(release: Release, file_id: str, index_op=_get_from_index):
+    def _get_releasefile(
+        release: Release,
+        file_id: str,
+        index_op: Callable[..., Any] = _get_from_index,
+    ) -> Any:
         """Fetch ReleaseFile either from db or from artifact_index"""
         try:
             id = decode_release_file_id(file_id)
@@ -140,13 +146,14 @@ class ReleaseFileDetailsMixin:
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
         else:
-            dist, url = id
-            if dist is not None:
+            dist_name, url = id
+            dist: Distribution | None = None
+            if dist_name is not None:
                 # NOTE: Could do one less query if `read_artifact_index` accepted
                 # `dist_name`
                 try:
                     dist = Distribution.objects.get(
-                        organization_id=release.organization_id, name=dist, release=release
+                        organization_id=release.organization_id, name=dist_name, release=release
                     )
                 except Distribution.DoesNotExist:
                     raise ResourceDoesNotExist
@@ -203,7 +210,7 @@ class ReleaseFileDetailsMixin:
         return Response(body)
 
     @classmethod
-    def delete_releasefile(cls, release, file_id):
+    def delete_releasefile(cls, release: Release, file_id: str) -> Response:
         result = cls._get_releasefile(release, file_id, delete_from_artifact_index)
         if result is True:
             # was successfully deleted from index
@@ -239,6 +246,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
@@ -267,7 +275,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         },
     )
     def get(
-        self, request: Request, project, version, file_id
+        self, request: Request, project: Project, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         """
         Return metadata for an individual file within a release. Does not return the file
@@ -308,7 +316,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         },
     )
     def put(
-        self, request: Request, project, version, file_id
+        self, request: Request, project: Project, version: str, file_id: str
     ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update metadata of an existing release file. Currently only the name of the file
@@ -340,7 +348,9 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, version, file_id) -> Response[None]:
+    def delete(
+        self, request: Request, project: Project, version: str, file_id: str
+    ) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage, unless it is stored as part of an artifact bundle.

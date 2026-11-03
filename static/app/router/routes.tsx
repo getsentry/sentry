@@ -2814,6 +2814,24 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'classifiers/',
+      component: make(() => import('sentry/views/classifiers')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/classifiers/list')),
+        },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/classifiers/new')),
+        },
+        {
+          path: ':classifierId/',
+          component: make(() => import('sentry/views/classifiers/detail')),
+        },
+      ],
+    },
   ];
   const seerRoutes: SentryRouteObject = {
     path: '/seer/',
