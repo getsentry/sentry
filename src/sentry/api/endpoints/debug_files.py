@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
 from datetime import datetime
-from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
@@ -795,17 +795,17 @@ def batch_assemble(
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
         name, debug_id, chunks = get_file_info(file)
-        assemble_dif.apply_async(
-            kwargs={
-                "project_id": project.id,
-                "name": name,
-                "debug_id": debug_id,
-                "code_id": file.get("code_id"),
-                "shader_group": file.get("shader_group"),
-                "checksum": checksum,
-                "chunks": chunks,
-            }
-        )
+        kwargs: dict[str, Any] = {
+            "project_id": project.id,
+            "name": name,
+            "debug_id": debug_id,
+            "checksum": checksum,
+            "chunks": chunks,
+        }
+        for key in ("code_id", "shader_group"):
+            if key in file:
+                kwargs[key] = file[key]
+        assemble_dif.apply_async(kwargs=kwargs)
 
         file_response[checksum] = {"state": ChunkFileState.CREATED, "missingChunks": []}
 

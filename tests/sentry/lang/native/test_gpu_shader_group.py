@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from typing import Any
 
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
@@ -26,7 +27,7 @@ def _response(frame: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _apply(frame: dict[str, Any]) -> dict[str, Any]:
+def _apply(frame: dict[str, Any]) -> MutableMapping[str, Any]:
     data: dict[str, Any] = {"event_id": "g" * 32, "platform": "native"}
     result = apply_gpu_crash_symbolication(data, _response(frame))
     assert result is not None
