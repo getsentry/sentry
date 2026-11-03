@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from itertools import permutations
 from typing import Any
 
@@ -9,6 +10,7 @@ from tools.api_contracts_to_typescript import (
     TypeScriptEmitter,
     collect_operations,
     load_known_routes,
+    name_enums,
     render_contracts,
     spec_path_to_route,
 )
@@ -155,12 +157,13 @@ def test_object_properties_required_first_then_sorted_with_quoted_keys() -> None
     )
 
 
-def test_component_declaration_carries_description() -> None:
-    assert TypeScriptEmitter(COMPONENTS).component_declaration("Team") == [
+def test_declaration_carries_description() -> None:
+    emitter = TypeScriptEmitter(COMPONENTS)
+    assert emitter.declaration("Team", COMPONENTS["Team"]) == [
         "/** A team. */",
         "export type Team = {\n  id: string;\n  slug: string;\n};",
     ]
-    assert TypeScriptEmitter(COMPONENTS).component_declaration("Status") == [
+    assert emitter.declaration("Status", COMPONENTS["Status"]) == [
         'export type Status = "active" | "pending" | null;',
     ]
 
@@ -221,10 +224,11 @@ def test_render_contracts_emits_components_and_mapping() -> None:
 
     assert 'export type Status = "active" | "pending" | null;' in out
     assert "export type Team = {" in out
+    assert "export type ListAnOrganizationsTeamsResponse = Team[];" in out
     assert (
         '  "/organizations/$organizationIdOrSlug/teams/": {\n'
         "    /** List an Organization's Teams (public) */\n"
-        "    GET: {response: Team[]};\n"
+        "    GET: {response: ListAnOrganizationsTeamsResponse};\n"
         "    /** Create a Team (private) */\n"
         "    POST: {response: Team};\n"
         "  };"
@@ -292,3 +296,167 @@ def test_render_contracts_leaves_undocumented_responses_out() -> None:
 
     assert '"/documented/"' in out
     assert "undocumented" not in out
+
+
+def _object(**properties: dict[str, Any]) -> dict[str, Any]:
+    return {"type": "object", "properties": properties, "required": sorted(properties)}
+
+
+def _spec(components: dict[str, Any], paths: dict[str, Any]) -> dict[str, Any]:
+    return {"components": {"schemas": components}, "paths": paths}
+
+
+def _response_types(out: str) -> list[str]:
+    return re.findall(r"\{response: ([^}]*)\}", out)
+
+
+def test_render_contracts_names_every_response_type() -> None:
+    responses: dict[str, dict[str, Any]] = {
+        "component": {"$ref": "#/components/schemas/Team"},
+        "nullable-component": {"$ref": "#/components/schemas/Team", "nullable": True},
+        "array": {"type": "array", "items": {"$ref": "#/components/schemas/Team"}},
+        "object": _object(id={"type": "string"}),
+        "record": {"type": "object", "additionalProperties": {}},
+        "primitive": {"type": "string"},
+        "union": {"oneOf": [{"$ref": "#/components/schemas/Team"}, {"type": "string"}]},
+        "unresolved": {"x-sentry-unresolved": "<class 'Foo'>"},
+    }
+    spec = _spec(
+        COMPONENTS,
+        {
+            f"/api/0/{key}/": {"get": {**_json_operation(schema), "operationId": f"get {key}"}}
+            for key, schema in responses.items()
+        },
+    )
+
+    out = render_contracts(spec, collect_operations(spec, {f"/{key}/" for key in responses}))
+
+    types = _response_types(out)
+    assert len(types) == len(responses)
+    assert all(re.fullmatch(r"[A-Za-z_$][\w$]*", t) for t in types), types
+    assert "GET: {response: Team}" in out
+    assert "export type GetNullableComponentResponse = Team | null;" in out
+    assert "export type GetArrayResponse = Team[];" in out
+    assert "export type GetObjectResponse = {\n  id: string;\n};" in out
+    assert "export type GetUnresolvedResponse = unknown;" in out
+
+
+def test_render_contracts_names_responses_uniquely() -> None:
+    inline = _object(id={"type": "string"})
+    other = _object(slug={"type": "string"})
+    aliases = ["/api/0/issues/", "/api/0/groups/"]
+    spec = _spec(
+        {**COMPONENTS, "TeamResponse": {"type": "string"}},
+        {
+            # One operation on two routes is declared once.
+            "/api/0/issues/": {
+                "get": {
+                    **_json_operation(inline),
+                    "operationId": "List Issues",
+                    "x-sentry-path-aliases": aliases,
+                }
+            },
+            # The same operation id with another body gets the next free name.
+            "/api/0/other-issues/": {
+                "get": {**_json_operation(other), "operationId": "list_issues"}
+            },
+            # So does a name a component already has.
+            "/api/0/team/": {"get": {**_json_operation(inline), "operationId": "team"}},
+            # With no operation id, the method and route name it.
+            "/api/0/projects/{project_id_or_slug}/": {
+                "get": {"responses": _json_operation(inline)["responses"]}
+            },
+        },
+    )
+    known = {"/issues/", "/groups/", "/other-issues/", "/team/", "/projects/$projectIdOrSlug/"}
+
+    out = render_contracts(spec, collect_operations(spec, known))
+
+    assert out.count("export type ListIssuesResponse = ") == 1
+    assert (
+        '"/groups/": {\n    /** List Issues (public) */\n    GET: {response: ListIssuesResponse}'
+        in out
+    )
+    assert (
+        '"/issues/": {\n    /** List Issues (public) */\n    GET: {response: ListIssuesResponse}'
+        in out
+    )
+    assert "GET: {response: ListIssuesResponse2}" in out
+    assert "export type TeamResponse = string;" in out
+    assert "GET: {response: TeamResponse2}" in out
+    assert "GET: {response: GetProjectsProjectIdOrSlugResponse}" in out
+
+
+TIMEZONES = ["Europe/Vienna", "America/Toronto", "Asia/Tokyo"]
+
+
+def test_render_contracts_declares_a_repeated_enum_once() -> None:
+    string_enum = {"type": "string"}
+    components = {
+        "Registration": _object(timezone={**string_enum, "enum": ["", *TIMEZONES]}),
+        "Options": _object(
+            timezone={**string_enum, "enum": TIMEZONES[::-1], "nullable": True},
+            # Used once: inline.
+            theme={**string_enum, "enum": ["dark", "light"]},
+            # One member is a discriminator: inline, however often it is used.
+            type={**string_enum, "enum": ["user"]},
+        ),
+        "Validator": _object(
+            zones={"type": "array", "items": {**string_enum, "enum": TIMEZONES}},
+            type={**string_enum, "enum": ["user"]},
+        ),
+    }
+    spec = _spec(components, {})
+
+    out = render_contracts(spec, {})
+
+    assert 'export type TimezoneEnum = "America/Toronto" | "Asia/Tokyo" | "Europe/Vienna";' in out
+    assert 'timezone: TimezoneEnum | "";' in out
+    assert "timezone: TimezoneEnum | null;" in out
+    assert "zones: TimezoneEnum[];" in out
+    assert out.count("Europe/Vienna") == 1
+    assert 'theme: "dark" | "light";' in out
+    assert 'type: "user";' in out
+
+
+def test_name_enums_qualifies_names_enums_would_share() -> None:
+    statuses = ('"active"', '"disabled"')
+    issue_statuses = ('"resolved"', '"unresolved"')
+    roles = ('"admin"', '"member"')
+    levels = ('"error"', '"info"')
+
+    names = name_enums(
+        {
+            statuses: [("Monitor", "status"), ("Alert", "status")],
+            issue_statuses: [("Issue", "status"), ("Group", "status")],
+            # The property it types most often, then the shortest.
+            roles: [("Org", "defaultRole"), ("Team", "role"), ("Member", "orgRole")],
+            # A name a type already has.
+            levels: [("Event", "level"), ("Log", "level")],
+        },
+        taken={"LevelEnum"},
+    )
+
+    assert names == {
+        statuses: "AlertStatusEnum",
+        issue_statuses: "GroupStatusEnum",
+        roles: "RoleEnum",
+        levels: "EventLevelEnum",
+    }
+
+
+def test_name_enums_never_reuses_a_name() -> None:
+    a, b, c = ('"a"', '"b"'), ('"c"', '"d"'), ('"e"', '"f"')
+
+    names = name_enums(
+        {
+            # Both want TypeEnum, so each is qualified, and the qualified name AlertTypeEnum
+            # is one another enum has unqualified.
+            a: [("Alert", "type"), ("Alert", "type")],
+            b: [("Alert", "type"), ("Bell", "type")],
+            c: [("X", "alertType"), ("Y", "alertType")],
+        },
+        taken=set(),
+    )
+
+    assert names == {c: "AlertTypeEnum", a: "AlertTypeEnum2", b: "AlertTypeEnum3"}
