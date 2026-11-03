@@ -1,4 +1,6 @@
-from django.contrib.auth.models import AnonymousUser
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.issues.action_log.read_metrics import (
@@ -8,8 +10,9 @@ from sentry.issues.action_log.read_metrics import (
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 # ProjectOption key whose value tracks group action-log backfill state. True means complete,
 # false means pending, and a missing option uses the project's epoch default. Projects created
@@ -34,7 +37,7 @@ def derived_should_be_correct(project: Project) -> bool:
 
 def should_serve_action_log_activity(
     project: Project,
-    actor: User | RpcUser | AnonymousUser | None = None,
+    actor: RequestPrincipal | None = None,
     *,
     endpoint: str,
 ) -> bool:

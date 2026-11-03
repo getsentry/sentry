@@ -153,6 +153,7 @@ interface UseOverlayResult {
   isOpen: boolean;
   overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
     ReturnType<typeof useOverlayAria>['overlayProps'] & {
+      'data-overlay-root': '';
       ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
       style: React.CSSProperties | undefined;
     };
@@ -365,6 +366,7 @@ export function useOverlay({
     overlayProps: {
       ref: setOverlayElement,
       style: overlayStyle,
+      'data-overlay-root': '',
       ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {

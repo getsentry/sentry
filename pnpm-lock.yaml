@@ -1167,6 +1167,9 @@ importers:
       '@react-aria/disclosure':
         specifier: 3.2.1
         version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/focus':
+        specifier: 3.22.1
+        version: 3.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/i18n':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

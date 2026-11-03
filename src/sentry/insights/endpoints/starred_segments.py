@@ -49,6 +49,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
