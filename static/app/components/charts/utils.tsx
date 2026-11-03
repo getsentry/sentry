@@ -17,8 +17,7 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
-import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
+import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -282,10 +281,7 @@ export function shouldFetchPreviousPeriod({
 export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
-  const {unselectedSeries} = loadQueryParamsFromLocation(
-    {unselectedSeries: parseAsStringArray},
-    location
-  );
+  const unselectedSeries = decodeList(location?.query.unselectedSeries);
   return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
     selection[series] = false;
     return selection;
