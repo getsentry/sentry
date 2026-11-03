@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -136,6 +137,25 @@ describe('GlobalModal', () => {
       ).toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
+  });
+
+  it('keeps healthy content mounted when the same modal is reopened', () => {
+    renderGlobalModal();
+    const onMount = jest.fn();
+
+    function MountTracker() {
+      useEffect(onMount, []);
+      return <input aria-label="Tracked modal" />;
+    }
+
+    act(() => openModal(() => <MountTracker />));
+    const input = screen.getByRole('textbox', {name: 'Tracked modal'});
+
+    act(() => openModal(() => <MountTracker />));
+    act(() => openModal(() => <MountTracker />));
+
+    expect(onMount).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('textbox', {name: 'Tracked modal'})).toBe(input);
   });
 
   it('uses actionCreators to open and close Modal', async () => {
