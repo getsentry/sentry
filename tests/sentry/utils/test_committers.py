@@ -240,34 +240,37 @@ class MatchCommitsPathTestCase(CommitTestCase):
 
 
 class GetCommitsTestCase(CommitTestCase):
-    def test_dedupes_commits_shared_between_releases(self) -> None:
-        commit_1 = self.create_commit()
-        commit_2 = self.create_commit()
-        commit_3 = self.create_commit()
-        release_1 = self.create_release(project=self.project, version="1.0")
-        release_2 = self.create_release(project=self.project, version="2.0")
-        for order, (release, commit) in enumerate(
-            [
-                (release_1, commit_1),
-                (release_1, commit_2),
-                (release_2, commit_2),
-                (release_2, commit_3),
-            ]
-        ):
-            ReleaseCommit.objects.create(
-                organization_id=self.organization.id,
-                release=release,
-                commit=commit,
-                order=order,
-            )
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit_1 = self.create_commit()
+        self.commit_2 = self.create_commit()
+        self.commit_3 = self.create_commit()
+        self.release_1 = self.create_release(project=self.project, version="1.0")
+        self.release_2 = self.create_release(project=self.project, version="2.0")
+        # commit_2 is in both releases
+        self.create_release_commit(self.release_1, self.commit_1, order=0)
+        self.create_release_commit(self.release_1, self.commit_2, order=1)
+        self.create_release_commit(self.release_2, self.commit_2, order=0)
+        self.create_release_commit(self.release_2, self.commit_3, order=1)
 
+    def test_dedupes_commits_shared_between_releases(self) -> None:
         # First call reads from the database and fills the cache, second reads the cache
         for _ in range(2):
-            assert [c.id for c in _get_commits([release_1, release_2])] == [
-                commit_1.id,
-                commit_2.id,
-                commit_3.id,
+            assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+                self.commit_1.id,
+                self.commit_2.id,
+                self.commit_3.id,
             ]
+
+    def test_dedupes_across_cached_and_uncached_releases(self) -> None:
+        # Only release_2 is cached, so its commits come first and release_1 is read from the database
+        _get_commits([self.release_2])
+
+        assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+            self.commit_2.id,
+            self.commit_3.id,
+            self.commit_1.id,
+        ]
 
 
 class GetPreviousReleasesTestCase(TestCase):
