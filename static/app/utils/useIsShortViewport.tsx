@@ -1,4 +1,4 @@
-import {useMedia} from 'sentry/utils/useMedia';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 export const SHORT_VIEWPORT_HEIGHT = 900;
 

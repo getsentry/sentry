@@ -21,7 +21,7 @@ function ScrollHint({label}: {label: string}) {
   return (
     <Flex align="center" gap="xs">
       {label}
-      <Hotkey value="command" />
+      <Hotkey value="Mod" />
       <Kbd>{t('Scroll')}</Kbd>
     </Flex>
   );

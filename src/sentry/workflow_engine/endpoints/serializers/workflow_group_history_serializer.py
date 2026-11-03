@@ -1,9 +1,9 @@
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast
 
-from django.db.models import Count, Max, OuterRef, Subquery
+from django.db.models import Count, Max, Model, OuterRef, QuerySet, Subquery
 from rest_framework.exceptions import ParseError
 
 from sentry.api.paginator import OffsetPaginator
@@ -140,15 +140,19 @@ def fetch_workflow_groups_paginated(
     cursor: Cursor | None = None,
     per_page: int = 25,
     sort: Sequence[str] = (),
+    *,
+    project_ids: Sequence[int],
 ) -> CursorResult[WorkflowGroupHistory]:
-    filtered_history = WorkflowFireHistory.objects.filter(
+    history = WorkflowFireHistory.objects.filter(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
     )
+    filtered_history = history.filter(group__project_id__in=project_ids)
 
-    # subquery that retrieves row with the largest date in a group
-    group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
+    # The outer query checks project access for this same group, so the latest-event
+    # subquery can avoid repeating the project join.
+    group_max_dates = history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
 
     # Subquery to get the detector_id from DetectorGroup.
     # The detector does not currently need to be connected to the workflow.
@@ -171,8 +175,8 @@ def fetch_workflow_groups_paginated(
     return cast(
         CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
-            qs,
+            cast("QuerySet[Model]", qs),
             order_by=order_by,
-            on_results=convert_results,
+            on_results=cast("Callable[[Sequence[Model]], Sequence[Model]]", convert_results),
         ).get_result(per_page, cursor, known_hits=group_count),
     )

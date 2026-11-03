@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.permissions import DemoSafePermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.auth.superuser import superuser_has_permission
 from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 from sentry.constants import SentryAppStatus
@@ -30,7 +31,7 @@ class SentryAppRotateSecretPermission(DemoSafePermission):
 
     def has_object_permission(self, request: Request, view: object, sentry_app: SentryApp) -> bool:
         log_info = {
-            "user_id": request.user.id,
+            "user_id": acting_user_id(request.user),
             "sentry_app_name": sentry_app.name,
             "organization_id": sentry_app.owner_id,
         }

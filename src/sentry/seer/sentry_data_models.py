@@ -9,6 +9,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
+
 
 class Transaction(BaseModel):
     name: str
@@ -114,6 +116,11 @@ class EmptyResponse(BaseModel):
 
 class OrganizationSlugResponse(BaseModel):
     slug: str
+
+
+class CommitAuthorResponse(BaseModel):
+    # None when the viewer has no github.com identity Sentry can credit.
+    author: SeerCommitAuthor | None = None
 
 
 class ReferencedFixStatementsResponse(BaseModel):
@@ -263,6 +270,7 @@ class GetDsnResponse(BaseModel):
 
 
 class RepositoryDefinitionResponse(BaseModel):
+    repository_id: int
     organization_id: int
     integration_id: str | None
     provider: str | None
@@ -278,7 +286,7 @@ class EventFilterKeyEntry(BaseModel):
 class EventFilterKeysResponse(BaseModel):
     __root__: dict[str, EventFilterKeyEntry]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, dict[str, Any]]:
         # Unwrap to the bare `{key: {...}}` map the seer caller expects.
         return {k: v.dict(**kwargs) for k, v in self.__root__.items()}
 
@@ -386,7 +394,7 @@ class AttributeValuesResponse(BaseModel):
 
     __root__: dict[str, list[str]]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, list[str]]:
         # Pre-typed code returned `{field: sorted_list, ...}` directly — unwrap so
         # the dispatcher and downstream consumers see the bare map.
         return dict(self.__root__)
@@ -848,7 +856,7 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
 

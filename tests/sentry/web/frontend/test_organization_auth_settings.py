@@ -1,3 +1,4 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,6 +6,7 @@ from django.core import mail
 from django.db import models
 from django.urls import reverse
 
+from bitfield.types import Bit
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import IdentityNotValid
@@ -24,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
@@ -56,7 +59,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             "sentry-organization-auth-provider-settings", args=[self.organization.slug]
         )
 
-    def create_owner_and_attach_identity(self):
+    def create_owner_and_attach_identity(self) -> User:
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user, organization=self.organization, role="owner", teams=[self.team]
@@ -68,7 +71,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             om.save()
         return user
 
-    def create_manager_and_attach_identity(self):
+    def create_manager_and_attach_identity(self) -> User:
         user = self.create_user(is_superuser=False)
         self.create_member(
             user=user, organization=self.organization, role="manager", teams=[self.team]
@@ -133,16 +136,18 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 
 @control_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
-    def enroll_user_and_require_2fa(self, user, organization):
+    def enroll_user_and_require_2fa(self, user: User, organization: Organization) -> None:
         TotpInterface().enroll(user)
         with assume_test_silo_mode(SiloMode.CELL):
             organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert organization.flags.require_2fa.is_set
+        assert cast(Bit, organization.flags.require_2fa).is_set
 
-    def assert_require_2fa_disabled(self, user, organization, logger):
+    def assert_require_2fa_disabled(
+        self, user: User, organization: Organization, logger: MagicMock
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
-            assert not organization.flags.require_2fa.is_set
+            assert not cast(Bit, organization.flags.require_2fa).is_set
 
         event = AuditLogEntry.objects.get(
             target_object=organization.id, event=audit_log.get_event_id("ORG_EDIT"), actor=user
@@ -153,7 +158,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             "Require 2fa disabled during sso setup", extra={"organization_id": organization.id}
         )
 
-    def assert_basic_flow(self, user, organization, expect_error=False):
+    def assert_basic_flow(
+        self, user: User, organization: Organization, expect_error: bool = False
+    ) -> None:
         configure_path = reverse(
             "sentry-organization-auth-provider-settings", args=[organization.slug]
         )
@@ -185,7 +192,9 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             assert member.flags["sso:linked"]
             assert not member.flags["sso:invalid"]
 
-    def create_org_and_auth_provider(self, provider_name="dummy"):
+    def create_org_and_auth_provider(
+        self, provider_name: str = "dummy"
+    ) -> tuple[Organization, AuthProvider]:
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
@@ -196,7 +205,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
         return organization, auth_provider
 
-    def create_om_and_link_sso(self, organization):
+    def create_om_and_link_sso(self, organization: Organization) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)
@@ -682,7 +691,9 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         super().setUp()
         self.user = self.create_user("foobar@sentry.io")
 
-    def create_org_and_auth_provider(self, provider_name="saml2_dummy"):
+    def create_org_and_auth_provider(
+        self, provider_name: str = "saml2_dummy"
+    ) -> tuple[Organization, AuthProvider]:
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
@@ -693,7 +704,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
         return organization, auth_provider
 
-    def create_om_and_link_sso(self, organization):
+    def create_om_and_link_sso(self, organization: Organization) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)
@@ -845,7 +856,12 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
 
         # General settings must not add a second cert field for GenericSAML2 subclasses.
         settings_form = auth_provider_settings_form(
-            provider, self.auth_provider_inst, self.organization, request
+            provider,
+            self.auth_provider_inst,
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
+            request,
         )
         assert "x509cert" not in settings_form.fields
 
@@ -862,7 +878,9 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
 class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
     """Tests for SCIM token masking security feature (VULN-789)."""
 
-    def create_org_and_auth_provider(self, provider_name="dummy"):
+    def create_org_and_auth_provider(
+        self, provider_name: str = "dummy"
+    ) -> tuple[Organization, AuthProvider]:
         self.user.update(is_managed=True)
         with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
@@ -873,7 +891,7 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
         AuthIdentity.objects.create(user=self.user, ident="foo", auth_provider=auth_provider)
         return organization, auth_provider
 
-    def create_om_and_link_sso(self, organization):
+    def create_om_and_link_sso(self, organization: Organization) -> OrganizationMember:
         with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)

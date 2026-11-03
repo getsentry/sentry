@@ -11,7 +11,7 @@ import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -60,9 +60,9 @@ function TopSection({
         <Stack justify="center" align="start" paddingLeft="xl">
           <Flex align="center">
             <Name>{integrationName}</Name>
-            <StatusWrapper>
+            <Container paddingLeft="xl" marginBottom="xs">
               {installationStatus && <IntegrationStatus status={installationStatus} />}
-            </StatusWrapper>
+            </Container>
           </Flex>
           <Flex align="center">
             {tags.map(feature => (
@@ -245,7 +245,7 @@ function InformationCard({
   return (
     <Fragment>
       <Flex align="center">
-        <IntegrationDescription>
+        <Container flexGrow={1}>
           {upgradeAlert}
           <Description text={description} />
           <FeatureList
@@ -263,19 +263,19 @@ function InformationCard({
               </Alert>
             </Alert.Container>
           ))}
-        </IntegrationDescription>
+        </Container>
         <Metadata>
           {author && (
-            <AuthorInfo>
+            <Container marginBottom="2xl">
               <CreatedContainer>{t('Created By')}</CreatedContainer>
               <div>{author}</div>
-            </AuthorInfo>
+            </Container>
           )}
           {resourceLinks.map(({title, url}, index) => (
-            <ExternalLinkContainer key={index}>
+            <Grid align="center" gap="md" columns="max-content 1fr" key={index}>
               <ResourceIcon title={title} />
               <ExternalLink href={url}>{title}</ExternalLink>
-            </ExternalLinkContainer>
+            </Grid>
           ))}
         </Metadata>
       </Flex>
@@ -309,19 +309,10 @@ export const IntegrationLayout = {
   ResourceIcon,
 };
 
-const IntegrationDescription = styled('div')`
-  flex-grow: 1;
-`;
-
 const Name = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 1.4em;
   margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const StatusWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.xl};
 `;
 
 const StyledTag = styled(Tag)`
@@ -362,21 +353,10 @@ const Metadata = styled('div')`
   flex-shrink: 0;
 `;
 
-const AuthorInfo = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: 12px;
-`;
-
-const ExternalLinkContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
 `;

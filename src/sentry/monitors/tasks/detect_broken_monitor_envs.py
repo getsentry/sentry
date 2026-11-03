@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone as django_timezone
 
 from sentry.constants import ObjectStatus
@@ -49,13 +50,13 @@ NUM_DAYS_MUTED_PERIOD = 14
 MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
 
 
-def generate_monitor_overview_url(organization: Organization):
+def generate_monitor_overview_url(organization: Organization) -> str:
     return organization.absolute_url(f"/organizations/{organization.slug}/monitors/crons/")
 
 
 def generate_monitor_detail_url(
     organization: Organization, detector_id: int, environments: list[str]
-):
+) -> str:
     return organization.absolute_url(
         f"/organizations/{organization.slug}/monitors/{detector_id}/",
         query=urlencode({"environment": environments}, doseq=True),
@@ -86,16 +87,21 @@ def update_user_monitor_dictionary(
         user_monitor_entry["environment_names"].append(environment_name)
 
 
-def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
+def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project) -> Iterable[int]:
     try:
         if monitor.owner_user_id:
             organization_member = OrganizationMember.objects.get(
                 user_id=monitor.owner_user_id, organization_id=monitor.organization_id
             )
+            assert organization_member.user_id is not None
             return [organization_member.user_id]
         elif monitor.owner_team_id:
             team = Team.objects.get_from_cache(id=monitor.owner_team_id)
-            return team.member_set.values_list("user_id", flat=True)
+            return [
+                user_id
+                for user_id in team.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
     except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
         logger.info(
             "monitors.broken_detection.invalid_owner",
@@ -107,10 +113,14 @@ def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project):
         )
 
     project = Project.objects.get_from_cache(id=monitor.project_id)
-    return project.member_set.values_list("user_id", flat=True)
+    return [
+        user_id
+        for user_id in project.member_set.values_list("user_id", flat=True)
+        if user_id is not None
+    ]
 
 
-def get_user_emails_from_monitor(monitor: Monitor, project: Project):
+def get_user_emails_from_monitor(monitor: Monitor, project: Project) -> Iterable[str]:
     user_ids = get_user_ids_to_notify_from_monitor(monitor, project)
     actors = [Actor.from_id(user_id=id) for id in user_ids]
     recipients = notifications_service.get_notification_recipients(
@@ -126,7 +136,7 @@ def get_user_emails_from_monitor(monitor: Monitor, project: Project):
 
 def generate_monitor_email_context(
     monitor_entries: Iterable[dict[str, Any]], organization: Organization
-):
+) -> list[tuple[object, object, str, object]]:
     return [
         (
             monitor_entry["slug"],
@@ -146,7 +156,7 @@ def generate_monitor_email_context(
     ]
 
 
-def build_open_incidents_queryset():
+def build_open_incidents_queryset() -> QuerySet[MonitorIncident]:
     current_time = django_timezone.now()
     return MonitorIncident.objects.select_related("monitor").filter(
         resolving_checkin=None,
@@ -162,7 +172,7 @@ def build_open_incidents_queryset():
     namespace=crons_tasks,
     processing_deadline_duration=15 * 60,
 )
-def detect_broken_monitor_envs():
+def detect_broken_monitor_envs() -> None:
     open_incidents_qs = build_open_incidents_queryset()
     org_ids_with_open_incidents = open_incidents_qs.values_list(
         "monitor__organization_id", flat=True
@@ -177,7 +187,7 @@ def detect_broken_monitor_envs():
     namespace=crons_tasks,
     processing_deadline_duration=15 * 60,
 )
-def detect_broken_monitor_envs_for_org(org_id: int):
+def detect_broken_monitor_envs_for_org(org_id: int) -> None:
     current_time = django_timezone.now()
     try:
         organization = Organization.objects.get_from_cache(id=org_id)

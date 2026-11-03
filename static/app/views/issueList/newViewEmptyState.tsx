@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';

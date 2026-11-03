@@ -9,7 +9,7 @@ from sentry.seer.breakpoints import BreakpointData
 from sentry.utils import metrics
 
 
-def fingerprint_regression(transaction, full=False):
+def fingerprint_regression(transaction: str | int, full: bool = False) -> str:
     prehashed_fingerprint = f"p95_transaction_duration_regression-{transaction}"
     fingerprint = hashlib.sha1((prehashed_fingerprint).encode()).hexdigest()
     if not full:
@@ -17,7 +17,7 @@ def fingerprint_regression(transaction, full=False):
     return fingerprint
 
 
-def send_regression_to_platform(regression: BreakpointData):
+def send_regression_to_platform(regression: BreakpointData) -> None:
     current_timestamp = datetime.now(timezone.utc)
 
     displayed_old_baseline = round(float(regression["aggregate_range_1"]), 2)

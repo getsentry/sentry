@@ -508,6 +508,13 @@ export type InvoiceBase = StructuredAddress & {
   sentryTaxIds: SentryTaxIds | null;
   taxNumber: string | null;
   type: string | null;
+  /**
+   * Usage exports for the period (billing history or platform contract) the receipt bills usage for.
+   */
+  usageCsvLinks?: {
+    csv: string;
+    csvPerProject: string;
+  } | null;
 };
 
 export type Invoice = InvoiceBase & {

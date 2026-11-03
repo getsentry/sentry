@@ -1,6 +1,7 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -25,13 +26,19 @@ import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {
   CONVERSATION_FIELDS,
   type Conversation,
@@ -110,6 +117,12 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
+
+type CellActionHandler = (
+  action: Actions,
+  column: TableColumn<keyof TableDataRow>,
+  value: string | number
+) => void;
 
 export function getConversationTimeSpan(
   conversation: Pick<Conversation, 'timeSpan' | 'generationDuration'>
@@ -209,6 +222,10 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     conversations;
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'query',
+    parseAsString.withOptions({history: 'replace'})
+  );
 
   const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
     COLUMN_WIDTHS_STORAGE_KEY,
@@ -261,8 +278,28 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
     setCursor(cursor, path, query, pageDelta);
   };
 
+  const handleCellAction = useCallback<CellActionHandler>(
+    (action, column, value) => {
+      const search = new MutableSearch(searchQuery ?? '');
+      updateQuery(search, action, column, value);
+      if (action === Actions.COPY_TO_CLIPBOARD) {
+        return;
+      }
+      setSearchQuery(search.formatString() || null);
+      unsetCursor();
+    },
+    [searchQuery, setSearchQuery, unsetCursor]
+  );
+
   const handleRowClick = useCallback(
     (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        (event.target.closest('button, [role="menu"]') ||
+          !event.currentTarget.contains(event.target))
+      ) {
+        return;
+      }
       const url = getConversationDetailUrl(
         organization.slug,
         dataRow,
@@ -311,9 +348,9 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
-      <BodyCell column={column} conversation={dataRow} />
+      <BodyCell column={column} conversation={dataRow} onCellAction={handleCellAction} />
     ),
-    []
+    [handleCellAction]
   );
 
   return (
@@ -352,32 +389,64 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
 function BodyCell({
   column,
   conversation,
+  onCellAction,
 }: {
   column: GridColumnOrder<ColumnKey>;
   conversation: Conversation;
+  onCellAction: CellActionHandler;
 }) {
   switch (column.key) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
     case 'timeSpan':
       return (
-        <Text tabular>
-          <PerformanceDuration
-            milliseconds={getConversationTimeSpan(conversation)}
-            abbreviation
-          />
-        </Text>
+        <FilterCellAction
+          field={
+            conversation.timeSpan
+              ? CONVERSATION_FIELDS.timeSpan.key
+              : CONVERSATION_FIELDS.generationDuration.key
+          }
+          type="duration"
+          value={getConversationTimeSpan(conversation)}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <PerformanceDuration
+              milliseconds={getConversationTimeSpan(conversation)}
+              abbreviation
+            />
+          </Text>
+        </FilterCellAction>
       );
     case 'messages':
       return (
-        <Text tabular>
-          <Count value={conversation.llmCalls} />
-        </Text>
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.messages.key}
+          type="integer"
+          value={conversation.llmCalls}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <Text tabular>
+            <Count value={conversation.llmCalls} />
+          </Text>
+        </FilterCellAction>
       );
     case 'errors':
-      return <ErrorCell value={conversation.errors} />;
-    case 'cost':
       return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.errors.key}
+          type="integer"
+          value={conversation.errors}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          <ErrorCell value={conversation.errors} />
+        </FilterCellAction>
+      );
+    case 'cost': {
+      const cost = (
         <Text tabular>
           {conversation.totalCost !== null && conversation.totalCost < 0 ? (
             <NegativeCostInfo cost={conversation.totalCost} />
@@ -386,6 +455,21 @@ function BodyCell({
           )}
         </Text>
       );
+      if (conversation.totalCost === null) {
+        return cost;
+      }
+      return (
+        <FilterCellAction
+          field={CONVERSATION_FIELDS.totalCost.key}
+          type="number"
+          value={conversation.totalCost}
+          conversationId={conversation.conversationId}
+          onCellAction={onCellAction}
+        >
+          {cost}
+        </FilterCellAction>
+      );
+    }
     case 'tools':
       return <ToolsCell toolNames={conversation.toolNames} />;
     case 'age':
@@ -397,6 +481,42 @@ function BodyCell({
     default:
       return null;
   }
+}
+
+function FilterCellAction({
+  children,
+  conversationId,
+  field,
+  onCellAction,
+  type,
+  value,
+}: {
+  children: React.ReactNode;
+  conversationId: string;
+  field: string;
+  onCellAction: CellActionHandler;
+  type: ColumnValueType;
+  value: number;
+}) {
+  const column: TableColumn<keyof TableDataRow> = {
+    key: field,
+    name: field,
+    type,
+    column: {kind: 'field', field},
+    isSortable: false,
+    width: COL_WIDTH_UNDEFINED,
+  };
+
+  return (
+    <CellAction
+      column={column}
+      dataRow={{id: conversationId, [field]: value}}
+      allowActions={ALLOWED_CELL_ACTIONS}
+      handleCellAction={(action, cellValue) => onCellAction(action, column, cellValue)}
+    >
+      {children}
+    </CellAction>
+  );
 }
 
 function getConversationTitle(
@@ -687,6 +807,12 @@ const FixedRowHeightGrid = styled('div')`
      size because its larger min-height wins over this fixed height. */
   tbody td {
     height: ${ROW_HEIGHT}px;
+  }
+
+  /* Tighter padding fits two rows of tool tags; [role='cell'] skips the hover layer td. */
+  tbody td[role='cell'] {
+    padding-top: ${p => p.theme.space.md};
+    padding-bottom: ${p => p.theme.space.md};
   }
 `;
 

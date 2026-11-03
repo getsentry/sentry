@@ -10,6 +10,7 @@ import {
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
+import {useRefreshPageOnSeerWrite} from 'sentry/views/seerExplorer/hooks/useRefreshPageOnSeerWrite';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {SeerExplorerDeepLinkParamProvider} from 'sentry/views/seerExplorer/utils';
@@ -165,7 +166,8 @@ function SeerExplorerChatStatePolling({
   dispatch: Dispatch<ChatStateAction>;
   runId: SeerExplorerRunId | null;
 }) {
-  const {pollingState} = useSeerExplorerPolling({runId});
+  const {pollingState, apiData} = useSeerExplorerPolling({runId});
+  useRefreshPageOnSeerWrite({runId, blocks: apiData?.session?.blocks});
 
   useLayoutEffect(() => {
     if (runId === null) {

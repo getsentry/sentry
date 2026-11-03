@@ -103,10 +103,10 @@ def get_frames(
 
 
 def get_crash_event(
-    handled=False,
-    function="-[Sentry]",
+    handled: bool = False,
+    function: str = "-[Sentry]",
     registers: Sequence[Mapping[str, str]] | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> dict[str, Collection[str]]:
     return get_crash_event_with_frames(
         get_frames(function), registers=registers, handled=handled, **kwargs
@@ -116,8 +116,8 @@ def get_crash_event(
 def get_crash_event_with_frames(
     frames: Sequence[Mapping[str, Any]],
     registers: Sequence[Mapping[str, str]] | None = None,
-    handled=False,
-    **kwargs,
+    handled: bool = False,
+    **kwargs: Any,
 ) -> dict[str, Collection[str]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",

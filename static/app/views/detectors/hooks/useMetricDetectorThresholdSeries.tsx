@@ -1,10 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
-import {MarkArea} from 'sentry/components/charts/components/markArea';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
@@ -19,6 +16,11 @@ import type {
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {isSessionPercentageOperation} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+import {
+  createPercentThresholdBandSeries,
+  createStaticThresholdBandSeries,
+  getThresholdColor,
+} from 'sentry/views/detectors/utils/thresholdBands';
 
 function createThresholdMarkLine(lineColor: string, threshold: number) {
   return markLine({
@@ -29,21 +31,6 @@ function createThresholdMarkLine(lineColor: string, threshold: number) {
       show: false,
     },
     animation: false,
-  });
-}
-
-function createThresholdMarkArea(areaColor: string, threshold: number, isAbove: boolean) {
-  return MarkArea({
-    silent: true,
-    itemStyle: {
-      color: color(areaColor).alpha(0.1).rgb().string(),
-    },
-    data: [
-      // Highlight the "safe" area - opposite of the alert condition
-      isAbove
-        ? [{yAxis: 'min'}, {yAxis: threshold}]
-        : [{yAxis: threshold}, {yAxis: 'max'}],
-    ],
   });
 }
 
@@ -81,6 +68,23 @@ function createPercentThresholdSeries(
     seriesName,
     data: thresholdData,
   };
+}
+
+function createPercentResolutionSeries(
+  comparisonSeries: Series[],
+  resolution: {type: DataConditionType; value: number}
+): Series {
+  // Resolving at or below a threshold means the alert fires above it
+  const isAbove = [DataConditionType.LESS, DataConditionType.LESS_OR_EQUAL].includes(
+    resolution.type
+  );
+
+  return createPercentThresholdSeries(
+    comparisonSeries,
+    resolution.value,
+    isAbove,
+    `${resolution.value}% ${isAbove ? 'Higher' : 'Lower'} Resolution Threshold`
+  );
 }
 
 /**
@@ -198,61 +202,81 @@ export function useMetricDetectorThresholdSeries({
     );
     const additional: LineSeriesOption[] = [];
 
+    // Resolution is considered "automatic" when it equals any alert threshold value
+    const isResolutionManual = Boolean(
+      resolution && !thresholds.some(threshold => threshold.value === resolution.value)
+    );
+
     if (detectionType === 'percent') {
       if (comparisonSeries.length === 0 || thresholds.length === 0) {
         return {maxValue: undefined, additionalSeries: additional};
       }
 
-      const percentThresholdSeries = thresholds.map(threshold => {
+      const thresholdLines = thresholds.map(threshold => {
         const isAbove = threshold.type === DataConditionType.GREATER;
-        const lineColor =
-          threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.colors.red400
-            : theme.colors.yellow400;
-
         const seriesName = `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`;
 
-        const series = createPercentThresholdSeries(
-          comparisonSeries,
-          threshold.value,
-          isAbove,
-          seriesName
-        );
+        return {
+          ...threshold,
+          series: createPercentThresholdSeries(
+            comparisonSeries,
+            threshold.value,
+            isAbove,
+            seriesName
+          ),
+        };
+      });
 
-        return createLineSeries({
-          name: seriesName,
+      const resolutionLine = resolution
+        ? createPercentResolutionSeries(comparisonSeries, resolution)
+        : undefined;
+
+      // Tooltip rows follow series order: most severe threshold first, resolution last
+      const thresholdLinesBySeverity = thresholdLines.toSorted(
+        (a, b) => b.priority - a.priority
+      );
+
+      const visibleLines = [
+        ...thresholdLinesBySeverity.map(({priority, series}) => ({
+          series,
+          lineColor: getThresholdColor(theme, priority),
+        })),
+        ...(resolutionLine && isResolutionManual
+          ? [{series: resolutionLine, lineColor: theme.colors.green400}]
+          : []),
+      ];
+
+      const percentThresholdSeries = visibleLines.map(({series, lineColor}) =>
+        createLineSeries({
+          name: series.seriesName,
+          // Don't block hovering the open periods drawn beneath the threshold line
+          silent: true,
           data: series.data.map(({name, value}) => [name, value]),
           lineStyle: {
             color: lineColor,
             type: 'dashed',
             width: 2,
           },
-          areaStyle: {
-            color: lineColor,
-            opacity: 0.2,
-            origin: isAbove ? 'end' : 'start', // Apply area style in appropriate direction
-          },
           itemStyle: {color: lineColor},
           animation: false,
           animationThreshold: 1,
           animationDuration: 0,
           symbol: 'none', // Hide data point markers
-        });
+        })
+      );
+
+      const percentThresholdBands = createPercentThresholdBandSeries({
+        theme,
+        thresholds: thresholdLines.map(line => ({...line, bound: line.series.data})),
+        resolution: resolutionLine?.data,
       });
 
-      additional.push(...percentThresholdSeries);
+      additional.push(...percentThresholdSeries, ...percentThresholdBands);
 
       // Calculate maxValue from threshold data points (similar to static thresholds)
-      const thresholdValues = thresholds.flatMap(threshold => {
-        const isAbove = threshold.type === DataConditionType.GREATER;
-        const series = createPercentThresholdSeries(
-          comparisonSeries,
-          threshold.value,
-          isAbove,
-          `${threshold.value}% ${isAbove ? 'Higher' : 'Lower'} Threshold`
-        );
-        return series.data.map(point => point.value);
-      });
+      const thresholdValues = visibleLines.flatMap(({series}) =>
+        series.data.map(point => point.value)
+      );
 
       const maxValue =
         thresholdValues.length > 0 ? Math.max(...thresholdValues) : undefined;
@@ -262,45 +286,36 @@ export function useMetricDetectorThresholdSeries({
     if (detectionType === 'static') {
       // For static detection, use traditional horizontal threshold lines
       const thresholdSeries = thresholds.map((threshold): LineSeriesOption => {
-        const isAbove = threshold.type === DataConditionType.GREATER;
-        const lineColor =
-          threshold.priority === DetectorPriorityLevel.HIGH
-            ? theme.colors.red400
-            : theme.colors.yellow400;
-        const areaColor = lineColor;
+        const lineColor = getThresholdColor(theme, threshold.priority);
         // Thresholds are normalized to correct scale via normalizePercentageThreshold()
         const displayThreshold = threshold.value;
 
         return {
           type: 'line',
           markLine: createThresholdMarkLine(lineColor, displayThreshold),
-          markArea: createThresholdMarkArea(areaColor, displayThreshold, isAbove),
           data: [],
         };
       });
       additional.push(...thresholdSeries);
 
-      // Resolution is considered "automatic" when it equals any alert threshold value
-      const isResolutionManual = Boolean(
-        resolution && !thresholds.some(threshold => threshold.value === resolution.value)
-      );
       if (resolution && isResolutionManual) {
         // Resolution value is normalized to correct scale via normalizePercentageThreshold()
         const displayResolution = resolution.value;
         const resolutionSeries: LineSeriesOption = {
           type: 'line',
           markLine: createThresholdMarkLine(theme.colors.green400, displayResolution),
-          markArea: createThresholdMarkArea(
-            theme.colors.green400,
-            displayResolution,
-            [DataConditionType.GREATER, DataConditionType.GREATER_OR_EQUAL].includes(
-              resolution.type
-            )
-          ),
           data: [],
         };
         additional.push(resolutionSeries);
       }
+
+      const staticThresholdBands = createStaticThresholdBandSeries({
+        theme,
+        thresholds: thresholds.map(threshold => ({...threshold, bound: threshold.value})),
+        resolution: resolution?.value,
+      });
+
+      additional.push(...staticThresholdBands);
 
       const valuesForMax = [
         ...thresholds.map(threshold => threshold.value),

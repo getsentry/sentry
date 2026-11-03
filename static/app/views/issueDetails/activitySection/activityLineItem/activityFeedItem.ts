@@ -26,13 +26,17 @@ export type CollapsedSeerActivity = {
   };
 }[CollapsedSeerActivityType];
 
-export type ActivityFeedItem =
+export type ActivityFeedItem = (
   | {
       activity: GroupActivity;
       type: 'activity';
       actorActivity?: GroupActivity;
     }
-  | CollapsedSeerActivity;
+  | CollapsedSeerActivity
+) & {
+  body?: React.ReactNode;
+  variant?: 'card';
+};
 
 interface CollapsedStatusActivity {
   activities: ActivityFeedItem[];
@@ -42,6 +46,16 @@ interface CollapsedStatusActivity {
 }
 
 export type DisplayedActivityFeedItem = ActivityFeedItem | CollapsedStatusActivity;
+
+/**
+ * The activity that attributes a feed item. A collapsed Seer pair is
+ * attributed to whoever started the run, since completions come from Seer.
+ */
+export function getActorActivity(item: ActivityFeedItem): GroupActivity {
+  return item.type === 'activity'
+    ? (item.actorActivity ?? item.activity)
+    : item.startedActivity;
+}
 
 const RESOLUTION_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SET_RESOLVED,

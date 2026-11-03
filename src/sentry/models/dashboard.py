@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 import sentry_sdk
@@ -75,7 +76,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
-    ):
+    ) -> None:
         """
         Reorders the positions of favorited dashboards for a user in an organization.
         Does NOT add or remove favorited dashboards. Also normalizes the positions
@@ -371,6 +372,14 @@ class Dashboard(Model):
     # SET_NULL: org dashboards must survive creator deletion. CASCADE previously wiped
     # every dashboard attributed to an internal-integration proxy user when that app was deleted.
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -401,12 +410,21 @@ class Dashboard(Model):
                 condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
                 name="sentry_dashboard_prebuilt_null_created_by",
             ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_dashboard_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("organization", "title")
 
     @property
-    def favorited_by(self):
+    def favorited_by(self) -> Iterable[int]:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -416,7 +434,7 @@ class Dashboard(Model):
         return user_ids
 
     @favorited_by.setter
-    def favorited_by(self, user_ids):
+    def favorited_by(self, user_ids: Iterable[int]) -> None:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -545,9 +563,11 @@ class DashboardRevision(DefaultFieldsModel):
         Create a revision snapshot for the given dashboard and prune any revisions
         beyond the retention limit. Must be called inside a transaction.atomic block.
         """
+        from sentry.auth.principal import acting_user_id  # circular import
+
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=user.id if user.is_authenticated else None,
+            created_by_id=acting_user_id(user),
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

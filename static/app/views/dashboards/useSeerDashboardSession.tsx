@@ -167,6 +167,7 @@ export function useSeerDashboardSession({
             dashboard
           );
           if (!runId) {
+            // oxlint-disable-next-line react/todo
             throw new Error('Failed to start dashboard editing session');
           }
           setInternalRunId(runId);

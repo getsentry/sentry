@@ -8,7 +8,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -193,7 +193,7 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.items.map((item, num) => (
           <tr key={num}>
-            <td>{getItemDescription(item)}</td>
+            <ResultTableRowHeader>{getItemDescription(item)}</ResultTableRowHeader>
             <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(item.amount / 100).toLocaleString()}
             </td>
@@ -217,9 +217,9 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.charges.map(row => (
           <tr key={row.id}>
-            <td>
+            <ResultTableRowHeader>
               <DateTime date={row.dateCreated} />
-            </td>
+            </ResultTableRowHeader>
             <td data-label="Stripe ID" style={{textAlign: 'center'}}>
               {row.stripeID ? (
                 <a href={`https://dashboard.stripe.com/charges/${row.stripeID}`}>

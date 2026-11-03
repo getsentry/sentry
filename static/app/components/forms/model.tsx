@@ -145,8 +145,8 @@ export class FormModel {
       isError: computed,
       isSaving: computed,
       formData: computed,
-      formChanged: computed,
 
+      setInitialData: action,
       validateFormCompletion: action,
       resetForm: action,
       setFieldDescriptor: action,
@@ -199,6 +199,9 @@ export class FormModel {
 
   /**
    * Deep equality comparison between last saved state and current fields state
+   *
+   * Not a computed on purpose: `initialData` isn't observable, so a cached
+   * result would go stale.
    */
   get formChanged() {
     return !isEqual(this.initialData, Object.fromEntries(this.fields.toJSON()));

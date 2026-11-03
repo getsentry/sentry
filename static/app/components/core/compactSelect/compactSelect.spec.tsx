@@ -421,6 +421,40 @@ describe('CompactSelect', () => {
     });
   });
 
+  it('keeps a hidden clear button in a titled header without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        menuTitle="Options"
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByText('Options')).toBeInTheDocument();
+    expect(screen.getByText('Clear').closest('button')).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  it('omits the header in an untitled menu without a selection', async () => {
+    render(
+      <CompactSelect
+        clearable
+        value={undefined}
+        onChange={jest.fn()}
+        options={[{value: 'opt_one', label: 'Option One'}]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+  });
+
   describe('ListBox', () => {
     it('updates trigger label on selection', async () => {
       const mock = jest.fn();
@@ -1344,6 +1378,102 @@ describe('CompactSelect', () => {
       await waitFor(() => {
         expect(onCloseMock).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('overlay details', () => {
+    const options = [
+      {
+        value: 'opt_one',
+        label: 'Option One',
+        showDetailsInOverlay: true,
+        details: (
+          <Fragment>
+            Read the <a href="https://example.com/one">first docs</a> or the{' '}
+            <a href="https://example.com/two">second docs</a>.
+          </Fragment>
+        ),
+      },
+      {value: 'opt_two', label: 'Option Two'},
+    ];
+
+    function waitPastCloseDelay() {
+      return act(() => new Promise(resolve => setTimeout(resolve, 200)));
+    }
+
+    it('describes the focused option with its details', async () => {
+      render(<CompactSelect value={undefined} onChange={jest.fn()} options={options} />);
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.hover(screen.getByRole('option', {name: 'Option One'}));
+
+      expect(
+        screen.getByRole('option', {name: 'Option One'})
+      ).toHaveAccessibleDescription(
+        'Read the first docs or the second docs . Press Right Arrow to interact with details.'
+      );
+    });
+
+    it('keeps the details open while the pointer is over them', async () => {
+      const onLinkClick = jest.fn((e: MouseEvent) => e.preventDefault());
+      render(<CompactSelect value={undefined} onChange={jest.fn()} options={options} />);
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.hover(screen.getByRole('option', {name: 'Option One'}));
+      const link = screen.getByRole('link', {name: 'first docs'});
+      link.addEventListener('click', onLinkClick);
+      await userEvent.hover(link);
+      await waitPastCloseDelay();
+      await userEvent.click(link);
+
+      expect(onLinkClick).toHaveBeenCalled();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+      expect(screen.getByRole('dialog', {name: 'Option One'})).toBeInTheDocument();
+    });
+
+    it('closes the details when the pointer leaves the list', async () => {
+      render(<CompactSelect value={undefined} onChange={jest.fn()} options={options} />);
+
+      await userEvent.click(screen.getByRole('button'));
+      await userEvent.hover(screen.getByRole('option', {name: 'Option One'}));
+      await userEvent.unhover(screen.getByRole('listbox'));
+      await waitPastCloseDelay();
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('moves focus into the details on Arrow Right and back on Arrow Left', async () => {
+      render(<CompactSelect value={undefined} onChange={jest.fn()} options={options} />);
+
+      await userEvent.click(screen.getByRole('button'));
+      const option = screen.getByRole('option', {name: 'Option One'});
+      await waitFor(() => expect(option).toHaveFocus());
+      await userEvent.keyboard('{ArrowRight}');
+      const focusedInDetails = document.activeElement;
+      await userEvent.tab();
+      const focusedAfterTab = document.activeElement;
+      await userEvent.tab();
+      const focusedAfterWrap = document.activeElement;
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(focusedInDetails).toBe(screen.getByRole('link', {name: 'first docs'}));
+      expect(focusedAfterTab).toBe(screen.getByRole('link', {name: 'second docs'}));
+      expect(focusedAfterWrap).toBe(screen.getByRole('link', {name: 'first docs'}));
+      expect(option).toHaveFocus();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    it('returns focus to the option on Escape without closing the menu', async () => {
+      render(<CompactSelect value={undefined} onChange={jest.fn()} options={options} />);
+
+      await userEvent.click(screen.getByRole('button'));
+      const option = screen.getByRole('option', {name: 'Option One'});
+      await waitFor(() => expect(option).toHaveFocus());
+      await userEvent.keyboard('{ArrowRight}');
+      await userEvent.keyboard('{Escape}');
+
+      expect(option).toHaveFocus();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
   });
 

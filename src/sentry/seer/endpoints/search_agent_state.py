@@ -37,7 +37,8 @@ def fetch_search_agent_state(
     response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
-    return response.json()
+    data = response.json()
+    return data
 
 
 @cell_silo_endpoint

@@ -652,6 +652,10 @@ function setUpMocks(
     body: PoliciesFixture(),
   });
   MockApiClient.addMockResponse({
+    url: `/_admin/customers/${organization.slug}/contracts/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/invoices/`,
     body: [InvoiceFixture()],
   });
@@ -1204,6 +1208,66 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('clear pending pay-as-you-go', () => {
+    const pendingPaygOrg = OrganizationFixture();
+
+    it('renders disabled without billing.admin permissions', async () => {
+      ConfigStore.set('user', mockUser);
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      expect(screen.getByTestId('clearPendingPayg')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('clears pending pay-as-you-go', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${pendingPaygOrg.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Clear Pending Pay-as-you-go'));
+
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${pendingPaygOrg.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {clearPendingPayg: true},
+          })
+        );
+      });
+    });
+  });
+
   describe('allow trial', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 
@@ -1567,6 +1631,65 @@ describe('Customer Details', () => {
           })
         );
       });
+    });
+  });
+
+  describe('set contract package', () => {
+    const packageOrg = OrganizationFixture({slug: 'package-org'});
+    const packageUid = 'c2fa2600-1075-4855-99a2-f11e35baffde';
+
+    function renderPackageOrg() {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${packageOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: packageOrg,
+      });
+    }
+
+    it('is hidden for orgs on legacy billing', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: false});
+      renderPackageOrg();
+
+      await openCustomerActions();
+
+      expect(screen.queryByText('Set Contract Package')).not.toBeInTheDocument();
+    });
+
+    it('posts the package uid and refreshes the contracts table', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(packageOrg, {hasMigratedToBillingPlatform: true});
+      const contractsMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contracts/`,
+        body: [],
+      });
+      const setPackageMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${packageOrg.slug}/contract/package/`,
+        method: 'POST',
+      });
+      renderPackageOrg();
+
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(1));
+      await openCustomerActions();
+      renderGlobalModal();
+      await userEvent.click(screen.getByText('Set Contract Package'));
+
+      expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Package UID'}),
+        packageUid
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(setPackageMock).toHaveBeenCalledWith(
+          `/_admin/customers/${packageOrg.slug}/contract/package/`,
+          expect.objectContaining({method: 'POST', data: {packageUid}})
+        )
+      );
+      await waitFor(() => expect(contractsMock).toHaveBeenCalledTimes(2));
     });
   });
 

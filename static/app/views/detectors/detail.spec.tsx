@@ -294,7 +294,7 @@ describe('DetectorDetails', () => {
       );
     });
 
-    it('displays recent issues when each firing opens its own issue', async () => {
+    it('displays recent issues when each activation opens its own issue', async () => {
       render(<DetectorDetails />, {
         organization: OrganizationFixture({
           features: ['workflow-engine-rotate-activation-id'],

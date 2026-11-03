@@ -10,13 +10,14 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import TypedDict, TypeGuard
+from typing import NotRequired, TypedDict, TypeGuard
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone
 from jwt import PyJWTError
+from pydantic import ValidationError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.models.agent_write_grant import (
@@ -24,6 +25,7 @@ from sentry.seer.models.agent_write_grant import (
     DEFAULT_EXPIRATION,
     SeerAgentWriteGrant,
 )
+from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import jwt
@@ -76,6 +78,7 @@ class AgentTokenClaims(TypedDict):
     sid: str
     iat: int
     exp: int
+    superuser: NotRequired[dict[str, object]]
 
 
 def _signing_key() -> str:
@@ -88,6 +91,9 @@ def _signing_key() -> str:
 def readonly_scopes() -> frozenset[str]:
     # Not demo_mode.get_readonly_scopes(): that also allows project:releases, a write.
     return frozenset(settings.SENTRY_READONLY_SCOPES)
+
+
+AGENT_DEFAULT_WRITE_SCOPES = frozenset({"seer:write"})
 
 
 def resolve_minting_principal(
@@ -153,10 +159,14 @@ def compute_token_scopes(
     session_id: str,
     requested_scopes: Iterable[str] | None = None,
 ) -> list[str]:
-    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ approved grants)``, optionally
-    narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
+    """De-escalation rule: ``caller_scopes ∩ (read-only ∪ default writes ∪ approved grants)``,
+    optionally narrowed by ``requested_scopes``. Never exceeds the caller's own authority."""
     caller = set(caller_scopes)
-    allowed = readonly_scopes() | active_grant_scopes(organization_id, user_id, session_id)
+    allowed = (
+        readonly_scopes()
+        | AGENT_DEFAULT_WRITE_SCOPES
+        | active_grant_scopes(organization_id, user_id, session_id)
+    )
     effective = caller & allowed
     if requested_scopes is not None:
         effective &= set(requested_scopes)
@@ -170,6 +180,7 @@ def encode_agent_token(
     scopes: Iterable[str],
     session_id: str,
     ttl: timedelta = DEFAULT_TOKEN_TTL,
+    superuser: SuperuserAccess | None = None,
 ) -> tuple[str, datetime]:
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
@@ -186,6 +197,8 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
+    if superuser is not None:
+        payload["superuser"] = superuser.dict()
     token = jwt.encode(
         payload,
         _signing_key(),
@@ -274,7 +287,7 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
     if expires_at <= issued_at:
         raise jwt.DecodeError("invalid agent token lifetime")
 
-    return AgentTokenClaims(
+    result = AgentTokenClaims(
         ver=version,
         aud=audience,
         sub=subject,
@@ -284,6 +297,12 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
         iat=issued_at,
         exp=expires_at,
     )
+    if "superuser" in claims:
+        try:
+            result["superuser"] = SuperuserAccess.parse_obj(claims["superuser"]).dict()
+        except ValidationError as exc:
+            raise jwt.DecodeError("invalid agent superuser access") from exc
+    return result
 
 
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
@@ -313,6 +332,7 @@ def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
         scopes=claims["scopes"],
         user_id=principal.id,
         organization_id=claims["org"],
+        superuser=SuperuserAccess.parse_obj(claims["superuser"]) if "superuser" in claims else None,
     )
 
 

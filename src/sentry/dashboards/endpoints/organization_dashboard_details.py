@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
@@ -105,6 +105,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationDashboard",
@@ -276,7 +277,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
-        dashboard.visits = F("visits") + 1
+        dashboard.visits = cast(int, F("visits") + 1)
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
@@ -296,6 +297,14 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         return Response(status=204)
 
 
+class OrganizationDashboardFavoritePermission(OrganizationDashboardsPermission):
+    # Favoriting only changes the requesting user's starred dashboards.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "PUT": [*OrganizationDashboardsPermission.scope_map["PUT"], "user_preference:write"],
+    }
+
+
 @cell_silo_endpoint
 class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
@@ -305,6 +314,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationDashboardFavoritePermission,)
 
     def put(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
         """

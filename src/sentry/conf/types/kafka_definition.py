@@ -113,7 +113,7 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         )
 
 
-def get_topic_codec(topic: Topic) -> Codec:
+def get_topic_codec(topic: Topic) -> Codec[Any]:
     """
     Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum
     """

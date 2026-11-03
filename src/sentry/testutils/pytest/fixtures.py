@@ -5,22 +5,38 @@ All model-related fixtures defined here require the database, and should imply a
 including ``db`` fixture in the function resolution scope.
 """
 
+from __future__ import annotations
+
 import difflib
 import os
 import re
 import sys
 from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor  # noqa: S016 - test infra, no tracing needed
+from contextlib import AbstractContextManager
 from string import Template
-from typing import Any, ContextManager, Protocol, overload
+from typing import TYPE_CHECKING, Any, ContextManager, Protocol, overload
 
 import pytest
 import requests
 import yaml
+from django.conf import LazySettings
 from django.core.cache import cache
+from django.core.cache.backends.base import BaseCache
 
 import sentry
 from sentry.types.activity import ActivityType
+
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
+    from sentry.models.team import Team
+    from sentry.testutils.factories import Factories
+    from sentry.users.models.user import User
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
@@ -63,7 +79,7 @@ def django_db_all[R, **P](
 
 
 @pytest.fixture
-def factories():
+def factories() -> type[Factories]:
     # XXX(dcramer): hack to prevent recursive imports
     from sentry.testutils.factories import Factories
 
@@ -83,7 +99,7 @@ def task_runner() -> Callable[[], ContextManager[None]]:
 
 
 @pytest.fixture(scope="function")
-def default_user(factories):
+def default_user(factories: type[Factories]) -> User:
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
 
     :returns: A :class:`sentry.users.models.user.User` instance.
@@ -92,7 +108,7 @@ def default_user(factories):
 
 
 @pytest.fixture(scope="function")
-def default_organization(factories, default_user):
+def default_organization(factories: type[Factories], default_user: User) -> Organization:
     """A default organization (slug=``baz``) owned by the ``default_user`` fixture.
 
     :returns: A :class:`sentry.models.organization.Organization` instance.
@@ -103,7 +119,7 @@ def default_organization(factories, default_user):
 
 
 @pytest.fixture(scope="function")
-def default_team(factories, default_organization):
+def default_team(factories: type[Factories], default_organization: Organization) -> Team:
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
@@ -116,28 +132,30 @@ def default_team(factories, default_organization):
 
 
 @pytest.fixture(scope="function")
-def default_project(factories, default_team):
+def default_project(factories: type[Factories], default_team: Team) -> Project:
     return factories.create_project(name="Bar", slug="bar", teams=[default_team])
 
 
 @pytest.fixture(scope="function")
-def default_projectkey(factories, default_project):
+def default_projectkey(factories: type[Factories], default_project: Project) -> ProjectKey:
     return factories.create_project_key(project=default_project)
 
 
 @pytest.fixture(scope="function")
-def default_environment(factories, default_project):
+def default_environment(factories: type[Factories], default_project: Project) -> Environment:
     return factories.create_environment(name="development", project=default_project)
 
 
 @pytest.fixture(scope="function")
-def default_group(factories, default_project):
+def default_group(factories: type[Factories], default_project: Project) -> Group:
     # こんにちは konichiwa
     return factories.create_group(project=default_project, message="\u3053\u3093\u306b\u3061\u306f")
 
 
 @pytest.fixture(scope="function")
-def default_activity(default_group, default_project, default_user):
+def default_activity(
+    default_group: Group, default_project: Project, default_user: User
+) -> Activity:
     from sentry.models.activity import Activity
 
     return Activity.objects.create(
@@ -150,9 +168,9 @@ def default_activity(default_group, default_project, default_user):
 
 
 @pytest.fixture()
-def dyn_sampling_data():
+def dyn_sampling_data() -> Callable[[bool], dict[str, object]]:
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
-    def inner(active=True):
+    def inner(active: bool = True) -> dict[str, object]:
         return {
             "rules": [
                 {
@@ -185,8 +203,8 @@ SNAPSHOT_REGEX = re.compile(r"^---\r?\n.*?\r?\n---\r?\n(.*)$", re.DOTALL)
 
 
 @pytest.fixture
-def log():
-    def inner(x):
+def log() -> Callable[[str], int]:
+    def inner(x: str) -> int:
         return sys.stdout.write(x + "\n")
 
     return inner
@@ -195,7 +213,7 @@ def log():
 class ReadableYamlDumper(yaml.dumper.SafeDumper):
     """Disable pyyaml aliases for identical object references"""
 
-    def ignore_aliases(self, data) -> bool:
+    def ignore_aliases(self, data: object) -> bool:
         return True
 
 
@@ -311,7 +329,7 @@ $diff_text
 )
 
 
-def _print_insta_diff(reference_file, a, b):
+def _print_insta_diff(reference_file: str, a: str, b: str) -> None:
     __tracebackhide__ = True
     pytest.fail(
         INSTA_DIFF_TEMPLATE.substitute(
@@ -321,21 +339,21 @@ def _print_insta_diff(reference_file, a, b):
     )
 
 
-def _print_custom_insta_diff(reference_file, diff_text):
+def _print_custom_insta_diff(reference_file: str, diff_text: str) -> None:
     __tracebackhide__ = True
     pytest.fail(INSTA_DIFF_TEMPLATE.substitute(reference_file=reference_file, diff_text=diff_text))
 
 
 @pytest.fixture
-def call_snuba(settings):
-    def inner(endpoint):
+def call_snuba(settings: LazySettings) -> Callable[[str], requests.Response]:
+    def inner(endpoint: str) -> requests.Response:
         return requests.post(settings.SENTRY_SNUBA + endpoint, timeout=30)
 
     return inner
 
 
 @pytest.fixture
-def reset_snuba(call_snuba):
+def reset_snuba(call_snuba: Callable[[str], requests.Response]) -> None:
     init_endpoints = [
         "/tests/events_analytics_platform/drop",
         "/tests/events/drop",
@@ -366,7 +384,7 @@ def skip_group_attributes_snapshots() -> Generator[None]:
 
 
 @pytest.fixture
-def set_sentry_option():
+def set_sentry_option() -> Callable[[str, object], AbstractContextManager[None]]:
     """
     A pytest-style wrapper around override_options.
 
@@ -378,13 +396,13 @@ def set_sentry_option():
     """
     from sentry.testutils.helpers.options import override_options
 
-    def inner(key, value):
+    def inner(key: str, value: object) -> AbstractContextManager[None]:
         return override_options({key: value})
 
     return inner
 
 
 @pytest.fixture
-def django_cache():
+def django_cache() -> Generator[BaseCache]:
     yield cache
     cache.clear()

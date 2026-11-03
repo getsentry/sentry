@@ -77,7 +77,6 @@ export function transactionSummaryRouteWithQuery({
   projectID,
   query,
   display,
-  trendFunction,
   additionalQuery,
   subPath,
   view,
@@ -89,7 +88,6 @@ export function transactionSummaryRouteWithQuery({
   display?: DisplayModes;
   projectID?: string | string[];
   subPath?: string;
-  trendFunction?: string;
   view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
@@ -117,7 +115,6 @@ export function transactionSummaryRouteWithQuery({
       query: searchFilter,
       unselectedSeries: ['p100()', 'avg()'],
       display,
-      trendFunction,
       referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },

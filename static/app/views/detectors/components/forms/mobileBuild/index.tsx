@@ -14,6 +14,7 @@ import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/com
 import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
+import {PREPROD_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildDraftConfig';
 import {
   PREPROD_DEFAULT_FORM_DATA,
   PREPROD_DETECTOR_FORM_FIELDS,
@@ -77,6 +78,7 @@ export function NewPreprodDetectorForm({
   return (
     <NewDetectorLayout
       detectorType="preprod_size_analysis"
+      draftSchema={PREPROD_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
       initialFormData={
         duplicateDetector

@@ -48,9 +48,10 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-import type {
-  AggregateField,
-  WritableAggregateField,
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualizeEquation,
@@ -96,17 +97,7 @@ export function AggregateColumnEditorModal({
   }, [columns]);
 
   const handleApply = () => {
-    const newColumns: WritableAggregateField[] = [];
-
-    for (const col of tempColumns) {
-      if (isGroupBy(col)) {
-        newColumns.push(col);
-      } else if (isVisualize(col)) {
-        newColumns.push(col.serialize());
-      }
-    }
-
-    onColumnsChange(newColumns);
+    onColumnsChange(serializeAggregateFields(tempColumns));
     closeModal();
   };
 
@@ -451,6 +442,9 @@ function AggregateSelector({
           yAxis: supportsConditionalAggregateFilter(newAggregate)
             ? applyConditionalFilter(newYAxis, filter)
             : newYAxis,
+          // Aggregates on a shared chart are edited together from the
+          // toolbar. Editing one here moves it to a chart of its own.
+          chartGroup: null,
         })
       );
     },
@@ -472,6 +466,7 @@ function AggregateSelector({
             arguments: args,
             filter,
           }),
+          chartGroup: null,
         })
       );
     }
@@ -489,6 +484,7 @@ function AggregateSelector({
             arguments: parsedFunction.arguments,
             filter: newFilter,
           }),
+          chartGroup: null,
         })
       );
     },

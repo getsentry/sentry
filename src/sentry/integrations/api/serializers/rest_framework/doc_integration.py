@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from django.db import router, transaction
@@ -105,7 +105,7 @@ class DocIntegrationAvatarSerializer(Serializer):
     avatar_photo = AvatarField(required=True)
     avatar_type = serializers.ChoiceField(choices=(("upload", "upload")))
 
-    def validate(self, attrs):
+    def validate(self, attrs: Mapping[str, object]) -> Mapping[str, Any]:
         attrs = super().validate(attrs)
 
         if not attrs.get("avatar_photo"):

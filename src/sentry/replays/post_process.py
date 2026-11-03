@@ -66,7 +66,7 @@ class ReplayDetailsResponse(TypedDict, total=False):
     trace_ids: list[str]
     error_ids: list[str]
     environment: str | None
-    tags: dict[str, list[str]] | list
+    tags: dict[str, list[str]] | list[str]
     user: UserResponseType
     sdk: SDKResponseType
     os: OSResponseType
@@ -284,6 +284,7 @@ def _archived_row(replay_id: str, project_id: int) -> ReplayDetailsResponse:
         "dist": None,
         "platform": None,
         "releases": [],
+        "replay_type": "session",
         "clicks": [],
         "has_viewed": False,
     }

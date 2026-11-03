@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import errno
 import logging
+from typing import Any
 from uuid import uuid4
 
 from redis.exceptions import RedisError
@@ -10,6 +11,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.metrics import (
     GitLabTaskEvent,
     GitLabTaskInteractionType,
@@ -18,14 +20,20 @@ from sentry.integrations.gitlab.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
+from sentry.locks import locks
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
+    ApiPaginationTruncated,
     ApiUnauthorized,
+    IntegrationConfigurationError,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking.lock import Lock
 from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -41,16 +49,123 @@ GITLAB_RETRY_CODES = (
 )
 
 
-def _discard_project_webhook(client, project_id: int | str, hook_id: int | str) -> None:
-    # Retrying the task would not come back here: it re-reads the repository and either
-    # halts or reconciles the hook the repository now holds. So this is the only chance
-    # to delete the hook, and a failure only leaves it orphaned.
+def _project_webhook_lock(repository_id: int) -> Lock:
+    return locks.get(
+        f"gitlab:project-webhook:{repository_id}",
+        duration=150,
+        name="gitlab_project_webhook",
+    )
+
+
+def _matching_project_webhooks(
+    client: GitLabApiClient, project_id: int | str, reconciliation_id: str
+) -> list[dict[str, Any]]:
+    expected_url = client.project_webhook_url(reconciliation_id)
+    hooks = [
+        hook
+        for hook in client.get_project_webhooks(project_id)
+        if hook.get("url") == expected_url and isinstance(hook.get("id"), int | str)
+    ]
+    return sorted(hooks, key=lambda hook: int(hook["id"]))
+
+
+def _enqueue_project_webhook_cleanup(
+    *,
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    project_id: int | str,
+    reconciliation_id: str,
+    hook_ids: set[int | str],
+) -> None:
+    for hook_id in hook_ids:
+        delete_redundant_project_webhook.delay(
+            integration_id,
+            organization_id,
+            repository_id,
+            project_id,
+            hook_id,
+            reconciliation_id,
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.integrations.gitlab.delete_redundant_project_webhook",
+    namespace=integrations_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+)
+def delete_redundant_project_webhook(
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    project_id: int | str,
+    hook_id: int | str,
+    reconciliation_id: str,
+) -> None:
+    """Delete an unreferenced hook whose reconciliation identity proves we created it."""
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
+    if not integration:
+        return
+
     try:
-        client.delete_project_webhook(project_id, hook_id)
+        with _project_webhook_lock(repository_id).blocking_acquire(initial_delay=0.1, timeout=5):
+            repo = repository_service.get_repository(
+                organization_id=organization_id,
+                id=repository_id,
+            )
+            if (
+                repo
+                and repo.config.get("project_id") == project_id
+                and repo.config.get("webhook_id") == hook_id
+            ):
+                return
+
+            installation = integration.get_installation(organization_id=organization_id)
+            client = installation.get_client()
+            try:
+                hook = client.get_project_webhook(project_id, hook_id)
+            except ApiError as e:
+                if e.code == 404:
+                    return
+                raise
+
+            if hook.get("url") != client.project_webhook_url(reconciliation_id):
+                return
+
+            repo = repository_service.get_repository(
+                organization_id=organization_id,
+                id=repository_id,
+            )
+            if (
+                repo
+                and repo.config.get("project_id") == project_id
+                and repo.config.get("webhook_id") == hook_id
+            ):
+                return
+
+            client.delete_project_webhook(project_id, hook_id)
+    except IntegrationConfigurationError:
+        logger.info(
+            "delete-redundant-project-webhook.identity-unavailable",
+            extra={"project_id": project_id, "webhook_id": hook_id},
+        )
+    except (ApiUnauthorized, ApiForbiddenError) as e:
+        logger.warning(
+            "delete-redundant-project-webhook.authorization-failed",
+            extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
+        )
     except ApiError as e:
+        if e.code in GITLAB_RETRY_CODES:
+            raise
         if e.code != 404:
             logger.warning(
-                "update-project-webhook.discard-failed",
+                "delete-redundant-project-webhook.failed",
                 extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
             )
 
@@ -59,8 +174,13 @@ def _discard_project_webhook(client, project_id: int | str, hook_id: int | str) 
     name="sentry.tasks.integrations.gitlab.update_project_webhook",
     namespace=integrations_tasks,
     silo_mode=SiloMode.CELL,
-    processing_deadline_duration=60,
-    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+    processing_deadline_duration=120,
+    retry=Retry(
+        times=3,
+        delay=60,
+        on=(Exception,),
+        ignore=(Integration.DoesNotExist, IntegrationConfigurationError),
+    ),
 )
 def update_project_webhook(integration_id: int, organization_id: int, repository_id: int) -> None:
     """
@@ -87,11 +207,6 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
         interaction_type=GitLabTaskInteractionType.UPDATE_PROJECT_WEBHOOK,
         integration=integration,
     ).capture() as lifecycle:
-        repo = repository_service.get_repository(
-            organization_id=organization_id,
-            id=repository_id,
-        )
-
         lifecycle.add_extras(
             {
                 "integration_id": integration_id,
@@ -100,47 +215,225 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
             }
         )
 
-        if not repo or repo.status != ObjectStatus.ACTIVE:
-            lifecycle.record_halt(
-                GitLabWebhookUpdateHaltReason.REPOSITORY_NOT_FOUND,
-            )
-            return
-
-        webhook_id = repo.config.get("webhook_id")
-        project_id = repo.config.get("project_id")
-
-        lifecycle.add_extras(
-            {
-                "repository_id": repo.id,
-                "webhook_id": webhook_id,
-                "project_id": project_id,
-            }
-        )
-
-        if not project_id:
-            lifecycle.record_halt(
-                GitLabWebhookUpdateHaltReason.MISSING_WEBHOOK_CONFIG,
-            )
-            return
-
-        installation = integration.get_installation(organization_id=organization_id)
-        client = installation.get_client()
-
+        outcome: str | None = None
         try:
-            hook_id = client.ensure_project_webhook(project_id, webhook_id)
-            if hook_id != webhook_id and not repository_service.update_repository_config(
-                organization_id=organization_id,
-                id=repo.id,
-                config_updates={"webhook_id": hook_id},
-                expected_integration_id=integration_id,
-                expected_config={"webhook_id": webhook_id},
+            with _project_webhook_lock(repository_id).blocking_acquire(
+                initial_delay=0.1, timeout=5
             ):
-                # The repository was disabled, moved, or repaired concurrently while we
-                # talked to GitLab, so nothing will ever reference or delete the new hook.
-                lifecycle.add_extra("created_webhook_id", hook_id)
-                _discard_project_webhook(client, project_id, hook_id)
-                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+                repo = repository_service.get_repository(
+                    organization_id=organization_id,
+                    id=repository_id,
+                )
+                if not repo or repo.status != ObjectStatus.ACTIVE:
+                    lifecycle.record_halt(
+                        GitLabWebhookUpdateHaltReason.REPOSITORY_NOT_FOUND,
+                    )
+                    return
+                if repo.integration_id != integration_id:
+                    lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+                    return
+
+                webhook_id = repo.config.get("webhook_id")
+                project_id = repo.config.get("project_id")
+                reconciliation_id = repo.config.get("webhook_reconciliation_id")
+                reconciliation_pending = repo.config.get("webhook_reconciliation_pending")
+
+                lifecycle.add_extras(
+                    {
+                        "repository_id": repo.id,
+                        "webhook_id": webhook_id,
+                        "project_id": project_id,
+                    }
+                )
+
+                if not project_id:
+                    lifecycle.record_halt(
+                        GitLabWebhookUpdateHaltReason.MISSING_WEBHOOK_CONFIG,
+                    )
+                    return
+
+                installation = integration.get_installation(organization_id=organization_id)
+                client = installation.get_client()
+                outcome = "failure"
+
+                if webhook_id:
+                    try:
+                        hook = client.update_project_webhook(project_id, webhook_id)
+                    except ApiError as e:
+                        # An update may have applied despite an error. Only a 404 is safe
+                        # to follow with a create without risking duplicate deliveries.
+                        if e.code != 404:
+                            raise
+                    else:
+                        if hook.get("alert_status") != "disabled":
+                            if reconciliation_pending is True:
+                                cleanup_ids: set[int | str] = set()
+                                if isinstance(reconciliation_id, str):
+                                    cleanup_ids = {
+                                        candidate["id"]
+                                        for candidate in _matching_project_webhooks(
+                                            client, project_id, reconciliation_id
+                                        )
+                                        if candidate["id"] != webhook_id
+                                    }
+                                    _enqueue_project_webhook_cleanup(
+                                        integration_id=integration_id,
+                                        organization_id=organization_id,
+                                        repository_id=repository_id,
+                                        project_id=project_id,
+                                        reconciliation_id=reconciliation_id,
+                                        hook_ids=cleanup_ids,
+                                    )
+                                if not repository_service.update_repository_config(
+                                    organization_id=organization_id,
+                                    id=repository_id,
+                                    config_updates={},
+                                    config_deletions=["webhook_reconciliation_pending"],
+                                    expected_integration_id=integration_id,
+                                    expected_config={
+                                        "project_id": project_id,
+                                        "webhook_id": webhook_id,
+                                        "webhook_reconciliation_id": reconciliation_id,
+                                        "webhook_reconciliation_pending": True,
+                                    },
+                                ):
+                                    outcome = "repository_changed"
+                                    lifecycle.record_halt(
+                                        GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED
+                                    )
+                                    return
+                            outcome = "updated"
+                            return
+
+                        # PUT does not re-enable permanently disabled hooks. Temporarily
+                        # disabled hooks recover after backoff; older GitLab omits this field.
+                        # Do not use the test endpoint: it replays commits into Sentry.
+                        try:
+                            client.delete_project_webhook(project_id, webhook_id)
+                        except ApiError as e:
+                            if e.code != 404:
+                                raise
+
+                if not isinstance(reconciliation_id, str) or not reconciliation_id:
+                    new_reconciliation_id = uuid4().hex
+                else:
+                    new_reconciliation_id = reconciliation_id
+
+                if reconciliation_pending is not True or (
+                    reconciliation_id != new_reconciliation_id
+                ):
+                    if not repository_service.update_repository_config(
+                        organization_id=organization_id,
+                        id=repository_id,
+                        config_updates={
+                            "webhook_reconciliation_id": new_reconciliation_id,
+                            "webhook_reconciliation_pending": True,
+                        },
+                        expected_integration_id=integration_id,
+                        expected_config={
+                            "project_id": project_id,
+                            "webhook_id": webhook_id,
+                            "webhook_reconciliation_id": reconciliation_id,
+                            "webhook_reconciliation_pending": reconciliation_pending,
+                        },
+                    ):
+                        outcome = "repository_changed"
+                        lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+                        return
+                    reconciliation_id = new_reconciliation_id
+
+                matching_hooks = _matching_project_webhooks(
+                    client, project_id, new_reconciliation_id
+                )
+                adoptable_hooks = [
+                    hook for hook in matching_hooks if hook.get("alert_status") != "disabled"
+                ]
+                if adoptable_hooks:
+                    hook_id = adoptable_hooks[0]["id"]
+                    client.update_project_webhook(
+                        project_id,
+                        hook_id,
+                        reconciliation_id=new_reconciliation_id,
+                    )
+                    outcome = "adopted"
+                else:
+                    hook_id = client.create_project_webhook(
+                        project_id,
+                        reconciliation_id=new_reconciliation_id,
+                    )
+                    outcome = "recreated" if webhook_id else "created"
+
+                if not isinstance(hook_id, int | str):
+                    raise TypeError("GitLab returned a project webhook without a valid ID")
+
+                if not repository_service.update_repository_config(
+                    organization_id=organization_id,
+                    id=repository_id,
+                    config_updates={"webhook_id": hook_id},
+                    expected_integration_id=integration_id,
+                    expected_config={
+                        "project_id": project_id,
+                        "webhook_id": webhook_id,
+                        "webhook_reconciliation_id": new_reconciliation_id,
+                        "webhook_reconciliation_pending": True,
+                    },
+                ):
+                    outcome = "repository_changed"
+                    cleanup_ids = {hook["id"] for hook in matching_hooks}
+                    cleanup_ids.add(hook_id)
+                    _enqueue_project_webhook_cleanup(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        project_id=project_id,
+                        reconciliation_id=new_reconciliation_id,
+                        hook_ids=cleanup_ids,
+                    )
+                    lifecycle.add_extra("created_webhook_id", hook_id)
+                    lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+                    return
+                cleanup_ids = {hook["id"] for hook in matching_hooks if hook["id"] != hook_id}
+                _enqueue_project_webhook_cleanup(
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                    repository_id=repository_id,
+                    project_id=project_id,
+                    reconciliation_id=new_reconciliation_id,
+                    hook_ids=cleanup_ids,
+                )
+
+                if not repository_service.update_repository_config(
+                    organization_id=organization_id,
+                    id=repository_id,
+                    config_updates={},
+                    config_deletions=["webhook_reconciliation_pending"],
+                    expected_integration_id=integration_id,
+                    expected_config={
+                        "project_id": project_id,
+                        "webhook_id": hook_id,
+                        "webhook_reconciliation_id": new_reconciliation_id,
+                        "webhook_reconciliation_pending": True,
+                    },
+                ):
+                    _enqueue_project_webhook_cleanup(
+                        integration_id=integration_id,
+                        organization_id=organization_id,
+                        repository_id=repository_id,
+                        project_id=project_id,
+                        reconciliation_id=new_reconciliation_id,
+                        hook_ids={hook_id},
+                    )
+                    outcome = "repository_changed"
+                    lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+        except UnableToAcquireLock as e:
+            lifecycle.record_halt(e)
+            raise
+        except ApiPaginationTruncated as e:
+            outcome = "pagination_truncated"
+            lifecycle.add_extra("listed_webhook_count", len(e.partial_data))
+            lifecycle.record_halt(e)
         except (ApiUnauthorized, ApiForbiddenError) as e:
+            outcome = "forbidden" if e.code == 403 else "unauthorized"
             lifecycle.record_halt(e)
             # Don't retry if we've lost access
             return
@@ -152,7 +445,12 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 
             # Anything not in the retry list should be considered a hard-stop
             # failure.
+            if e.code == 404:
+                outcome = "not_found"
             lifecycle.record_failure(e)
+        finally:
+            if outcome is not None:
+                metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
 
 
 @instrumented_task(
