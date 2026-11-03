@@ -3,10 +3,10 @@
 ## Status
 
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
-- **Baseline revision:** `1cd41fc29e1` (`origin/master`, 2026-11-03).
-- **Remaining (sweep counter, `master` + open campaign drafts):** cast 1202, Any 3355, type-ignore 13, fixed-name-reflection 79.
+- **Baseline revision:** `de37779b53f` (`origin/master`, 2026-11-03). Rebased from `1cd41fc29e1`; the seeds are unchanged by the 95 commits between them. Timings and pinned versions under **Baseline** are still from `1cd41fc29e1`.
+- **Remaining (sweep counter, `master` only; open drafts #129702 and #129704 are not merged and not counted):** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79.
 - **Items:** 2 of 31 in draft (C1 #129702, B1 #129704); 0 of 159 sweep packages. **Red:** none. **Parked:** none.
-- **Next:** G1, then B2.
+- **Next:** B2.
 
 The executor rewrites this block in place after every accepted slice. The **Ledger** is the single tracker for all work: every item, every audit finding (through its item), and every sweep package has a row there.
 
@@ -56,6 +56,7 @@ Every `FAIL` line from the counter's `diff` mode must appear in the PR body unde
 - **Fix the producer, not the consumer.** Don't reparse a value that already has a precise type. Repair receiver types too: a precise return type behind an `Any` receiver checks nothing.
 - **Preserve runtime semantics:** coercions, error types, mutation, and aliasing. Never turn `None` into `""`, `0`, `{}`, `"None"`, or a fake timestamp to satisfy a type. Copying a mapping counts as a behavior change.
 - **Overrides stay substitutable.** When a subclass's real contract is incompatible with its base (for example a nullable `DecimalField`), change the class design (compose, or subclass the generic `Field[...]` with honest parameters). Don't suppress the override error.
+- **`request.user` is a union.** mypy types DRF `request.user` as `User | AnonymousUser | ServiceAccountPrincipal` outside `tools/mypy_helpers/request_user_allowlist.txt` (#129402). Narrow it with `has_user(request.user)`, `acting_user_id(request.user)`, `acting_user(request.user)` or `require_user(request)` from `sentry.auth.principal`. Never `cast(User, request.user)` and never an `assert`. A service account has no user, so a cast or assert there is the same false contract this campaign removes. Never add a file to the allowlist; remove a file from it when its PR makes it narrow. A change that edits an allowlisted file may need to leave the file on the list. Say so in the PR body. Casts of `request.user` itself (for example `organization_onboarding_tasks.py`) are repaired this way when their package comes up in Phase 3; `seer/monitor_cleanup/runs.py` predates #129614 and is out of scope.
 - **JSON values:** if a boundary needs a JSON type, define one `type JSONValue = ...` recursive alias in `src/sentry/utils/json.py` the first time it is needed. Note that PR in the Ledger so later items reuse it.
 
 ### Test policy (owner, 2026-11-03)
@@ -110,6 +111,7 @@ Full-tree mypy is the proof of a typing change. Tests are proportional to regres
   | tests/sentry/api          | 28   | 85  | 4 reflection           |
 
 - **Pinned dependency versions:** sentry-relay 0.10.1, google-cloud-storage 2.18.0, selenium 4.16.0, djangorestframework 3.18.2, django-stubs 5.2.9, djangorestframework-stubs 3.16.8.
+- **Re-measured at `de37779b53f`:** full mypy is green across 8549 files in 21.7 s wall (warm cache).
 - **Known red:** none in mypy. Snuba-backed tests (e.g. `tests/sentry/integrations/slack/test_unfurl.py`) need `.venv/bin/devservices up` (`devservices` is not on a non-direnv shell's PATH). After `master` gains a migration, `--reuse-db` fails with `UndefinedColumn`; run once with `--create-db` (about 20 s for one file). No full pytest run has been made, so treat any failure in a test file the PR doesn't touch as pre-existing until it reproduces on `origin/master`.
 - **Gotcha:** `.venv` is an editable install pointing at `/Users/josh/dev/sentry/src` (`easy-install.pth`). In a worktree, prefix **both** pytest and mypy with `PYTHONPATH=$PWD/src` (the Django mypy plugin imports `sentry` at runtime), and check once with `python -c 'import sentry; print(sentry.__file__)'`. Never copy `.mypy_cache` from another checkout: a cache built on a different revision produced false errors in C1. A cold full mypy run takes 19 s wall. Create worktrees with `git -c core.hooksPath=/dev/null worktree add ...`; the repo's post-checkout hook otherwise starts devservices and runs migrations.
 
@@ -290,7 +292,7 @@ Statuses: `todo`, `draft #N`, `merged #N`, `parked: <cause>; retry when <conditi
 
 | ID    | Status        | Notes                                                                                                                                   |
 | ----- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| G1    | todo          |                                                                                                                                         |
+| G1    | n/a: done     | Script at `.work/bin/escape_hatches.py` (untracked); sweep re-run at `de37779b53f`.                                                     |
 | B1    | draft #129704 | Explicit skip; `build_widget_timeseries_params` raises its `ValueError` again. One test, sharing the unsupported-type skip test's body. |
 | B2    | todo          |                                                                                                                                         |
 | B3    | todo          |                                                                                                                                         |
@@ -330,32 +332,32 @@ Record findings here that come up mid-campaign and need their own work (Charter 
 
 ### Sweep packages (Phase 3)
 
-The counts are hatches #129614 added that remain, measured on `master` plus open campaign drafts on 2026-11-03. Refresh a row with `escape_hatches.py sweep <package>/` when its PR opens. A package that a Phase 2 item partly covers still needs its own row closed.
+The counts are hatches #129614 added that remain, measured on `master` at `de37779b53f` (open campaign drafts not applied). Refresh a row with `escape_hatches.py sweep <package>/` when its PR opens. A package that a Phase 2 item partly covers still needs its own row closed.
 
 | Package                          | cast | Any | ignore | reflection | Status |
 | -------------------------------- | ---- | --- | ------ | ---------- | ------ |
-| `src/sentry/testutils`           | 31   | 536 | 0      | 8          | todo   |
-| `src/sentry/api`                 | 218  | 188 | 2      | 7          | todo   |
+| `src/sentry/testutils`           | 31   | 538 | 0      | 8          | todo   |
+| `src/sentry/api`                 | 219  | 188 | 2      | 7          | todo   |
 | `src/sentry/integrations`        | 121  | 155 | 1      | 0          | todo   |
 | `fixtures/stubs-for-mypy`        | 0    | 161 | 0      | 0          | todo   |
-| `tests/sentry/utils`             | 14   | 140 | 1      | 1          | todo   |
+| `tests/sentry/utils`             | 14   | 144 | 1      | 1          | todo   |
 | `src/sentry/utils`               | 28   | 121 | 0      | 4          | todo   |
 | `tests/sentry/integrations`      | 19   | 133 | 0      | 0          | todo   |
 | `tests/sentry/seer`              | 5    | 124 | 0      | 0          | todo   |
-| `src/sentry/interfaces`          | 1    | 115 | 0      | 1          | todo   |
 | `tests/sentry/api`               | 28   | 85  | 0      | 4          | todo   |
 | `src/sentry/lang`                | 2    | 114 | 0      | 0          | todo   |
+| `src/sentry/interfaces`          | 1    | 113 | 0      | 1          | todo   |
 | `src/social_auth/backends`       | 6    | 103 | 0      | 3          | todo   |
 | `src/sentry/db`                  | 14   | 90  | 7      | 0          | todo   |
 | `tests/sentry/tasks`             | 46   | 58  | 0      | 0          | todo   |
 | `tests/snuba/api`                | 0    | 95  | 0      | 0          | todo   |
 | `tests/sentry/preprod`           | 25   | 68  | 0      | 0          | todo   |
 | `src/sentry/models`              | 33   | 44  | 0      | 5          | todo   |
-| `src/sentry/monitors`            | 17   | 53  | 0      | 2          | todo   |
+| `src/sentry/monitors`            | 17   | 55  | 0      | 2          | todo   |
 | `src/sentry/snuba`               | 30   | 37  | 0      | 0          | todo   |
 | `src/sentry/sentry_apps`         | 7    | 52  | 0      | 0          | todo   |
 | `src/sentry/tagstore`            | 19   | 39  | 0      | 0          | todo   |
-| `src/sentry/search`              | 24   | 27  | 1      | 1          | todo   |
+| `src/sentry/search`              | 24   | 28  | 1      | 1          | todo   |
 | `tests/sentry/middleware`        | 3    | 47  | 1      | 0          | todo   |
 | `src/sentry/seer`                | 5    | 44  | 0      | 0          | todo   |
 | `tests/sentry/profiles`          | 12   | 37  | 0      | 0          | todo   |
@@ -397,12 +399,12 @@ The counts are hatches #129614 added that remain, measured on `master` plus open
 | `src/sentry/net`                 | 1    | 13  | 0      | 0          | todo   |
 | `tests/sentry/buffer`            | 1    | 12  | 0      | 0          | todo   |
 | `tests/sentry/dashboards`        | 0    | 12  | 0      | 0          | todo   |
+| `tests/sentry/investigations`    | 8    | 4   | 0      | 0          | todo   |
 | `src/sentry/explore`             | 10   | 1   | 0      | 0          | todo   |
 | `src/sentry/plugins`             | 1    | 9   | 0      | 0          | todo   |
 | `src/sentry/relay`               | 6    | 4   | 0      | 0          | todo   |
 | `src/sentry/shared_integrations` | 2    | 8   | 0      | 0          | todo   |
 | `tests/sentry/incidents`         | 9    | 0   | 0      | 1          | todo   |
-| `tests/sentry/investigations`    | 8    | 2   | 0      | 0          | todo   |
 | `tests/sentry/rules`             | 6    | 4   | 0      | 0          | todo   |
 | `tests/sentry/event_manager`     | 2    | 7   | 0      | 0          | todo   |
 | `tests/sentry/features`          | 3    | 6   | 0      | 0          | todo   |
