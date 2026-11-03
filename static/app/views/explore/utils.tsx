@@ -368,10 +368,6 @@ export function viewSamplesTarget({
   return target;
 }
 
-export function getDefaultExploreRoute() {
-  return 'traces';
-}
-
 export function computeVisualizeSampleTotals(
   yAxes: string[],
   data: SortedTimeSeries['data'],
