@@ -23,6 +23,7 @@ from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
@@ -519,10 +520,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                         "api_token.refresh.outbox-flush-failure",
                         extra={"token_id": self.id, "application_id": self.application_id},
                         exc_info=True,
-                    )
-                    metrics.incr(
-                        "api_key.outbox_flush_deferred",
-                        tags={"category": "API_TOKEN_UPDATE", "callsite": "oauth_refresh_token"},
                     )
         except UnableToAcquireLock:
             raise TokenRefreshError("token refresh already in progress")

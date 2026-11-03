@@ -4,20 +4,26 @@ from datetime import timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apisetupcode import ApiSetupCode
 from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 if TYPE_CHECKING:
