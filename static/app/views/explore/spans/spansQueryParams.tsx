@@ -31,6 +31,7 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   getVisualizes,
   isVisualize,
+  parseAsBaseVisualizeList,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -70,7 +71,7 @@ export const SPANS_QUERY_PARSERS = {
   [SPANS_AGGREGATE_CURSOR]: parseAsScalar,
   [SPANS_AGGREGATE_FIELD_KEY]: parseAsRawList,
   [SPANS_GROUP_BY_KEY]: parseAsRawList,
-  [SPANS_VISUALIZATION_KEY]: parseAsRawList,
+  [SPANS_VISUALIZATION_KEY]: parseAsBaseVisualizeList,
   [SPANS_AGGREGATE_SORT_KEY]: parseAsRawList,
   [SPANS_ID_KEY]: parseAsScalar,
   [SPANS_TITLE_KEY]: parseAsScalar,

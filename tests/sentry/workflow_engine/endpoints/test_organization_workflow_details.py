@@ -509,7 +509,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert updated_workflow.owner_team_id == self.team.id
 
     def test_update_add_environment(self) -> None:
-        assert self.workflow.environment_id is None
+        assert self.workflow.environment is None
 
         self.valid_workflow["environment"] = self.environment.name
         response = self.get_success_response(
@@ -668,7 +668,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             when_condition_group=None,
         )
 
-        assert workflow.when_condition_group_id is None
+        initial_when_condition_group = workflow.when_condition_group
+        assert initial_when_condition_group is None
 
         data = {
             **self.valid_workflow,
@@ -1554,7 +1555,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         workflow.refresh_from_db()
 
-        assert workflow.when_condition_group_id is None
+        assert workflow.when_condition_group is None
 
         other_workflow.refresh_from_db()
 
@@ -1641,7 +1642,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         workflow.refresh_from_db()
 
-        assert workflow.when_condition_group_id is None
+        assert workflow.when_condition_group is None
 
         other_workflow.refresh_from_db()
 

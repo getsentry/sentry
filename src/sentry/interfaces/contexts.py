@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import string
-from typing import Any, ClassVar, TypeVar
+from collections.abc import Iterator, Mapping
+from typing import Any, ClassVar, Self, TypeVar
 
 import sentry_sdk
 from django.utils.encoding import force_str
@@ -18,13 +19,13 @@ context_types: dict[str, type[ContextType]] = {}
 
 
 class _IndexFormatter(string.Formatter):
-    def format_field(self, value, format_spec):
+    def format_field(self, value: Any, format_spec: str) -> str:
         if not format_spec and isinstance(value, bool):
             return value and "yes" or "no"
-        return string.Formatter.format_field(self, value, format_spec)
+        return super().format_field(value, format_spec)
 
 
-def format_index_expr(format_string, data):
+def format_index_expr(format_string: str, data: Mapping[str, Any]) -> str:
     return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
 
@@ -83,9 +84,9 @@ class ContextType:
     type: str
     """This should match the `type` key in context object"""
 
-    def __init__(self, alias, data):
+    def __init__(self, alias: str, data: Mapping[str, Any]) -> None:
         self.alias = alias
-        ctx_data = {}
+        ctx_data: dict[str, Any] = {}
         for key, value in data.items():
             # we use a simple check here, rather than ' in set()' to avoid
             # issues with maps/lists.
@@ -99,13 +100,13 @@ class ContextType:
                 ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         rv = dict(self.data)
         rv["type"] = self.type
         return prune_empty_keys(rv)
 
     @classmethod
-    def values_for_data(cls, data):
+    def values_for_data(cls, data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         rv = []
         for context in (data.get("contexts") or {}).values():
             if context and context.get("type") == cls.type:
@@ -113,7 +114,7 @@ class ContextType:
         return rv
 
     @classmethod
-    def primary_value_for_data(cls, data):
+    def primary_value_for_data(cls, data: Mapping[str, Any]) -> Mapping[str, Any] | None:
         val = get_path(data, "contexts", cls.type)
         if val and val.get("type") == cls.type:
             return val
@@ -121,8 +122,9 @@ class ContextType:
         rv = cls.values_for_data(data)
         if len(rv) == 1:
             return rv[0]
+        return None
 
-    def iter_tags(self):
+    def iter_tags(self) -> Iterator[tuple[str, str]]:
         if self.context_to_tag_mapping:
             for field, f_string in self.context_to_tag_mapping.items():
                 try:
@@ -135,7 +137,7 @@ class ContextType:
                     else:
                         yield (f"{self.alias}.{field}", value)
 
-    def change_type(self, value: int | float | list | dict) -> Any:
+    def change_type(self, value: Any) -> Any:
         if isinstance(value, (float, int)) and len(str_value := force_str(value)) > 15:
             return str_value
         if isinstance(value, list):
@@ -258,7 +260,7 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         rv = {}
 
         # Note the alias is the key of the context entry
@@ -271,7 +273,7 @@ class Contexts(Interface):
         return super().to_python(rv)
 
     @classmethod
-    def normalize_context(cls, alias, data):
+    def normalize_context(cls, alias: str, data: Mapping[str, Any]) -> ContextType:
         ctx_type = data.get("type", alias)
         try:
             ctx_cls = context_types.get(ctx_type, DefaultContextType)
@@ -282,15 +284,15 @@ class Contexts(Interface):
             raise
         return ctx_cls(alias, data)
 
-    def iter_contexts(self):
-        return self._data.values()
+    def iter_contexts(self) -> Iterator[ContextType]:
+        return iter(self._data.values())
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         rv = {}
         for alias, inst in self._data.items():
             rv[alias] = inst.to_json()
         return rv
 
-    def iter_tags(self):
+    def iter_tags(self) -> Iterator[tuple[str, str]]:
         for inst in self.iter_contexts():
             yield from inst.iter_tags()

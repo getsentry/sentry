@@ -1,5 +1,5 @@
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from snuba_sdk import Column, Entity, Function
 
@@ -59,7 +59,8 @@ def resolve_project_threshold_config(
     project_threshold_config_keys = []
     project_threshold_config_values = []
     for project_id, metric in project_threshold_configs:
-        metric = TRANSACTION_METRICS[metric]
+        project_id = cast(int, project_id)
+        metric = TRANSACTION_METRICS[cast(int, metric)]
         if metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC:
             # small optimization, if the configuration is equal to the default,
             # we can skip it in the final query
@@ -72,7 +73,9 @@ def resolve_project_threshold_config(
     project_threshold_override_config_keys = []
     project_threshold_override_config_values = []
     for transaction, project_id, metric in transaction_threshold_configs:
-        metric = TRANSACTION_METRICS[metric]
+        transaction = cast(str, transaction)
+        project_id = cast(int, project_id)
+        metric = TRANSACTION_METRICS[cast(int, metric)]
         if project_id in project_thresholds and metric == project_thresholds[project_id][0]:
             # small optimization, if the configuration is equal to the project
             # configs, we can skip it in the final query

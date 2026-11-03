@@ -1,7 +1,8 @@
 __all__ = ("User",)
 
 
-from typing import Any, TypedDict
+from collections.abc import Mapping
+from typing import Any, Self, TypedDict
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.geo import Geo
@@ -41,7 +42,7 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         data = data.copy()
         for key in ("id", "email", "username", "ip_address", "name", "geo", "data"):
             data.setdefault(key, None)
@@ -50,7 +51,7 @@ class User(Interface):
 
         return super().to_python(data)
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return prune_empty_keys(
             {
                 "id": self.id,
@@ -63,7 +64,9 @@ class User(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, platform=None) -> EventUserApiContext:
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> EventUserApiContext:
         return {
             "id": self.id,
             "email": self.email,
@@ -74,7 +77,12 @@ class User(Interface):
             "data": self.data,
         }
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         return {
             "": meta.get(""),
             "id": meta.get("id"),
@@ -86,13 +94,13 @@ class User(Interface):
             "data": meta.get("data"),
         }
 
-    def get_display_name(self):
+    def get_display_name(self) -> str | None:
         return self.email or self.username
 
-    def get_label(self):
+    def get_label(self) -> str | None:
         return self.name or self.email or self.username or self.id or self.ip_address
 
-    def to_email_html(self, event, **kwargs):
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:
         context = {
             "user_id": self.id,
             "user_email": self.email,

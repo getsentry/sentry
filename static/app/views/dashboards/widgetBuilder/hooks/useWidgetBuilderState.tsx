@@ -1,6 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
 import partition from 'lodash/partition';
-import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  createParser,
+  parseAsJson,
+  parseAsNativeArrayOf,
+  parseAsString,
+} from 'nuqs';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -30,11 +37,14 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
-  deserializeTransformations,
+  parseAsTransformations,
   remapTransformations,
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {
+  parseAsThresholds,
+  type ThresholdsConfig,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   MAX_NUM_Y_AXES,
   WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
@@ -51,12 +61,12 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {deserializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/linkedDashboards';
 import {
   serializeFields,
   serializeLinkedDashboards,
   serializeSorts,
   normalizeSortField,
-  serializeThresholds,
 } from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -1139,7 +1149,8 @@ export function useWidgetBuilderState(): {
         case BuilderStateAction.SET_STATE:
           setTransformations(
             action.payload.transformations
-              ? (deserializeTransformations(action.payload.transformations) ?? undefined)
+              ? (parseAsTransformations.parse(action.payload.transformations) ??
+                  undefined)
               : undefined,
             options
           );
@@ -1429,34 +1440,16 @@ function deserializeDataset(value: string): WidgetType {
   return WidgetType.ERRORS;
 }
 
+const parseAsAliasedField = parseAsJson(
+  z.object({field: z.string(), alias: z.string().optional().catch(undefined)})
+);
+
 /**
  * Takes fields from the query params in list form and converts
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(stringifiedField => {
-    try {
-      const {field, alias} = JSON.parse(stringifiedField);
-      return explodeField({field, alias});
-    } catch (error) {
-      return explodeField({field: stringifiedField, alias: undefined});
-    }
-  });
-}
-
-function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
-  return linkedDashboards
-    .map(linkedDashboard => {
-      const maybeLinkedDashboard = JSON.parse(linkedDashboard);
-      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.field) {
-        return {
-          dashboardId: maybeLinkedDashboard.dashboardId,
-          field: maybeLinkedDashboard.field,
-        } satisfies LinkedDashboard;
-      }
-      return;
-    })
-    .filter(defined);
+  return fields.map(field => explodeField(parseAsAliasedField.parse(field) ?? {field}));
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1508,14 +1501,6 @@ function deserializeQuery(queries: string[]): string[] {
   return queries;
 }
 
-function deserializeThresholds(value: string): ThresholdsConfig | undefined {
-  if (value === '') {
-    return undefined;
-  }
-
-  return JSON.parse(value);
-}
-
 /**
  * nuqs parsers for every builder field that lives in the URL. Each one wraps the
  * (de)serializers above so the URL encoding stays in one place.
@@ -1544,11 +1529,6 @@ const parseAsColumns = createMultiParser({
   eq: bothEmpty,
 }).withDefault([]);
 
-const parseAsTransformations = createParser({
-  parse: deserializeTransformations,
-  serialize: (value: QueryTransformations[]) => JSON.stringify(value),
-});
-
 const parseAsQueries = createMultiParser({
   parse: (values: readonly string[]) => deserializeQuery([...values]),
   serialize: (queries: string[]) => queries,
@@ -1557,7 +1537,7 @@ const parseAsQueries = createMultiParser({
 const parseAsStringList = parseAsNativeArrayOf(parseAsString).withDefault([]);
 
 const parseAsLinkedDashboards = createMultiParser({
-  parse: (values: readonly string[]) => deserializeLinkedDashboards([...values]),
+  parse: deserializeLinkedDashboards,
   serialize: serializeLinkedDashboards,
   eq: bothEmpty,
 }).withDefault([]);
@@ -1586,11 +1566,6 @@ const parseAsSelectedAggregate = createParser({
 const parseAsLegendType = createParser({
   parse: (value: string) => deserializeLegendType(value) ?? null,
   serialize: (value: LegendType) => value,
-});
-
-const parseAsThresholds = createParser<ThresholdsConfig | null>({
-  parse: (value: string) => deserializeThresholds(value) ?? null,
-  serialize: serializeThresholds,
 });
 
 const parseAsAxisRange = createParser({

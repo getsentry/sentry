@@ -1,9 +1,11 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs
 
 import orjson
 import responses
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -124,8 +126,8 @@ class GitlabSearchTest(GitLabTestCase):
             "path_with_namespace": "getsentry2/sentry2",
         }
 
-        def request_callback(request):
-            query = parse_qs(request.url.split("?")[1])
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            query = parse_qs(cast(str, request.url).split("?")[1])
             # allow for 220 responses
             if int(query["page"][0]) >= 3:
                 projects = [project_a, project_b] * 10

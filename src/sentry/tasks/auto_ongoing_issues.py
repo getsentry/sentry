@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from django.db.models import OuterRef, Subquery
 from sentry_sdk import traces
@@ -84,7 +85,7 @@ def schedule_auto_transition_to_ongoing() -> None:
 )
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update NEW Groups to ONGOING that were created before the
@@ -152,8 +153,8 @@ def schedule_auto_transition_issues_new_to_ongoing(
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """
     Child task of `auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
@@ -178,7 +179,7 @@ def run_auto_transition_issues_new_to_ongoing(
 )
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update REGRESSED Groups to ONGOING that were created before the
@@ -251,7 +252,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Child task of `auto_transition_issues_regressed_to_ongoing`
@@ -277,7 +278,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
 )
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update ESCALATING Groups to ONGOING that were created before the
@@ -350,7 +351,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Child task of `auto_transition_issues_escalating_to_ongoing`

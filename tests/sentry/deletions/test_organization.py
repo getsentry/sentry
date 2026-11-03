@@ -530,7 +530,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
 
         assert Detector.objects.filter(id=all_projects_detector.id).exists()
         assert Detector.objects.filter(id=project_detector.id).exists()
-        assert all_projects_detector.project_id is None
+        assert not all_projects_detector.project_id
         assert project_detector.project_id == project.id
 
         org.update(status=OrganizationStatus.PENDING_DELETION)

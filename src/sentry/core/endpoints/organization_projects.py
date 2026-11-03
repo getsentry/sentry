@@ -1,6 +1,7 @@
 import logging
 import random
 import string
+from collections.abc import Sequence
 from email.headerregistry import Address
 from typing import Any, TypedDict, TypeIs
 
@@ -130,6 +131,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationProjectsPermission,)
     owner = ApiOwner.FOUNDATIONS
     logger = logging.getLogger("team-project.create")
@@ -281,7 +283,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             if expand_context:
                 expand.add("options")
 
-            def serialize_on_result(result):
+            def serialize_on_result(result: Sequence[Project]) -> list[object]:
                 environment_id = get_environment_id(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
@@ -291,7 +293,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     collapse=collapse,
                     dataset=dataset,
                 )
-                return serialize(result, request.user, serializer)
+                return list(serialize(result, request.user, serializer))
 
             return self.paginate(
                 request=request,

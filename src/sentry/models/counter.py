@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.db import connections, transaction
 from sentry_sdk import traces
@@ -17,6 +21,9 @@ from sentry.taskworker.namespaces import ingest_errors_tasks
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 LOW_WATER_RATIO = 0.2
 """
@@ -41,7 +48,7 @@ class Counter(Model):
         db_table = "sentry_projectcounter"
 
     @classmethod
-    def increment(cls, project, delta=1) -> int:
+    def increment(cls, project: Project, delta: int = 1) -> int:
         """Increments a counter.  This can never decrement."""
         if delta == 1:
             # only use the cache path if delta is 1, as in other cases we're trying to resolve
@@ -53,7 +60,7 @@ class Counter(Model):
 
 @traces.trace
 @metrics.wraps("counter.increment_project_counter_in_cache")
-def increment_project_counter_in_cache(project, using="default") -> int:
+def increment_project_counter_in_cache(project: Project, using: str = "default") -> int:
     redis_key = make_short_id_counter_key(project.id)
     redis = redis_clusters.get("default")
 
@@ -86,7 +93,9 @@ def increment_project_counter_in_cache(project, using="default") -> int:
 
 @traces.trace
 @metrics.wraps("counter.increment_project_counter_in_database")
-def increment_project_counter_in_database(project, delta=1, using="default") -> int:
+def increment_project_counter_in_database(
+    project: Project, delta: int = 1, using: str = "default"
+) -> int:
     """This method primarily exists so that south code can use it."""
     if delta <= 0:
         raise ValueError("There is only one way, and that's up.")
@@ -133,7 +142,9 @@ def increment_project_counter_in_database(project, delta=1, using="default") -> 
     retry=None,  # No retries since we want to try again on next counter increment
     silo_mode=SiloMode.CELL,
 )
-def refill_cached_short_ids(project_id, block_size: int, using="default", **kwargs) -> None:
+def refill_cached_short_ids(
+    project_id: int, block_size: int, using: str = "default", **kwargs: object
+) -> None:
     """Refills the Redis short-id counter block for a project."""
     from sentry.models.project import Project
 

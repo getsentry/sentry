@@ -81,7 +81,11 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNotificationClient):
+class SlackIntegration(
+    NotifyBasicMixin,
+    IntegrationInstallation,
+    IntegrationNotificationClient[SlackRenderable, dict[str, Any]],
+):
     def get_client(self) -> SlackSdkClient:
         return SlackSdkClient(integration_id=self.model.id)
 
@@ -232,7 +236,7 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             scopes=self.model.metadata.get("scopes"),
         )
 
-    def get_conversations_info(self, *, channel_id: str) -> dict:
+    def get_conversations_info(self, *, channel_id: str) -> dict[str, Any]:
         return workspace.get_conversations_info(integration_id=self.model.id, channel_id=channel_id)
 
     def get_thread_history(

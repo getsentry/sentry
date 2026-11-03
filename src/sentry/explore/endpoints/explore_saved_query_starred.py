@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -20,7 +22,12 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.models.organization import Organization
 
 
-class StarQuerySerializer(serializers.Serializer):
+class StarQueryData(TypedDict):
+    starred: bool
+    position: NotRequired[int]
+
+
+class StarQuerySerializer(serializers.Serializer[object, StarQueryData]):
     starred = serializers.BooleanField(
         required=True, help_text="Whether the query should be starred for the current member."
     )
@@ -29,7 +36,7 @@ class StarQuerySerializer(serializers.Serializer):
         help_text="Where the query sits in the member's starred list. Only allowed when starring.",
     )
 
-    def validate(self, data):
+    def validate(self, data: StarQueryData) -> StarQueryData:
         if not data["starred"] and "position" in data:
             raise serializers.ValidationError("Position is only allowed when starring a query.")
         return data
@@ -50,7 +57,7 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )

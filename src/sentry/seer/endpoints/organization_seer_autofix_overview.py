@@ -266,7 +266,9 @@ def _coding_agent_repo_eligibility(
 
 
 def _serialize_issue(
-    group: Group, serialized_group: dict, repo_eligibility: dict[int, _RepoEligibility] | None
+    group: Group,
+    serialized_group: dict[str, Any],
+    repo_eligibility: dict[int, _RepoEligibility] | None,
 ) -> IssuePayload:
     project: IssueProjectPayload = {
         "id": str(group.project_id),
@@ -315,7 +317,7 @@ def _serialize_code_changes(artifact: CodeChangesArtifactExtras) -> list[CodeCha
 def _serialize_run(
     group: Group,
     run: _RunMilestones,
-    serialized_group: dict,
+    serialized_group: dict[str, Any],
     pull_requests: list[PullRequestPayload],
     status: str | None,
     repo_eligibility: dict[int, _RepoEligibility] | None,
@@ -494,13 +496,25 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                 group = groups.get(group_id)
                 if group is None:
                     continue
+                seer_run_id = run.seer_run.id
+                seer_run_state_id = run.seer_run.seer_run_state_id
+                pull_requests = (
+                    pull_requests_by_seer_run_id.get(seer_run_id, [])
+                    if seer_run_id is not None
+                    else []
+                )
+                status = (
+                    status_by_state_id.get(seer_run_state_id)
+                    if seer_run_state_id is not None
+                    else None
+                )
                 runs_by_milestone[milestone].append(
                     _serialize_run(
                         group,
                         run,
                         serialized_by_id[str(group_id)],
-                        pull_requests_by_seer_run_id.get(run.seer_run.id, []),
-                        status_by_state_id.get(run.seer_run.seer_run_state_id),
+                        pull_requests,
+                        status,
                         issue_repo_eligibility,
                     )
                 )

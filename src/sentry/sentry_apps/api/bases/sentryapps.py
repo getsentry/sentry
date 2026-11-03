@@ -1,30 +1,35 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Mapping, Sequence
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from sentry_sdk import Scope
 
 from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth import access
+from sentry.auth.principal import acting_user_id
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
@@ -69,7 +74,9 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, context: RpcUserOrganizationContext):
+    def has_object_permission(
+        self, request: Request, view: APIView, context: RpcUserOrganizationContext
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -130,12 +137,18 @@ class IntegrationPlatformEndpoint(Endpoint):
         response.exception = True
         return response
 
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+    def handle_exception_with_details(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, object] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         return self._handle_sentry_app_exception(
             exception=exc
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
-    def _handle_sentry_app_exception(self, exception: Exception):
+    def _handle_sentry_app_exception(self, exception: Exception) -> Response | None:
         if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
             response_body = exception.to_public_dict()
 
@@ -155,7 +168,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
-    def _get_organization_slug(self, request: Request):
+    def _get_organization_slug(self, request: Request) -> str:
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
@@ -201,7 +214,12 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         else:
             return self._get_organization_for_user(request, organization_slug)
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         """
         This baseclass is the SentryApp collection endpoints:
 
@@ -246,7 +264,9 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: RpcSentryApp | SentryApp
+    ) -> bool:
         scope_map = self._scopes_for_sentry_app(sentry_app)
 
         if not hasattr(request, "user") or not request.user:
@@ -284,10 +304,12 @@ class SentryAppPermission(SentryPermission):
         if sentry_app.is_published and request.method == "GET":
             return True
 
-        return ensure_scoped_permission(request, scope_map.get(request.method))
+        return ensure_scoped_permission(request, scope_map.get(cast(str, request.method)))
 
-    def _scopes_for_sentry_app(self, sentry_app):
-        scope_map: Mapping[str, Collection[str]]
+    def _scopes_for_sentry_app(
+        self, sentry_app: RpcSentryApp | SentryApp
+    ) -> Mapping[str, Sequence[str]]:
+        scope_map: Mapping[str, Sequence[str]]
         if sentry_app.is_published:
             scope_map = self.published_scope_map
         else:
@@ -308,7 +330,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
-    ):
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         try:
             sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
@@ -330,7 +352,12 @@ class SentryAppInstallationsPermission(SentryPermission):
         "POST": ("org:integrations", "org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: RpcUserOrganizationContext | RpcOrganization,
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -359,7 +386,13 @@ class SentryAppInstallationsPermission(SentryPermission):
 class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if str(organization_id_or_slug).isdecimal():
             context = access.get_organization_access_context(
                 request, organization_id=int(organization_id_or_slug)
@@ -399,13 +432,18 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs) -> bool:
+    def has_permission(self, request: Request, *args: Any, **kwargs: Any) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
         if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 
-    def has_object_permission(self, request: Request, view, installation):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        installation: RpcSentryAppInstallation | SentryAppInstallation,
+    ) -> bool:
         if not hasattr(request, "user") or not request.user or not request.user.is_authenticated:
             return False
 
@@ -433,8 +471,14 @@ class SentryAppInstallationPermission(SentryPermission):
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppInstallationPermission,)
 
-    def convert_args(self, request: Request, uuid, *args, **kwargs):
-        installations = app_service.get_many(filter=dict(uuids=[uuid]))
+    def convert_args(
+        self,
+        request: Request,
+        uuid: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        installations = app_service.get_many(filter={"uuids": [uuid]})
         installation = installations[0] if installations else None
         if installation is None:
             raise SentryAppError(
@@ -464,7 +508,12 @@ class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEn
 
 
 class SentryAppAuthorizationsPermission(SentryPermission):
-    def has_object_permission(self, request: Request, view, installation):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        installation: RpcSentryAppInstallation | SentryAppInstallation,
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -495,7 +544,9 @@ class SentryInternalAppTokenPermission(SentryPermission):
         "DELETE": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -519,7 +570,9 @@ class SentryAppStatsPermission(SentryPermission):
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -532,7 +585,7 @@ class SentryAppStatsPermission(SentryPermission):
                 extra={
                     "sentry_app_id": sentry_app.id,
                     "owner_org_id": sentry_app.owner_id,
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                 },
             )
             return False
@@ -550,7 +603,9 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
         "GET": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -563,7 +618,7 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
                 extra={
                     "sentry_app_id": sentry_app.id,
                     "owner_org_id": sentry_app.owner_id,
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                 },
             )
             return False

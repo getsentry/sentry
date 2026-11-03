@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
@@ -59,7 +60,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     # This ensures the endpoint remains functional even if the service is down
                     logger.warning(
                         "Failed to check GitHub Copilot identity",
-                        extra={"user_id": request.user.id},
+                        extra={"user_id": acting_user_id(request.user)},
                         exc_info=True,
                     )
                     has_identity = False

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -49,7 +49,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
             build_number=42,
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             "sentry-api-0-organization-preprod-artifact-build-details",
@@ -552,7 +552,7 @@ class ProjectPreprodBuildDetailsEndpointTest(APITestCase):
         assert resp_data["base_build_info"] is None
 
     @patch("sentry.preprod.api.endpoints.project_preprod_build_details.get_size_retention_cutoff")
-    def test_returns_404_for_expired_artifact(self, mock_cutoff) -> None:
+    def test_returns_404_for_expired_artifact(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = timezone.now() - timedelta(days=30)
         self.preprod_artifact.date_added = timezone.now() - timedelta(days=60)
         self.preprod_artifact.save()

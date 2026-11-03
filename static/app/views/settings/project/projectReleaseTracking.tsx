@@ -2,7 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';

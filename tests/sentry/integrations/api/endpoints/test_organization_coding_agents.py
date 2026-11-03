@@ -1,4 +1,5 @@
 import contextlib
+from collections.abc import Iterator, Sequence
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.testutils.cases import APITestCase
@@ -14,7 +15,7 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
         self.login_as(self.user)
         self._setup_mock_integration()
 
-    def _setup_mock_integration(self):
+    def _setup_mock_integration(self) -> None:
         """Set up mock integration and related objects for testing."""
         # Create a GitHub integration to use as our test integration
         self.integration = self.create_integration(
@@ -37,7 +38,9 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
         )
         self.rpc_org_integration = org_integration
 
-    def mock_integration_service_calls(self, integrations=None):
+    def mock_integration_service_calls(
+        self, integrations: Sequence[object] | None = None
+    ) -> contextlib.AbstractContextManager[None]:
         """Helper to mock integration service calls for GET endpoint."""
         from unittest.mock import patch
 
@@ -46,7 +49,7 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
         integrations = integrations or []
 
         @contextlib.contextmanager
-        def mock_context():
+        def mock_context() -> Iterator[None]:
             with (
                 patch.object(
                     integration_service,
@@ -142,7 +145,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert integration_data["provider"] == "test_provider"
 
     @patch("sentry.integrations.services.integration.integration_service.get_integrations")
-    def test_returns_coding_agent_integrations(self, mock_get_integrations):
+    def test_returns_coding_agent_integrations(self, mock_get_integrations: MagicMock) -> None:
         """Test GET endpoint returns coding agent integrations."""
         mock_integration = Mock()
         mock_integration.id = self.integration.id
@@ -163,7 +166,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert integration_data["provider"] == "github"
 
     @patch("sentry.integrations.services.integration.integration_service.get_integrations")
-    def test_handles_integration_processing_error(self, mock_get_integrations):
+    def test_handles_integration_processing_error(self, mock_get_integrations: MagicMock) -> None:
         """Test GET endpoint handles empty integrations gracefully."""
         mock_get_integrations.return_value = []
 
@@ -173,7 +176,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert len(response.data["integrations"]) == 0
 
     @patch("sentry.integrations.services.integration.integration_service.get_integrations")
-    def test_handles_service_error(self, mock_get_integrations):
+    def test_handles_service_error(self, mock_get_integrations: MagicMock) -> None:
         """Test GET endpoint handles organization integrations service errors."""
         # Mock service to raise an exception
         mock_get_integrations.side_effect = Exception("Service unavailable")
@@ -185,7 +188,9 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         "sentry.integrations.services.integration.integration_service.get_organization_integrations"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
-    def test_handles_integration_not_found(self, mock_get_integration, mock_get_org_integrations):
+    def test_handles_integration_not_found(
+        self, mock_get_integration: MagicMock, mock_get_org_integrations: MagicMock
+    ) -> None:
         """Test GET endpoint handles case where integration is not found."""
         # Mock organization integrations but integration lookup returns None
         mock_get_org_integrations.return_value = [self.rpc_org_integration]
@@ -197,14 +202,14 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
         assert "integrations" in response.data
         assert len(response.data["integrations"]) == 0
 
-    def _mock_github_copilot_integration(self):
+    def _mock_github_copilot_integration(self) -> Mock:
         mock = Mock()
         mock.id = 99
         mock.name = "GitHub Copilot"
         mock.provider = "github_copilot"
         return mock
 
-    def test_github_copilot_shown_when_installed(self):
+    def test_github_copilot_shown_when_installed(self) -> None:
         """Test GET endpoint shows GitHub Copilot when installed."""
         copilot = self._mock_github_copilot_integration()
         with self.mock_integration_service_calls(integrations=[copilot]):
@@ -218,7 +223,7 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             assert integrations[0]["requires_identity"] is True
             assert integrations[0]["has_identity"] is False
 
-    def test_github_copilot_not_shown_when_not_installed(self):
+    def test_github_copilot_not_shown_when_not_installed(self) -> None:
         """Test GET endpoint does not show GitHub Copilot when integration is not installed."""
         with self.mock_integration_service_calls(integrations=[]):
             response = self.get_success_response(self.organization.slug)
@@ -227,7 +232,9 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
     )
-    def test_github_copilot_has_identity_true_when_authenticated(self, mock_identity_service):
+    def test_github_copilot_has_identity_true_when_authenticated(
+        self, mock_identity_service: MagicMock
+    ) -> None:
         """Test GET endpoint returns has_identity: True when user has GitHub Copilot OAuth token."""
         mock_identity_service.get_access_token_for_user.return_value = "mock-access-token"
         copilot = self._mock_github_copilot_integration()
@@ -246,7 +253,9 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
     )
-    def test_github_copilot_has_identity_false_when_not_authenticated(self, mock_identity_service):
+    def test_github_copilot_has_identity_false_when_not_authenticated(
+        self, mock_identity_service: MagicMock
+    ) -> None:
         """Test GET endpoint returns has_identity: False when user doesn't have GitHub Copilot OAuth token."""
         mock_identity_service.get_access_token_for_user.return_value = None
         copilot = self._mock_github_copilot_integration()
@@ -265,7 +274,9 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
     )
-    def test_github_copilot_handles_rpc_exception_gracefully(self, mock_identity_service):
+    def test_github_copilot_handles_rpc_exception_gracefully(
+        self, mock_identity_service: MagicMock
+    ) -> None:
         """Test GET endpoint handles RPC exceptions gracefully when checking GitHub Copilot identity."""
         from sentry.hybridcloud.rpc.service import RpcRemoteException
 

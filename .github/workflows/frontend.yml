@@ -20,7 +20,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -50,7 +50,7 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: typescript
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -70,7 +70,7 @@ jobs:
     if: needs.files-changed.outputs.frontend_lint == 'true'
     needs: files-changed
     name: oxlint
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 15
     outputs:
       budgets: ${{ steps.ratchet.outputs.budgets }}
@@ -154,7 +154,7 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: ${{ matrix.command }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -170,7 +170,7 @@ jobs:
   jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     name: Configure Jest
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     needs: files-changed
     outputs:
@@ -209,9 +209,10 @@ jobs:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
     name: Jest (shard ${{ matrix.index }})
-    # If you change the runs-on image, you must also change the runner in jest-balance.yml
-    # so that the balancer runs in the same environment as the tests.
-    runs-on: ubuntu-24.04
+    # If you change the master runner, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests. Pull requests run
+    # on Arm and reuse those shard weights, which are relative.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
@@ -283,7 +284,7 @@ jobs:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
     name: form field registry
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -308,7 +309,7 @@ jobs:
     if: needs.files-changed.outputs.embed_widget_schema == 'true'
     needs: files-changed
     name: embed widgets
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -347,7 +348,7 @@ jobs:
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure
