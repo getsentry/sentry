@@ -139,6 +139,8 @@ class InternalGenerator(SchemaGenerator):
         if isinstance(schema, AutoSchema):
             schema_class = internal_schema_class(type(schema))
             if schema_class is not type(schema):
+                # Assigning through DRF's `ViewInspector` descriptor binds the new schema
+                # to `view`, as drf-spectacular's own `create_view` relies on.
                 view.schema = schema_class()
         return view
 
