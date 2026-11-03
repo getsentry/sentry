@@ -13,6 +13,7 @@ from rest_framework.fields import CharField, ChoiceField, IntegerField, ListFiel
 from sentry import analytics, options
 from sentry.analytics.events.integration_serverless_setup import IntegrationServerlessSetup
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import acting_user_id
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -381,7 +382,7 @@ class InstrumentationApiStep:
 
         analytics.record(
             IntegrationServerlessSetup(
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 organization_id=organization.id,
                 integration="aws_lambda",
                 success_count=success_count,

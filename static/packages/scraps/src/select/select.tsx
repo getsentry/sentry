@@ -1,5 +1,5 @@
+import type * as React from 'react';
 import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
-import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useObjectRef} from '@react-aria/utils';
@@ -10,9 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {defined} from 'sentry/utils/defined';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {createFilter} from './filter';
 import {SelectOption} from './option';
@@ -24,6 +22,7 @@ import type {
 } from './reactSelectWrapper';
 import {
   mergeStyles,
+  Creatable,
   ReactSelect,
   components as selectComponents,
 } from './reactSelectWrapper';
@@ -723,4 +722,8 @@ function SelectPicker<TValue, TOption extends SelectValue<TValue>>({
 }: SelectPickerProps<TValue, TOption>) {
   const Component: React.ComponentType<any> = creatable ? Creatable : ReactSelect;
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
+}
+
+function defined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }

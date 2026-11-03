@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -5,13 +6,11 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {ListItem} from '@sentry/scraps/menu';
-import type {SelectValue} from '@sentry/scraps/select/types';
-
-import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';
 import type {BaseSelectProps} from './select';
 import {CheckWrap} from './styles';
+import type {SelectValue} from './types';
 
 type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
   React.ComponentProps<typeof selectComponents.Option>,
@@ -54,6 +53,9 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
 
   // Unless the priority prop is explicitly defined, use 'default' for all items.
   const itemPriority = priority ?? 'default';
+  const innerWrapProps: React.ComponentProps<typeof ListItem>['innerWrapProps'] & {
+    'data-test-id'?: string;
+  } = {'data-test-id': defined(value) ? String(value) : undefined};
 
   return (
     <ClassNames>
@@ -80,7 +82,7 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
           isFocused={isFocused}
           priority={itemPriority}
           size={size}
-          innerWrapProps={{'data-test-id': defined(value) ? String(value) : undefined}}
+          innerWrapProps={innerWrapProps}
           labelProps={{as: typeof renderedLabel === 'string' ? 'p' : 'div'}}
           leadingItems={
             itemProps.__isNew__ && selectProps.showCreateOptionIcon !== false ? (
@@ -114,3 +116,7 @@ const StyledIconCheckmark = styled(IconCheckmark, {
 })<{isMultiple: boolean}>`
   color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
 `;
+
+function defined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}

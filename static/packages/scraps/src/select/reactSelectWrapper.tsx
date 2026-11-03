@@ -1,5 +1,18 @@
 /* eslint-disable no-restricted-imports */
-import ReactSelect, {components} from 'react-select';
+import ReactSelectModule, {components} from 'react-select';
+import type CreatableComponent from 'react-select/creatable';
+import CreatableModule from 'react-select/creatable/dist/react-select.cjs.js';
+
+// react-select 4 publishes both CommonJS and ESM. Node-oriented bundlers can
+// preserve the CommonJS default wrapper, while browser builds use the component.
+function unwrapDefault<T>(value: T | {default: T}): T {
+  return typeof value === 'object' && value !== null && 'default' in value
+    ? value.default
+    : value;
+}
+
+const ReactSelect = unwrapDefault(ReactSelectModule);
+const Creatable: typeof CreatableComponent = unwrapDefault(CreatableModule);
 
 // This file is a thin wrapper around react-select that removes defaultProps from functional components
 // They are not supported in react 19
@@ -25,7 +38,7 @@ const ReactSelectWrapper = function ReactSelectWrapperComponent({ref, ...props}:
   );
 } as any as typeof ReactSelect;
 
-export {ReactSelectWrapper as ReactSelect, components};
+export {ReactSelectWrapper as ReactSelect, Creatable, components};
 export {createFilter, mergeStyles} from 'react-select';
 export type {
   NamedProps as Props,

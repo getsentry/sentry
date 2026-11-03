@@ -60,6 +60,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -342,6 +343,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -942,7 +944,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -956,9 +958,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             scope.set_attribute("success_status", status)
-            data: ReleaseSerializerResponse = serialize(
-                release, request.user, no_snuba_for_release_creation=True
-            )
+            data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
         scope.set_attribute("failure_reason", "serializer_error")

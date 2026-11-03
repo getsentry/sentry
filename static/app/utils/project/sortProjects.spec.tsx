@@ -1,6 +1,9 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {
+  sortProjects,
+  sortProjectsByBookmarkAndMembership,
+} from 'sentry/utils/project/sortProjects';
 
 describe('sortProjects', () => {
   it('sorts by bookmark and project slug', () => {
@@ -25,5 +28,56 @@ describe('sortProjects', () => {
     const sortedProjects = sortProjects(projects);
 
     expect(sortedProjects).toEqual(expected);
+  });
+
+  it('sorts numbers in slugs by numeric value', () => {
+    const projects = ['web10', 'web2', 'web1'].map(slug =>
+      ProjectFixture({isBookmarked: false, slug})
+    );
+
+    expect(sortProjects(projects).map(p => p.slug)).toEqual(['web1', 'web2', 'web10']);
+  });
+});
+
+describe('sortProjectsByBookmarkAndMembership', () => {
+  it('sorts by bookmark, then membership, then project slug', () => {
+    const projects = [
+      ProjectFixture({id: '1', slug: 'm', isBookmarked: false, isMember: false}),
+      ProjectFixture({id: '2', slug: 'z', isBookmarked: false, isMember: true}),
+      ProjectFixture({id: '3', slug: 'a', isBookmarked: false, isMember: true}),
+      ProjectFixture({id: '4', slug: 'y', isBookmarked: true, isMember: false}),
+      ProjectFixture({id: '5', slug: 'b', isBookmarked: true, isMember: true}),
+    ];
+
+    expect(sortProjectsByBookmarkAndMembership(projects).map(p => p.slug)).toEqual([
+      'b',
+      'y',
+      'a',
+      'z',
+      'm',
+    ]);
+  });
+
+  it('sorts by the given bookmarked IDs instead of isBookmarked', () => {
+    const projects = [
+      ProjectFixture({id: '1', slug: 'a', isBookmarked: true, isMember: true}),
+      ProjectFixture({id: '2', slug: 'b', isBookmarked: false, isMember: true}),
+    ];
+
+    expect(
+      sortProjectsByBookmarkAndMembership(projects, new Set(['2'])).map(p => p.slug)
+    ).toEqual(['b', 'a']);
+  });
+
+  it('sorts numbers in slugs by numeric value', () => {
+    const projects = ['web10', 'web2', 'web1'].map((slug, i) =>
+      ProjectFixture({id: String(i), slug, isBookmarked: false, isMember: true})
+    );
+
+    expect(sortProjectsByBookmarkAndMembership(projects).map(p => p.slug)).toEqual([
+      'web1',
+      'web2',
+      'web10',
+    ]);
   });
 });
