@@ -170,7 +170,7 @@ class WorkflowConfigLastRun:
     last_run_status: str | None
 
 
-def check_project_access(
+def _check_project_access(
     project_ids: Sequence[int],
     *,
     request: Request,
@@ -318,14 +318,14 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
         if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            denied = check_project_access(
+            denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
                 organization=organization,
                 endpoint=self,
             )
         else:
-            denied = check_project_access(
+            denied = _check_project_access(
                 project_ids, request=request, organization=organization, endpoint=self
             )
         if denied is not None:
@@ -457,7 +457,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            denied = check_project_access(
+            denied = _check_project_access(
                 project_ids,
                 request=request,
                 organization=organization,
@@ -470,17 +470,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if all_projects:
                     workflow.set_project_selection(AllProjects())
                 else:
-                    has_access_projects = [
-                        project.id
-                        for project in self.get_projects(
-                            request, organization, include_all_accessible=True
-                        )
-                        if request.access.has_project_scope(project, "project:read")
-                    ]
-                    workflow.set_project_selection(
-                        SelectedProjects(project_ids=tuple(project_ids)),
-                        has_access_projects=has_access_projects,
-                    )
+                    workflow.set_project_selection(SelectedProjects(project_ids=tuple(project_ids)))
             except ValueError as e:
                 logger.exception(
                     "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
@@ -497,7 +487,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 return Response(
                     {"detail": "Only metric automations support monitor selection."}, status=400
                 )
-            denied = check_project_access(
+            denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
                 organization=organization,

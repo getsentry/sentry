@@ -332,13 +332,11 @@ class SeerWorkflow:
             raise ValueError("Service account is inactive")
         return replica
 
-    def set_project_selection(
-        self, selection: ProjectSelection, *, has_access_projects: Collection[int] | None = None
-    ) -> None:
-        """Set the selected projects, bumping the version only when the selection changes.
+    def set_project_selection(self, selection: ProjectSelection) -> None:
+        """Replace the selected projects, bumping the version only when the selection changes.
 
-        With ``has_access_projects``, only links to those projects can be removed, so
-        selected projects outside it are kept. Without it, the whole selection is replaced.
+        Callers must authorize the change; this only checks that the projects belong to the
+        workflow's organization.
         """
         match selection:
             case AllProjects():
@@ -362,11 +360,7 @@ class SeerWorkflow:
                     "project_id", flat=True
                 )
             )
-            removable = existing
-            if has_access_projects is not None:
-                # Keep selected projects the caller can't access.
-                removable = existing & set(has_access_projects)
-            removed = removable - project_ids
+            removed = existing - project_ids
             added = project_ids - existing
             filters = SeerWorkflowFilters.parse_obj(config.filters)
             if not removed and not added and filters.all_projects == all_projects:
