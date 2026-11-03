@@ -20,7 +20,7 @@ import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorT
 
 import {displayPriceWithCents} from 'getsentry/utils/billing';
 
-const MAX_CLIENT_KEY_LENGTH = 32;
+const MAX_CLIENT_KEY_LENGTH = 16;
 const CLIENT_KEY_PATTERN = /^[\w-]+$/;
 
 type LedgerLineItem = {
