@@ -6,7 +6,7 @@ import {getDefaultExploreRoute} from './utils';
 
 export default function ExploreIndexRedirect() {
   const organization = useOrganization();
-  const defaultExploreRoute = getDefaultExploreRoute(organization);
+  const defaultExploreRoute = getDefaultExploreRoute();
 
   return (
     <Redirect

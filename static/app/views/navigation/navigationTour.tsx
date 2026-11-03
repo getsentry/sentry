@@ -170,7 +170,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
         case NavigationTour.EXPLORE:
           if (activeGroup !== 'explore') {
             const target = normalizeUrl({
-              pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+              pathname: `/${prefix}/explore/${getDefaultExploreRoute()}/`,
               query: {referrer: NAVIGATION_TOUR_REFERRER},
             });
             navigate(target, {replace: true});

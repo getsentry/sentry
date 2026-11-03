@@ -345,7 +345,6 @@ function VisualizationWidgetContent({
         let labelContent = <Text>{labelDisplay}</Text>;
 
         if (
-          organization.features.includes('visibility-explore-view') &&
           ((firstColumn &&
             (firstColumnGroupByValue === null ||
               typeof firstColumnGroupByValue === 'string')) ||

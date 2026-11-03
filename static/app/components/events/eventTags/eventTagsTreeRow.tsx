@@ -112,7 +112,6 @@ function EventTagsTreeRowDropdown({
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
   const originalTag = content.original;
@@ -184,7 +183,7 @@ function EventTagsTreeRowDropdown({
     {
       key: 'view-traces',
       label: t('Find more samples with this value'),
-      hidden: !hasExploreEnabled || isFeedback,
+      hidden: isFeedback,
       to: getSearchInExploreTarget(
         organization,
         location,

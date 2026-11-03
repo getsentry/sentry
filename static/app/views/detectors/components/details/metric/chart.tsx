@@ -9,7 +9,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
@@ -558,16 +557,14 @@ function OpenInButton({detector}: OpenInButtonProps) {
     : undefined;
 
   return (
-    <Feature features="visibility-explore-view">
-      <LinkButton
-        size="xs"
-        to={destination.to}
-        disabled={isUsingMigratedExtrapolationMode}
-        tooltipProps={{title: disabledTooltip}}
-      >
-        {destination.buttonText}
-      </LinkButton>
-    </Feature>
+    <LinkButton
+      size="xs"
+      to={destination.to}
+      disabled={isUsingMigratedExtrapolationMode}
+      tooltipProps={{title: disabledTooltip}}
+    >
+      {destination.buttonText}
+    </LinkButton>
   );
 }
 

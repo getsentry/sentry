@@ -14,7 +14,7 @@ import {NewMetricDetectorForm} from './metric';
 
 describe('NewMetricDetectorForm', () => {
   const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
+    features: [],
   });
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
   const user = UserFixture();

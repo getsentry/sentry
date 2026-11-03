@@ -1872,7 +1872,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['performance-view'],
           }),
           initialRouterConfig: {
             location: {
@@ -1975,7 +1975,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['performance-view'],
           }),
           initialRouterConfig: {
             location: {

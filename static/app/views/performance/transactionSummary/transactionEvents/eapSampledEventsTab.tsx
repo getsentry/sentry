@@ -253,10 +253,6 @@ function OpenInExploreButton({
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
-  if (!organization.features.includes('visibility-explore-view')) {
-    return null;
-  }
-
   const rawQuery = decodeScalar(location.query.query, '');
   const query = new MutableSearch(rawQuery);
   query.setFilterValues('is_transaction', ['true']);
