@@ -923,6 +923,7 @@ class JiraIntegration(IssueSyncIntegration):
             ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
