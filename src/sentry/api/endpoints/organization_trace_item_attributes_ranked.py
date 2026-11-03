@@ -152,13 +152,14 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         if query_1 == query_2:
             return Response({"rankedAttributes": []})
 
-        distributions_result = query_attribute_distributions(
-            snuba_params=snuba_params,
-            function_string=function_string,
-            above=above,
-            query_1=query_1,
-            query_2=query_2,
-        )
+        with handle_query_errors():
+            distributions_result = query_attribute_distributions(
+                snuba_params=snuba_params,
+                function_string=function_string,
+                above=above,
+                query_1=query_1,
+                query_2=query_2,
+            )
 
         cohort_2_distribution = distributions_result["cohort_2_distribution"]
         cohort_2_distribution_map = distributions_result["cohort_2_distribution_map"]

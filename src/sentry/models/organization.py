@@ -456,7 +456,9 @@ class Organization(ReplicatedCellModel):
         return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        actor_id = request.user.id if request.user.is_authenticated else None
+        from sentry.auth.principal import acting_user_id  # circular import
+
+        actor_id = acting_user_id(request.user)
         api_key_id = (
             request.auth.entity_id
             if request.auth is not None and request.auth.kind == "api_key"

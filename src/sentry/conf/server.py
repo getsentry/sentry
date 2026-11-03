@@ -956,6 +956,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
     "sentry.spans.consumers.process_segments.tasks",
@@ -1738,6 +1739,10 @@ SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
+# Seer credit backend
+SENTRY_SEER_CREDIT = "sentry.seer_credit.SeerCredit"
+SENTRY_SEER_CREDIT_OPTIONS: dict[str, str] = {}
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
@@ -1933,6 +1938,10 @@ SENTRY_SCOPES = {
     "saved_query:write",
     "seer:read",
     "seer:write",
+    "service_account:read",
+    "service_account:write",
+    "user_preference:read",
+    "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1950,6 +1959,8 @@ SENTRY_READONLY_SCOPES = {
     "dashboard:read",
     "saved_query:read",
     "seer:read",
+    "service_account:read",
+    "user_preference:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1984,6 +1995,11 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "service_account:read": {"service_account:read"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
+    "user_preference:read": {"user_preference:read"},
+    "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2010,22 +2026,14 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
+        "user_preference:read",
+        "user_preference:write",
     ]
 )
 
-# Broad read scopes being retired in favour of granular ones. API attribution tags
-# whether a caller still holds one (see sentry.api.caller_scopes).
-DEPRECATED_SCOPES = frozenset(
-    [
-        "org:read",
-        "project:read",
-        "member:read",
-    ]
-)
-
-# Scopes a deprecated scope is replaced with at request time (see
-# sentry.auth.deprecated_scope_translation). Stored token scopes are left unchanged.
-# Remove an entry once callers no longer rely on the translation.
+# Broad read scopes being retired in favour of granular ones, mapped to the scopes they're
+# replaced with at request time (see sentry.auth.deprecated_scope_translation). Stored token
+# scopes are left unchanged. Remove an entry once callers no longer rely on the translation.
 DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
     "org:read": frozenset(
         [
@@ -2035,9 +2043,26 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            # Recent searches and prompt activity accept org:read today, including writes.
+            "user_preference:read",
+            "user_preference:write",
         ]
     ),
+    # Starring, starred order and last visited accept member:read today, including writes.
+    "member:read": frozenset(
+        [
+            # Removed once member:read has a full 1:1 translation to granular scopes.
+            "member:read",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    # No granular replacements yet.
+    "project:read": frozenset(["project:read"]),
 }
+
+# API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(DEPRECATED_SCOPE_TRANSLATIONS)
 
 SENTRY_SCOPE_SETS = (
     (
@@ -2109,6 +2134,20 @@ SENTRY_SCOPE_SETS = (
         ),
         ("seer:read", "Read access to Seer-generated work."),
     ),
+    (
+        ("service_account:write", "Write access to service accounts."),
+        ("service_account:read", "Read access to service accounts."),
+    ),
+    (
+        (
+            "user_preference:write",
+            "Write access to your own stars, recent searches, and dismissed prompts.",
+        ),
+        (
+            "user_preference:read",
+            "Read access to your own stars, recent searches, and dismissed prompts.",
+        ),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2139,6 +2178,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2166,6 +2206,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2209,6 +2250,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2245,6 +2288,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2315,6 +2360,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2324,6 +2370,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2346,6 +2394,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2362,6 +2411,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
         },
@@ -2395,8 +2446,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2435,8 +2490,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            "user_preference:read",
+            "user_preference:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -3704,6 +3763,18 @@ CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
 CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
 CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
 CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+if IS_DEV:
+    # Pair with `devservices up --mode conduit`. These credentials match the
+    # development defaults in the conduit repo (.env.default / devservices
+    # config). They are dev-only and must never be used in production.
+    CONDUIT_GATEWAY_PRIVATE_KEY = (
+        os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+        or "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ2tranZiTU1MRENCckcKNDhhQytCUGd2ZU5IQzJYc3RWYWZxaEJKYkw0cmtOZjVTTHczcWpJZHl2L240dU4rNitzbTc3dUFYZU42elFwVgo4RkZGZmoveFBVbmVmd3pEa1VJYVJvRmVsRld0NHhEOTFkOS9KeW5LMkYxZ2syTzlyaXVUaklXMFVBRTdORnRyCm1hdE5JOU5zTklWdFZMOWY5eEJOanBKV1ZzaVdNU09mNzlvQyt6N3p6YWZzV3lNQUNmaVZ1ejhEOG4wM0JsblAKN2taakdMcWVqZEpPUHFzUVF0VWJOemRiZnBsbXlVMHUxYk1UZFo5RlFrekk1Rm5tL0lhS0NOWHB0RHI1MnJFNAovRE9vT3gvNG1XSUhZQXc1RGJxVWNjMGlTQU5rVXRJNTZPckFjeHNwc0tQU0pLL1V5dGZqRnhPV0REektpS3hmCnZnRVRaV3pCQWdNQkFBRUNnZ0VBSGV1RVBGNktHa0UvOVFiMlVWdGU2YzQ4SXU5OGtXT0tveTZkRld4U3lzTGoKc1N1N0pIZXA4dWEwVGVsZktQVWxaSWZUVkF3OXpsYTIyVmIrdjU2cmEyV1VKNEo3eEphRktSZkdiM2FTZVRHKwpKaGdiTVJmaXJrRldBTGZyTzFJT0ZCNUpOTFlTOHp1YW4xNXAyWFY0KzhRMHVlTGRoRW43eWMzdzV3ZVNJbFB6Cnc3N3VxandodHp5a3JxdUU5R0lJTUt5YnllR2pNbXRUclUzU3hJTXpuVE0wMnN3RlQxRFhMNmIvTStaTzJpaWEKY2ZFTmJwalZ2akxadEpiOHFYT0FJTE1zWUVVRWdIeVMwZytDNlJmc3A4OFQrSFZoOXAzaVlEdzZ5cGkwUGlmbApsZS9TczdPQXdCbW1iK0Z6QWxWRDRQRmxYMi91ZVpOa0wrZDlINTl2RVFLQmdRRGlSdi96WjdtVjJEYmtJVExxCnNLVzczUTl4cmNic3RmaTZwdklRb3Awd1JOSkhjQytiU1hTbUgrK2Q5c2FaTFRvcnI0SDJReUdpdi93OTh3RWQKdWxicVJYVWpINUkvMUpiRmFVR2dmRS9LSmJkQVRQRDR1cVM3NWc4QkhQQkVnU3pEZkQxSTFkZnlxdFhiOW80QwoxVzRDcjhMalhxK2RIR0d2WVRtc3NudkY3UUtCZ1FDNk1FQUM4VGwwUkZiWTNUamJtaWxWUTU5UEhyLzJtaU1WCmJLSGlIMzRDTUNsMkVjRjBJTk9XUzNzd1pWb3pUckRxSTVLL0hzbVhRalJnbnhXdGVzbEpFbFpiQ0g4ckxTWWQKTnVxby9PUVptd2JWY1hDaXNkOEpWZC9CbFNmOG5rTlpFQm9DNll5RVQ4cnZMN1R6aElZbEdjYlVEQVRiZHEzMwogSk0raXdWN25wUUtCZ0FEckhOcldEdkRHd2VKSEtEZS9vOHlSWnlDay9ldTBDV0Jva1E3ME9nTWFKR2haMGplbApJcTRSN3gwTEJWOVZ5YWludTdWT0xITEdxTFZ2cVE5LzFCNTdUYkJvem1VbjdieTdZcUxPSGx6SnJtYTZhVGY1Ck9mWHhSeHBRRGNHWmJKOFdnQUV0clFTMUlNMFZ3Um5OMS9aMjFDbXNGclppaVJyM0lBN05ZcWM1QW9HQVBpczgKUkg4OWV2Z1NzNmp5Z2trd2dmcnBaK2JSbkVzTmFlcnpCdWtURHpIN3RpUHBuNWdTYm4zWHJXbzZPeVdNWnpIbgpudzl0cXFiOWpFR3lZRkcrZ2pxd1FRZE9SeUYxTjQ0TnZzMXFjSzVXRXRFbEZmNGtoaDU1YjA4Wm9mMUthYU81CnU3MDJJVHZ2ZS94SEJJVDhzY2l3bmo5QkkvSzExZThoc2F1MXY4MENnWUVBaWV1RzB4aFdvZCtsNGpwT1dHOFIKQ0pDZ2h6UGRUdGVWUldmUzlVdkJBVEEzcEh2NWFUNDZGZnZMQ1FJVHBDYWFOZk9DVUU4VDNnU1oyQ3N0SmpTYQp0SnBpWXpDbGVjb2lVRVVTVWZqQkQ2cFAxbDJNQ2dWRzlEWkxJOS9rOUtSN3k3VkJpaVdBNUNTY3p0RVhyKy82CkVjTlAvNzV3SkU5WkFDSFI5UGowYnJnPQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t"
+    )
+    CONDUIT_GATEWAY_JWT_ISSUER = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "dev.getsentry.net")
+    CONDUIT_PUBLISH_SECRET = os.getenv("CONDUIT_PUBLISH_SECRET") or "conduit-dev-secret"
+    CONDUIT_PUBLISH_JWT_ISSUER = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "dev.getsentry.net")
 
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:

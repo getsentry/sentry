@@ -134,7 +134,10 @@ def _process_segment(
         return []
 
     # Always attempt title generation, even when enrichment is skipped below.
-    spawn_conversation_title_generation(unprocessed_spans, project)
+    try:
+        spawn_conversation_title_generation(unprocessed_spans, project)
+    except Exception:
+        logger.exception("spans.process_segments.title_generation.error")
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]

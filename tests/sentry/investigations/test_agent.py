@@ -14,15 +14,15 @@ from sentry.investigations.agent import (
     synchronize_title,
     title_generation_preview,
 )
-from sentry.investigations.services.investigations import (
-    DEFAULT_INVESTIGATION_TITLE,
-    default_investigation_title,
-)
 from sentry.investigations.telemetry import (
     record_execution_completed,
     record_investigation_completed,
 )
 from sentry.notebooks.models import NotebookBlockExecutionStatus
+from sentry.notebooks.services.notebooks import (
+    DEFAULT_INVESTIGATION_TITLE,
+    default_investigation_title,
+)
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -476,8 +476,8 @@ class InvestigationAgentTest(TestCase):
         record_completed.assert_called_once()
         assert record_completed.call_args.args[0].id == self.execution.id
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
     def test_completed_execution_records_duration_metrics(
         self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
     ) -> None:
@@ -586,10 +586,10 @@ class InvestigationAgentTest(TestCase):
         )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
-    @patch("sentry.investigations.telemetry.metrics.incr")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.incr")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_failed_execution_records_metrics(
         self,
         metrics_count: MagicMock,
@@ -1254,8 +1254,8 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.title == "Already titled"
         assert self.investigation.summary == "Error volume crossed threshold"
 
-    @patch("sentry.investigations.telemetry.metrics.distribution")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.metrics.distribution")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
     def test_completed_investigation_records_duration_metrics(
         self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
     ) -> None:
@@ -1304,8 +1304,8 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.summary == "Error volume crossed threshold"
         assert self.investigation.title_generation_status == "completed"
 
-    @patch("sentry.investigations.telemetry.metrics.incr")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.metrics.incr")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_invalid_title_records_failure_metrics(
         self, metrics_count: MagicMock, metrics_incr: MagicMock
     ) -> None:

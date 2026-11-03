@@ -27,10 +27,10 @@ import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/co
  */
 export function useSetAutomaticName(getNameFn: (form: FormModel) => string | null) {
   const {form} = useContext(FormContext);
-  const {hasSetDetectorName, detector} = useDetectorFormContext();
+  const {getHasSetDetectorName, detector} = useDetectorFormContext();
 
   useEffect(() => {
-    if (form === undefined || hasSetDetectorName) {
+    if (form === undefined) {
       return () => {};
     }
 
@@ -40,10 +40,13 @@ export function useSetAutomaticName(getNameFn: (form: FormModel) => string | nul
     }
 
     return autorun(() => {
+      if (getHasSetDetectorName()) {
+        return;
+      }
       const generatedName = getNameFn(form);
       if (generatedName) {
         form.setValue('name', generatedName);
       }
     });
-  }, [form, hasSetDetectorName, getNameFn, detector]);
+  }, [form, getHasSetDetectorName, getNameFn, detector]);
 }

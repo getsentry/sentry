@@ -4,11 +4,11 @@ from functools import partial
 
 from django.db import router, transaction
 
-from sentry.investigations.services.executions import (
+from sentry.notebooks.models import Notebook, NotebookBlockExecution, NotebookBlockExecutionStatus
+from sentry.notebooks.services.executions import (
     block_execution_needs_dispatch,
     create_block_execution,
 )
-from sentry.notebooks.models import Notebook, NotebookBlockExecution, NotebookBlockExecutionStatus
 
 
 def _dispatch_after_commit(execution: NotebookBlockExecution) -> None:

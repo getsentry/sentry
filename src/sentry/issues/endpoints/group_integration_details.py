@@ -29,6 +29,7 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationSerializer,
@@ -142,6 +143,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT", "DELETE"})
 
     @extend_schema(
         operation_id="Retrieve an Integration's Issue Config for an Issue",
@@ -758,6 +760,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user_id=request.user.id,
+            user_id=acting_user_id(request.user),
             data=issue_information,
         )
