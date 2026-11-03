@@ -1019,6 +1019,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, creator.id)
         command.refresh_from_db()
+        assert command.error is not None
         assert command.error["reason"] == "workflow_version_conflict"
         connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
 
@@ -1040,8 +1041,10 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.status == "failed"
-        assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
-        assert self.orchestration_run.error["retryable"] is True
+        dispatch_error = self.orchestration_run.error
+        assert dispatch_error is not None
+        assert dispatch_error["dispatchReason"] == "actor_access_denied"
+        assert dispatch_error["retryable"] is True
         assert list(self.investigation.projects.values_list("id", flat=True)) == [self.project.id]
 
         with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
@@ -1105,6 +1108,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         get_run.assert_not_called()
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["dispatchReason"] == "actor_access_denied"
         assert command.error["retryable"] is True
 
@@ -1125,6 +1129,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert account_lookup.call_count == 2
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error is not None
         assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
 
         with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
