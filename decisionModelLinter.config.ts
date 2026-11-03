@@ -15,22 +15,53 @@ const diffBase = process.env.DECISION_MODEL_LINT_BASE;
 const NO_DIFF = 'No diff available.';
 const execFileAsync = promisify(execFile);
 
+// renamed files have the same file path before the rename
+let renames: Promise<Map<string, string>> | undefined;
+
+function renamedFrom(base: string): Promise<Map<string, string>> {
+  if (renames !== undefined) {
+    return renames;
+  }
+
+  renames = execFileAsync('git', ['diff', '--name-status', '--find-renames', base])
+    .then(({stdout}) => {
+      const map = new Map<string, string>();
+      let line: string;
+      for (line of stdout.split('\n')) {
+        const [status, oldPath, newPath] = line.split('\t');
+        if (status?.startsWith('R') && oldPath && newPath) {
+          map.set(newPath, oldPath);
+        }
+      }
+      return map;
+    })
+    .catch(() => new Map<string, string>());
+  return renames;
+}
+
 // the engine shows a changed file's new lines only, so a rule can't tell new code from code
 // that was already there. The diff adds the removed lines, with no context lines so unchanged
-// code stays hidden from the other rules in the suitee
+// code stays hidden from the other rules in the suite
 async function diff({path}: {path: string}): Promise<string> {
   if (!diffBase) {
     return NO_DIFF;
   }
   try {
-    const {stdout} = await execFileAsync('git', [
-      'diff',
-      '--unified=0',
-      diffBase,
-      '--',
-      path,
-    ]);
-    // a new file or a renamed one
+    const oldPath = (await renamedFrom(diffBase)).get(path);
+    let paths: string[];
+    if (oldPath) {
+      paths = [oldPath, path];
+    } else {
+      paths = [path];
+    }
+
+    const gitArgs = ['diff', '--unified=0', '--find-renames', diffBase, '--'].concat(
+      paths
+    );
+    const result = await execFileAsync('git', gitArgs);
+    const stdout = result.stdout;
+
+    // a new file has no earlier version to compare and its diff would repeat the whole file
     if (!stdout || /^new file mode/m.test(stdout)) {
       return NO_DIFF;
     }
@@ -42,7 +73,7 @@ async function diff({path}: {path: string}): Promise<string> {
 
 // added to the prompts of rules that should only report problems the change itself adds
 const CAUSED_BY_THIS_CHANGE =
-  'Use diff to tell whether this change caused it: compare its - (removed) and + (added) lines. A line that only moved or was reformatted appears as both - and +, so it already existed. If diff says No diff available., judge from the (new) lines alone.';
+  'Use diff to tell whether this change caused it: compare its - (removed) and + (added) lines. A line that only moved or was reformatted appears as both - and +, so it already existed. If diff says No diff available., treat the whole file as under review and answer INTRODUCED for any problem.';
 
 const api = {
   context: {diff},
