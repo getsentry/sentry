@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Literal
 
 from snuba_sdk import (
@@ -35,7 +35,6 @@ from sentry.replays.usecases.query import (
     query_using_optimized_search,
 )
 from sentry.search.events.types import SnubaParams
-from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import raw_snql_query
 
@@ -1044,46 +1043,3 @@ def query_trace_connected_events(
         raise ValueError(f"Unknown dataset: {dataset_label}")
 
     return dataset.query(**query_details)
-
-
-def get_replay_range(
-    organization_id: int,
-    project_id: int,
-    replay_id: str,
-) -> tuple[datetime, datetime] | None:
-    """Get the min and max timestamps for a replay. This query is redundant if you're already using query_replay_instance - use the started_at and finished_at fields instead."""
-    query = Query(
-        match=Entity("replays"),
-        select=[
-            Function("min", parameters=[Column("replay_start_timestamp")], alias="min"),
-            Function("max", parameters=[Column("timestamp")], alias="max"),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("replay_id"), Op.EQ, replay_id),
-            Condition(Column("segment_id"), Op.IS_NOT_NULL),
-            Condition(Column("timestamp"), Op.GTE, datetime.now(UTC) - timedelta(days=90)),
-            Condition(Column("timestamp"), Op.LT, datetime.now(UTC)),
-        ],
-        groupby=[Column("replay_id")],
-        limit=Limit(1),
-    )
-
-    response = execute_query(
-        query,
-        tenant_id={"organization_id": organization_id},
-        referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
-    )
-    rows = response.get("data", [])
-    if not rows:
-        return None
-
-    min_timestamp = rows[0]["min"]
-    max_timestamp = rows[0]["max"]
-
-    if min_timestamp is None or max_timestamp is None:
-        return None
-
-    min_dt = datetime.fromisoformat(min_timestamp.replace("Z", "+00:00"))
-    max_dt = datetime.fromisoformat(max_timestamp.replace("Z", "+00:00"))
-    return (min_dt, max_dt)
