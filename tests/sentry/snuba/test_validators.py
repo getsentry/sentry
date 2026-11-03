@@ -185,6 +185,30 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.is_valid(), validator.errors
         assert validator.validated_data["aggregate"] == "user_misery(span.duration,300)"
 
+    def test_eap_performance_score_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "performance_score(measurements.score.lcp)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+    def test_eap_opportunity_score_aggregate(self) -> None:
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "opportunity_score(measurements.score.lcp)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
     @with_feature(
         {
             "organizations:performance-view": True,

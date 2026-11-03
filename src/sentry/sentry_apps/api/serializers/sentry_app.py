@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict
 
@@ -26,7 +26,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-def mask_webhook_header_values(headers: Sequence[str]) -> list[str]:
+def mask_webhook_header_values(headers: Sequence[str | None]) -> list[str]:
     """Replace each header's value with MASKED_VALUE, preserving the header name.
 
     Webhook header values may carry secrets (e.g. bearer tokens), so they are masked
@@ -35,6 +35,8 @@ def mask_webhook_header_values(headers: Sequence[str]) -> list[str]:
     """
     masked = []
     for header in headers:
+        if header is None:
+            continue
         name, separator, _value = header.partition(":")
         masked.append(f"{name}: {MASKED_VALUE}" if separator else MASKED_VALUE)
     return masked
@@ -84,7 +86,7 @@ class SentryAppSerializerResponse(TypedDict):
 class SentryAppSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[SentryApp], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ):
+    ) -> MutableMapping[Any, Any]:
         # Get associated IntegrationFeatures
         app_feature_attrs = IntegrationFeature.objects.get_by_targets_as_dict(
             targets=item_list, target_type=IntegrationTypes.SENTRY_APP

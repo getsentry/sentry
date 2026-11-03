@@ -119,8 +119,7 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                         height: '21px',
                       }),
                     }}
-                    isSearchable={false}
-                    isClearable={false}
+                    searchable={false}
                     name={`actionFilters.${actionFilter.id}.logicType`}
                     options={FILTER_MATCH_OPTIONS}
                     size="xs"

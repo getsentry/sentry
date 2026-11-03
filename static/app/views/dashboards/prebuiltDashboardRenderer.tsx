@@ -28,7 +28,7 @@ import {
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {mergeGlobalFilters} from './globalFilter/utils';
-import {PREBUILT_DASHBOARDS, PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {getPrebuiltDashboardConfig, PrebuiltDashboardId} from './utils/prebuiltConfigs';
 
 type PrebuiltDashboardRendererProps = {
   prebuiltId: PrebuiltDashboardId;
@@ -44,7 +44,7 @@ export function PrebuiltDashboardRenderer({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const prebuiltDashboard = PREBUILT_DASHBOARDS[prebuiltId];
+  const prebuiltDashboard = getPrebuiltDashboardConfig(prebuiltId, organization);
   const {dashboard: populatedPrebuiltDashboard, isLoading} =
     useGetPrebuiltDashboard(prebuiltId);
 

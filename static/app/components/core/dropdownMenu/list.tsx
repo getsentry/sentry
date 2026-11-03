@@ -14,15 +14,28 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Header, Search, SectionSeparator, Title} from '@sentry/scraps/menu';
+import {
+  calculateMenuMinHeight,
+  Header,
+  ReserveLeadingSlot,
+  Search,
+  SectionSeparator,
+  Title,
+} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
-import type {MenuItemProps} from './item';
+import type {
+  DropdownMenuContentSizeOptions,
+  DropdownMenuSearchOptions,
+  MenuItemProps,
+} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 import {useSafetyTriangle} from './useSafetyTriangle';
@@ -37,7 +50,8 @@ export interface DropdownMenuListProps
       | 'onSelectionChange'
       | 'disallowEmptySelection'
     >,
-    TreeProps<MenuItemProps> {
+    TreeProps<MenuItemProps>,
+    DropdownMenuContentSizeOptions {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
@@ -51,6 +65,7 @@ export interface DropdownMenuListProps
    * Prevent users from highlighting text inside the menu.
    */
   disableTextSelection?: boolean;
+  emptyMessage?: React.ReactNode;
   /**
    * To be displayed below the menu items
    */
@@ -59,10 +74,10 @@ export interface DropdownMenuListProps
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  search?: {
+  /** Controlled input state supplied by DropdownMenuContent. */
+  searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
     value: string;
-    placeholder?: string;
   };
   size?: MenuItemProps['size'];
   /**
@@ -195,28 +210,62 @@ function DropdownMenuList({
   onClose,
   size,
   menuTitle,
+  emptyMessage,
+  maxHeight,
+  maxWidth,
   menuFooter,
-  search,
+  searchState,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
   zIndex,
   ...props
 }: DropdownMenuListProps) {
+  const {t} = useTranslation();
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
+  const hasLeadingItems = useMemo(
+    () =>
+      stateCollection
+        .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
+        .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
+    [stateCollection]
+  );
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
-  // If this is a submenu, pressing arrow left should close it (but not the
-  // root menu).
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
+      const enabledMenuItems = getEnabledMenuItems(menuRef.current);
+      // When keyboard navigation wraps past the last item, show the top of the
+      // list again so the search field and first item are visible.
+      if (
+        e.key === 'ArrowDown' &&
+        searchRef.current &&
+        menuRef.current &&
+        e.target === enabledMenuItems.at(-1)
+      ) {
+        menuRef.current.scrollTop = 0;
+      }
+      // Move from the first enabled item back to search before leaving the submenu.
+      if (
+        e.key === 'ArrowUp' &&
+        searchRef.current &&
+        menuRef.current &&
+        document.activeElement === enabledMenuItems[0]
+      ) {
+        e.preventDefault();
+        menuRef.current.scrollTop = 0;
+        searchRef.current.focus();
+        return;
+      }
+      // ArrowLeft closes a submenu, but leaves the root menu open.
       if (e.key === 'ArrowLeft' && parentMenuState) {
         parentMenuState.selectionManager.clearSelection();
         return;
@@ -270,6 +319,26 @@ function DropdownMenuList({
     }),
     [rootOverlayState, overlayState, state, safetyTriangle]
   );
+  const searchInput = searchState && (
+    <Search
+      ref={searchRef}
+      padding={menuTitle ? '0' : undefined}
+      aria-label={searchState.placeholder ?? 'Search'}
+      placeholder={searchState.placeholder ?? 'Search…'}
+      value={searchState.value}
+      onChange={event => searchState.onChange(event.target.value)}
+      onKeyDown={event => {
+        // ArrowDown moves from the search field into the filtered menu items.
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          getEnabledMenuItems(menuRef.current)[0]?.focus();
+        }
+      }}
+    />
+  );
+  const showEmptyMessage = Boolean(
+    searchState?.value.trim() && stateCollection.length === 0
+  );
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
@@ -277,49 +346,76 @@ function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
-            {menuTitle && (
-              <Header padding="sm lg">
-                <Title>{menuTitle}</Title>
-              </Header>
-            )}
-            {search && (
-              <Search
-                aria-label={search.placeholder ?? 'Search'}
-                placeholder={search.placeholder ?? 'Search…'}
-                value={search.value}
-                onChange={event => search.onChange(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'ArrowDown') {
+          <Stack>
+            {stackProps => (
+              <Overlay
+                {...stackProps}
+                onKeyDownCapture={event => {
+                  // Handle Escape before React Aria closes the entire menu tree.
+                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                    event.stopPropagation();
+                    // Let the IME cancel composition without dismissing the submenu.
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
                     event.preventDefault();
-                    menuRef.current
-                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                      ?.focus();
+                    parentMenuState.selectionManager.clearSelection();
                   }
                 }}
-              />
+                style={{
+                  // Cap the requested height by the space available to the overlay.
+                  maxHeight: calculateMenuMinHeight(
+                    maxHeight,
+                    overlayPositionProps.style?.maxHeight
+                  ),
+                  maxWidth:
+                    maxWidth === undefined
+                      ? '100%'
+                      : `min(${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}, 100%)`,
+                }}
+              >
+                {menuTitle && (
+                  <Header padding={searchState ? 'xs' : 'sm lg'}>
+                    <Title padding={searchState ? 'sm lg' : undefined}>{menuTitle}</Title>
+                    {searchInput}
+                  </Header>
+                )}
+                {!menuTitle && searchInput}
+                <DropdownMenuListWrap
+                  as="ul"
+                  ref={menuRef}
+                  disableTextSelection={disableTextSelection}
+                  flexGrow={showEmptyMessage ? 1 : undefined}
+                  {...mergeProps(modifiedMenuProps, keyboardProps)}
+                >
+                  <ReserveLeadingSlot reserve={hasLeadingItems}>
+                    <DropdownMenuCollection
+                      collection={stateCollection}
+                      closeOnSelect={closeOnSelect}
+                      disableTextSelection={disableTextSelection}
+                      onClose={onClose}
+                      separatorProps={separatorProps}
+                      size={size}
+                      state={state}
+                    />
+                  </ReserveLeadingSlot>
+                  {showEmptyMessage && (
+                    <Stack
+                      as="li"
+                      role="presentation"
+                      align="center"
+                      justify="center"
+                      flexGrow={1}
+                      padding="md lg"
+                    >
+                      <Text variant="muted">{emptyMessage ?? t('No results found')}</Text>
+                    </Stack>
+                  )}
+                </DropdownMenuListWrap>
+                {menuFooter}
+              </Overlay>
             )}
-            <DropdownMenuListWrap
-              ref={menuRef}
-              hasTitle={!!menuTitle}
-              disableTextSelection={disableTextSelection}
-              {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
-              }}
-            >
-              <DropdownMenuCollection
-                collection={stateCollection}
-                closeOnSelect={closeOnSelect}
-                disableTextSelection={disableTextSelection}
-                onClose={onClose}
-                separatorProps={separatorProps}
-                size={size}
-                state={state}
-              />
-            </DropdownMenuListWrap>
-            {menuFooter}
-          </StyledOverlay>
+          </Stack>
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
@@ -379,6 +475,17 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
 }
 
 /**
+ * Returns the menu items keyboard focus can reach. Disabled items are skipped,
+ * so the first and last of these are the first and last focusable items.
+ * Matches the rule CompactSelect uses for its ArrowUp/Down region handoff.
+ */
+function getEnabledMenuItems(menu: HTMLElement | null): HTMLElement[] {
+  return Array.from(
+    menu?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []
+  ).filter(item => item.getAttribute('aria-disabled') !== 'true');
+}
+
+/**
  * Recursively finds and returns disabled items
  */
 function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
@@ -398,7 +505,10 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-type DropdownMenuContentProps = DropdownMenuListProps & {items: MenuItemProps[]};
+export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
+  items: MenuItemProps[];
+  search?: DropdownMenuSearchOptions;
+};
 
 export function DropdownMenuContent({
   items,
@@ -407,10 +517,12 @@ export function DropdownMenuContent({
   search,
   ...props
 }: DropdownMenuContentProps) {
+  const [searchValue, setSearchValue] = useState('');
   const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const visibleItems = useMemo(
-    () => (search?.value ? filterMenuItems(activeItems, search.value) : activeItems),
-    [activeItems, search]
+    () =>
+      search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
+    [activeItems, search, searchValue]
   );
   const defaultDisabledKeys = useMemo(
     () => getDisabledKeys(visibleItems),
@@ -423,7 +535,9 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      search={search}
+      searchState={
+        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
+      }
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
@@ -460,23 +574,6 @@ interface DropdownSubmenuProps extends Pick<
   items: MenuItemProps[];
   node: Node<MenuItemProps>;
   state: TreeState<MenuItemProps>;
-}
-
-function SearchableDropdownSubmenuContent({
-  searchOptions,
-  ...props
-}: Omit<DropdownMenuContentProps, 'search'> & {
-  searchOptions?: {placeholder?: string};
-}) {
-  const [search, setSearch] = useState('');
-  return (
-    <DropdownMenuContent
-      {...props}
-      search={
-        searchOptions ? {...searchOptions, value: search, onChange: setSearch} : undefined
-      }
-    />
-  );
 }
 
 function DropdownSubmenu({
@@ -516,7 +613,6 @@ function DropdownSubmenu({
     triggerRef
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
-
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
@@ -540,12 +636,15 @@ function DropdownSubmenu({
         closeOnSelect={false}
       />
       {isOpen && (
-        <SearchableDropdownSubmenuContent
+        <DropdownMenuContent
           onClose={onClose}
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
-          searchOptions={options.search}
+          emptyMessage={options.emptyMessage}
+          maxHeight={options.maxHeight}
+          maxWidth={options.maxWidth}
+          search={options.search}
           size={size}
           {...menuProps}
           items={items}
@@ -558,20 +657,16 @@ function DropdownSubmenu({
   );
 }
 
-const StyledOverlay = styled(Overlay)`
-  display: flex;
-  flex-direction: column;
-`;
-
-const DropdownMenuListWrap = styled('ul')<{
-  hasTitle: boolean;
+const DropdownMenuListWrap = styled(Stack)<{
   disableTextSelection?: boolean;
 }>`
-  margin: 0;
-  padding: ${p => p.theme.space.xs} 0;
+  /* Keep both insets visible while the menu items scroll. */
+  margin: ${p => p.theme.space.xs} 0;
+  padding: 0;
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
@@ -581,12 +676,6 @@ const DropdownMenuListWrap = styled('ul')<{
         -webkit-user-select: none;
         user-select: none;
       }
-    `}
-
-  ${p =>
-    p.hasTitle &&
-    css`
-      padding-top: ${p.theme.space.xs};
     `}
 
   &:focus {

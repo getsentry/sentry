@@ -8,8 +8,8 @@ import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import type {BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -118,11 +118,7 @@ export function BuildEntityHeader({
             ? {
                 type: 'text',
                 label: appInfo?.date_built ? t('Built') : t('Uploaded'),
-                value: getFormattedDate(
-                  getUtcToSystem(dateBuiltOrAdded),
-                  getFormat({seconds: true, timeZone: true}),
-                  {local: true}
-                ),
+                value: <DateTime date={dateBuiltOrAdded} seconds timeZone />,
                 leadingGraphic: <IconClock size="md" />,
               }
             : null,

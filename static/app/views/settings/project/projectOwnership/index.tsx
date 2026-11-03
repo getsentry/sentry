@@ -130,6 +130,7 @@ export default function ProjectOwnership() {
         method: 'PUT',
         data,
       }),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: ownershipQueryKey}),
   };
 
   if (isOwnershipPending || isCodeownersLoading) {

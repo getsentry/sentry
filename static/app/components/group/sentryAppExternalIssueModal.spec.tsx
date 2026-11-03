@@ -50,7 +50,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -79,7 +79,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event: undefined,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
 
     renderGlobalModal();
@@ -98,7 +98,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -133,7 +133,7 @@ describe('openSentryAppIssueModal', () => {
       group,
       event,
       sentryAppComponent: component,
-      sentryAppInstallation: install,
+      sentryAppInstallationUuid: install.uuid,
     });
     const {waitForModalToHide} = renderGlobalModal();
 

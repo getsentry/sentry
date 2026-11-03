@@ -174,6 +174,8 @@ function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
+  const hasSeerContent =
+    previewSeer.state !== 'unavailable' && !!previewSeer.autofix.runState;
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -319,7 +321,13 @@ function IssuePreviewContent() {
           {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
-                <EventStackTrace event={event} group={group} projectSlug={project.slug} />
+                <EventStackTrace
+                  key={hasSeerContent ? 'seer' : 'default'}
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                  initialCollapse={hasSeerContent || undefined}
+                />
               </ErrorBoundary>
             </Container>
           )}

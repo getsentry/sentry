@@ -212,7 +212,7 @@ class OnboardingTest(AcceptanceTestCase):
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-            self.browser.wait_until('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
 
             # Reload the step. The connected repo (real id) must survive the
             # session restore so detection re-runs and the auto-detected section
@@ -221,7 +221,7 @@ class OnboardingTest(AcceptanceTestCase):
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-            self.browser.wait_until('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
 
     def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
         """Switching the connected repo re-runs detection for the new repo and
@@ -304,7 +304,9 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "Django")]')
+            self.browser.wait_until(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "Django")]'
+            )
 
             # Go back and switch to the second repo; detection must re-run for it.
             self.browser.click('[aria-label="Back"]')
@@ -321,8 +323,12 @@ class OnboardingTest(AcceptanceTestCase):
 
             # New repo's platform is detected; the previous repo's is not shown.
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "React")]')
-            self.browser.wait_until_not(xpath='//*[@role="radio"][contains(., "Django")]')
+            self.browser.wait_until(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "React")]'
+            )
+            self.browser.wait_until_not(
+                xpath='//*[@role="radio" or (self::label and .//input[@type="radio"])][contains(., "Django")]'
+            )
 
     def test_scm_onboarding_header_skip_onboarding(self) -> None:
         """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
@@ -482,8 +488,8 @@ class OnboardingTest(AcceptanceTestCase):
 
             # Platform Features: select detected platform, Continue auto-creates the project
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until('[role="radio"]')
-            self.browser.click('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
+            self.browser.click('[role="radio"], label:has(input[type="radio"])')
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
@@ -691,8 +697,8 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-            self.browser.wait_until('[role="radio"]')
-            self.browser.click('[role="radio"]')
+            self.browser.wait_until('[role="radio"], label:has(input[type="radio"])')
+            self.browser.click('[role="radio"], label:has(input[type="radio"])')
             self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
             self.browser.click(xpath='//button[contains(., "Continue")]')
 

@@ -15,12 +15,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionThresholdType,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 

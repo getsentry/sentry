@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -22,7 +22,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import {CAN_MARK} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -67,8 +67,7 @@ import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
+  timeseriesResults?: WidgetTimeSeries[];
 };
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
@@ -101,6 +100,7 @@ type Props = {
   hasEditAccess?: boolean;
   index?: string;
   isMobile?: boolean;
+  isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
@@ -120,6 +120,10 @@ type Props = {
   windowWidth?: number;
 };
 
+const widgetViewerParsers = Object.fromEntries(
+  Object.values(WidgetViewerQueryField).map(field => [field, parseAsString])
+);
+
 type Data = {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -128,9 +132,6 @@ type Data = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: WidgetTimeSeries[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
 };
 
 function WidgetCard(props: Props) {
@@ -139,6 +140,9 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [, setWidgetViewerParams] = useQueryStates(widgetViewerParsers, {
+    history: 'replace',
+  });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -209,8 +213,7 @@ function WidgetCard(props: Props) {
       if (onDataFetched) {
         onDataFetched({
           tableResults: newData.tableResults,
-          timeseriesResultsTypes: newData.timeseriesResultsTypes,
-          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+          timeseriesResults: newData.timeseriesResults,
         });
       }
 
@@ -317,11 +320,7 @@ function WidgetCard(props: Props) {
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
-          const query = omit(location.query, Object.values(WidgetViewerQueryField));
-          navigate(
-            {pathname: location.pathname, query},
-            {preventScrollReset: true, replace: true}
-          );
+          setWidgetViewerParams(null);
         },
       });
     }
@@ -348,6 +347,7 @@ function WidgetCard(props: Props) {
         widget,
         props.widgetLimitReached,
         props.hasEditAccess,
+        props.isPrebuiltDashboard,
         location,
         props.onDelete,
         props.onDuplicate,

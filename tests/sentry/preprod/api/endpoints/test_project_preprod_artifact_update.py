@@ -1,5 +1,5 @@
-from typing import Any
-from unittest.mock import patch
+from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
@@ -24,11 +24,13 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{artifact_id}/update/"
 
-    def _make_request(self, data, artifact_id=None, authenticated=True):
+    def _make_request(
+        self, data: Any, artifact_id: int | None = None, authenticated: bool = True
+    ) -> Any:
         url = self._get_url(artifact_id)
         json_data = orjson.dumps(data) if isinstance(data, dict) else data
 
@@ -100,7 +102,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         # Reset for next test
         self.preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADING
-        self.preprod_artifact.error_code = None
+        self.preprod_artifact.error_code = cast("int", None)
         self.preprod_artifact.save()
 
         # Test that setting error_message sets state to FAILED
@@ -526,7 +528,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             preprod_artifact=self.preprod_artifact
         )
         assert mobile_app_info.build_version == "3.0.0"
-        assert mobile_app_info.build_number is None
+        assert cast("object", mobile_app_info.build_number) is None
         assert mobile_app_info.app_name is None
         assert mobile_app_info.app_icon_id is None
 
@@ -587,7 +589,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         ".create_preprod_size_pr_comment_task"
     )
     def test_update_preprod_artifact_filters_size_by_query(
-        self, mock_pr_comment_task, mock_status_check_task
+        self, mock_pr_comment_task: MagicMock, mock_status_check_task: MagicMock
     ) -> None:
         """Test that SIZE_ANALYSIS is filtered out when project query doesn't match."""
         self.preprod_artifact.app_id = "com.my.app"
@@ -676,7 +678,9 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     @patch("sentry.preprod.quotas.has_size_quota")
-    def test_update_preprod_artifact_filters_size_when_no_quota(self, mock_has_size_quota) -> None:
+    def test_update_preprod_artifact_filters_size_when_no_quota(
+        self, mock_has_size_quota: MagicMock
+    ) -> None:
         """Test that SIZE_ANALYSIS is filtered out when organization has no quota."""
         mock_has_size_quota.return_value = False
 
@@ -692,7 +696,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     @patch("sentry.preprod.quotas.has_installable_quota")
     def test_update_preprod_artifact_filters_distribution_when_no_quota(
-        self, mock_has_installable_quota
+        self, mock_has_installable_quota: MagicMock
     ) -> None:
         """Test that BUILD_DISTRIBUTION is filtered out when organization has no quota."""
         mock_has_installable_quota.return_value = False
@@ -713,12 +717,12 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
 
         assert response.status_code == 200
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.installable_app_error_code is None
+        assert cast("object", self.preprod_artifact.installable_app_error_code) is None
         assert self.preprod_artifact.installable_app_error_message is None
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     @patch("sentry.preprod.quotas.has_installable_quota")
-    def test_update_sets_error_code_no_quota(self, mock_has_installable_quota) -> None:
+    def test_update_sets_error_code_no_quota(self, mock_has_installable_quota: MagicMock) -> None:
         mock_has_installable_quota.return_value = False
 
         data = {"artifact_type": 1}

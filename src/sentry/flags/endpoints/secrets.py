@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,10 +20,16 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.models.organization import Organization
 
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
+
 
 class FlagWebhookSigningSecretResponse(TypedDict):
     createdAt: str
-    createdBy: int
+    createdBy: int | None
     id: int
     provider: str
     secret: str
@@ -30,7 +37,13 @@ class FlagWebhookSigningSecretResponse(TypedDict):
 
 @register(FlagWebHookSigningSecretModel)
 class FlagWebhookSigningSecretSerializer(Serializer[FlagWebhookSigningSecretResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> FlagWebhookSigningSecretResponse:
+    def serialize(
+        self,
+        obj: FlagWebHookSigningSecretModel,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> FlagWebhookSigningSecretResponse:
         return {
             "createdAt": obj.date_added.isoformat(),
             "createdBy": obj.created_by,
@@ -46,18 +59,24 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
     )
     secret = serializers.CharField(required=True)
 
-    def validate_secret(self, value):
+    def validate_secret(self, value: str) -> str:
         if self.initial_data.get("provider") == "statsig":
             if not value.startswith("webhook-"):
                 raise serializers.ValidationError(
                     "Ensure this field is of the format webhook-<hash>"
                 )
-            return serializers.CharField(min_length=32, max_length=64).run_validation(value)
+            return cast(
+                "str", serializers.CharField(min_length=32, max_length=64).run_validation(value)
+            )
 
         if self.initial_data.get("provider") == "generic":
-            return serializers.CharField(min_length=10, max_length=64).run_validation(value)
+            return cast(
+                "str", serializers.CharField(min_length=10, max_length=64).run_validation(value)
+            )
 
-        return serializers.CharField(min_length=32, max_length=32).run_validation(value)
+        return cast(
+            "str", serializers.CharField(min_length=32, max_length=32).run_validation(value)
+        )
 
 
 @cell_silo_endpoint

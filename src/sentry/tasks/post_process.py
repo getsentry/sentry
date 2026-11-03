@@ -46,12 +46,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.validators import normalize_event_id
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -1564,7 +1559,7 @@ def detect_new_escalation(job: PostProcessJob) -> None:
     group = job["event"].group
     if not group:
         return
-    extra = {
+    extra: dict[str, object] = {
         "org_id": group.organization.id,
         "project_id": job["event"].project.id,
         "group_id": group.id,
@@ -1696,7 +1691,7 @@ def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
     ):
         return
 
-    trigger_lightweight_rca_cluster_task.delay(group.id)
+    trigger_lightweight_rca_cluster_task.delay(group.id, event_id=event.event_id)
 
 
 def _noop_siem_security_log_hook(job: PostProcessJob) -> None:

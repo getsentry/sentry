@@ -122,8 +122,10 @@ export function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions =
-    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
+  const valueOptions = (
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices ??
+    []
+  ).map(([value, label]) => ({value, label}));
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -155,7 +157,7 @@ export function NotificationSettingsByEntity({
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
-            choices={valueOptions}
+            options={valueOptions}
             onChange={({value}: {value: string}) => {
               handleEditNotificationOption({
                 ...option,
@@ -270,7 +272,7 @@ export function NotificationSettingsByEntity({
                 placeholder={t('Value\u2026')}
                 value={selectedValue}
                 name="value"
-                choices={valueOptions}
+                options={valueOptions}
                 onChange={({value}: {value: string}) => {
                   setSelectedValue(value as Value);
                 }}

@@ -9,7 +9,7 @@ import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExter
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
+import type {SentryAppComponent} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -26,7 +26,7 @@ export const openSentryAppIssueModal = ({
   group,
   event,
   sentryAppComponent,
-  sentryAppInstallation,
+  sentryAppInstallationUuid,
 }: OpenSentryAppIssueModalProps) => {
   trackAnalytics('issue_details.external_issue_modal_opened', {
     organization,
@@ -39,7 +39,7 @@ export const openSentryAppIssueModal = ({
     deps => (
       <SentryAppExternalIssueModal
         {...deps}
-        {...{group, event, sentryAppComponent, sentryAppInstallation}}
+        {...{group, event, sentryAppComponent, sentryAppInstallationUuid}}
       />
     ),
     {closeEvents: 'escape-key'}
@@ -50,7 +50,7 @@ type Props = ModalRenderProps & {
   event: Event | undefined;
   group: Group;
   sentryAppComponent: SentryAppComponent;
-  sentryAppInstallation: SentryAppInstallation;
+  sentryAppInstallationUuid: string;
 };
 
 function SentryAppExternalIssueModal(props: Props) {
@@ -59,7 +59,7 @@ function SentryAppExternalIssueModal(props: Props) {
     Header,
     Body,
     sentryAppComponent,
-    sentryAppInstallation,
+    sentryAppInstallationUuid,
     group,
     closeModal,
     event,
@@ -85,7 +85,7 @@ function SentryAppExternalIssueModal(props: Props) {
       <Body>
         <SentryAppExternalIssueForm
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallationUuid}
           appName={name}
           config={config}
           action={action}

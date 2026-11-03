@@ -1,7 +1,7 @@
 import {IconTerminal} from '@sentry/icons/terminal';
 import {motion} from 'framer-motion';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {t} from 'sentry/locale';
 import {ContinueButton} from 'sentry/views/relocation/components/continueButton';

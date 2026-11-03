@@ -193,10 +193,6 @@ describe('Dashboards > Detail', () => {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
-      });
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
         body: {timeSeries: []},
       });
@@ -230,10 +226,6 @@ describe('Dashboards > Detail', () => {
     // TODO(nar): Flaky test
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('assigns unique IDs to all widgets so grid keys are unique', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {data: []},
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
         body: {timeSeries: []},

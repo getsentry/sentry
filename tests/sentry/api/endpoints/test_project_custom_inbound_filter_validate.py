@@ -9,12 +9,7 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    decode_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.run_oneshot"
 

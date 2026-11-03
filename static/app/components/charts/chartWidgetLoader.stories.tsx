@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import * as Storybook from 'sentry/stories';
 

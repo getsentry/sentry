@@ -2,17 +2,13 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {type DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {transformEventsResponseToTable} from 'sentry/views/dashboards/datasetConfig/events';
-import {
-  getTimeSeriesResultTypes,
-  getTimeSeriesResultUnits,
-} from 'sentry/views/dashboards/utils/getTimeSeriesResultMeta';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
 import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 
 export const spansResponseTransforms: Pick<
   DatasetConfig<EventsTimeSeriesResponse, TableData | EventsTableData>,
-  'transformTable' | 'transformTimeSeries' | 'getSeriesResultUnit' | 'getSeriesResultType'
+  'transformTable' | 'transformTimeSeries'
 > = {
   transformTable: transformEventsResponseToTable,
   transformTimeSeries: (data, widget, queryIndex) =>
@@ -23,6 +19,4 @@ export const spansResponseTransforms: Pick<
       widget,
       queryIndex
     ),
-  getSeriesResultUnit: getTimeSeriesResultUnits,
-  getSeriesResultType: getTimeSeriesResultTypes,
 };

@@ -28,7 +28,7 @@ env:
 jobs:
   lint:
     name: pre-commit lint
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -74,7 +74,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.4'
+          version: '0.13.5'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 

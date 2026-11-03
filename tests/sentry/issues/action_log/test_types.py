@@ -3,7 +3,8 @@ from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel
+import pytest
+from pydantic import BaseModel, ValidationError
 
 from sentry.issues.action_log.types import FirstSeenAction, GroupAction, GroupActionType
 
@@ -111,3 +112,51 @@ def test_checks_nested_models() -> None:
         inners: list[Inner] | None = None
 
     assert list(_open_ended_fields(Outer, "Outer", set())) == ["Outer.inners.blob"]
+
+
+@pytest.mark.parametrize(
+    "action_type,payload,expected_kind",
+    [
+        (GroupActionType.COMMENT, {"comment_id": 42, "text": "original", "mentions": []}, None),
+        (
+            GroupActionType.COMMENT_EDIT,
+            {"comment_id": 73, "text": "edited", "mentions": []},
+            "group_action_log",
+        ),
+        (GroupActionType.COMMENT_DELETE, {"comment_id": 73}, "group_action_log"),
+        (GroupActionType.COMMENT, {"comment_id": 42}, None),
+        (
+            GroupActionType.COMMENT_EDIT,
+            {"comment_id": 42, "comment_id_kind": "comment"},
+            "comment",
+        ),
+        (
+            GroupActionType.COMMENT_DELETE,
+            {"comment_id": 42, "comment_id_kind": "comment"},
+            "comment",
+        ),
+    ],
+)
+def test_comment_payload_compatibility(
+    action_type: GroupActionType, payload: dict[str, Any], expected_kind: str | None
+) -> None:
+    action_class = GroupAction.by_type(action_type)
+    assert action_class is not None
+    action = action_class(**payload)
+    stored = action.json_dict()
+    assert {key: stored[key] for key in payload} == payload
+    assert stored.get("comment_id_kind") == expected_kind
+    assert stored.get("text") == payload.get("text")
+    assert stored.get("mentions") == payload.get("mentions")
+    assert action_class(**stored) == action
+    assert action_type not in GroupAction.get_user_visible_types()
+
+
+@pytest.mark.parametrize(
+    "action_type", [GroupActionType.COMMENT_EDIT, GroupActionType.COMMENT_DELETE]
+)
+def test_comment_mutation_rejects_unknown_id_kind(action_type: GroupActionType) -> None:
+    action_class = GroupAction.by_type(action_type)
+    assert action_class is not None
+    with pytest.raises(ValidationError, match="comment_id_kind"):
+        action_class(comment_id=42, comment_id_kind="unknown")

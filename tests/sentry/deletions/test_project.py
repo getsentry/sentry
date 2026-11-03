@@ -2,7 +2,6 @@ from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -72,7 +71,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             assert viewer_context is not None
             assert viewer_context.organization_id == project.organization_id
             assert viewer_context.project_id == project.id
-            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor.actor_id == self.user.id
             assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records.side_effect = assert_viewer_context
@@ -178,13 +177,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription_id="a-snuba-id-maybe",
             query_extra="",
         )
-        incident = self.create_incident(
-            organization=project.organization,
-            projects=[project],
-            alert_rule=metric_alert_rule,
-            title="Something bad happened",
-            subscription=query_sub,
-        )
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
         with self.tasks():
@@ -214,9 +206,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Activity.objects.filter(id=activity.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
-
-        incident.refresh_from_db()
-        assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
 

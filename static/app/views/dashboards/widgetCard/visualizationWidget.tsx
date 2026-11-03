@@ -14,7 +14,6 @@ import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -79,9 +78,6 @@ interface VisualizationWidgetProps {
     pageLinks?: string;
     tableResults?: any[];
     timeseriesResults?: WidgetTimeSeries[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
-    totalIssuesCount?: string;
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;

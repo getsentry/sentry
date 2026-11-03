@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.test import override_settings
 from django.urls import reverse
 from django.utils.html import escapejs
@@ -103,13 +104,14 @@ class IframeViewTest(APITestCase):
         assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
 
-def _get_csp_parts(response):
+def _get_csp_parts(response: HttpResponse) -> list[str]:
     # Fallback to `c` for tests in dev.
     csp = response.headers.get("Content-Security-Policy", response.headers.get("c"))
+    assert csp is not None
     return [chunk.strip() for chunk in csp.split(";")]
 
 
-def _has_nonce(response):
+def _has_nonce(response: HttpResponse) -> bool:
     content = response.content.decode("utf-8")
     # Middleware automatically injects the `nonce` attribute onto our <script>
     # tag; so if that attribute is there then we can assume the nonce header and

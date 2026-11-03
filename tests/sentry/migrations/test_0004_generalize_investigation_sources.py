@@ -2,6 +2,7 @@ import hashlib
 
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 from sentry.utils import json
@@ -13,7 +14,7 @@ class GeneralizeInvestigationSourcesTest(TestMigrations):
     migrate_from = "0003_remove_investigation_cell_models"
     migrate_to = "0004_generalize_investigation_sources"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Investigation = apps.get_model("investigations", "Investigation")
         with unguarded_write(using="default"):
@@ -36,7 +37,7 @@ class GeneralizeInvestigationSourcesTest(TestMigrations):
             filters={"breachedMetric": self.snapshot},
         )
 
-    def test_backfills_new_source_fields_without_mutating_legacy_fields(self):
+    def test_backfills_new_source_fields_without_mutating_legacy_fields(self) -> None:
         Investigation = self.apps.get_model("investigations", "Investigation")
         investigation = Investigation.objects.get(id=self.investigation.id)
         expected_source = {
@@ -67,7 +68,7 @@ class ReverseGeneralizeInvestigationSourcesTest(TestMigrations):
     migrate_from = "0004_generalize_investigation_sources"
     migrate_to = "0003_remove_investigation_cell_models"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Investigation = apps.get_model("investigations", "Investigation")
         with unguarded_write(using="default"):
@@ -96,7 +97,7 @@ class ReverseGeneralizeInvestigationSourcesTest(TestMigrations):
             filters={"breachedMetric": self.snapshot},
         )
 
-    def test_reverse_preserves_the_legacy_source_contract(self):
+    def test_reverse_preserves_the_legacy_source_contract(self) -> None:
         Investigation = self.apps.get_model("investigations", "Investigation")
         investigation = Investigation.objects.get(id=self.investigation.id)
 

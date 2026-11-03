@@ -5,6 +5,16 @@ export function getAutomationsPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/`);
 }
 
+export function getAutomationRunsPath(organizationSlug: string) {
+  return normalizeUrl(`/organizations/${organizationSlug}/seer/automations/runs/`);
+}
+
+export function getAutomationDetailPath(organizationSlug: string, automationId: string) {
+  return normalizeUrl(
+    `/organizations/${organizationSlug}/seer/automations/${encodeURIComponent(automationId)}/`
+  );
+}
+
 export function useAutomationsEnabled() {
   const organization = useOrganization({allowNull: true});
   return !!organization?.features.includes('seer-automations');

@@ -93,7 +93,7 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
     margin: 0;
   }
 
-  && .loading-indicator {
+  && .scraps-spinner-ring {
     border-width: 2px !important;
   }
 `;

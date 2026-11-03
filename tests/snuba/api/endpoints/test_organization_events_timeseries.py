@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
@@ -131,11 +133,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def do_request(self, data, url=None, features=None):
+    def do_request(
+        self,
+        data: dict[str, Any],
+        url: str | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            response: Response = self.client.get(
+                self.url if url is None else url, data=data, format="json"
+            )
+            return response
 
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -491,7 +501,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["meta"]["order"] == 1
         assert other["values"][0]["value"] == 1
 
-    def test_incomplete_bucket(self):
+    def test_incomplete_bucket(self) -> None:
         with freeze_time(self.end):
             response = self.do_request(
                 {
@@ -536,15 +546,16 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def _api_token_request(self, data, features):
+    def _api_token_request(self, data: dict[str, Any], features: dict[str, bool]) -> Response:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         with self.feature(features):
-            return self.client.get(
+            response: Response = self.client.get(
                 self.url,
                 data=data,
                 format="json",
                 HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
+            return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
     def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
@@ -670,7 +681,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans") -> Response:
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -679,10 +690,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "dataset": dataset,
         }
         with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
+            response: Response = self.client.get(self.url, data=data, format="json")
+            return response
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
+    def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
@@ -690,7 +702,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_present(self, mock_measure) -> None:
+    def test_ingestion_delay_present(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(minutes=5)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -712,7 +724,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         }
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
+    def test_unknown_status_is_reported_without_values(self, mock_measure: MagicMock) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
             complete_through=None,
@@ -728,7 +740,9 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.data["meta"]["ingestion"] == {"status": "unknown"}
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+    def test_ingestion_delay_query_failure_does_not_break_the_response(
+        self, mock_measure: MagicMock
+    ) -> None:
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
             {
@@ -740,7 +754,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert "ingestion" not in response.data["meta"]
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -762,7 +776,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_are_marked_incomplete_from_measured_complete_through(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         complete_through = self.end - timedelta(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
@@ -787,7 +801,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
@@ -807,7 +821,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     @mock.patch("sentry.quotas.backend.get_event_retention")
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_starting_before_retention_are_marked_outside_it(
-        self, mock_measure, mock_retention
+        self, mock_measure: MagicMock, mock_retention: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=1.0,

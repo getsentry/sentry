@@ -76,7 +76,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
             assert viewer_context is not None
             assert viewer_context.organization_id == org.id
             assert viewer_context.project_id == project.id
-            assert viewer_context.user_id == self.user.id
+            assert viewer_context.actor.actor_id == self.user.id
             assert viewer_context.actor.type == ActorType.USER
 
         mock_delete_seer_grouping_records.side_effect = assert_viewer_context
@@ -530,7 +530,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
 
         assert Detector.objects.filter(id=all_projects_detector.id).exists()
         assert Detector.objects.filter(id=project_detector.id).exists()
-        assert all_projects_detector.project_id is None
+        assert not all_projects_detector.project_id
         assert project_detector.project_id == project.id
 
         org.update(status=OrganizationStatus.PENDING_DELETION)

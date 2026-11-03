@@ -631,7 +631,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def on_delete_repository(self, repo: Any) -> None:
         pass
 
-    def format_date(self, date: str | None) -> Any | None:
+    def format_date(self, date: str | None) -> datetime | None:
         if not date:
             return None
         return parse_date(date).astimezone(timezone.utc)
@@ -679,7 +679,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         The shape of this id must match the `identifier` returned by
         the integration's Integration.get_repositories() method
         """
-        return repo.name
+        name = repo.name
+        return name
 
     @staticmethod
     def should_ignore_commit(message: str) -> bool:

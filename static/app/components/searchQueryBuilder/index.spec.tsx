@@ -795,6 +795,8 @@ describe('SearchQueryBuilder', () => {
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
       });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
       expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
 
       expect(
@@ -802,6 +804,35 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it('searches once when clearing a filter that was never committed', async () => {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'browser.name:'
+      );
+      expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: /browser\.name/})
+        ).not.toBeInTheDocument();
+      });
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -841,6 +872,8 @@ describe('SearchQueryBuilder', () => {
         await waitFor(() => {
           expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
         });
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
+        expect(mockOnSearch).toHaveBeenCalledTimes(1);
         expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       }
     );
@@ -2214,6 +2247,37 @@ describe('SearchQueryBuilder', () => {
           writeText: jest.fn().mockResolvedValue(''),
         },
       });
+    });
+
+    it('moves focus into key details on Arrow Right and back on Arrow Left', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            'db.system': {key: 'db.system', name: 'db.system', kind: FieldKind.TAG},
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('db.system');
+      await userEvent.keyboard('{ArrowDown}');
+      const input = screen.getByRole('combobox', {name: 'Add a search term'});
+      await screen.findByRole('link', {name: 'OpenTelemetry docs'});
+      await userEvent.keyboard('{ArrowRight}');
+      const focusedInDetails = document.activeElement;
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(focusedInDetails).toBe(
+        screen.getByRole('link', {name: 'OpenTelemetry docs'})
+      );
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('db.system');
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
     it('can remove a previous token by pressing backspace', async () => {
@@ -7381,6 +7445,36 @@ describe('SearchQueryBuilder', () => {
       );
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
+    });
+
+    it('should explicitly match case when toggled off', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Match case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(false);
+    });
+
+    it('should ignore case when toggled on', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={false}
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ignore case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(true);
     });
   });
 

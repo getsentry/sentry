@@ -34,7 +34,7 @@ TestMethod = Callable[..., None]
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
-def monkey_patch_single_process_silo_mode_state():
+def monkey_patch_single_process_silo_mode_state() -> None:
     _silo_mode_var: contextvars.ContextVar[SiloMode | None] = contextvars.ContextVar(
         "silo_mode", default=None
     )
@@ -197,7 +197,7 @@ class _SiloModeTestModification:
             raise ValueError("localities can only be passed along with cells")
 
     @contextmanager
-    def test_config(self, silo_mode: SiloMode):
+    def test_config(self, silo_mode: SiloMode) -> Generator[None]:
         with (
             (
                 override_cells(self.cells, localities=self.localities or None)
@@ -316,7 +316,10 @@ class _SiloModeTestModification:
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
 
-        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method)
+        return cast(
+            "Callable[..., None]",
+            pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method),
+        )
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
@@ -447,14 +450,14 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
         yield
 
 
-def protected_table(table: str, operation: str) -> re.Pattern:
+def protected_table(table: str, operation: str) -> re.Pattern[str]:
     return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
 
-_protected_operations: list[re.Pattern] = []
+_protected_operations: list[re.Pattern[str]] = []
 
 
-def get_protected_operations() -> list[re.Pattern]:
+def get_protected_operations() -> list[re.Pattern[str]]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
@@ -605,7 +608,7 @@ def validate_no_cross_silo_deletions(
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
-        deletion_task: BaseDeletionTask = deletions.get(model=model_class, query={})
+        deletion_task: BaseDeletionTask[Any] = deletions.get(model=model_class, query={})
         for relation in deletion_task.get_child_relations(
             model_class(**instantiation_params.get(model_class, {}))
         ):
@@ -644,7 +647,7 @@ def validate_relation_does_not_cross_silo_foreign_keys(
             )
 
 
-def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
+def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]) -> None:
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if uses_snowflake_id(related_model):
         return

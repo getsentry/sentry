@@ -274,7 +274,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id is None
+            assert viewer_context.actor.actor_id is None
             assert viewer_context.actor.type == ActorType.SYSTEM
 
         with (
@@ -432,8 +432,8 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRun.objects.filter(id=run.id).exists()
         shard.refresh_from_db()
         result.refresh_from_db()
-        assert shard.seer_run_id is None
-        assert result.result_seer_run_id is None
+        assert not shard.seer_run_id
+        assert not result.result_seer_run_id
 
 
 class PartitionValidationTest(TestCase):

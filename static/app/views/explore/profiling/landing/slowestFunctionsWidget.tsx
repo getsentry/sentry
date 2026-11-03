@@ -457,7 +457,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
-          maxMenuHeight={300}
+          maxHeight={300}
         />
       </AccordionItem>
       {isExpanded && (

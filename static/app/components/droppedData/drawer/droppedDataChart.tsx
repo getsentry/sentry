@@ -7,12 +7,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
 import {
   isOutcomeSelected,
-  outcomeLabel,
   type OutcomeColors,
   type OutcomeSelection,
-} from 'sentry/components/droppedData/outcomes';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {t, tn} from 'sentry/locale';
+} from 'sentry/components/droppedData/drawer/outcomeColors';
+import {datasetNoun, outcomeLabel} from 'sentry/components/droppedData/outcomes';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
+import {t} from 'sentry/locale';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
@@ -23,7 +24,7 @@ const STACK_NAME = 'dropped';
 const CHART_HEIGHT = '112px';
 
 export function droppedEventsToSeries(
-  droppedEvents: DroppedEventsBucket[]
+  droppedEvents: OutcomeRow[]
 ): Record<string, TimeSeries> {
   // Bars only stack when every series has a value at the same timestamps, so
   // build one shared, sorted time axis and zerofill each outcome onto it.
@@ -61,7 +62,8 @@ export function droppedEventsToSeries(
 
 interface DroppedDataChartProps {
   colors: OutcomeColors;
-  droppedEvents: DroppedEventsBucket[];
+  dataset: DiscoverDatasets;
+  droppedEvents: OutcomeRow[];
   hasAskSeer: boolean;
   onSelectionChange: (selection: OutcomeSelection) => void;
   selection: OutcomeSelection;
@@ -70,6 +72,7 @@ interface DroppedDataChartProps {
 export function DroppedDataChart({
   droppedEvents,
   colors,
+  dataset,
   hasAskSeer,
   selection,
   onSelectionChange,
@@ -105,11 +108,10 @@ export function DroppedDataChart({
     <Stack gap="md">
       <Stack gap="sm">
         <Heading as="h2" size="lg">
-          {tn(
-            '%2$s dropped and filtered event',
-            '%2$s dropped and filtered events',
-            totalDropped,
-            formatAbbreviatedNumber(totalDropped)
+          {t(
+            '%s dropped and filtered %s',
+            formatAbbreviatedNumber(totalDropped),
+            datasetNoun(dataset, totalDropped)
           )}
         </Heading>
         <Text size="sm">

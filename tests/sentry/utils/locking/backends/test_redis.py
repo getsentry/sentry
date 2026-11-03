@@ -4,6 +4,9 @@ from functools import cached_property
 from unittest import TestCase
 
 import pytest
+import rb
+from redis.client import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.helpers.options import override_options
@@ -19,11 +22,11 @@ class RedisBackendTestCaseBase:
     backend_class: type[BaseRedisLockBackend]
 
     @property
-    def cluster(self):
+    def cluster(self) -> rb.Cluster | RedisCluster[str] | StrictRedis[str]:
         raise NotImplementedError
 
     @property
-    def backend(self):
+    def backend(self) -> BaseRedisLockBackend:
         return self.backend_class(self.cluster, uuid="09cd7348c93f4198995177a57216e620")
 
     def test_success(self) -> None:
@@ -83,7 +86,7 @@ class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> rb.Cluster:
         return clusters.get("default")
 
 
@@ -91,7 +94,7 @@ class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisClusterLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis_clusters.get("default")
 
 

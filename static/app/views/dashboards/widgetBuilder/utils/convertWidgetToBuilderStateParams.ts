@@ -9,6 +9,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {parseAsTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
@@ -86,6 +87,13 @@ export function convertWidgetToQueryParams(
     limit: widget.limit ?? undefined,
     field,
     yAxis,
+    ...(widget.queries.some(q =>
+      Object.values(q.transformations ?? {}).some(pipeline => pipeline.length)
+    ) && {
+      transformations: parseAsTransformations.serialize(
+        widget.queries.map(q => q.transformations ?? {})
+      ),
+    }),
     query,
     sort,
     legendAlias,

@@ -12,16 +12,17 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/drawer/outcomeColors';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
+import {
   droppedEventsToOutcomeGroups,
   filterDroppedEventsByScope,
   type AskSeerHandler,
   type DroppedDataScope,
-} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  getOutcomeColors,
-  isOutcomeSelected,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/outcomeSections';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -51,7 +52,7 @@ export function DroppedDataDrawer({
     interval: interval ?? chartInterval,
   });
 
-  const [scope, setScope] = useState<DroppedDataScope>('contributing');
+  const [scope, setScope] = useState<DroppedDataScope>('unexpected');
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
 
   const scopedDroppedEvents = filterDroppedEventsByScope(droppedEvents ?? [], scope);
@@ -77,7 +78,7 @@ export function DroppedDataDrawer({
     <Fragment>
       <DrawerHeader>
         <Flex flex="1" align="center" justify="between" gap="md" paddingRight="lg">
-          <Text size="md">{t('Dropped and Filtered Events')}</Text>
+          <Text size="md">{droppedAndFilteredLabel(dataset)}</Text>
           <SegmentedControl
             aria-label={t('Filter dropped events')}
             size="xs"
@@ -91,7 +92,7 @@ export function DroppedDataDrawer({
               });
             }}
           >
-            <SegmentedControl.Item key="contributing">
+            <SegmentedControl.Item key="unexpected">
               {t('Unexpected')}
             </SegmentedControl.Item>
             <SegmentedControl.Item key="all">{t('All')}</SegmentedControl.Item>
@@ -139,6 +140,7 @@ export function DroppedDataDrawer({
                   <DroppedDataChart
                     droppedEvents={scopedDroppedEvents}
                     colors={outcomeColors}
+                    dataset={dataset}
                     hasAskSeer={onAskSeer !== undefined}
                     selection={outcomeSelection}
                     onSelectionChange={nextSelection => {

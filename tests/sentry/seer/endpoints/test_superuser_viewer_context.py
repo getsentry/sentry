@@ -9,10 +9,10 @@ from rest_framework.test import APIClient
 from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     Actor,
     ActorType,
+    SuperuserAccess,
     ViewerContext,
     encode_viewer_context,
 )
@@ -58,7 +58,7 @@ class SuperuserViewerContextTest(APITestCase):
 
             def capture_context(*_args: Any, **kwargs: Any) -> Any:
                 resolved = _resolve_viewer_context(kwargs["viewer_context"])
-                assert resolved is not None
+                assert isinstance(resolved, ViewerContext)
                 resolved_contexts.append(resolved)
                 return outbound.return_value
 
@@ -98,7 +98,9 @@ class SuperuserViewerContextTest(APITestCase):
     def test_read_write_browser_elevation_cannot_write(self) -> None:
         self._assert_read_only_elevation(["superuser.write"], 200)
 
-    def _assert_read_only_elevation(self, permissions, browser_write_status) -> None:
+    def _assert_read_only_elevation(
+        self, permissions: list[str], browser_write_status: int
+    ) -> None:
         for permission in permissions:
             self.add_user_permission(self.employee, permission)
         with self.options({"superuser.read-write.ga-rollout": True}):
@@ -108,7 +110,7 @@ class SuperuserViewerContextTest(APITestCase):
         assert resolved.actor.superuser is not None
         assert type(resolved.actor.superuser.expires_at) is int
         assert 0 < resolved.actor.superuser.expires_at - timezone.now().timestamp() <= 300
-        assert resolved.actor.superuser.dict() == {
+        assert resolved.actor.serialize()["superuser"] == {
             "expires_at": resolved.actor.superuser.expires_at
         }
 

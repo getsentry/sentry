@@ -5,8 +5,6 @@ import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanFields} from 'sentry/views/insights/types';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
@@ -74,14 +72,11 @@ type EAPChartsWidgetProps = {
 };
 
 export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const [spanCategoryUrlParam] = useQueryState(
     SpanFields.SPAN_CATEGORY,
     parseAsString.withDefault('')
   );
-  const [selectedChartUrlParam] = useQueryState(
+  const [selectedChartUrlParam, setSelectedChartUrlParam] = useQueryState(
     SELECTED_CHART_QUERY_PARAM,
     parseAsString.withDefault('')
   );
@@ -107,10 +102,7 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
   });
 
   const handleChartChange = (option: SelectOption<string>) => {
-    navigate({
-      ...location,
-      query: {...location.query, [SELECTED_CHART_QUERY_PARAM]: option.value},
-    });
+    setSelectedChartUrlParam(option.value, {history: 'push'});
   };
 
   return (

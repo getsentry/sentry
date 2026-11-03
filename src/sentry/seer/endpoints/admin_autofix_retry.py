@@ -21,12 +21,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import PIPELINE_ORDER
 from sentry.seer.models import SeerRun
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 

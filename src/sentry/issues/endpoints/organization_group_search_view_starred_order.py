@@ -13,14 +13,14 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "PUT": ["member:read", "member:write"],
+        "PUT": ["member:read", "member:write", "user_preference:write"],
     }
 
 
 class GroupSearchViewStarredOrderSerializer(serializers.Serializer):
     view_ids = serializers.ListField(child=serializers.IntegerField(), required=True, min_length=0)
 
-    def validate_view_ids(self, view_ids):
+    def validate_view_ids(self, view_ids: list[int]) -> list[int]:
         if len(view_ids) != len(set(view_ids)):
             raise serializers.ValidationError("Single view cannot take up multiple positions")
 

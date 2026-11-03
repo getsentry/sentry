@@ -13,7 +13,7 @@ from sentry.tasks.delete_pending_groups import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.types.group import GroupSubStatus
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class DeletePendingGroupsTest(TestCase):
@@ -64,7 +64,7 @@ class DeletePendingGroupsTest(TestCase):
 
             def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
                 viewer_context = get_viewer_context()
-                assert viewer_context is not None
+                assert isinstance(viewer_context, ViewerContext)
                 assert viewer_context.organization_id == project.organization_id
                 assert viewer_context.project_id == project.id
                 assert viewer_context.actor.type == ActorType.SYSTEM

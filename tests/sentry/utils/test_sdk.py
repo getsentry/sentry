@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import contextlib
+import os
+from collections.abc import Iterator
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -28,7 +30,7 @@ from sentry.utils.sdk import (
 
 
 @contextlib.contextmanager
-def patch_isolation_scope():
+def patch_isolation_scope() -> Iterator[Scope]:
     """
     Generates and yields new Scope object, and patches sentry.utils.sdk.Scope.get_isolation_scope to return the same
     scope within the context manager.
@@ -78,6 +80,49 @@ def test_before_send_log_keeps_other_messages() -> None:
     log = cast(Log, {"attributes": {"sentry.message.template": "Request processed"}})
     with patch("sentry.utils.sdk.in_random_rollout", return_value=True):
         assert sdk.before_send_log(log, {}) is log
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, {}),
+        ("", {}),
+        (
+            "k8s.pod.name=web-abc,k8s.namespace.name=default,cloud.provider=gcp",
+            {"k8s.pod.name": "web-abc", "k8s.namespace.name": "default", "cloud.provider": "gcp"},
+        ),
+        (" k8s.node.name = node-1 , ", {"k8s.node.name": "node-1"}),
+        ("k8s.cluster.name=a%2Cb%3Dc", {"k8s.cluster.name": "a,b=c"}),
+        ("novalue,=nokey,empty=,k8s.job.name=job", {"k8s.job.name": "job"}),
+    ],
+)
+def test_parse_otel_resource_attributes(raw: str | None, expected: dict[str, str]) -> None:
+    assert sdk._parse_otel_resource_attributes(raw) == expected
+
+
+def test_set_resource_attributes_on_global_scope() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(
+            os.environ,
+            {"OTEL_RESOURCE_ATTRIBUTES": "k8s.pod.name=web-abc,cloud.account.id=project"},
+        ),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {"k8s.pod.name": "web-abc", "cloud.account.id": "project"}
+
+
+def test_set_resource_attributes_unset_is_noop() -> None:
+    global_scope = Scope(ty=sentry_sdk.scope.ScopeType.GLOBAL)
+    with (
+        patch.dict(os.environ, {"OTEL_RESOURCE_ATTRIBUTES": ""}),
+        patch("sentry_sdk.scope._global_scope", global_scope),
+    ):
+        sdk._set_resource_attributes()
+
+    assert global_scope._attributes == {}
 
 
 class SDKUtilsTest(TestCase):
@@ -198,7 +243,7 @@ class CheckTagForScopeBleedTest(TestCase):
 
     def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
         self, mock_logger_warning: MagicMock
-    ):
+    ) -> None:
         orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
@@ -308,7 +353,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         self,
         mock_check_transaction: MagicMock,
         mock_sdk_capture_exception: MagicMock,
-    ):
+    ) -> None:
         capture_exception_with_scope_check(Exception())
 
         assert mock_check_transaction.call_count == 0
@@ -389,7 +434,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
     def test_doesnt_overwrite_incoming_scope_bleed_context(
         self, mock_sdk_capture_exception: MagicMock
-    ):
+    ) -> None:
         existing_scope_bleed_data = {
             "previous_org.slug_tag": "good_dogs",
             "new_org.slug_tag": "squirrel_chasers",
@@ -562,7 +607,7 @@ class BindAmbiguousOrgContextTest(TestCase):
 class SDKLoggerTest(TestCase):
     def test_flatten_dict(self) -> None:
         class Dog:
-            def __init__(self, name: str):
+            def __init__(self, name: str) -> None:
                 self.name = name
 
             def __str__(self) -> str:

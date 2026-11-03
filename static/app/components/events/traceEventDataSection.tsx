@@ -52,6 +52,7 @@ type Props = {
   title: React.ReactNode;
   type: string;
   activeThreadId?: number;
+  initialCollapse?: boolean;
   isNestedSection?: boolean;
 };
 
@@ -71,6 +72,7 @@ export function TraceEventDataSection({
   hasAbsoluteAddresses,
   isNestedSection = false,
   activeThreadId,
+  initialCollapse,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -564,6 +566,7 @@ export function TraceEventDataSection({
 
   return (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={type}
       title={title}
       disableCollapsePersistence

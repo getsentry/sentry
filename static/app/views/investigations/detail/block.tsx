@@ -1,10 +1,8 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconArrow} from '@sentry/icons/arrow';
 import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {IconReturn} from '@sentry/icons/return';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -13,10 +11,13 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {
+  MarkedLexer,
+  type MarkdownProps,
+  type MarkdownTableColumn,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -34,11 +35,14 @@ import {
   investigationExecutionDetailQueryOptions,
   useDeleteInvestigationBlockMutation,
   useResumeInvestigationExecutionMutation,
-  useRunInvestigationBlockMutation,
   useStopInvestigationExecutionMutation,
-  useUpdateInvestigationBlockPromptMutation,
 } from 'sentry/views/investigations/api';
 import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {
+  getBlockLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
@@ -52,6 +56,8 @@ import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -63,7 +69,7 @@ type InvestigationNotebookBlockProps = {
   onComment?: (blockId: string) => void;
 };
 
-export function InvestigationNotebookBlock({
+function InvestigationNotebookBlockInner({
   block,
   canRun,
   investigation,
@@ -78,8 +84,8 @@ export function InvestigationNotebookBlock({
   const awaitingInput = block.currentExecution?.status === 'awaiting_input';
   // A block that has nothing in it yet is showing a placeholder, so opening the
   // Seer panel over it would bury that. A block waiting on an answer is the
-  // exception — the question lives in the panel. Runs started from this page
-  // still open it, through `openPanel` and the effects below.
+  // exception — the question lives in the panel. Runs that start while the
+  // page is open still open it, through the effects below.
   const [panelOpen, setPanelOpen] = useState(
     Boolean(activeExecutionId) && (hasRenderableContent(block) || awaitingInput)
   );
@@ -87,15 +93,12 @@ export function InvestigationNotebookBlock({
   const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
     activeExecutionId
   );
-  const [showPrompt, setShowPrompt] = useState(!activeExecutionId);
-  const [prompt, setPrompt] = useState(() =>
-    block.outputStatus === 'notRun' ? block.generationPrompt : ''
-  );
-  const progressState = getBlockProgressState(block, investigation.blocks ?? []);
-  const waitingForDependencies =
-    progressState === 'waiting' ||
-    progressState === 'blockedByFailure' ||
-    progressState === 'blockedByCancellation';
+  // Push the block into the LLM context tree for Seer Explorer. The same object
+  // is the context when "Ask Seer" asks about this block.
+  const blockLLMContext = getBlockLLMContext(block);
+  useLLMContext(blockLLMContext);
+  const askSeer = useInvestigationAskSeer();
+  const progressState = getBlockProgressState(block);
   const executionId = block.currentExecution?.id;
   const streamedTextQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({
@@ -127,7 +130,6 @@ export function InvestigationNotebookBlock({
     // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
-    setShowPrompt(false);
     // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [activeExecutionId]);
 
@@ -146,20 +148,21 @@ export function InvestigationNotebookBlock({
     // eslint-disable react-you-might-not-need-an-effect/no-derived-state
     setPanelOpen(true);
     setTraceExecutionId(activeExecutionId);
-    setShowPrompt(false);
     // eslint-enable react-you-might-not-need-an-effect/no-derived-state
   }, [awaitingInput, activeExecutionId]);
 
-  function openPanel() {
-    setPanelOpen(true);
-    if (block.currentExecution && isExecutionActive(block.currentExecution.status)) {
-      setTraceExecutionId(block.currentExecution.id);
-      setShowPrompt(false);
-      return;
-    }
-    setShowPrompt(true);
-    setPrompt(block.outputStatus === 'notRun' ? block.generationPrompt : '');
-  }
+  const handleAskSeer = askSeer
+    ? () =>
+        askSeer({
+          prompt: block.title
+            ? t('How do you want to steer the investigation: "%s"?', block.title)
+            : t('How do you want to steer this block?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            block: blockLLMContext,
+          },
+        })
+    : undefined;
 
   const actionItems: MenuItemProps[] = [
     {
@@ -169,10 +172,21 @@ export function InvestigationNotebookBlock({
       onAction: () => onComment?.(block.id),
     },
     {
-      key: 'refine',
-      label: t('Refine'),
-      disabled: waitingForDependencies,
-      onAction: openPanel,
+      key: 'ask-seer',
+      label: t('Ask Seer'),
+      hidden: !handleAskSeer,
+      onAction: handleAskSeer,
+    },
+    {
+      // Closing the panel of a run still going would otherwise leave no way back
+      // to it, or to a question Seer is waiting on.
+      key: 'show-activity',
+      label: t('Show Seer activity'),
+      hidden: !activeExecutionId || panelOpen,
+      onAction: () => {
+        setPanelOpen(true);
+        setTraceExecutionId(activeExecutionId);
+      },
     },
     {
       key: 'delete',
@@ -196,63 +210,23 @@ export function InvestigationNotebookBlock({
     },
   ];
 
-  const hasComments = commentCount > 0;
-  const actionSize = block.kind === 'query' ? 'zero' : 'xs';
+  const actionButtonProps = {
+    actionItems,
+    commentCount,
+    displayTitle,
+    onComment: onComment ? () => onComment(block.id) : undefined,
+  };
 
-  const blockActions = (
-    <Flex align="center" gap="2xs" flexShrink={0}>
-      <BlockActions>
-        <DropdownMenu
-          position="bottom-end"
-          usePortal
-          trigger={triggerProps => (
-            <OverlayTrigger.IconButton
-              {...triggerProps}
-              size={actionSize}
-              variant="transparent"
-              icon={<IconEllipsis size="xs" />}
-              aria-label={t('Block actions for %s', displayTitle)}
-            />
-          )}
-          items={actionItems}
-        />
-      </BlockActions>
-      {onComment ? (
-        <BlockActions data-pinned={hasComments || undefined}>
-          <Button
-            size={actionSize}
-            variant="transparent"
-            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
-            aria-label={
-              hasComments
-                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
-                : t('Comment on %s', displayTitle)
-            }
-            data-block-comments-trigger
-            tooltipProps={{
-              title: hasComments ? t('View comments') : t('Add a comment'),
-            }}
-            onClick={() => onComment(block.id)}
-          />
-        </BlockActions>
-      ) : null}
-    </Flex>
-  );
-
-  const panel = panelOpen ? (
-    <RefinementPanel
-      block={block}
-      canRun={canRun}
-      investigation={investigation}
-      prompt={prompt}
-      setPrompt={setPrompt}
-      showPrompt={showPrompt}
-      setShowPrompt={setShowPrompt}
-      traceExecutionId={traceExecutionId}
-      setTraceExecutionId={setTraceExecutionId}
-      onClose={() => setPanelOpen(false)}
-    />
-  ) : null;
+  const panel =
+    panelOpen && traceExecutionId ? (
+      <AgentActivityPanel
+        block={block}
+        executionId={traceExecutionId}
+        investigation={investigation}
+        onAskSeer={handleAskSeer}
+        onClose={() => setPanelOpen(false)}
+      />
+    ) : null;
 
   return (
     <Stack
@@ -265,7 +239,7 @@ export function InvestigationNotebookBlock({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             block={block}
             progressState={progressState}
           />
@@ -275,7 +249,8 @@ export function InvestigationNotebookBlock({
         <Fragment>
           <BlockResult
             block={block}
-            actions={blockActions}
+            actions={<BlockActionButtons {...actionButtonProps} size="xs" />}
+            headerActions={<BlockActionButtons {...actionButtonProps} size="zero" />}
             progressState={progressState}
             streamedMarkdown={
               isExecutionActive(block.currentExecution?.status)
@@ -290,54 +265,190 @@ export function InvestigationNotebookBlock({
   );
 }
 
+export const InvestigationNotebookBlock = registerLLMContext(
+  'investigation-block',
+  InvestigationNotebookBlockInner
+);
+
+function BlockActionButtons({
+  actionItems,
+  commentCount,
+  displayTitle,
+  onComment,
+  size,
+}: {
+  actionItems: MenuItemProps[];
+  commentCount: number;
+  displayTitle: string;
+  /**
+   * `zero` keeps a card's header band its usual height; `xs` sits beside a
+   * text block's first line.
+   */
+  size: 'zero' | 'xs';
+  onComment?: () => void;
+}) {
+  const hasComments = commentCount > 0;
+  return (
+    <Flex align="center" gap="2xs" flexShrink={0}>
+      <BlockActions>
+        <DropdownMenu
+          position="bottom-end"
+          usePortal
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size={size}
+              variant="transparent"
+              icon={<IconEllipsis size="xs" />}
+              aria-label={t('Block actions for %s', displayTitle)}
+            />
+          )}
+          items={actionItems}
+        />
+      </BlockActions>
+      {onComment ? (
+        <BlockActions data-pinned={hasComments || undefined}>
+          <Button
+            size={size}
+            variant="transparent"
+            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
+            aria-label={
+              hasComments
+                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
+                : t('Comment on %s', displayTitle)
+            }
+            data-block-comments-trigger
+            tooltipProps={{
+              title: hasComments ? t('View comments') : t('Add a comment'),
+            }}
+            onClick={onComment}
+          />
+        </BlockActions>
+      ) : null}
+    </Flex>
+  );
+}
+
 function BlockResult({
   actions,
   block,
+  headerActions,
   progressState,
   streamedMarkdown,
 }: {
   actions: React.ReactNode;
   block: InvestigationBlock;
+  /** The same actions, sized for the header of an embed the markdown opens with. */
+  headerActions: React.ReactNode;
   progressState: BlockProgressState;
   streamedMarkdown?: string | null;
 }) {
-  const markdown =
-    streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
+  const markdown = streamedMarkdown ?? getTextBlockMarkdown(block);
+  const [firstMarkdownBlock, restMarkdown] = useMemo(
+    () => splitFirstMarkdownBlock(markdown ?? ''),
+    [markdown]
+  );
+  // An embed the markdown opens with takes the actions into its card's header,
+  // so the card can run the block's full width. Until one claims them -- or if
+  // that embed renders no card -- they sit beside the first line.
+  const [actionsInEmbed, setActionsInEmbed] = useState(false);
+  // Stable, so a re-render (each streamed chunk) doesn't release and reclaim them.
+  const claimActions = useCallback(() => {
+    setActionsInEmbed(true);
+    return () => setActionsInEmbed(false);
+  }, []);
+  const actionsBesideFirstLine = actionsInEmbed ? null : (
+    <Grid area="1 / 2">
+      {/* A hidden line of text, so the actions sit on the content's first line. */}
+      <Container area="1 / 1">
+        <Text as="div" aria-hidden size="md" density="comfortable">
+          {'​'}
+        </Text>
+      </Container>
+      <Flex area="1 / 1" height="0" alignSelf="center" align="center">
+        {actions}
+      </Flex>
+    </Grid>
+  );
   return (
     <BlockHoverSurface
       flex={1}
       minWidth={0}
+      gap="sm"
       data-test-id="text-block-result"
       data-block-variant="unbordered"
     >
-      <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
-        <Stack minWidth={0} gap="sm">
-          <BlockExecutionAlert block={block} />
-          {markdown ? (
-            <SeerMarkdown raw={markdown} />
-          ) : isBlockWorking(block) ? (
+      <BlockExecutionAlert block={block} />
+      {markdown ? (
+        // The first block shares its row with the actions and wraps short of
+        // them; the rest runs the full width, so an embed further down lines up
+        // with a query block's card.
+        <Grid
+          columns={actionsInEmbed ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'}
+          gap="lg sm"
+          align="start"
+        >
+          <Container area="1 / 1" minWidth={0}>
+            <SeerMarkdown
+              raw={firstMarkdownBlock}
+              components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              leadingEmbedActions={{actions: headerActions, onClaim: claimActions}}
+            />
+          </Container>
+          {actionsBesideFirstLine}
+          {restMarkdown ? (
+            <Container area="2 / 1 / 3 / -1" minWidth={0}>
+              <SeerMarkdown
+                raw={restMarkdown}
+                components={TEXT_BLOCK_MARKDOWN_COMPONENTS}
+              />
+            </Container>
+          ) : null}
+        </Grid>
+      ) : (
+        <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
+          {isBlockWorking(block) ? (
             <Container paddingBottom="xl">
               <InvestigationBlockPlaceholder title={block.title} />
             </Container>
           ) : (
             <BlockProgress state={progressState} />
           )}
-        </Stack>
-        {/* A hidden line of text, so the actions sit on the block's first line. */}
-        <Grid>
-          <Container area="1 / 1">
-            <Text as="div" aria-hidden size="md" density="comfortable">
-              {'​'}
-            </Text>
-          </Container>
-          <Flex area="1 / 1" height="0" alignSelf="center" align="center">
-            {actions}
-          </Flex>
+          {actionsBesideFirstLine}
         </Grid>
-      </Grid>
+      )}
     </BlockHoverSurface>
   );
 }
+
+/**
+ * Splits markdown after its first block. Token sources concatenate back to the
+ * input, so the halves render as the whole would, except that a reference-style
+ * link no longer resolves against a definition in the other half.
+ */
+function splitFirstMarkdownBlock(markdown: string): [string, string] {
+  const tokens = MarkedLexer.lex(markdown);
+  const first = tokens.findIndex(token => token.type !== 'space');
+  if (first === -1) {
+    return [markdown, ''];
+  }
+  const length = tokens
+    .slice(0, first + 1)
+    .reduce((total, token) => total + token.raw.length, 0);
+  return [markdown.slice(0, length), markdown.slice(length)];
+}
+
+/**
+ * Renders headings the way `SeerMarkdown` does, marked so the outline can find
+ * the block's own headings apart from any inside its embeds.
+ */
+const TEXT_BLOCK_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Heading: ({children, level}) => (
+    <Heading as={`h${level}`} size="lg" data-investigation-block-heading="">
+      {children}
+    </Heading>
+  ),
+};
 
 function QueryResult({
   actions,
@@ -420,14 +531,7 @@ function QueryResult({
   );
 }
 
-type BlockProgressState =
-  | 'running'
-  | 'waiting'
-  | 'failed'
-  | 'cancelled'
-  | 'blockedByFailure'
-  | 'blockedByCancellation'
-  | null;
+type BlockProgressState = 'running' | 'failed' | 'cancelled' | null;
 
 function hasExecutionAlert(block: InvestigationBlock): boolean {
   const status = block.currentExecution?.status;
@@ -454,33 +558,21 @@ function BlockProgress({state}: {state: BlockProgressState}) {
   if (!state) {
     return <Text variant="muted">{t('This block has no output yet.')}</Text>;
   }
-  let message = t('Cancelled because a previous block failed.');
+  let message = t('This block run was cancelled.');
   if (state === 'running') {
     message = t('Seer is working on this block…');
-  } else if (state === 'waiting') {
-    message = t('Waiting for previous blocks…');
   } else if (state === 'failed') {
     message = t('This block failed to run.');
-  } else if (state === 'cancelled') {
-    message = t('This block run was cancelled.');
-  } else if (state === 'blockedByCancellation') {
-    message = t('Waiting because a previous block was cancelled.');
   }
   return (
     <Flex align="center" gap="xs" data-test-id={`block-progress-${state}`}>
-      <IconSeer
-        size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
-      />
+      <IconSeer size="xs" animation={state === 'running' ? 'idle' : undefined} />
       <Text variant="muted">{message}</Text>
     </Flex>
   );
 }
 
-function getBlockProgressState(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[]
-): BlockProgressState {
+function getBlockProgressState(block: InvestigationBlock): BlockProgressState {
   if (isExecutionActive(block.currentExecution?.status)) {
     return 'running';
   }
@@ -490,20 +582,7 @@ function getBlockProgressState(
   if (block.currentExecution?.status === 'cancelled') {
     return 'cancelled';
   }
-  if (
-    block.currentExecution ||
-    block.config.autoRun !== true ||
-    block.dependencies.length === 0
-  ) {
-    return null;
-  }
-  if (hasFailedDependency(block, blocks)) {
-    return 'blockedByFailure';
-  }
-  if (hasCancelledDependency(block, blocks)) {
-    return 'blockedByCancellation';
-  }
-  return 'waiting';
+  return null;
 }
 
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
@@ -527,70 +606,9 @@ export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
-  return blocks.some(
-    block =>
-      isExecutionActive(block.outputStatus) ||
-      getBlockProgressState(block, blocks) === 'waiting'
-  );
+  return blocks.some(block => isExecutionActive(block.outputStatus));
 }
 
-function isInvestigationFailureExecution(
-  execution: InvestigationBlock['currentExecution']
-) {
-  return (
-    execution?.status === 'failed' ||
-    (execution?.status === 'cancelled' &&
-      execution.error?.code === 'investigation_execution_failed')
-  );
-}
-
-function hasFailedDependency(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[],
-  visited = new Set<string>()
-): boolean {
-  for (const dependencyId of block.dependencies) {
-    if (visited.has(dependencyId)) {
-      continue;
-    }
-    visited.add(dependencyId);
-    const dependency = blocks.find(candidate => candidate.id === dependencyId);
-    if (!dependency) {
-      continue;
-    }
-    if (isInvestigationFailureExecution(dependency.currentExecution)) {
-      return true;
-    }
-    if (hasFailedDependency(dependency, blocks, visited)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function hasCancelledDependency(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[],
-  visited = new Set<string>()
-): boolean {
-  for (const dependencyId of block.dependencies) {
-    if (visited.has(dependencyId)) {
-      continue;
-    }
-    visited.add(dependencyId);
-    const dependency = blocks.find(candidate => candidate.id === dependencyId);
-    if (!dependency) {
-      continue;
-    }
-    if (dependency.currentExecution?.status === 'cancelled') {
-      return true;
-    }
-    if (hasCancelledDependency(dependency, blocks, visited)) {
-      return true;
-    }
-  }
-  return false;
-}
 /**
  * A query's results arrive as a Markdown table but render through
  * `SimpleTable`, the same table the query embeds use, so the two can't drift
@@ -640,41 +658,27 @@ function QueryResultTable({
   );
 }
 
-type RefinementPanelProps = {
+type AgentActivityPanelProps = {
   block: InvestigationBlock;
-  canRun: boolean;
+  executionId: string;
   investigation: InvestigationDetail;
   onClose: () => void;
-  prompt: string;
-  setPrompt: (prompt: string) => void;
-  setShowPrompt: (showPrompt: boolean) => void;
-  setTraceExecutionId: (executionId: string | null) => void;
-  showPrompt: boolean;
-  traceExecutionId: string | null;
+  onAskSeer?: () => void;
 };
 
-function RefinementPanel({
+/**
+ * What Seer did on one run of a block: its transcript, any question it is
+ * waiting on, and a way to stop it.
+ */
+function AgentActivityPanel({
   block,
-  canRun,
+  executionId,
   investigation,
+  onAskSeer,
   onClose,
-  prompt,
-  setPrompt,
-  setShowPrompt,
-  setTraceExecutionId,
-  showPrompt,
-  traceExecutionId,
-}: RefinementPanelProps) {
+}: AgentActivityPanelProps) {
   const organizationSlug = useOrganization().slug;
   const queryClient = useQueryClient();
-  const updatePromptMutation = useUpdateInvestigationBlockPromptMutation(
-    organizationSlug,
-    investigation.id
-  );
-  const runMutation = useRunInvestigationBlockMutation(
-    organizationSlug,
-    investigation.id
-  );
   const stopMutation = useStopInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
@@ -687,16 +691,13 @@ function RefinementPanel({
     investigation.id,
     {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
   );
-  const executionId = traceExecutionId;
-  const executionOptions = investigationExecutionDetailQueryOptions({
-    organizationSlug,
-    investigationId: investigation.id,
-    blockId: block.id,
-    executionId: executionId ?? 'disabled',
-  });
   const executionQuery = useQuery({
-    ...executionOptions,
-    enabled: Boolean(executionId),
+    ...investigationExecutionDetailQueryOptions({
+      organizationSlug,
+      investigationId: investigation.id,
+      blockId: block.id,
+      executionId,
+    }),
     refetchInterval: query =>
       isExecutionActive(query.state.data?.json.status) ? 1000 : false,
   });
@@ -720,93 +721,8 @@ function RefinementPanel({
     }
   }, [investigation.id, organizationSlug, queryClient, status]);
 
-  async function submit() {
-    const nextPrompt = prompt.trim();
-    if (!nextPrompt) {
-      return;
-    }
-
-    try {
-      const updatedBlock = await updatePromptMutation.mutateAsync({
-        block,
-        investigationVersion: investigation.version,
-        prompt: nextPrompt,
-      });
-      const investigationVersion =
-        investigation.version + (updatedBlock.version === block.version ? 0 : 1);
-      const started = await runMutation.mutateAsync({
-        block: updatedBlock,
-        investigationVersion,
-      });
-      setTraceExecutionId(started.id);
-      setShowPrompt(false);
-    } catch {
-      addErrorMessage(t('Unable to start this Seer run.'));
-    }
-  }
-
-  function handlePromptKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void submit();
-    }
-  }
-
-  const isSubmitting = updatePromptMutation.isPending || runMutation.isPending;
-
-  if (showPrompt) {
-    return (
-      <Stack width="100%" marginTop="lg" gap="md">
-        <Flex align="center" justify="between" gap="sm">
-          <Flex align="center" gap="sm">
-            <IconSeer size="xs" />
-            <Text monospace>{t('Ask Seer to refine')}</Text>
-          </Flex>
-          {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}
-        </Flex>
-        <Stack gap="md">
-          <RefinementPrompt>
-            <RefinementTextArea
-              aria-label={t('Instructions for Seer')}
-              autosize
-              autoFocus
-              rows={3}
-              placeholder={t(
-                "Tell Seer how you'd like to refine or explore this analysis"
-              )}
-              value={prompt}
-              onChange={event => setPrompt(event.target.value)}
-              onKeyDown={handlePromptKeyDown}
-            />
-            <RefinementReturnIcon aria-hidden="true">
-              <IconReturn size="xs" />
-            </RefinementReturnIcon>
-          </RefinementPrompt>
-          <Flex align="center" gap="sm">
-            <Button
-              size="sm"
-              icon={<IconClose size="xs" />}
-              aria-label={t('Cancel Seer request')}
-              onClick={onClose}
-              disabled={isSubmitting}
-            />
-            <Button
-              size="sm"
-              icon={<IconArrow direction="right" size="xs" />}
-              busy={isSubmitting}
-              disabled={!canRun || !prompt.trim()}
-              onClick={() => void submit()}
-            >
-              {t('Submit')}
-            </Button>
-          </Flex>
-        </Stack>
-      </Stack>
-    );
-  }
-
   return (
-    <RefinementDisclosure defaultExpanded size="sm">
+    <AgentActivityDisclosure defaultExpanded size="sm">
       <AgentActivityDisclosureTitle
         leadingItems={<IconSeer size="xs" animation={active ? 'idle' : undefined} />}
         trailingItems={
@@ -824,7 +740,7 @@ function RefinementPanel({
       >
         <AgentActivityTitle monospace>{getExecutionTitle(status)}</AgentActivityTitle>
       </AgentActivityDisclosureTitle>
-      <RefinementDisclosureContent>
+      <AgentActivityDisclosureContent>
         <Stack gap="md">
           <Transcript
             blockKind={block.kind}
@@ -832,7 +748,7 @@ function RefinementPanel({
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
           />
-          {executionId && execution?.pendingUserInput ? (
+          {execution?.pendingUserInput ? (
             <PendingInvestigationQuestion
               pendingInput={execution.pendingUserInput}
               responding={resumeMutation.isPending}
@@ -863,7 +779,7 @@ function RefinementPanel({
             </Alert.Container>
           ) : null}
           <Flex align="center" gap="sm">
-            {active && executionId ? (
+            {active ? (
               <Button
                 size="sm"
                 busy={stopMutation.isPending}
@@ -872,22 +788,15 @@ function RefinementPanel({
                 {t('Stop')}
               </Button>
             ) : null}
-            {status && !active ? (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => {
-                  setPrompt('');
-                  setShowPrompt(true);
-                }}
-              >
-                {t('Ask Seer again')}
+            {status && !active && onAskSeer ? (
+              <Button size="sm" variant="primary" onClick={onAskSeer}>
+                {t('Ask Seer')}
               </Button>
             ) : null}
           </Flex>
         </Stack>
-      </RefinementDisclosureContent>
-    </RefinementDisclosure>
+      </AgentActivityDisclosureContent>
+    </AgentActivityDisclosure>
   );
 }
 
@@ -1174,7 +1083,7 @@ function hasRenderableContent(block: InvestigationBlock) {
  * question, or stopping. These are the four the server itself treats as live.
  *
  * `notRun` is the one unfinished state left out: nothing has been dispatched
- * for the block, and an auto-run block whose dependency failed never will be.
+ * for the block.
  */
 export function isBlockWorking(block: InvestigationBlock) {
   return (
@@ -1205,6 +1114,26 @@ type RenderableQueryOutput = Pick<
 
 export function getBlockElementId(blockId: string) {
   return `investigation-block-${blockId}`;
+}
+
+/**
+ * The nth heading in a text block's own Markdown, leaving out any inside its
+ * embeds.
+ */
+export function getBlockHeadingElement(blockId: string, index: number) {
+  return (
+    document
+      .getElementById(getBlockElementId(blockId))
+      ?.querySelectorAll<HTMLElement>('[data-investigation-block-heading]')[index] ?? null
+  );
+}
+
+/**
+ * What a text block shows once it has settled: its output, or the content a
+ * person wrote.
+ */
+export function getTextBlockMarkdown(block: InvestigationBlock) {
+  return getTextOutput(block.output) ?? (block.content.trim() || null);
 }
 
 export function getBlockDisplayTitle(block: InvestigationBlock) {
@@ -1330,11 +1259,16 @@ const BlockHoverSurface = styled(Stack)`
  * The table runs edge to edge in the query card, whose own border already
  * frames it, so `SimpleTable`'s border and rounding would draw a second box
  * inside the first. Only the top rule stays, dividing the header from the
- * card's header band or the content inset above it.
+ * card's header band or the content inset above it, plus a bottom rule when
+ * prose follows the table, since the card's border no longer closes it off.
  */
 const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
+
+  &:not(:last-child) {
+    border-bottom-width: 1px;
+  }
 `;
 
 /**
@@ -1365,7 +1299,7 @@ const QueryResultHeaderRow = styled(SimpleTable.HeaderRow)`
   min-height: ${p => p.theme.space['3xl']};
 `;
 
-const RefinementDisclosure = styled(Disclosure)`
+const AgentActivityDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
 
@@ -1388,24 +1322,7 @@ const AgentActivityTitle = styled(Text)`
   font-variant-numeric: lining-nums tabular-nums;
 `;
 
-const RefinementPrompt = styled('div')`
-  position: relative;
-`;
-
-const RefinementTextArea = styled(TextArea)`
-  width: 100%;
-  padding-right: ${p => p.theme.space['2xl']};
-`;
-
-const RefinementReturnIcon = styled('span')`
-  position: absolute;
-  top: ${p => p.theme.space.md};
-  right: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  pointer-events: none;
-`;
-
-const RefinementDisclosureContent = styled(Disclosure.Content)`
+const AgentActivityDisclosureContent = styled(Disclosure.Content)`
   && {
     padding: ${p => p.theme.space.sm} 0 0;
   }

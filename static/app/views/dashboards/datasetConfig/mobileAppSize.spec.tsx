@@ -57,7 +57,7 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
       ]);
     });
 
-    it('names grouped series by group value, in order', () => {
+    it('keys grouped series by y-axis and group value, in order', () => {
       const result = MobileAppSizeConfig.transformTimeSeries!(
         {
           timeSeries: [
@@ -75,30 +75,10 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
         0
       );
 
-      expect(result.map(({seriesName}) => seriesName)).toEqual(['ios', 'android']);
-    });
-  });
-
-  it('returns size type and byte unit for every aggregate', () => {
-    const data = {
-      timeSeries: [
-        makeTimeSeries('max(install_size)', []),
-        makeTimeSeries('max(download_size)', []),
-      ],
-    };
-    const query = {
-      ...timeSeriesWidgetQuery,
-      aggregates: ['max(install_size)', 'max(download_size)'],
-      fields: ['max(install_size)', 'max(download_size)'],
-    };
-
-    expect(MobileAppSizeConfig.getSeriesResultType!(data, query)).toEqual({
-      'max(install_size)': 'size',
-      'max(download_size)': 'size',
-    });
-    expect(MobileAppSizeConfig.getSeriesResultUnit!(data, query)).toEqual({
-      'max(install_size)': 'byte',
-      'max(download_size)': 'byte',
+      expect(result.map(({seriesName}) => seriesName)).toEqual([
+        'max(install_size) : platform : ios',
+        'max(install_size) : platform : android',
+      ]);
     });
   });
 });

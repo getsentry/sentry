@@ -8,6 +8,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.backends.migration import (
     MigrationLockBackend,
+    SelectorFncType,
     default_locks_selector,
     post_process_locks_selector,
 )
@@ -17,18 +18,18 @@ from sentry.utils.locking.backends.redis import RedisLockBackend
 class DummyLockBackend(LockBackend):
     path = "tests.sentry.utils.locking.backends.test_migration.DummyLockBackend"
 
-    def __init__(self):
-        self._locks = {}
+    def __init__(self) -> None:
+        self._locks: dict[tuple[str, str | None], int] = {}
 
     def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         if self.locked(key=key, routing_key=routing_key):
             raise AssertionError(f"Could not acquire ({key}, {routing_key})")
         self._locks[(key, routing_key)] = duration
 
-    def release(self, key, routing_key=None):
+    def release(self, key: str, routing_key: str | None = None) -> None:
         del self._locks[(key, routing_key)]
 
-    def locked(self, key, routing_key=None):
+    def locked(self, key: str, routing_key: str | None = None) -> bool:
         return (key, routing_key) in self._locks
 
 
@@ -68,7 +69,12 @@ class TestMigrationLockBackend(TestCase):
         backend.backend_old.acquire(lk, 10)
         assert backend.locked(lk)
 
-        def selector_plzno_call(key, routing_key, backend_new, backend_old):
+        def selector_plzno_call(
+            key: str,
+            routing_key: str | int | None,
+            backend_new: LockBackend,
+            backend_old: LockBackend,
+        ) -> LockBackend:
             raise AssertionError("should not be called!")
 
         backend = MigrationLockBackend(
@@ -112,18 +118,28 @@ class UnavailableLockBackend(LockBackend):
     def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         raise ConnectionError("unavailable")
 
-    def release(self, key, routing_key=None):
+    def release(self, key: str, routing_key: str | None = None) -> None:
         raise ConnectionError("unavailable")
 
-    def locked(self, key, routing_key=None):
+    def locked(self, key: str, routing_key: str | None = None) -> bool:
         raise ConnectionError("unavailable")
 
 
-def pick_new(key, routing_key, backend_new, backend_old):
+def pick_new(
+    key: str,
+    routing_key: str | int | None,
+    backend_new: LockBackend,
+    backend_old: LockBackend,
+) -> LockBackend:
     return backend_new
 
 
-def pick_old(key, routing_key, backend_new, backend_old):
+def pick_old(
+    key: str,
+    routing_key: str | int | None,
+    backend_new: LockBackend,
+    backend_old: LockBackend,
+) -> LockBackend:
     return backend_old
 
 
@@ -131,7 +147,13 @@ class SwitchableSelector:
     def __init__(self, use_new: bool) -> None:
         self.use_new = use_new
 
-    def __call__(self, key, routing_key, backend_new, backend_old):
+    def __call__(
+        self,
+        key: str,
+        routing_key: str | int | None,
+        backend_new: LockBackend,
+        backend_old: LockBackend,
+    ) -> LockBackend:
         return backend_new if self.use_new else backend_old
 
 
@@ -139,7 +161,7 @@ class TestMigrationLockBackendOnRedis(TestCase):
     def setUp(self) -> None:
         self.key = f"lock-{uuid4().hex}"
 
-    def build(self, selector, **kwargs) -> MigrationLockBackend:
+    def build(self, selector: SelectorFncType, **kwargs: object) -> MigrationLockBackend:
         return MigrationLockBackend(
             backend_new_config=NEW_CONFIG,
             backend_old_config=OLD_CONFIG,
@@ -363,7 +385,7 @@ class TestRolloutSelectors(TestCase):
     old = DummyLockBackend()
     keys = [f"key-{i}" for i in range(1000)]
 
-    def picks(self, selector) -> list[LockBackend]:
+    def picks(self, selector: SelectorFncType) -> list[LockBackend]:
         return [selector(key, None, self.new, self.old) for key in self.keys]
 
     def test_rate_zero_and_one(self) -> None:

@@ -1,4 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   InvestigationHypothesisFixture,
@@ -11,7 +11,7 @@ import type {InvestigationToolActivity} from 'sentry/views/investigations/types'
 
 describe('SeerStatusBlock', () => {
   it('omits the elapsed time when there is nothing to count from', () => {
-    render(<SeerStatusBlock variant="running" title="Seer is investigating" />);
+    render(<SeerStatusBlock variant="failed" title="Seer couldn't finish" />);
 
     expect(screen.queryByText(/\ds$/)).not.toBeInTheDocument();
   });
@@ -35,30 +35,7 @@ describe('SeerStatusBlock', () => {
     expect(screen.getByRole('button', {name: 'Connect Datadog'})).toBeInTheDocument();
   });
 
-  it('shows a lone tool call without anything to expand', () => {
-    const {rerender} = render(
-      <SeerStatusBlock variant="running" title="Seer is gathering context" />
-    );
-
-    expect(
-      screen.queryByTestId('seer-status-block-tool-activity')
-    ).not.toBeInTheDocument();
-
-    rerender(
-      <SeerStatusBlock
-        variant="running"
-        title="Seer is gathering context"
-        toolActivity={[{id: 'a', kind: 'tool', status: 'running', title: 'Query spans'}]}
-      />
-    );
-
-    expect(screen.getByTestId('seer-status-block-tool-activity')).toHaveTextContent(
-      'Query spans'
-    );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  });
-
-  it('shows only the latest tool call and expands to the earlier ones', async () => {
+  it('lists every tool call in an open thinking block, in the order they ran', async () => {
     render(
       <SeerStatusBlock
         variant="running"
@@ -66,30 +43,139 @@ describe('SeerStatusBlock', () => {
         toolActivity={[
           {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
           {id: 'b', kind: 'tool', status: 'failed', title: 'Fetch traces'},
+          {id: 'c', kind: 'tool', status: 'running', title: 'Compare releases'},
+        ]}
+      />
+    );
+
+    const thinking = screen.getByTestId('seer-status-block-thinking');
+    // The latest call is the title, as the agent's current tool is in its own
+    // thinking block.
+    const toggle = within(thinking).getByRole('button', {name: /Compare releases/});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(thinking)
+        .getAllByText(/^(Query spans|Fetch traces|Compare releases)$/)
+        .map(node => node.textContent)
+    ).toEqual(['Compare releases', 'Query spans', 'Fetch traces', 'Compare releases']);
+    expect(within(thinking).getByRole('status', {name: 'Running'})).toBeVisible();
+
+    // Open while the run works, but the viewer can fold it away.
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Query spans')).not.toBeVisible();
+  });
+
+  it("shows the agent's reasoning between its calls, in the order they happened", () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
+        toolActivity={[
+          {id: 'r1', kind: 'thought', text: 'Start with the error spans.'},
+          {id: 'a', kind: 'api', status: 'completed', title: 'Query spans'},
           {
-            id: 'c',
-            kind: 'tool',
-            status: 'running',
-            title: 'Compare releases',
+            id: 'r2',
+            kind: 'thought',
+            text: 'The baseline looks backwards.\n\nCheck the environment filter.',
           },
         ]}
       />
     );
 
-    const toggle = screen.getByRole('button', {name: 'Compare releases'});
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('Query spans')).not.toBeVisible();
-
-    await userEvent.click(toggle);
-
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    // Newest first, reading back in time from the call that is running now.
-    const earlier = screen.getByRole('list', {name: 'Earlier tool calls'});
+    const thinking = screen.getByTestId('seer-status-block-thinking');
+    // Reasoning came last, but the block is still titled by what the agent did.
     expect(
-      within(earlier)
-        .getAllByRole('listitem')
-        .map(item => item.textContent)
-    ).toEqual(['Fetch tracesFailed', 'Query spans']);
+      within(thinking).getByRole('button', {name: /Query spans/})
+    ).toBeInTheDocument();
+    const first = within(thinking).getByText('Start with the error spans.');
+    const call = within(thinking).getAllByText('Query spans').at(-1)!;
+    const second = within(thinking).getByText('Check the environment filter.');
+    expect(first.compareDocumentPosition(call)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(call.compareDocumentPosition(second)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    // Reasoning is prose, not a call, so only the call carries a status glyph.
+    expect(within(thinking).getAllByLabelText('Succeeded')).toHaveLength(1);
+  });
+
+  it('announces a queued call as waiting, not as awaiting approval', () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
+        toolActivity={[
+          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
+          {id: 'b', kind: 'tool', status: 'queued', title: 'Fetch traces'},
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('status', {name: 'Waiting'})).toBeInTheDocument();
+    expect(screen.queryByLabelText('Waiting for approval')).not.toBeInTheDocument();
+  });
+
+  it('shows a thinking block before any call has landed', () => {
+    render(<SeerStatusBlock variant="running" title="Seer is looking for causes" />);
+
+    expect(
+      within(screen.getByTestId('seer-status-block-thinking')).getByRole('button', {
+        name: /Thinking/,
+      })
+    ).toBeInTheDocument();
+  });
+
+  describe('clock', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("counts up from the run's own start", () => {
+      render(
+        <SeerStatusBlock
+          variant="running"
+          title="Seer is gathering context"
+          startTime={new Date('2029-12-31T23:59:18Z')}
+        />
+      );
+
+      expect(screen.getByText('42.0s')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1500));
+      expect(screen.getByText('43.5s')).toBeInTheDocument();
+    });
+
+    it('counts from when the block appeared without one', () => {
+      render(<SeerStatusBlock variant="running" title="Seer is gathering context" />);
+
+      expect(screen.getByText('0.0s')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1500));
+      expect(screen.getByText('1.5s')).toBeInTheDocument();
+    });
+  });
+
+  // A stopped run's last calls are history: a thinking block would read as
+  // though the agent were still working.
+  it('draws no thinking block once the run has stopped', () => {
+    render(
+      <SeerStatusBlock
+        variant="failed"
+        title="Seer couldn't finish this investigation"
+        toolActivity={[
+          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
+        ]}
+      />
+    );
+
+    expect(screen.queryByTestId('seer-status-block-thinking')).not.toBeInTheDocument();
+    expect(screen.queryByText('Query spans')).not.toBeInTheDocument();
   });
 });
 
@@ -124,6 +210,36 @@ describe('getSeerStatusBlock', () => {
     );
 
     expect(block).toMatchObject({variant: 'running', title, statusLabel});
+  });
+
+  it('reads a run with only the next step outstanding as complete', () => {
+    const fixture = InvestigationOrchestrationFixture();
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'metadata',
+        report: {...fixture.report, status: 'completed'},
+      })
+    );
+
+    expect(block).toMatchObject({variant: 'complete', statusLabel: 'Completed'});
+  });
+
+  it('keeps synthesizing while the report metadata is still generating', () => {
+    const fixture = InvestigationOrchestrationFixture();
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'metadata',
+        report: {
+          ...fixture.report,
+          status: 'completed',
+          metadata: {...fixture.report.metadata, status: 'generating'},
+        },
+      })
+    );
+
+    expect(block).toMatchObject({variant: 'running', statusLabel: 'Synthesizing…'});
   });
 
   it('counts the hypotheses it is checking', () => {
@@ -195,6 +311,33 @@ describe('getSeerStatusBlock', () => {
     );
 
     expect(block).toMatchObject({variant: 'running'});
+  });
+
+  // The server's and the browser's clocks need not agree, so the run's start is
+  // its active time counted back from when the browser received the snapshot.
+  it("starts the clock at the run's start on the browser's clock", () => {
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'broad_scan',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 24.5,
+        activeSince: '2025-01-01T00:05:00Z',
+        serverTime: '2025-01-01T00:05:10Z',
+      }),
+      Date.parse('2030-01-01T00:00:00Z')
+    );
+
+    expect(block?.startTime).toEqual(new Date('2029-12-31T23:59:25.500Z'));
+  });
+
+  it('leaves the clock unanchored without a receipt time', () => {
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({status: 'processing', phase: 'broad_scan'})
+    );
+
+    expect(block?.startTime).toBeUndefined();
   });
 
   describe('tool activity', () => {
@@ -269,8 +412,8 @@ describe('getSeerStatusBlock', () => {
       ]);
     });
 
-    // The block collapses to the latest call itself, so every call for the phase
-    // has to reach it for the expanded view to be complete.
+    // The thinking block lists every call for the phase, not just the latest,
+    // so all of them have to reach it.
     it('passes every call for the phase, latest last', () => {
       const projection = InvestigationOrchestrationFixture({
         status: 'processing',
@@ -295,6 +438,100 @@ describe('getSeerStatusBlock', () => {
       projection.report.currentBlockToolActivity = [activity('last')];
 
       expect(getSeerStatusBlock(projection)?.toolActivity).toBeUndefined();
+    });
+
+    // Seer keeps reasoning beside the calls, each thought naming the call it
+    // came before, so older code that only knows the calls keeps working.
+    it("puts each phase's reasoning back before the call it came before", () => {
+      const projection = InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'broad_scan',
+      });
+      projection.broadScan.toolActivity = [activity('a'), activity('b', 'running')];
+      projection.broadScan.thoughts = [
+        {id: 'before-a', text: 'Start here.', beforeActivityId: 'a'},
+        {id: 'before-b', text: 'Then this.', beforeActivityId: 'b'},
+        {id: 'latest', text: 'Waiting on the call.', beforeActivityId: null},
+        {id: 'stale', text: 'Its call is gone.', beforeActivityId: 'dropped'},
+      ];
+
+      expect(getSeerStatusBlock(projection)?.toolActivity?.map(a => a.id)).toEqual([
+        'before-a',
+        'a',
+        'before-b',
+        'b',
+        'latest',
+      ]);
+    });
+
+    // Moving a running call last must not part it from the reasoning that led
+    // to it.
+    it('keeps reasoning with its call across parallel hypotheses', () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done'), activity('a-running', 'running')],
+              thoughts: [
+                {id: 'a-why', text: 'Why a.', beforeActivityId: 'a-done'},
+                {id: 'a-next', text: 'Then this.', beforeActivityId: 'a-running'},
+              ],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done')],
+              thoughts: [{id: 'b-why', text: 'Why b.', beforeActivityId: 'b-done'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-why',
+        'a-done',
+        'b-why',
+        'b-done',
+        'a-next',
+        'a-running',
+      ]);
+    });
+
+    // One hypothesis's current reasoning must not read as what led to another's
+    // running call.
+    it("puts reasoning no call has followed after every hypothesis's calls", () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done')],
+              thoughts: [{id: 'a-now', text: 'Weighing a.', beforeActivityId: null}],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-done'), activity('b-running', 'running')],
+              thoughts: [{id: 'b-next', text: 'Then b.', beforeActivityId: 'b-running'}],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-done',
+        'b-done',
+        'b-next',
+        'b-running',
+        'a-now',
+      ]);
     });
 
     it('omits the list when there are no calls', () => {
