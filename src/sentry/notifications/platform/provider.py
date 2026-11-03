@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -165,11 +166,11 @@ class NotificationProvider[RenderableT](Protocol):
     @classmethod
     def track_actions(
         cls, *, renderable: RenderableT, context: NotificationTrackingContext
-    ) -> set[str]:
+    ) -> Set[StrEnum]:
         """
         Marks the renderable's callback actions, such as buttons that call back into Sentry rather
         than open a page, with the notification they're sent in, so the provider's callback can
-        attribute clicks on them. Returns the kinds of action marked.
+        attribute clicks on them. Returns the kinds of action marked, which become metric tags.
 
         Modifies `renderable` in place, so call it once per renderable, after rendering and before
         sending. Renderers don't mark their own actions.

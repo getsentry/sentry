@@ -53,6 +53,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
+    from sentry.integrations.slack.message_builder.types import SlackAction
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     @classmethod
     def track_actions(
         cls, *, renderable: SlackRenderable, context: NotificationTrackingContext
-    ) -> set[str]:
+    ) -> set[SlackAction]:
         """
         Adds the notification to the action ID of each button that calls back into Sentry, in the
         message's blocks and its attachments' blocks. Link buttons are skipped, since page loads
@@ -175,7 +176,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         tracking = SlackActionTracking(
             notification_uuid=context.notification_uuid, source=context.source
         )
-        tracked: set[str] = set()
+        tracked: set[SlackAction] = set()
 
         def track(action_id: str | None) -> str | None:
             if not action_id:
@@ -186,7 +187,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             tracked_action_id = add_action_tracking(action_id, tracking)
             if tracked_action_id == action_id:
                 return None
-            tracked.add(action)
+            tracked.add(SlackAction(action))
             return tracked_action_id
 
         try:
