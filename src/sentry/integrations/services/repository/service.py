@@ -11,6 +11,8 @@ from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
+    RpcGitLabWebhookReconciliationBatch,
+    RpcGitLabWebhookReconciliationMarkResult,
     RpcRepointIntegrationResult,
 )
 from sentry.silo.base import SiloMode
@@ -96,6 +98,44 @@ class RepositoryService(RpcService):
         Returns False without changing anything unless the repository is still active,
         still belongs to ``expected_integration_id`` (when given), and its config still
         holds each ``expected_config`` value (a None value expects the key to be unset).
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def mark_repositories_for_gitlab_webhook_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        generation: str,
+        scheduled_at: float,
+        force: bool = False,
+    ) -> RpcGitLabWebhookReconciliationMarkResult:
+        """
+        Ensure every active repository on an integration has pending reconciliation work.
+
+        Pending and in-progress state is preserved unless ``force`` is true. Failed state
+        is replaced by ``generation`` so a new trigger can retry it. The result
+        distinguishes newly marked repositories from existing active work.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def claim_repositories_for_gitlab_webhook_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        claim_token: str,
+        claimed_at: float,
+        stale_before: float,
+        limit: int,
+    ) -> RpcGitLabWebhookReconciliationBatch:
+        """
+        Claim a bounded set of pending or stale repository reconciliation records.
+
+        The implementation may scan the organization's repositories in memory, but row
+        locks are held only while candidate claims are revalidated and written.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

@@ -38,3 +38,15 @@ class RpcRepointIntegrationResult(RpcModel):
     external_issues: int
     external_actors: int
     project_options: int
+
+
+class RpcGitLabWebhookReconciliationBatch(RpcModel):
+    repositories: list[RpcRepository]
+    pending: int
+    in_progress: int
+    failed: int
+
+
+class RpcGitLabWebhookReconciliationMarkResult(RpcModel):
+    active: int
+    newly_marked: int

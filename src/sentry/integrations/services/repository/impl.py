@@ -11,6 +11,13 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
+from sentry.integrations.gitlab.webhook_reconciliation import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY,
+    GitLabWebhookReconciliationState,
+    GitLabWebhookReconciliationStatus,
+    get_reconciliation_state,
+    pending_reconciliation_state,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -18,6 +25,8 @@ from sentry.integrations.services.repository import RepositoryService, RpcReposi
 from sentry.integrations.services.repository.constants import RESERVED_REPOSITORY_CONFIG_KEYS
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
+    RpcGitLabWebhookReconciliationBatch,
+    RpcGitLabWebhookReconciliationMarkResult,
     RpcRepointIntegrationResult,
 )
 from sentry.integrations.services.repository.serial import serialize_repository
@@ -175,6 +184,170 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository.config = config
             repository.save(update_fields=["config"])
         return True
+
+    def mark_repositories_for_gitlab_webhook_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        generation: str,
+        scheduled_at: float,
+        force: bool = False,
+    ) -> RpcGitLabWebhookReconciliationMarkResult:
+        repository_ids = list(
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("id", flat=True)
+        )
+        pending_state = pending_reconciliation_state(
+            generation=generation,
+            integration_id=integration_id,
+            scheduled_at=scheduled_at,
+        )
+        active_work = 0
+        newly_marked = 0
+        for repository_id in repository_ids:
+            active, marked = self._ensure_repository_is_marked_for_gitlab_webhook_reconciliation(
+                organization_id=organization_id,
+                repository_id=repository_id,
+                integration_id=integration_id,
+                pending_state=pending_state,
+                force=force,
+            )
+            if active:
+                active_work += 1
+            if marked:
+                newly_marked += 1
+        return RpcGitLabWebhookReconciliationMarkResult(
+            active=active_work,
+            newly_marked=newly_marked,
+        )
+
+    def _ensure_repository_is_marked_for_gitlab_webhook_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        repository_id: int,
+        integration_id: int,
+        pending_state: GitLabWebhookReconciliationState,
+        force: bool,
+    ) -> tuple[bool, bool]:
+        with transaction.atomic(router.db_for_write(Repository)):
+            repository = (
+                Repository.objects.filter(
+                    organization_id=organization_id,
+                    id=repository_id,
+                    integration_id=integration_id,
+                    status=ObjectStatus.ACTIVE,
+                )
+                .select_for_update()
+                .first()
+            )
+            if repository is None:
+                return False, False
+
+            current_state = get_reconciliation_state(
+                repository.config, integration_id=integration_id
+            )
+            if (
+                not force
+                and current_state is not None
+                and current_state["status"] != GitLabWebhookReconciliationStatus.FAILED
+            ):
+                return True, False
+
+            repository.config = {
+                **repository.config,
+                GITLAB_WEBHOOK_RECONCILIATION_KEY: pending_state,
+            }
+            repository.save(update_fields=["config"])
+            return True, True
+
+    def claim_repositories_for_gitlab_webhook_reconciliation(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        claim_token: str,
+        claimed_at: float,
+        stale_before: float,
+        limit: int,
+    ) -> RpcGitLabWebhookReconciliationBatch:
+        repository_rows = list(
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .values_list("id", "config")
+            .order_by("id")
+        )
+        counts = {
+            GitLabWebhookReconciliationStatus.PENDING: 0,
+            GitLabWebhookReconciliationStatus.IN_PROGRESS: 0,
+            GitLabWebhookReconciliationStatus.FAILED: 0,
+        }
+        candidate_ids: list[int] = []
+        for repository_id, config in repository_rows:
+            state = get_reconciliation_state(config, integration_id=integration_id)
+            if state is None:
+                continue
+            status = GitLabWebhookReconciliationStatus(state["status"])
+            counts[status] += 1
+            if status == GitLabWebhookReconciliationStatus.PENDING or (
+                status == GitLabWebhookReconciliationStatus.IN_PROGRESS
+                and state.get("claimed_at", 0) <= stale_before
+            ):
+                if len(candidate_ids) < max(0, limit):
+                    candidate_ids.append(repository_id)
+
+        claimed: list[Repository] = []
+        if candidate_ids:
+            with transaction.atomic(router.db_for_write(Repository)):
+                candidates = list(
+                    Repository.objects.filter(
+                        organization_id=organization_id,
+                        integration_id=integration_id,
+                        status=ObjectStatus.ACTIVE,
+                        id__in=candidate_ids,
+                    )
+                    .select_for_update()
+                    .order_by("id")
+                )
+                for repository in candidates:
+                    state = get_reconciliation_state(
+                        repository.config, integration_id=integration_id
+                    )
+                    if state is None:
+                        continue
+                    status = GitLabWebhookReconciliationStatus(state["status"])
+                    if status != GitLabWebhookReconciliationStatus.PENDING and not (
+                        status == GitLabWebhookReconciliationStatus.IN_PROGRESS
+                        and state.get("claimed_at", 0) <= stale_before
+                    ):
+                        continue
+                    claimed_state = {
+                        **state,
+                        "status": GitLabWebhookReconciliationStatus.IN_PROGRESS,
+                        "claim_token": claim_token,
+                        "claimed_at": claimed_at,
+                    }
+                    claimed_state.pop("failure_reason", None)
+                    repository.config = {
+                        **repository.config,
+                        GITLAB_WEBHOOK_RECONCILIATION_KEY: claimed_state,
+                    }
+                    claimed.append(repository)
+                Repository.objects.bulk_update(claimed, ["config"])
+
+        return RpcGitLabWebhookReconciliationBatch(
+            repositories=[serialize_repository(repository) for repository in claimed],
+            pending=counts[GitLabWebhookReconciliationStatus.PENDING],
+            in_progress=counts[GitLabWebhookReconciliationStatus.IN_PROGRESS],
+            failed=counts[GitLabWebhookReconciliationStatus.FAILED],
+        )
 
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         if not updates:

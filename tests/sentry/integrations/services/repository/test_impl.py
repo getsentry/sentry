@@ -5,12 +5,20 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
+from sentry.integrations.gitlab.webhook_reconciliation import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY,
+    GitLabWebhookReconciliationStatus,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.repository.constants import (
     GITLAB_WEBHOOK_RECONCILIATION_KEY as RESERVED_RECONCILIATION_KEY,
 )
-from sentry.integrations.services.repository.model import RpcRepointIntegrationResult
+from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
+from sentry.integrations.services.repository.model import (
+    RpcGitLabWebhookReconciliationMarkResult,
+    RpcRepointIntegrationResult,
+)
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import ExternalProviders
@@ -826,6 +834,219 @@ class UpdateRepositoryConfigTest(TestCase):
 
         self.repo.refresh_from_db()
         assert self.repo.config["webhook_id"] == 10
+
+
+@cell_silo_test
+class GitLabWebhookReconciliationStateTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="gitlab"
+        )
+        self.repos = [
+            self.create_repo(
+                project=self.project,
+                provider="integrations:gitlab",
+                integration_id=self.integration.id,
+            )
+            for _ in range(3)
+        ]
+
+    def _mark(
+        self,
+        generation: str = "generation-1",
+        *,
+        scheduled_at: float = 10.0,
+        force: bool = False,
+    ) -> RpcGitLabWebhookReconciliationMarkResult:
+        return repository_service.mark_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            generation=generation,
+            scheduled_at=scheduled_at,
+            force=force,
+        )
+
+    def test_marks_only_active_repositories_on_the_integration(self) -> None:
+        self.repos[2].update(status=ObjectStatus.DISABLED)
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="2", provider="gitlab"
+        )
+        other_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:gitlab",
+            integration_id=other_integration.id,
+        )
+
+        result = self._mark()
+        assert result.active == 2
+        assert result.newly_marked == 2
+
+        for repo in self.repos[:2]:
+            repo.refresh_from_db()
+            assert repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY] == {
+                "status": GitLabWebhookReconciliationStatus.PENDING,
+                "generation": "generation-1",
+                "integration_id": self.integration.id,
+                "scheduled_at": 10.0,
+            }
+        self.repos[2].refresh_from_db()
+        other_repo.refresh_from_db()
+        assert GITLAB_WEBHOOK_RECONCILIATION_KEY not in self.repos[2].config
+        assert GITLAB_WEBHOOK_RECONCILIATION_KEY not in other_repo.config
+
+    def test_new_generation_retries_failed_state(self) -> None:
+        self._mark()
+        self.repos[0].refresh_from_db()
+        old_state = self.repos[0].config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+        self.repos[0].update(
+            config={
+                **self.repos[0].config,
+                GITLAB_WEBHOOK_RECONCILIATION_KEY: {
+                    **old_state,
+                    "status": GitLabWebhookReconciliationStatus.FAILED,
+                    "failure_reason": "authentication_failed",
+                },
+            }
+        )
+
+        result = self._mark("generation-2")
+        assert result.active == 3
+        assert result.newly_marked == 1
+
+        self.repos[0].refresh_from_db()
+        assert self.repos[0].config[GITLAB_WEBHOOK_RECONCILIATION_KEY] == {
+            "status": GitLabWebhookReconciliationStatus.PENDING,
+            "generation": "generation-2",
+            "integration_id": self.integration.id,
+            "scheduled_at": 10.0,
+        }
+
+    def test_active_generation_is_preserved_regardless_of_age(self) -> None:
+        self._mark()
+
+        result = self._mark("generation-2", scheduled_at=10_000.0)
+        assert result.active == 3
+        assert result.newly_marked == 0
+
+        for repo in self.repos:
+            repo.refresh_from_db()
+            assert repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"] == "generation-1"
+
+    def test_force_replaces_active_generation(self) -> None:
+        self._mark()
+
+        result = self._mark("generation-2", scheduled_at=20.0, force=True)
+        assert result.active == 3
+        assert result.newly_marked == 3
+
+        for repo in self.repos:
+            repo.refresh_from_db()
+            assert repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"] == "generation-2"
+
+    def test_mark_result_survives_rpc_serialization(self) -> None:
+        response = dispatch_to_local_service(
+            "repository",
+            "mark_repositories_for_gitlab_webhook_reconciliation",
+            {
+                "organization_id": self.organization.id,
+                "integration_id": self.integration.id,
+                "generation": "generation-1",
+                "scheduled_at": 10.0,
+            },
+        )
+
+        assert response["value"] == {
+            "active": 3,
+            "newly_marked": 3,
+        }
+
+    def test_skips_repository_moved_after_id_snapshot(self) -> None:
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="2", provider="gitlab"
+        )
+        moved_repo = self.repos[1]
+        original_mark = DatabaseBackedRepositoryService._ensure_repository_is_marked_for_gitlab_webhook_reconciliation
+
+        def move_before_mark(
+            service: DatabaseBackedRepositoryService, **kwargs: Any
+        ) -> tuple[bool, bool]:
+            if kwargs["repository_id"] == moved_repo.id:
+                moved_repo.update(integration_id=other_integration.id)
+            return original_mark(service, **kwargs)
+
+        with patch.object(
+            DatabaseBackedRepositoryService,
+            "_ensure_repository_is_marked_for_gitlab_webhook_reconciliation",
+            autospec=True,
+            side_effect=move_before_mark,
+        ):
+            result = self._mark()
+
+        assert result.active == 2
+        assert result.newly_marked == 2
+
+        moved_repo.refresh_from_db()
+        assert moved_repo.integration_id == other_integration.id
+        assert GITLAB_WEBHOOK_RECONCILIATION_KEY not in moved_repo.config
+
+    def test_claims_a_bounded_batch_and_reports_all_state(self) -> None:
+        self._mark()
+
+        batch = repository_service.claim_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            claim_token="claim-1",
+            claimed_at=20.0,
+            stale_before=15.0,
+            limit=2,
+        )
+
+        assert len(batch.repositories) == 2
+        assert batch.pending == 3
+        assert batch.in_progress == 0
+        assert batch.failed == 0
+        for claimed in batch.repositories:
+            state = claimed.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+            assert state["status"] == GitLabWebhookReconciliationStatus.IN_PROGRESS
+            assert state["claim_token"] == "claim-1"
+            assert state["claimed_at"] == 20.0
+
+    def test_reclaims_only_stale_in_progress_work(self) -> None:
+        self._mark()
+        first_batch = repository_service.claim_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            claim_token="claim-1",
+            claimed_at=20.0,
+            stale_before=15.0,
+            limit=2,
+        )
+
+        second_batch = repository_service.claim_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            claim_token="claim-2",
+            claimed_at=30.0,
+            stale_before=19.0,
+            limit=3,
+        )
+        assert [repo.id for repo in second_batch.repositories] == [
+            repo.id
+            for repo in self.repos
+            if repo.id not in {item.id for item in first_batch.repositories}
+        ]
+
+        stale_batch = repository_service.claim_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            claim_token="claim-3",
+            claimed_at=40.0,
+            stale_before=25.0,
+            limit=3,
+        )
+        assert {repo.id for repo in stale_batch.repositories} == {
+            repo.id for repo in first_batch.repositories
+        }
 
 
 @cell_silo_test
