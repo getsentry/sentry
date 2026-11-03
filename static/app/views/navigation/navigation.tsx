@@ -214,21 +214,21 @@ export function SettingsPrimaryNavigationItems({
 }) {
   const {projects} = useProjects();
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
-  const [lastProjectSlug, setLastProjectSlug] = useLocalStorageState<string | null>(
+  // Stored by ID, not slug, so renaming the project does not lose it.
+  const [lastProjectId, setLastProjectId] = useLocalStorageState<string | null>(
     getSettingsLastProjectKey(organizationSlug),
     null
   );
+  const activeProjectId = projects.find(({slug}) => slug === activeProjectSlug)?.id;
 
   useEffect(() => {
-    if (activeProjectSlug && activeProjectSlug !== lastProjectSlug) {
-      setLastProjectSlug(activeProjectSlug);
+    if (activeProjectId && activeProjectId !== lastProjectId) {
+      setLastProjectId(activeProjectId);
     }
-  }, [activeProjectSlug, lastProjectSlug, setLastProjectSlug]);
+  }, [activeProjectId, lastProjectId, setLastProjectId]);
 
   // The remembered project can be deleted or lose access since it was stored.
-  const rememberedProjectSlug = projects.some(({slug}) => slug === lastProjectSlug)
-    ? lastProjectSlug
-    : undefined;
+  const rememberedProjectSlug = projects.find(({id}) => id === lastProjectId)?.slug;
   const projectSlug = activeProjectSlug ?? rememberedProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
   const items = [

@@ -508,10 +508,34 @@ describe('desktop navigation', () => {
       );
     });
 
+    it('links to the remembered project by ID after it was renamed', async () => {
+      localStorage.setItem(getSettingsLastProjectKey('org-slug'), JSON.stringify('999'));
+      ProjectsStore.loadInitialData([
+        ProjectFixture(),
+        ProjectFixture({id: '999', slug: 'renamed-project'}),
+      ]);
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', {name: 'Project'})).toHaveAttribute(
+          'href',
+          '/settings/org-slug/projects/renamed-project/'
+        )
+      );
+    });
+
     it('falls back to the first project when the remembered one is unavailable', async () => {
       localStorage.setItem(
         getSettingsLastProjectKey('org-slug'),
-        JSON.stringify('deleted-project')
+        JSON.stringify('12345')
       );
       render(
         <PrimaryNavigationContextProvider>
