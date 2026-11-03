@@ -26,6 +26,19 @@ describe('useQueryBasedColumnResize', () => {
     ]);
   });
 
+  it('falls back to the column widths when the width param is absent', () => {
+    const {result} = renderHookWithProviders(useQueryBasedColumnResize, {
+      initialProps: {columns},
+      initialRouterConfig: {location: {pathname: '/table/', query: {}}},
+    });
+
+    expect(result.current.columns.map(column => column.width)).toEqual([
+      COL_WIDTH_UNDEFINED,
+      120,
+      COL_WIDTH_UNDEFINED,
+    ]);
+  });
+
   it('replaces the width params without trailing unset widths when a column is resized', async () => {
     const {result, router} = renderHookWithProviders(useQueryBasedColumnResize, {
       initialProps: {columns},
