@@ -300,6 +300,30 @@ describe('DropdownMenu', () => {
     ).toBeInTheDocument();
   });
 
+  it('only re-renders the items whose focus changed on hover', async () => {
+    const renderLeadingItems = jest.fn(() => null);
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={Array.from({length: 20}, (_, i) => ({
+          key: `item-${i}`,
+          label: `Item ${i}`,
+          leadingItems: renderLeadingItems,
+        }))}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item 3'}));
+    renderLeadingItems.mockClear();
+
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item 10'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Item 10'})).toHaveFocus();
+    // The previously and newly focused items re-render; the other 18 do not.
+    expect(renderLeadingItems.mock.calls.length).toBeLessThan(10);
+  });
+
   it('renders submenus', async () => {
     const onAction = jest.fn();
     const onOpenChange = jest.fn();

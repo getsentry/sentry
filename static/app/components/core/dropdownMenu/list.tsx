@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -152,6 +160,7 @@ function DropdownMenuCollectionItem({
     <DropdownMenuItem
       node={node}
       state={state}
+      isFocused={state.selectionManager.focusedKey === node.key}
       onClose={onClose}
       closeOnSelect={closeOnSelect}
     />
@@ -222,7 +231,7 @@ function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
-  const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, closeSubmenu} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
@@ -266,8 +275,8 @@ function DropdownMenuList({
         return;
       }
       // ArrowLeft closes a submenu, but leaves the root menu open.
-      if (e.key === 'ArrowLeft' && parentMenuState) {
-        parentMenuState.selectionManager.clearSelection();
+      if (e.key === 'ArrowLeft' && closeSubmenu) {
+        closeSubmenu();
         return;
       }
       e.continuePropagation();
@@ -310,14 +319,25 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
+  // useTreeState returns a new object on every focus change. Reading it through a
+  // ref keeps the context stable, so hovering an item does not re-render them all.
+  const latestStateRef = useRef(state);
+  useLayoutEffect(() => {
+    latestStateRef.current = state;
+  });
+  const closeChildSubmenu = useCallback(
+    () => latestStateRef.current.selectionManager.clearSelection(),
+    []
+  );
+
   const theme = useTheme();
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
-      parentMenuState: state,
+      closeSubmenu: closeChildSubmenu,
       safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle]
+    [rootOverlayState, overlayState, closeChildSubmenu, safetyTriangle]
   );
   const searchInput = searchState && (
     <Search
@@ -352,14 +372,14 @@ function DropdownMenuList({
                 {...stackProps}
                 onKeyDownCapture={event => {
                   // Handle Escape before React Aria closes the entire menu tree.
-                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                  if (event.key === 'Escape' && closeSubmenu && hasFocus) {
                     event.stopPropagation();
                     // Let the IME cancel composition without dismissing the submenu.
                     if (event.nativeEvent.isComposing) {
                       return;
                     }
                     event.preventDefault();
-                    parentMenuState.selectionManager.clearSelection();
+                    closeSubmenu();
                   }
                 }}
                 style={{
@@ -633,6 +653,7 @@ function DropdownSubmenu({
         renderAs="div"
         node={node}
         state={state}
+        isFocused={isFocused}
         closeOnSelect={false}
       />
       {isOpen && (

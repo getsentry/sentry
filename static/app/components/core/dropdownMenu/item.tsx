@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, memo, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -110,6 +110,11 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    */
   closeOnSelect: boolean;
   /**
+   * Whether the item is the menu's focused key. Passed in, rather than read from
+   * `state`, so a focus change only re-renders the items it affects.
+   */
+  isFocused: boolean;
+  /**
    * Node representation (from @react-aria) of the item
    */
   node: Node<MenuItemProps>;
@@ -134,14 +139,10 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
-/**
- * A menu item with a label, optional details, leading and trailing elements.
- * Can also be used as a trigger button for a submenu. See:
- * https://react-spectrum.adobe.com/react-aria/useMenu.html
- */
-export function DropdownMenuItem<T extends React.ElementType = 'li'>({
+function DropdownMenuItemComponent<T extends React.ElementType = 'li'>({
   node,
   state,
+  isFocused,
   closeOnSelect,
   onClose,
   renderAs,
@@ -154,7 +155,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const trailingActionRef = useRef<HTMLButtonElement>(null);
   const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
-  const isFocused = state.selectionManager.focusedKey === node.key;
   const {
     key,
     onAction,
@@ -377,3 +377,47 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     />
   );
 }
+
+/**
+ * `useTreeState` returns a new `state` object on every focus change, such as
+ * hovering an item. Skip re-rendering an item unless its own props or the parts
+ * of `state` it renders from changed. Focus is read from refs inside the
+ * selection manager, so an item skipped here still sees the current focus.
+ */
+function areDropdownMenuItemPropsEqual(
+  prev: DropdownMenuItemProps<React.ElementType>,
+  next: DropdownMenuItemProps<React.ElementType>
+): boolean {
+  // React Aria moves DOM focus from the focused item's effects, so keep it current.
+  if (next.isFocused) {
+    return false;
+  }
+
+  const {state: prevState, ...prevProps} = prev;
+  const {state: nextState, ...nextProps} = next;
+  if (
+    prevState.collection !== nextState.collection ||
+    prevState.disabledKeys !== nextState.disabledKeys ||
+    prevState.selectionManager.rawSelection !== nextState.selectionManager.rawSelection ||
+    prevState.selectionManager.selectionBehavior !==
+      nextState.selectionManager.selectionBehavior
+  ) {
+    return false;
+  }
+
+  const prevKeys = Object.keys(prevProps) as Array<keyof typeof prevProps>;
+  return (
+    prevKeys.length === Object.keys(nextProps).length &&
+    prevKeys.every(key => Object.is(prevProps[key], nextProps[key]))
+  );
+}
+
+/**
+ * A menu item with a label, optional details, leading and trailing elements.
+ * Can also be used as a trigger button for a submenu. See:
+ * https://react-spectrum.adobe.com/react-aria/useMenu.html
+ */
+export const DropdownMenuItem = memo(
+  DropdownMenuItemComponent,
+  areDropdownMenuItemPropsEqual
+) as typeof DropdownMenuItemComponent;
