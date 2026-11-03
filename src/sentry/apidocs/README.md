@@ -48,8 +48,9 @@ addresses, cache policy, or automatic host selection.
 
 # Idempotent operations
 
-An operation carries `"x-sentry-idempotent": true` when its endpoint lists the
-method in `idempotent_methods`:
+Every endpoint that publishes a `POST`, `PUT`, `PATCH`, or `DELETE` must declare
+`idempotent_methods`, and the build fails if it doesn't. An operation carries
+`"x-sentry-idempotent": true` when its endpoint lists the method there:
 
 ```python
 class DifAssembleEndpoint(ProjectEndpoint):
@@ -61,8 +62,16 @@ It means a client may resend the identical request after a timeout or a 5xx
 response without changing the outcome, so generated clients can retry it like a
 `GET`. Only list methods that are not already safe (RFC 9110 §9.2.1): the build
 fails for `GET`, `HEAD`, `OPTIONS`, `TRACE`, or a method the endpoint does not
-declare in `publish_status`. A missing marker means "not known to be idempotent",
-including `PUT` and `DELETE`, whose handlers do not all live up to RFC 9110 §9.2.2.
+declare in `publish_status`. Use `idempotent_methods = frozenset()` when none of
+the endpoint's writes are safe to resend. A missing marker means "not known to be
+idempotent", including `PUT` and `DELETE`, whose handlers do not all live up to
+RFC 9110 §9.2.2.
+
+List a method only when resending the identical request after the first one
+succeeded leaves the same state, writes no new rows, audit log entries, or
+Activity, sends no email or webhook, queues no task that doesn't converge, and
+does not return an error. A `DELETE` that answers a resend with 404 does not
+qualify yet.
 
 Like routing, declarations are collected for every endpoint and reset on every
 build. The marker appears only on operations that are in the generated schema.

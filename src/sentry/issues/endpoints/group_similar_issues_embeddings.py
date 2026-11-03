@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -156,7 +157,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                         if result.stacktrace_distance <= 0.01
                     ]
                 ),
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
             )
         )
 

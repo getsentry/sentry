@@ -8,7 +8,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsRequest,
 )
 
-from sentry import features, quotas
+from sentry import features, seer_credit
 from sentry.models.organization import Organization
 
 
@@ -66,7 +66,7 @@ def can_run_seer_operation(organization: Organization, operation: SeerOperation)
         return True
 
     config = SEER_OPERATIONS[operation]
-    response = quotas.backend.check_seer_credits(
+    response = seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
             feature_id=config.feature.value,

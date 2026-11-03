@@ -72,6 +72,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     def convert_args(
