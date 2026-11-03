@@ -99,6 +99,10 @@ describe('ExceptionStacktraceContent', () => {
 
   it('default behaviour', () => {
     render(<ExceptionStacktraceContent {...props} />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('foo/baz.c at line 1'))
+    ).toBeInTheDocument();
   });
 
   it('should return an emptyRender', () => {
@@ -109,7 +113,7 @@ describe('ExceptionStacktraceContent', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows stack trace', () => {
+  it('shows an empty message when there are no app frames', () => {
     render(
       <ExceptionStacktraceContent
         {...props}
@@ -124,7 +128,7 @@ describe('ExceptionStacktraceContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not show stack trace', () => {
+  it('shows stack trace', () => {
     render(
       <ExceptionStacktraceContent
         {...props}
