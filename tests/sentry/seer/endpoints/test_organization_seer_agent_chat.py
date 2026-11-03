@@ -122,7 +122,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_code_mode_feature_selects_only(self, mock_client_class: MagicMock):
+    def test_code_mode_feature_selects_only(self, mock_client_class: MagicMock) -> None:
         """The flag means Code Mode instead of the classic tools, not alongside them.
 
         Running both gives the agent two ways to do everything and it mixes them, so the
@@ -139,7 +139,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_frontend_override_still_selects_the_mode(self, mock_client_class: MagicMock):
+    def test_frontend_override_still_selects_the_mode(self, mock_client_class: MagicMock) -> None:
         """The override is how the two surfaces get compared, so it outranks the flag."""
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
@@ -153,7 +153,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_no_code_mode_feature_stays_off(self, mock_client_class: MagicMock):
+    def test_no_code_mode_feature_stays_off(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -165,7 +165,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_create_pr_flag_enables_pr_tools(self, mock_client_class: MagicMock):
+    def test_create_pr_flag_enables_pr_tools(self, mock_client_class: MagicMock) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
@@ -179,7 +179,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client_class.call_args.kwargs["enable_bash_mode"] is True
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_requests_investigation_tools(self, mock_client_class: MagicMock):
+    def test_requests_investigation_tools(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -192,7 +192,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock):
+    def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
@@ -204,7 +204,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client_class.call_args.kwargs["enable_coding"] is False
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
+    def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
         run_uuid = uuid.uuid4()
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=run_uuid)
@@ -260,7 +260,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert mock_client.start_run.call_args.kwargs["page_location"] == page_location
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_forwards_sent_at(self, mock_client_class: MagicMock):
+    def test_post_forwards_sent_at(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=1, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -341,7 +341,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_post_rejects_oversized_sent_at(self, mock_client_class: MagicMock):
+    def test_post_rejects_oversized_sent_at(self, mock_client_class: MagicMock) -> None:
         """Unparsed passthrough values are bounded at the edge."""
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=1, uuid=uuid.uuid4())
@@ -356,7 +356,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_coding_requires_create_pr_flag(
         self, mock_client_class: MagicMock
-    ):
+    ) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456)
@@ -896,8 +896,8 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_false_sets_context_engine_disabled(
-        self, mock_collect_context, mock_access, mock_chat_request
-    ):
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_chat_request: MagicMock
+    ) -> None:
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {}
         mock_response = MagicMock()
@@ -917,8 +917,8 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_true_sets_context_engine_enabled(
-        self, mock_collect_context, mock_access, mock_chat_request
-    ):
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_chat_request: MagicMock
+    ) -> None:
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {}
         mock_response = MagicMock()
@@ -938,8 +938,8 @@ class OrganizationSeerAgentChatContextEngineTest(APITestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_override_ce_enable_ignored_without_feature_flag(
-        self, mock_collect_context, mock_access, mock_chat_request
-    ):
+        self, mock_collect_context: MagicMock, mock_access: MagicMock, mock_chat_request: MagicMock
+    ) -> None:
         mock_access.return_value = (True, None)
         mock_collect_context.return_value = {}
         mock_response = MagicMock()
@@ -971,19 +971,19 @@ class TestCodeModeSerializerField:
             (None, None),
         ],
     )
-    def test_valid_values(self, input_val, expected):
+    def test_valid_values(self, input_val: object, expected: object) -> None:
         data = {"query": "test", "override_code_mode_enable": input_val}
         serializer = SeerAgentChatSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["override_code_mode_enable"] == expected
 
-    def test_omitted_defaults_to_none(self):
+    def test_omitted_defaults_to_none(self) -> None:
         data = {"query": "test"}
         serializer = SeerAgentChatSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["override_code_mode_enable"] is None
 
-    def test_invalid_string_rejected(self):
+    def test_invalid_string_rejected(self) -> None:
         data = {"query": "test", "override_code_mode_enable": "invalid"}
         serializer = SeerAgentChatSerializer(data=data)
         assert not serializer.is_valid()

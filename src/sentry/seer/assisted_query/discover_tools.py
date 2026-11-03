@@ -250,7 +250,7 @@ def get_event_filter_keys(
 
 def get_event_filter_key_values(
     *,
-    org_id,
+    org_id: int,
     filter_key: str,
     substring: str | None = None,
     project_ids: list[int] | None = None,

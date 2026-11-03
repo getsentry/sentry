@@ -31,7 +31,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
@@ -41,7 +41,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             organization=other_organization, created_by=self.user, title="Foreign"
         )
         url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": foreign.id,
@@ -57,7 +57,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             self.collection_url, data={"title": "Payments investigation"}, format="json"
         )
         detail_url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": first["id"],
@@ -143,7 +143,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             input_snapshot={},
         )
         detail_url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation.id,
@@ -292,7 +292,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             },
         )
         url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation.id,
@@ -323,7 +323,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             format="json",
         ).data
         url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": created["id"],
@@ -391,7 +391,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
     def details_url(self, investigation: Notebook) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation.id,

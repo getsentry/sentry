@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.autofix.issue_search import autofix_state_filter
 from sentry.testutils.cases import TestCase
@@ -19,11 +20,9 @@ class AutofixStateFilterTest(TestCase):
 
     def _matching_group_ids(self, values: list[str]) -> set[int]:
         q = autofix_state_filter(values, [self.project], recency_window=RECENCY_WINDOW)
-        from sentry.models.group import Group
-
         return set(Group.objects.filter(q, project=self.project).values_list("id", flat=True))
 
-    def _create_merged_pr_run(self, group):
+    def _create_merged_pr_run(self, group: Group) -> None:
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", project=self.project, group=group)
         repo = self.create_repo(self.project, name="getsentry/sentry")

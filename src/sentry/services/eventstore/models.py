@@ -95,7 +95,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Reuse the Snuba column to avoid loading the full event body from nodestore.
         if "trace_id" in self._snuba_data:
             return cast(str | None, self._snuba_data["trace_id"])
-        return get_path(self.data, "contexts", "trace", "trace_id")
+        trace_id = get_path(self.data, "contexts", "trace", "trace_id")
+        return trace_id
 
     @property
     def platform(self) -> str | None:
@@ -216,9 +217,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
             username = self._snuba_data[user_username_column]
             ip_address = self._snuba_data[user_ip_address_column]
 
-            return User.to_python(
+            user = User.to_python(
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
+            assert user is not None
+            return user
 
         return self.get_interface("user")
 
@@ -839,9 +842,9 @@ class EventSubjectTemplateData(dict[str, str]):
                 raise KeyError
             return str(value)
         elif name == "project":
-            return cast(str, self.event.project.get_full_name())
+            return self.event.project.get_full_name()
         elif name == "projectID":
-            return cast(str, self.event.project.slug)
+            return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":

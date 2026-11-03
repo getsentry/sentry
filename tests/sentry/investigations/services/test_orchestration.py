@@ -14,6 +14,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.services.orchestration import (
+    _validate_creation_actor,
     agentic_breached_metric_source_key,
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
@@ -188,9 +189,10 @@ class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
 class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(self.feature("organizations:service-accounts"))
         self.organization.flags.allow_joinleave = True
         self.organization.save()
-        self.creator = self.account_creator(id=910001)
+        self.creator = self.account_creator(id=910001, project_ids=[self.project.id])
 
     def account_creator(self, organization: Organization | None = None, **kwargs: Any) -> ActorId:
         with outbox_runner():
@@ -201,6 +203,9 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_account_creation_is_rejected_before_dispatch(self, dispatch: mock.Mock) -> None:
+        _validate_creation_actor(
+            organization=self.organization, creator=self.creator, project_ids=[self.project.id]
+        )
         before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())
         with pytest.raises(PermissionDenied):
             create_agentic_manual_investigation(
@@ -235,8 +240,11 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             filters={},
         )
         with self.feature("organizations:investigations"):
-            for creator in (ActorId(ActorType.USER, self.user.id), self.creator):
-                with self.subTest(creator=creator), pytest.raises(InvestigationValidationError):
+            for creator, error in (
+                (ActorId(ActorType.USER, self.user.id), InvestigationValidationError),
+                (self.creator, PermissionDenied),
+            ):
+                with self.subTest(creator=creator), pytest.raises(error):
                     create_agentic_breached_metric_investigation(
                         creator=creator, **{**arguments, "project_ids": []}
                     )
@@ -284,6 +292,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         inactive_project = self.create_project(
             organization=self.organization, status=ObjectStatus.PENDING_DELETION
         )
+        unlinked_project = self.create_project(organization=self.organization)
         inactive_user = self.create_user(is_active=False)
         self.create_member(organization=self.organization, user=inactive_user)
         arguments: dict[str, Any] = dict(
@@ -303,6 +312,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             ({"creator": ActorId(ActorType.USER, True)}, InvestigationValidationError),
             ({"creator": foreign_creator}, PermissionDenied),
             ({"creator": unprivileged_creator}, PermissionDenied),
+            ({"project_ids": [unlinked_project.id]}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, self.create_user().id)}, PermissionDenied),
             ({"creator": ActorId(ActorType.USER, inactive_user.id)}, PermissionDenied),
             ({"project_ids": [inactive_project.id]}, InvestigationValidationError),

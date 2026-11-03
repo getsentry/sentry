@@ -340,6 +340,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 class DetectorAPIOperation(StrEnum):
     LIST = "list"
+    DISCOVER = "discover"
     GET = "GET"
     POST = "POST"
     PUT = "PUT"

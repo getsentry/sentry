@@ -63,7 +63,7 @@ class ExternalActorResponse(TypedDict):
     integration_id: int
 
 
-class ExternalActorSerializerBase(CamelSnakeModelSerializer):
+class ExternalActorSerializerBase(CamelSnakeModelSerializer[Any]):
     external_id = serializers.CharField(
         required=False, allow_null=True, help_text="The associated user ID for provider."
     )

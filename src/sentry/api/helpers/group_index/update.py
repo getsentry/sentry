@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 import rest_framework
@@ -61,6 +61,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
@@ -199,7 +200,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
 def update_groups(
     request: Request,
     groups: Sequence[Group],
-    user: RpcUser | User | AnonymousUser | None = None,
+    user: RpcUser | User | AnonymousUser | ServiceAccountPrincipal | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
@@ -355,7 +356,7 @@ def validate_request(
     request: Request,
     projects: Sequence[Project],
     data: Mapping[str, Any],
-    user: RpcUser | User | AnonymousUser | None = None,
+    user: RpcUser | User | AnonymousUser | ServiceAccountPrincipal | None = None,
 ) -> GroupValidator | None:
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
@@ -897,10 +898,13 @@ def most_recent_release(project: Project) -> Release | None:
 def most_recent_release_matching_commit(
     projects: Sequence[Project], commit: Commit
 ) -> Release | None:
-    return (
-        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-        .extra(select={"sort": "COALESCE(date_released, date_added)"})
-        .order_by("-sort")[0]
+    return cast(
+        "Release | None",
+        (
+            Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+            .extra(select={"sort": "COALESCE(date_released, date_added)"})
+            .order_by("-sort")[0]
+        ),
     )
 
 

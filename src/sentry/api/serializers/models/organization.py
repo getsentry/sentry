@@ -120,12 +120,12 @@ class OnboardingTasksSerializerResponse(TypedDict):
     status: str  # TODO: literal/enum
     completionSeen: datetime | None
     dateCompleted: datetime
-    data: Any  # JSON objec
+    data: object
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     features: list[str]  # Only included if include_feature_flags is True
-    extraOptions: dict[str, dict[str, Any]]
+    extraOptions: dict[str, dict[str, object]]
     access: list[str]  # Only if access=... is passed
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
@@ -368,6 +368,7 @@ class ControlSiloOrganizationMappingSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ControlSiloOrganizationMappingSerializerResponse:
+        assert obj.status is not None
         status = OrganizationStatus(obj.status)
         avatar_replica: OrganizationAvatarReplica | None = attrs["avatar"]
         if avatar_replica is not None:
@@ -574,8 +575,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
 
         if "access" in kwargs:
             context["access"] = sorted(kwargs["access"].scopes)
-            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
-            context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+            requesting_user = cast(User, user)
+            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, requesting_user))
+            context["onboardingTasks"] = serialize(tasks_to_serialize, requesting_user)
 
         return context
 
@@ -768,124 +770,133 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "sentry:seer_default_coding_agent_integration_id", None
         )
 
-        context: OrganizationSerializerResponse = {
-            **base,
-            "experiments": features.get_experiment_assignments(obj, actor=user),
-            "isDefault": obj.is_default,
-            "defaultRole": obj.default_role,
-            "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
-            "orgRoleList": serialize(
-                roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
-            ),
-            "teamRoleList": serialize(
-                roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
-            ),
-            "openMembership": bool(obj.flags.allow_joinleave),
-            "require2FA": bool(obj.flags.require_2fa),
-            "allowSharedIssues": not obj.flags.disable_shared_issues,
-            "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
-            "dataScrubber": bool(
-                obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
-            ),
-            "dataScrubberDefaults": bool(
-                obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
-            ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
-            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
-            "storeCrashReports": convert_crashreport_count(
-                obj.get_option("sentry:store_crash_reports")
-            ),
-            "attachmentsRole": str(
-                obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
-            ),
-            "debugFilesRole": str(
-                obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
-            ),
-            "eventsMemberAdmin": bool(
-                obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
-            ),
-            "alertsMemberWrite": bool(
-                obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
-            ),
-            "scrubIPAddresses": bool(
-                obj.get_option("sentry:require_scrub_ip_address", REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)
-            ),
-            "scrapeJavaScript": bool(
-                obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
-            ),
-            "allowJoinRequests": bool(
-                obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
-            ),
-            "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
-            "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
-            "hideAiFeatures": bool(
-                obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
-            ),
-            "genAIConsent": bool(
-                obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
-            ),
-            "aggregatedDataConsent": bool(
-                obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
-            ),
-            "issueAlertsThreadFlag": bool(
-                obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
-            ),
-            "metricAlertsThreadFlag": bool(
-                obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
-            ),
-            "rollbackEnabled": bool(
-                obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
-            ),
-            "defaultAutofixAutomationTuning": obj.get_option(
-                "sentry:default_autofix_automation_tuning",
-                AUTOFIX_AUTOMATION_TUNING_DEFAULT,
-            ),
-            "defaultSeerScannerAutomation": obj.get_option(
-                "sentry:default_seer_scanner_automation",
-                DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enableSeerCoding": bool(
-                obj.get_option(
-                    "sentry:enable_seer_coding",
-                    ENABLE_SEER_CODING_DEFAULT,
-                )
-            ),
-            "defaultCodingAgent": obj.get_option(
-                "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
-            ),
-            "defaultCodingAgentIntegrationId": (
-                str(coding_agent_integration_id) if coding_agent_integration_id else None
-            ),
-            "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
-            "autoOpenPrs": bool(
-                obj.get_option(
-                    "sentry:auto_open_prs",
-                    AUTO_OPEN_PRS_DEFAULT,
-                )
-            ),
-            "autoEnableCodeReview": bool(
-                obj.get_option(
-                    "sentry:auto_enable_code_review",
-                    AUTO_ENABLE_CODE_REVIEW,
-                )
-            ),
-            "defaultCodeReviewTriggers": obj.get_option(
-                "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
-            ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
-            "trustedRelays": [
-                # serialize trusted relays info into their external form
-                _relay_internal_to_external(raw)
-                for raw in obj.get_option("sentry:trusted-relays") or []
-            ],
-            "requiresSso": access.requires_sso,
-            "pendingAccessRequests": OrganizationAccessRequest.objects.filter(
-                team__organization=obj
-            ).count(),
-            "isDynamicallySampled": is_dynamically_sampled,
-            "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
-            "replayAccessMembers": attrs.get("replay_access_members", []),
-        }
+        context = cast(
+            "OrganizationSerializerResponse",
+            {
+                **base,
+                "experiments": features.get_experiment_assignments(obj, actor=user),
+                "isDefault": obj.is_default,
+                "defaultRole": obj.default_role,
+                "availableRoles": [
+                    {"id": r.id, "name": r.name} for r in roles.get_all()
+                ],  # Deprecated
+                "orgRoleList": serialize(
+                    roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
+                ),
+                "teamRoleList": serialize(
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
+                ),
+                "openMembership": bool(obj.flags.allow_joinleave),
+                "require2FA": bool(obj.flags.require_2fa),
+                "allowSharedIssues": not obj.flags.disable_shared_issues,
+                "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
+                "dataScrubber": bool(
+                    obj.get_option("sentry:require_scrub_data", REQUIRE_SCRUB_DATA_DEFAULT)
+                ),
+                "dataScrubberDefaults": bool(
+                    obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
+                ),
+                "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+                "safeFields": obj.get_option("sentry:safe_fields", None) or [],
+                "storeCrashReports": convert_crashreport_count(
+                    obj.get_option("sentry:store_crash_reports")
+                ),
+                "attachmentsRole": str(
+                    obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
+                ),
+                "debugFilesRole": str(
+                    obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
+                ),
+                "eventsMemberAdmin": bool(
+                    obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
+                ),
+                "alertsMemberWrite": bool(
+                    obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
+                ),
+                "scrubIPAddresses": bool(
+                    obj.get_option(
+                        "sentry:require_scrub_ip_address", REQUIRE_SCRUB_IP_ADDRESS_DEFAULT
+                    )
+                ),
+                "scrapeJavaScript": bool(
+                    obj.get_option("sentry:scrape_javascript", SCRAPE_JAVASCRIPT_DEFAULT)
+                ),
+                "allowJoinRequests": bool(
+                    obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
+                ),
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
+                "relayDsnEndpoint": obj.get_option("sentry:relay_dsn_endpoint") or None,
+                "hideAiFeatures": bool(
+                    obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+                ),
+                "genAIConsent": bool(
+                    obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
+                ),
+                "aggregatedDataConsent": bool(
+                    obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "issueAlertsThreadFlag": bool(
+                    obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricAlertsThreadFlag": bool(
+                    obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
+                ),
+                "rollbackEnabled": bool(
+                    obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+                ),
+                "defaultAutofixAutomationTuning": obj.get_option(
+                    "sentry:default_autofix_automation_tuning",
+                    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+                ),
+                "defaultSeerScannerAutomation": obj.get_option(
+                    "sentry:default_seer_scanner_automation",
+                    DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
+                ),
+                "enableSeerCoding": bool(
+                    obj.get_option(
+                        "sentry:enable_seer_coding",
+                        ENABLE_SEER_CODING_DEFAULT,
+                    )
+                ),
+                "defaultCodingAgent": obj.get_option(
+                    "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
+                ),
+                "defaultCodingAgentIntegrationId": (
+                    str(coding_agent_integration_id) if coding_agent_integration_id else None
+                ),
+                "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(
+                    obj
+                ),
+                "autoOpenPrs": bool(
+                    obj.get_option(
+                        "sentry:auto_open_prs",
+                        AUTO_OPEN_PRS_DEFAULT,
+                    )
+                ),
+                "autoEnableCodeReview": bool(
+                    obj.get_option(
+                        "sentry:auto_enable_code_review",
+                        AUTO_ENABLE_CODE_REVIEW,
+                    )
+                ),
+                "defaultCodeReviewTriggers": obj.get_option(
+                    "sentry:default_code_review_triggers", DEFAULT_CODE_REVIEW_TRIGGERS
+                ),
+                "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
+                "trustedRelays": [
+                    # serialize trusted relays info into their external form
+                    _relay_internal_to_external(raw)
+                    for raw in obj.get_option("sentry:trusted-relays") or []
+                ],
+                "requiresSso": access.requires_sso,
+                "pendingAccessRequests": OrganizationAccessRequest.objects.filter(
+                    team__organization=obj
+                ).count(),
+                "isDynamicallySampled": is_dynamically_sampled,
+                "hasGranularReplayPermissions": bool(attrs.get("replay_permissions_enabled")),
+                "replayAccessMembers": attrs.get("replay_access_members", []),
+            },
+        )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

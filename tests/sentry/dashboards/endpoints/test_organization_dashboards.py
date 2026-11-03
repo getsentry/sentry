@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import connection
 from django.test import override_settings
@@ -33,6 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -54,7 +56,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             interval="1d",
         )
 
-    def assert_equal_dashboards(self, dashboard, data):
+    def assert_equal_dashboards(self, dashboard: Dashboard, data: Mapping[str, Any]) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -826,6 +828,36 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard User 1"]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(
+        [
+            "organizations:service-accounts",
+            "organizations:dashboards-starred",
+            "organizations:dashboards-prebuilt-insights-dashboards",
+        ]
+    )
+    def test_service_account_owns_no_dashboards(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with patch(
+            "sentry.dashboards.endpoints.organization_dashboards.sentry_sdk.capture_exception"
+        ) as capture_exception:
+            response = self.client.get(
+                self.url,
+                {"filter": "owned", "sort": "mydashboards", "pin": "favorites"},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        capture_exception.assert_not_called()
+
     def test_get_shared_dashboards_across_organizations(self) -> None:
         # The test user is a member of just the single org.
         test_user = self.create_user(username="user_1")
@@ -1240,7 +1272,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -1592,7 +1624,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -2193,7 +2225,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert starred_dashboard["projects"] == []
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit: MagicMock) -> None:
         mock_get_dashboard_limit.return_value = 1
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 400
@@ -2204,7 +2236,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_not_bypassed_by_burst_creates(
+        self, mock_get_dashboard_limit: MagicMock
+    ) -> None:
         Dashboard.objects.all().delete()
         mock_get_dashboard_limit.return_value = 2
 
@@ -2226,7 +2260,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_does_not_count_prebuilt_dashboards(
-        self, mock_get_dashboard_limit
+        self, mock_get_dashboard_limit: MagicMock
     ) -> None:
         mock_get_dashboard_limit.return_value = 2
 
@@ -2942,7 +2976,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_succeeds_for_user_without_team_membership(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
         assert self.project  # lazy fixture; the org needs a project
@@ -2962,7 +2996,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Creation must work too, not just validation."""
         org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
@@ -2982,7 +3016,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         org = self.create_organization(owner=self.user, flags=1)
         team = self.create_team(organization=org)
@@ -3009,7 +3043,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_errors_when_no_project_is_accessible(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project."""
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
@@ -3034,7 +3068,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_does_not_error_for_organization_without_projects(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
         empty_org = self.create_organization(owner=self.user)

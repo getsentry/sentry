@@ -186,7 +186,7 @@ class ResolvedInCommitTest(TestCase):
     when a release is created that includes these commits, via update_group_resolutions().
     """
 
-    def assertLinkedFromCommitDeferred(self, group, commit):
+    def assertLinkedFromCommitDeferred(self, group: Group, commit: Commit) -> None:
         """Assert that a GroupLink and Activity were created, but issue is NOT resolved."""
         assert GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id
@@ -207,7 +207,7 @@ class ResolvedInCommitTest(TestCase):
         # Inbox should NOT be modified
         assert GroupInbox.objects.filter(group=group).exists()
 
-    def assertNotLinkedFromCommit(self, group, commit):
+    def assertNotLinkedFromCommit(self, group: Group, commit: Commit) -> None:
         """Assert that no GroupLink exists for this commit."""
         assert not GroupLink.objects.filter(
             group_id=group.id, linked_type=GroupLink.LinkedType.commit, linked_id=commit.id

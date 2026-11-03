@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -71,7 +71,7 @@ class TestSeerRpc(APITestCase):
             kwargs={"method_name": method_name},
         )
 
-    def auth_header(self, path: str, data: dict | str) -> str:
+    def auth_header(self, path: str, data: dict[str, object] | str) -> str:
         if isinstance(data, dict):
             data = orjson.dumps(data).decode()
         signature = generate_request_signature(path, data.encode())
@@ -222,7 +222,7 @@ class TestSeerRpcMethods(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     def test_get_attributes_for_span(self) -> None:
@@ -256,7 +256,7 @@ class TestSeerRpcMethods(APITestCase):
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
+    def test_get_github_enterprise_integration_config(self, mock_get_jwt: MagicMock) -> None:
         """Test when organization has github enterprise integration"""
 
         installation_id = 1234
@@ -403,7 +403,7 @@ class TestSeerRpcMethods(APITestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config_invalid_encrypt_key(
-        self, mock_get_jwt
+        self, mock_get_jwt: MagicMock
     ) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -491,7 +491,7 @@ class TestSeerRpcMethods(APITestCase):
         }
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_success(self, mock_delay) -> None:
+    def test_send_seer_webhook_success(self, mock_delay: MagicMock) -> None:
         """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
@@ -510,7 +510,7 @@ class TestSeerRpcMethods(APITestCase):
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay: MagicMock) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
         from sentry.sentry_apps.event_types import SentryAppEventType
@@ -536,7 +536,7 @@ class TestSeerRpcMethods(APITestCase):
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_send_seer_webhook_operator_no_feature_flag(
-        self, mock_broadcast, mock_process_autofix_updates
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
     ) -> None:
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
@@ -554,7 +554,9 @@ class TestSeerRpcMethods(APITestCase):
 
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
+    def test_send_seer_webhook_operator(
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
+    ) -> None:
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
         group = self.create_group(project=self.project)
