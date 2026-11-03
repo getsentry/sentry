@@ -20,7 +20,7 @@ from sentry.auth.principal import (
     acting_user_id,
     has_user,
     is_acting_user,
-    owned_by_acting_user,
+    is_owned_by_acting_user,
     require_user,
     resolve_actor,
     set_request_principal,
@@ -110,7 +110,7 @@ class OwnedByActingUserTest(TestCase):
         )
 
     def test_user(self) -> None:
-        mine = owned_by_acting_user(self.user)
+        mine = is_owned_by_acting_user(self.user)
         assert list(GroupBookmark.objects.filter(mine)) == [self.mine]
         assert list(GroupBookmark.objects.exclude(mine)) == [self.theirs]
 
@@ -118,14 +118,14 @@ class OwnedByActingUserTest(TestCase):
         service_account = ServiceAccountPrincipal(
             service_account_id=1, organization_id=1, name="sa"
         )
-        nothing = owned_by_acting_user(service_account)
+        nothing = is_owned_by_acting_user(service_account)
         assert not GroupBookmark.objects.filter(nothing).exists()
         assert set(GroupBookmark.objects.exclude(nothing)) == {self.mine, self.theirs}
 
     def test_field(self) -> None:
-        assert list(GroupBookmark.objects.filter(owned_by_acting_user(self.user, "user_id"))) == [
-            self.mine
-        ]
+        assert list(
+            GroupBookmark.objects.filter(is_owned_by_acting_user(self.user, "user_id"))
+        ) == [self.mine]
 
 
 class ResolveActorTest(TestCase):
