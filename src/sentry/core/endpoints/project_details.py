@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import orjson
 from django.db import IntegrityError, router, transaction
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -57,6 +58,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -670,9 +672,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
-            queryset = queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
+            cutoff = timezone.now() - timedelta(hours=int(resolve_age))
+            recently_reopened = Exists(
+                Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+                    group_id=OuterRef("id")
+                )
             )
+            queryset = queryset.filter(Q(last_seen__gt=cutoff) | recently_reopened)
 
         return queryset.count()
 

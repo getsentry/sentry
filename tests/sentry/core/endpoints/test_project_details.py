@@ -37,8 +37,10 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
@@ -89,6 +91,26 @@ class ProjectDetailsTest(APITestCase):
             self.project.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    @freeze_time()
+    def test_with_stats_includes_recently_reopened_issues(self) -> None:
+        self.project.update_option("sentry:resolve_age", 1)
+        now = datetime.now(timezone.utc)
+        old = now - timedelta(days=1)
+        self.create_group(project=self.project, last_seen=now)
+        self.create_group(project=self.project, last_seen=old)
+        reopened = self.create_group(project=self.project, last_seen=old)
+        self.create_group_activity(reopened, type=ActivityType.SET_UNRESOLVED.value)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+        )
+        assert response.data["stats"]["unresolved"] == 2
+
+        with freeze_time(now + timedelta(hours=1)):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+            )
+        assert response.data["stats"]["unresolved"] == 0
 
     def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
