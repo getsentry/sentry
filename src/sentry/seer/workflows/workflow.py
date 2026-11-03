@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, assert_never
+from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -29,7 +30,11 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.service_accounts.models import MAX_NAME_LENGTH, ServiceAccountReplica
+from sentry.service_accounts.services.service_account import (
+    RpcServiceAccount,
+    service_account_service,
+)
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -52,6 +57,21 @@ class SelectedProjects:
 
 
 type ProjectSelection = AllProjects | SelectedProjects
+
+
+@dataclass(frozen=True)
+class SeerAgent:
+    """The scopes and projects an automation's investigations run with."""
+
+    scopes: Sequence[str]
+    project_ids: Sequence[int] = ()
+    all_projects: bool = False
+
+
+@dataclass(frozen=True)
+class SeerAgentUpdate:
+    account: RpcServiceAccount
+    created: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -108,6 +128,7 @@ class SeerWorkflow:
         enabled: bool,
         filters: SeerWorkflowFilters,
         name: str | None = None,
+        service_account_id: int | None = None,
     ) -> SeerWorkflowConfig:
         """
         Create a config within the org's automation limit. Call inside a transaction on
@@ -132,6 +153,52 @@ class SeerWorkflow:
             enabled=enabled,
             filters=filters.dict(),
             extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+            service_account_id=service_account_id,
+        )
+
+    @staticmethod
+    @contextmanager
+    def _create_agent_account(
+        organization_id: int,
+        agent: SeerAgent,
+        *,
+        automation_name: str | None,
+        created_by_id: int | None,
+    ) -> Iterator[RpcServiceAccount]:
+        """Create the agent's service account, deleting it again if the block raises."""
+        suffix = uuid4().hex[:8]
+        prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
+        account = service_account_service.create_service_account(
+            organization_id=organization_id,
+            name=f"{prefix[: MAX_NAME_LENGTH - len(suffix) - 1]} {suffix}",
+            scope_list=list(agent.scopes),
+            project_ids=[] if agent.all_projects else list(agent.project_ids),
+            all_projects=agent.all_projects,
+            created_by_id=created_by_id,
+        )
+        try:
+            yield account
+        except BaseException:
+            # TODO(telkins): Look for a transactional way to create the account and config
+            # together instead of deleting the account when the config fails.
+            service_account_service.delete_service_account(
+                organization_id=organization_id, service_account_id=account.id
+            )
+            raise
+
+    @classmethod
+    def _maybe_create_agent_account(
+        cls,
+        organization_id: int,
+        agent: SeerAgent | None,
+        *,
+        automation_name: str | None,
+        created_by_id: int | None,
+    ) -> AbstractContextManager[RpcServiceAccount | None]:
+        if agent is None:
+            return nullcontext()
+        return cls._create_agent_account(
+            organization_id, agent, automation_name=automation_name, created_by_id=created_by_id
         )
 
     @classmethod
@@ -145,10 +212,13 @@ class SeerWorkflow:
         project_ids: Collection[int],
         environments: Sequence[str] = (),
         name: str | None = None,
+        agent: SeerAgent | None = None,
+        created_by_id: int | None = None,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
-        projects and ``environments=[]`` for all environments.
+        projects and ``environments=[]`` for all environments. ``agent`` creates the
+        automation's service account. Callers must authorize the grant and audit it.
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
@@ -163,7 +233,12 @@ class SeerWorkflow:
         cls._validate_project_ids(organization_id, project_set)
 
         database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
+        with (
+            cls._maybe_create_agent_account(
+                organization_id, agent, automation_name=name, created_by_id=created_by_id
+            ) as account,
+            transaction.atomic(database),
+        ):
             config = cls._create_config(
                 database=database,
                 organization_id=organization_id,
@@ -174,6 +249,7 @@ class SeerWorkflow:
                     environments=list(environments),
                 ),
                 name=name,
+                service_account_id=account.id if account else None,
             )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
@@ -301,26 +377,45 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["enabled", "version", "date_updated"])
 
-    def set_service_account(self, service_account_id: int | None) -> None:
-        """Store the control account ID after validating its current cell replica."""
-        with self._lock_config() as config:
-            if service_account_id is not None:
-                try:
-                    replica = ServiceAccountReplica.objects.get(
-                        service_account_id=service_account_id,
-                        organization_id=config.organization_id,
-                    )
-                except ServiceAccountReplica.DoesNotExist as exc:
-                    raise ValueError(
-                        "Service account is unavailable in the workflow's organization"
-                    ) from exc
-                if not replica.is_active:
-                    raise ValueError("Service account is inactive")
+    def set_agent(self, agent: SeerAgent, *, created_by_id: int | None) -> SeerAgentUpdate:
+        """
+        Replace the scopes and projects of the automation's service account, creating the
+        account if the automation has none. Callers must authorize the grant and audit it.
+        """
+        config = self.get_config()
+        if config.service_account_id is not None:
+            account = service_account_service.update_service_account(
+                organization_id=self.organization_id,
+                service_account_id=config.service_account_id,
+                scope_list=list(agent.scopes),
+                project_ids=[] if agent.all_projects else list(agent.project_ids),
+                all_projects=agent.all_projects,
+            )
+            if account is not None:
+                return SeerAgentUpdate(account=account, created=False)
 
-            if config.service_account_id != service_account_id:
-                config.service_account_id = service_account_id
-                config.version += 1
-                config.save(update_fields=["service_account_id", "version", "date_updated"])
+        with (
+            self._create_agent_account(
+                self.organization_id,
+                agent,
+                automation_name=self.extras.name,
+                created_by_id=created_by_id,
+            ) as account,
+            self._lock_config() as config,
+        ):
+            config.service_account_id = account.id
+            config.version += 1
+            config.save(update_fields=["service_account_id", "version", "date_updated"])
+        return SeerAgentUpdate(account=account, created=True)
+
+    def get_agent_account(self) -> RpcServiceAccount | None:
+        """Read the automation's service account from control, which the replica may lag."""
+        config = self.get_config()
+        if config.service_account_id is None:
+            return None
+        return service_account_service.get_service_account(
+            organization_id=self.organization_id, service_account_id=config.service_account_id
+        )
 
     def resolve_service_account(self) -> ServiceAccountReplica:
         """Resolve authoritative identity against current cell state on every call."""

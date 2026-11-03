@@ -35,7 +35,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow, WorkflowUpdateError
+from sentry.seer.workflows.workflow import SeerAgent, SeerWorkflow, WorkflowUpdateError
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -186,12 +186,23 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         name: str | None = None,
+        agent: SeerAgent | None = None,
+        created_by_id: int | None = None,
     ) -> BreachedMetricWorkflow:
-        """Create an automation whose project coverage comes from connected monitors."""
+        """
+        Create an automation whose project coverage comes from connected monitors.
+        ``agent`` creates the automation's service account; its projects are independent
+        of the monitors. Callers must authorize the grant and audit it.
+        """
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
         database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
+        with (
+            cls._maybe_create_agent_account(
+                organization_id, agent, automation_name=name, created_by_id=created_by_id
+            ) as account,
+            transaction.atomic(database),
+        ):
             config = cls._create_config(
                 database=database,
                 organization_id=organization_id,
@@ -199,6 +210,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 enabled=enabled,
                 filters=SeerWorkflowFilters(environments=list(environments)),
                 name=name,
+                service_account_id=account.id if account else None,
             )
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = workflow._set_monitor_selection(config, monitor_ids) if monitor_ids else None
@@ -269,8 +281,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
         if existing != selected:
             self._replace_monitor_connections(workflow, existing, selected)
-        # TODO(telkins): Propagate the derived projects to the automation's dedicated
-        # service account in a separate step.
         return MonitorSelectionChange(
             workflow_id=workflow.id,
             workflow_created=created,
