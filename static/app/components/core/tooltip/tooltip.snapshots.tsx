@@ -3,8 +3,7 @@ import {Fragment} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import {Tooltip, TooltipContent} from './tooltip';
+import {Tooltip, TooltipContent} from '@sentry/scraps/tooltip/tooltip';
 
 function ExampleTooltip(
   props: Pick<ComponentProps<typeof TooltipContent>, 'children' | 'maxWidth'>

@@ -19,6 +19,7 @@ from sentry.api.helpers.timeseries_transformations import (
     Transformation,
     fill_timeseries,
     parse_transformation,
+    parse_transformations,
     smooth_timeseries,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -133,6 +134,59 @@ def test_parse_transformation(value: str, expected: Transformation) -> None:
 def test_parse_transformation_invalid(value: str, message: str) -> None:
     with pytest.raises(InvalidSearchQuery, match=message):
         parse_transformation(value)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([], []),
+        (["fill(locf)"], [FillTransformation(mode="locf")]),
+        (["smooth(sma,3)"], [SmaSmoothTransformation(mode="sma", window_size=3)]),
+        (
+            ("fill( linear )", "smooth(ema,7,0.25)"),
+            [
+                FillTransformation(mode="linear"),
+                EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
+            ],
+        ),
+        (
+            ["smooth(asap,7)", "fill(zero)"],
+            [
+                AsapSmoothTransformation(mode="asap", max_window_size=7),
+                FillTransformation(mode="zero"),
+            ],
+        ),
+    ],
+)
+def test_parse_transformations(values: Sequence[str], expected: list[Transformation]) -> None:
+    assert parse_transformations(values) == expected
+
+
+@pytest.mark.parametrize(
+    "values, message",
+    [
+        (
+            ["fill(locf)", "fill(zero)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["smooth(sma,3)", "smooth(ema,7)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["smooth(asap)", "smooth(ema,7)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["fill(locf)", "smooth(sma,3)", "invalid()"],
+            "At most 2 transformations are allowed per yAxis",
+        ),
+        (["fill(locf)", "fill(invalid)"], "mode argument invalid"),
+    ],
+)
+def test_parse_transformations_invalid(values: list[str], message: str) -> None:
+    with pytest.raises(InvalidSearchQuery, match=message):
+        parse_transformations(values)
 
 
 def test_parsed_transformations_with_processing_helpers() -> None:

@@ -2,56 +2,56 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: null
-  contributing component: null
-  hint: ignored because system exception takes precedence
+  hash: "0c557c696bf6942ff7b2fd5847a0418a"
+  contributing component: exception
+  hint: None
   root_component:
-    app (ignored because system exception takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+    app*
+      exception*
+        stacktrace*
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             function*
               "main"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             function*
               "UnityMain"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             function*
               "PlayerLoop"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             function*
               "ScriptingInvocation::Invoke"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "il2cppinvokertable.cpp"
             function*
               "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "enemyspawner.cs"
             function*
               "EnemySpawner_Update"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "combatsystem.cs"
             function*
               "CombatSystem_ApplyDamage"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "tmp_text.cs"
             function*
               "TMP_Text_SetText"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "animation.bindings.cs"
             function*
               "Animation_Play"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             filename*
               "il2cppcodegen.cpp"
             function*
               "il2cpp_codegen_raise_null_reference_exception"
-          frame (non app frame)
+          frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
             function*
               "sentry__handle_signal"
           frame (marked out of app by built-in stacktrace rule (family:native function:?[[]Sentry* -app))
@@ -59,16 +59,16 @@ app:
               "+[SentrySDK captureCrashEvent:]"
         type*
           "EXC_BAD_ACCESS"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Attempted to dereference null pointer."
 --------------------------------------------------------------------------
 system:
-  hash: "0c557c696bf6942ff7b2fd5847a0418a"
-  contributing component: exception
-  hint: None
+  hash: null
+  contributing component: null
+  hint: ignored because app exception takes precedence
   root_component:
-    system*
-      exception*
+    system (ignored because app exception takes precedence)
+      exception (ignored because hash matches app variant)
         stacktrace*
           frame*
             function*

@@ -30,7 +30,7 @@ export function AskSeerButton() {
         title: (
           <Flex align="center" gap="sm">
             {t('Ask Seer')}
-            <Hotkey value="command+/" />
+            <Hotkey value="Mod+/" />
           </Flex>
         ),
       }}

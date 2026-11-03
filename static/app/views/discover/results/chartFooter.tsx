@@ -8,6 +8,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {t} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -56,6 +57,15 @@ export function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
+  if (droppedDataLayer?.hasDroppedData && droppedDataLayer.showDroppedData) {
+    elements.push(
+      <DroppedDataFilterNote
+        key="dropped-data-filter-note"
+        dataset={droppedDataLayer.dataset}
+        hasUserQuery={!!eventView.query.trim()}
+      />
+    );
+  }
   const topEventOptions: Array<SelectValue<string>> = [];
   for (let i = 1; i <= 10; i++) {
     topEventOptions.push({value: i.toString(), label: i.toString()});

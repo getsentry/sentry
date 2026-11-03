@@ -456,7 +456,7 @@ export function LinkedPullRequests({
   );
 }
 
-function PullRequestList({
+export function PullRequestList({
   ariaLabel,
   group,
   pullRequests,

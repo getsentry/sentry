@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -13,6 +14,9 @@ from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
 @cell_silo_test
+# Snowflake org and project ids repeat when two tests start in the same second, so reset Snuba
+# rather than read back a previous test's rows for "our" project.
+@pytest.mark.usefixtures("reset_snuba")
 class OrganizationFeedbackCategoriesTest(APITestCase):
     endpoint = "sentry-api-0-organization-user-feedback-categories"
 

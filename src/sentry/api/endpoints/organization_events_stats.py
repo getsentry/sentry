@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import timedelta
 from typing import Any
 
@@ -92,16 +92,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             }
         )
 
-    def flatten_results(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+    def flatten_results(
+        self, results: SnubaTSResult | dict[str, SnubaTSResult]
+    ) -> list[dict[str, object]]:
         if isinstance(results, SnubaTSResult):
-            return results.data["data"]
-        else:
-            return sum(
-                [timeseries_result.data["data"] for timeseries_result in results.values()],
-                [],
-            )
+            data: list[dict[str, object]] = results.data["data"]
+            return data
 
-    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]):
+        flattened: list[dict[str, object]] = []
+        for timeseries_result in results.values():
+            flattened.extend(timeseries_result.data["data"])
+        return flattened
+
+    def check_if_results_have_data(self, results: SnubaTSResult | dict[str, SnubaTSResult]) -> bool:
         flattened_data = self.flatten_results(results)
         has_data = any(
             any(
@@ -242,7 +245,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             if should_upsample:
                 final_columns = transform_query_columns_for_error_upsampling(query_columns)
 
-            def get_rpc_config():
+            def get_rpc_config() -> SearchResolverConfig:
                 if scoped_dataset not in RPC_DATASETS:
                     raise NotImplementedError
 
@@ -305,7 +308,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in raw_groupby:
                     raise ParseError("Cannot group by timestamp")
                 if use_rpc:
-                    return scoped_dataset.run_top_events_timeseries_query(
+                    rpc_result: SnubaTSResult = scoped_dataset.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
                         y_axes=final_columns,
@@ -318,7 +321,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                         sampling_mode=snuba_params.sampling_mode,
                         equations=self.get_equation_list(organization, request),
                     )
-                return scoped_dataset.top_events_timeseries(
+                    return rpc_result
+                top_events_result: SnubaTSResult = scoped_dataset.top_events_timeseries(
                     timeseries_columns=final_columns,
                     selected_columns=raw_groupby,
                     equations=self.get_equation_list(organization, request),
@@ -338,9 +342,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     transform_alias_to_input_format=transform_alias_to_input_format,
                     fallback_to_transactions=True,
                 )
+                return top_events_result
 
             if use_rpc:
-                return scoped_dataset.run_timeseries_query(
+                rpc_timeseries: SnubaTSResult = scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=final_columns,
@@ -349,8 +354,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
+                return rpc_timeseries
 
-            return scoped_dataset.timeseries_query(
+            timeseries: SnubaTSResult = scoped_dataset.timeseries_query(
                 selected_columns=final_columns,
                 query=query,
                 snuba_params=snuba_params,
@@ -372,8 +378,14 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 fallback_to_transactions=True,
                 transform_alias_to_input_format=transform_alias_to_input_format,
             )
+            return timeseries
 
-        def get_event_stats_factory(scoped_dataset):
+        def get_event_stats_factory(
+            scoped_dataset: Any,
+        ) -> Callable[
+            [list[str], str, SnubaParams, int, bool, timedelta | None],
+            SnubaTSResult | dict[str, SnubaTSResult],
+        ]:
             """
             This factory closes over dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget and we're trying to split their discover dataset.

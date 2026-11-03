@@ -45,6 +45,20 @@ const EVALUATION_ATTRIBUTES = {
   ]),
 };
 
+const EXTRACTION_ATTRIBUTES = {
+  [SpanFields.GEN_AI_OPERATION_NAME]: 'extract',
+  [SpanFields.GEN_AI_REQUEST_MODEL]: '@cf/cloudflare/clairic',
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+    {
+      answers: {
+        invoice_number: {type: 'text', value: 'INV-2291'},
+        contacts: {type: 'list', value: ['Dana Ruiz', 'Priya Shah']},
+        po_number: {type: 'text', value: null},
+      },
+    },
+  ]),
+};
+
 describe('AiSpanTimeline', () => {
   it('renders an agent when conversation parent links contain a non-agent cycle', async () => {
     const organization = OrganizationFixture();
@@ -171,6 +185,21 @@ describe('AiSpanTimeline', () => {
     await userEvent.click(screen.getByText('typesafe/jev-1.13'));
 
     expect(onSelectNode).toHaveBeenCalledWith(node);
+  });
+
+  it('renders an extraction with its extractor and the values found', () => {
+    render(
+      <AiSpanTimeline
+        nodes={[createMockNode('extract-1', EXTRACTION_ATTRIBUTES)] as any}
+        selectedNodeKey={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('@cf/cloudflare/clairic')).toBeInTheDocument();
+    expect(
+      screen.getByText('invoice_number: INV-2291, contacts: Dana Ruiz, Priya Shah')
+    ).toBeInTheDocument();
   });
 
   it('renders other LLM calls by their response model', () => {

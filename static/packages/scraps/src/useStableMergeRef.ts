@@ -1,0 +1,34 @@
+import type * as React from 'react';
+import {useMemo} from 'react';
+import {mergeRefs} from '@react-aria/utils';
+
+import {defined} from '@sentry/scraps/defined';
+
+/**
+ * Returns a stable function for merging a dynamic child ref with a stable ref.
+ *
+ * Merged refs are cached by child ref identity so React does not detach and
+ * reattach callback refs on every render. Cleanup functions returned by either
+ * ref are preserved by `mergeRefs`.
+ */
+export function useStableMergeRef<T>(stableRef: React.Ref<T> | undefined) {
+  return useMemo(() => {
+    const cache = new WeakMap<NonNullable<React.Ref<T>>, React.Ref<T>>();
+
+    return (ref: React.Ref<T> | null | undefined) => {
+      if (!defined(ref)) {
+        return stableRef;
+      }
+
+      const cachedRef = cache.get(ref);
+      if (cachedRef !== undefined) {
+        return cachedRef;
+      }
+
+      const mergedRef = mergeRefs(ref, stableRef);
+      // oxlint-disable-next-line react/immutability
+      cache.set(ref, mergedRef);
+      return mergedRef;
+    };
+  }, [stableRef]);
+}

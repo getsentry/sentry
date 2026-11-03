@@ -2,7 +2,6 @@ from unittest import mock
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -38,6 +37,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -55,6 +55,34 @@ pytestmark = [requires_snuba]
 
 
 class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
+    @mock.patch(
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_seer_cleanup_uses_scheduled_actor_context(
+        self, mock_delete_seer_grouping_records: mock.MagicMock
+    ) -> None:
+        project = self.create_project(name="test")
+        project.update_option("sentry:similarity_backfill_completed", 1)
+        event = self.store_event(data={"message": "error"}, project_id=project.id)
+        assert event.group is not None
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == project.organization_id
+            assert viewer_context.project_id == project.id
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
+
+        mock_delete_seer_grouping_records.side_effect = assert_viewer_context
+        self.ScheduledDeletion.schedule(instance=project, actor=self.user, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        mock_delete_seer_grouping_records.assert_called()
+        assert get_viewer_context() is None
+
     def test_simple(self) -> None:
         project = self.create_project(name="test")
         rule = self.create_project_rule(project=project)
@@ -149,13 +177,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription_id="a-snuba-id-maybe",
             query_extra="",
         )
-        incident = self.create_incident(
-            organization=project.organization,
-            projects=[project],
-            alert_rule=metric_alert_rule,
-            title="Something bad happened",
-            subscription=query_sub,
-        )
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
         with self.tasks():
@@ -185,9 +206,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Activity.objects.filter(id=activity.id).exists()
         assert not MonitorCheckIn.objects.filter(id=checkin.id).exists()
         assert not QuerySubscription.objects.filter(id=query_sub.id).exists()
-
-        incident.refresh_from_db()
-        assert Incident.objects.filter(id=incident.id).exists()
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
 

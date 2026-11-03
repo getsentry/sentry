@@ -51,7 +51,7 @@ describe('InvestigationFixtureApi', () => {
         initialRouterConfig: {
           location: {
             pathname:
-              '/organizations/storybook-investigations-list-test/explore/investigations/',
+              '/organizations/storybook-investigations-list-test/seer/investigations/',
           },
         },
       }
@@ -86,7 +86,7 @@ describe('InvestigationFixtureApi', () => {
         organization,
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/storybook-investigation-detail-test/explore/investigations/${investigation.id}/`,
+            pathname: `/organizations/storybook-investigation-detail-test/seer/investigations/${investigation.id}/`,
           },
         },
       }
@@ -108,7 +108,7 @@ describe('InvestigationFixtureApi', () => {
     // fresh fetch proves the fixture backend actually stored it.
     await waitFor(async () => {
       const stored = await QUERY_API_CLIENT.requestPromise(
-        `/organizations/storybook-investigation-detail-test/investigations/${investigation.id}/`
+        `/organizations/storybook-investigation-detail-test/notebooks/${investigation.id}/`
       );
       expect(stored.title).toBe('Invoice PDF timeouts everywhere');
     });
@@ -129,7 +129,7 @@ describe('InvestigationFixtureApi', () => {
       id: 'fixture-id-collisions',
       blocks: [firstBlock, secondBlock],
     });
-    const baseUrl = `/organizations/storybook-fixture-id-test/investigations/${investigation.id}/`;
+    const baseUrl = `/organizations/storybook-fixture-id-test/notebooks/${investigation.id}/`;
 
     render(
       <InvestigationFixtureApi
@@ -364,7 +364,7 @@ describe('InvestigationFixtureApi', () => {
 
     it('edits and deletes comments, with actions only for the story viewer', async () => {
       const investigation = InvestigationDetailFixture({id: 'editing', blocks: []});
-      const commentsUrl = `/organizations/storybook-comments-edit-test/investigations/${investigation.id}/comments/`;
+      const commentsUrl = `/organizations/storybook-comments-edit-test/notebooks/${investigation.id}/comments/`;
 
       render(
         <InvestigationFixtureApi
@@ -418,7 +418,7 @@ describe('InvestigationFixtureApi', () => {
           organization,
           initialRouterConfig: {
             location: {
-              pathname: `/organizations/storybook-comments-drawer-test/explore/investigations/${commentedInvestigation.id}/`,
+              pathname: `/organizations/storybook-comments-drawer-test/seer/investigations/${commentedInvestigation.id}/`,
               query: {comments: 'open', commentsBlock: 'commented-query'},
             },
           },
@@ -459,7 +459,7 @@ describe('InvestigationFixtureApi', () => {
       expect(await screen.findByText('Fixture ready')).toBeInTheDocument();
       expect(
         await QUERY_API_CLIENT.requestPromise(
-          `/organizations/storybook-comment-counts-test/investigations/${commentedInvestigation.id}/comment-counts/`
+          `/organizations/storybook-comment-counts-test/notebooks/${commentedInvestigation.id}/comment-counts/`
         )
       ).toEqual({
         'commented-query': 3,

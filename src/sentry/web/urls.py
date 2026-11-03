@@ -5,6 +5,8 @@ import re
 from django.conf import settings
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_safe
 from django.views.generic import RedirectView
 
 from sentry.api.endpoints.oauth_userinfo import OAuthUserInfoEndpoint
@@ -38,8 +40,6 @@ from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
-from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
-from sentry.web.frontend.oauth_device import OAuthDeviceView
 from sentry.web.frontend.oauth_device_authorization import OAuthDeviceAuthorizationView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -63,6 +63,9 @@ from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
+public_oauth_react_page_view = never_cache(
+    require_safe(GenericReactPageView.as_view(auth_required=False))
+)
 react_page_view = ReactPageView.as_view()
 
 urlpatterns: list[URLResolver | URLPattern] = [
@@ -203,7 +206,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^authorize/$",
-                    OAuthAuthorizeView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-authorize",
                 ),
                 re_path(
@@ -224,7 +227,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^device/$",
-                    OAuthDeviceView.as_view(),
+                    public_oauth_react_page_view,
                     name="sentry-oauth-device",
                 ),
             ]
@@ -842,6 +845,12 @@ urlpatterns += [
         react_page_view,
         name="issues",
     ),
+    # Inbox
+    re_path(
+        r"^inbox/",
+        react_page_view,
+        name="inbox",
+    ),
     # Alerts
     re_path(
         r"^alerts/",
@@ -871,6 +880,12 @@ urlpatterns += [
         r"^explore/",
         react_page_view,
         name="explore",
+    ),
+    # Seer
+    re_path(
+        r"^seer/",
+        react_page_view,
+        name="seer",
     ),
     # Traces
     re_path(

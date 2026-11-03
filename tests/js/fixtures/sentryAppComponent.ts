@@ -8,6 +8,7 @@ export function SentryAppComponentFixture(
 ): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     type: 'issue-link',
     schema: {
       type: 'issue-link',
@@ -62,6 +63,7 @@ export function SentryAppComponentAsyncFixture(
 ): SentryAppComponent<SentryAppSchemaIssueLink> {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     type: 'issue-link',
     schema: {
       type: 'issue-link',
@@ -105,6 +107,7 @@ export function SentryAppComponentDependentFixture(
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
+    installationUuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     schema: {
       type: 'issue-link',
       link: {

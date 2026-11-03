@@ -16,6 +16,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type KeyDescriptionProps = {
   tag: Tag;
+  linksAsText?: boolean;
   size?: 'sm' | 'md';
 };
 
@@ -44,15 +45,15 @@ export function ValueType({
   return toTitleCase(fieldDefinition?.valueType ?? defaultType);
 }
 
-export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
+export function KeyDescription({linksAsText, size = 'sm', tag}: KeyDescriptionProps) {
   return (
     <DescriptionWrapper size={size}>
-      <KeyDetails tag={tag} />
+      <KeyDetails tag={tag} linksAsText={linksAsText} />
     </DescriptionWrapper>
   );
 }
 
-export function KeyDetails({tag}: {tag: Tag}) {
+export function KeyDetails({tag, linksAsText}: {tag: Tag; linksAsText?: boolean}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const fieldDefinition = getFieldDefinition(tag.key);
@@ -69,6 +70,7 @@ export function KeyDetails({tag}: {tag: Tag}) {
       description={description}
       isAddedBySentry={Boolean(sentryDescription)}
       kind={fieldDefinition?.kind ?? tag.kind}
+      linksAsText={linksAsText}
       name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
       valueType={fieldDefinition?.valueType ?? defaultValueType}
     />

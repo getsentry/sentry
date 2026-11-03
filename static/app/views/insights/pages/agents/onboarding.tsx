@@ -223,6 +223,7 @@ export function Onboarding() {
     platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions,
   } = useAgentOnboardingOptions({
     platform: project?.platform,
     platformInfo: currentPlatform,
@@ -288,11 +289,13 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {!projectAgentIntegration && (
+      {showPlatformOptions && (
         <OptionsWrapper>
           <PlatformOptionDropdown
             platformOptions={platformOptions}
-            connectors={{deploymentTarget: t('on')}}
+            // Framework projects only render the runtime selector, which then
+            // directly follows "with".
+            connectors={projectAgentIntegration ? undefined : {deploymentTarget: t('on')}}
             lockedValues={
               integrationDeploymentTarget
                 ? {deploymentTarget: integrationDeploymentTarget}

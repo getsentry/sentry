@@ -9,6 +9,7 @@ import {
 } from '@sentry/scraps/pictureInPicture';
 
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
@@ -47,9 +48,11 @@ function tree(query: string, newChat?: boolean) {
         <PictureInPictureProvider>
           <GlobalDrawer>
             <SeerExplorerContextProvider>
-              <div>main app content</div>
-              <AskSeerButton query={query} newChat={newChat} />
-              <PopOutButton />
+              <SeerExplorerSidebarLayout>
+                <div>main app content</div>
+                <AskSeerButton query={query} newChat={newChat} />
+                <PopOutButton />
+              </SeerExplorerSidebarLayout>
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>

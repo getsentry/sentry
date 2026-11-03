@@ -8,7 +8,11 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getCompatibilityDate} from 'sentry/gettingStartedDocs/node-cloudflare-workers/utils';
 import {t, tct} from 'sentry/locale';
-import {DeploymentTarget} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {
+  DeploymentTarget,
+  getPlatformDeploymentTarget,
+  getSdkImportSpecifier,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const NODE_GUIDE = 'https://docs.sentry.io/platforms/javascript/guides/pi-durable/';
 const CLOUDFLARE_GUIDE =
@@ -27,17 +31,29 @@ enum PiDurableRuntime {
 }
 
 function getRuntime(params: DocsParams): PiDurableRuntime {
-  if (params.platformOptions?.deploymentTarget === DeploymentTarget.CLOUDFLARE) {
-    return PiDurableRuntime.CLOUDFLARE;
+  // Pi Durable projects pick any runtime; Deno, Bun and Cloudflare Workers
+  // projects are fixed to their platform's runtime.
+  switch (
+    params.platformOptions?.deploymentTarget ??
+    getPlatformDeploymentTarget(params.platformKey)
+  ) {
+    case DeploymentTarget.CLOUDFLARE:
+      return PiDurableRuntime.CLOUDFLARE;
+    case DeploymentTarget.BUN:
+      return PiDurableRuntime.BUN;
+    case DeploymentTarget.DENO:
+      return PiDurableRuntime.DENO;
+    default:
+      return PiDurableRuntime.NODE;
   }
-  if (params.platformKey === 'bun') {
-    return PiDurableRuntime.BUN;
-  }
-  if (params.platformKey === 'deno') {
-    return PiDurableRuntime.DENO;
-  }
-  return PiDurableRuntime.NODE;
 }
+
+const RUNTIME_PACKAGE_NAMES: Record<PiDurableRuntime, `@sentry/${string}`> = {
+  [PiDurableRuntime.NODE]: '@sentry/node',
+  [PiDurableRuntime.BUN]: '@sentry/bun',
+  [PiDurableRuntime.DENO]: '@sentry/deno',
+  [PiDurableRuntime.CLOUDFLARE]: '@sentry/cloudflare',
+};
 
 function getInitOptions(params: DocsParams): string {
   return `dsn: "${params.dsn.public}",${
@@ -405,6 +421,8 @@ function getConfigureContent(params: DocsParams): ContentBlock[] {
 }
 
 export const onboarding: OnboardingConfig = {
+  sdkImportSpecifier: params =>
+    getSdkImportSpecifier(RUNTIME_PACKAGE_NAMES[getRuntime(params)]),
   install: params => [
     {
       type: StepType.INSTALL,

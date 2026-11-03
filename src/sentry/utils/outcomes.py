@@ -203,7 +203,7 @@ def track_outcome(
     event (invalid, rate_limited, accepted, discarded, etc.)
 
     This sends the "outcome" message to Kafka which is used by Snuba to serve
-    data for SnubaTSDB and RedisSnubaTSDB, such as # of rate-limited/filtered
+    data for SnubaTSDB, such as # of rate-limited/filtered
     events.
     """
     if quantity is None:

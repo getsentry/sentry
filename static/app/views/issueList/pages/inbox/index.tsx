@@ -812,6 +812,12 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
           {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
@@ -829,12 +835,6 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
-          <Flex minWidth={0} align="center" gap="2xs">
-            <ProjectAvatar project={group.project} size={12} />
-            <Text size="xs" variant="muted" ellipsis>
-              {group.shortId}
-            </Text>
-          </Flex>
         </Flex>
         <span />
       </Grid>

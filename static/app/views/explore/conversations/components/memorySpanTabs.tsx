@@ -5,34 +5,36 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {
+  EmptySpanTab,
+  SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
+  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  SpanTabContent,
+} from 'sentry/views/explore/conversations/components/spanTabContent';
+import {
   formatMemoryScore,
   getMemoryResultText,
   type Memory,
   type MemoryRecord,
   MemoryOperation,
 } from 'sentry/views/insights/pages/agents/utils/memory';
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
-
-const MEMORY_JSON_MAX_DEFAULT_DEPTH = 3;
-const MEMORY_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
 
 export function MemoryInputTab({memory}: {memory: Memory}) {
   switch (memory.operation) {
     case MemoryOperation.SEARCH:
       return memory.query ? (
         <Section title={t('Query')}>
-          <MemoryContent content={memory.query} />
+          <SpanTabContent content={memory.query} />
         </Section>
       ) : (
-        <MemoryEmpty message={t('The search query was not captured.')} />
+        <EmptySpanTab message={t('The search query was not captured')} />
       );
     case MemoryOperation.DELETE:
       // A specific record id, or a count of one, is a targeted delete already
       // summarized in the header. Only a delete with no record scope is the
       // store-wide case; an absent id alone can just mean it wasn't captured.
       return memory.recordId || memory.recordCount === 1 ? (
-        <MemoryEmpty message={t('No input for this span')} />
+        <EmptySpanTab message={t('No input for this span')} />
       ) : (
         <Section title={t('Target')}>
           <Text as="div">{t('All records in the store')}</Text>
@@ -41,13 +43,13 @@ export function MemoryInputTab({memory}: {memory: Memory}) {
     case MemoryOperation.CREATE_STORE:
     case MemoryOperation.DELETE_STORE:
       // The store is shown in the header, so there's no separate input.
-      return <MemoryEmpty message={t('No input for this span')} />;
+      return <EmptySpanTab message={t('No input for this span')} />;
     default:
       return (
         <MemoryRecordsSection
           title={t('Records')}
           memory={memory}
-          emptyMessage={t('No records to display.')}
+          emptyMessage={t('No records to display')}
         />
       );
   }
@@ -61,12 +63,12 @@ export function MemoryOutputTab({memory}: {memory: Memory}) {
           title={t('Results')}
           memory={memory}
           showScore
-          emptyMessage={t('No matching records were returned.')}
+          emptyMessage={t('No matching records were returned')}
         />
       );
     case MemoryOperation.CREATE_STORE:
     case MemoryOperation.DELETE_STORE:
-      return <MemoryEmpty message={t('No output for this span')} />;
+      return <EmptySpanTab message={t('No output for this span')} />;
     default: {
       const result = getMemoryResultText(memory);
       return result ? (
@@ -74,7 +76,7 @@ export function MemoryOutputTab({memory}: {memory: Memory}) {
           <Text as="div">{result}</Text>
         </Section>
       ) : (
-        <MemoryEmpty message={t('No output for this span')} />
+        <EmptySpanTab message={t('No output for this span')} />
       );
     }
   }
@@ -126,10 +128,10 @@ function MemoryRecordsSection({
   // captured (records are opt-in, or an empty array disagrees with the count);
   // showing "none" here would contradict the count in the header.
   if ((recordCount ?? 0) > 0) {
-    return <MemoryEmpty message={t('Record content was not captured.')} />;
+    return <EmptySpanTab message={t('Record content was not captured')} />;
   }
 
-  return <MemoryEmpty message={emptyMessage} />;
+  return <EmptySpanTab message={emptyMessage} />;
 }
 
 function MemoryRecordItem({
@@ -157,32 +159,15 @@ function MemoryRecordItem({
           ) : null}
         </Flex>
       ) : null}
-      <MemoryContent content={record.content} />
+      <SpanTabContent content={record.content} />
       {record.metadata === undefined || record.metadata === null ? null : (
         <TraceDrawerComponents.MultilineJSON
           value={record.metadata}
-          maxDefaultDepth={MEMORY_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={MEMORY_JSON_AUTO_COLLAPSE_LIMIT}
+          maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
         />
       )}
     </Stack>
-  );
-}
-
-function MemoryContent({content}: {content: unknown}) {
-  return typeof content === 'string' ? (
-    <AIContentRenderer
-      text={content}
-      maxJsonDepth={MEMORY_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={MEMORY_JSON_AUTO_COLLAPSE_LIMIT}
-      clip={false}
-    />
-  ) : (
-    <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={MEMORY_JSON_MAX_DEFAULT_DEPTH}
-      autoCollapseLimit={MEMORY_JSON_AUTO_COLLAPSE_LIMIT}
-    />
   );
 }
 
@@ -192,13 +177,5 @@ function Section({title, children}: {children: React.ReactNode; title: string}) 
       <Text bold>{title}</Text>
       {children}
     </Stack>
-  );
-}
-
-function MemoryEmpty({message}: {message: string}) {
-  return (
-    <Flex flex="1" background="secondary" radius="md" padding="xl">
-      <Text variant="muted">{message}</Text>
-    </Flex>
   );
 }

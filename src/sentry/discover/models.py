@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
 from typing import ClassVar
 
@@ -63,7 +64,7 @@ class DatasetSourcesTypes(Enum):
     FORCED = 3
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
 
@@ -129,7 +130,7 @@ class DiscoverSavedQuery(Model):
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
-    def set_projects(self, project_ids):
+    def set_projects(self, project_ids: Sequence[int]) -> None:
         with transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)):
             DiscoverSavedQueryProject.objects.filter(discover_saved_query=self).exclude(
                 project__in=project_ids
@@ -151,7 +152,9 @@ class DiscoverSavedQuery(Model):
 
 class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
     @staticmethod
-    def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
+    def __schedule_invalidate_project_config_transaction_commit(
+        instance: TeamKeyTransaction, trigger: str
+    ) -> None:
         try:
             project = getattr(instance.project_team, "project", None)
         except ProjectTeam.DoesNotExist:
@@ -184,7 +187,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
             instance, "teamkeytransaction.post_save"
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: TeamKeyTransaction, **kwargs: object) -> None:
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
         # been committed or rolled back to ensure we don't read stale data in the

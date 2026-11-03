@@ -21,7 +21,7 @@ import {defined} from 'sentry/utils/defined';
 import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
   parseFunction,
@@ -116,8 +116,6 @@ type WidgetCardChartProps = {
     shouldResize?: boolean;
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 
@@ -522,16 +520,13 @@ function ServerTreeComponent({
     filter => filter.tag.key === 'transaction' && filter.dataset === WidgetType.SPANS
   );
 
-  return (
-    <ServerTreeWidgetVisualization
-      noVisualizationPadding
-      query={transactionFilter?.value}
-    />
-  );
+  return <ServerTreeWidgetVisualization query={transactionFilter?.value} />;
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return <WheelWidgetVisualization tableResults={props.tableResults} />;
+  return (
+    <WheelWidgetVisualization tableResults={props.tableResults} widget={props.widget} />
+  );
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {

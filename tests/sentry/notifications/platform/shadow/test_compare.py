@@ -247,7 +247,7 @@ def test_mask_group_stats_masks_only_stat_values() -> None:
             {"type": "section", "text": {"type": "mrkdwn", "text": "Events: *12*"}},
             _context_block(
                 "State: *Ongoing*   Events: *#*   Users Affected: *#*   "
-                "First Seen: *# days ago*   Suggested: #team-42"
+                "First Seen: *relative*   Suggested: #team-42"
             ),
             _context_block("Approx. Start Time: *#-#-# #:#:#*"),
         ],
@@ -267,17 +267,34 @@ def test_mask_group_stats_ignore_counts() -> None:
 
     assert _mask_group_stats(payload, ignore_counts=True) == {
         "blocks": [
-            _context_block("State: *Ongoing*   First Seen: *# days ago*"),
+            _context_block("State: *Ongoing*   First Seen: *relative*"),
             _context_block(""),
         ]
     }
 
 
 @pytest.mark.parametrize(
+    "value", ["Just now", "1 minute ago", "Yesterday", "1 day, 2 hours ago", "4 days ago"]
+)
+def test_mask_group_stats_masks_relative_first_seen(value: str) -> None:
+    payload = {"blocks": [_context_block(f"State: *New*   First Seen: *{value}*")]}
+
+    assert _mask_group_stats(payload) == {
+        "blocks": [_context_block("State: *New*   First Seen: *relative*")]
+    }
+
+
+def test_mask_group_stats_masks_digits_of_a_first_seen_date() -> None:
+    payload = {"blocks": [_context_block("First Seen: *2026-10-01*")]}
+
+    assert _mask_group_stats(payload) == {"blocks": [_context_block("First Seen: *#-#-#*")]}
+
+
+@pytest.mark.parametrize(
     ("legacy", "platform"),
     [
         ("State: *New*   First Seen: *just now*", "State: *Ongoing*   First Seen: *just now*"),
-        ("First Seen: *just now*", "First Seen: *1 minute ago*"),
+        ("First Seen: *2026-10-01*", "First Seen: *Just now*"),
         (
             "Events: *12*   Users Affected: *3*   First Seen: *2 days ago*",
             "First Seen: *2 days ago*",

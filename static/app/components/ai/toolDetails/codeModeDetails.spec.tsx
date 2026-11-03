@@ -23,18 +23,26 @@ it('does not request a summary when AI features are hidden', () => {
   expect(request).not.toHaveBeenCalled();
 });
 
-it('keeps oversized code visible without requesting a summary', () => {
-  const request = MockApiClient.addMockResponse({url: URL, method: 'POST'});
-  const code = 'x'.repeat(4_001);
+it('requests a summary for the first 4,000 characters of oversized code', async () => {
+  const code = `${'x'.repeat(3_999)}🙂${'y'.repeat(10)}`;
+  const request = MockApiClient.addMockResponse({
+    url: URL,
+    method: 'POST',
+    body: {summary: 'Prints values.'},
+    match: [
+      MockApiClient.matchData({code: `${'x'.repeat(3_999)}🙂`, language: 'python'}),
+    ],
+  });
 
   render(<CodeModeDetails projectId={1} code={code} language="python" />);
 
+  expect(await screen.findByText('Prints values.')).toBeInTheDocument();
+  expect(request).toHaveBeenCalledTimes(1);
   expect(
     screen.getByText(
       (_, element) => element?.tagName === 'CODE' && element.textContent === code
     )
   ).toBeInTheDocument();
-  expect(request).not.toHaveBeenCalled();
 });
 
 it('keeps code available when generation fails', async () => {

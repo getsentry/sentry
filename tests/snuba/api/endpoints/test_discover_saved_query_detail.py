@@ -41,7 +41,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         self.query_id_without_access = invalid.id
 
-    def setup_no_team_user(self):
+    def setup_no_team_user(self) -> None:
         # disable Open Membership
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -54,6 +54,15 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     def test_invalid_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse("sentry-api-0-discover-saved-query-detail", args=[self.org.slug, "not-an-id"])
+
+    def test_out_of_range_id(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, "99999999999999999999"],
+            )
+            response = self.client.get(url)
+        assert response.status_code == 404
 
     def test_get(self) -> None:
         with self.feature(self.feature_name):
@@ -172,7 +181,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
-        assert response.data["exploreQuery"]["range"] == "24h"
+        assert "range" not in response.data["exploreQuery"]
         assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:
@@ -594,7 +603,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, query_id):
+    def url(self, query_id: int) -> str:
         return reverse(
             "sentry-api-0-discover-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},

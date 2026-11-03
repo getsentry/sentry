@@ -1,6 +1,9 @@
+from collections.abc import Mapping
+from typing import Any
 from unittest import mock
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase
@@ -20,16 +23,22 @@ class OrganizationEventsEndpointTest(APITestCase):
         self.ten_mins_ago_iso = self.ten_mins_ago.isoformat()
         self.features: dict[str, bool] = {}
 
-    def client_get(self, *args, **kwargs):
-        return self.client.get(*args, **kwargs)
+    def client_get(self, *args: Any, **kwargs: Any) -> Response:
+        response: Response[Any] = self.client.get(*args, **kwargs)
+        return response
 
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.viewname,
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None, **kwargs):
+    def do_request(
+        self,
+        query: Mapping[str, object],
+        features: dict[str, bool] | None = None,
+        **kwargs: object,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -178,7 +187,9 @@ class OrganizationEventsEndpointTest(APITestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
 
-    def _api_token_request(self, query, features):
+    def _api_token_request(
+        self, query: Mapping[str, object], features: dict[str, bool]
+    ) -> Response:
         """Issue an external API-token request, which forces the referrer to
         `api.auth-token.events` (the "external API request" branch of the
         blocked-org warning)."""

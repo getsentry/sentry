@@ -4,7 +4,12 @@ from functools import cached_property
 from unittest import TestCase
 
 import pytest
+import rb
+from redis.client import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 
+from sentry.exceptions import InvalidConfiguration
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking.backends.redis import (
     BaseRedisLockBackend,
     RedisClusterLockBackend,
@@ -17,11 +22,11 @@ class RedisBackendTestCaseBase:
     backend_class: type[BaseRedisLockBackend]
 
     @property
-    def cluster(self):
+    def cluster(self) -> rb.Cluster | RedisCluster[str] | StrictRedis[str]:
         raise NotImplementedError
 
     @property
-    def backend(self):
+    def backend(self) -> BaseRedisLockBackend:
         return self.backend_class(self.cluster, uuid="09cd7348c93f4198995177a57216e620")
 
     def test_success(self) -> None:
@@ -81,7 +86,7 @@ class RedisLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> rb.Cluster:
         return clusters.get("default")
 
 
@@ -89,5 +94,54 @@ class RedisClusterLockBackendTestCase(RedisBackendTestCaseBase, TestCase):
     backend_class = RedisClusterLockBackend
 
     @cached_property
-    def cluster(self):
+    def cluster(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis_clusters.get("default")
+
+
+class SingleHostBackendCompatibilityTestCase(TestCase):
+    # On a single host cluster, both backends must see the same locks, so that
+    # a change from one backend to the other needs no migration backend.
+    def test_blaster_lock_is_visible_to_cluster_backend(self) -> None:
+        key = "compat:blaster-to-cluster"
+        blaster_backend = RedisLockBackend("default")
+        cluster_backend = RedisClusterLockBackend("default")
+
+        blaster_backend.acquire(key, 60)
+        assert cluster_backend.locked(key)
+        with pytest.raises(Exception):
+            cluster_backend.acquire(key, 60)
+
+        blaster_backend.release(key)
+        assert not cluster_backend.locked(key)
+
+    def test_cluster_lock_is_visible_to_blaster_backend(self) -> None:
+        key = "compat:cluster-to-blaster"
+        blaster_backend = RedisLockBackend("default")
+        cluster_backend = RedisClusterLockBackend("default")
+
+        cluster_backend.acquire(key, 60)
+        assert blaster_backend.locked(key)
+        with pytest.raises(Exception):
+            blaster_backend.acquire(key, 60)
+
+        cluster_backend.release(key)
+        assert not blaster_backend.locked(key)
+
+
+class RedisClusterLockBackendConfigurationTestCase(TestCase):
+    def test_multi_host_cluster_without_is_redis_cluster_raises_clear_error(self) -> None:
+        clusters_config = {
+            "locks-multi-host": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
+        }
+        with override_options({"redis.clusters": clusters_config}):
+            with pytest.raises(InvalidConfiguration) as excinfo:
+                RedisClusterLockBackend("locks-multi-host")
+
+        message = str(excinfo.value)
+        assert "'locks-multi-host'" in message
+        assert "exactly one host" in message
+        assert "is_redis_cluster" in message
+
+    def test_unknown_cluster_still_raises_key_error(self) -> None:
+        with pytest.raises(KeyError, match="Invalid cluster name"):
+            RedisClusterLockBackend("locks-does-not-exist")

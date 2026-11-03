@@ -13,6 +13,7 @@ import {
 
 export type SavedFormulaRequest = {
   dataset: FormulaDataset;
+  description: string | null;
   formula: string;
   name: string;
   params: FormulaParam[];

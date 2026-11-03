@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import (
     HeaderBlock,
     MarkdownTextObject,
@@ -13,6 +12,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.provider import (
@@ -40,6 +40,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
@@ -121,7 +122,12 @@ class SlackNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
-        assert SlackNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            SlackNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
 
     def test_staging_resolves_slack_renderers(self) -> None:
         data = MetricAlertNotificationData(
@@ -176,7 +182,15 @@ class SlackNotificationProviderSendTest(TestCase):
     def test_send_success(self, mock_slack_client: Mock) -> None:
         """Test successful message sending returns SendResult"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = self._create_target()
         renderable = self._create_renderable()
@@ -184,7 +198,8 @@ class SlackNotificationProviderSendTest(TestCase):
         result = SlackNotificationProvider.send(target=target, renderable=renderable)
 
         assert isinstance(result, SendSuccessResult)
-        assert result.provider_message_id is None
+        assert result.provider_message_id == "1234567890.123456"
+        assert result.is_threaded is False
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
             blocks=renderable["blocks"],
@@ -214,7 +229,15 @@ class SlackNotificationProviderSendTest(TestCase):
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:
         """Test sending message to direct message (user)"""
         mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = {"ok": True, "ts": "1234567890.123456"}
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "1234567890.123456"},
+            headers={},
+            status_code=200,
+        )
 
         target = IntegrationNotificationTarget(
             provider_key=NotificationProviderKey.SLACK,
@@ -421,7 +444,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             headers={},
             status_code=400,
         )
-        mock_client_instance.chat_postMessage.side_effect = SlackApiError(
+        mock_client_instance.chat_postMessage.side_effect = TypedSlackApiError(
             message="channel_not_found", response=error_response
         )
 

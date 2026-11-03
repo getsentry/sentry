@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 from time import time
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import msgpack
@@ -278,6 +278,8 @@ def process_profile_task(
     sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    if project.organization_id == organization.id:
+        project.set_cached_field_value("organization", organization)
 
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_attribute("project", project.id)
@@ -1257,10 +1259,10 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
 def get_event_id(profile: Profile) -> str:
     if "chunk_id" in profile:
-        return profile["chunk_id"]
+        return cast(str, profile["chunk_id"])
     elif "profile_id" in profile:
-        return profile["profile_id"]
-    return profile["event_id"]
+        return cast(str, profile["profile_id"])
+    return cast(str, profile["event_id"])
 
 
 @metrics.wraps("process_profile.track_outcome")

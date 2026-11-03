@@ -3,10 +3,11 @@ from __future__ import annotations
 import inspect
 import itertools
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any
+from typing import Any, cast
 
 import pydantic
 from django.utils.functional import LazyObject
+from rest_framework.exceptions import APIException
 
 from sentry.hybridcloud.rpc import ArgumentDict
 
@@ -81,7 +82,10 @@ class SerializableFunctionSignature:
         if self.is_instance_method:
             parameters = parameters[1:]  # exclude `self` argument
         field_definitions = {p.name: create_field(p) for p in parameters}
-        return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
+        return cast(
+            "type[pydantic.BaseModel]",
+            pydantic.create_model(model_name, **field_definitions),  # type: ignore[call-overload]
+        )
 
     _RETURN_MODEL_ATTR = "value"
 
@@ -100,7 +104,10 @@ class SerializableFunctionSignature:
         self._validate_type_token("return type", return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
-        return pydantic.create_model(model_name, **field_definitions)  # type: ignore[call-overload]
+        return cast(
+            "type[pydantic.BaseModel]",
+            pydantic.create_model(model_name, **field_definitions),  # type: ignore[call-overload]
+        )
 
     @staticmethod
     def _unwrap_lazy_django_object(arg: Any) -> Any:
@@ -125,6 +132,10 @@ class SerializableFunctionSignature:
 
         try:
             model_instance = self._parameter_model(**raw_arguments)
+        except APIException:
+            # e.g. UserRequired from a service account's id: already an API response.
+            # Temporary, like ServiceAccountId: goes once mypy enforces request.user's type.
+            raise
         except Exception as e:
             raise SerializableFunctionValueException(self, "Could not serialize arguments") from e
         return model_instance.dict()
