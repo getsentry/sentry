@@ -1,3 +1,4 @@
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import * as qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -31,8 +32,14 @@ const makeInitialRouterConfig = (tagKey: string) => ({
   route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
 });
 
+// The testing adapter briefly re-reads the pre-write cursor and refetches both pages, so a late fetch can outlive the mocks.
+function ProductionNuqsAdapter({children}: {children?: React.ReactNode}) {
+  return <NuqsAdapter defaultOptions={{shallow: false}}>{children}</NuqsAdapter>;
+}
+
 describe('TagDetailsDrawerContent', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: tags.find(({key}) => key === 'user'),
@@ -99,7 +106,9 @@ describe('TagDetailsDrawerContent', () => {
     });
     const {router} = render(<TagDetailsDrawerContent group={group} />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
+      additionalWrapper: ProductionNuqsAdapter,
     });
+    const historyLength = window.history.length;
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -110,7 +119,7 @@ describe('TagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
-    expect(router.historyAction).toBe('PUSH');
+    expect(window.history).toHaveLength(historyLength + 1);
     await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
   });
 
