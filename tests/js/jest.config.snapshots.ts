@@ -66,6 +66,7 @@ const ESM_NODE_MODULES = [
   'cbor2',
   'nuqs',
   'color',
+  '@tanstack\\+(?:react-)?hotkeys@',
 ];
 
 const config: Config.InitialOptions = {

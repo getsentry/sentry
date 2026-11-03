@@ -1551,6 +1551,15 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
+# Requires api.conditional_get.enabled. A browser keeps a cached response for up to
+# the tier's seconds after its endpoint is removed from this list.
+register(
+    "api.conditional_get.max_age_endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. 0.0 disables generation; 1.0 enables it for every
@@ -2756,6 +2765,16 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},
@@ -4714,9 +4733,10 @@ register(
 # Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
 # of an event to the files of its release by URL. When set, it reads once per request the URLs of
 # the release's newest bundles, as many bundles as fit in this many rows and always the newest
-# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
-# index. Files only found in older bundles, or beyond the rows read, are then reported as not
-# found. 0 keeps the index lookups.
+# one, up to this many rows, instead of looking up each URL in all the release's bundles. Files
+# only found in older bundles, or beyond the rows read, are then reported as not found. 0 keeps
+# the per-URL lookups, which have no index on `url` since the `(url, artifact_bundle_id)` index
+# was dropped.
 register(
     "sourcemaps.source-map-debug.url-match-max-index-rows",
     default=0,
@@ -4762,14 +4782,5 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to query legacy debug/code IDS during debug file lookup.
-# This is a per-request rollout rate.
-register(
-    "debug-files.query-legacy-ids.rollout-rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PreprodBuildDetailsWithSizeInfoFixture} from 'sentry-fixture/preprod';
+import {
+  PreprodAppInfoFixture,
+  PreprodBuildDetailsWithSizeInfoFixture,
+} from 'sentry-fixture/preprod';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+
+import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -125,6 +130,32 @@ describe('InstallPage', () => {
     expect(await screen.findByText('Install Groups')).toBeInTheDocument();
     expect(screen.getByText('qa')).toBeInTheDocument();
     expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
+  it('shows the upload time in the user timezone', async () => {
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [],
+          base_size_metrics: [],
+        },
+        {
+          app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'}),
+        }
+      ),
+    });
+
+    render(
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay: '12'}}>
+        <ExampleInstallPage />
+      </DateTimeProvider>,
+      {organization, initialRouterConfig}
+    );
+
+    expect(await screen.findByText('Oct 16, 12:41:20 PM PDT')).toBeInTheDocument();
   });
 
   it('keeps Releases as the title when build details fail to load', async () => {

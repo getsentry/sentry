@@ -14,6 +14,7 @@ class RpcServiceAccount(RpcModel):
     name: str = ""
     scope_list: list[str] = Field(default_factory=list)
     is_active: bool = False
-    # Only restricts access when the org doesn't have open membership. May briefly include a
-    # deleted project until the tombstone cascade runs, so callers must still check the project.
+    all_projects: bool = False
+    # Ignored when `all_projects` is set. May briefly include a deleted project until the
+    # tombstone cascade runs, so callers must still check the project.
     project_ids: list[int] = Field(default_factory=list)

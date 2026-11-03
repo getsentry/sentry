@@ -11,9 +11,9 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import synchronize_title, title_generation_preview
-from sentry.investigations.endpoints.base import OrganizationInvestigationEndpoint
 from sentry.investigations.endpoints.serializers.responses import InvestigationTitlePreviewResponse
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import OrganizationInvestigationEndpoint
 from sentry.notebooks.models import Notebook
 from sentry.seer.agent.client import SeerAgentClient
 

@@ -687,10 +687,11 @@ def get_release_bundle_urls(project: Project, release: Release) -> ReleaseBundle
     dist, each mapped to the ids of the bundles that contain it, and why bundles or files may have
     been left out. Returns `None` to look up each URL in all the release's bundles instead.
 
-    Looking up a URL in all the release's bundles uses the `(url, artifact_bundle_id)` index of
-    `ArtifactBundleIndex`. With `sourcemaps.source-map-debug.url-match-max-index-rows` set, the
-    `ArtifactBundleIndex` rows of the newest bundles are read by bundle instead, newest first, as
-    long as the bundles' files add up to at most that many rows. The newest bundle is always read,
+    Looking up a URL in all the release's bundles has no index on `url` to use, since the
+    `(url, artifact_bundle_id)` index of `ArtifactBundleIndex` was dropped. With
+    `sourcemaps.source-map-debug.url-match-max-index-rows` set, the `ArtifactBundleIndex` rows of
+    the newest bundles are read by bundle instead, newest first, as long as the bundles' files add
+    up to at most that many rows. The newest bundle is always read,
     up to that many rows if it alone has more files. Files only found in older bundles, or beyond
     the rows read, are reported as not found.
 

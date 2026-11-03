@@ -217,8 +217,8 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
   // Close the drawer when escape is pressed.
   useHotkeys([
     {
-      match: 'Escape',
-      enabled: isDrawerOpen,
+      hotkey: 'Escape',
+      options: {enabled: isDrawerOpen},
       callback: () => {
         handleClose();
       },

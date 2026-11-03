@@ -21,12 +21,14 @@ import {
 } from 'sentry/views/navigation/primary/components';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {useBillingMembers} from 'getsentry/hooks/useBillingMembers';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   OnDemandBudgetMode,
   type BillingMetricHistory,
   type Subscription,
 } from 'getsentry/types';
+import {getBestActionToIncreaseEventLimits, UsageAction} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -86,6 +88,53 @@ function getPaygIneligibleBodyCopy(
   );
 }
 
+const MAX_LISTED_RECIPIENTS = 3;
+
+function QuotaRequestRecipients() {
+  const {data: billingMembers = [], isSuccess} = useBillingMembers();
+
+  if (billingMembers.length === 0) {
+    // The request is emailed to exactly these members, so a loaded empty list
+    // means it would reach nobody.
+    return (
+      <Description>
+        {isSuccess
+          ? tct(
+              'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+              {mailto: <a href="mailto:support@sentry.io" />}
+            )
+          : t(
+              "Your org's Owners and Billing members will get an email asking them to increase your quota."
+            )}
+      </Description>
+    );
+  }
+
+  const listedMembers = billingMembers.slice(0, MAX_LISTED_RECIPIENTS);
+  const unlistedCount = billingMembers.length - listedMembers.length;
+
+  return (
+    <Description>
+      {tct(
+        "Your org's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
+        {
+          recipients: (
+            <Fragment>
+              {listedMembers.map((member, i) => (
+                <Fragment key={member.id}>
+                  {i > 0 && ', '}
+                  <a href={`mailto:${member.email}`}>{member.email}</a>
+                </Fragment>
+              ))}
+              {unlistedCount > 0 && `, ${t('and %s more', unlistedCount)}`}
+            </Fragment>
+          ),
+        }
+      )}
+    </Description>
+  );
+}
+
 function QuotaExceededContent({
   exceededCategories,
   subscription,
@@ -132,6 +181,10 @@ function QuotaExceededContent({
   });
 
   const allEventTypes = [...eventTypes, ...paygIneligibleEventTypes];
+  // Passed to AddEventsCTA too, so the recipient line always matches the button.
+  const action =
+    getBestActionToIncreaseEventLimits(organization, subscription) || undefined;
+  const isQuotaRequest = action === UsageAction.REQUEST_ADD_EVENTS;
 
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
@@ -249,8 +302,10 @@ function QuotaExceededContent({
               )}
             </Description>
           )}
+          {isQuotaRequest && <QuotaRequestRecipients />}
           <Flex justify="between" align="center">
             <AddEventsCTA
+              action={action}
               organization={organization}
               subscription={subscription}
               buttonProps={COMMON_BUTTON_PROPS}
@@ -322,8 +377,10 @@ function QuotaExceededContent({
             )}
           </Description>
         )}
+        {isQuotaRequest && <QuotaRequestRecipients />}
         <Flex justify="between" align="center">
           <AddEventsCTA
+            action={action}
             organization={organization}
             subscription={subscription}
             buttonProps={COMMON_BUTTON_PROPS}

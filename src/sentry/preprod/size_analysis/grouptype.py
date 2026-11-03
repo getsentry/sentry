@@ -25,6 +25,7 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorSettings,
+    DetectorType,
 )
 
 if TYPE_CHECKING:
@@ -371,7 +372,7 @@ class PreprodSizeAnalysisGroupType(GroupType):
     )
 
 
-@detector_settings_registry.register(PreprodSizeAnalysisGroupType.slug)
+@detector_settings_registry.register(DetectorType.PREPROD_SIZE_ANALYSIS)
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
     handler = PreprodSizeAnalysisDetectorHandler
     validator = PreprodSizeAnalysisDetectorValidator

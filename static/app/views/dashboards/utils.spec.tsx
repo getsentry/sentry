@@ -2,12 +2,14 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {FieldKind} from 'sentry/utils/fields';
+import type {DashboardDetails, GlobalFilter, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
   flattenErrors,
   getCurrentPageFilters,
+  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getSavedFiltersAsPageFilters,
@@ -418,5 +420,87 @@ describe('getCurrentPageFilters', () => {
     const result = getCurrentPageFilters(location);
 
     expect(result.environment).toEqual(['production', 'staging']);
+  });
+});
+
+describe('getDashboardFiltersFromURL', () => {
+  const globalFilter: GlobalFilter = {
+    dataset: WidgetType.SPANS,
+    tag: {key: 'browser.name', name: 'browser.name', kind: FieldKind.TAG},
+    value: 'browser.name:[Chrome]',
+    isTemporary: true,
+  };
+
+  it('round trips global filters serialized as JSON', () => {
+    const serialized = JSON.stringify(globalFilter);
+    const location = LocationFixture({query: {globalFilter: serialized}});
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result).toEqual([globalFilter]);
+    expect(result?.map(filter => JSON.stringify(filter))).toEqual([serialized]);
+  });
+
+  it('keeps the original key order and extra keys of global filters', () => {
+    const serialized = JSON.stringify({
+      value: 'browser.name:[Chrome]',
+      tag: {
+        name: 'browser.name',
+        key: 'browser.name',
+        predefined: false,
+        totalValues: 12,
+        values: ['Chrome', 'Firefox'],
+      },
+      dataset: WidgetType.DISCOVER,
+      extra: 'kept',
+    });
+    const location = LocationFixture({query: {globalFilter: [serialized]}});
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result?.map(filter => JSON.stringify(filter))).toEqual([serialized]);
+  });
+
+  it('returns an empty list when global filters were cleared', () => {
+    const location = LocationFixture({query: {globalFilter: ''}});
+
+    const result = getDashboardFiltersFromURL(location);
+
+    expect(result).toEqual({globalFilter: []});
+  });
+
+  it('returns an empty list when every global filter is malformed', () => {
+    const location = LocationFixture({query: {globalFilter: JSON.stringify({x: 1})}});
+
+    const result = getDashboardFiltersFromURL(location);
+
+    expect(result).toEqual({globalFilter: []});
+  });
+
+  it('drops malformed global filters and keeps valid ones', () => {
+    const location = LocationFixture({
+      query: {
+        globalFilter: [
+          '{',
+          'null',
+          '5',
+          '"text"',
+          '[]',
+          JSON.stringify({x: 1}),
+          JSON.stringify({...globalFilter, dataset: 'unknown'}),
+          JSON.stringify({...globalFilter, tag: 'browser.name'}),
+          JSON.stringify({...globalFilter, tag: {key: 'browser.name'}}),
+          JSON.stringify({...globalFilter, tag: {name: 'browser.name'}}),
+          JSON.stringify({...globalFilter, tag: {...globalFilter.tag, kind: 'unknown'}}),
+          JSON.stringify({...globalFilter, value: ['browser.name:[Chrome]']}),
+          JSON.stringify({...globalFilter, isTemporary: 'true'}),
+          JSON.stringify(globalFilter),
+        ],
+      },
+    });
+
+    const result = getDashboardFiltersFromURL(location)?.globalFilter;
+
+    expect(result).toEqual([globalFilter]);
   });
 });
