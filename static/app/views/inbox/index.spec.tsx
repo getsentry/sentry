@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Inbox from 'sentry/views/inbox';
+import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
 const INBOX_ROUTES = [
   '/organizations/:orgId/inbox/',
@@ -31,13 +32,34 @@ describe('Inbox', () => {
 
     await userEvent.click(item);
 
-    expect(router.location.pathname).toBe('/organizations/org-slug/inbox/notebook/203/');
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/inbox/notebook/1000210/'
+    );
     expect(item).toHaveAttribute('aria-current', 'true');
   });
 
   it('previews the selected item', async () => {
+    const detailUrl = '/organizations/org-slug/notebooks/1000210/';
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        id: '1000210',
+        title: 'OperationalError: could not connect to server',
+      }),
+    });
+    MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
+    MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}presence/`,
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
+
     render(<Inbox />, {
-      organization,
+      organization: OrganizationFixture({
+        features: ['universal-inbox', 'investigations'],
+        openMembership: true,
+      }),
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/inbox/'},
         routes: INBOX_ROUTES,
@@ -50,9 +72,9 @@ describe('Inbox', () => {
       screen.getByRole('link', {name: /OperationalError: could not connect to server/})
     );
 
-    expect(
-      screen.getByRole('heading', {name: 'OperationalError: could not connect to server'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+      'OperationalError: could not connect to server'
+    );
   });
 
   it('does not carry query params between items', async () => {
@@ -71,7 +93,7 @@ describe('Inbox', () => {
       await screen.findByRole('link', {
         name: /OperationalError: could not connect to server/,
       })
-    ).toHaveAttribute('href', '/organizations/org-slug/inbox/notebook/203/');
+    ).toHaveAttribute('href', '/organizations/org-slug/inbox/notebook/1000210/');
   });
 
   it('selects the item for the issue in the url', async () => {
