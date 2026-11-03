@@ -232,9 +232,7 @@ def record_user_feedback(project: Project, **kwargs: object) -> None:
 def record_project_created(project: Project, **kwargs: object) -> None:
     organization_id = project.organization_id
 
-    # Projects are often created inside a transaction. Record after commit so
-    # the Redis cache calls do not run inside it. A failure must not fail an
-    # already-committed project or prevent other commit callbacks running.
+    # Record after commit so we are guaranteed not to call Redis inside a transaction
     def on_commit() -> None:
         try:
             FeatureAdoption.objects.record(
