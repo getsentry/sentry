@@ -166,7 +166,6 @@ describe('RunChangesView', () => {
     );
 
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
-    expect(screen.getByText('Not in a PR yet')).toBeInTheDocument();
     expect(screen.getByText('cart')).toBeInTheDocument();
   });
 

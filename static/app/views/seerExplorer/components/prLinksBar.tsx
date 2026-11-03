@@ -62,18 +62,35 @@ export function PRLinksBar({
   }
   const hasUnpushed = (repoChanges: RepoChanges | undefined) =>
     !!repoChanges && repoChanges.unpushed.files.length > 0;
-  const showPushColumn =
-    !!onPushChanges && rows.some(row => hasUnpushed(row.repoChanges));
+  const pushableRepoNames = onPushChanges
+    ? rows.filter(row => hasUnpushed(row.repoChanges)).map(row => row.repoName)
+    : [];
 
-  // One grid for every row, so each column of buttons shares a position and a width.
+  // One grid for every row, so each column of buttons shares a position and a width. The diff
+  // button is in every row, so it takes the last column and lines up down the right edge.
   return (
     <Grid
       margin="lg xl 0"
       gap="sm"
-      columns={['minmax(0, 1fr)', onOpenChanges && 'auto', showPushColumn && 'auto']
+      columns={[
+        'minmax(0, 1fr)',
+        pushableRepoNames.length > 0 && 'auto',
+        onOpenChanges && 'auto',
+      ]
         .filter(Boolean)
         .join(' ')}
     >
+      {onPushChanges && pushableRepoNames.length > 1 && (
+        <Grid column="1 / -1" columns="subgrid">
+          <Grid column="2">
+            <PushAllButton
+              repoNames={pushableRepoNames}
+              isAgentBusy={isAgentBusy}
+              onPushChanges={onPushChanges}
+            />
+          </Grid>
+        </Grid>
+      )}
       {rows.map(({repoName, state, repoChanges}) => (
         <Grid
           key={repoName}
@@ -87,20 +104,20 @@ export function PRLinksBar({
           <Container minWidth="0">
             {state ? <PRLink state={state} /> : <RepoLabel repoName={repoName} />}
           </Container>
-          {repoChanges && onOpenChanges && (
-            <Grid column="2">
-              <ChangesButton
-                changes={repoChanges}
-                onClick={() => onOpenChanges(repoName)}
-              />
-            </Grid>
-          )}
           {onPushChanges && repoChanges && hasUnpushed(repoChanges) && (
-            <Grid column="-2">
+            <Grid column="2">
               <PushChangesButton
                 changes={repoChanges}
                 isAgentBusy={isAgentBusy}
                 onPushChanges={onPushChanges}
+              />
+            </Grid>
+          )}
+          {repoChanges && onOpenChanges && (
+            <Grid column="-2">
+              <ChangesButton
+                changes={repoChanges}
+                onClick={() => onOpenChanges(repoName)}
               />
             </Grid>
           )}
@@ -146,6 +163,42 @@ function PushChangesButton({
   );
 }
 
+interface PushAllButtonProps {
+  isAgentBusy: boolean;
+  onPushChanges: (message: string) => void;
+  /** The repos with changes to push. */
+  repoNames: string[];
+}
+
+/** Asks Seer to push every repo's unpushed changes at once, opening PRs where there are none. */
+function PushAllButton({isAgentBusy, onPushChanges, repoNames}: PushAllButtonProps) {
+  return (
+    <Button
+      size="xs"
+      variant="primary"
+      icon={<IconUpload />}
+      disabled={isAgentBusy}
+      tooltipProps={{
+        title: isAgentBusy
+          ? t('Seer is still working.')
+          : t(
+              'Ask Seer to push its latest changes to every repo, opening PRs where needed.'
+            ),
+      }}
+      onClick={() =>
+        onPushChanges(
+          t(
+            'Push your latest changes to %s, opening a PR in any repo that does not have one.',
+            repoNames.join(', ')
+          )
+        )
+      }
+    >
+      {t('Update all')}
+    </Button>
+  );
+}
+
 /** A repo Seer edited without opening a PR. */
 function RepoLabel({repoName}: {repoName: string}) {
   return (
@@ -179,16 +232,22 @@ function PRLink({state}: {state: RepoPRState}) {
 
   return (
     <Tooltip title={tooltip} disabled={!tooltip} skipWrapper>
-      <Flex align="center" gap="sm">
+      <Flex align="center" gap="sm" minWidth="0">
         {icon}
         {/* A failed push to an existing PR still links to it. */}
         {prUrl ? (
-          <ExternalLink href={prUrl}>
-            <Flex align="center" gap="xs">
-              {label}
-              <IconOpen size="xs" />
-            </Flex>
-          </ExternalLink>
+          <Container minWidth="0">
+            <ExternalLink href={prUrl}>
+              <Flex align="center" gap="xs">
+                <Container minWidth="0">
+                  <Text variant="inherit" ellipsis>
+                    {label}
+                  </Text>
+                </Container>
+                <IconOpen size="xs" />
+              </Flex>
+            </ExternalLink>
+          </Container>
         ) : (
           <Text ellipsis>{label}</Text>
         )}
