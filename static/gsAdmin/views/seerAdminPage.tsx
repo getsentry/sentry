@@ -26,13 +26,17 @@ const formSchema = z.object({
     .nullable(),
   maxCandidates: z.number().min(1, 'Max candidates must be at least 1').nullable(),
   dryRun: z.boolean(),
+  singleRun: z.boolean(),
 });
+
+const SENTRY_ORGANIZATION_ID = 1;
 
 type NightShiftFormData = {
   dryRun: boolean;
   locality: string;
   maxCandidates: number | null;
   organizationId: number | null;
+  singleRun: boolean;
 };
 
 const MAX_RETRY_RUN_IDS = 50;
@@ -97,6 +101,9 @@ function NightShiftForm() {
           ...(data.organizationId === null ? {} : {organization_id: data.organizationId}),
           dry_run: data.dryRun,
           ...(data.maxCandidates === null ? {} : {max_candidates: data.maxCandidates}),
+          ...(data.singleRun && data.organizationId === SENTRY_ORGANIZATION_ID
+            ? {single_run: true}
+            : {}),
         },
         options: {host: data.locality},
       });
@@ -119,6 +126,7 @@ function NightShiftForm() {
     organizationId: null,
     maxCandidates: null,
     dryRun: false,
+    singleRun: false,
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -192,6 +200,21 @@ function NightShiftForm() {
               </field.Layout.Stack>
             )}
           </form.AppField>
+          <form.Subscribe selector={state => state.values.organizationId}>
+            {organizationId => (
+              <form.AppField name="singleRun">
+                {field => (
+                  <field.Layout.Stack label="Single-run Autofix (Sentry org only)">
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={organizationId !== SENTRY_ORGANIZATION_ID}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            )}
+          </form.Subscribe>
           <Flex justify="end">
             <form.SubmitButton>Trigger Night Shift</form.SubmitButton>
           </Flex>
