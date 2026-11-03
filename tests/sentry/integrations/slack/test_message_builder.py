@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -751,6 +752,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         # suggested user/suspect commit for user with name
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             user2.update(name="Scooby Doo")
+        assert commit.author is not None
         commit.author.update(name=user2.name)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
@@ -1063,7 +1065,9 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", True)
 
-    def _assert_message_actions_list(self, actions, expected):
+    def _assert_message_actions_list(
+        self, actions: Sequence[MessageAction], expected: dict[str, Any]
+    ) -> None:
         actions_dict = [
             {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
         ]
@@ -1319,9 +1323,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
     def test_get_tags(self) -> None:
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
-        tags = get_tags(
-            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
-        )
+        tags = get_tags(self.endpoint_regression_issue.get_latest_event())
         assert not tags
 
 
@@ -1332,7 +1334,10 @@ class SlackAppUpdateNudgeBlockTest(TestCase):
             group,
             has_mentions_read_scope=has_mentions_read_scope,
         ).get_slack_app_update_nudge_block()
-        return block["elements"][0]["text"]
+        text = block["elements"][0]["text"]
+        if not isinstance(text, str):
+            raise TypeError("Nudge block text is not a string")
+        return text
 
     def test_updated_app_has_app_mentions_scope(self) -> None:
         # app_mentions:read present -> app is up to date.

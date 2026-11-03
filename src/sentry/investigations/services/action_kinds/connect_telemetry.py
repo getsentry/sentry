@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
@@ -53,7 +53,7 @@ def telemetry_available(organization: Organization, provider: TelemetryProvider)
 def _provider(action_request: NotebookActionRequest) -> TelemetryProvider:
     payload = action_request.action_payload
     assert payload is not None
-    return payload["provider"]
+    return cast("TelemetryProvider", payload["provider"])
 
 
 def telemetry_provider_for_integration(integration_provider: str) -> TelemetryProvider | None:

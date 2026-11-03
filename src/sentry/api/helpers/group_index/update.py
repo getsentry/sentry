@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 import rest_framework
@@ -897,10 +897,13 @@ def most_recent_release(project: Project) -> Release | None:
 def most_recent_release_matching_commit(
     projects: Sequence[Project], commit: Commit
 ) -> Release | None:
-    return (
-        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-        .extra(select={"sort": "COALESCE(date_released, date_added)"})
-        .order_by("-sort")[0]
+    return cast(
+        "Release | None",
+        (
+            Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+            .extra(select={"sort": "COALESCE(date_released, date_added)"})
+            .order_by("-sort")[0]
+        ),
     )
 
 

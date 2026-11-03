@@ -1,4 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+/* oxlint-disable testing-library/no-node-access -- Verify the visual divider between virtualized section headings. */
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+
+import {lightTheme} from '../theme';
 
 import {VirtualizedMenuList} from './virtualizedMenuList';
 
@@ -70,7 +75,8 @@ describe('VirtualizedMenuList', () => {
 
   it('flattens grouped children into interleaved heading and option rows', () => {
     const {container} = render(
-      <VirtualizedMenuList>{groupedChildren}</VirtualizedMenuList>
+      <VirtualizedMenuList>{groupedChildren}</VirtualizedMenuList>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
@@ -90,7 +96,8 @@ describe('VirtualizedMenuList', () => {
     render(
       <VirtualizedMenuList focusedOption={angularData}>
         {groupedChildren}
-      </VirtualizedMenuList>
+      </VirtualizedMenuList>,
+      {wrapper: ThemeWrapper}
     );
 
     // Rows: Popular(0), React(1), Vue(2), Other platforms(3), Angular(4).
@@ -108,7 +115,8 @@ describe('VirtualizedMenuList', () => {
             Vue
           </Option>,
         ]}
-      </VirtualizedMenuList>
+      </VirtualizedMenuList>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
@@ -117,3 +125,7 @@ describe('VirtualizedMenuList', () => {
     ]);
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

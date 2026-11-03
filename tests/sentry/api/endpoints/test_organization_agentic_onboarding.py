@@ -211,7 +211,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service",
             return_value=self.service,
         ):
-            return self.client.post(
+            response: Response = self.client.post(
                 path,
                 {
                     "schemaVersion": 1,
@@ -220,6 +220,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "status": "completed",
                 },
             )
+            return response
 
     def test_status_rejects_backend_derived_bypassed_status(self) -> None:
         _, token = self.service.create_or_resume(

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from emmett55 import request
 
@@ -172,7 +172,7 @@ async def proxy_cell_from_dsn_qp() -> Any:
     if not request.query_params.dsn:
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     try:
-        cell = get_cell_from_dsn(request.query_params.dsn, app.config.cells.default)
+        cell = get_cell_from_dsn(cast(str, request.query_params.dsn), app.config.cells.default)
     except ValueError:
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     except CellResolutionError:

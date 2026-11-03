@@ -86,7 +86,8 @@ def _format_window(start: datetime, end: datetime) -> str:
 
 
 def get_status_title(source: Mapping[str, Any]) -> str:
-    return source["snapshot"]["monitor"]["name"]
+    name = source["snapshot"]["monitor"]["name"]
+    return name
 
 
 def _get_endpoint(query: str) -> str | None:

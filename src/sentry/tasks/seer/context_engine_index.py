@@ -178,7 +178,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
-def build_service_map(organization_id: int, *args, **kwargs) -> None:
+def build_service_map(organization_id: int, *args: object, **kwargs: object) -> None:
     """
     Build service map for a single organization and send to Seer.
 
@@ -257,7 +257,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SeerApiError,), delay=60),
 )
-def index_repos(organization_id: int, *args, **kwargs) -> None:
+def index_repos(organization_id: int, *args: object, **kwargs: object) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return

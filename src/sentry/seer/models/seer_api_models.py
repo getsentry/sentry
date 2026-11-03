@@ -118,7 +118,7 @@ class SeerApiError(Exception):
         self.message = message
         self.status = status
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API error: {self.message} (status: {self.status})"
 
 
@@ -130,7 +130,7 @@ class SeerApiResponseValidationError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API response validation error: {self.message}"
 
 
@@ -138,7 +138,7 @@ class SeerPermissionError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer permission error: {self.message}"
 
 

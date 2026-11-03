@@ -1,10 +1,18 @@
+from typing import TypedDict
+
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
+
+
+class _DebounceKwargs(TypedDict):
+    public_key: str
+    project_id: None
+    organization_id: None
 
 
 def test_key_lifecycle() -> None:
     # This lifecycle checks and inserts in one operation.
     cache = RedisProjectConfigDebounceCache()
-    kwargs = {
+    kwargs: _DebounceKwargs = {
         "public_key": "abc",
         "project_id": None,
         "organization_id": None,
@@ -23,7 +31,7 @@ def test_split_debounce_lifecycle() -> None:
     # The lifecycle where checking and inserting is done separately like in the
     # sentry.tasks.relay.* tasks.
     cache = RedisProjectConfigDebounceCache()
-    kwargs = {
+    kwargs: _DebounceKwargs = {
         "public_key": "abc",
         "project_id": None,
         "organization_id": None,
@@ -48,7 +56,7 @@ def test_split_debounce_lifecycle() -> None:
 
 def test_default_prefix() -> None:
     cache = RedisProjectConfigDebounceCache()
-    kwargs = {
+    kwargs: _DebounceKwargs = {
         "public_key": "abc",
         "project_id": None,
         "organization_id": None,
@@ -64,7 +72,7 @@ def test_default_prefix() -> None:
 
 def test_custom_prefix() -> None:
     cache = RedisProjectConfigDebounceCache(key_prefix="hello:world")
-    kwargs = {
+    kwargs: _DebounceKwargs = {
         "public_key": "abc",
         "project_id": None,
         "organization_id": None,

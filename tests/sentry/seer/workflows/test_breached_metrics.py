@@ -120,7 +120,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is False
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.backing_workflow_id is None
+        assert config.backing_workflow is None
         assert workflow.get_project_ids() == []
 
     def test_project_selection_is_managed_by_connected_monitors(self) -> None:
@@ -800,7 +800,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         Workflow.objects_for_deletion.filter(id=replaced.backing_workflow_id).delete()
         self.config.refresh_from_db()
-        assert self.config.backing_workflow_id is None
+        assert self.config.backing_workflow is None
         assert self.project_ids() == set()
 
     def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:

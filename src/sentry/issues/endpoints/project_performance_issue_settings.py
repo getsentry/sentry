@@ -1,3 +1,4 @@
+from collections.abc import Iterable, Mapping
 from enum import Enum
 from typing import Any
 
@@ -236,7 +237,9 @@ def get_management_options() -> list[str]:
     ]
 
 
-def get_disabled_threshold_options(payload, current_settings):
+def get_disabled_threshold_options(
+    payload: Iterable[str], current_settings: Mapping[str, object]
+) -> list[str]:
     """
     Returns the option keys that are disabled, based on the current management settings.
     """
@@ -245,7 +248,11 @@ def get_disabled_threshold_options(payload, current_settings):
     for option in payload:
         if option not in management_options:
             manage_detector_setting = thresholds_to_manage_map.get(option)
-            is_threshold_enabled = current_settings.get(manage_detector_setting)
+            is_threshold_enabled = (
+                current_settings.get(manage_detector_setting)
+                if manage_detector_setting is not None
+                else None
+            )
             if not is_threshold_enabled:
                 options.append(option)
     return options
@@ -279,12 +286,12 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, project, request) -> bool:
+    def has_feature(self, project: Project, request: Request) -> bool:
         return features.has(
             "organizations:performance-view", project.organization, actor=request.user
         )
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve performance issue settings
         ``````````````````

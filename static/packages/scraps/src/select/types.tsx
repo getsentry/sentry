@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import type {CSSObject} from '@emotion/react';
 
 import type {SelectValue} from '@sentry/scraps/menu';
