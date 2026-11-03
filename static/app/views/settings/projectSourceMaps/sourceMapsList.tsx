@@ -32,6 +32,7 @@ import type {Release, SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -296,7 +297,9 @@ function SourceMapsEmptyState({
             ? t('No source maps uploads matching your search')
             : t('No source maps uploaded')
         }
-        action={project.platform === 'react-native' ? <ReactNativeCallOut /> : undefined}
+        action={
+          isReactNativePlatform(project.platform) ? <ReactNativeCallOut /> : undefined
+        }
       >
         {query
           ? tct(

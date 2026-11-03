@@ -35,6 +35,7 @@ export type PlatformKey =
   | 'dotnet-xamarin'
   | 'electron'
   | 'elixir'
+  | 'expo'
   | 'flutter'
   | 'go'
   | 'go-echo'

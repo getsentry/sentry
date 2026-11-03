@@ -10,6 +10,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 
 type SupportedPlatform = 'ios' | 'android' | 'flutter' | 'react-native';
 
@@ -46,7 +47,7 @@ const PLATFORM_DOCS: Array<{
     id: 'react-native',
     buttonLabel: t('React Native Docs'),
     url: 'https://docs.sentry.io/platforms/react-native/size-analysis/',
-    matches: platform => platform?.includes('react-native') ?? false,
+    matches: platform => isReactNativePlatform(platform),
   },
 ];
 

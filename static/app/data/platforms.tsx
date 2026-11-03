@@ -153,6 +153,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/elixir/',
   },
   {
+    id: 'expo',
+    name: 'Expo',
+    type: 'framework',
+    language: 'react-native',
+    link: 'https://docs.sentry.io/platforms/react-native/guides/expo/',
+  },
+  {
     id: 'flutter',
     name: 'Flutter',
     type: 'framework',

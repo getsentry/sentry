@@ -24,6 +24,11 @@ function parsePlatform(platform: string): ParsedPlatform {
     return {platformName: platformName!};
   }
 
+  // Expo projects use the React Native SDK docs
+  if (platform === 'expo') {
+    return {platformName: 'react-native'};
+  }
+
   if (platform.includes('awslambda')) {
     return {platformName: platformName!, framework: 'aws-lambda'};
   }

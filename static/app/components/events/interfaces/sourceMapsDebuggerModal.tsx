@@ -187,6 +187,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'javascript-astro': 'astro',
   'javascript-tanstackstart-react': 'tanstackstart-react',
   'react-native': 'react-native',
+  expo: 'react-native',
 };
 
 function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
