@@ -24,8 +24,8 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
-from sentry.workflow_engine.models import Detector
 from sentry.utils import json
+from sentry.workflow_engine.models import Detector
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
