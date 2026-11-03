@@ -30,6 +30,7 @@ from sentry.seer.similarity.utils import (
     killswitch_enabled,
     stacktrace_exceeds_limits,
 )
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
@@ -51,7 +52,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     def get_formatted_results(
         self,
         similar_issues_data: Sequence[SeerSimilarIssueData],
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
         group: Group,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
@@ -138,7 +139,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         logger.info("Similar issues embeddings parameters", extra=similar_issues_params)
 
         viewer_context = SeerViewerContext(
-            organization_id=group.project.organization.id, user_id=request.user.id
+            organization_id=group.project.organization.id, user_id=acting_user_id(request.user)
         )
         results, _model_used = get_similarity_data_from_seer(
             similar_issues_params, viewer_context=viewer_context
