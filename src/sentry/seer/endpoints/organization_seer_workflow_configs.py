@@ -39,7 +39,6 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     BreachedMetricWorkflow,
-    ConnectedMonitors,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
@@ -543,7 +542,7 @@ def serialize_workflow_configs(
             serialize_workflow_config(
                 config,
                 selected_project_ids=selected_projects[config.id],
-                connected_monitors=connected_monitors.get(config.id),
+                connected_monitors=connected_monitors.get(config.id, []),
                 last_run=last_runs_by_config_id.get(config.id),
             )
             for config in configs
@@ -595,13 +594,14 @@ def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
     selected_project_ids: list[int],
-    connected_monitors: ConnectedMonitors | None,
+    connected_monitors: list[tuple[int, int]],
     last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
+    monitor_ids = [monitor_id for monitor_id, _ in connected_monitors]
     if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
         # Metric automation projects come from their connected monitors.
-        project_ids = connected_monitors.project_ids if connected_monitors else []
+        project_ids = sorted({project_id for _, project_id in connected_monitors})
     elif filters.all_projects:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     else:
@@ -613,7 +613,7 @@ def serialize_workflow_config(
         "schedule": config.schedule,
         "version": config.version,
         "projects": project_ids,
-        "monitorIds": connected_monitors.monitor_ids if connected_monitors else [],
+        "monitorIds": monitor_ids,
         "environments": filters.environments,
         "filters": convert_dict_key_case(
             {

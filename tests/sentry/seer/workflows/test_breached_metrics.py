@@ -34,7 +34,6 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
-    ConnectedMonitors,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
     MetricBreachTrigger,
@@ -742,12 +741,7 @@ class GetConfigMonitorsBulkTest(TestCase):
             accessible_project_ids=[first_project.id, second_project.id],
         )
 
-        assert result == {
-            connected.id: ConnectedMonitors(
-                monitor_ids=sorted(m.id for m in monitors),
-                project_ids=sorted([first_project.id, second_project.id]),
-            )
-        }
+        assert result == {connected.id: sorted((m.id, m.project_id) for m in monitors)}
 
 
 @with_feature("organizations:seer-automations")
