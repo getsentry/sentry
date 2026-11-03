@@ -1,14 +1,31 @@
+from datetime import datetime, timezone
+from urllib.parse import urlencode
+
 import pytest
 from django.http import HttpRequest
+from django.test import RequestFactory
 from drf_spectacular.utils import extend_schema
+from jsonschema.exceptions import ValidationError
+from openapi_schema_validator import OAS30Validator
+from rest_framework.request import Request
 
+import sentry.apidocs.extensions  # noqa: F401
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
+from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
 )
+from sentry.api.endpoints.timeseries import BucketBoundaries
+from sentry.api.helpers.timeseries_transformations import (
+    FillTransformation,
+    SmaSmoothTransformation,
+    get_transformations,
+)
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
+from sentry.snuba.rpc_dataset_common import ProcessedTimeseries, TimeseriesTransformationFlags
+from sentry.utils.snuba import SnubaTSResult
 from sentry.workflow_engine.endpoints.organization_detector_index import (
     OrganizationDetectorIndexEndpoint,
 )
@@ -173,3 +190,143 @@ def test_trace_item_attributes_expand_is_experimental() -> None:
     (expand,) = [p for p in operation["parameters"] if p["name"] == "expand"]
     assert expand["x-sentry-experimental"] is True
     assert expand["description"].startswith("**Experimental:**")
+
+
+def test_timeseries_query_parameter_serialization() -> None:
+    path = "/api/0/organizations/{organization_id_or_slug}/events-timeseries/"
+    schema = generate_schema(
+        path.removeprefix("/").replace(
+            "{organization_id_or_slug}", "<str:organization_id_or_slug>"
+        ),
+        view=OrganizationEventsTimeseriesEndpoint,
+    )
+    parameters = {p["name"]: p for p in schema["paths"][path]["get"]["parameters"]}
+    for name in ("yAxis", "transformations[0]"):
+        assert parameters[name]["style"] == "form"
+        assert parameters[name]["explode"] is True
+        assert parameters[name]["schema"]["type"] == "array"
+        assert parameters[name]["schema"]["items"]["type"] == "string"
+        assert parameters[name]["schema"].get("uniqueItems", False) is False
+        assert parameters[name].get("required", False) is False
+
+    interval_validator = OAS30Validator(parameters["interval"]["schema"])
+    interval_validator.validate("1m")
+    with pytest.raises(ValidationError):
+        interval_validator.validate(60)
+
+    query = urlencode(
+        [
+            (parameters["yAxis"]["name"], ["count()", "count()"]),
+            (parameters["interval"]["name"], "1m"),
+            (parameters["transformations[0]"]["name"], ["smooth(sma,3)", "fill(locf)"]),
+            ("transformations[1]", ["fill(zero)", "smooth(sma,2)"]),
+        ],
+        doseq=True,
+    )
+    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
+    assert request.GET.getlist("yAxis") == ["count()", "count()"]
+    assert request.GET["interval"] == "1m"
+    assert get_transformations(request) == {
+        0: [SmaSmoothTransformation(mode="sma", window_size=3), FillTransformation(mode="locf")],
+        1: [FillTransformation(mode="zero"), SmaSmoothTransformation(mode="sma", window_size=2)],
+    }
+    request_without_transformations = Request(
+        RequestFactory().get("/events-timeseries/", {"yAxis": ["count()", "count()"]})
+    )
+    assert get_transformations(request_without_transformations) == {}
+
+
+def test_timeseries_response_serialization_matches_schema() -> None:
+    path = "/api/0/organizations/{organization_id_or_slug}/events-timeseries/"
+    schema = generate_schema(
+        path.removeprefix("/").replace(
+            "{organization_id_or_slug}", "<str:organization_id_or_slug>"
+        ),
+        view=OrganizationEventsTimeseriesEndpoint,
+    )
+    response_schema = schema["components"]["schemas"]["OrganizationEventsTimeseriesResponse"]
+    row_schema = response_schema["properties"]["timeSeries"]["items"]["properties"]["values"][
+        "items"
+    ]
+    for name in ("filled", "smoothed", "comparisonFilled", "comparisonSmoothed"):
+        assert row_schema["properties"][name] == {"type": "boolean"}
+        assert name not in row_schema["required"]
+
+    axis = "avg(span.duration)"
+    result = SnubaTSResult(
+        data={
+            "data": [{"time": 0, axis: None, "transformed": 0.0}],
+            "meta": {"fields": {axis: "duration"}},
+            "processed_timeseries": ProcessedTimeseries(
+                transformation_aliases={0: "transformed"},
+                transformation_flags={
+                    0: TimeseriesTransformationFlags(filled=[True], smoothed=[False])
+                },
+            ),
+        },
+        start=datetime.fromtimestamp(0, tz=timezone.utc),
+        end=datetime.fromtimestamp(60, tz=timezone.utc),
+        rollup=60,
+    )
+    endpoint = OrganizationEventsTimeseriesEndpoint()
+    boundaries = BucketBoundaries(now=1000, complete_through=1000)
+    series = endpoint.serialize_result(result, [axis, axis], 60, boundaries)
+    assert series == [
+        {
+            "yAxis": "avg(span.duration)",
+            "meta": {"valueType": "duration", "valueUnit": "millisecond", "interval": 60000},
+            "values": [
+                {
+                    "timestamp": 0,
+                    "value": 0.0,
+                    "incomplete": False,
+                    "filled": True,
+                    "smoothed": False,
+                }
+            ],
+        },
+        {
+            "yAxis": "avg(span.duration)",
+            "meta": {"valueType": "duration", "valueUnit": "millisecond", "interval": 60000},
+            "values": [{"timestamp": 0, "value": None, "incomplete": False}],
+        },
+    ]
+    OAS30Validator(response_schema).validate({"timeSeries": series})
+
+    comparison_result = SnubaTSResult(
+        data={
+            "data": [{"time": 0, "count()": None, "comparisonCount": None}],
+            "meta": {"fields": {"count()": "integer"}},
+            "processed_timeseries": ProcessedTimeseries(
+                transformation_flags={
+                    0: TimeseriesTransformationFlags(filled=[False], smoothed=[False])
+                },
+                comparison_transformation_flags=TimeseriesTransformationFlags(
+                    filled=[False], smoothed=[True]
+                ),
+            ),
+        },
+        start=result.start,
+        end=result.end,
+        rollup=60,
+    )
+    comparison_series = endpoint.serialize_result(comparison_result, ["count()"], 60, boundaries)
+    assert comparison_series == [
+        {
+            "yAxis": "count()",
+            "meta": {"valueType": "integer", "valueUnit": None, "interval": 60000},
+            "values": [
+                {
+                    "timestamp": 0,
+                    "value": None,
+                    "incomplete": False,
+                    "comparisonValue": None,
+                    "filled": False,
+                    "smoothed": False,
+                    "comparisonFilled": False,
+                    "comparisonSmoothed": True,
+                }
+            ],
+        }
+    ]
+    OAS30Validator(response_schema).validate({"timeSeries": comparison_series})

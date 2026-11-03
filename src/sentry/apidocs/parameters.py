@@ -931,9 +931,12 @@ When TopEvents is passed, both sort and groupBy are required parameters""",
         name="interval",
         location="query",
         required=False,
-        type=int,
-        description="""The size of the bucket for the timeseries to have, must be a value smaller than the window being
-queried. If the interval is invalid a default interval will be selected instead""",
+        type=str,
+        description="""The bucket duration, such as `15s`, `1m`, `1h`, or `1d`.
+Use an integer string with an optional `s`, `m`, `h`, `d`, or `w` suffix. Without a suffix, the unit is seconds.
+Interval limits depend on the dataset and query window.
+If omitted, the server selects an interval based on the query window.
+The response metadata reports the executed interval in milliseconds.""",
     )
     GROUP_BY = OpenApiParameter(
         name="groupBy",
@@ -949,8 +952,12 @@ top events are""",
         location="query",
         required=False,
         type=str,
-        description="""The aggregate field to create the timeseries for, defaults to `count()` when
-        not included.
+        many=True,
+        style="form",
+        explode=True,
+        description="""The aggregate fields to create timeseries for. Repeat this parameter for each axis, in the desired order.
+Duplicate aggregates remain separate axes. Transformations refer to these zero-based positions, not aggregate names.
+Defaults to `count()` when omitted.
 - `count()` - Total count of events over the period.
 - `avg(field)` - Average value of the field over the period.
 - `pXX(field)` - Percentile value of the field over the period. One of: `p50`, `p75`, `p90`, `p95`, `p99`, `p100`.
@@ -965,6 +972,32 @@ top events are""",
 - `performance_score(field)` - Web Vitals performance score for the selected measurement.
 - `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
+    )
+    TRANSFORMATIONS = OpenApiParameter(
+        name="transformations[0]",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        style="form",
+        explode=True,
+        description="""An ordered pipeline for the first `yAxis`. For another axis, replace `0` with its zero-based position
+using `transformations[<index>]`. The index must be less than the number of requested axes.
+Repeat the same indexed key for each operation, in execution order. For example,
+`yAxis=count()&yAxis=count()&transformations[0]=fill(locf)&transformations[0]=smooth(sma,3)`
+transforms the first axis and leaves the second unchanged. Omit an indexed key to leave that axis unchanged.
+
+Each pipeline accepts at most one fill and one smooth operation, in either order:
+- `fill(locf)`, `fill(zero)`, or `fill(linear)`.
+- `smooth(sma,<window_size>)`.
+- `smooth(ema,<window_size>)` or `smooth(ema,<window_size>,<smoothing_factor>)`.
+- `smooth(asap)` or `smooth(asap,<max_window_size>)`.
+
+Window sizes are positive integers measured in buckets at the executed interval.
+The EMA smoothing factor must be greater than zero and at most one.
+Transformations require the organization's interpolation and smoothing feature and support spans, logs, and trace metrics.
+When the feature is disabled, transformation parameters are ignored.
+OpenAPI lists the literal first-axis parameter because it cannot express arbitrary indexed parameter names.""",
     )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
