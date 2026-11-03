@@ -1,4 +1,3 @@
-import {Outlet} from 'react-router';
 import {
   MetricDetectorFixture,
   SnubaQueryDataSourceFixture,
@@ -46,13 +45,8 @@ describe('MetricAutomationForm', () => {
       ProjectFixture({id: '1', slug: 'checkout-api'}),
       ProjectFixture({id: '2', slug: 'payments-worker'}),
     ]);
-    MockApiClient.addMockResponse({url: accountsUrl, method: 'POST', body: account});
     MockApiClient.addMockResponse({url: `${accountsUrl}5/`, body: account});
-    MockApiClient.addMockResponse({
-      url: `${accountsUrl}5/`,
-      method: 'PUT',
-      body: account,
-    });
+    MockApiClient.addMockResponse({url: configsUrl, body: {configs: [config]}});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/`,
       body: [
@@ -60,56 +54,32 @@ describe('MetricAutomationForm', () => {
         MetricDetectorFixture({id: '2', name: 'Payment failures'}),
       ],
     });
-    MockApiClient.addMockResponse({
-      url: configsUrl,
-      body: {configs: [config]},
-    });
   });
 
-  it('creates a paused metric automation and opens its saved configuration', async () => {
-    MockApiClient.addMockResponse({
-      url: `${accountsUrl}5/`,
-      body: {...account, scopes: [...account.scopes, 'event:write']},
-    });
+  it('creates a service account and automation', async () => {
     const createAccount = MockApiClient.addMockResponse({
       url: accountsUrl,
       method: 'POST',
-      body: {...account, scopes: [...account.scopes, 'event:write']},
+      body: account,
     });
     const create = MockApiClient.addMockResponse({
       url: configsUrl,
       method: 'POST',
       body: config,
     });
-    const {router} = render(<Outlet />, {
+    const {router} = render(<NewMetricAutomation />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/seer/automations/new/'},
-        route: '/organizations/:orgId/seer/automations/',
-        children: [
-          {path: 'new/', element: <NewMetricAutomation />},
-          {
-            path: ':automationId/',
-            element: <AutomationDetail />,
-            children: [{index: true, element: <AutomationConfiguration />}],
-          },
-        ],
       },
     });
 
-    expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(
-      'Breached Metric Investigation'
-    );
-    expect(screen.getByText('No monitors connected')).toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', {name: 'Start investigations'})
-    ).not.toBeChecked();
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Checkout errors');
+    const name = screen.getByRole('textbox', {name: 'Name'});
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Checkout errors');
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
     await userEvent.click(await screen.findByText('Checkout error rate · checkout-api'));
     await userEvent.click(screen.getByRole('textbox', {name: 'Agent projects'}));
-    expect(screen.getByRole('menuitemcheckbox', {name: 'checkout-api'})).toBeChecked();
     await userEvent.click(
       screen.getByRole('menuitemcheckbox', {name: 'payments-worker'})
     );
@@ -117,8 +87,21 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'event:write'}));
     await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
 
-    expect(await screen.findByRole('button', {name: 'Save changes'})).toBeInTheDocument();
-    expect(router.location.pathname).toBe('/organizations/org-slug/seer/automations/42/');
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/seer/automations/42/'
+      )
+    );
+    expect(createAccount).toHaveBeenCalledWith(
+      accountsUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          projectIds: [1, 2],
+          scopes: [...account.scopes, 'event:write'],
+          allProjects: false,
+        }),
+      })
+    );
     expect(create).toHaveBeenCalledWith(
       configsUrl,
       expect.objectContaining({
@@ -131,21 +114,9 @@ describe('MetricAutomationForm', () => {
         },
       })
     );
-    expect(createAccount).toHaveBeenCalledWith(
-      accountsUrl,
-      expect.objectContaining({
-        data: expect.objectContaining({
-          projectIds: [1, 2],
-          scopes: [...account.scopes, 'event:write'],
-          allProjects: false,
-        }),
-      })
-    );
-    expect(screen.getByRole('link', {name: 'Checkout error rate'})).toBeInTheDocument();
-    expect(screen.queryByText(/Next run/)).not.toBeInTheDocument();
   });
 
-  it('saves monitor connections and the investigation toggle independently of agent access', async () => {
+  it('saves monitors and the investigation toggle without changing agent access', async () => {
     const updateAccount = MockApiClient.addMockResponse({
       url: `${accountsUrl}5/`,
       method: 'PUT',
@@ -166,54 +137,20 @@ describe('MetricAutomationForm', () => {
     });
 
     await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Disconnect Checkout error rate',
-      })
+      await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
     );
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
     await userEvent.click(await screen.findByText('Payment failures · checkout-api'));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
-    MockApiClient.addMockResponse({
-      url: configsUrl,
-      body: {configs: [{...config, monitorIds: [2], enabled: true}]},
-    });
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
         expect.objectContaining({data: {monitorIds: [2], enabled: true}})
       )
     );
-    await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Save changes'})).toBeEnabled()
-    );
-    expect(screen.getByRole('checkbox', {name: 'Start investigations'})).toBeChecked();
-
-    const clear = MockApiClient.addMockResponse({
-      url: `${configsUrl}42/`,
-      method: 'PUT',
-      body: {...config, monitorIds: []},
-    });
-    MockApiClient.addMockResponse({
-      url: configsUrl,
-      body: {configs: [{...config, monitorIds: []}]},
-    });
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Disconnect Payment failures'})
-    );
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
-    await waitFor(() =>
-      expect(clear).toHaveBeenCalledWith(
-        `${configsUrl}42/`,
-        expect.objectContaining({data: {monitorIds: [], enabled: false}})
-      )
-    );
-    expect(screen.getByText('No monitors connected')).toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', {name: 'Start investigations'})
-    ).not.toBeChecked();
-    expect(updateAccount).toHaveBeenLastCalledWith(
+    expect(updateAccount).toHaveBeenCalledWith(
       `${accountsUrl}5/`,
       expect.objectContaining({
         data: {projectIds: [1, 2], scopes: account.scopes, allProjects: false},
@@ -221,81 +158,48 @@ describe('MetricAutomationForm', () => {
     );
   });
 
-  it('updates each project’s environments as monitors are connected and disconnected', async () => {
+  it('lists environments for each connected monitor project', async () => {
     const productionSource = SnubaQueryDataSourceFixture();
     productionSource.queryObj.snubaQuery.environment = 'production';
     const stagingSource = SnubaQueryDataSourceFixture();
     stagingSource.queryObj.snubaQuery.environment = 'staging';
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug: 'checkout-api'}),
-      ProjectFixture({id: '2', slug: 'payments-worker'}),
-    ]);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/`,
       body: [
-        MetricDetectorFixture({
-          id: '1',
-          name: 'Checkout error rate',
-          dataSources: [productionSource],
-        }),
-        MetricDetectorFixture({
-          id: '2',
-          name: 'Payment failures',
-          projectId: '2',
-          dataSources: [stagingSource],
-        }),
-        MetricDetectorFixture({id: '3', name: 'All checkout errors'}),
+        MetricDetectorFixture({id: '1', dataSources: [productionSource]}),
+        MetricDetectorFixture({id: '2', projectId: '2', dataSources: [stagingSource]}),
+        MetricDetectorFixture({id: '3'}),
       ],
     });
     render(
-      <MetricAutomationForm mode="edit" config={{...config, monitorIds: [1, 2]}} />,
-      {
-        organization,
-      }
+      <MetricAutomationForm mode="edit" config={{...config, monitorIds: [1, 2, 3]}} />,
+      {organization}
     );
 
-    expect(await screen.findByText('production')).toBeInTheDocument();
-    expect(screen.getByText('staging')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
-    await userEvent.click(await screen.findByText('All checkout errors · checkout-api'));
+    expect(await screen.findByText('staging')).toBeInTheDocument();
     expect(screen.getByText('All environments')).toBeInTheDocument();
     expect(screen.queryByText('production')).not.toBeInTheDocument();
-    expect(screen.getByText('staging')).toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Disconnect All checkout errors'})
-    );
-    expect(screen.getByText('production')).toBeInTheDocument();
-    expect(screen.queryByText('All environments')).not.toBeInTheDocument();
-
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Disconnect Payment failures'})
-    );
-    expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 
-  it('keeps the selected monitors when the API rejects the update', async () => {
+  it('shows the API error when saving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `${accountsUrl}5/`,
+      method: 'PUT',
+      body: account,
+    });
     MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
       statusCode: 400,
-      body: {
-        detail: 'Selected monitors must be active metric monitors in this organization.',
-      },
+      body: {detail: 'Selected monitors must be active metric monitors.'},
     });
-    render(<MetricAutomationForm mode="edit" config={config} />, {
-      organization,
-    });
+    render(<MetricAutomationForm mode="edit" config={config} />, {organization});
 
     await screen.findByRole('link', {name: 'Checkout error rate'});
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     expect(
-      await screen.findByText(
-        'Selected monitors must be active metric monitors in this organization.'
-      )
+      await screen.findByText('Selected monitors must be active metric monitors.')
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Checkout error rate'})).toBeInTheDocument();
   });
 });

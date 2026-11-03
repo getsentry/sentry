@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import {uuid4} from '@sentry/core';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -85,7 +85,7 @@ export function MetricAutomationForm(props: Props) {
   );
   const account = accountQuery.data;
   const grantableScopes = new Set<string>(organization.access);
-  const availableScopes = [...grantableScopes].filter(
+  const availableScopes = organization.access.filter(
     scope =>
       scope.includes(':') &&
       !scope.startsWith('service_account:') &&
@@ -101,17 +101,13 @@ export function MetricAutomationForm(props: Props) {
   );
   const monitors =
     monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
+  const accountUnavailable =
+    !!serviceAccountId && (accountQuery.isPending || accountQuery.isError);
+  const getProjectSlug = (projectId: string) =>
+    projects.find(project => project.id === projectId)?.slug ?? projectId;
   const configsUrl = getApiUrl(
     '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
-  );
-  const accountsUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/service-accounts/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
+    {path: {organizationIdOrSlug: organization.slug}}
   );
   const mutation = useMutation({
     mutationFn: async (value: z.infer<typeof schema>) => {
@@ -127,14 +123,14 @@ export function MetricAutomationForm(props: Props) {
                 },
               }
             )
-          : accountsUrl,
+          : getApiUrl('/organizations/$organizationIdOrSlug/service-accounts/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
         method: accountId ? 'PUT' : 'POST',
         data: {
-          ...(accountId
-            ? {}
-            : {
-                name: `Seer ${value.name.slice(0, 48)} ${uuid4().slice(0, 8)}`,
-              }),
+          ...(!accountId && {
+            name: `Seer ${value.name.slice(0, 48)} ${uuid4().slice(0, 8)}`,
+          }),
           scopes: value.scopes,
           projectIds: resolveAgentProjects(
             value.agentProjects,
@@ -284,113 +280,6 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Scope')}>
-            <Stack gap="lg">
-              {monitorsQuery.isError ? (
-                <LoadingError onRetry={monitorsQuery.refetch} />
-              ) : (
-                <form.AppField name="monitorIds">
-                  {field => (
-                    <field.Layout.Stack
-                      label={t('Connected monitors')}
-                      hintText={t(
-                        'Search by monitor or project name. You can connect more than one.'
-                      )}
-                    >
-                      <field.Select
-                        multiple
-                        clearable
-                        searchable
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        isLoading={monitorsQuery.isPending}
-                        placeholder={t('Connect metric monitors…')}
-                        options={monitors.map(monitor => ({
-                          value: monitor.id,
-                          label: `${monitor.name} · ${projects.find(project => project.id === monitor.projectId)?.slug ?? monitor.projectId}`,
-                        }))}
-                      />
-                    </field.Layout.Stack>
-                  )}
-                </form.AppField>
-              )}
-              <form.Subscribe selector={state => state.values.monitorIds}>
-                {monitorIds => {
-                  const selected = monitors.filter(monitor =>
-                    monitorIds.includes(monitor.id)
-                  );
-                  const projectIds = new Set(selected.map(monitor => monitor.projectId));
-                  return monitorIds.length === 0 ? (
-                    <Stack
-                      padding="xl"
-                      gap="sm"
-                      align="center"
-                      background="secondary"
-                      radius="md"
-                    >
-                      <Text bold>{t('No monitors connected')}</Text>
-                      <Text variant="muted" align="center">
-                        {t(
-                          'Connect a metric monitor above, or save now and choose monitors later.'
-                        )}
-                      </Text>
-                    </Stack>
-                  ) : (
-                    <Stack gap="md">
-                      <Text size="sm" variant="muted">
-                        {tn(
-                          '%s monitor connected',
-                          '%s monitors connected',
-                          monitorIds.length
-                        )}
-                        {' · '}
-                        {tn('%s project', '%s projects', projectIds.size)}
-                      </Text>
-                      <Stack border="primary" radius="md">
-                        {selected.map((monitor, index) => (
-                          <Flex
-                            key={monitor.id}
-                            align="center"
-                            justify="between"
-                            gap="md"
-                            padding="lg"
-                            borderTop={index ? 'primary' : undefined}
-                          >
-                            <Stack gap="xs" minWidth={0}>
-                              <ExternalLink
-                                href={makeMonitorDetailsPathname(
-                                  organization.slug,
-                                  monitor.id
-                                )}
-                              >
-                                {monitor.name}
-                              </ExternalLink>
-                              <Text size="sm" variant="muted">
-                                {projects.find(
-                                  project => project.id === monitor.projectId
-                                )?.slug ?? monitor.projectId}
-                                {!monitor.enabled && ` · ${t('Monitor paused')}`}
-                              </Text>
-                            </Stack>
-                            <Button
-                              size="xs"
-                              variant="transparent"
-                              icon={<IconClose />}
-                              aria-label={t('Disconnect %s', monitor.name)}
-                              onClick={() =>
-                                form.setFieldValue(
-                                  'monitorIds',
-                                  monitorIds.filter(id => id !== monitor.id)
-                                )
-                              }
-                            />
-                          </Flex>
-                        ))}
-                      </Stack>
-                    </Stack>
-                  );
-                }}
-              </form.Subscribe>
-            </Stack>
             <form.Subscribe selector={state => state.values.monitorIds}>
               {monitorIds => {
                 const selected = monitors.filter(monitor =>
@@ -399,47 +288,138 @@ export function MetricAutomationForm(props: Props) {
                 const projectIds = new Set(selected.map(monitor => monitor.projectId));
 
                 return (
-                  <DisplayField.Row label={t('Projects and environments')}>
-                    {monitorIds.length === 0 ? (
-                      <Text variant="muted">
-                        {t('Connect monitors to see their projects and environments.')}
-                      </Text>
-                    ) : monitorsQuery.isPending || monitorsQuery.isError ? (
-                      <Text variant="muted">
-                        {monitorsQuery.isPending
-                          ? t('Loading monitor scope…')
-                          : t('Monitor scope is unavailable.')}
-                      </Text>
-                    ) : (
-                      <Stack gap="md">
-                        {Array.from(projectIds, projectId => {
-                          const environments = new Set(
-                            selected
+                  <Fragment>
+                    <Stack gap="lg">
+                      {monitorsQuery.isError ? (
+                        <LoadingError onRetry={monitorsQuery.refetch} />
+                      ) : (
+                        <form.AppField name="monitorIds">
+                          {field => (
+                            <field.Layout.Stack
+                              label={t('Connected monitors')}
+                              hintText={t(
+                                'Search by monitor or project name. You can connect more than one.'
+                              )}
+                            >
+                              <field.Select
+                                multiple
+                                clearable
+                                searchable
+                                value={field.state.value}
+                                onChange={field.handleChange}
+                                isLoading={monitorsQuery.isPending}
+                                placeholder={t('Connect metric monitors…')}
+                                options={monitors.map(monitor => ({
+                                  value: monitor.id,
+                                  label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
+                                }))}
+                              />
+                            </field.Layout.Stack>
+                          )}
+                        </form.AppField>
+                      )}
+                      {monitorIds.length === 0 ? (
+                        <Stack
+                          padding="xl"
+                          gap="sm"
+                          align="center"
+                          background="secondary"
+                          radius="md"
+                        >
+                          <Text bold>{t('No monitors connected')}</Text>
+                          <Text variant="muted" align="center">
+                            {t(
+                              'Connect a metric monitor above, or save now and choose monitors later.'
+                            )}
+                          </Text>
+                        </Stack>
+                      ) : (
+                        <Stack gap="md">
+                          <Text size="sm" variant="muted">
+                            {tn(
+                              '%s monitor connected',
+                              '%s monitors connected',
+                              monitorIds.length
+                            )}
+                            {' · '}
+                            {tn('%s project', '%s projects', projectIds.size)}
+                          </Text>
+                          <Stack border="primary" radius="md">
+                            {selected.map((monitor, index) => (
+                              <Flex
+                                key={monitor.id}
+                                align="center"
+                                justify="between"
+                                gap="md"
+                                padding="lg"
+                                borderTop={index ? 'primary' : undefined}
+                              >
+                                <Stack gap="xs" minWidth={0}>
+                                  <ExternalLink
+                                    href={makeMonitorDetailsPathname(
+                                      organization.slug,
+                                      monitor.id
+                                    )}
+                                  >
+                                    {monitor.name}
+                                  </ExternalLink>
+                                  <Text size="sm" variant="muted">
+                                    {getProjectSlug(monitor.projectId)}
+                                    {!monitor.enabled && ` · ${t('Monitor paused')}`}
+                                  </Text>
+                                </Stack>
+                                <Button
+                                  size="xs"
+                                  variant="transparent"
+                                  icon={<IconClose />}
+                                  aria-label={t('Disconnect %s', monitor.name)}
+                                  onClick={() =>
+                                    form.setFieldValue(
+                                      'monitorIds',
+                                      monitorIds.filter(id => id !== monitor.id)
+                                    )
+                                  }
+                                />
+                              </Flex>
+                            ))}
+                          </Stack>
+                        </Stack>
+                      )}
+                    </Stack>
+                    <DisplayField.Row label={t('Projects and environments')}>
+                      {monitorIds.length === 0 ? (
+                        <Text variant="muted">
+                          {t('Connect monitors to see their projects and environments.')}
+                        </Text>
+                      ) : monitorsQuery.isPending ? (
+                        <Text variant="muted">{t('Loading monitor scope…')}</Text>
+                      ) : monitorsQuery.isError ? (
+                        <Text variant="muted">{t('Monitor scope is unavailable.')}</Text>
+                      ) : (
+                        <Stack gap="md">
+                          {Array.from(projectIds, projectId => {
+                            const environments = selected
                               .filter(monitor => monitor.projectId === projectId)
                               .map(
                                 monitor =>
                                   monitor.dataSources[0].queryObj.snubaQuery.environment
-                              )
-                          );
-                          const environmentNames = [...environments];
+                              );
 
-                          return (
-                            <Stack key={projectId} gap="xs">
-                              <Text>
-                                {projects.find(project => project.id === projectId)
-                                  ?.slug ?? projectId}
-                              </Text>
-                              <Text size="sm" variant="muted">
-                                {environmentNames.some(environment => !environment)
-                                  ? t('All environments')
-                                  : environmentNames.join(', ')}
-                              </Text>
-                            </Stack>
-                          );
-                        })}
-                      </Stack>
-                    )}
-                  </DisplayField.Row>
+                            return (
+                              <Stack key={projectId} gap="xs">
+                                <Text>{getProjectSlug(projectId)}</Text>
+                                <Text size="sm" variant="muted">
+                                  {environments.some(environment => !environment)
+                                    ? t('All environments')
+                                    : [...new Set(environments)].join(', ')}
+                                </Text>
+                              </Stack>
+                            );
+                          })}
+                        </Stack>
+                      )}
+                    </DisplayField.Row>
+                  </Fragment>
                 );
               }}
             </form.Subscribe>
@@ -464,9 +444,9 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Agent Capabilities')}>
-            {serviceAccountId && accountQuery.isPending ? (
+            {accountUnavailable && accountQuery.isPending ? (
               <LoadingIndicator />
-            ) : serviceAccountId && accountQuery.isError ? (
+            ) : accountUnavailable ? (
               <LoadingError onRetry={accountQuery.refetch} />
             ) : (
               <Stack gap="lg">
@@ -583,11 +563,7 @@ export function MetricAutomationForm(props: Props) {
               <form.SubmitButton
                 variant="primary"
                 disabled={
-                  monitorsQuery.isPending ||
-                  monitorsQuery.isError ||
-                  Boolean(
-                    serviceAccountId && (accountQuery.isPending || accountQuery.isError)
-                  )
+                  monitorsQuery.isPending || monitorsQuery.isError || accountUnavailable
                 }
               >
                 {props.mode === 'create' ? t('Create automation') : t('Save changes')}
@@ -599,6 +575,7 @@ export function MetricAutomationForm(props: Props) {
     </Container>
   );
 }
+
 function serviceAccountQueryOptions(
   organizationSlug: string,
   serviceAccountId: string | null
@@ -643,9 +620,5 @@ function resolveAgentProjects(
       return selection.projectIds;
     case 'all':
       return [];
-    default: {
-      const exhaustive: never = selection;
-      return exhaustive;
-    }
   }
 }

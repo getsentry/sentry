@@ -158,10 +158,7 @@ function ScheduledAutomationConfiguration() {
               onChange={() => {}}
               options={[
                 {value: 'daily', label: t('Every day at 8 AM')},
-                {
-                  value: 'twice-daily',
-                  label: t('Every day at 8 AM and 8 PM'),
-                },
+                {value: 'twice-daily', label: t('Every day at 8 AM and 8 PM')},
               ]}
             />
           }

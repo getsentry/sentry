@@ -42,10 +42,7 @@ export default function AutomationsLayout() {
           title={{
             type: 'page-title',
             label: t('Automations'),
-            trailingActions: {
-              type: 'badge',
-              element: <FeatureBadge type="alpha" />,
-            },
+            trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
           }}
         />
         <Flex justify="between" align="center" gap="lg">
