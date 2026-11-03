@@ -11,6 +11,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.tasks.clear_expired_resolutions import (
     RESOLUTION_BATCH_SECONDS,
@@ -545,7 +546,9 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
     competing = connection.copy()
     get_next_release = Release.objects.get_next_release
 
-    def slow_lookup(project, current_release, **kwargs):
+    def slow_lookup(
+        project: Project, current_release: Release, *, use_finalized_order: bool
+    ) -> Release:
         if current_release.id == slow_anchor.id:
             # Fails if the task still held resolution locks during lookups.
             with competing.cursor() as cursor:
@@ -555,7 +558,7 @@ def test_slow_successor_retries_then_is_left_pending_without_blocking_later_page
                 )
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_sleep(2)")
-        return get_next_release(project, current_release, **kwargs)
+        return get_next_release(project, current_release, use_finalized_order=use_finalized_order)
 
     try:
         with (
@@ -706,8 +709,10 @@ def test_rows_changed_before_the_lock_are_retried_from_current_state(
         )
     get_next_release = Release.objects.get_next_release
 
-    def change_after_last_lookup(project, current_release, **kwargs):
-        result = get_next_release(project, current_release, **kwargs)
+    def change_after_last_lookup(
+        project: Project, current_release: Release, *, use_finalized_order: bool
+    ) -> Release:
+        result = get_next_release(project, current_release, use_finalized_order=use_finalized_order)
         if current_release.id == anchors[-1].id:
             resolutions[0].update(release=replacement)
             anchors[1].update(date_released=now + timedelta(days=1))
