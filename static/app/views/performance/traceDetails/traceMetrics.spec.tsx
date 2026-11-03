@@ -199,6 +199,7 @@ describe('TraceViewMetricsSection', () => {
       expect(router.location.query.metricsQuery).toBeUndefined();
     });
     expect(router.location.query.query).toBe('unrelated:value');
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('preserves the initial metrics query from the URL', async () => {
