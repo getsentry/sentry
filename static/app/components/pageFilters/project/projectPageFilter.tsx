@@ -11,11 +11,7 @@ import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {
-  CompactSelect,
-  getMenuWidthForOptions,
-  MenuComponents,
-} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps, SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -572,7 +568,7 @@ export function ProjectPageFilter({
   // React Compiler could not prove this memoization is preserved; it bails out on
   // code this callback depends on. Revisit once those bailouts are fixed.
   // oxlint-disable-next-line react/preserve-manual-memoization
-  const defaultMenuWidth = useMemo(() => getMenuWidthForOptions(options), [options]);
+  const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   const canCreateProject = useCanCreateProject();
 
@@ -840,6 +836,21 @@ function toURLSelection({
   }
 
   return value;
+}
+
+function computeMenuWidth(options: Array<SelectOption<number>>): string {
+  // ProjectPageFilter will try to expand to accommodate the longest project slug
+  const longestSlugLength = options.reduce((acc, cur) => {
+    const length = cur.textValue?.length ?? 0;
+    return length > acc ? length : acc;
+  }, 0);
+
+  // Calculate an appropriate width for the menu. It should be between 22  and 28em.
+  // Within that range, the width is a function of the length of the longest slug.
+  // The project slugs take up to (longestSlugLength * 0.6)em of horizontal space
+  // (each character occupies roughly 0.6em).
+  // We also need to add 12em to account for padding, trailing buttons, and the checkbox.
+  return `${Math.max(22, Math.min(28, longestSlugLength * 0.6 + 12))}em`;
 }
 
 // Helper functions for data selection

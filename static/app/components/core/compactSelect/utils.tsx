@@ -509,24 +509,3 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
   collect(items);
   return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }
-
-/**
- * Computes a menu width that expands to fit the longest option label. Each
- * character is estimated to take ~0.6em, plus room for padding and a leading
- * item such as a checkbox or avatar. Options with trailing items, such as
- * bookmark or settings buttons, get more room. This is a heuristic based on
- * character count, not a measured width.
- */
-export function getMenuWidthForOptions<Value extends SelectKey>(
-  options: ReadonlyArray<SelectOption<Value>>
-): string {
-  const longestLabelLength = options.reduce((longest, option) => {
-    const text =
-      option.textValue ?? (typeof option.label === 'string' ? option.label : '');
-    return Math.max(longest, text.length);
-  }, 0);
-  const hasTrailingItems = options.some(option => defined(option.trailingItems));
-  const [minWidth, maxWidth, extraWidth] = hasTrailingItems ? [22, 28, 12] : [16, 24, 6];
-
-  return `${Math.max(minWidth, Math.min(maxWidth, longestLabelLength * 0.6 + extraWidth))}em`;
-}

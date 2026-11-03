@@ -4,11 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {
-  CompactSelect,
-  getMenuWidthForOptions,
-  MenuComponents,
-} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -109,11 +105,6 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
-  const options = projects.map(project => ({
-    value: project.slug,
-    label: project.slug,
-    leadingItems: <ProjectAvatar project={project} size={16} />,
-  }));
 
   return (
     <Container width="100%">
@@ -122,7 +113,8 @@ function SettingsProjectSelector() {
           {...containerProps}
           size="sm"
           position="bottom-start"
-          menuWidth={getMenuWidthForOptions(options)}
+          // Same max width as the environment page filter menu
+          menuWidth="24em"
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
@@ -161,7 +153,11 @@ function SettingsProjectSelector() {
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           }
-          options={options}
+          options={projects.map(project => ({
+            value: project.slug,
+            label: project.slug,
+            leadingItems: <ProjectAvatar project={project} size={16} />,
+          }))}
           onChange={selection =>
             navigate(
               normalizeUrl(
