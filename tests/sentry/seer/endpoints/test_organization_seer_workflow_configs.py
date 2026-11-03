@@ -519,7 +519,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
 
     def test_put_breached_metric_replaces_monitors(self) -> None:
-        kept, removed, added = (self.create_monitor(self.create_project()) for _ in range(3))
+        kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
         workflow = self.create_metric_workflow(monitor_ids=[kept.id, removed.id])
         version = workflow.get_config().version
 
@@ -537,7 +537,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
     def test_put_monitor_ids_on_non_metric_config_returns_400(self) -> None:
         config = self.create_config()
-        monitor = self.create_monitor(self.project)
+        monitor = self.create_metric_monitor(self.project)
 
         response = self.get_error_response(
             self.organization.slug,
@@ -554,9 +554,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
     def test_put_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
-        accessible = self.create_monitor(accessible_project)
-        other_accessible = self.create_monitor(accessible_project)
-        hidden = self.create_monitor(
+        accessible = self.create_metric_monitor(accessible_project)
+        other_accessible = self.create_metric_monitor(accessible_project)
+        hidden = self.create_metric_monitor(
             self.create_project(teams=[self.create_team(organization=self.organization)])
         )
         workflow = self.create_metric_workflow(monitor_ids=[accessible.id])
@@ -580,14 +580,16 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert self.connected_monitor_ids(workflow) == {accessible.id, other_accessible.id}
 
     def test_put_breached_metric_rejects_ineligible_monitors(self) -> None:
-        connected = self.create_monitor(self.project)
+        connected = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[connected.id])
         ineligible = [
             self.create_detector(project=self.project),
             self.create_detector(
                 project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
             ),
-            self.create_monitor(self.create_project(organization=self.create_organization())),
+            self.create_metric_monitor(
+                self.create_project(organization=self.create_organization())
+            ),
         ]
         for monitor in ineligible:
             response = self.get_error_response(
@@ -619,7 +621,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         assert self.selected_project_ids(workflow.get_config()) == []
 
-    def create_monitor(self, project: Project) -> Detector:
+    def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
 
     def create_metric_workflow(
@@ -829,7 +831,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
     def test_rejects_monitor_ids_for_non_metric_strategy(self) -> None:
-        monitor = self.create_monitor(self.project)
+        monitor = self.create_metric_monitor(self.project)
 
         response = self.get_error_response(
             self.organization.slug,
@@ -844,7 +846,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_breached_metric_creates_with_monitors(self) -> None:
-        monitors = [self.create_monitor(self.create_project()) for _ in range(2)]
+        monitors = [self.create_metric_monitor(self.create_project()) for _ in range(2)]
 
         response = self.get_success_response(
             self.organization.slug,
@@ -905,8 +907,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
     def test_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
-        accessible = self.create_monitor(accessible_project)
-        hidden = self.create_monitor(
+        accessible = self.create_metric_monitor(accessible_project)
+        hidden = self.create_metric_monitor(
             self.create_project(teams=[self.create_team(organization=self.organization)])
         )
         self.login_as(member)
@@ -932,7 +934,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.create_detector(
                 project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
             ),
-            self.create_monitor(self.create_project(organization=self.create_organization())),
+            self.create_metric_monitor(
+                self.create_project(organization=self.create_organization())
+            ),
         ]
         for monitor in ineligible:
             response = self.get_error_response(
@@ -956,7 +960,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug, strategy="agentic_triage_v2", status_code=429
         )
 
-    def create_monitor(self, project: Project) -> Detector:
+    def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
 
     def create_member_with_project(self, *, open_membership: bool) -> tuple[User, Project]:
