@@ -8,6 +8,8 @@
  * DEPLOYMENT: This is safe to deploy alongside backend changes.
  */
 
+export type ActionEnum = 'created' | 'deleted' | 'updated';
+
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
  *
@@ -15,7 +17,7 @@
  */
 export type ActionFilterValidator = {
   actions: Array<Record<string, unknown>>;
-  logic_type: 'all' | 'any' | 'any-short' | 'none';
+  logic_type: LogicTypeEnum;
   conditions?: unknown[];
   id?: number;
 };
@@ -57,6 +59,123 @@ export type AddHypothesisCommandValidator = {
   rationale?: string | null;
 };
 
+export type AddProjectSymbolSourceResponse =
+  | {
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      type: 'http';
+      url: string;
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      password?: {
+        'hidden-secret'?: true;
+      };
+      platforms?: string[];
+      username?: string;
+    }
+  | {
+      access_key: string;
+      bucket: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      region: string;
+      secret_key: {
+        'hidden-secret'?: true;
+      };
+      type: 's3';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      bucket: string;
+      client_email: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      private_key: {
+        'hidden-secret'?: true;
+      };
+      type: 'gcs';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      account: string;
+      client_id: string;
+      client_secret: {
+        'hidden-secret'?: true;
+      };
+      container: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      tenant_id: string;
+      type: 'azure';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      appId: string;
+      appName: string;
+      appconnectIssuer: string;
+      appconnectKey: string;
+      appconnectPrivateKey: string;
+      bundleId: string;
+      id: string;
+      name: string;
+      type: 'appStoreConnect';
+    };
+
+export type AddProjectSymbolSourceResponseTypeEnum =
+  | 'debuginfod'
+  | 'native'
+  | 'nnsymstore'
+  | 'slashsymbols'
+  | 'ssqp'
+  | 'symstore'
+  | 'symstore_index2'
+  | 'unified';
+
 export type AgentApprovalRequest = {
   scopes: string[];
   sessionId: string;
@@ -92,16 +211,7 @@ export type AgenticOnboardingRun = {
   stages: Array<{
     eventNote: string | null;
     extra: Record<string, unknown> | null;
-    stage:
-      | 'analyze_project'
-      | 'check_stack_trace_quality'
-      | 'connect_mcp'
-      | 'create_project'
-      | 'instrument_app'
-      | 'plan_test_error'
-      | 'prepare_production'
-      | 'receive_verification_error'
-      | 'send_verification_error';
+    stage: StageEnum;
     status: 'active' | 'bypassed' | 'completed' | 'failed' | 'skipped' | 'waiting' | null;
   }>;
   updatedAt: string;
@@ -126,16 +236,7 @@ export type AgenticOnboardingRunRequest = {
 export type AgenticOnboardingStatusRequest = {
   run_token: string;
   schema_version: number;
-  stage:
-    | 'analyze_project'
-    | 'check_stack_trace_quality'
-    | 'connect_mcp'
-    | 'create_project'
-    | 'instrument_app'
-    | 'plan_test_error'
-    | 'prepare_production'
-    | 'receive_verification_error'
-    | 'send_verification_error';
+  stage: StageEnum;
   status: 'active' | 'completed' | 'failed' | 'skipped' | 'waiting';
   event_note?: string;
   extra?: Record<string, unknown>;
@@ -207,6 +308,8 @@ export type AssembleProjectDebugFilesResponse = Record<
     };
   }
 >;
+
+export type AttributeTypeEnum = 'array' | 'boolean' | 'number' | 'string';
 
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
@@ -401,9 +504,11 @@ export type AutofixStateResponse = {
   autofix: Record<string, unknown> | null;
   formatted?: {
     content: string;
-    format: 'json' | 'markdown' | 'xml';
+    format: FormatEnum;
   };
 };
+
+export type AxisRangeEnum = 'auto' | 'dataMin';
 
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
@@ -411,7 +516,7 @@ export type AutofixStateResponse = {
  * Errors are output in camel case.
  */
 export type BaseDataConditionGroupValidator = {
-  logic_type: 'all' | 'any' | 'any-short' | 'none';
+  logic_type: LogicTypeEnum;
   conditions?: unknown[];
   id?: number;
 };
@@ -604,11 +709,13 @@ export type BulkCodeMappingsPartialResponse = {
   mappings: Array<{
     sourceRoot: string;
     stackRoot: string;
-    status: 'created' | 'error' | 'updated';
+    status: BulkCodeMappingsPartialResponseStatusEnum;
     detail?: string;
   }>;
   updated: number;
 };
+
+export type BulkCodeMappingsPartialResponseStatusEnum = 'created' | 'error' | 'updated';
 
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
@@ -629,7 +736,7 @@ export type BulkCodeMappingsResponse = {
   mappings: Array<{
     sourceRoot: string;
     stackRoot: string;
-    status: 'created' | 'error' | 'updated';
+    status: BulkCodeMappingsPartialResponseStatusEnum;
     detail?: string;
   }>;
   updated: number;
@@ -639,6 +746,17 @@ export type BulkEnvironment = {
   environmentNames: string[];
   isHidden: boolean;
 };
+
+export type BulkMutateAListOfIssuesResponse = {
+  isPublic: boolean;
+  status: BulkMutateAListOfIssuesResponseStatusEnum;
+  statusDetails: Record<string, unknown>;
+};
+
+export type BulkMutateAListOfIssuesResponseStatusEnum =
+  | 'ignored'
+  | 'resolved'
+  | 'unresolved';
 
 export type BulkUpdateAlerts = {
   enabled: boolean;
@@ -659,6 +777,20 @@ export type CancelCommandValidator = {
   reason?: string | null;
 };
 
+export type CannotApplyReasonEnum =
+  | 'detector_not_found'
+  | 'dynamic_detector'
+  | 'investigation_archived'
+  | 'no_access'
+  | 'not_suggested'
+  | 'not_target_detector'
+  | 'permission_denied'
+  | 'unsupported_action';
+
+export type CanvasThemeEnum = 'dark' | 'light';
+
+export type CasingEnum = 'default' | 'lowercase' | 'uppercase';
+
 export type CheckInList = Array<{
   dateAdded: string;
   dateClock: string | null;
@@ -676,7 +808,7 @@ export type CheckInList = Array<{
     max_runtime: number | null;
     recovery_threshold: number | null;
     schedule: string | number[];
-    schedule_type: 'crontab' | 'interval';
+    schedule_type: ScheduleTypeEnum;
     timezone: string | null;
   };
   status: string;
@@ -785,6 +917,15 @@ export type ChunkUploadOptionsResponse = {
   maxRequestSize: number;
   url: string;
 };
+
+export type CodeEnum =
+  | 'action_changed'
+  | 'already_applied'
+  | 'not_retryable'
+  | 'not_stale'
+  | 'stale'
+  | 'validation_failed'
+  | 'withdrawn';
 
 export type CodeExplanationRequest = {
   code: string;
@@ -911,7 +1052,7 @@ export type CommitSerializerResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
+    status: CommitSerializerResponseStatusEnum | null;
     title: string | null;
   } | null;
   suspectCommitType: string;
@@ -988,613 +1129,23 @@ export type CommitSerializerResponse = Array<{
   };
 }>;
 
+export type CommitSerializerResponseStatusEnum =
+  | 'closed'
+  | 'draft'
+  | 'merged'
+  | 'open'
+  | 'unknown';
+
+export type ConfidenceEnum = 'high' | 'low';
+
 export type ConfigValidator = {
   schedule: unknown;
   checkin_margin?: number | null;
   failure_issue_threshold?: number | null;
   max_runtime?: number | null;
   recovery_threshold?: number | null;
-  schedule_type?: 'crontab' | 'interval';
-  timezone?:
-    | ''
-    | 'Africa/Abidjan'
-    | 'Africa/Accra'
-    | 'Africa/Addis_Ababa'
-    | 'Africa/Algiers'
-    | 'Africa/Asmara'
-    | 'Africa/Asmera'
-    | 'Africa/Bamako'
-    | 'Africa/Bangui'
-    | 'Africa/Banjul'
-    | 'Africa/Bissau'
-    | 'Africa/Blantyre'
-    | 'Africa/Brazzaville'
-    | 'Africa/Bujumbura'
-    | 'Africa/Cairo'
-    | 'Africa/Casablanca'
-    | 'Africa/Ceuta'
-    | 'Africa/Conakry'
-    | 'Africa/Dakar'
-    | 'Africa/Dar_es_Salaam'
-    | 'Africa/Djibouti'
-    | 'Africa/Douala'
-    | 'Africa/El_Aaiun'
-    | 'Africa/Freetown'
-    | 'Africa/Gaborone'
-    | 'Africa/Harare'
-    | 'Africa/Johannesburg'
-    | 'Africa/Juba'
-    | 'Africa/Kampala'
-    | 'Africa/Khartoum'
-    | 'Africa/Kigali'
-    | 'Africa/Kinshasa'
-    | 'Africa/Lagos'
-    | 'Africa/Libreville'
-    | 'Africa/Lome'
-    | 'Africa/Luanda'
-    | 'Africa/Lubumbashi'
-    | 'Africa/Lusaka'
-    | 'Africa/Malabo'
-    | 'Africa/Maputo'
-    | 'Africa/Maseru'
-    | 'Africa/Mbabane'
-    | 'Africa/Mogadishu'
-    | 'Africa/Monrovia'
-    | 'Africa/Nairobi'
-    | 'Africa/Ndjamena'
-    | 'Africa/Niamey'
-    | 'Africa/Nouakchott'
-    | 'Africa/Ouagadougou'
-    | 'Africa/Porto-Novo'
-    | 'Africa/Sao_Tome'
-    | 'Africa/Timbuktu'
-    | 'Africa/Tripoli'
-    | 'Africa/Tunis'
-    | 'Africa/Windhoek'
-    | 'America/Adak'
-    | 'America/Anchorage'
-    | 'America/Anguilla'
-    | 'America/Antigua'
-    | 'America/Araguaina'
-    | 'America/Argentina/Buenos_Aires'
-    | 'America/Argentina/Catamarca'
-    | 'America/Argentina/ComodRivadavia'
-    | 'America/Argentina/Cordoba'
-    | 'America/Argentina/Jujuy'
-    | 'America/Argentina/La_Rioja'
-    | 'America/Argentina/Mendoza'
-    | 'America/Argentina/Rio_Gallegos'
-    | 'America/Argentina/Salta'
-    | 'America/Argentina/San_Juan'
-    | 'America/Argentina/San_Luis'
-    | 'America/Argentina/Tucuman'
-    | 'America/Argentina/Ushuaia'
-    | 'America/Aruba'
-    | 'America/Asuncion'
-    | 'America/Atikokan'
-    | 'America/Atka'
-    | 'America/Bahia'
-    | 'America/Bahia_Banderas'
-    | 'America/Barbados'
-    | 'America/Belem'
-    | 'America/Belize'
-    | 'America/Blanc-Sablon'
-    | 'America/Boa_Vista'
-    | 'America/Bogota'
-    | 'America/Boise'
-    | 'America/Buenos_Aires'
-    | 'America/Cambridge_Bay'
-    | 'America/Campo_Grande'
-    | 'America/Cancun'
-    | 'America/Caracas'
-    | 'America/Catamarca'
-    | 'America/Cayenne'
-    | 'America/Cayman'
-    | 'America/Chicago'
-    | 'America/Chihuahua'
-    | 'America/Ciudad_Juarez'
-    | 'America/Coral_Harbour'
-    | 'America/Cordoba'
-    | 'America/Costa_Rica'
-    | 'America/Coyhaique'
-    | 'America/Creston'
-    | 'America/Cuiaba'
-    | 'America/Curacao'
-    | 'America/Danmarkshavn'
-    | 'America/Dawson'
-    | 'America/Dawson_Creek'
-    | 'America/Denver'
-    | 'America/Detroit'
-    | 'America/Dominica'
-    | 'America/Edmonton'
-    | 'America/Eirunepe'
-    | 'America/El_Salvador'
-    | 'America/Ensenada'
-    | 'America/Fort_Nelson'
-    | 'America/Fort_Wayne'
-    | 'America/Fortaleza'
-    | 'America/Glace_Bay'
-    | 'America/Godthab'
-    | 'America/Goose_Bay'
-    | 'America/Grand_Turk'
-    | 'America/Grenada'
-    | 'America/Guadeloupe'
-    | 'America/Guatemala'
-    | 'America/Guayaquil'
-    | 'America/Guyana'
-    | 'America/Halifax'
-    | 'America/Havana'
-    | 'America/Hermosillo'
-    | 'America/Indiana/Indianapolis'
-    | 'America/Indiana/Knox'
-    | 'America/Indiana/Marengo'
-    | 'America/Indiana/Petersburg'
-    | 'America/Indiana/Tell_City'
-    | 'America/Indiana/Vevay'
-    | 'America/Indiana/Vincennes'
-    | 'America/Indiana/Winamac'
-    | 'America/Indianapolis'
-    | 'America/Inuvik'
-    | 'America/Iqaluit'
-    | 'America/Jamaica'
-    | 'America/Jujuy'
-    | 'America/Juneau'
-    | 'America/Kentucky/Louisville'
-    | 'America/Kentucky/Monticello'
-    | 'America/Knox_IN'
-    | 'America/Kralendijk'
-    | 'America/La_Paz'
-    | 'America/Lima'
-    | 'America/Los_Angeles'
-    | 'America/Louisville'
-    | 'America/Lower_Princes'
-    | 'America/Maceio'
-    | 'America/Managua'
-    | 'America/Manaus'
-    | 'America/Marigot'
-    | 'America/Martinique'
-    | 'America/Matamoros'
-    | 'America/Mazatlan'
-    | 'America/Mendoza'
-    | 'America/Menominee'
-    | 'America/Merida'
-    | 'America/Metlakatla'
-    | 'America/Mexico_City'
-    | 'America/Miquelon'
-    | 'America/Moncton'
-    | 'America/Monterrey'
-    | 'America/Montevideo'
-    | 'America/Montreal'
-    | 'America/Montserrat'
-    | 'America/Nassau'
-    | 'America/New_York'
-    | 'America/Nipigon'
-    | 'America/Nome'
-    | 'America/Noronha'
-    | 'America/North_Dakota/Beulah'
-    | 'America/North_Dakota/Center'
-    | 'America/North_Dakota/New_Salem'
-    | 'America/Nuuk'
-    | 'America/Ojinaga'
-    | 'America/Panama'
-    | 'America/Pangnirtung'
-    | 'America/Paramaribo'
-    | 'America/Phoenix'
-    | 'America/Port-au-Prince'
-    | 'America/Port_of_Spain'
-    | 'America/Porto_Acre'
-    | 'America/Porto_Velho'
-    | 'America/Puerto_Rico'
-    | 'America/Punta_Arenas'
-    | 'America/Rainy_River'
-    | 'America/Rankin_Inlet'
-    | 'America/Recife'
-    | 'America/Regina'
-    | 'America/Resolute'
-    | 'America/Rio_Branco'
-    | 'America/Rosario'
-    | 'America/Santa_Isabel'
-    | 'America/Santarem'
-    | 'America/Santiago'
-    | 'America/Santo_Domingo'
-    | 'America/Sao_Paulo'
-    | 'America/Scoresbysund'
-    | 'America/Shiprock'
-    | 'America/Sitka'
-    | 'America/St_Barthelemy'
-    | 'America/St_Johns'
-    | 'America/St_Kitts'
-    | 'America/St_Lucia'
-    | 'America/St_Thomas'
-    | 'America/St_Vincent'
-    | 'America/Swift_Current'
-    | 'America/Tegucigalpa'
-    | 'America/Thule'
-    | 'America/Thunder_Bay'
-    | 'America/Tijuana'
-    | 'America/Toronto'
-    | 'America/Tortola'
-    | 'America/Vancouver'
-    | 'America/Virgin'
-    | 'America/Whitehorse'
-    | 'America/Winnipeg'
-    | 'America/Yakutat'
-    | 'America/Yellowknife'
-    | 'Antarctica/Casey'
-    | 'Antarctica/Davis'
-    | 'Antarctica/DumontDUrville'
-    | 'Antarctica/Macquarie'
-    | 'Antarctica/Mawson'
-    | 'Antarctica/McMurdo'
-    | 'Antarctica/Palmer'
-    | 'Antarctica/Rothera'
-    | 'Antarctica/South_Pole'
-    | 'Antarctica/Syowa'
-    | 'Antarctica/Troll'
-    | 'Antarctica/Vostok'
-    | 'Arctic/Longyearbyen'
-    | 'Asia/Aden'
-    | 'Asia/Almaty'
-    | 'Asia/Amman'
-    | 'Asia/Anadyr'
-    | 'Asia/Aqtau'
-    | 'Asia/Aqtobe'
-    | 'Asia/Ashgabat'
-    | 'Asia/Ashkhabad'
-    | 'Asia/Atyrau'
-    | 'Asia/Baghdad'
-    | 'Asia/Bahrain'
-    | 'Asia/Baku'
-    | 'Asia/Bangkok'
-    | 'Asia/Barnaul'
-    | 'Asia/Beirut'
-    | 'Asia/Bishkek'
-    | 'Asia/Brunei'
-    | 'Asia/Calcutta'
-    | 'Asia/Chita'
-    | 'Asia/Choibalsan'
-    | 'Asia/Chongqing'
-    | 'Asia/Chungking'
-    | 'Asia/Colombo'
-    | 'Asia/Dacca'
-    | 'Asia/Damascus'
-    | 'Asia/Dhaka'
-    | 'Asia/Dili'
-    | 'Asia/Dubai'
-    | 'Asia/Dushanbe'
-    | 'Asia/Famagusta'
-    | 'Asia/Gaza'
-    | 'Asia/Harbin'
-    | 'Asia/Hebron'
-    | 'Asia/Ho_Chi_Minh'
-    | 'Asia/Hong_Kong'
-    | 'Asia/Hovd'
-    | 'Asia/Irkutsk'
-    | 'Asia/Istanbul'
-    | 'Asia/Jakarta'
-    | 'Asia/Jayapura'
-    | 'Asia/Jerusalem'
-    | 'Asia/Kabul'
-    | 'Asia/Kamchatka'
-    | 'Asia/Karachi'
-    | 'Asia/Kashgar'
-    | 'Asia/Kathmandu'
-    | 'Asia/Katmandu'
-    | 'Asia/Khandyga'
-    | 'Asia/Kolkata'
-    | 'Asia/Krasnoyarsk'
-    | 'Asia/Kuala_Lumpur'
-    | 'Asia/Kuching'
-    | 'Asia/Kuwait'
-    | 'Asia/Macao'
-    | 'Asia/Macau'
-    | 'Asia/Magadan'
-    | 'Asia/Makassar'
-    | 'Asia/Manila'
-    | 'Asia/Muscat'
-    | 'Asia/Nicosia'
-    | 'Asia/Novokuznetsk'
-    | 'Asia/Novosibirsk'
-    | 'Asia/Omsk'
-    | 'Asia/Oral'
-    | 'Asia/Phnom_Penh'
-    | 'Asia/Pontianak'
-    | 'Asia/Pyongyang'
-    | 'Asia/Qatar'
-    | 'Asia/Qostanay'
-    | 'Asia/Qyzylorda'
-    | 'Asia/Rangoon'
-    | 'Asia/Riyadh'
-    | 'Asia/Saigon'
-    | 'Asia/Sakhalin'
-    | 'Asia/Samarkand'
-    | 'Asia/Seoul'
-    | 'Asia/Shanghai'
-    | 'Asia/Singapore'
-    | 'Asia/Srednekolymsk'
-    | 'Asia/Taipei'
-    | 'Asia/Tashkent'
-    | 'Asia/Tbilisi'
-    | 'Asia/Tehran'
-    | 'Asia/Tel_Aviv'
-    | 'Asia/Thimbu'
-    | 'Asia/Thimphu'
-    | 'Asia/Tokyo'
-    | 'Asia/Tomsk'
-    | 'Asia/Ujung_Pandang'
-    | 'Asia/Ulaanbaatar'
-    | 'Asia/Ulan_Bator'
-    | 'Asia/Urumqi'
-    | 'Asia/Ust-Nera'
-    | 'Asia/Vientiane'
-    | 'Asia/Vladivostok'
-    | 'Asia/Yakutsk'
-    | 'Asia/Yangon'
-    | 'Asia/Yekaterinburg'
-    | 'Asia/Yerevan'
-    | 'Atlantic/Azores'
-    | 'Atlantic/Bermuda'
-    | 'Atlantic/Canary'
-    | 'Atlantic/Cape_Verde'
-    | 'Atlantic/Faeroe'
-    | 'Atlantic/Faroe'
-    | 'Atlantic/Jan_Mayen'
-    | 'Atlantic/Madeira'
-    | 'Atlantic/Reykjavik'
-    | 'Atlantic/South_Georgia'
-    | 'Atlantic/St_Helena'
-    | 'Atlantic/Stanley'
-    | 'Australia/ACT'
-    | 'Australia/Adelaide'
-    | 'Australia/Brisbane'
-    | 'Australia/Broken_Hill'
-    | 'Australia/Canberra'
-    | 'Australia/Currie'
-    | 'Australia/Darwin'
-    | 'Australia/Eucla'
-    | 'Australia/Hobart'
-    | 'Australia/LHI'
-    | 'Australia/Lindeman'
-    | 'Australia/Lord_Howe'
-    | 'Australia/Melbourne'
-    | 'Australia/NSW'
-    | 'Australia/North'
-    | 'Australia/Perth'
-    | 'Australia/Queensland'
-    | 'Australia/South'
-    | 'Australia/Sydney'
-    | 'Australia/Tasmania'
-    | 'Australia/Victoria'
-    | 'Australia/West'
-    | 'Australia/Yancowinna'
-    | 'Brazil/Acre'
-    | 'Brazil/DeNoronha'
-    | 'Brazil/East'
-    | 'Brazil/West'
-    | 'CET'
-    | 'CST6CDT'
-    | 'Canada/Atlantic'
-    | 'Canada/Central'
-    | 'Canada/Eastern'
-    | 'Canada/Mountain'
-    | 'Canada/Newfoundland'
-    | 'Canada/Pacific'
-    | 'Canada/Saskatchewan'
-    | 'Canada/Yukon'
-    | 'Chile/Continental'
-    | 'Chile/EasterIsland'
-    | 'Cuba'
-    | 'EET'
-    | 'EST'
-    | 'EST5EDT'
-    | 'Egypt'
-    | 'Eire'
-    | 'Etc/GMT'
-    | 'Etc/GMT+0'
-    | 'Etc/GMT+1'
-    | 'Etc/GMT+10'
-    | 'Etc/GMT+11'
-    | 'Etc/GMT+12'
-    | 'Etc/GMT+2'
-    | 'Etc/GMT+3'
-    | 'Etc/GMT+4'
-    | 'Etc/GMT+5'
-    | 'Etc/GMT+6'
-    | 'Etc/GMT+7'
-    | 'Etc/GMT+8'
-    | 'Etc/GMT+9'
-    | 'Etc/GMT-0'
-    | 'Etc/GMT-1'
-    | 'Etc/GMT-10'
-    | 'Etc/GMT-11'
-    | 'Etc/GMT-12'
-    | 'Etc/GMT-13'
-    | 'Etc/GMT-14'
-    | 'Etc/GMT-2'
-    | 'Etc/GMT-3'
-    | 'Etc/GMT-4'
-    | 'Etc/GMT-5'
-    | 'Etc/GMT-6'
-    | 'Etc/GMT-7'
-    | 'Etc/GMT-8'
-    | 'Etc/GMT-9'
-    | 'Etc/GMT0'
-    | 'Etc/Greenwich'
-    | 'Etc/UCT'
-    | 'Etc/UTC'
-    | 'Etc/Universal'
-    | 'Etc/Zulu'
-    | 'Europe/Amsterdam'
-    | 'Europe/Andorra'
-    | 'Europe/Astrakhan'
-    | 'Europe/Athens'
-    | 'Europe/Belfast'
-    | 'Europe/Belgrade'
-    | 'Europe/Berlin'
-    | 'Europe/Bratislava'
-    | 'Europe/Brussels'
-    | 'Europe/Bucharest'
-    | 'Europe/Budapest'
-    | 'Europe/Busingen'
-    | 'Europe/Chisinau'
-    | 'Europe/Copenhagen'
-    | 'Europe/Dublin'
-    | 'Europe/Gibraltar'
-    | 'Europe/Guernsey'
-    | 'Europe/Helsinki'
-    | 'Europe/Isle_of_Man'
-    | 'Europe/Istanbul'
-    | 'Europe/Jersey'
-    | 'Europe/Kaliningrad'
-    | 'Europe/Kiev'
-    | 'Europe/Kirov'
-    | 'Europe/Kyiv'
-    | 'Europe/Lisbon'
-    | 'Europe/Ljubljana'
-    | 'Europe/London'
-    | 'Europe/Luxembourg'
-    | 'Europe/Madrid'
-    | 'Europe/Malta'
-    | 'Europe/Mariehamn'
-    | 'Europe/Minsk'
-    | 'Europe/Monaco'
-    | 'Europe/Moscow'
-    | 'Europe/Nicosia'
-    | 'Europe/Oslo'
-    | 'Europe/Paris'
-    | 'Europe/Podgorica'
-    | 'Europe/Prague'
-    | 'Europe/Riga'
-    | 'Europe/Rome'
-    | 'Europe/Samara'
-    | 'Europe/San_Marino'
-    | 'Europe/Sarajevo'
-    | 'Europe/Saratov'
-    | 'Europe/Simferopol'
-    | 'Europe/Skopje'
-    | 'Europe/Sofia'
-    | 'Europe/Stockholm'
-    | 'Europe/Tallinn'
-    | 'Europe/Tirane'
-    | 'Europe/Tiraspol'
-    | 'Europe/Ulyanovsk'
-    | 'Europe/Uzhgorod'
-    | 'Europe/Vaduz'
-    | 'Europe/Vatican'
-    | 'Europe/Vienna'
-    | 'Europe/Vilnius'
-    | 'Europe/Volgograd'
-    | 'Europe/Warsaw'
-    | 'Europe/Zagreb'
-    | 'Europe/Zaporozhye'
-    | 'Europe/Zurich'
-    | 'GB'
-    | 'GB-Eire'
-    | 'GMT'
-    | 'GMT+0'
-    | 'GMT-0'
-    | 'GMT0'
-    | 'Greenwich'
-    | 'HST'
-    | 'Hongkong'
-    | 'Iceland'
-    | 'Indian/Antananarivo'
-    | 'Indian/Chagos'
-    | 'Indian/Christmas'
-    | 'Indian/Cocos'
-    | 'Indian/Comoro'
-    | 'Indian/Kerguelen'
-    | 'Indian/Mahe'
-    | 'Indian/Maldives'
-    | 'Indian/Mauritius'
-    | 'Indian/Mayotte'
-    | 'Indian/Reunion'
-    | 'Iran'
-    | 'Israel'
-    | 'Jamaica'
-    | 'Japan'
-    | 'Kwajalein'
-    | 'Libya'
-    | 'MET'
-    | 'MST'
-    | 'MST7MDT'
-    | 'Mexico/BajaNorte'
-    | 'Mexico/BajaSur'
-    | 'Mexico/General'
-    | 'NZ'
-    | 'NZ-CHAT'
-    | 'Navajo'
-    | 'PRC'
-    | 'PST8PDT'
-    | 'Pacific/Apia'
-    | 'Pacific/Auckland'
-    | 'Pacific/Bougainville'
-    | 'Pacific/Chatham'
-    | 'Pacific/Chuuk'
-    | 'Pacific/Easter'
-    | 'Pacific/Efate'
-    | 'Pacific/Enderbury'
-    | 'Pacific/Fakaofo'
-    | 'Pacific/Fiji'
-    | 'Pacific/Funafuti'
-    | 'Pacific/Galapagos'
-    | 'Pacific/Gambier'
-    | 'Pacific/Guadalcanal'
-    | 'Pacific/Guam'
-    | 'Pacific/Honolulu'
-    | 'Pacific/Johnston'
-    | 'Pacific/Kanton'
-    | 'Pacific/Kiritimati'
-    | 'Pacific/Kosrae'
-    | 'Pacific/Kwajalein'
-    | 'Pacific/Majuro'
-    | 'Pacific/Marquesas'
-    | 'Pacific/Midway'
-    | 'Pacific/Nauru'
-    | 'Pacific/Niue'
-    | 'Pacific/Norfolk'
-    | 'Pacific/Noumea'
-    | 'Pacific/Pago_Pago'
-    | 'Pacific/Palau'
-    | 'Pacific/Pitcairn'
-    | 'Pacific/Pohnpei'
-    | 'Pacific/Ponape'
-    | 'Pacific/Port_Moresby'
-    | 'Pacific/Rarotonga'
-    | 'Pacific/Saipan'
-    | 'Pacific/Samoa'
-    | 'Pacific/Tahiti'
-    | 'Pacific/Tarawa'
-    | 'Pacific/Tongatapu'
-    | 'Pacific/Truk'
-    | 'Pacific/Wake'
-    | 'Pacific/Wallis'
-    | 'Pacific/Yap'
-    | 'Poland'
-    | 'Portugal'
-    | 'ROC'
-    | 'ROK'
-    | 'Singapore'
-    | 'Turkey'
-    | 'UCT'
-    | 'US/Alaska'
-    | 'US/Aleutian'
-    | 'US/Arizona'
-    | 'US/Central'
-    | 'US/East-Indiana'
-    | 'US/Eastern'
-    | 'US/Hawaii'
-    | 'US/Indiana-Starke'
-    | 'US/Michigan'
-    | 'US/Mountain'
-    | 'US/Pacific'
-    | 'US/Samoa'
-    | 'UTC'
-    | 'Universal'
-    | 'W-SU'
-    | 'WET'
-    | 'Zulu'
-    | 'localtime';
+  schedule_type?: ScheduleTypeEnum;
+  timezone?: TimezoneEnum | '';
 };
 
 export type CreateExternalIssueRequest = {
@@ -1622,6 +1173,14 @@ export type CreateGroupNote = {
   source: string | null;
   type: string;
   user: Record<string, unknown> | null;
+};
+
+export type CreateOrUpdateAnExternalIssueResponse = {
+  displayName: string;
+  id: string;
+  issueId: string;
+  serviceType: string;
+  webUrl: string;
 };
 
 /**
@@ -1908,11 +1467,15 @@ export type CreateServiceAccountResponse = {
   scopes: string[];
 };
 
+export type CreatedByTypeEnum = 'email' | 'id' | 'name';
+
 export type CrossEvent = {
   query: string;
-  type: 'logs' | 'metrics' | 'spans';
+  type: CrossEventTypeEnum;
   metric?: Metric | null;
 };
+
+export type CrossEventTypeEnum = 'logs' | 'metrics' | 'spans';
 
 export type CsrfTokenResponse = {
   detail: string;
@@ -1997,54 +1560,19 @@ export type Dashboard = {
  * Errors are output in camel case.
  */
 export type DashboardCreateWidget = {
-  axis_range?: 'auto' | 'dataMin' | null;
-  dataset_source?:
-    | 'forced'
-    | 'inferred'
-    | 'restored_span_migration_version_1'
-    | 'span_migration_version_1'
-    | 'span_migration_version_2'
-    | 'span_migration_version_3'
-    | 'span_migration_version_4'
-    | 'span_migration_version_5'
-    | 'split_version_1'
-    | 'split_version_2'
-    | 'unknown'
-    | 'user';
+  axis_range?: AxisRangeEnum | null;
+  dataset_source?: DatasetSourceEnum;
   description?: string | null;
-  display_type?:
-    | 'agents_traces_table'
-    | 'area'
-    | 'bar'
-    | 'big_number'
-    | 'categorical_bar'
-    | 'details'
-    | 'heatmap'
-    | 'line'
-    | 'rage_and_dead_clicks'
-    | 'server_tree'
-    | 'table'
-    | 'text'
-    | 'wheel';
+  display_type?: DisplayTypeEnum;
   id?: string;
   interval?: string;
   layout?: DashboardCreateWidgetLayout | null;
-  legend_type?: 'breakdown' | 'default' | null;
+  legend_type?: LegendTypeEnum | null;
   limit?: number | null;
   queries?: DashboardWidgetQuery[];
   thresholds?: Record<string, unknown> | null;
   title?: string;
-  widget_type?:
-    | 'discover'
-    | 'error-events'
-    | 'issue'
-    | 'logs'
-    | 'metrics'
-    | 'preprod-app-size'
-    | 'spans'
-    | 'tracemetrics'
-    | 'transaction-like'
-    | null;
+  widget_type?: WidgetTypeEnum | null;
 };
 
 /**
@@ -2112,7 +1640,7 @@ export type DashboardDetailsModel = {
     id: string;
     interval: string;
     layout: Record<string, number> | null;
-    legendType: 'breakdown' | 'default' | null;
+    legendType: LegendTypeEnum | null;
     limit: number | null;
     queries: Array<{
       aggregates: string[];
@@ -2193,54 +1721,19 @@ export type DashboardPermissions = {
  * Errors are output in camel case.
  */
 export type DashboardWidget = {
-  axis_range?: 'auto' | 'dataMin' | null;
-  dataset_source?:
-    | 'forced'
-    | 'inferred'
-    | 'restored_span_migration_version_1'
-    | 'span_migration_version_1'
-    | 'span_migration_version_2'
-    | 'span_migration_version_3'
-    | 'span_migration_version_4'
-    | 'span_migration_version_5'
-    | 'split_version_1'
-    | 'split_version_2'
-    | 'unknown'
-    | 'user';
+  axis_range?: AxisRangeEnum | null;
+  dataset_source?: DatasetSourceEnum;
   description?: string | null;
-  display_type?:
-    | 'agents_traces_table'
-    | 'area'
-    | 'bar'
-    | 'big_number'
-    | 'categorical_bar'
-    | 'details'
-    | 'heatmap'
-    | 'line'
-    | 'rage_and_dead_clicks'
-    | 'server_tree'
-    | 'table'
-    | 'text'
-    | 'wheel';
+  display_type?: DisplayTypeEnum;
   id?: string;
   interval?: string;
   layout?: WidgetLayout | null;
-  legend_type?: 'breakdown' | 'default' | null;
+  legend_type?: LegendTypeEnum | null;
   limit?: number | null;
   queries?: DashboardWidgetQuery[];
   thresholds?: Record<string, unknown> | null;
   title?: string;
-  widget_type?:
-    | 'discover'
-    | 'error-events'
-    | 'issue'
-    | 'logs'
-    | 'metrics'
-    | 'preprod-app-size'
-    | 'spans'
-    | 'tracemetrics'
-    | 'transaction-like'
-    | null;
+  widget_type?: WidgetTypeEnum | null;
 };
 
 /**
@@ -2313,6 +1806,34 @@ export type DataForwarderResponse = {
   }>;
   provider: string;
 };
+
+export type DataScannedEnum = 'full' | 'partial';
+
+export type DatasetEnum =
+  | 'ai_conversations'
+  | 'logs'
+  | 'metrics'
+  | 'replays'
+  | 'segment_spans'
+  | 'spans';
+
+export type DatasetSourceEnum =
+  | 'forced'
+  | 'inferred'
+  | 'restored_span_migration_version_1'
+  | 'span_migration_version_1'
+  | 'span_migration_version_2'
+  | 'span_migration_version_3'
+  | 'span_migration_version_4'
+  | 'span_migration_version_5'
+  | 'split_version_1'
+  | 'split_version_2'
+  | 'unknown'
+  | 'user';
+
+export type DebugFilesRoleEnum = 'admin' | 'manager' | 'member' | 'owner';
+
+export type DeleteAllUptimeResponseCapturesResponse = Record<string, unknown>;
 
 export type Deploy = {
   environment: string;
@@ -2477,6 +1998,8 @@ export type DetailedProject = {
   transactionStats?: number[][];
 };
 
+export type DetectionTypeEnum = 'dynamic' | 'percent' | 'static';
+
 export type Detector = {
   conditionGroup: Record<string, unknown> | null;
   config: Record<string, unknown>;
@@ -2496,7 +2019,7 @@ export type Detector = {
   owner?: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   } | null;
   ruleId?: number | null;
@@ -2507,6 +2030,8 @@ export type DetectorCountResponse = {
   inactive: number;
   total: number;
 };
+
+export type DetectorTypeEnum = 'team' | 'user';
 
 export type DictObjectResponse = Record<string, unknown>;
 
@@ -2696,6 +2221,21 @@ export type DiscoverSavedQueryModel = {
   yAxis?: string[];
 };
 
+export type DisplayTypeEnum =
+  | 'agents_traces_table'
+  | 'area'
+  | 'bar'
+  | 'big_number'
+  | 'categorical_bar'
+  | 'details'
+  | 'heatmap'
+  | 'line'
+  | 'rage_and_dead_clicks'
+  | 'server_tree'
+  | 'table'
+  | 'text'
+  | 'wheel';
+
 export type DynamicSamplingBias = {
   id:
     | 'boostEnvironments'
@@ -2792,7 +2332,7 @@ export type EventIdLookupResponse = {
               type: string;
             }>;
             config: {
-              detectionType: 'dynamic' | 'percent' | 'static';
+              detectionType: DetectionTypeEnum;
               comparisonDelta?: number | null;
             };
             dataPacketSourceId: string;
@@ -2879,17 +2419,7 @@ export type EventIdLookupResponse = {
       query?: string;
     }>;
     title: string;
-    type:
-      | 'csp'
-      | 'default'
-      | 'error'
-      | 'expectct'
-      | 'expectstaple'
-      | 'feedback'
-      | 'generic'
-      | 'hpkp'
-      | 'nel'
-      | 'transaction';
+    type: EventIdLookupResponseTypeEnum;
     user: {
       data?: Record<string, unknown> | null;
       email?: string | null;
@@ -2932,6 +2462,20 @@ export type EventIdLookupResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+export type EventIdLookupResponseTypeEnum =
+  | 'csp'
+  | 'default'
+  | 'error'
+  | 'expectct'
+  | 'expectstaple'
+  | 'feedback'
+  | 'generic'
+  | 'hpkp'
+  | 'nel'
+  | 'transaction';
+
+export type EventTypeEnum = 'error' | 'occurrence';
 
 export type ExploreSavedFormulaResponse = {
   createdBy: {
@@ -3059,13 +2603,7 @@ export type ExploreSavedQuery = {
   query: Query[];
   agent?: string[] | null;
   crossEvents?: CrossEvent[] | null;
-  dataset?:
-    | 'ai_conversations'
-    | 'logs'
-    | 'metrics'
-    | 'replays'
-    | 'segment_spans'
-    | 'spans';
+  dataset?: DatasetEnum;
   end?: string | null;
   environment?: string[] | null;
   errorsOnly?: boolean | null;
@@ -3131,13 +2669,7 @@ export type ExploreSavedQueryListResponse = Array<{
       };
     }>;
   } | null;
-  dataset:
-    | 'ai_conversations'
-    | 'logs'
-    | 'metrics'
-    | 'replays'
-    | 'segment_spans'
-    | 'spans';
+  dataset: DatasetEnum;
   dateAdded: string;
   dateUpdated: string;
   expired: boolean;
@@ -3151,10 +2683,10 @@ export type ExploreSavedQueryListResponse = Array<{
   agent?: string[];
   crossEvents?: Array<{
     query: string;
-    type: 'logs' | 'metrics' | 'spans';
+    type: CrossEventTypeEnum;
     metric?: {
       name: string;
-      type: 'counter' | 'distribution' | 'gauge';
+      type: ExploreSavedQueryListResponseTypeEnum;
       unit?: string | null;
     } | null;
   }>;
@@ -3163,7 +2695,7 @@ export type ExploreSavedQueryListResponse = Array<{
   errorsOnly?: boolean;
   interval?: string;
   query?: Array<{
-    mode: 'aggregate' | 'samples';
+    mode: ModeEnum;
     aggregateField?: Array<{
       chartType?: number;
       groupBy?: string;
@@ -3176,7 +2708,7 @@ export type ExploreSavedQueryListResponse = Array<{
     groupby?: string[] | null;
     metric?: {
       name: string;
-      type: 'counter' | 'distribution' | 'gauge';
+      type: ExploreSavedQueryListResponseTypeEnum;
       unit?: string | null;
     } | null;
     orderby?: string | null;
@@ -3190,6 +2722,8 @@ export type ExploreSavedQueryListResponse = Array<{
   start?: string;
   statsPeriod?: string;
 }>;
+
+export type ExploreSavedQueryListResponseTypeEnum = 'counter' | 'distribution' | 'gauge';
 
 export type ExploreSavedQueryModel = {
   changedReason: {
@@ -3247,13 +2781,7 @@ export type ExploreSavedQueryModel = {
       };
     }>;
   } | null;
-  dataset:
-    | 'ai_conversations'
-    | 'logs'
-    | 'metrics'
-    | 'replays'
-    | 'segment_spans'
-    | 'spans';
+  dataset: DatasetEnum;
   dateAdded: string;
   dateUpdated: string;
   expired: boolean;
@@ -3267,10 +2795,10 @@ export type ExploreSavedQueryModel = {
   agent?: string[];
   crossEvents?: Array<{
     query: string;
-    type: 'logs' | 'metrics' | 'spans';
+    type: CrossEventTypeEnum;
     metric?: {
       name: string;
-      type: 'counter' | 'distribution' | 'gauge';
+      type: ExploreSavedQueryListResponseTypeEnum;
       unit?: string | null;
     } | null;
   }>;
@@ -3279,7 +2807,7 @@ export type ExploreSavedQueryModel = {
   errorsOnly?: boolean;
   interval?: string;
   query?: Array<{
-    mode: 'aggregate' | 'samples';
+    mode: ModeEnum;
     aggregateField?: Array<{
       chartType?: number;
       groupBy?: string;
@@ -3292,7 +2820,7 @@ export type ExploreSavedQueryModel = {
     groupby?: string[] | null;
     metric?: {
       name: string;
-      type: 'counter' | 'distribution' | 'gauge';
+      type: ExploreSavedQueryListResponseTypeEnum;
       unit?: string | null;
     } | null;
     orderby?: string | null;
@@ -3374,20 +2902,22 @@ export type ExternalIssueLinkResponse = {
 export type ExternalTeam = {
   external_name: string;
   integration_id: number;
-  provider:
-    | 'cursor_origin'
-    | 'custom_scm'
-    | 'github'
-    | 'github_enterprise'
-    | 'gitlab'
-    | 'jira_server'
-    | 'msteams'
-    | 'perforce'
-    | 'slack'
-    | 'slack_staging';
+  provider: ExternalTeamProviderEnum;
   team_id: number;
   external_id?: string | null;
 };
+
+export type ExternalTeamProviderEnum =
+  | 'cursor_origin'
+  | 'custom_scm'
+  | 'github'
+  | 'github_enterprise'
+  | 'gitlab'
+  | 'jira_server'
+  | 'msteams'
+  | 'perforce'
+  | 'slack'
+  | 'slack_staging';
 
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
@@ -3398,17 +2928,7 @@ export type ExternalUser = {
   external_name: string;
   id: number;
   integration_id: number;
-  provider:
-    | 'cursor_origin'
-    | 'custom_scm'
-    | 'github'
-    | 'github_enterprise'
-    | 'gitlab'
-    | 'jira_server'
-    | 'msteams'
-    | 'perforce'
-    | 'slack'
-    | 'slack_staging';
+  provider: ExternalTeamProviderEnum;
   user_id: number;
   external_id?: string | null;
 };
@@ -3422,6 +2942,24 @@ export type ExternalUser = {
 export type FavoriteUpdateValidator = {
   shouldFavorite: boolean;
 };
+
+export type FiletypesEnum =
+  | 'bcsymbolmap'
+  | 'breakpad'
+  | 'dartsymbolmap'
+  | 'elf_code'
+  | 'elf_debug'
+  | 'il2cpp'
+  | 'mach_code'
+  | 'mach_debug'
+  | 'pdb'
+  | 'pe'
+  | 'portablepdb'
+  | 'proguard'
+  | 'sourcebundle'
+  | 'uuidmap'
+  | 'wasm_code'
+  | 'wasm_debug';
 
 /**
  * Filter settings for the source. This is optional for all sources.
@@ -3457,40 +2995,32 @@ export type FavoriteUpdateValidator = {
  * ```
  */
 export type Filters = {
-  filetypes?: Array<
-    | 'bcsymbolmap'
-    | 'breakpad'
-    | 'dartsymbolmap'
-    | 'elf_code'
-    | 'elf_debug'
-    | 'il2cpp'
-    | 'mach_code'
-    | 'mach_debug'
-    | 'pdb'
-    | 'pe'
-    | 'portablepdb'
-    | 'proguard'
-    | 'sourcebundle'
-    | 'uuidmap'
-    | 'wasm_code'
-    | 'wasm_debug'
-  >;
+  filetypes?: FiletypesEnum[];
   path_patterns?: string[];
   requires_checksum?: boolean;
 };
 
+export type FormatEnum = 'json' | 'markdown' | 'xml';
+
 export type GetFlagLogResponse = {
   data: {
-    action: 'created' | 'deleted' | 'updated';
+    action: ActionEnum;
     createdAt: string;
     createdBy: string | null;
-    createdByType: 'email' | 'id' | 'name' | null;
+    createdByType: CreatedByTypeEnum | null;
     flag: string;
     id: number;
-    provider: 'flagpole' | 'generic' | 'launchdarkly' | 'statsig' | 'unleash' | null;
+    provider: GetFlagLogResponseProviderEnum | null;
     tags: Record<string, unknown>;
   };
 };
+
+export type GetFlagLogResponseProviderEnum =
+  | 'flagpole'
+  | 'generic'
+  | 'launchdarkly'
+  | 'statsig'
+  | 'unleash';
 
 export type GetProjectReplay = {
   data: {
@@ -3670,7 +3200,7 @@ export type GroupDetailsResponse = {
   assignedTo: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   } | null;
   culprit: string | null;
@@ -3681,14 +3211,14 @@ export type GroupDetailsResponse = {
   isSubscribed: boolean;
   issueCategory: string;
   issueType: string;
-  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
+  level: LevelEnum;
   logger: string | null;
   metadata: Record<string, unknown>;
   numComments: number;
   participants: Array<Record<string, unknown>>;
   permalink: string;
   platform: string | null;
-  priority: 'high' | 'low' | 'medium' | null;
+  priority: PriorityEnum | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -3702,13 +3232,7 @@ export type GroupDetailsResponse = {
   seerFixabilityScore: number | null;
   shareId: string | null;
   shortId: string | null;
-  status:
-    | 'ignored'
-    | 'pending_deletion'
-    | 'pending_merge'
-    | 'reprocessing'
-    | 'resolved'
-    | 'unresolved';
+  status: GroupDetailsResponseStatusEnum;
   statusDetails: {
     actor?: {
       avatarUrl: string;
@@ -3779,27 +3303,9 @@ export type GroupDetailsResponse = {
     disabled?: boolean;
     reason?: string;
   } | null;
-  substatus:
-    | 'archived_forever'
-    | 'archived_until_condition_met'
-    | 'archived_until_escalating'
-    | 'escalating'
-    | 'new'
-    | 'ongoing'
-    | 'regressed'
-    | null;
+  substatus: SubstatusEnum | null;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   userReportCount: number;
   count?: string;
   derivedData?: {
@@ -3848,6 +3354,14 @@ export type GroupDetailsResponse = {
   tags?: Array<Record<string, unknown>>;
   userCount?: number;
 };
+
+export type GroupDetailsResponseStatusEnum =
+  | 'ignored'
+  | 'pending_deletion'
+  | 'pending_merge'
+  | 'reprocessing'
+  | 'resolved'
+  | 'unresolved';
 
 export type GroupEventsResponseDict = Array<{
   crashFile: string | null;
@@ -3923,7 +3437,7 @@ export type GroupHashesResponse = Array<{
                   type: string;
                 }>;
                 config: {
-                  detectionType: 'dynamic' | 'percent' | 'static';
+                  detectionType: DetectionTypeEnum;
                   comparisonDelta?: number | null;
                 };
                 dataPacketSourceId: string;
@@ -4010,17 +3524,7 @@ export type GroupHashesResponse = Array<{
           query?: string;
         }>;
         title: string;
-        type:
-          | 'csp'
-          | 'default'
-          | 'error'
-          | 'expectct'
-          | 'expectstaple'
-          | 'feedback'
-          | 'generic'
-          | 'hpkp'
-          | 'nel'
-          | 'transaction';
+        type: EventIdLookupResponseTypeEnum;
         user: {
           data?: Record<string, unknown> | null;
           email?: string | null;
@@ -4194,7 +3698,7 @@ export type GroupPullRequestsResponse = {
       url?: string | null;
     };
     reviewStatus: 'approved' | 'changes_requested' | 'review_required' | null;
-    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
+    status: CommitSerializerResponseStatusEnum | null;
     title: string | null;
   }>;
 };
@@ -4206,7 +3710,7 @@ export type GroupSearchViewPostValidator = {
   query: string;
   timeFilters: GroupSearchViewTimeFilters;
   id?: string;
-  querySort?: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
+  querySort?: QuerySortEnum;
   starred?: boolean;
 };
 
@@ -4225,7 +3729,7 @@ export type GroupUpdateResponse = {
   assignedTo: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   } | null;
   culprit: string | null;
@@ -4236,13 +3740,13 @@ export type GroupUpdateResponse = {
   isSubscribed: boolean;
   issueCategory: string;
   issueType: string;
-  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
+  level: LevelEnum;
   logger: string | null;
   metadata: Record<string, unknown>;
   numComments: number;
   permalink: string;
   platform: string | null;
-  priority: 'high' | 'low' | 'medium' | null;
+  priority: PriorityEnum | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -4255,13 +3759,7 @@ export type GroupUpdateResponse = {
   seerFixabilityScore: number | null;
   shareId: string | null;
   shortId: string | null;
-  status:
-    | 'ignored'
-    | 'pending_deletion'
-    | 'pending_merge'
-    | 'reprocessing'
-    | 'resolved'
-    | 'unresolved';
+  status: GroupDetailsResponseStatusEnum;
   statusDetails: {
     actor?: {
       avatarUrl: string;
@@ -4332,27 +3830,9 @@ export type GroupUpdateResponse = {
     disabled?: boolean;
     reason?: string;
   } | null;
-  substatus:
-    | 'archived_forever'
-    | 'archived_until_condition_met'
-    | 'archived_until_escalating'
-    | 'escalating'
-    | 'new'
-    | 'ongoing'
-    | 'regressed'
-    | null;
+  substatus: SubstatusEnum | null;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   count?: string;
   derivedData?: {
     blocker: string;
@@ -4385,19 +3865,11 @@ export type GroupValidator = {
   isPublic: boolean;
   isSubscribed: boolean;
   merge: boolean;
-  priority: 'high' | 'low' | 'medium';
+  priority: PriorityEnum;
   snoozeDuration: number | null;
   status: 'ignored' | 'muted' | 'resolved' | 'resolvedInNextRelease' | 'unresolved';
   statusDetails: StatusDetailsValidator;
-  substatus:
-    | 'archived_forever'
-    | 'archived_until_condition_met'
-    | 'archived_until_escalating'
-    | 'escalating'
-    | 'new'
-    | 'ongoing'
-    | 'regressed'
-    | null;
+  substatus: SubstatusEnum | null;
 };
 
 export type InCommitValidator = {
@@ -4712,48 +4184,23 @@ export type InvestigationActionRequestApplyResponse = {
           fields: string[];
         }
       | {
-          provider: 'datadog' | 'gcp';
+          provider: InvestigationActionRequestApplyResponseProviderEnum;
         }
       | null;
     canApply: boolean;
-    cannotApplyReason:
-      | 'detector_not_found'
-      | 'dynamic_detector'
-      | 'investigation_archived'
-      | 'no_access'
-      | 'not_suggested'
-      | 'not_target_detector'
-      | 'permission_denied'
-      | 'unsupported_action'
-      | null;
+    cannotApplyReason: CannotApplyReasonEnum | null;
     dateApplied: string | null;
     dateCreated: string;
     error: {
-      code:
-        | 'action_changed'
-        | 'already_applied'
-        | 'not_retryable'
-        | 'not_stale'
-        | 'stale'
-        | 'validation_failed'
-        | 'withdrawn';
+      code: CodeEnum;
       current: Record<string, number | string | null>;
       messages: string[];
     } | null;
     followUp: {
-      reason:
-        | 'action_requests_report_changed'
-        | 'idempotency_conflict'
-        | 'invalid_command_target'
-        | 'provider_already_used'
-        | 'provider_not_connected'
-        | 'run_cancelled'
-        | 'run_failed'
-        | 'workflow_version_conflict'
-        | null;
-      rerun: 'held' | 'skipped' | 'started' | null;
+      reason: InvestigationActionRequestApplyResponseReasonEnum | null;
+      rerun: RerunEnum | null;
       retryable: boolean;
-      status: 'accepted' | 'acknowledged' | 'dispatched' | 'failed';
+      status: InvestigationActionRequestApplyResponseStatusEnum;
     } | null;
     id: string;
     impact: string | null;
@@ -4766,6 +4213,24 @@ export type InvestigationActionRequestApplyResponse = {
     title: string;
   };
 };
+
+export type InvestigationActionRequestApplyResponseProviderEnum = 'datadog' | 'gcp';
+
+export type InvestigationActionRequestApplyResponseReasonEnum =
+  | 'action_requests_report_changed'
+  | 'idempotency_conflict'
+  | 'invalid_command_target'
+  | 'provider_already_used'
+  | 'provider_not_connected'
+  | 'run_cancelled'
+  | 'run_failed'
+  | 'workflow_version_conflict';
+
+export type InvestigationActionRequestApplyResponseStatusEnum =
+  | 'accepted'
+  | 'acknowledged'
+  | 'dispatched'
+  | 'failed';
 
 export type InvestigationActionRequestRecheckResponse = {
   actionRequest: {
@@ -4832,48 +4297,23 @@ export type InvestigationActionRequestRecheckResponse = {
           fields: string[];
         }
       | {
-          provider: 'datadog' | 'gcp';
+          provider: InvestigationActionRequestApplyResponseProviderEnum;
         }
       | null;
     canApply: boolean;
-    cannotApplyReason:
-      | 'detector_not_found'
-      | 'dynamic_detector'
-      | 'investigation_archived'
-      | 'no_access'
-      | 'not_suggested'
-      | 'not_target_detector'
-      | 'permission_denied'
-      | 'unsupported_action'
-      | null;
+    cannotApplyReason: CannotApplyReasonEnum | null;
     dateApplied: string | null;
     dateCreated: string;
     error: {
-      code:
-        | 'action_changed'
-        | 'already_applied'
-        | 'not_retryable'
-        | 'not_stale'
-        | 'stale'
-        | 'validation_failed'
-        | 'withdrawn';
+      code: CodeEnum;
       current: Record<string, number | string | null>;
       messages: string[];
     } | null;
     followUp: {
-      reason:
-        | 'action_requests_report_changed'
-        | 'idempotency_conflict'
-        | 'invalid_command_target'
-        | 'provider_already_used'
-        | 'provider_not_connected'
-        | 'run_cancelled'
-        | 'run_failed'
-        | 'workflow_version_conflict'
-        | null;
-      rerun: 'held' | 'skipped' | 'started' | null;
+      reason: InvestigationActionRequestApplyResponseReasonEnum | null;
+      rerun: RerunEnum | null;
       retryable: boolean;
-      status: 'accepted' | 'acknowledged' | 'dispatched' | 'failed';
+      status: InvestigationActionRequestApplyResponseStatusEnum;
     } | null;
     id: string;
     impact: string | null;
@@ -4952,48 +4392,23 @@ export type InvestigationActionRequestRetryFollowUpResponse = {
           fields: string[];
         }
       | {
-          provider: 'datadog' | 'gcp';
+          provider: InvestigationActionRequestApplyResponseProviderEnum;
         }
       | null;
     canApply: boolean;
-    cannotApplyReason:
-      | 'detector_not_found'
-      | 'dynamic_detector'
-      | 'investigation_archived'
-      | 'no_access'
-      | 'not_suggested'
-      | 'not_target_detector'
-      | 'permission_denied'
-      | 'unsupported_action'
-      | null;
+    cannotApplyReason: CannotApplyReasonEnum | null;
     dateApplied: string | null;
     dateCreated: string;
     error: {
-      code:
-        | 'action_changed'
-        | 'already_applied'
-        | 'not_retryable'
-        | 'not_stale'
-        | 'stale'
-        | 'validation_failed'
-        | 'withdrawn';
+      code: CodeEnum;
       current: Record<string, number | string | null>;
       messages: string[];
     } | null;
     followUp: {
-      reason:
-        | 'action_requests_report_changed'
-        | 'idempotency_conflict'
-        | 'invalid_command_target'
-        | 'provider_already_used'
-        | 'provider_not_connected'
-        | 'run_cancelled'
-        | 'run_failed'
-        | 'workflow_version_conflict'
-        | null;
-      rerun: 'held' | 'skipped' | 'started' | null;
+      reason: InvestigationActionRequestApplyResponseReasonEnum | null;
+      rerun: RerunEnum | null;
       retryable: boolean;
-      status: 'accepted' | 'acknowledged' | 'dispatched' | 'failed';
+      status: InvestigationActionRequestApplyResponseStatusEnum;
     } | null;
     id: string;
     impact: string | null;
@@ -5243,48 +4658,23 @@ export type InvestigationDetailsResponse = {
           fields: string[];
         }
       | {
-          provider: 'datadog' | 'gcp';
+          provider: InvestigationActionRequestApplyResponseProviderEnum;
         }
       | null;
     canApply: boolean;
-    cannotApplyReason:
-      | 'detector_not_found'
-      | 'dynamic_detector'
-      | 'investigation_archived'
-      | 'no_access'
-      | 'not_suggested'
-      | 'not_target_detector'
-      | 'permission_denied'
-      | 'unsupported_action'
-      | null;
+    cannotApplyReason: CannotApplyReasonEnum | null;
     dateApplied: string | null;
     dateCreated: string;
     error: {
-      code:
-        | 'action_changed'
-        | 'already_applied'
-        | 'not_retryable'
-        | 'not_stale'
-        | 'stale'
-        | 'validation_failed'
-        | 'withdrawn';
+      code: CodeEnum;
       current: Record<string, number | string | null>;
       messages: string[];
     } | null;
     followUp: {
-      reason:
-        | 'action_requests_report_changed'
-        | 'idempotency_conflict'
-        | 'invalid_command_target'
-        | 'provider_already_used'
-        | 'provider_not_connected'
-        | 'run_cancelled'
-        | 'run_failed'
-        | 'workflow_version_conflict'
-        | null;
-      rerun: 'held' | 'skipped' | 'started' | null;
+      reason: InvestigationActionRequestApplyResponseReasonEnum | null;
+      rerun: RerunEnum | null;
       retryable: boolean;
-      status: 'accepted' | 'acknowledged' | 'dispatched' | 'failed';
+      status: InvestigationActionRequestApplyResponseStatusEnum;
     } | null;
     id: string;
     impact: string | null;
@@ -5328,7 +4718,7 @@ export type InvestigationDetailsResponse = {
   createdBy: string | null;
   creator: {
     id: string;
-    type: 'agent' | 'integration' | 'service_account' | 'system' | 'unknown' | 'user';
+    type: InvestigationDetailsResponseTypeEnum;
   } | null;
   dateCreated: string;
   dateUpdated: string;
@@ -5376,6 +4766,14 @@ export type InvestigationDetailsResponse = {
   };
   version: number;
 };
+
+export type InvestigationDetailsResponseTypeEnum =
+  | 'agent'
+  | 'integration'
+  | 'service_account'
+  | 'system'
+  | 'unknown'
+  | 'user';
 
 /** Execution accepted for asynchronous processing; poll its detail endpoint. */
 export type InvestigationExecutionResponse = {
@@ -5546,7 +4944,7 @@ export type IssueEventDetailsResponse = {
             type: string;
           }>;
           config: {
-            detectionType: 'dynamic' | 'percent' | 'static';
+            detectionType: DetectionTypeEnum;
             comparisonDelta?: number | null;
           };
           dataPacketSourceId: string;
@@ -5664,17 +5062,7 @@ export type IssueEventDetailsResponse = {
     query?: string;
   }>;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   user: {
     data?: Record<string, unknown> | null;
     email?: string | null;
@@ -5721,7 +5109,7 @@ export type IssueEventDetailsResponse = {
   fingerprints?: string[];
   formatted?: {
     content: string;
-    format: 'json' | 'markdown' | 'xml';
+    format: FormatEnum;
   };
   groupingConfig?: {
     enhancements: string;
@@ -5792,7 +5180,7 @@ export type LatestBaseSnapshotResponse = {
   head_artifact_id?: string;
   image_count?: number;
   images?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -5915,17 +5303,20 @@ export type LatestInstallableBuildResponse = {
  * ```
  */
 export type Layout = {
-  casing: 'default' | 'lowercase' | 'uppercase';
-  type:
-    | 'debuginfod'
-    | 'native'
-    | 'nnsymstore'
-    | 'slashsymbols'
-    | 'ssqp'
-    | 'symstore'
-    | 'symstore_index2'
-    | 'unified';
+  casing: CasingEnum;
+  type: AddProjectSymbolSourceResponseTypeEnum;
 };
+
+export type LegendTypeEnum = 'breakdown' | 'default';
+
+export type LevelEnum =
+  | 'debug'
+  | 'error'
+  | 'fatal'
+  | 'info'
+  | 'sample'
+  | 'unknown'
+  | 'warning';
 
 export type LinkExternalIssueRequest = {
   externalIssue: string;
@@ -5942,6 +5333,97 @@ export type LinkedDashboard = {
   dashboard_id: string;
   field: string;
 };
+
+export type ListAProjectsCustomInboundFiltersResponse = CustomInboundFilter[];
+
+export type ListAProjectsIssuesResponse = Array<{
+  annotations: string[];
+  assignedTo: Record<string, unknown> | null;
+  count: string;
+  culprit: string;
+  firstSeen: string;
+  hasSeen: boolean;
+  id: string;
+  isBookmarked: boolean;
+  isPublic: boolean;
+  isSubscribed: boolean;
+  lastSeen: string;
+  level: string;
+  logger: string | null;
+  metadata:
+    | {
+        filename: string;
+        type: string;
+        value: string;
+      }
+    | {
+        title: string;
+      };
+  numComments: number;
+  permalink: string;
+  project: {
+    id?: string;
+    name?: string;
+    slug?: string;
+  };
+  shareId: string | null;
+  shortId: string;
+  stats: {
+    '24h'?: number[][];
+  };
+  status: BulkMutateAListOfIssuesResponseStatusEnum;
+  statusDetails: Record<string, unknown>;
+  subscriptionDetails: Record<string, unknown> | null;
+  title: string;
+  type: string;
+  userCount: number;
+}>;
+
+export type ListAProjectsServiceHooksResponse = Array<{
+  dateCreated: string;
+  events: string[];
+  id: string;
+  secret: string;
+  status: string;
+  url: string;
+}>;
+
+export type ListAProjectsUserFeedbackResponse = Array<{
+  comments: string;
+  dateCreated: string;
+  email: string;
+  event: {
+    eventID?: string;
+    id?: string | null;
+  };
+  eventID: string;
+  id: string;
+  issue: Record<string, unknown> | null;
+  name: string;
+  user: Record<string, unknown> | null;
+}>;
+
+export type ListATagsValuesRelatedToAnIssueResponse = Array<{
+  key: string;
+  value: string;
+}>;
+
+export type ListATagsValuesResponse = Array<{
+  name: string;
+}>;
+
+export type ListAnOrganizationsIntegrationPlatformInstallationsResponse = Array<{
+  app: {
+    sentryAppId: number;
+    slug: string;
+    uuid: string;
+  };
+  organization: {
+    slug: string;
+  };
+  status: string;
+  uuid: string;
+}>;
 
 export type ListAvailableActionResponse = Array<{
   configSchema: Record<string, unknown>;
@@ -6060,7 +5542,7 @@ export type ListDetectorSerializerResponse = Array<{
   owner?: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   } | null;
   ruleId?: number | null;
@@ -6203,13 +5685,13 @@ export type ListExploreSavedFormulaResponse = Array<{
 
 export type ListFlagLogsResponse = {
   data: Array<{
-    action: 'created' | 'deleted' | 'updated';
+    action: ActionEnum;
     createdAt: string;
     createdBy: string | null;
-    createdByType: 'email' | 'id' | 'name' | null;
+    createdByType: CreatedByTypeEnum | null;
     flag: string;
     id: number;
-    provider: 'flagpole' | 'generic' | 'launchdarkly' | 'statsig' | 'unleash' | null;
+    provider: GetFlagLogResponseProviderEnum | null;
     tags: Record<string, unknown>;
   }>;
 };
@@ -6941,7 +6423,7 @@ export type ListOrganizationReleaseCommitsResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
+    status: CommitSerializerResponseStatusEnum | null;
     title: string | null;
   } | null;
   releases: Array<{
@@ -7025,6 +6507,8 @@ export type ListOrganizationReleaseCommitsResponse = Array<{
     url?: string | null;
   };
 }>;
+
+export type ListOrganizationReleaseDeploysResponse = DeployResponse[];
 
 export type ListOrganizationReleasesResponse = Array<{
   authors: Array<
@@ -7195,7 +6679,7 @@ export type ListOrganizationTraceMetricsResponse = Array<{
   count: number;
   lastSeen: number | null;
   name: string;
-  type: 'counter' | 'distribution' | 'gauge';
+  type: ExploreSavedQueryListResponseTypeEnum;
   unit: string | null;
   context?: {
     brief?: string;
@@ -7340,7 +6824,7 @@ export type ListProjectReleaseCommitsResponse = Array<{
       status?: string;
       url?: string | null;
     };
-    status: 'closed' | 'draft' | 'merged' | 'open' | 'unknown' | null;
+    status: CommitSerializerResponseStatusEnum | null;
     title: string | null;
   } | null;
   releases: Array<{
@@ -7563,6 +7047,114 @@ export type ListProjectReleasesResponse = Array<{
   url?: string | null;
   userAgent?: string | null;
 }>;
+
+export type ListProjectSymbolSourcesResponse = Array<
+  | {
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      type: 'http';
+      url: string;
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      password?: {
+        'hidden-secret'?: true;
+      };
+      platforms?: string[];
+      username?: string;
+    }
+  | {
+      access_key: string;
+      bucket: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      region: string;
+      secret_key: {
+        'hidden-secret'?: true;
+      };
+      type: 's3';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      bucket: string;
+      client_email: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      private_key: {
+        'hidden-secret'?: true;
+      };
+      type: 'gcs';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      account: string;
+      client_id: string;
+      client_secret: {
+        'hidden-secret'?: true;
+      };
+      container: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      tenant_id: string;
+      type: 'azure';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      appId: string;
+      appName: string;
+      appconnectIssuer: string;
+      appconnectKey: string;
+      appconnectPrivateKey: string;
+      bundleId: string;
+      id: string;
+      name: string;
+      type: 'appStoreConnect';
+    }
+>;
 
 export type ListProjectTagKeys = Array<{
   canDelete: boolean;
@@ -7844,7 +7436,7 @@ export type ListTraceItemAttributesResponse = Array<{
     source_type: 'sentry' | 'user';
     is_transformed_alias?: boolean;
   };
-  attributeType: 'array' | 'boolean' | 'number' | 'string';
+  attributeType: AttributeTypeEnum;
   key: string;
   name: string;
   context?: {
@@ -8009,7 +7601,7 @@ export type ListanOrganizationsInvestigationsResponse = Array<{
   createdBy: string | null;
   creator: {
     id: string;
-    type: 'agent' | 'integration' | 'service_account' | 'system' | 'unknown' | 'user';
+    type: InvestigationDetailsResponseTypeEnum;
   } | null;
   dateCreated: string;
   dateUpdated: string;
@@ -8032,6 +7624,8 @@ export type ListanOrganizationsInvestigationsResponse = Array<{
   version: number;
 }>;
 
+export type LogicTypeEnum = 'all' | 'any' | 'any-short' | 'none';
+
 /** Free-form investigation context supplied by the requesting user. */
 export type ManualSourceSchema = {
   type: 'manual';
@@ -8047,7 +7641,7 @@ export type MappingItem = {
 
 export type Metric = {
   name: string;
-  type: 'counter' | 'distribution' | 'gauge';
+  type: ExploreSavedQueryListResponseTypeEnum;
   unit?: string | null;
 };
 
@@ -8062,6 +7656,8 @@ export type MetricOpenPeriodSourceSchema = {
   type: 'metric_open_period';
 };
 
+export type ModeEnum = 'aggregate' | 'samples';
+
 export type Monitor = {
   config: {
     alert_rule_id: number | null;
@@ -8070,7 +7666,7 @@ export type Monitor = {
     max_runtime: number | null;
     recovery_threshold: number | null;
     schedule: string | number[];
-    schedule_type: 'crontab' | 'interval';
+    schedule_type: ScheduleTypeEnum;
     timezone: string | null;
   };
   dateCreated: string;
@@ -8098,7 +7694,7 @@ export type Monitor = {
   owner: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   };
   project: {
@@ -8164,7 +7760,7 @@ export type MonitorBulkEditResponse = {
       max_runtime: number | null;
       recovery_threshold: number | null;
       schedule: string | number[];
-      schedule_type: 'crontab' | 'interval';
+      schedule_type: ScheduleTypeEnum;
       timezone: string | null;
     };
     dateCreated: string;
@@ -8192,7 +7788,7 @@ export type MonitorBulkEditResponse = {
     owner: {
       id: string;
       name: string;
-      type: 'team' | 'user';
+      type: DetectorTypeEnum;
       email?: string;
     };
     project: {
@@ -8256,7 +7852,7 @@ export type MonitorBulkEditResponse = {
       max_runtime: number | null;
       recovery_threshold: number | null;
       schedule: string | number[];
-      schedule_type: 'crontab' | 'interval';
+      schedule_type: ScheduleTypeEnum;
       timezone: string | null;
     };
     dateCreated: string;
@@ -8284,7 +7880,7 @@ export type MonitorBulkEditResponse = {
     owner: {
       id: string;
       name: string;
-      type: 'team' | 'user';
+      type: DetectorTypeEnum;
       email?: string;
     };
     project: {
@@ -8356,8 +7952,10 @@ export type MonitorBulkEditValidator = {
   is_muted?: boolean;
   owner?: string | null;
   slug?: string;
-  status?: 'active' | 'disabled';
+  status?: MonitorBulkEditValidatorStatusEnum;
 };
+
+export type MonitorBulkEditValidatorStatusEnum = 'active' | 'disabled';
 
 export type MonitorList = Array<{
   config: {
@@ -8367,7 +7965,7 @@ export type MonitorList = Array<{
     max_runtime: number | null;
     recovery_threshold: number | null;
     schedule: string | number[];
-    schedule_type: 'crontab' | 'interval';
+    schedule_type: ScheduleTypeEnum;
     timezone: string | null;
   };
   dateCreated: string;
@@ -8395,7 +7993,7 @@ export type MonitorList = Array<{
   owner: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   };
   project: {
@@ -8465,7 +8063,7 @@ export type MonitorValidator = {
   is_muted?: boolean;
   owner?: string | null;
   slug?: string;
-  status?: 'active' | 'disabled';
+  status?: MonitorBulkEditValidatorStatusEnum;
 };
 
 export type Note = {
@@ -8508,7 +8106,7 @@ export type OAuthAuthorizeConsent =
  * Errors are output in camel case.
  */
 export type OAuthAuthorizeDecision = {
-  op: 'approve' | 'deny';
+  op: OpEnum;
   transaction_id: string;
   selected_organization_id?: string | null;
 };
@@ -8560,7 +8158,7 @@ export type OAuthDeviceContext =
  * Errors are output in camel case.
  */
 export type OAuthDeviceDecision = {
-  op: 'approve' | 'deny';
+  op: OpEnum;
   user_code: string;
   selected_organization_id?: string | null;
 };
@@ -8596,6 +8194,8 @@ export type OAuthRequestContext =
       redirectUrl: string;
       stage: 'redirect';
     };
+
+export type OpEnum = 'approve' | 'deny';
 
 export type OrgReleaseResponse = {
   authors: Array<
@@ -8720,6 +8320,8 @@ export type OrgReleaseResponse = {
   userAgent?: string | null;
 };
 
+export type OrgRoleEnum = 'admin' | 'billing' | 'manager' | 'member' | 'owner';
+
 export type OrganizationCodeMappingResponse = {
   automaticallyGenerated: boolean;
   defaultBranch: string | null;
@@ -8774,14 +8376,14 @@ export type OrganizationDetailsPut = {
   allowJoinRequests?: boolean;
   allowSharedIssues?: boolean;
   apdexThreshold?: number;
-  attachmentsRole?: 'admin' | 'manager' | 'member' | 'owner';
+  attachmentsRole?: DebugFilesRoleEnum;
   avatar?: string;
   avatarType?: 'letter_avatar' | 'upload';
   cancelDeletion?: boolean;
   dataScrubber?: boolean;
   dataScrubberDefaults?: boolean;
-  debugFilesRole?: 'admin' | 'manager' | 'member' | 'owner';
-  defaultRole?: 'admin' | 'manager' | 'member' | 'owner';
+  debugFilesRole?: DebugFilesRoleEnum;
+  defaultRole?: DebugFilesRoleEnum;
   enhancedPrivacy?: boolean;
   eventsMemberAdmin?: boolean;
   hasGranularReplayPermissions?: boolean;
@@ -8842,7 +8444,7 @@ export type OrganizationEventDetailsResponse = {
             type: string;
           }>;
           config: {
-            detectionType: 'dynamic' | 'percent' | 'static';
+            detectionType: DetectionTypeEnum;
             comparisonDelta?: number | null;
           };
           dataPacketSourceId: string;
@@ -8958,17 +8560,7 @@ export type OrganizationEventDetailsResponse = {
     query?: string;
   }>;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   user: {
     data?: Record<string, unknown> | null;
     email?: string | null;
@@ -9114,7 +8706,7 @@ export type OrganizationEventsTimeseriesResponse = {
       interval: number;
       valueType: string;
       valueUnit: string | null;
-      dataScanned?: 'full' | 'partial';
+      dataScanned?: DataScannedEnum;
       isOther?: boolean;
       order?: number;
     };
@@ -9125,7 +8717,7 @@ export type OrganizationEventsTimeseriesResponse = {
       comparisonFilled?: boolean;
       comparisonSmoothed?: boolean;
       comparisonValue?: number | null;
-      confidence?: 'high' | 'low' | null;
+      confidence?: ConfidenceEnum | null;
       filled?: boolean;
       incompleteReason?: string;
       sampleCount?: number;
@@ -9158,7 +8750,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   assignedTo: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   } | null;
   count: string;
@@ -9204,7 +8796,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   issueType: string;
   lastSeen: string | null;
   latestEventHasAttachments: boolean;
-  level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
+  level: LevelEnum;
   lifetime: Record<string, unknown>;
   logger: string | null;
   matchingEventEnvironment: string | null;
@@ -9218,7 +8810,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   };
   permalink: string;
   platform: string | null;
-  priority: 'high' | 'low' | 'medium' | null;
+  priority: PriorityEnum | null;
   priorityLockedAt: string | null;
   project: {
     id: string;
@@ -9234,13 +8826,7 @@ export type OrganizationGroupIndexGetResponse = Array<{
   shareId: string | null;
   shortId: string | null;
   stats: Record<string, unknown>;
-  status:
-    | 'ignored'
-    | 'pending_deletion'
-    | 'pending_merge'
-    | 'reprocessing'
-    | 'resolved'
-    | 'unresolved';
+  status: GroupDetailsResponseStatusEnum;
   statusDetails: {
     actor?: {
       avatarUrl: string;
@@ -9311,27 +8897,9 @@ export type OrganizationGroupIndexGetResponse = Array<{
     disabled?: boolean;
     reason?: string;
   } | null;
-  substatus:
-    | 'archived_forever'
-    | 'archived_until_condition_met'
-    | 'archived_until_escalating'
-    | 'escalating'
-    | 'new'
-    | 'ongoing'
-    | 'regressed'
-    | null;
+  substatus: SubstatusEnum | null;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   userCount: number;
 }>;
 
@@ -9339,7 +8907,7 @@ export type OrganizationGroupIndexPutResponse = {
   assignedTo?: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   };
   discard?: boolean;
@@ -9431,7 +8999,7 @@ export type OrganizationIssueTimeSeries = {
       interval: number;
       valueType: string;
       valueUnit: string | null;
-      dataScanned?: 'full' | 'partial';
+      dataScanned?: DataScannedEnum;
       isOther?: boolean;
       order?: number;
     };
@@ -9442,7 +9010,7 @@ export type OrganizationIssueTimeSeries = {
       comparisonFilled?: boolean;
       comparisonSmoothed?: boolean;
       comparisonValue?: number | null;
-      confidence?: 'high' | 'low' | null;
+      confidence?: ConfidenceEnum | null;
       filled?: boolean;
       incompleteReason?: string;
       sampleCount?: number;
@@ -9526,7 +9094,7 @@ export type OrganizationIssueView = {
   name: string;
   projects: number[];
   query: string;
-  querySort: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
+  querySort: QuerySortEnum;
   starred: boolean;
   stars: number;
   timeFilters: {
@@ -9596,7 +9164,7 @@ export type OrganizationIssueViewList = Array<{
   name: string;
   projects: number[];
   query: string;
-  querySort: 'date' | 'freq' | 'inbox' | 'new' | 'recommended' | 'trends' | 'user';
+  querySort: QuerySortEnum;
   starred: boolean;
   stars: number;
   timeFilters: {
@@ -9690,10 +9258,10 @@ export type OrganizationMember = {
 
 export type OrganizationMemberRequest = {
   email: string;
-  orgRole?: 'admin' | 'billing' | 'manager' | 'member' | 'owner';
+  orgRole?: OrgRoleEnum;
   regenerate?: boolean;
   reinvite?: boolean;
-  role?: 'admin' | 'manager' | 'member' | 'owner';
+  role?: DebugFilesRoleEnum;
   sendInvite?: boolean;
   teamRoles?: Array<Record<string, unknown>> | null;
   teams?: unknown[];
@@ -9725,12 +9293,12 @@ export type OrganizationMemberSCIM = {
 
 export type OrganizationMemberTeam = {
   isActive: boolean;
-  teamRole?: 'admin' | 'contributor';
+  teamRole?: TeamRoleEnum;
 };
 
 export type OrganizationMemberTeamDetails = {
   isActive: boolean;
-  teamRole: 'admin' | 'contributor';
+  teamRole: TeamRoleEnum;
 };
 
 export type OrganizationMemberWithRoles = {
@@ -10076,7 +9644,7 @@ export type OrganizationSummary = {
 };
 
 export type OrganizationTraceItemAttributeContextPut = {
-  attributeType: 'array' | 'boolean' | 'number' | 'string';
+  attributeType: AttributeTypeEnum;
   brief: string;
   dataset: 'logs' | 'preprod' | 'processing_errors' | 'spans' | 'tracemetrics';
   additionalContext?: string | null;
@@ -10090,7 +9658,7 @@ export type OrganizationTraceItemAttributeValidateBody = {
 export type OrganizationTraceItemMetricContextPut = {
   brief: string;
   additionalContext?: string | null;
-  metricType?: 'counter' | 'distribution' | 'gauge';
+  metricType?: ExploreSavedQueryListResponseTypeEnum;
 };
 
 export type OrganizationTraceMetaResponse = {
@@ -10121,7 +9689,7 @@ export type OrganizationTraceResponse = Array<
         culprit: string | null;
         description: string;
         event_id: string;
-        event_type: 'error' | 'occurrence';
+        event_type: EventTypeEnum;
         issue_id: number;
         issue_type: number;
         level: string;
@@ -10142,7 +9710,7 @@ export type OrganizationTraceResponse = Array<
         culprit: string | null;
         description: string;
         event_id: string;
-        event_type: 'error' | 'occurrence';
+        event_type: EventTypeEnum;
         issue_id: number;
         issue_type: number;
         level: string;
@@ -10169,7 +9737,7 @@ export type OrganizationTraceResponse = Array<
       culprit: string | null;
       description: string;
       event_id: string;
-      event_type: 'error' | 'occurrence';
+      event_type: EventTypeEnum;
       issue_id: number;
       issue_type: number;
       level: string;
@@ -10196,7 +9764,7 @@ export type OrganizationTraceResponse = Array<
         culprit: string | null;
         description: string;
         event_id: string;
-        event_type: 'error' | 'occurrence';
+        event_type: EventTypeEnum;
         issue_id: number;
         issue_type: number;
         level: string;
@@ -10214,7 +9782,7 @@ export type OrganizationTraceResponse = Array<
         culprit: string | null;
         description: string;
         event_id: string;
-        event_type: 'error' | 'occurrence';
+        event_type: EventTypeEnum;
         issue_id: number;
         issue_type: number;
         level: string;
@@ -10573,6 +10141,8 @@ export type PlatformExternalIssueResponse = {
   webUrl: string;
 };
 
+export type PriorityEnum = 'high' | 'low' | 'medium';
+
 export type Project = {
   access: string[];
   avatar: {
@@ -10635,7 +10205,7 @@ export type ProjectAdmin = {
   copy_from_project?: number;
   dataScrubber?: boolean;
   dataScrubberDefaults?: boolean;
-  debugFilesRole?: 'admin' | 'manager' | 'member' | 'owner' | null;
+  debugFilesRole?: DebugFilesRoleEnum | null;
   defaultEnvironment?: string | null;
   dynamicSamplingBiases?: DynamicSamplingBias[];
   enableAutoReleaseCreation?: boolean;
@@ -10847,7 +10417,7 @@ export type ProjectEventDetailsResponse = {
             type: string;
           }>;
           config: {
-            detectionType: 'dynamic' | 'percent' | 'static';
+            detectionType: DetectionTypeEnum;
             comparisonDelta?: number | null;
           };
           dataPacketSourceId: string;
@@ -10965,17 +10535,7 @@ export type ProjectEventDetailsResponse = {
     query?: string;
   }>;
   title: string;
-  type:
-    | 'csp'
-    | 'default'
-    | 'error'
-    | 'expectct'
-    | 'expectstaple'
-    | 'feedback'
-    | 'generic'
-    | 'hpkp'
-    | 'nel'
-    | 'transaction';
+  type: EventIdLookupResponseTypeEnum;
   user: {
     data?: Record<string, unknown> | null;
     email?: string | null;
@@ -11573,7 +11133,7 @@ export type PullRequestFilesResponse = {
 };
 
 export type Query = {
-  mode: 'aggregate' | 'samples';
+  mode: ModeEnum;
   aggregateField?: AggregateField[] | null;
   aggregateOrderby?: string | null;
   caseInsensitive?: boolean;
@@ -11584,6 +11144,15 @@ export type Query = {
   query?: string | null;
   visualize?: Visualize[] | null;
 };
+
+export type QuerySortEnum =
+  | 'date'
+  | 'freq'
+  | 'inbox'
+  | 'new'
+  | 'recommended'
+  | 'trends'
+  | 'user';
 
 export type RankedAttributesResponse = {
   rankedAttributes: Array<{
@@ -11626,610 +11195,20 @@ export type RateLimit = {
   window?: number | null;
 };
 
+export type RegisterANewServiceHookResponse = {
+  dateCreated: string;
+  events: string[];
+  id: string;
+  secret: string;
+  status: string;
+  url: string;
+};
+
 export type RegistrationValidator = {
   email: string;
   name: string;
   password: string;
-  timezone?:
-    | ''
-    | 'Africa/Abidjan'
-    | 'Africa/Accra'
-    | 'Africa/Addis_Ababa'
-    | 'Africa/Algiers'
-    | 'Africa/Asmara'
-    | 'Africa/Asmera'
-    | 'Africa/Bamako'
-    | 'Africa/Bangui'
-    | 'Africa/Banjul'
-    | 'Africa/Bissau'
-    | 'Africa/Blantyre'
-    | 'Africa/Brazzaville'
-    | 'Africa/Bujumbura'
-    | 'Africa/Cairo'
-    | 'Africa/Casablanca'
-    | 'Africa/Ceuta'
-    | 'Africa/Conakry'
-    | 'Africa/Dakar'
-    | 'Africa/Dar_es_Salaam'
-    | 'Africa/Djibouti'
-    | 'Africa/Douala'
-    | 'Africa/El_Aaiun'
-    | 'Africa/Freetown'
-    | 'Africa/Gaborone'
-    | 'Africa/Harare'
-    | 'Africa/Johannesburg'
-    | 'Africa/Juba'
-    | 'Africa/Kampala'
-    | 'Africa/Khartoum'
-    | 'Africa/Kigali'
-    | 'Africa/Kinshasa'
-    | 'Africa/Lagos'
-    | 'Africa/Libreville'
-    | 'Africa/Lome'
-    | 'Africa/Luanda'
-    | 'Africa/Lubumbashi'
-    | 'Africa/Lusaka'
-    | 'Africa/Malabo'
-    | 'Africa/Maputo'
-    | 'Africa/Maseru'
-    | 'Africa/Mbabane'
-    | 'Africa/Mogadishu'
-    | 'Africa/Monrovia'
-    | 'Africa/Nairobi'
-    | 'Africa/Ndjamena'
-    | 'Africa/Niamey'
-    | 'Africa/Nouakchott'
-    | 'Africa/Ouagadougou'
-    | 'Africa/Porto-Novo'
-    | 'Africa/Sao_Tome'
-    | 'Africa/Timbuktu'
-    | 'Africa/Tripoli'
-    | 'Africa/Tunis'
-    | 'Africa/Windhoek'
-    | 'America/Adak'
-    | 'America/Anchorage'
-    | 'America/Anguilla'
-    | 'America/Antigua'
-    | 'America/Araguaina'
-    | 'America/Argentina/Buenos_Aires'
-    | 'America/Argentina/Catamarca'
-    | 'America/Argentina/ComodRivadavia'
-    | 'America/Argentina/Cordoba'
-    | 'America/Argentina/Jujuy'
-    | 'America/Argentina/La_Rioja'
-    | 'America/Argentina/Mendoza'
-    | 'America/Argentina/Rio_Gallegos'
-    | 'America/Argentina/Salta'
-    | 'America/Argentina/San_Juan'
-    | 'America/Argentina/San_Luis'
-    | 'America/Argentina/Tucuman'
-    | 'America/Argentina/Ushuaia'
-    | 'America/Aruba'
-    | 'America/Asuncion'
-    | 'America/Atikokan'
-    | 'America/Atka'
-    | 'America/Bahia'
-    | 'America/Bahia_Banderas'
-    | 'America/Barbados'
-    | 'America/Belem'
-    | 'America/Belize'
-    | 'America/Blanc-Sablon'
-    | 'America/Boa_Vista'
-    | 'America/Bogota'
-    | 'America/Boise'
-    | 'America/Buenos_Aires'
-    | 'America/Cambridge_Bay'
-    | 'America/Campo_Grande'
-    | 'America/Cancun'
-    | 'America/Caracas'
-    | 'America/Catamarca'
-    | 'America/Cayenne'
-    | 'America/Cayman'
-    | 'America/Chicago'
-    | 'America/Chihuahua'
-    | 'America/Ciudad_Juarez'
-    | 'America/Coral_Harbour'
-    | 'America/Cordoba'
-    | 'America/Costa_Rica'
-    | 'America/Coyhaique'
-    | 'America/Creston'
-    | 'America/Cuiaba'
-    | 'America/Curacao'
-    | 'America/Danmarkshavn'
-    | 'America/Dawson'
-    | 'America/Dawson_Creek'
-    | 'America/Denver'
-    | 'America/Detroit'
-    | 'America/Dominica'
-    | 'America/Edmonton'
-    | 'America/Eirunepe'
-    | 'America/El_Salvador'
-    | 'America/Ensenada'
-    | 'America/Fort_Nelson'
-    | 'America/Fort_Wayne'
-    | 'America/Fortaleza'
-    | 'America/Glace_Bay'
-    | 'America/Godthab'
-    | 'America/Goose_Bay'
-    | 'America/Grand_Turk'
-    | 'America/Grenada'
-    | 'America/Guadeloupe'
-    | 'America/Guatemala'
-    | 'America/Guayaquil'
-    | 'America/Guyana'
-    | 'America/Halifax'
-    | 'America/Havana'
-    | 'America/Hermosillo'
-    | 'America/Indiana/Indianapolis'
-    | 'America/Indiana/Knox'
-    | 'America/Indiana/Marengo'
-    | 'America/Indiana/Petersburg'
-    | 'America/Indiana/Tell_City'
-    | 'America/Indiana/Vevay'
-    | 'America/Indiana/Vincennes'
-    | 'America/Indiana/Winamac'
-    | 'America/Indianapolis'
-    | 'America/Inuvik'
-    | 'America/Iqaluit'
-    | 'America/Jamaica'
-    | 'America/Jujuy'
-    | 'America/Juneau'
-    | 'America/Kentucky/Louisville'
-    | 'America/Kentucky/Monticello'
-    | 'America/Knox_IN'
-    | 'America/Kralendijk'
-    | 'America/La_Paz'
-    | 'America/Lima'
-    | 'America/Los_Angeles'
-    | 'America/Louisville'
-    | 'America/Lower_Princes'
-    | 'America/Maceio'
-    | 'America/Managua'
-    | 'America/Manaus'
-    | 'America/Marigot'
-    | 'America/Martinique'
-    | 'America/Matamoros'
-    | 'America/Mazatlan'
-    | 'America/Mendoza'
-    | 'America/Menominee'
-    | 'America/Merida'
-    | 'America/Metlakatla'
-    | 'America/Mexico_City'
-    | 'America/Miquelon'
-    | 'America/Moncton'
-    | 'America/Monterrey'
-    | 'America/Montevideo'
-    | 'America/Montreal'
-    | 'America/Montserrat'
-    | 'America/Nassau'
-    | 'America/New_York'
-    | 'America/Nipigon'
-    | 'America/Nome'
-    | 'America/Noronha'
-    | 'America/North_Dakota/Beulah'
-    | 'America/North_Dakota/Center'
-    | 'America/North_Dakota/New_Salem'
-    | 'America/Nuuk'
-    | 'America/Ojinaga'
-    | 'America/Panama'
-    | 'America/Pangnirtung'
-    | 'America/Paramaribo'
-    | 'America/Phoenix'
-    | 'America/Port-au-Prince'
-    | 'America/Port_of_Spain'
-    | 'America/Porto_Acre'
-    | 'America/Porto_Velho'
-    | 'America/Puerto_Rico'
-    | 'America/Punta_Arenas'
-    | 'America/Rainy_River'
-    | 'America/Rankin_Inlet'
-    | 'America/Recife'
-    | 'America/Regina'
-    | 'America/Resolute'
-    | 'America/Rio_Branco'
-    | 'America/Rosario'
-    | 'America/Santa_Isabel'
-    | 'America/Santarem'
-    | 'America/Santiago'
-    | 'America/Santo_Domingo'
-    | 'America/Sao_Paulo'
-    | 'America/Scoresbysund'
-    | 'America/Shiprock'
-    | 'America/Sitka'
-    | 'America/St_Barthelemy'
-    | 'America/St_Johns'
-    | 'America/St_Kitts'
-    | 'America/St_Lucia'
-    | 'America/St_Thomas'
-    | 'America/St_Vincent'
-    | 'America/Swift_Current'
-    | 'America/Tegucigalpa'
-    | 'America/Thule'
-    | 'America/Thunder_Bay'
-    | 'America/Tijuana'
-    | 'America/Toronto'
-    | 'America/Tortola'
-    | 'America/Vancouver'
-    | 'America/Virgin'
-    | 'America/Whitehorse'
-    | 'America/Winnipeg'
-    | 'America/Yakutat'
-    | 'America/Yellowknife'
-    | 'Antarctica/Casey'
-    | 'Antarctica/Davis'
-    | 'Antarctica/DumontDUrville'
-    | 'Antarctica/Macquarie'
-    | 'Antarctica/Mawson'
-    | 'Antarctica/McMurdo'
-    | 'Antarctica/Palmer'
-    | 'Antarctica/Rothera'
-    | 'Antarctica/South_Pole'
-    | 'Antarctica/Syowa'
-    | 'Antarctica/Troll'
-    | 'Antarctica/Vostok'
-    | 'Arctic/Longyearbyen'
-    | 'Asia/Aden'
-    | 'Asia/Almaty'
-    | 'Asia/Amman'
-    | 'Asia/Anadyr'
-    | 'Asia/Aqtau'
-    | 'Asia/Aqtobe'
-    | 'Asia/Ashgabat'
-    | 'Asia/Ashkhabad'
-    | 'Asia/Atyrau'
-    | 'Asia/Baghdad'
-    | 'Asia/Bahrain'
-    | 'Asia/Baku'
-    | 'Asia/Bangkok'
-    | 'Asia/Barnaul'
-    | 'Asia/Beirut'
-    | 'Asia/Bishkek'
-    | 'Asia/Brunei'
-    | 'Asia/Calcutta'
-    | 'Asia/Chita'
-    | 'Asia/Choibalsan'
-    | 'Asia/Chongqing'
-    | 'Asia/Chungking'
-    | 'Asia/Colombo'
-    | 'Asia/Dacca'
-    | 'Asia/Damascus'
-    | 'Asia/Dhaka'
-    | 'Asia/Dili'
-    | 'Asia/Dubai'
-    | 'Asia/Dushanbe'
-    | 'Asia/Famagusta'
-    | 'Asia/Gaza'
-    | 'Asia/Harbin'
-    | 'Asia/Hebron'
-    | 'Asia/Ho_Chi_Minh'
-    | 'Asia/Hong_Kong'
-    | 'Asia/Hovd'
-    | 'Asia/Irkutsk'
-    | 'Asia/Istanbul'
-    | 'Asia/Jakarta'
-    | 'Asia/Jayapura'
-    | 'Asia/Jerusalem'
-    | 'Asia/Kabul'
-    | 'Asia/Kamchatka'
-    | 'Asia/Karachi'
-    | 'Asia/Kashgar'
-    | 'Asia/Kathmandu'
-    | 'Asia/Katmandu'
-    | 'Asia/Khandyga'
-    | 'Asia/Kolkata'
-    | 'Asia/Krasnoyarsk'
-    | 'Asia/Kuala_Lumpur'
-    | 'Asia/Kuching'
-    | 'Asia/Kuwait'
-    | 'Asia/Macao'
-    | 'Asia/Macau'
-    | 'Asia/Magadan'
-    | 'Asia/Makassar'
-    | 'Asia/Manila'
-    | 'Asia/Muscat'
-    | 'Asia/Nicosia'
-    | 'Asia/Novokuznetsk'
-    | 'Asia/Novosibirsk'
-    | 'Asia/Omsk'
-    | 'Asia/Oral'
-    | 'Asia/Phnom_Penh'
-    | 'Asia/Pontianak'
-    | 'Asia/Pyongyang'
-    | 'Asia/Qatar'
-    | 'Asia/Qostanay'
-    | 'Asia/Qyzylorda'
-    | 'Asia/Rangoon'
-    | 'Asia/Riyadh'
-    | 'Asia/Saigon'
-    | 'Asia/Sakhalin'
-    | 'Asia/Samarkand'
-    | 'Asia/Seoul'
-    | 'Asia/Shanghai'
-    | 'Asia/Singapore'
-    | 'Asia/Srednekolymsk'
-    | 'Asia/Taipei'
-    | 'Asia/Tashkent'
-    | 'Asia/Tbilisi'
-    | 'Asia/Tehran'
-    | 'Asia/Tel_Aviv'
-    | 'Asia/Thimbu'
-    | 'Asia/Thimphu'
-    | 'Asia/Tokyo'
-    | 'Asia/Tomsk'
-    | 'Asia/Ujung_Pandang'
-    | 'Asia/Ulaanbaatar'
-    | 'Asia/Ulan_Bator'
-    | 'Asia/Urumqi'
-    | 'Asia/Ust-Nera'
-    | 'Asia/Vientiane'
-    | 'Asia/Vladivostok'
-    | 'Asia/Yakutsk'
-    | 'Asia/Yangon'
-    | 'Asia/Yekaterinburg'
-    | 'Asia/Yerevan'
-    | 'Atlantic/Azores'
-    | 'Atlantic/Bermuda'
-    | 'Atlantic/Canary'
-    | 'Atlantic/Cape_Verde'
-    | 'Atlantic/Faeroe'
-    | 'Atlantic/Faroe'
-    | 'Atlantic/Jan_Mayen'
-    | 'Atlantic/Madeira'
-    | 'Atlantic/Reykjavik'
-    | 'Atlantic/South_Georgia'
-    | 'Atlantic/St_Helena'
-    | 'Atlantic/Stanley'
-    | 'Australia/ACT'
-    | 'Australia/Adelaide'
-    | 'Australia/Brisbane'
-    | 'Australia/Broken_Hill'
-    | 'Australia/Canberra'
-    | 'Australia/Currie'
-    | 'Australia/Darwin'
-    | 'Australia/Eucla'
-    | 'Australia/Hobart'
-    | 'Australia/LHI'
-    | 'Australia/Lindeman'
-    | 'Australia/Lord_Howe'
-    | 'Australia/Melbourne'
-    | 'Australia/NSW'
-    | 'Australia/North'
-    | 'Australia/Perth'
-    | 'Australia/Queensland'
-    | 'Australia/South'
-    | 'Australia/Sydney'
-    | 'Australia/Tasmania'
-    | 'Australia/Victoria'
-    | 'Australia/West'
-    | 'Australia/Yancowinna'
-    | 'Brazil/Acre'
-    | 'Brazil/DeNoronha'
-    | 'Brazil/East'
-    | 'Brazil/West'
-    | 'CET'
-    | 'CST6CDT'
-    | 'Canada/Atlantic'
-    | 'Canada/Central'
-    | 'Canada/Eastern'
-    | 'Canada/Mountain'
-    | 'Canada/Newfoundland'
-    | 'Canada/Pacific'
-    | 'Canada/Saskatchewan'
-    | 'Canada/Yukon'
-    | 'Chile/Continental'
-    | 'Chile/EasterIsland'
-    | 'Cuba'
-    | 'EET'
-    | 'EST'
-    | 'EST5EDT'
-    | 'Egypt'
-    | 'Eire'
-    | 'Etc/GMT'
-    | 'Etc/GMT+0'
-    | 'Etc/GMT+1'
-    | 'Etc/GMT+10'
-    | 'Etc/GMT+11'
-    | 'Etc/GMT+12'
-    | 'Etc/GMT+2'
-    | 'Etc/GMT+3'
-    | 'Etc/GMT+4'
-    | 'Etc/GMT+5'
-    | 'Etc/GMT+6'
-    | 'Etc/GMT+7'
-    | 'Etc/GMT+8'
-    | 'Etc/GMT+9'
-    | 'Etc/GMT-0'
-    | 'Etc/GMT-1'
-    | 'Etc/GMT-10'
-    | 'Etc/GMT-11'
-    | 'Etc/GMT-12'
-    | 'Etc/GMT-13'
-    | 'Etc/GMT-14'
-    | 'Etc/GMT-2'
-    | 'Etc/GMT-3'
-    | 'Etc/GMT-4'
-    | 'Etc/GMT-5'
-    | 'Etc/GMT-6'
-    | 'Etc/GMT-7'
-    | 'Etc/GMT-8'
-    | 'Etc/GMT-9'
-    | 'Etc/GMT0'
-    | 'Etc/Greenwich'
-    | 'Etc/UCT'
-    | 'Etc/UTC'
-    | 'Etc/Universal'
-    | 'Etc/Zulu'
-    | 'Europe/Amsterdam'
-    | 'Europe/Andorra'
-    | 'Europe/Astrakhan'
-    | 'Europe/Athens'
-    | 'Europe/Belfast'
-    | 'Europe/Belgrade'
-    | 'Europe/Berlin'
-    | 'Europe/Bratislava'
-    | 'Europe/Brussels'
-    | 'Europe/Bucharest'
-    | 'Europe/Budapest'
-    | 'Europe/Busingen'
-    | 'Europe/Chisinau'
-    | 'Europe/Copenhagen'
-    | 'Europe/Dublin'
-    | 'Europe/Gibraltar'
-    | 'Europe/Guernsey'
-    | 'Europe/Helsinki'
-    | 'Europe/Isle_of_Man'
-    | 'Europe/Istanbul'
-    | 'Europe/Jersey'
-    | 'Europe/Kaliningrad'
-    | 'Europe/Kiev'
-    | 'Europe/Kirov'
-    | 'Europe/Kyiv'
-    | 'Europe/Lisbon'
-    | 'Europe/Ljubljana'
-    | 'Europe/London'
-    | 'Europe/Luxembourg'
-    | 'Europe/Madrid'
-    | 'Europe/Malta'
-    | 'Europe/Mariehamn'
-    | 'Europe/Minsk'
-    | 'Europe/Monaco'
-    | 'Europe/Moscow'
-    | 'Europe/Nicosia'
-    | 'Europe/Oslo'
-    | 'Europe/Paris'
-    | 'Europe/Podgorica'
-    | 'Europe/Prague'
-    | 'Europe/Riga'
-    | 'Europe/Rome'
-    | 'Europe/Samara'
-    | 'Europe/San_Marino'
-    | 'Europe/Sarajevo'
-    | 'Europe/Saratov'
-    | 'Europe/Simferopol'
-    | 'Europe/Skopje'
-    | 'Europe/Sofia'
-    | 'Europe/Stockholm'
-    | 'Europe/Tallinn'
-    | 'Europe/Tirane'
-    | 'Europe/Tiraspol'
-    | 'Europe/Ulyanovsk'
-    | 'Europe/Uzhgorod'
-    | 'Europe/Vaduz'
-    | 'Europe/Vatican'
-    | 'Europe/Vienna'
-    | 'Europe/Vilnius'
-    | 'Europe/Volgograd'
-    | 'Europe/Warsaw'
-    | 'Europe/Zagreb'
-    | 'Europe/Zaporozhye'
-    | 'Europe/Zurich'
-    | 'GB'
-    | 'GB-Eire'
-    | 'GMT'
-    | 'GMT+0'
-    | 'GMT-0'
-    | 'GMT0'
-    | 'Greenwich'
-    | 'HST'
-    | 'Hongkong'
-    | 'Iceland'
-    | 'Indian/Antananarivo'
-    | 'Indian/Chagos'
-    | 'Indian/Christmas'
-    | 'Indian/Cocos'
-    | 'Indian/Comoro'
-    | 'Indian/Kerguelen'
-    | 'Indian/Mahe'
-    | 'Indian/Maldives'
-    | 'Indian/Mauritius'
-    | 'Indian/Mayotte'
-    | 'Indian/Reunion'
-    | 'Iran'
-    | 'Israel'
-    | 'Jamaica'
-    | 'Japan'
-    | 'Kwajalein'
-    | 'Libya'
-    | 'MET'
-    | 'MST'
-    | 'MST7MDT'
-    | 'Mexico/BajaNorte'
-    | 'Mexico/BajaSur'
-    | 'Mexico/General'
-    | 'NZ'
-    | 'NZ-CHAT'
-    | 'Navajo'
-    | 'PRC'
-    | 'PST8PDT'
-    | 'Pacific/Apia'
-    | 'Pacific/Auckland'
-    | 'Pacific/Bougainville'
-    | 'Pacific/Chatham'
-    | 'Pacific/Chuuk'
-    | 'Pacific/Easter'
-    | 'Pacific/Efate'
-    | 'Pacific/Enderbury'
-    | 'Pacific/Fakaofo'
-    | 'Pacific/Fiji'
-    | 'Pacific/Funafuti'
-    | 'Pacific/Galapagos'
-    | 'Pacific/Gambier'
-    | 'Pacific/Guadalcanal'
-    | 'Pacific/Guam'
-    | 'Pacific/Honolulu'
-    | 'Pacific/Johnston'
-    | 'Pacific/Kanton'
-    | 'Pacific/Kiritimati'
-    | 'Pacific/Kosrae'
-    | 'Pacific/Kwajalein'
-    | 'Pacific/Majuro'
-    | 'Pacific/Marquesas'
-    | 'Pacific/Midway'
-    | 'Pacific/Nauru'
-    | 'Pacific/Niue'
-    | 'Pacific/Norfolk'
-    | 'Pacific/Noumea'
-    | 'Pacific/Pago_Pago'
-    | 'Pacific/Palau'
-    | 'Pacific/Pitcairn'
-    | 'Pacific/Pohnpei'
-    | 'Pacific/Ponape'
-    | 'Pacific/Port_Moresby'
-    | 'Pacific/Rarotonga'
-    | 'Pacific/Saipan'
-    | 'Pacific/Samoa'
-    | 'Pacific/Tahiti'
-    | 'Pacific/Tarawa'
-    | 'Pacific/Tongatapu'
-    | 'Pacific/Truk'
-    | 'Pacific/Wake'
-    | 'Pacific/Wallis'
-    | 'Pacific/Yap'
-    | 'Poland'
-    | 'Portugal'
-    | 'ROC'
-    | 'ROK'
-    | 'Singapore'
-    | 'Turkey'
-    | 'UCT'
-    | 'US/Alaska'
-    | 'US/Aleutian'
-    | 'US/Arizona'
-    | 'US/Central'
-    | 'US/East-Indiana'
-    | 'US/Eastern'
-    | 'US/Hawaii'
-    | 'US/Indiana-Starke'
-    | 'US/Michigan'
-    | 'US/Mountain'
-    | 'US/Pacific'
-    | 'US/Samoa'
-    | 'UTC'
-    | 'Universal'
-    | 'W-SU'
-    | 'WET'
-    | 'Zulu'
-    | 'localtime';
+  timezone?: TimezoneEnum | '';
 };
 
 export type Release = {
@@ -12429,6 +11408,19 @@ export type RepositorySettings = {
   codeReviewTriggers?: Array<'on_new_commit' | 'on_ready_for_review'>;
   enabledCodeReview?: boolean;
 };
+
+export type RerunEnum = 'held' | 'skipped' | 'started';
+
+export type RetrieveAServiceHookResponse = {
+  dateCreated: string;
+  events: string[];
+  id: string;
+  secret: string;
+  status: string;
+  url: string;
+};
+
+export type RetrieveAnUptimeResponseCaptureResponse = Record<string, unknown>;
 
 /** Seer-owned workflow projection overlaid with Sentry's authoritative run fields. */
 export type RetrieveInvestigationOrchestrationResponse = {
@@ -13023,13 +12015,7 @@ export type SavedQueryListResponse = Array<
           };
         }>;
       } | null;
-      dataset:
-        | 'ai_conversations'
-        | 'logs'
-        | 'metrics'
-        | 'replays'
-        | 'segment_spans'
-        | 'spans';
+      dataset: DatasetEnum;
       dateAdded: string;
       dateUpdated: string;
       expired: boolean;
@@ -13044,10 +12030,10 @@ export type SavedQueryListResponse = Array<
       agent?: string[];
       crossEvents?: Array<{
         query: string;
-        type: 'logs' | 'metrics' | 'spans';
+        type: CrossEventTypeEnum;
         metric?: {
           name: string;
-          type: 'counter' | 'distribution' | 'gauge';
+          type: ExploreSavedQueryListResponseTypeEnum;
           unit?: string | null;
         } | null;
       }>;
@@ -13056,7 +12042,7 @@ export type SavedQueryListResponse = Array<
       errorsOnly?: boolean;
       interval?: string;
       query?: Array<{
-        mode: 'aggregate' | 'samples';
+        mode: ModeEnum;
         aggregateField?: Array<{
           chartType?: number;
           groupBy?: string;
@@ -13069,7 +12055,7 @@ export type SavedQueryListResponse = Array<
         groupby?: string[] | null;
         metric?: {
           name: string;
-          type: 'counter' | 'distribution' | 'gauge';
+          type: ExploreSavedQueryListResponseTypeEnum;
           unit?: string | null;
         } | null;
         orderby?: string | null;
@@ -13165,6 +12151,41 @@ export type SavedQueryListResponse = Array<
       yAxis?: string[];
     }
 >;
+
+export type ScheduleTypeEnum = 'crontab' | 'interval';
+
+export type ScopesEnum =
+  | 'alerts:read'
+  | 'alerts:write'
+  | 'dashboard:read'
+  | 'dashboard:write'
+  | 'event:admin'
+  | 'event:read'
+  | 'event:write'
+  | 'member:admin'
+  | 'member:invite'
+  | 'member:read'
+  | 'member:write'
+  | 'org:admin'
+  | 'org:ci'
+  | 'org:integrations'
+  | 'org:read'
+  | 'org:tokens'
+  | 'org:write'
+  | 'project:admin'
+  | 'project:distribution'
+  | 'project:read'
+  | 'project:releases'
+  | 'project:write'
+  | 'saved_query:read'
+  | 'saved_query:write'
+  | 'seer:read'
+  | 'seer:write'
+  | 'team:admin'
+  | 'team:read'
+  | 'team:write'
+  | 'user_preference:read'
+  | 'user_preference:write';
 
 /** Response containing list of actively used LLM model names from Seer. */
 export type SeerModelsResponse = {
@@ -13263,7 +12284,7 @@ export type SeerWorkflowRuns = {
                 type: 'investigation';
               }>;
               seerRunId: string | null;
-              status: 'complete' | 'queued' | 'running' | null;
+              status: SeerWorkflowRunsStatusEnum | null;
             }
           | {
               dateAdded: string;
@@ -13284,7 +12305,7 @@ export type SeerWorkflowRuns = {
             }
         >;
         id: string;
-        status: 'complete' | 'queued' | 'running' | null;
+        status: SeerWorkflowRunsStatusEnum | null;
         strategy: string;
       }
     | {
@@ -13308,7 +12329,7 @@ export type SeerWorkflowRuns = {
                 type: 'investigation';
               }>;
               seerRunId: string | null;
-              status: 'complete' | 'queued' | 'running' | null;
+              status: SeerWorkflowRunsStatusEnum | null;
             }
           | {
               dateAdded: string;
@@ -13334,6 +12355,8 @@ export type SeerWorkflowRuns = {
       }
   >;
 };
+
+export type SeerWorkflowRunsStatusEnum = 'complete' | 'queued' | 'running';
 
 export type SentryAppComponentsResponse = Array<{
   error:
@@ -13474,39 +12497,7 @@ export type ServerlessFunction = {
 
 export type ServiceAccountCreate = {
   name: string;
-  scopes: Array<
-    | 'alerts:read'
-    | 'alerts:write'
-    | 'dashboard:read'
-    | 'dashboard:write'
-    | 'event:admin'
-    | 'event:read'
-    | 'event:write'
-    | 'member:admin'
-    | 'member:invite'
-    | 'member:read'
-    | 'member:write'
-    | 'org:admin'
-    | 'org:ci'
-    | 'org:integrations'
-    | 'org:read'
-    | 'org:tokens'
-    | 'org:write'
-    | 'project:admin'
-    | 'project:distribution'
-    | 'project:read'
-    | 'project:releases'
-    | 'project:write'
-    | 'saved_query:read'
-    | 'saved_query:write'
-    | 'seer:read'
-    | 'seer:write'
-    | 'team:admin'
-    | 'team:read'
-    | 'team:write'
-    | 'user_preference:read'
-    | 'user_preference:write'
-  >;
+  scopes: ScopesEnum[];
   allProjects?: boolean;
   isActive?: boolean;
   projectIds?: number[] | null;
@@ -13517,39 +12508,7 @@ export type ServiceAccountUpdate = {
   isActive?: boolean;
   name?: string;
   projectIds?: number[] | null;
-  scopes?: Array<
-    | 'alerts:read'
-    | 'alerts:write'
-    | 'dashboard:read'
-    | 'dashboard:write'
-    | 'event:admin'
-    | 'event:read'
-    | 'event:write'
-    | 'member:admin'
-    | 'member:invite'
-    | 'member:read'
-    | 'member:write'
-    | 'org:admin'
-    | 'org:ci'
-    | 'org:integrations'
-    | 'org:read'
-    | 'org:tokens'
-    | 'org:write'
-    | 'project:admin'
-    | 'project:distribution'
-    | 'project:read'
-    | 'project:releases'
-    | 'project:write'
-    | 'saved_query:read'
-    | 'saved_query:write'
-    | 'seer:read'
-    | 'seer:write'
-    | 'team:admin'
-    | 'team:read'
-    | 'team:write'
-    | 'user_preference:read'
-    | 'user_preference:write'
-  >;
+  scopes?: ScopesEnum[];
 };
 
 export type ServiceAccountViewerContextResponse = {
@@ -13606,7 +12565,7 @@ export type ShortIdLookupResponse = {
     assignedTo: {
       id: string;
       name: string;
-      type: 'team' | 'user';
+      type: DetectorTypeEnum;
       email?: string;
     } | null;
     culprit: string | null;
@@ -13617,13 +12576,13 @@ export type ShortIdLookupResponse = {
     isSubscribed: boolean;
     issueCategory: string;
     issueType: string;
-    level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
+    level: LevelEnum;
     logger: string | null;
     metadata: Record<string, unknown>;
     numComments: number;
     permalink: string;
     platform: string | null;
-    priority: 'high' | 'low' | 'medium' | null;
+    priority: PriorityEnum | null;
     priorityLockedAt: string | null;
     project: {
       id: string;
@@ -13636,13 +12595,7 @@ export type ShortIdLookupResponse = {
     seerFixabilityScore: number | null;
     shareId: string | null;
     shortId: string | null;
-    status:
-      | 'ignored'
-      | 'pending_deletion'
-      | 'pending_merge'
-      | 'reprocessing'
-      | 'resolved'
-      | 'unresolved';
+    status: GroupDetailsResponseStatusEnum;
     statusDetails: {
       actor?: {
         avatarUrl: string;
@@ -13713,27 +12666,9 @@ export type ShortIdLookupResponse = {
       disabled?: boolean;
       reason?: string;
     } | null;
-    substatus:
-      | 'archived_forever'
-      | 'archived_until_condition_met'
-      | 'archived_until_escalating'
-      | 'escalating'
-      | 'new'
-      | 'ongoing'
-      | 'regressed'
-      | null;
+    substatus: SubstatusEnum | null;
     title: string;
-    type:
-      | 'csp'
-      | 'default'
-      | 'error'
-      | 'expectct'
-      | 'expectstaple'
-      | 'feedback'
-      | 'generic'
-      | 'hpkp'
-      | 'nel'
-      | 'transaction';
+    type: EventIdLookupResponseTypeEnum;
     count?: string;
     derivedData?: {
       blocker: string;
@@ -13868,7 +12803,7 @@ export type SnapshotCreateResponse = {
 
 export type SnapshotDetailsResponse = {
   added?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -13891,7 +12826,7 @@ export type SnapshotDetailsResponse = {
   base_artifact_id?: string | null;
   changed?: Array<{
     base_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13902,7 +12837,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13918,7 +12853,7 @@ export type SnapshotDetailsResponse = {
   diff_threshold?: number | null;
   errored?: Array<{
     base_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13929,7 +12864,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13942,7 +12877,7 @@ export type SnapshotDetailsResponse = {
   head_artifact_id?: string;
   image_count?: number;
   images?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -13953,7 +12888,7 @@ export type SnapshotDetailsResponse = {
   is_selective?: boolean;
   project_id?: string;
   removed?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -13964,7 +12899,7 @@ export type SnapshotDetailsResponse = {
   removed_count?: number;
   renamed?: Array<{
     base_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13975,7 +12910,7 @@ export type SnapshotDetailsResponse = {
     diff?: number | null;
     diff_image_key?: string | null;
     head_image?: {
-      canvas_theme?: 'dark' | 'light' | null;
+      canvas_theme?: CanvasThemeEnum | null;
       display_name?: string | null;
       group?: string | null;
       height?: number;
@@ -13986,7 +12921,7 @@ export type SnapshotDetailsResponse = {
   }>;
   renamed_count?: number;
   skipped?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -13997,7 +12932,7 @@ export type SnapshotDetailsResponse = {
   skipped_count?: number;
   state?: string;
   unchanged?: Array<{
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     display_name?: string | null;
     group?: string | null;
     height?: number;
@@ -14020,7 +12955,7 @@ export type SnapshotDetailsResponse = {
 
 export type SnapshotImageDetailResponse = {
   base_image?: {
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     description?: string | null;
     diff_threshold?: number | null;
     display_name?: string | null;
@@ -14036,7 +12971,7 @@ export type SnapshotImageDetailResponse = {
   diff_image_url?: string | null;
   diff_percentage?: number | null;
   head_image?: {
-    canvas_theme?: 'dark' | 'light' | null;
+    canvas_theme?: CanvasThemeEnum | null;
     description?: string | null;
     diff_threshold?: number | null;
     display_name?: string | null;
@@ -14109,8 +13044,8 @@ export type SourceMapDebug = {
         abs_path: string;
         matching_source_file_names: string[];
         matching_source_map_name: string | null;
-        source_file_lookup_result: 'found' | 'unsuccessful' | 'wrong-dist';
-        source_map_lookup_result: 'found' | 'unsuccessful' | 'wrong-dist';
+        source_file_lookup_result: SourceMapLookupResultEnum;
+        source_map_lookup_result: SourceMapLookupResultEnum;
         source_map_reference: string | null;
       } | null;
       scraping_process: {
@@ -14125,14 +13060,7 @@ export type SourceMapDebug = {
             }
           | {
               details: string | null;
-              reason:
-                | 'disabled'
-                | 'download_error'
-                | 'invalid_host'
-                | 'not_found'
-                | 'other'
-                | 'permission_denied'
-                | 'timeout';
+              reason: SourceMapDebugReasonEnum;
               status: 'failure';
               url: string;
             }
@@ -14148,14 +13076,7 @@ export type SourceMapDebug = {
             }
           | {
               details: string | null;
-              reason:
-                | 'disabled'
-                | 'download_error'
-                | 'invalid_host'
-                | 'not_found'
-                | 'other'
-                | 'permission_denied'
-                | 'timeout';
+              reason: SourceMapDebugReasonEnum;
               status: 'failure';
               url: string;
             }
@@ -14173,6 +13094,17 @@ export type SourceMapDebug = {
   sdk_debug_id_support: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
   sdk_version: string | null;
 };
+
+export type SourceMapDebugReasonEnum =
+  | 'disabled'
+  | 'download_error'
+  | 'invalid_host'
+  | 'not_found'
+  | 'other'
+  | 'permission_denied'
+  | 'timeout';
+
+export type SourceMapLookupResultEnum = 'found' | 'unsuccessful' | 'wrong-dist';
 
 export type StackPrefixesResponse = {
   prefixes: Array<{
@@ -14233,6 +13165,17 @@ export type StacktraceLinkResponse = {
   sourcePath?: string | null;
 };
 
+export type StageEnum =
+  | 'analyze_project'
+  | 'check_stack_trace_quality'
+  | 'connect_mcp'
+  | 'create_project'
+  | 'instrument_app'
+  | 'plan_test_error'
+  | 'prepare_production'
+  | 'receive_verification_error'
+  | 'send_verification_error';
+
 export type StarQuery = {
   starred: boolean;
   position?: number;
@@ -14260,6 +13203,30 @@ export type SteerCommandValidator = {
   type: 'steer';
   targetId?: string | null;
 };
+
+export type SubmitUserFeedbackResponse = {
+  comments: string;
+  dateCreated: string;
+  email: string;
+  event: {
+    eventID?: string;
+    id?: string | null;
+  };
+  eventID: string;
+  id: string;
+  issue: Record<string, unknown> | null;
+  name: string;
+  user: Record<string, unknown> | null;
+};
+
+export type SubstatusEnum =
+  | 'archived_forever'
+  | 'archived_until_condition_met'
+  | 'archived_until_escalating'
+  | 'escalating'
+  | 'new'
+  | 'ongoing'
+  | 'regressed';
 
 export type TagKeyDetailsDict = {
   key: string;
@@ -14446,6 +13413,8 @@ export type TeamPost = {
   slug?: string | null;
 };
 
+export type TeamRoleEnum = 'admin' | 'contributor';
+
 export type TeamSCIM = {
   displayName: string;
   id: string;
@@ -14462,6 +13431,606 @@ export type TeamSCIM = {
 export type TestFireActionErrorsResponse = {
   actions: string[];
 };
+
+export type TimezoneEnum =
+  | 'Africa/Abidjan'
+  | 'Africa/Accra'
+  | 'Africa/Addis_Ababa'
+  | 'Africa/Algiers'
+  | 'Africa/Asmara'
+  | 'Africa/Asmera'
+  | 'Africa/Bamako'
+  | 'Africa/Bangui'
+  | 'Africa/Banjul'
+  | 'Africa/Bissau'
+  | 'Africa/Blantyre'
+  | 'Africa/Brazzaville'
+  | 'Africa/Bujumbura'
+  | 'Africa/Cairo'
+  | 'Africa/Casablanca'
+  | 'Africa/Ceuta'
+  | 'Africa/Conakry'
+  | 'Africa/Dakar'
+  | 'Africa/Dar_es_Salaam'
+  | 'Africa/Djibouti'
+  | 'Africa/Douala'
+  | 'Africa/El_Aaiun'
+  | 'Africa/Freetown'
+  | 'Africa/Gaborone'
+  | 'Africa/Harare'
+  | 'Africa/Johannesburg'
+  | 'Africa/Juba'
+  | 'Africa/Kampala'
+  | 'Africa/Khartoum'
+  | 'Africa/Kigali'
+  | 'Africa/Kinshasa'
+  | 'Africa/Lagos'
+  | 'Africa/Libreville'
+  | 'Africa/Lome'
+  | 'Africa/Luanda'
+  | 'Africa/Lubumbashi'
+  | 'Africa/Lusaka'
+  | 'Africa/Malabo'
+  | 'Africa/Maputo'
+  | 'Africa/Maseru'
+  | 'Africa/Mbabane'
+  | 'Africa/Mogadishu'
+  | 'Africa/Monrovia'
+  | 'Africa/Nairobi'
+  | 'Africa/Ndjamena'
+  | 'Africa/Niamey'
+  | 'Africa/Nouakchott'
+  | 'Africa/Ouagadougou'
+  | 'Africa/Porto-Novo'
+  | 'Africa/Sao_Tome'
+  | 'Africa/Timbuktu'
+  | 'Africa/Tripoli'
+  | 'Africa/Tunis'
+  | 'Africa/Windhoek'
+  | 'America/Adak'
+  | 'America/Anchorage'
+  | 'America/Anguilla'
+  | 'America/Antigua'
+  | 'America/Araguaina'
+  | 'America/Argentina/Buenos_Aires'
+  | 'America/Argentina/Catamarca'
+  | 'America/Argentina/ComodRivadavia'
+  | 'America/Argentina/Cordoba'
+  | 'America/Argentina/Jujuy'
+  | 'America/Argentina/La_Rioja'
+  | 'America/Argentina/Mendoza'
+  | 'America/Argentina/Rio_Gallegos'
+  | 'America/Argentina/Salta'
+  | 'America/Argentina/San_Juan'
+  | 'America/Argentina/San_Luis'
+  | 'America/Argentina/Tucuman'
+  | 'America/Argentina/Ushuaia'
+  | 'America/Aruba'
+  | 'America/Asuncion'
+  | 'America/Atikokan'
+  | 'America/Atka'
+  | 'America/Bahia'
+  | 'America/Bahia_Banderas'
+  | 'America/Barbados'
+  | 'America/Belem'
+  | 'America/Belize'
+  | 'America/Blanc-Sablon'
+  | 'America/Boa_Vista'
+  | 'America/Bogota'
+  | 'America/Boise'
+  | 'America/Buenos_Aires'
+  | 'America/Cambridge_Bay'
+  | 'America/Campo_Grande'
+  | 'America/Cancun'
+  | 'America/Caracas'
+  | 'America/Catamarca'
+  | 'America/Cayenne'
+  | 'America/Cayman'
+  | 'America/Chicago'
+  | 'America/Chihuahua'
+  | 'America/Ciudad_Juarez'
+  | 'America/Coral_Harbour'
+  | 'America/Cordoba'
+  | 'America/Costa_Rica'
+  | 'America/Coyhaique'
+  | 'America/Creston'
+  | 'America/Cuiaba'
+  | 'America/Curacao'
+  | 'America/Danmarkshavn'
+  | 'America/Dawson'
+  | 'America/Dawson_Creek'
+  | 'America/Denver'
+  | 'America/Detroit'
+  | 'America/Dominica'
+  | 'America/Edmonton'
+  | 'America/Eirunepe'
+  | 'America/El_Salvador'
+  | 'America/Ensenada'
+  | 'America/Fort_Nelson'
+  | 'America/Fort_Wayne'
+  | 'America/Fortaleza'
+  | 'America/Glace_Bay'
+  | 'America/Godthab'
+  | 'America/Goose_Bay'
+  | 'America/Grand_Turk'
+  | 'America/Grenada'
+  | 'America/Guadeloupe'
+  | 'America/Guatemala'
+  | 'America/Guayaquil'
+  | 'America/Guyana'
+  | 'America/Halifax'
+  | 'America/Havana'
+  | 'America/Hermosillo'
+  | 'America/Indiana/Indianapolis'
+  | 'America/Indiana/Knox'
+  | 'America/Indiana/Marengo'
+  | 'America/Indiana/Petersburg'
+  | 'America/Indiana/Tell_City'
+  | 'America/Indiana/Vevay'
+  | 'America/Indiana/Vincennes'
+  | 'America/Indiana/Winamac'
+  | 'America/Indianapolis'
+  | 'America/Inuvik'
+  | 'America/Iqaluit'
+  | 'America/Jamaica'
+  | 'America/Jujuy'
+  | 'America/Juneau'
+  | 'America/Kentucky/Louisville'
+  | 'America/Kentucky/Monticello'
+  | 'America/Knox_IN'
+  | 'America/Kralendijk'
+  | 'America/La_Paz'
+  | 'America/Lima'
+  | 'America/Los_Angeles'
+  | 'America/Louisville'
+  | 'America/Lower_Princes'
+  | 'America/Maceio'
+  | 'America/Managua'
+  | 'America/Manaus'
+  | 'America/Marigot'
+  | 'America/Martinique'
+  | 'America/Matamoros'
+  | 'America/Mazatlan'
+  | 'America/Mendoza'
+  | 'America/Menominee'
+  | 'America/Merida'
+  | 'America/Metlakatla'
+  | 'America/Mexico_City'
+  | 'America/Miquelon'
+  | 'America/Moncton'
+  | 'America/Monterrey'
+  | 'America/Montevideo'
+  | 'America/Montreal'
+  | 'America/Montserrat'
+  | 'America/Nassau'
+  | 'America/New_York'
+  | 'America/Nipigon'
+  | 'America/Nome'
+  | 'America/Noronha'
+  | 'America/North_Dakota/Beulah'
+  | 'America/North_Dakota/Center'
+  | 'America/North_Dakota/New_Salem'
+  | 'America/Nuuk'
+  | 'America/Ojinaga'
+  | 'America/Panama'
+  | 'America/Pangnirtung'
+  | 'America/Paramaribo'
+  | 'America/Phoenix'
+  | 'America/Port-au-Prince'
+  | 'America/Port_of_Spain'
+  | 'America/Porto_Acre'
+  | 'America/Porto_Velho'
+  | 'America/Puerto_Rico'
+  | 'America/Punta_Arenas'
+  | 'America/Rainy_River'
+  | 'America/Rankin_Inlet'
+  | 'America/Recife'
+  | 'America/Regina'
+  | 'America/Resolute'
+  | 'America/Rio_Branco'
+  | 'America/Rosario'
+  | 'America/Santa_Isabel'
+  | 'America/Santarem'
+  | 'America/Santiago'
+  | 'America/Santo_Domingo'
+  | 'America/Sao_Paulo'
+  | 'America/Scoresbysund'
+  | 'America/Shiprock'
+  | 'America/Sitka'
+  | 'America/St_Barthelemy'
+  | 'America/St_Johns'
+  | 'America/St_Kitts'
+  | 'America/St_Lucia'
+  | 'America/St_Thomas'
+  | 'America/St_Vincent'
+  | 'America/Swift_Current'
+  | 'America/Tegucigalpa'
+  | 'America/Thule'
+  | 'America/Thunder_Bay'
+  | 'America/Tijuana'
+  | 'America/Toronto'
+  | 'America/Tortola'
+  | 'America/Vancouver'
+  | 'America/Virgin'
+  | 'America/Whitehorse'
+  | 'America/Winnipeg'
+  | 'America/Yakutat'
+  | 'America/Yellowknife'
+  | 'Antarctica/Casey'
+  | 'Antarctica/Davis'
+  | 'Antarctica/DumontDUrville'
+  | 'Antarctica/Macquarie'
+  | 'Antarctica/Mawson'
+  | 'Antarctica/McMurdo'
+  | 'Antarctica/Palmer'
+  | 'Antarctica/Rothera'
+  | 'Antarctica/South_Pole'
+  | 'Antarctica/Syowa'
+  | 'Antarctica/Troll'
+  | 'Antarctica/Vostok'
+  | 'Arctic/Longyearbyen'
+  | 'Asia/Aden'
+  | 'Asia/Almaty'
+  | 'Asia/Amman'
+  | 'Asia/Anadyr'
+  | 'Asia/Aqtau'
+  | 'Asia/Aqtobe'
+  | 'Asia/Ashgabat'
+  | 'Asia/Ashkhabad'
+  | 'Asia/Atyrau'
+  | 'Asia/Baghdad'
+  | 'Asia/Bahrain'
+  | 'Asia/Baku'
+  | 'Asia/Bangkok'
+  | 'Asia/Barnaul'
+  | 'Asia/Beirut'
+  | 'Asia/Bishkek'
+  | 'Asia/Brunei'
+  | 'Asia/Calcutta'
+  | 'Asia/Chita'
+  | 'Asia/Choibalsan'
+  | 'Asia/Chongqing'
+  | 'Asia/Chungking'
+  | 'Asia/Colombo'
+  | 'Asia/Dacca'
+  | 'Asia/Damascus'
+  | 'Asia/Dhaka'
+  | 'Asia/Dili'
+  | 'Asia/Dubai'
+  | 'Asia/Dushanbe'
+  | 'Asia/Famagusta'
+  | 'Asia/Gaza'
+  | 'Asia/Harbin'
+  | 'Asia/Hebron'
+  | 'Asia/Ho_Chi_Minh'
+  | 'Asia/Hong_Kong'
+  | 'Asia/Hovd'
+  | 'Asia/Irkutsk'
+  | 'Asia/Istanbul'
+  | 'Asia/Jakarta'
+  | 'Asia/Jayapura'
+  | 'Asia/Jerusalem'
+  | 'Asia/Kabul'
+  | 'Asia/Kamchatka'
+  | 'Asia/Karachi'
+  | 'Asia/Kashgar'
+  | 'Asia/Kathmandu'
+  | 'Asia/Katmandu'
+  | 'Asia/Khandyga'
+  | 'Asia/Kolkata'
+  | 'Asia/Krasnoyarsk'
+  | 'Asia/Kuala_Lumpur'
+  | 'Asia/Kuching'
+  | 'Asia/Kuwait'
+  | 'Asia/Macao'
+  | 'Asia/Macau'
+  | 'Asia/Magadan'
+  | 'Asia/Makassar'
+  | 'Asia/Manila'
+  | 'Asia/Muscat'
+  | 'Asia/Nicosia'
+  | 'Asia/Novokuznetsk'
+  | 'Asia/Novosibirsk'
+  | 'Asia/Omsk'
+  | 'Asia/Oral'
+  | 'Asia/Phnom_Penh'
+  | 'Asia/Pontianak'
+  | 'Asia/Pyongyang'
+  | 'Asia/Qatar'
+  | 'Asia/Qostanay'
+  | 'Asia/Qyzylorda'
+  | 'Asia/Rangoon'
+  | 'Asia/Riyadh'
+  | 'Asia/Saigon'
+  | 'Asia/Sakhalin'
+  | 'Asia/Samarkand'
+  | 'Asia/Seoul'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Srednekolymsk'
+  | 'Asia/Taipei'
+  | 'Asia/Tashkent'
+  | 'Asia/Tbilisi'
+  | 'Asia/Tehran'
+  | 'Asia/Tel_Aviv'
+  | 'Asia/Thimbu'
+  | 'Asia/Thimphu'
+  | 'Asia/Tokyo'
+  | 'Asia/Tomsk'
+  | 'Asia/Ujung_Pandang'
+  | 'Asia/Ulaanbaatar'
+  | 'Asia/Ulan_Bator'
+  | 'Asia/Urumqi'
+  | 'Asia/Ust-Nera'
+  | 'Asia/Vientiane'
+  | 'Asia/Vladivostok'
+  | 'Asia/Yakutsk'
+  | 'Asia/Yangon'
+  | 'Asia/Yekaterinburg'
+  | 'Asia/Yerevan'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Bermuda'
+  | 'Atlantic/Canary'
+  | 'Atlantic/Cape_Verde'
+  | 'Atlantic/Faeroe'
+  | 'Atlantic/Faroe'
+  | 'Atlantic/Jan_Mayen'
+  | 'Atlantic/Madeira'
+  | 'Atlantic/Reykjavik'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/St_Helena'
+  | 'Atlantic/Stanley'
+  | 'Australia/ACT'
+  | 'Australia/Adelaide'
+  | 'Australia/Brisbane'
+  | 'Australia/Broken_Hill'
+  | 'Australia/Canberra'
+  | 'Australia/Currie'
+  | 'Australia/Darwin'
+  | 'Australia/Eucla'
+  | 'Australia/Hobart'
+  | 'Australia/LHI'
+  | 'Australia/Lindeman'
+  | 'Australia/Lord_Howe'
+  | 'Australia/Melbourne'
+  | 'Australia/NSW'
+  | 'Australia/North'
+  | 'Australia/Perth'
+  | 'Australia/Queensland'
+  | 'Australia/South'
+  | 'Australia/Sydney'
+  | 'Australia/Tasmania'
+  | 'Australia/Victoria'
+  | 'Australia/West'
+  | 'Australia/Yancowinna'
+  | 'Brazil/Acre'
+  | 'Brazil/DeNoronha'
+  | 'Brazil/East'
+  | 'Brazil/West'
+  | 'CET'
+  | 'CST6CDT'
+  | 'Canada/Atlantic'
+  | 'Canada/Central'
+  | 'Canada/Eastern'
+  | 'Canada/Mountain'
+  | 'Canada/Newfoundland'
+  | 'Canada/Pacific'
+  | 'Canada/Saskatchewan'
+  | 'Canada/Yukon'
+  | 'Chile/Continental'
+  | 'Chile/EasterIsland'
+  | 'Cuba'
+  | 'EET'
+  | 'EST'
+  | 'EST5EDT'
+  | 'Egypt'
+  | 'Eire'
+  | 'Etc/GMT'
+  | 'Etc/GMT+0'
+  | 'Etc/GMT+1'
+  | 'Etc/GMT+10'
+  | 'Etc/GMT+11'
+  | 'Etc/GMT+12'
+  | 'Etc/GMT+2'
+  | 'Etc/GMT+3'
+  | 'Etc/GMT+4'
+  | 'Etc/GMT+5'
+  | 'Etc/GMT+6'
+  | 'Etc/GMT+7'
+  | 'Etc/GMT+8'
+  | 'Etc/GMT+9'
+  | 'Etc/GMT-0'
+  | 'Etc/GMT-1'
+  | 'Etc/GMT-10'
+  | 'Etc/GMT-11'
+  | 'Etc/GMT-12'
+  | 'Etc/GMT-13'
+  | 'Etc/GMT-14'
+  | 'Etc/GMT-2'
+  | 'Etc/GMT-3'
+  | 'Etc/GMT-4'
+  | 'Etc/GMT-5'
+  | 'Etc/GMT-6'
+  | 'Etc/GMT-7'
+  | 'Etc/GMT-8'
+  | 'Etc/GMT-9'
+  | 'Etc/GMT0'
+  | 'Etc/Greenwich'
+  | 'Etc/UCT'
+  | 'Etc/UTC'
+  | 'Etc/Universal'
+  | 'Etc/Zulu'
+  | 'Europe/Amsterdam'
+  | 'Europe/Andorra'
+  | 'Europe/Astrakhan'
+  | 'Europe/Athens'
+  | 'Europe/Belfast'
+  | 'Europe/Belgrade'
+  | 'Europe/Berlin'
+  | 'Europe/Bratislava'
+  | 'Europe/Brussels'
+  | 'Europe/Bucharest'
+  | 'Europe/Budapest'
+  | 'Europe/Busingen'
+  | 'Europe/Chisinau'
+  | 'Europe/Copenhagen'
+  | 'Europe/Dublin'
+  | 'Europe/Gibraltar'
+  | 'Europe/Guernsey'
+  | 'Europe/Helsinki'
+  | 'Europe/Isle_of_Man'
+  | 'Europe/Istanbul'
+  | 'Europe/Jersey'
+  | 'Europe/Kaliningrad'
+  | 'Europe/Kiev'
+  | 'Europe/Kirov'
+  | 'Europe/Kyiv'
+  | 'Europe/Lisbon'
+  | 'Europe/Ljubljana'
+  | 'Europe/London'
+  | 'Europe/Luxembourg'
+  | 'Europe/Madrid'
+  | 'Europe/Malta'
+  | 'Europe/Mariehamn'
+  | 'Europe/Minsk'
+  | 'Europe/Monaco'
+  | 'Europe/Moscow'
+  | 'Europe/Nicosia'
+  | 'Europe/Oslo'
+  | 'Europe/Paris'
+  | 'Europe/Podgorica'
+  | 'Europe/Prague'
+  | 'Europe/Riga'
+  | 'Europe/Rome'
+  | 'Europe/Samara'
+  | 'Europe/San_Marino'
+  | 'Europe/Sarajevo'
+  | 'Europe/Saratov'
+  | 'Europe/Simferopol'
+  | 'Europe/Skopje'
+  | 'Europe/Sofia'
+  | 'Europe/Stockholm'
+  | 'Europe/Tallinn'
+  | 'Europe/Tirane'
+  | 'Europe/Tiraspol'
+  | 'Europe/Ulyanovsk'
+  | 'Europe/Uzhgorod'
+  | 'Europe/Vaduz'
+  | 'Europe/Vatican'
+  | 'Europe/Vienna'
+  | 'Europe/Vilnius'
+  | 'Europe/Volgograd'
+  | 'Europe/Warsaw'
+  | 'Europe/Zagreb'
+  | 'Europe/Zaporozhye'
+  | 'Europe/Zurich'
+  | 'GB'
+  | 'GB-Eire'
+  | 'GMT'
+  | 'GMT+0'
+  | 'GMT-0'
+  | 'GMT0'
+  | 'Greenwich'
+  | 'HST'
+  | 'Hongkong'
+  | 'Iceland'
+  | 'Indian/Antananarivo'
+  | 'Indian/Chagos'
+  | 'Indian/Christmas'
+  | 'Indian/Cocos'
+  | 'Indian/Comoro'
+  | 'Indian/Kerguelen'
+  | 'Indian/Mahe'
+  | 'Indian/Maldives'
+  | 'Indian/Mauritius'
+  | 'Indian/Mayotte'
+  | 'Indian/Reunion'
+  | 'Iran'
+  | 'Israel'
+  | 'Jamaica'
+  | 'Japan'
+  | 'Kwajalein'
+  | 'Libya'
+  | 'MET'
+  | 'MST'
+  | 'MST7MDT'
+  | 'Mexico/BajaNorte'
+  | 'Mexico/BajaSur'
+  | 'Mexico/General'
+  | 'NZ'
+  | 'NZ-CHAT'
+  | 'Navajo'
+  | 'PRC'
+  | 'PST8PDT'
+  | 'Pacific/Apia'
+  | 'Pacific/Auckland'
+  | 'Pacific/Bougainville'
+  | 'Pacific/Chatham'
+  | 'Pacific/Chuuk'
+  | 'Pacific/Easter'
+  | 'Pacific/Efate'
+  | 'Pacific/Enderbury'
+  | 'Pacific/Fakaofo'
+  | 'Pacific/Fiji'
+  | 'Pacific/Funafuti'
+  | 'Pacific/Galapagos'
+  | 'Pacific/Gambier'
+  | 'Pacific/Guadalcanal'
+  | 'Pacific/Guam'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Johnston'
+  | 'Pacific/Kanton'
+  | 'Pacific/Kiritimati'
+  | 'Pacific/Kosrae'
+  | 'Pacific/Kwajalein'
+  | 'Pacific/Majuro'
+  | 'Pacific/Marquesas'
+  | 'Pacific/Midway'
+  | 'Pacific/Nauru'
+  | 'Pacific/Niue'
+  | 'Pacific/Norfolk'
+  | 'Pacific/Noumea'
+  | 'Pacific/Pago_Pago'
+  | 'Pacific/Palau'
+  | 'Pacific/Pitcairn'
+  | 'Pacific/Pohnpei'
+  | 'Pacific/Ponape'
+  | 'Pacific/Port_Moresby'
+  | 'Pacific/Rarotonga'
+  | 'Pacific/Saipan'
+  | 'Pacific/Samoa'
+  | 'Pacific/Tahiti'
+  | 'Pacific/Tarawa'
+  | 'Pacific/Tongatapu'
+  | 'Pacific/Truk'
+  | 'Pacific/Wake'
+  | 'Pacific/Wallis'
+  | 'Pacific/Yap'
+  | 'Poland'
+  | 'Portugal'
+  | 'ROC'
+  | 'ROK'
+  | 'Singapore'
+  | 'Turkey'
+  | 'UCT'
+  | 'US/Alaska'
+  | 'US/Aleutian'
+  | 'US/Arizona'
+  | 'US/Central'
+  | 'US/East-Indiana'
+  | 'US/Eastern'
+  | 'US/Hawaii'
+  | 'US/Indiana-Starke'
+  | 'US/Michigan'
+  | 'US/Mountain'
+  | 'US/Pacific'
+  | 'US/Samoa'
+  | 'UTC'
+  | 'Universal'
+  | 'W-SU'
+  | 'WET'
+  | 'Zulu'
+  | 'localtime';
 
 export type TraceItemAttributeContextResponse = {
   additionalContext: string | null;
@@ -14482,7 +14051,7 @@ export type TraceItemAttributeValidateResponse = {
     {
       valid: boolean;
       error?: string;
-      type?: 'array' | 'boolean' | 'number' | 'string';
+      type?: AttributeTypeEnum;
     }
   >;
 };
@@ -14524,6 +14093,15 @@ export type TraceLogsResponse = {
   };
 };
 
+export type UpdateAServiceHookResponse = {
+  dateCreated: string;
+  events: string[];
+  id: string;
+  secret: string;
+  status: string;
+  url: string;
+};
+
 export type UpdateClientKey = {
   browserSdkVersion?: '7.x' | 'latest';
   dynamicSdkLoaderOptions?: DynamicSdkLoaderOption;
@@ -14555,7 +14133,7 @@ export type UpdateGroupNote = {
 };
 
 export type UpdateOrgMemberRoles = {
-  orgRole?: 'admin' | 'billing' | 'manager' | 'member' | 'owner';
+  orgRole?: OrgRoleEnum;
   teamRoles?: Array<Record<string, unknown>> | null;
 };
 
@@ -14682,6 +14260,113 @@ export type UpdateProjectReleaseResponse = {
   userAgent?: string | null;
 };
 
+export type UpdateProjectSymbolSourceResponse =
+  | {
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      type: 'http';
+      url: string;
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      password?: {
+        'hidden-secret'?: true;
+      };
+      platforms?: string[];
+      username?: string;
+    }
+  | {
+      access_key: string;
+      bucket: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      region: string;
+      secret_key: {
+        'hidden-secret'?: true;
+      };
+      type: 's3';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      bucket: string;
+      client_email: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      private_key: {
+        'hidden-secret'?: true;
+      };
+      type: 'gcs';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      account: string;
+      client_id: string;
+      client_secret: {
+        'hidden-secret'?: true;
+      };
+      container: string;
+      id: string;
+      layout: {
+        type: AddProjectSymbolSourceResponseTypeEnum;
+        casing?: CasingEnum;
+      };
+      tenant_id: string;
+      type: 'azure';
+      filters?: {
+        filetypes?: FiletypesEnum[];
+        path_patterns?: string[];
+        requires_checksum?: boolean;
+      };
+      has_index?: boolean;
+      is_public?: boolean;
+      name?: string;
+      platforms?: string[];
+      prefix?: string;
+    }
+  | {
+      appId: string;
+      appName: string;
+      appconnectIssuer: string;
+      appconnectKey: string;
+      appconnectPrivateKey: string;
+      bundleId: string;
+      id: string;
+      name: string;
+      type: 'appStoreConnect';
+    };
+
 export type UpdateServiceAccountResponse = {
   allProjects: boolean;
   dateCreated: string;
@@ -14706,7 +14391,7 @@ export type UptimeAlertList = Array<{
   owner: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   };
   projectSlug: string;
@@ -14733,7 +14418,7 @@ export type UptimeDetector = {
   owner: {
     id: string;
     name: string;
-    type: 'team' | 'user';
+    type: DetectorTypeEnum;
     email?: string;
   };
   projectSlug: string;
@@ -14766,7 +14451,7 @@ export type UptimeMonitorValidator = {
   owner?: string | null;
   recovery_threshold?: number;
   response_capture_enabled?: boolean;
-  status?: 'active' | 'disabled';
+  status?: MonitorBulkEditValidatorStatusEnum;
   trace_sampling?: boolean;
 };
 
@@ -14825,605 +14510,7 @@ export type UserOptions = {
   prefersIssueDetailsStreamlinedUI?: boolean;
   stacktraceOrder?: '-1' | '1' | '2';
   theme?: 'dark' | 'light' | 'system';
-  timezone?:
-    | 'Africa/Abidjan'
-    | 'Africa/Accra'
-    | 'Africa/Addis_Ababa'
-    | 'Africa/Algiers'
-    | 'Africa/Asmara'
-    | 'Africa/Asmera'
-    | 'Africa/Bamako'
-    | 'Africa/Bangui'
-    | 'Africa/Banjul'
-    | 'Africa/Bissau'
-    | 'Africa/Blantyre'
-    | 'Africa/Brazzaville'
-    | 'Africa/Bujumbura'
-    | 'Africa/Cairo'
-    | 'Africa/Casablanca'
-    | 'Africa/Ceuta'
-    | 'Africa/Conakry'
-    | 'Africa/Dakar'
-    | 'Africa/Dar_es_Salaam'
-    | 'Africa/Djibouti'
-    | 'Africa/Douala'
-    | 'Africa/El_Aaiun'
-    | 'Africa/Freetown'
-    | 'Africa/Gaborone'
-    | 'Africa/Harare'
-    | 'Africa/Johannesburg'
-    | 'Africa/Juba'
-    | 'Africa/Kampala'
-    | 'Africa/Khartoum'
-    | 'Africa/Kigali'
-    | 'Africa/Kinshasa'
-    | 'Africa/Lagos'
-    | 'Africa/Libreville'
-    | 'Africa/Lome'
-    | 'Africa/Luanda'
-    | 'Africa/Lubumbashi'
-    | 'Africa/Lusaka'
-    | 'Africa/Malabo'
-    | 'Africa/Maputo'
-    | 'Africa/Maseru'
-    | 'Africa/Mbabane'
-    | 'Africa/Mogadishu'
-    | 'Africa/Monrovia'
-    | 'Africa/Nairobi'
-    | 'Africa/Ndjamena'
-    | 'Africa/Niamey'
-    | 'Africa/Nouakchott'
-    | 'Africa/Ouagadougou'
-    | 'Africa/Porto-Novo'
-    | 'Africa/Sao_Tome'
-    | 'Africa/Timbuktu'
-    | 'Africa/Tripoli'
-    | 'Africa/Tunis'
-    | 'Africa/Windhoek'
-    | 'America/Adak'
-    | 'America/Anchorage'
-    | 'America/Anguilla'
-    | 'America/Antigua'
-    | 'America/Araguaina'
-    | 'America/Argentina/Buenos_Aires'
-    | 'America/Argentina/Catamarca'
-    | 'America/Argentina/ComodRivadavia'
-    | 'America/Argentina/Cordoba'
-    | 'America/Argentina/Jujuy'
-    | 'America/Argentina/La_Rioja'
-    | 'America/Argentina/Mendoza'
-    | 'America/Argentina/Rio_Gallegos'
-    | 'America/Argentina/Salta'
-    | 'America/Argentina/San_Juan'
-    | 'America/Argentina/San_Luis'
-    | 'America/Argentina/Tucuman'
-    | 'America/Argentina/Ushuaia'
-    | 'America/Aruba'
-    | 'America/Asuncion'
-    | 'America/Atikokan'
-    | 'America/Atka'
-    | 'America/Bahia'
-    | 'America/Bahia_Banderas'
-    | 'America/Barbados'
-    | 'America/Belem'
-    | 'America/Belize'
-    | 'America/Blanc-Sablon'
-    | 'America/Boa_Vista'
-    | 'America/Bogota'
-    | 'America/Boise'
-    | 'America/Buenos_Aires'
-    | 'America/Cambridge_Bay'
-    | 'America/Campo_Grande'
-    | 'America/Cancun'
-    | 'America/Caracas'
-    | 'America/Catamarca'
-    | 'America/Cayenne'
-    | 'America/Cayman'
-    | 'America/Chicago'
-    | 'America/Chihuahua'
-    | 'America/Ciudad_Juarez'
-    | 'America/Coral_Harbour'
-    | 'America/Cordoba'
-    | 'America/Costa_Rica'
-    | 'America/Coyhaique'
-    | 'America/Creston'
-    | 'America/Cuiaba'
-    | 'America/Curacao'
-    | 'America/Danmarkshavn'
-    | 'America/Dawson'
-    | 'America/Dawson_Creek'
-    | 'America/Denver'
-    | 'America/Detroit'
-    | 'America/Dominica'
-    | 'America/Edmonton'
-    | 'America/Eirunepe'
-    | 'America/El_Salvador'
-    | 'America/Ensenada'
-    | 'America/Fort_Nelson'
-    | 'America/Fort_Wayne'
-    | 'America/Fortaleza'
-    | 'America/Glace_Bay'
-    | 'America/Godthab'
-    | 'America/Goose_Bay'
-    | 'America/Grand_Turk'
-    | 'America/Grenada'
-    | 'America/Guadeloupe'
-    | 'America/Guatemala'
-    | 'America/Guayaquil'
-    | 'America/Guyana'
-    | 'America/Halifax'
-    | 'America/Havana'
-    | 'America/Hermosillo'
-    | 'America/Indiana/Indianapolis'
-    | 'America/Indiana/Knox'
-    | 'America/Indiana/Marengo'
-    | 'America/Indiana/Petersburg'
-    | 'America/Indiana/Tell_City'
-    | 'America/Indiana/Vevay'
-    | 'America/Indiana/Vincennes'
-    | 'America/Indiana/Winamac'
-    | 'America/Indianapolis'
-    | 'America/Inuvik'
-    | 'America/Iqaluit'
-    | 'America/Jamaica'
-    | 'America/Jujuy'
-    | 'America/Juneau'
-    | 'America/Kentucky/Louisville'
-    | 'America/Kentucky/Monticello'
-    | 'America/Knox_IN'
-    | 'America/Kralendijk'
-    | 'America/La_Paz'
-    | 'America/Lima'
-    | 'America/Los_Angeles'
-    | 'America/Louisville'
-    | 'America/Lower_Princes'
-    | 'America/Maceio'
-    | 'America/Managua'
-    | 'America/Manaus'
-    | 'America/Marigot'
-    | 'America/Martinique'
-    | 'America/Matamoros'
-    | 'America/Mazatlan'
-    | 'America/Mendoza'
-    | 'America/Menominee'
-    | 'America/Merida'
-    | 'America/Metlakatla'
-    | 'America/Mexico_City'
-    | 'America/Miquelon'
-    | 'America/Moncton'
-    | 'America/Monterrey'
-    | 'America/Montevideo'
-    | 'America/Montreal'
-    | 'America/Montserrat'
-    | 'America/Nassau'
-    | 'America/New_York'
-    | 'America/Nipigon'
-    | 'America/Nome'
-    | 'America/Noronha'
-    | 'America/North_Dakota/Beulah'
-    | 'America/North_Dakota/Center'
-    | 'America/North_Dakota/New_Salem'
-    | 'America/Nuuk'
-    | 'America/Ojinaga'
-    | 'America/Panama'
-    | 'America/Pangnirtung'
-    | 'America/Paramaribo'
-    | 'America/Phoenix'
-    | 'America/Port-au-Prince'
-    | 'America/Port_of_Spain'
-    | 'America/Porto_Acre'
-    | 'America/Porto_Velho'
-    | 'America/Puerto_Rico'
-    | 'America/Punta_Arenas'
-    | 'America/Rainy_River'
-    | 'America/Rankin_Inlet'
-    | 'America/Recife'
-    | 'America/Regina'
-    | 'America/Resolute'
-    | 'America/Rio_Branco'
-    | 'America/Rosario'
-    | 'America/Santa_Isabel'
-    | 'America/Santarem'
-    | 'America/Santiago'
-    | 'America/Santo_Domingo'
-    | 'America/Sao_Paulo'
-    | 'America/Scoresbysund'
-    | 'America/Shiprock'
-    | 'America/Sitka'
-    | 'America/St_Barthelemy'
-    | 'America/St_Johns'
-    | 'America/St_Kitts'
-    | 'America/St_Lucia'
-    | 'America/St_Thomas'
-    | 'America/St_Vincent'
-    | 'America/Swift_Current'
-    | 'America/Tegucigalpa'
-    | 'America/Thule'
-    | 'America/Thunder_Bay'
-    | 'America/Tijuana'
-    | 'America/Toronto'
-    | 'America/Tortola'
-    | 'America/Vancouver'
-    | 'America/Virgin'
-    | 'America/Whitehorse'
-    | 'America/Winnipeg'
-    | 'America/Yakutat'
-    | 'America/Yellowknife'
-    | 'Antarctica/Casey'
-    | 'Antarctica/Davis'
-    | 'Antarctica/DumontDUrville'
-    | 'Antarctica/Macquarie'
-    | 'Antarctica/Mawson'
-    | 'Antarctica/McMurdo'
-    | 'Antarctica/Palmer'
-    | 'Antarctica/Rothera'
-    | 'Antarctica/South_Pole'
-    | 'Antarctica/Syowa'
-    | 'Antarctica/Troll'
-    | 'Antarctica/Vostok'
-    | 'Arctic/Longyearbyen'
-    | 'Asia/Aden'
-    | 'Asia/Almaty'
-    | 'Asia/Amman'
-    | 'Asia/Anadyr'
-    | 'Asia/Aqtau'
-    | 'Asia/Aqtobe'
-    | 'Asia/Ashgabat'
-    | 'Asia/Ashkhabad'
-    | 'Asia/Atyrau'
-    | 'Asia/Baghdad'
-    | 'Asia/Bahrain'
-    | 'Asia/Baku'
-    | 'Asia/Bangkok'
-    | 'Asia/Barnaul'
-    | 'Asia/Beirut'
-    | 'Asia/Bishkek'
-    | 'Asia/Brunei'
-    | 'Asia/Calcutta'
-    | 'Asia/Chita'
-    | 'Asia/Choibalsan'
-    | 'Asia/Chongqing'
-    | 'Asia/Chungking'
-    | 'Asia/Colombo'
-    | 'Asia/Dacca'
-    | 'Asia/Damascus'
-    | 'Asia/Dhaka'
-    | 'Asia/Dili'
-    | 'Asia/Dubai'
-    | 'Asia/Dushanbe'
-    | 'Asia/Famagusta'
-    | 'Asia/Gaza'
-    | 'Asia/Harbin'
-    | 'Asia/Hebron'
-    | 'Asia/Ho_Chi_Minh'
-    | 'Asia/Hong_Kong'
-    | 'Asia/Hovd'
-    | 'Asia/Irkutsk'
-    | 'Asia/Istanbul'
-    | 'Asia/Jakarta'
-    | 'Asia/Jayapura'
-    | 'Asia/Jerusalem'
-    | 'Asia/Kabul'
-    | 'Asia/Kamchatka'
-    | 'Asia/Karachi'
-    | 'Asia/Kashgar'
-    | 'Asia/Kathmandu'
-    | 'Asia/Katmandu'
-    | 'Asia/Khandyga'
-    | 'Asia/Kolkata'
-    | 'Asia/Krasnoyarsk'
-    | 'Asia/Kuala_Lumpur'
-    | 'Asia/Kuching'
-    | 'Asia/Kuwait'
-    | 'Asia/Macao'
-    | 'Asia/Macau'
-    | 'Asia/Magadan'
-    | 'Asia/Makassar'
-    | 'Asia/Manila'
-    | 'Asia/Muscat'
-    | 'Asia/Nicosia'
-    | 'Asia/Novokuznetsk'
-    | 'Asia/Novosibirsk'
-    | 'Asia/Omsk'
-    | 'Asia/Oral'
-    | 'Asia/Phnom_Penh'
-    | 'Asia/Pontianak'
-    | 'Asia/Pyongyang'
-    | 'Asia/Qatar'
-    | 'Asia/Qostanay'
-    | 'Asia/Qyzylorda'
-    | 'Asia/Rangoon'
-    | 'Asia/Riyadh'
-    | 'Asia/Saigon'
-    | 'Asia/Sakhalin'
-    | 'Asia/Samarkand'
-    | 'Asia/Seoul'
-    | 'Asia/Shanghai'
-    | 'Asia/Singapore'
-    | 'Asia/Srednekolymsk'
-    | 'Asia/Taipei'
-    | 'Asia/Tashkent'
-    | 'Asia/Tbilisi'
-    | 'Asia/Tehran'
-    | 'Asia/Tel_Aviv'
-    | 'Asia/Thimbu'
-    | 'Asia/Thimphu'
-    | 'Asia/Tokyo'
-    | 'Asia/Tomsk'
-    | 'Asia/Ujung_Pandang'
-    | 'Asia/Ulaanbaatar'
-    | 'Asia/Ulan_Bator'
-    | 'Asia/Urumqi'
-    | 'Asia/Ust-Nera'
-    | 'Asia/Vientiane'
-    | 'Asia/Vladivostok'
-    | 'Asia/Yakutsk'
-    | 'Asia/Yangon'
-    | 'Asia/Yekaterinburg'
-    | 'Asia/Yerevan'
-    | 'Atlantic/Azores'
-    | 'Atlantic/Bermuda'
-    | 'Atlantic/Canary'
-    | 'Atlantic/Cape_Verde'
-    | 'Atlantic/Faeroe'
-    | 'Atlantic/Faroe'
-    | 'Atlantic/Jan_Mayen'
-    | 'Atlantic/Madeira'
-    | 'Atlantic/Reykjavik'
-    | 'Atlantic/South_Georgia'
-    | 'Atlantic/St_Helena'
-    | 'Atlantic/Stanley'
-    | 'Australia/ACT'
-    | 'Australia/Adelaide'
-    | 'Australia/Brisbane'
-    | 'Australia/Broken_Hill'
-    | 'Australia/Canberra'
-    | 'Australia/Currie'
-    | 'Australia/Darwin'
-    | 'Australia/Eucla'
-    | 'Australia/Hobart'
-    | 'Australia/LHI'
-    | 'Australia/Lindeman'
-    | 'Australia/Lord_Howe'
-    | 'Australia/Melbourne'
-    | 'Australia/NSW'
-    | 'Australia/North'
-    | 'Australia/Perth'
-    | 'Australia/Queensland'
-    | 'Australia/South'
-    | 'Australia/Sydney'
-    | 'Australia/Tasmania'
-    | 'Australia/Victoria'
-    | 'Australia/West'
-    | 'Australia/Yancowinna'
-    | 'Brazil/Acre'
-    | 'Brazil/DeNoronha'
-    | 'Brazil/East'
-    | 'Brazil/West'
-    | 'CET'
-    | 'CST6CDT'
-    | 'Canada/Atlantic'
-    | 'Canada/Central'
-    | 'Canada/Eastern'
-    | 'Canada/Mountain'
-    | 'Canada/Newfoundland'
-    | 'Canada/Pacific'
-    | 'Canada/Saskatchewan'
-    | 'Canada/Yukon'
-    | 'Chile/Continental'
-    | 'Chile/EasterIsland'
-    | 'Cuba'
-    | 'EET'
-    | 'EST'
-    | 'EST5EDT'
-    | 'Egypt'
-    | 'Eire'
-    | 'Etc/GMT'
-    | 'Etc/GMT+0'
-    | 'Etc/GMT+1'
-    | 'Etc/GMT+10'
-    | 'Etc/GMT+11'
-    | 'Etc/GMT+12'
-    | 'Etc/GMT+2'
-    | 'Etc/GMT+3'
-    | 'Etc/GMT+4'
-    | 'Etc/GMT+5'
-    | 'Etc/GMT+6'
-    | 'Etc/GMT+7'
-    | 'Etc/GMT+8'
-    | 'Etc/GMT+9'
-    | 'Etc/GMT-0'
-    | 'Etc/GMT-1'
-    | 'Etc/GMT-10'
-    | 'Etc/GMT-11'
-    | 'Etc/GMT-12'
-    | 'Etc/GMT-13'
-    | 'Etc/GMT-14'
-    | 'Etc/GMT-2'
-    | 'Etc/GMT-3'
-    | 'Etc/GMT-4'
-    | 'Etc/GMT-5'
-    | 'Etc/GMT-6'
-    | 'Etc/GMT-7'
-    | 'Etc/GMT-8'
-    | 'Etc/GMT-9'
-    | 'Etc/GMT0'
-    | 'Etc/Greenwich'
-    | 'Etc/UCT'
-    | 'Etc/UTC'
-    | 'Etc/Universal'
-    | 'Etc/Zulu'
-    | 'Europe/Amsterdam'
-    | 'Europe/Andorra'
-    | 'Europe/Astrakhan'
-    | 'Europe/Athens'
-    | 'Europe/Belfast'
-    | 'Europe/Belgrade'
-    | 'Europe/Berlin'
-    | 'Europe/Bratislava'
-    | 'Europe/Brussels'
-    | 'Europe/Bucharest'
-    | 'Europe/Budapest'
-    | 'Europe/Busingen'
-    | 'Europe/Chisinau'
-    | 'Europe/Copenhagen'
-    | 'Europe/Dublin'
-    | 'Europe/Gibraltar'
-    | 'Europe/Guernsey'
-    | 'Europe/Helsinki'
-    | 'Europe/Isle_of_Man'
-    | 'Europe/Istanbul'
-    | 'Europe/Jersey'
-    | 'Europe/Kaliningrad'
-    | 'Europe/Kiev'
-    | 'Europe/Kirov'
-    | 'Europe/Kyiv'
-    | 'Europe/Lisbon'
-    | 'Europe/Ljubljana'
-    | 'Europe/London'
-    | 'Europe/Luxembourg'
-    | 'Europe/Madrid'
-    | 'Europe/Malta'
-    | 'Europe/Mariehamn'
-    | 'Europe/Minsk'
-    | 'Europe/Monaco'
-    | 'Europe/Moscow'
-    | 'Europe/Nicosia'
-    | 'Europe/Oslo'
-    | 'Europe/Paris'
-    | 'Europe/Podgorica'
-    | 'Europe/Prague'
-    | 'Europe/Riga'
-    | 'Europe/Rome'
-    | 'Europe/Samara'
-    | 'Europe/San_Marino'
-    | 'Europe/Sarajevo'
-    | 'Europe/Saratov'
-    | 'Europe/Simferopol'
-    | 'Europe/Skopje'
-    | 'Europe/Sofia'
-    | 'Europe/Stockholm'
-    | 'Europe/Tallinn'
-    | 'Europe/Tirane'
-    | 'Europe/Tiraspol'
-    | 'Europe/Ulyanovsk'
-    | 'Europe/Uzhgorod'
-    | 'Europe/Vaduz'
-    | 'Europe/Vatican'
-    | 'Europe/Vienna'
-    | 'Europe/Vilnius'
-    | 'Europe/Volgograd'
-    | 'Europe/Warsaw'
-    | 'Europe/Zagreb'
-    | 'Europe/Zaporozhye'
-    | 'Europe/Zurich'
-    | 'GB'
-    | 'GB-Eire'
-    | 'GMT'
-    | 'GMT+0'
-    | 'GMT-0'
-    | 'GMT0'
-    | 'Greenwich'
-    | 'HST'
-    | 'Hongkong'
-    | 'Iceland'
-    | 'Indian/Antananarivo'
-    | 'Indian/Chagos'
-    | 'Indian/Christmas'
-    | 'Indian/Cocos'
-    | 'Indian/Comoro'
-    | 'Indian/Kerguelen'
-    | 'Indian/Mahe'
-    | 'Indian/Maldives'
-    | 'Indian/Mauritius'
-    | 'Indian/Mayotte'
-    | 'Indian/Reunion'
-    | 'Iran'
-    | 'Israel'
-    | 'Jamaica'
-    | 'Japan'
-    | 'Kwajalein'
-    | 'Libya'
-    | 'MET'
-    | 'MST'
-    | 'MST7MDT'
-    | 'Mexico/BajaNorte'
-    | 'Mexico/BajaSur'
-    | 'Mexico/General'
-    | 'NZ'
-    | 'NZ-CHAT'
-    | 'Navajo'
-    | 'PRC'
-    | 'PST8PDT'
-    | 'Pacific/Apia'
-    | 'Pacific/Auckland'
-    | 'Pacific/Bougainville'
-    | 'Pacific/Chatham'
-    | 'Pacific/Chuuk'
-    | 'Pacific/Easter'
-    | 'Pacific/Efate'
-    | 'Pacific/Enderbury'
-    | 'Pacific/Fakaofo'
-    | 'Pacific/Fiji'
-    | 'Pacific/Funafuti'
-    | 'Pacific/Galapagos'
-    | 'Pacific/Gambier'
-    | 'Pacific/Guadalcanal'
-    | 'Pacific/Guam'
-    | 'Pacific/Honolulu'
-    | 'Pacific/Johnston'
-    | 'Pacific/Kanton'
-    | 'Pacific/Kiritimati'
-    | 'Pacific/Kosrae'
-    | 'Pacific/Kwajalein'
-    | 'Pacific/Majuro'
-    | 'Pacific/Marquesas'
-    | 'Pacific/Midway'
-    | 'Pacific/Nauru'
-    | 'Pacific/Niue'
-    | 'Pacific/Norfolk'
-    | 'Pacific/Noumea'
-    | 'Pacific/Pago_Pago'
-    | 'Pacific/Palau'
-    | 'Pacific/Pitcairn'
-    | 'Pacific/Pohnpei'
-    | 'Pacific/Ponape'
-    | 'Pacific/Port_Moresby'
-    | 'Pacific/Rarotonga'
-    | 'Pacific/Saipan'
-    | 'Pacific/Samoa'
-    | 'Pacific/Tahiti'
-    | 'Pacific/Tarawa'
-    | 'Pacific/Tongatapu'
-    | 'Pacific/Truk'
-    | 'Pacific/Wake'
-    | 'Pacific/Wallis'
-    | 'Pacific/Yap'
-    | 'Poland'
-    | 'Portugal'
-    | 'ROC'
-    | 'ROK'
-    | 'Singapore'
-    | 'Turkey'
-    | 'UCT'
-    | 'US/Alaska'
-    | 'US/Aleutian'
-    | 'US/Arizona'
-    | 'US/Central'
-    | 'US/East-Indiana'
-    | 'US/Eastern'
-    | 'US/Hawaii'
-    | 'US/Indiana-Starke'
-    | 'US/Michigan'
-    | 'US/Mountain'
-    | 'US/Pacific'
-    | 'US/Samoa'
-    | 'UTC'
-    | 'Universal'
-    | 'W-SU'
-    | 'WET'
-    | 'Zulu'
-    | 'localtime';
+  timezone?: TimezoneEnum;
 };
 
 export type ValidateEventsQueryResponse = {
@@ -15484,6 +14571,17 @@ export type WidgetLayout = {
   x: number;
   y: number;
 };
+
+export type WidgetTypeEnum =
+  | 'discover'
+  | 'error-events'
+  | 'issue'
+  | 'logs'
+  | 'metrics'
+  | 'preprod-app-size'
+  | 'spans'
+  | 'tracemetrics'
+  | 'transaction-like';
 
 export type Workflow = {
   actionFilters: Array<{
@@ -15572,7 +14670,7 @@ export type WorkflowGroupHistory = {
     assignedTo: {
       id: string;
       name: string;
-      type: 'team' | 'user';
+      type: DetectorTypeEnum;
       email?: string;
     } | null;
     culprit: string | null;
@@ -15583,13 +14681,13 @@ export type WorkflowGroupHistory = {
     isSubscribed: boolean;
     issueCategory: string;
     issueType: string;
-    level: 'debug' | 'error' | 'fatal' | 'info' | 'sample' | 'unknown' | 'warning';
+    level: LevelEnum;
     logger: string | null;
     metadata: Record<string, unknown>;
     numComments: number;
     permalink: string;
     platform: string | null;
-    priority: 'high' | 'low' | 'medium' | null;
+    priority: PriorityEnum | null;
     priorityLockedAt: string | null;
     project: {
       id: string;
@@ -15602,13 +14700,7 @@ export type WorkflowGroupHistory = {
     seerFixabilityScore: number | null;
     shareId: string | null;
     shortId: string | null;
-    status:
-      | 'ignored'
-      | 'pending_deletion'
-      | 'pending_merge'
-      | 'reprocessing'
-      | 'resolved'
-      | 'unresolved';
+    status: GroupDetailsResponseStatusEnum;
     statusDetails: {
       actor?: {
         avatarUrl: string;
@@ -15679,27 +14771,9 @@ export type WorkflowGroupHistory = {
       disabled?: boolean;
       reason?: string;
     } | null;
-    substatus:
-      | 'archived_forever'
-      | 'archived_until_condition_met'
-      | 'archived_until_escalating'
-      | 'escalating'
-      | 'new'
-      | 'ongoing'
-      | 'regressed'
-      | null;
+    substatus: SubstatusEnum | null;
     title: string;
-    type:
-      | 'csp'
-      | 'default'
-      | 'error'
-      | 'expectct'
-      | 'expectstaple'
-      | 'feedback'
-      | 'generic'
-      | 'hpkp'
-      | 'nel'
-      | 'transaction';
+    type: EventIdLookupResponseTypeEnum;
     count?: string;
     derivedData?: {
       blocker: string;
@@ -15736,7 +14810,7 @@ export type WorkflowPreviewConfigValidator = {
  * Errors are output in camel case.
  */
 export type WorkflowPreviewDataConditionGroupValidator = {
-  logic_type: 'all' | 'any' | 'any-short' | 'none';
+  logic_type: LogicTypeEnum;
   conditions?: unknown[];
   id?: number;
 };
@@ -15768,7 +14842,7 @@ export type WorkflowStats = {
       interval: number;
       valueType: string;
       valueUnit: string | null;
-      dataScanned?: 'full' | 'partial';
+      dataScanned?: DataScannedEnum;
       isOther?: boolean;
       order?: number;
     };
@@ -15779,7 +14853,7 @@ export type WorkflowStats = {
       comparisonFilled?: boolean;
       comparisonSmoothed?: boolean;
       comparisonValue?: number | null;
-      confidence?: 'high' | 'low' | null;
+      confidence?: ConfidenceEnum | null;
       filled?: boolean;
       incompleteReason?: string;
       sampleCount?: number;
@@ -16285,12 +15359,7 @@ export type ApiMapping = {
   };
   '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/': {
     /** List a Tag's Values Related to an Issue (public) */
-    GET: {
-      response: Array<{
-        key: string;
-        value: string;
-      }>;
-    };
+    GET: {response: ListATagsValuesRelatedToAnIssueResponse};
   };
   '/organizations/$organizationIdOrSlug/key-transactions-list/': {
     /** listOrganizationTeamKeyTransactions (private) */
@@ -16538,7 +15607,7 @@ export type ApiMapping = {
   };
   '/organizations/$organizationIdOrSlug/releases/$version/deploys/': {
     /** listOrganizationReleaseDeploys (public) */
-    GET: {response: DeployResponse[]};
+    GET: {response: ListOrganizationReleaseDeploysResponse};
     /** createOrganizationReleaseDeploy (public) */
     POST: {response: DeployResponse};
   };
@@ -16660,20 +15729,7 @@ export type ApiMapping = {
   };
   '/organizations/$organizationIdOrSlug/sentry-app-installations/': {
     /** List an Organization's Integration Platform Installations (private) */
-    GET: {
-      response: Array<{
-        app: {
-          sentryAppId: number;
-          slug: string;
-          uuid: string;
-        };
-        organization: {
-          slug: string;
-        };
-        status: string;
-        uuid: string;
-      }>;
-    };
+    GET: {response: ListAnOrganizationsIntegrationPlatformInstallationsResponse};
   };
   '/organizations/$organizationIdOrSlug/sentry-apps/': {
     /** listOrganizationSentryApps (public) */
@@ -16839,7 +15895,7 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/': {
     /** List a Project's Custom Inbound Filters (public_experimental) */
-    GET: {response: CustomInboundFilter[]};
+    GET: {response: ListAProjectsCustomInboundFiltersResponse};
     /** Create a Custom Inbound Filter (public_experimental) */
     POST: {response: CustomInboundFilter};
   };
@@ -16899,161 +15955,27 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/': {
     /** List a Project's Issues (experimental) */
-    GET: {
-      response: Array<{
-        annotations: string[];
-        assignedTo: Record<string, unknown> | null;
-        count: string;
-        culprit: string;
-        firstSeen: string;
-        hasSeen: boolean;
-        id: string;
-        isBookmarked: boolean;
-        isPublic: boolean;
-        isSubscribed: boolean;
-        lastSeen: string;
-        level: string;
-        logger: string | null;
-        metadata:
-          | {
-              filename: string;
-              type: string;
-              value: string;
-            }
-          | {
-              title: string;
-            };
-        numComments: number;
-        permalink: string;
-        project: {
-          id?: string;
-          name?: string;
-          slug?: string;
-        };
-        shareId: string | null;
-        shortId: string;
-        stats: {
-          '24h'?: number[][];
-        };
-        status: 'ignored' | 'resolved' | 'unresolved';
-        statusDetails: Record<string, unknown>;
-        subscriptionDetails: Record<string, unknown> | null;
-        title: string;
-        type: string;
-        userCount: number;
-      }>;
-    };
+    GET: {response: ListAProjectsIssuesResponse};
     /** Bulk Mutate a List of Issues (experimental) */
-    PUT: {
-      response: {
-        isPublic: boolean;
-        status: 'ignored' | 'resolved' | 'unresolved';
-        statusDetails: Record<string, unknown>;
-      };
-    };
+    PUT: {response: BulkMutateAListOfIssuesResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/': {
     /** List a Project's Service Hooks (private) */
-    GET: {
-      response: Array<{
-        dateCreated: string;
-        events: string[];
-        id: string;
-        secret: string;
-        status: string;
-        url: string;
-      }>;
-    };
+    GET: {response: ListAProjectsServiceHooksResponse};
     /** Register a New Service Hook (private) */
-    POST: {
-      response: {
-        dateCreated: string;
-        events: string[];
-        id: string;
-        secret: string;
-        status: string;
-        url: string;
-      };
-    };
+    POST: {response: RegisterANewServiceHookResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/': {
     /** Retrieve a Service Hook (private) */
-    GET: {
-      response: {
-        dateCreated: string;
-        events: string[];
-        id: string;
-        secret: string;
-        status: string;
-        url: string;
-      };
-    };
+    GET: {response: RetrieveAServiceHookResponse};
     /** Update a Service Hook (private) */
-    PUT: {
-      response: {
-        dateCreated: string;
-        events: string[];
-        id: string;
-        secret: string;
-        status: string;
-        url: string;
-      };
-    };
+    PUT: {response: UpdateAServiceHookResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/': {
     /** List a Project's Issues (experimental) */
-    GET: {
-      response: Array<{
-        annotations: string[];
-        assignedTo: Record<string, unknown> | null;
-        count: string;
-        culprit: string;
-        firstSeen: string;
-        hasSeen: boolean;
-        id: string;
-        isBookmarked: boolean;
-        isPublic: boolean;
-        isSubscribed: boolean;
-        lastSeen: string;
-        level: string;
-        logger: string | null;
-        metadata:
-          | {
-              filename: string;
-              type: string;
-              value: string;
-            }
-          | {
-              title: string;
-            };
-        numComments: number;
-        permalink: string;
-        project: {
-          id?: string;
-          name?: string;
-          slug?: string;
-        };
-        shareId: string | null;
-        shortId: string;
-        stats: {
-          '24h'?: number[][];
-        };
-        status: 'ignored' | 'resolved' | 'unresolved';
-        statusDetails: Record<string, unknown>;
-        subscriptionDetails: Record<string, unknown> | null;
-        title: string;
-        type: string;
-        userCount: number;
-      }>;
-    };
+    GET: {response: ListAProjectsIssuesResponse};
     /** Bulk Mutate a List of Issues (experimental) */
-    PUT: {
-      response: {
-        isPublic: boolean;
-        status: 'ignored' | 'resolved' | 'unresolved';
-        statusDetails: Record<string, unknown>;
-      };
-    };
+    PUT: {response: BulkMutateAListOfIssuesResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/': {
     /** listProjectKeys (public) */
@@ -17221,633 +16143,11 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/symbol-sources/': {
     /** listProjectSymbolSources (public) */
-    GET: {
-      response: Array<
-        | {
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            type: 'http';
-            url: string;
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            password?: {
-              'hidden-secret'?: true;
-            };
-            platforms?: string[];
-            username?: string;
-          }
-        | {
-            access_key: string;
-            bucket: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            region: string;
-            secret_key: {
-              'hidden-secret'?: true;
-            };
-            type: 's3';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            bucket: string;
-            client_email: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            private_key: {
-              'hidden-secret'?: true;
-            };
-            type: 'gcs';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            account: string;
-            client_id: string;
-            client_secret: {
-              'hidden-secret'?: true;
-            };
-            container: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            tenant_id: string;
-            type: 'azure';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            appId: string;
-            appName: string;
-            appconnectIssuer: string;
-            appconnectKey: string;
-            appconnectPrivateKey: string;
-            bundleId: string;
-            id: string;
-            name: string;
-            type: 'appStoreConnect';
-          }
-      >;
-    };
+    GET: {response: ListProjectSymbolSourcesResponse};
     /** addProjectSymbolSource (public) */
-    POST: {
-      response:
-        | {
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            type: 'http';
-            url: string;
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            password?: {
-              'hidden-secret'?: true;
-            };
-            platforms?: string[];
-            username?: string;
-          }
-        | {
-            access_key: string;
-            bucket: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            region: string;
-            secret_key: {
-              'hidden-secret'?: true;
-            };
-            type: 's3';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            bucket: string;
-            client_email: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            private_key: {
-              'hidden-secret'?: true;
-            };
-            type: 'gcs';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            account: string;
-            client_id: string;
-            client_secret: {
-              'hidden-secret'?: true;
-            };
-            container: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            tenant_id: string;
-            type: 'azure';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            appId: string;
-            appName: string;
-            appconnectIssuer: string;
-            appconnectKey: string;
-            appconnectPrivateKey: string;
-            bundleId: string;
-            id: string;
-            name: string;
-            type: 'appStoreConnect';
-          };
-    };
+    POST: {response: AddProjectSymbolSourceResponse};
     /** updateProjectSymbolSource (public) */
-    PUT: {
-      response:
-        | {
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            type: 'http';
-            url: string;
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            password?: {
-              'hidden-secret'?: true;
-            };
-            platforms?: string[];
-            username?: string;
-          }
-        | {
-            access_key: string;
-            bucket: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            region: string;
-            secret_key: {
-              'hidden-secret'?: true;
-            };
-            type: 's3';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            bucket: string;
-            client_email: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            private_key: {
-              'hidden-secret'?: true;
-            };
-            type: 'gcs';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            account: string;
-            client_id: string;
-            client_secret: {
-              'hidden-secret'?: true;
-            };
-            container: string;
-            id: string;
-            layout: {
-              type:
-                | 'debuginfod'
-                | 'native'
-                | 'nnsymstore'
-                | 'slashsymbols'
-                | 'ssqp'
-                | 'symstore'
-                | 'symstore_index2'
-                | 'unified';
-              casing?: 'default' | 'lowercase' | 'uppercase';
-            };
-            tenant_id: string;
-            type: 'azure';
-            filters?: {
-              filetypes?: Array<
-                | 'bcsymbolmap'
-                | 'breakpad'
-                | 'dartsymbolmap'
-                | 'elf_code'
-                | 'elf_debug'
-                | 'il2cpp'
-                | 'mach_code'
-                | 'mach_debug'
-                | 'pdb'
-                | 'pe'
-                | 'portablepdb'
-                | 'proguard'
-                | 'sourcebundle'
-                | 'uuidmap'
-                | 'wasm_code'
-                | 'wasm_debug'
-              >;
-              path_patterns?: string[];
-              requires_checksum?: boolean;
-            };
-            has_index?: boolean;
-            is_public?: boolean;
-            name?: string;
-            platforms?: string[];
-            prefix?: string;
-          }
-        | {
-            appId: string;
-            appName: string;
-            appconnectIssuer: string;
-            appconnectKey: string;
-            appconnectPrivateKey: string;
-            bundleId: string;
-            id: string;
-            name: string;
-            type: 'appStoreConnect';
-          };
-    };
+    PUT: {response: UpdateProjectSymbolSourceResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/': {
     /** List a Project's Tag Keys (private) */
@@ -17859,11 +16159,7 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/$key/values/': {
     /** List a Tag's Values (private) */
-    GET: {
-      response: Array<{
-        name: string;
-      }>;
-    };
+    GET: {response: ListATagsValuesResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/': {
     /** listProjectTeams (public) */
@@ -17887,47 +16183,17 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/response-captures/': {
     /** Delete All Uptime Response Captures (experimental) */
-    DELETE: {response: Record<string, unknown>};
+    DELETE: {response: DeleteAllUptimeResponseCapturesResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/response-captures/$captureId/': {
     /** Retrieve an Uptime Response Capture (experimental) */
-    GET: {response: Record<string, unknown>};
+    GET: {response: RetrieveAnUptimeResponseCaptureResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-feedback/': {
     /** List a Project's User Feedback (private) */
-    GET: {
-      response: Array<{
-        comments: string;
-        dateCreated: string;
-        email: string;
-        event: {
-          eventID?: string;
-          id?: string | null;
-        };
-        eventID: string;
-        id: string;
-        issue: Record<string, unknown> | null;
-        name: string;
-        user: Record<string, unknown> | null;
-      }>;
-    };
+    GET: {response: ListAProjectsUserFeedbackResponse};
     /** Submit User Feedback (private) */
-    POST: {
-      response: {
-        comments: string;
-        dateCreated: string;
-        email: string;
-        event: {
-          eventID?: string;
-          id?: string | null;
-        };
-        eventID: string;
-        id: string;
-        issue: Record<string, unknown> | null;
-        name: string;
-        user: Record<string, unknown> | null;
-      };
-    };
+    POST: {response: SubmitUserFeedbackResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-issue/': {
     /** Create a user defined issue (experimental) */
@@ -17935,39 +16201,9 @@ export type ApiMapping = {
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-reports/': {
     /** List a Project's User Feedback (private) */
-    GET: {
-      response: Array<{
-        comments: string;
-        dateCreated: string;
-        email: string;
-        event: {
-          eventID?: string;
-          id?: string | null;
-        };
-        eventID: string;
-        id: string;
-        issue: Record<string, unknown> | null;
-        name: string;
-        user: Record<string, unknown> | null;
-      }>;
-    };
+    GET: {response: ListAProjectsUserFeedbackResponse};
     /** Submit User Feedback (private) */
-    POST: {
-      response: {
-        comments: string;
-        dateCreated: string;
-        email: string;
-        event: {
-          eventID?: string;
-          id?: string | null;
-        };
-        eventID: string;
-        id: string;
-        issue: Record<string, unknown> | null;
-        name: string;
-        user: Record<string, unknown> | null;
-      };
-    };
+    POST: {response: SubmitUserFeedbackResponse};
   };
   '/projects/$organizationIdOrSlug/$projectIdOrSlug/users/': {
     /** listProjectUsers (public) */
@@ -17989,15 +16225,7 @@ export type ApiMapping = {
   };
   '/sentry-app-installations/$uuid/external-issues/': {
     /** Create or update an External Issue (private) */
-    POST: {
-      response: {
-        displayName: string;
-        id: string;
-        issueId: string;
-        serviceType: string;
-        webUrl: string;
-      };
-    };
+    POST: {response: CreateOrUpdateAnExternalIssueResponse};
   };
   '/sentry-app-installations/$uuid/external-requests/': {
     /** getSentryAppInstallationExternalRequestOptions (public_experimental) */
