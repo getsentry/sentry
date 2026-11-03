@@ -158,6 +158,7 @@ def test_viewer_context_is_isolated_between_tests(tmp_path: Path) -> None:
         if not k.startswith(("PYTEST_", "DJANGO_", "SENTRY_", "TEST_GROUP", "TOTAL_TEST_GROUPS"))
     }
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PY_COLORS"] = "1"  # Match CI; the child must still emit a plain-text summary.
     proc = subprocess.run(
         [
             sys.executable,
@@ -169,6 +170,7 @@ def test_viewer_context_is_isolated_between_tests(tmp_path: Path) -> None:
             "sentry.testutils.pytest.fixtures",
             "test_context.py",
             "-q",
+            "--color=no",
         ],
         cwd=tmp_path,
         env=env,
