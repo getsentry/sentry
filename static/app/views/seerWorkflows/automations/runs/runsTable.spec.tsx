@@ -33,7 +33,7 @@ describe('RunsTable', () => {
       url: runsUrl,
       body: {
         runs: [
-          makeRun({id: '12', strategy: 'breached_metrics'}),
+          makeRun({id: '12', strategy: 'breached_metric_investigation'}),
           makeRun({
             id: '11',
             status: 'failed',

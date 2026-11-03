@@ -15,12 +15,6 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
     label: t('Agentic triage'),
     description: t('Automatically triage and fix the most fixable Issues.'),
   },
-  breached_metrics: {
-    label: t('Breached metrics'),
-    description: t(
-      'Monitors backend metrics and investigates why certain key metrics were breached.'
-    ),
-  },
   breached_metric_investigation: {
     label: t('Breached metrics'),
     description: t(
