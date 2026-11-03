@@ -96,4 +96,38 @@ describe('SeerAdminPage', () => {
     ).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
+
+  it('starts a single run on a Sentry issue and links to it', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/autofix/single-run/',
+      method: 'POST',
+      body: {
+        group_id: 7,
+        project_id: 1,
+        run_id: 321,
+        url: 'https://sentry.sentry.io/issues/7/?project=1&explorerRunId=321',
+      },
+    });
+
+    render(<SeerAdminPage />);
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Issue short ID'}),
+      'SENTRY-5RDF'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Start Single Run'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/internal/seer/autofix/single-run/',
+        expect.objectContaining({
+          data: {organization_slug: 'sentry', short_id: 'SENTRY-5RDF'},
+        })
+      )
+    );
+    expect(await screen.findByRole('link', {name: 'Open run 321'})).toHaveAttribute(
+      'href',
+      'https://sentry.sentry.io/issues/7/?project=1&explorerRunId=321'
+    );
+  });
 });
