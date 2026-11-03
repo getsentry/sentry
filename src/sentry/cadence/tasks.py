@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -23,7 +24,9 @@ from sentry.utils.registry import NoRegistrationExistsError
 logger = logging.getLogger(__name__)
 
 TICK_BATCH_SIZE = 500
-TICK_MAX_BATCHES = 20
+# A tick stops claiming after this, well short of its 60s processing deadline, and leaves
+# the rest to later ticks.
+TICK_CLAIM_SECONDS = 40
 
 
 @dataclass(frozen=True)
@@ -54,15 +57,18 @@ def cadence_tick() -> None:
     if not options.get("cadence.tick.enabled"):
         return
     now = timezone.now()
+    start = time.monotonic()
     claimed_count = 0
     try:
-        for _ in range(TICK_MAX_BATCHES):
+        while True:
             claimed, selected = _claim_batch(now)
             claimed_count += sum(len(contexts) for contexts in claimed.values())
             _dispatch(claimed)
             if selected < TICK_BATCH_SIZE:
                 return
-        logger.warning("cadence.tick.batch_limit_reached", extra={"max_batches": TICK_MAX_BATCHES})
+            if time.monotonic() - start >= TICK_CLAIM_SECONDS:
+                logger.warning("cadence.tick.time_limit_reached", extra={"claimed": claimed_count})
+                return
     finally:
         metrics.distribution("cadence.tick.claimed", claimed_count)
 

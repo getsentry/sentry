@@ -137,6 +137,22 @@ class CadenceTickTest(CadenceTickTestCase):
         )
 
     @freeze_time(NOW)
+    def test_stops_claiming_after_time_limit(self) -> None:
+        triggers = [self.create_trigger(NOW - timedelta(minutes=i)) for i in range(5)]
+
+        with (
+            patch("sentry.cadence.tasks.TICK_BATCH_SIZE", 2),
+            patch("sentry.cadence.tasks.TICK_CLAIM_SECONDS", 0),
+        ):
+            cadence_tick()
+
+        assert self.action.call_count == 1
+        assert [ctx.target_id for ctx in self.dispatched()] == [
+            triggers[4].target_id,
+            triggers[3].target_id,
+        ]
+
+    @freeze_time(NOW)
     def test_unschedulable_trigger_does_not_block_others(self) -> None:
         broken = self.create_trigger(
             NOW - timedelta(minutes=2),

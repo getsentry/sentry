@@ -111,7 +111,8 @@ spreads over 15 minutes.
 - Because it's set per trigger type, a code change retunes all of a type's schedules at once.
   The change applies to each schedule from its next run, so no run is skipped or repeated.
 
-Spreading only affects when runs start; it doesn't limit how much work runs at once. Windows
+Spreading only affects when runs start. Cadence never limits how many runs it hands off;
+handling the load is up to each trigger type's consumer. Windows
 are set per trigger type for now. If schedules of one type need different windows, for
 example because users choose how exact their own schedules must be, they could move to each
 schedule.
@@ -132,8 +133,7 @@ spread window, that is just `scheduled_for`.
 - **No upper bound when Cadence is behind.** A run can be arbitrarily late when:
   - the tick is disabled (`cadence.tick.enabled`) or not running,
   - the tick task is waiting in its taskbroker queue, which it shares with other tasks,
-  - more runs are due at once than a tick claims (up to 10,000); the rest wait for later
-    ticks.
+  - more runs are due than one tick can claim; the rest wait for later ticks.
 
   A run that came due while Cadence was behind is still delivered once, when Cadence catches
   up, with its original `scheduled_for`. Occurrences that passed in the meantime are skipped,
