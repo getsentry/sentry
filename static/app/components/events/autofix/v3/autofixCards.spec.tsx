@@ -34,13 +34,16 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({
     defaultExpanded,
     fileUrl,
+    patch,
   }: {
+    patch: {path: string};
     defaultExpanded?: boolean;
     fileUrl?: string;
   }) => (
     <div
       data-expanded={defaultExpanded}
       data-file-url={fileUrl}
+      data-path={patch.path}
       data-test-id="file-diff-viewer"
     />
   ),
@@ -2198,6 +2201,164 @@ describe('ArtifactCard', () => {
       expect(
         screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
+    });
+
+    describe('with PR iterations pinned to the PR head', () => {
+      const pinnedOrganization = OrganizationFixture({
+        features: ['autofix-pr-iteration', 'autofix-pr-iteration-pin-to-pr-head'],
+      });
+      const pullRequestFilesUrl = `/organizations/${pinnedOrganization.slug}/repos/pull-request-files/`;
+
+      function makeAutofix(pr: RepoPRState = makePR()) {
+        return {
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks: [],
+            status: 'completed' as const,
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {[pr.repo_name]: pr},
+          },
+        };
+      }
+
+      function renderedPaths() {
+        return screen
+          .getAllByTestId('file-diff-viewer')
+          .map(viewer => viewer.getAttribute('data-path'));
+      }
+
+      // The run's patches after a pinned iteration only hold what it changed.
+      const iteratedSection = makeSection(
+        'code_changes',
+        'completed',
+        [[makePatch('org/repo', 'src/iterated.py')]],
+        [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+      );
+
+      it("shows the PR's full diff after an iteration", async () => {
+        const filesRequest = MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          match: [
+            MockApiClient.matchQuery({
+              repo: 'org/repo',
+              number: 42,
+              commit_sha: 'abc123',
+            }),
+          ],
+          body: {
+            files: [
+              {
+                path: 'src/app.py',
+                patch: '@@ -1,2 +1,2 @@\n context\n-old\n+new',
+                status: 'modified',
+                previousPath: null,
+              },
+              {
+                path: 'src/iterated.py',
+                patch: '@@ -0,0 +1 @@\n+added',
+                status: 'added',
+                previousPath: null,
+              },
+              {path: 'logo.png', patch: null, status: 'added', previousPath: null},
+            ],
+          },
+        });
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(await screen.findByText('2 files changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py', 'src/iterated.py']);
+        expect(filesRequest).toHaveBeenCalledTimes(1);
+      });
+
+      it("keeps the run's patches before any iteration", () => {
+        const filesRequest = MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          body: {files: []},
+        });
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('code_changes', 'completed', [
+              [makePatch('org/repo', 'src/app.py')],
+            ])}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(renderedPaths()).toEqual(['src/app.py']);
+        expect(filesRequest).not.toHaveBeenCalled();
+      });
+
+      it("keeps the run's patches without the pin feature", () => {
+        const filesRequest = MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          body: {files: []},
+        });
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={iteratedSection}
+          />,
+          {organization: prIterationOrganization}
+        );
+
+        expect(renderedPaths()).toEqual(['src/iterated.py']);
+        expect(filesRequest).not.toHaveBeenCalled();
+      });
+
+      it('waits for a push to land before fetching the PR diff', () => {
+        const filesRequest = MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          body: {files: []},
+        });
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR({pr_creation_status: 'creating'}))}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+        expect(screen.queryByText(/changed in/)).not.toBeInTheDocument();
+        expect(filesRequest).not.toHaveBeenCalled();
+      });
+
+      it("falls back to the run's patches when the PR diff fails to load", async () => {
+        const filesRequest = MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          statusCode: 502,
+          body: {detail: 'Failed to fetch pull request files.'},
+        });
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        await waitFor(() => expect(filesRequest).toHaveBeenCalled());
+        expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/iterated.py']);
+      });
     });
   });
 

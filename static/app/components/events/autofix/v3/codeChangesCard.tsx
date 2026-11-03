@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -30,9 +31,11 @@ import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
 } from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {usePullRequestPatches} from 'sentry/components/events/autofix/v3/usePullRequestPatches';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -49,6 +52,13 @@ interface CodeChangesCardProps {
 }
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
+
+interface RepoFilePatch {
+  patch: FilePatch;
+  code_url?: string | null;
+}
+
+type RepoChanges = {status: 'pending'} | {patches: RepoFilePatch[]; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -74,6 +84,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     organization.features.includes('autofix-pr-iteration-manual');
   const hasManualPrIterationFeature = organization.features.includes(
     'autofix-pr-iteration-manual'
+  );
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
   );
 
   const isIterating =
@@ -154,11 +167,43 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
+  // A pinned iteration measures its edits from the PR's head, so the run's patches
+  // only hold what the iterations changed. Show each PR's full diff instead.
+  const pullRequestPatches = usePullRequestPatches({
+    enabled:
+      hasPinToPrHeadFeature &&
+      section.status === 'completed' &&
+      section.blocks.some(isPrIterationBlock),
+    organizationSlug: organization.slug,
+    repoPRStates: autofix.runState?.repo_pr_states,
+  });
+
+  const changesByRepo = useMemo(() => {
+    const changes = new Map<string, RepoChanges>(
+      Array.from(patchesByRepo, ([repo, patches]) => [repo, {status: 'ready', patches}])
+    );
+    for (const [repo, result] of pullRequestPatches) {
+      if (result.status === 'pending') {
+        changes.set(repo, {status: 'pending'});
+      } else if (result.status === 'success' && result.patches.length) {
+        changes.set(repo, {
+          status: 'ready',
+          patches: result.patches.map(patch => ({patch})),
+        });
+      }
+      // Otherwise keep the run's patches, which beat showing nothing.
+    }
+    return changes;
+  }, [patchesByRepo, pullRequestPatches]);
+
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;
 
-    for (const patches of patchesByRepo.values()) {
-      for (const patch of patches) {
+    for (const changes of changesByRepo.values()) {
+      if (changes.status !== 'ready') {
+        continue;
+      }
+      for (const patch of changes.patches) {
         for (const hunk of patch.patch.hunks) {
           lineCount += hunk.lines.length;
         }
@@ -166,17 +211,21 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesByRepo.size;
+    const reposChanged = changesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
-      for (const patch of patchesForRepo) {
+    for (const [repo, changes] of changesByRepo.entries()) {
+      // The counts would be wrong until every PR's diff has loaded.
+      if (changes.status !== 'ready') {
+        return null;
+      }
+      for (const patch of changes.patches) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
     }
@@ -190,7 +239,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
 
@@ -263,25 +312,31 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           t('How can this code change be improved?'),
           t('Give seer additional context to improve this code change.')
         )}
-        <ArtifactDetails>
-          <Text>{summary}</Text>
-        </ArtifactDetails>
-        {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
+        {summary && (
+          <ArtifactDetails>
+            <Text>{summary}</Text>
+          </ArtifactDetails>
+        )}
+        {Array.from(changesByRepo.entries(), ([repo, changes]) => (
           <ArtifactDetails key={repo}>
             <Flex gap="lg">
               <Text bold>{t('Repository:')}</Text>
               <Text>{repo}</Text>
             </Flex>
-            {patches.map((patch, index) => (
-              <FileDiffViewer
-                key={index}
-                patch={patch.patch}
-                fileUrl={patch.code_url}
-                showBorder
-                collapsible
-                defaultExpanded={shouldExpandDiffs}
-              />
-            ))}
+            {changes.status === 'pending' ? (
+              <Placeholder height="4rem" />
+            ) : (
+              changes.patches.map((patch, index) => (
+                <FileDiffViewer
+                  key={index}
+                  patch={patch.patch}
+                  fileUrl={patch.code_url}
+                  showBorder
+                  collapsible
+                  defaultExpanded={shouldExpandDiffs}
+                />
+              ))
+            )}
           </ArtifactDetails>
         ))}
       </Fragment>
