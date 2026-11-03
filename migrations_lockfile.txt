@@ -7,9 +7,9 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 ai_monitoring: 0002_add_date_updated_index
 
-discover: 0004_discover_starred_and_last_visited
+discover: 0005_add_saved_query_non_user_creator
 
-explore: 0019_move_saved_query_range_to_stats_period
+explore: 0020_add_saved_query_non_user_creator
 
 feedback: 0007_cleanup_failed_safe_deletes
 

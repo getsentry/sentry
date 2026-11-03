@@ -45,13 +45,13 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
         return None
 
-    def validate_name(self, value: Any) -> str:
+    def validate_name(self, value: str) -> str:
         # if name is different from existing, raise an error
         if self.instance and self.instance.name != value:
             raise serializers.ValidationError("Name changes are not supported for error detectors")
         return value
 
-    def validate_fingerprinting_rules(self, value: Any) -> str | None:
+    def validate_fingerprinting_rules(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -62,7 +62,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
         return value
 
-    def validate_resolve_age(self, value: Any) -> int | None:
+    def validate_resolve_age(self, value: int | None) -> int | None:
         if value is not None and value < 0:
             raise serializers.ValidationError("Resolve age must be a non-negative number")
 

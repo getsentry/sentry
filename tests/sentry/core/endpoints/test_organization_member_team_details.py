@@ -13,6 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles
 from sentry.testutils.asserts import assert_org_audit_log_exists
@@ -30,64 +31,64 @@ class OrganizationMemberTeamTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-team-details"
 
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         # open membership
         return self.create_organization(owner=self.user, flags=Organization.flags.allow_joinleave)
 
     @cached_property
-    def team(self):
+    def team(self) -> Team:
         return self.create_team(organization=self.org)
 
     @cached_property
-    def idp_team(self):
+    def idp_team(self) -> Team:
         return self.create_team(organization=self.org, idp_provisioned=True)
 
     @cached_property
-    def owner(self):
+    def owner(self) -> OrganizationMember:
         return OrganizationMember.objects.get(organization=self.org, user_id=self.user.id)
 
     @cached_property
-    def member(self):
+    def member(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
     @cached_property
-    def admin(self):
+    def admin(self) -> OrganizationMember:
         self.admin_user = self.create_user()
         return self.create_member(organization=self.org, user=self.admin_user, role="admin")
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OrganizationMember:
         self.manager_user = self.create_user()
         return self.create_member(organization=self.org, user=self.manager_user, role="manager")
 
     @cached_property
-    def member_on_team(self):
+    def member_on_team(self) -> OrganizationMember:
         self.member_on_team_user = self.create_user()
         return self.create_member(
             organization=self.org, user=self.member_on_team_user, role="member", teams=[self.team]
         )
 
     @cached_property
-    def admin_on_team(self):
+    def admin_on_team(self) -> OrganizationMember:
         self.admin_on_team_user = self.create_user()
         return self.create_member(
             organization=self.org, user=self.admin_on_team_user, role="admin", teams=[self.team]
         )
 
     @cached_property
-    def manager_on_team(self):
+    def manager_on_team(self) -> OrganizationMember:
         return self.create_member(
             organization=self.org, user=self.create_user(), role="manager", teams=[self.team]
         )
 
     @cached_property
-    def owner_on_team(self):
+    def owner_on_team(self) -> OrganizationMember:
         return self.create_member(
             organization=self.org, user=self.create_user(), role="owner", teams=[self.team]
         )
 
     @cached_property
-    def team_admin(self):
+    def team_admin(self) -> OrganizationMember:
         self.team_admin_user = self.create_user()
         member = self.create_member(organization=self.org, user=self.team_admin_user, role="member")
         OrganizationMemberTeam.objects.create(
@@ -344,7 +345,7 @@ class CreateAsServiceAccountTest(OrganizationMemberTeamTestBase):
 
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         # rerun create org member tests with closed membership
         return self.create_organization(owner=self.user, flags=0)
 

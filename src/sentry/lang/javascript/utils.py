@@ -18,7 +18,7 @@ JAVASCRIPT_PLATFORMS = ("javascript", "node")
 
 
 def get_source_context(
-    source: list[bytes], lineno: int, context=LINES_OF_CONTEXT
+    source: list[bytes], lineno: int, context: int = LINES_OF_CONTEXT
 ) -> tuple[list[bytes] | None, bytes | None, list[bytes] | None]:
     if not source:
         return None, None, None
@@ -49,7 +49,7 @@ def get_source_context(
     return pre_context or None, context_line, post_context or None
 
 
-def trim_line(line: str, column=0) -> str:
+def trim_line(line: str, column: int = 0) -> str:
     """
     Trims a line down to a goal of 140 characters, with a little
     wiggle room to be sensible and tries to trim around the given

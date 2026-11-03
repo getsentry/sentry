@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 from django.urls import reverse
@@ -16,7 +17,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
-def post_data():
+def post_data() -> dict[str, Any]:
     return {
         "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
         "userName": "test.user@okta.local",
@@ -26,7 +27,7 @@ def post_data():
     }
 
 
-def merge_dictionaries(dict1, dict2):
+def merge_dictionaries(dict1: dict[str, Any], dict2: dict[str, Any]) -> dict[str, Any]:
     return {**dict1, **dict2}
 
 

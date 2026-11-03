@@ -1,8 +1,9 @@
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from concurrent.futures import as_completed
 from dataclasses import dataclass
-from typing import Literal, get_args
+from typing import Any, Literal, cast, get_args
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -40,7 +41,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -99,10 +100,10 @@ class TraceItemStatsPaginator:
     it work for stats results.
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn: Callable[..., tuple[dict[str, Any], int]]) -> None:
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[dict[str, Any]]:
         if limit <= 0:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
@@ -114,7 +115,7 @@ class TraceItemStatsPaginator:
         has_more = data[1] >= offset + limit + 1
 
         return CursorResult(
-            data,
+            cast("Sequence[dict[str, Any]]", data),
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
@@ -250,7 +251,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
-        def get_table_results():
+        def get_table_results() -> EAPResponse:
             with handle_query_errors():
                 return stats_config.rpc_class.run_table_query(
                     params=snuba_params,
@@ -264,7 +265,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[stats_config.id_column, "timestamp"],
                 )
 
-        def run_stats_query_with_item_ids(item_id_filter):
+        def run_stats_query_with_item_ids(
+            item_id_filter: str,
+        ) -> list[dict[str, Any]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
@@ -277,7 +280,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     skip_translate_internal_to_public_alias=True,
                 )
 
-        def run_stats_query_with_error_handling(attributes):
+        def run_stats_query_with_error_handling(
+            attributes: list[AttributeKey],
+        ) -> list[dict[str, dict[str, dict[str, Any]]]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
@@ -289,7 +294,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     attributes=attributes,
                 )
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
             table_results = get_table_results()
             if not table_results["data"]:
                 return {"data": []}, 0
@@ -355,7 +360,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
 
-            stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
+            stats_results: dict[str, dict[str, dict[str, Any]]] = defaultdict(lambda: {"data": {}})
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,

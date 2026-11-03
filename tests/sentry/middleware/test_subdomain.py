@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest import mock
+from unittest.mock import MagicMock
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -42,7 +43,7 @@ def run_response(host: str) -> HttpResponseBase:
 class SubdomainMiddlewareTest(TestCase):
     @override_settings(ALLOWED_HOSTS=["web-default.sentry-internal", "web.sentry.io"])
     @mock.patch("sentry.middleware.subdomain.sentry_sdk.capture_exception")
-    def test_disallowed_host_captured(self, mock_capture) -> None:
+    def test_disallowed_host_captured(self, mock_capture: MagicMock) -> None:
         assert run_response("web-default.sentry-internal") == mock.sentinel.response
         assert not mock_capture.called
 
@@ -77,7 +78,7 @@ class SubdomainMiddlewareTest(TestCase):
 class APITestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         # return HttpResponse(status=status.HTTP_200_OK)
         return Response(
             {

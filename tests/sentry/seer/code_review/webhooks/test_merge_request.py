@@ -13,6 +13,7 @@ from fixtures.gitlab import (
     MERGE_REQUEST_OPENED_EVENT,
     GitLabTestCase,
 )
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organization import Organization
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -29,6 +30,8 @@ from sentry.utils.redis import redis_clusters
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    if not isinstance(event, dict):
+        raise TypeError("Merge request event is not a JSON object")
     event["object_attributes"]["action"] = action
     # GitLab sends "changes" as a top-level payload field; everything else here
     # (oldrev, draft, work_in_progress, last_commit, ...) lives in object_attributes.
@@ -152,7 +155,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
             event=event,
             organization=_rpc_org(self.organization),
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
 
@@ -719,6 +722,8 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 def _make_note_event(**overrides: object) -> dict[str, Any]:
     """Build a mutable copy of MERGE_REQUEST_NOTE_EVENT with optional overrides."""
     event = orjson.loads(MERGE_REQUEST_NOTE_EVENT)
+    if not isinstance(event, dict):
+        raise TypeError("Merge request event is not a JSON object")
     for key, value in overrides.items():
         event["object_attributes"][key] = value
     return event
@@ -778,7 +783,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
                 name=self.organization.name,
             ),
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
     @with_feature("organizations:code-review-beta")

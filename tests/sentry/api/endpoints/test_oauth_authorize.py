@@ -225,7 +225,10 @@ class OAuthAuthorizePostTest(APITestCase):
 
     def prepare(self, **query: str) -> str:
         response = self.get_success_response(method="get", **{**self.query, **query})
-        return response.data["transactionId"]
+        transaction_id = response.data["transactionId"]
+        if not isinstance(transaction_id, str):
+            raise TypeError("OAuth authorize response carries no transaction id")
+        return transaction_id
 
     def test_approve_and_exchange_pkce_code(self) -> None:
         verifier = "v" * 43
