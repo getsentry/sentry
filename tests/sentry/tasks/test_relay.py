@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.db import connections, router, transaction
+from django.test.utils import CaptureQueriesContext
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.organization_option import OrganizationOption
@@ -13,6 +14,7 @@ from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDe
 from sentry.tasks.relay import (
     _schedule_invalidate_project_config,
     build_project_config,
+    compute_configs,
     compute_projectkey_config,
     invalidate_project_config,
     schedule_build_project_config,
@@ -528,6 +530,40 @@ class TestInvalidationTask:
             )
 
         assert fresh_before_each_compute == [0, 1]
+
+    def test_compute_configs_org_fetches_keys_in_bulk(
+        self,
+        default_organization,
+        default_project,
+        default_projectkey,
+        factories,
+        django_cache,
+    ):
+        other_projects = [
+            factories.create_project(organization=default_organization) for _ in range(3)
+        ]
+        expected_keys = {default_projectkey.public_key} | {
+            key.public_key for key in ProjectKey.objects.filter(project__in=other_projects)
+        }
+
+        seen_keys = []
+
+        def record_cache_get(public_key):
+            seen_keys.append(public_key)
+            return None
+
+        with (
+            mock.patch(
+                "sentry.relay.projectconfig_cache.backend.get", side_effect=record_cache_get
+            ),
+            CaptureQueriesContext(connections[router.db_for_read(ProjectKey)]) as queries,
+        ):
+            assert list(compute_configs(organization_id=default_organization.id)) == []
+
+        assert set(seen_keys) == expected_keys
+        # One query for the organization and one for all keys with their projects,
+        # independent of the number of projects.
+        assert len(queries.captured_queries) == 2
 
     @mock.patch(
         "sentry.tasks.relay._schedule_invalidate_project_config",
