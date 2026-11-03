@@ -5,7 +5,7 @@ import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 
 export default function ExploreIndexRedirect() {
   const organization = useOrganization();
-  const defaultExploreRoute = getDefaultExploreRoute(organization);
+  const defaultExploreRoute = getDefaultExploreRoute();
 
   return (
     <Redirect

@@ -28,22 +28,9 @@ describe('OpenInLogsButton', () => {
     });
   });
 
-  it('renders nothing when the explore feature flag is disabled', () => {
-    const organization = OrganizationFixture({features: []});
-
-    const {container} = render(
-      <Wrapper>
-        <OpenInLogsButton replayId="abc123" />
-      </Wrapper>,
-      {organization}
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders the button when the explore feature flag is enabled', () => {
+  it('renders the button', () => {
     const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
+      features: [],
     });
 
     render(
@@ -58,7 +45,7 @@ describe('OpenInLogsButton', () => {
 
   it('appends replay_id to the URL when replayId is provided', () => {
     const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
+      features: [],
     });
 
     render(
@@ -74,7 +61,7 @@ describe('OpenInLogsButton', () => {
 
   it('includes the existing search query before replay_id in the URL', () => {
     const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
+      features: [],
     });
 
     render(

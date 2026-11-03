@@ -41,7 +41,7 @@ export function useTraceExploreTarget({
   const location = useLocation();
 
   return useMemo(() => {
-    if (!organization.features.includes('visibility-explore-view') || !traceSlug) {
+    if (!traceSlug) {
       return null;
     }
 

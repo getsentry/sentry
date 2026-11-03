@@ -14,7 +14,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
 
   it('returns undefined query when multiple metrics are selected', () => {
     const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
+      features: [],
     });
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
@@ -42,7 +42,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
 
   it('returns a query when a single metric is selected', () => {
     const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
+      features: [],
     });
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {

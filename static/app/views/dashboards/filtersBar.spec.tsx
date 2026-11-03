@@ -205,12 +205,7 @@ describe('FiltersBar', () => {
     ['Application Metrics', 'tracemetrics'],
   ])('dynamically fetches %s filter keys when searched', async (dataset, itemType) => {
     organization = OrganizationFixture({
-      features: [
-        'dashboards-basic',
-        'dashboards-edit',
-        'ourlogs-enabled',
-        'visibility-explore-view',
-      ],
+      features: ['dashboards-basic', 'dashboards-edit', 'ourlogs-enabled'],
     });
     const filterKey = `custom.searched.${itemType}`;
     const searchRequest = MockApiClient.addMockResponse({

@@ -24,7 +24,7 @@ describe('WidgetBuilderSortBySelector', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['open-membership', 'visibility-explore-view'],
+      features: ['open-membership'],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
@@ -275,8 +275,8 @@ describe('WidgetBuilderSortBySelector', () => {
   });
 
   it('sorts by equations line chart', async () => {
-    const organizationWithFlag = OrganizationFixture({
-      features: ['open-membership', 'visibility-explore-view'],
+    const organizationWithOpenMembership = OrganizationFixture({
+      features: ['open-membership'],
     });
 
     const {router} = render(
@@ -284,7 +284,7 @@ describe('WidgetBuilderSortBySelector', () => {
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFlag,
+        organization: organizationWithOpenMembership,
         initialRouterConfig: {
           ...defaultRouterConfig,
           location: {
@@ -403,8 +403,8 @@ describe('WidgetBuilderSortBySelector', () => {
   });
 
   it('sorts by equations table', async () => {
-    const organizationWithFlag = OrganizationFixture({
-      features: ['open-membership', 'visibility-explore-view'],
+    const organizationWithOpenMembership = OrganizationFixture({
+      features: ['open-membership'],
     });
 
     const {router} = render(
@@ -412,7 +412,7 @@ describe('WidgetBuilderSortBySelector', () => {
         <WidgetBuilderSortBySelector />
       </WidgetBuilderProvider>,
       {
-        organization: organizationWithFlag,
+        organization: organizationWithOpenMembership,
         initialRouterConfig: {
           ...defaultRouterConfig,
           location: {

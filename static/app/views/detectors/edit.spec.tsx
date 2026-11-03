@@ -39,7 +39,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
+    features: [],
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
@@ -237,7 +237,7 @@ describe('DetectorEdit', () => {
 
     it('keeps Cancel available without alerts:write, hiding Disable and Delete', async () => {
       const readOnlyOrganization = OrganizationFixture({
-        features: ['visibility-explore-view'],
+        features: [],
         access: ['org:read', 'project:read'],
       });
 
@@ -1012,7 +1012,7 @@ describe('DetectorEdit', () => {
 
     it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
+        features: ['discover-saved-queries-deprecation'],
       });
 
       const existingTransactionsDetector = MetricDetectorFixture({

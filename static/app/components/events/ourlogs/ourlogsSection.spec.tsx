@@ -422,7 +422,7 @@ describe('OurlogsSection', () => {
   it('renders Open in Explore button with correct URL when trace_id exists', async () => {
     render(<OurlogsSection event={event} project={project} group={group} />, {
       organization: OrganizationFixture({
-        features: ['ourlogs-enabled', 'visibility-explore-view'],
+        features: ['ourlogs-enabled'],
       }),
       initialRouterConfig: {
         location: {

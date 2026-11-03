@@ -122,24 +122,21 @@ export function BaseChartActionDropdown({
 }: BaseProps) {
   const organization = useOrganization();
   const hasDashboardEdit = organization.features.includes('dashboards-edit');
-  const hasExploreView = organization.features.includes('visibility-explore-view');
   const {addToSpanDashboard} = useAddToSpanDashboard();
 
   const menuOptions: MenuItemProps[] = [];
 
-  if (hasExploreView) {
-    menuOptions.push({
-      key: 'open-in-explore',
-      label: t('Open in Explore'),
-      to: exploreUrl,
-      onAction: () => {
-        trackAnalytics('insights.open_in_explore', {
-          organization,
-          referrer,
-        });
-      },
-    });
-  }
+  menuOptions.push({
+    key: 'open-in-explore',
+    label: t('Open in Explore'),
+    to: exploreUrl,
+    onAction: () => {
+      trackAnalytics('insights.open_in_explore', {
+        organization,
+        referrer,
+      });
+    },
+  });
 
   if (addToDashboardOptions) {
     const menuOption: MenuItemProps = {

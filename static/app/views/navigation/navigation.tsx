@@ -360,13 +360,13 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         {tourProps => (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
-              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+              to={`/${prefix}/explore/${getDefaultExploreRoute()}/`}
               analyticsKey="explore"
               label={t('Explore')}
               {...mergeProps(
                 makeNavigationItemProps(
                   'explore',
-                  `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+                  `/${prefix}/explore/${getDefaultExploreRoute()}/`,
                   [`/${prefix}/explore`]
                 ),
                 tourProps

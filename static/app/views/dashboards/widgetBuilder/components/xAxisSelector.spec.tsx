@@ -13,7 +13,7 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 const ATTRIBUTES_URL = '/organizations/org-slug/trace-items/attributes/';
 
 const organization = OrganizationFixture({
-  features: ['performance-view', 'visibility-explore-view'],
+  features: ['performance-view'],
 });
 
 const cappedAttribute = {

@@ -713,25 +713,6 @@ describe('Dashboards > WidgetCard', () => {
       ],
     };
 
-    it('does not show Open in Explore for spans widget without visibility-explore-view', async () => {
-      renderWithProviders(
-        <WidgetCard
-          api={api}
-          widget={spansWidget}
-          selection={selection}
-          onDelete={() => {}}
-          onEdit={() => {}}
-          onDuplicate={() => {}}
-          showContextMenu
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      );
-
-      await userEvent.click(await screen.findByLabelText('Widget actions'));
-      expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
-    });
-
     it('links multi-query metrics widgets to the metrics explorer', async () => {
       renderWithProviders(
         <WidgetCard
@@ -789,7 +770,7 @@ describe('Dashboards > WidgetCard', () => {
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
           />,
-          ['visibility-explore-view']
+          []
         );
 
         await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -805,7 +786,7 @@ describe('Dashboards > WidgetCard', () => {
       }
     );
 
-    it('shows Open in Explore for spans widget with visibility-explore-view', async () => {
+    it('shows Open in Explore for spans widgets', async () => {
       renderWithProviders(
         <WidgetCard
           api={api}
@@ -818,7 +799,7 @@ describe('Dashboards > WidgetCard', () => {
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
         />,
-        ['visibility-explore-view']
+        []
       );
 
       await userEvent.click(await screen.findByLabelText('Widget actions'));
