@@ -510,31 +510,17 @@ export function getDuplicateOptionKeysInfo<Value extends SelectKey>(
   return {duplicateOptionKeys: [...duplicates], hasSections, optionCount};
 }
 
-interface MenuWidthOptions {
-  /**
-   * Width in em reserved for everything that is not label text: padding, leading
-   * items such as avatars or checkboxes, and trailing buttons.
-   */
-  extraEm: number;
-  /** Upper bound for the returned width, in em. */
-  maxEm: number;
-  /** Lower bound for the returned width, in em. */
-  minEm: number;
-}
-
 /**
- * Computes a menu width (in em) that expands to fit the longest label, clamped
- * between `minEm` and `maxEm`. Each character is estimated to take ~0.6em, so this
- * is a heuristic based on character count, not a measured width.
+ * Computes a menu width that expands to fit the longest label. The width is
+ * between 22 and 28em. Each character is estimated to take ~0.6em, and 12em is
+ * added to account for padding, trailing buttons, and the checkbox. This is a
+ * heuristic based on character count, not a measured width.
  */
-export function getMenuWidthForLabels(
-  labels: readonly string[],
-  {extraEm, maxEm, minEm}: MenuWidthOptions
-): string {
+export function getMenuWidthForLabels(labels: readonly string[]): string {
   const longestLabelLength = labels.reduce(
     (longest, label) => Math.max(longest, label.length),
     0
   );
 
-  return `${Math.max(minEm, Math.min(maxEm, longestLabelLength * 0.6 + extraEm))}em`;
+  return `${Math.max(22, Math.min(28, longestLabelLength * 0.6 + 12))}em`;
 }

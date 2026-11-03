@@ -109,12 +109,7 @@ function SettingsProjectSelector() {
   const selectedProject = projects.find(project => project.slug === projectId);
   const organization = useOrganization();
   const canCreateProject = useCanCreateProject();
-  // Same range as the project page filter, with less reserved space since there is
-  // no checkbox or trailing button, only an avatar.
-  const menuWidth = getMenuWidthForLabels(
-    projects.map(project => project.slug),
-    {extraEm: 8, minEm: 22, maxEm: 28}
-  );
+  const menuWidth = getMenuWidthForLabels(projects.map(project => project.slug));
 
   return (
     <Container width="100%">

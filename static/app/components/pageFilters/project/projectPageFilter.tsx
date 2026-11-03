@@ -843,13 +843,8 @@ function toURLSelection({
 }
 
 function computeMenuWidth(options: Array<SelectOption<number>>): string {
-  // ProjectPageFilter will try to expand to accommodate the longest project slug.
-  // The menu is between 22 and 28em. We add 12em to account for padding, trailing
-  // buttons, and the checkbox.
-  return getMenuWidthForLabels(
-    options.map(option => option.textValue ?? ''),
-    {extraEm: 12, minEm: 22, maxEm: 28}
-  );
+  // ProjectPageFilter will try to expand to accommodate the longest project slug
+  return getMenuWidthForLabels(options.map(option => option.textValue ?? ''));
 }
 
 // Helper functions for data selection
