@@ -4,7 +4,7 @@ import importlib
 import os
 import types
 import typing
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
@@ -61,6 +61,39 @@ def inline_sentry_response_serializer(name: str, t: ResponseTypeHint) -> type:
 
     serializer_class = type(name, (_RawSchema,), {"typeSchema": t})
     return serializer_class
+
+
+class _JsonSchema:
+    """
+    Basic class that simply stores a JSON schema, emitted as its component.
+    Used by `utils.inline_sentry_response_schema`
+    """
+
+    # Set on each class `inline_sentry_response_schema` creates.
+    jsonSchema: Mapping[str, Any]
+
+
+def inline_sentry_response_schema(name: str, schema: Mapping[str, Any]) -> type:
+    """
+    Function for documenting an API response with a JSON schema, as a component.
+
+    For a response a JSON schema already describes, such as one its validation uses.
+    A JSON schema passed to `responses` directly is spelled out in every operation that
+    returns it instead. Anywhere in `schema`, a class this function made stands for a
+    reference to its component.
+
+    .. code-block::
+
+        SOURCE = inline_sentry_response_schema("SymbolSource", SOURCE_SCHEMA)
+
+        @extend_schema(
+            responses={200: inline_sentry_response_schema("ListSymbolSources", {"type": "array", "items": SOURCE})}
+        )
+
+    :param name: the name of the component, used in the OpenAPIJson
+    :param schema: the response's JSON schema
+    """
+    return type(name, (_JsonSchema,), {"jsonSchema": schema})
 
 
 class SentryApiBuildError(UnableToProceedError):

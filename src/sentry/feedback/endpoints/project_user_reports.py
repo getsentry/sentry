@@ -16,6 +16,7 @@ from sentry.api.helpers.environments import get_environment, get_environment_fun
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.api.serializers.models.userreport import UserReportWithGroupSerializerResponse
 from sentry.apidocs.parameters import CursorQueryParam
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -49,7 +50,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         summary="List a Project's User Feedback",
         parameters=[CursorQueryParam],
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[UserReportWithGroupSerializerResponse]]:
         """
         List a Project's User Feedback
         ``````````````````````````````
@@ -101,7 +104,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             **paginate_kwargs,
         )
 
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[UserReportWithGroupSerializerResponse] | Response[None]:
         """
         Submit User Feedback
         ````````````````````

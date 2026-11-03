@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
@@ -180,6 +181,7 @@ def get_by_short_ids(
 
 def track_slo_response(name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def inner_func(function: Callable[P, R]) -> Callable[P, R]:
+        @functools.wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             from sentry.utils import snuba
 

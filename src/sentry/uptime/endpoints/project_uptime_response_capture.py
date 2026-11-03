@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, UptimeParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
@@ -22,6 +25,14 @@ from sentry.uptime.models import (
     get_uptime_subscription,
 )
 from sentry.workflow_engine.models import Detector
+
+
+class UptimeResponseCaptureResponse(TypedDict):
+    id: str
+    # `[name, value]` pairs, in the order the response sent them.
+    headers: list[list[str]]
+    body: str
+    bodySize: int
 
 
 def parse_response_content(content: bytes) -> tuple[list[list[str]], bytes]:
@@ -62,7 +73,9 @@ class ProjectUptimeResponseCaptureEndpoint(ProjectUptimeAlertEndpoint):
             UptimeParams.UPTIME_ALERT_ID,
         ],
         responses={
-            200: dict,
+            200: inline_sentry_response_serializer(
+                "UptimeResponseCaptureResponse", UptimeResponseCaptureResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -74,7 +87,7 @@ class ProjectUptimeResponseCaptureEndpoint(ProjectUptimeAlertEndpoint):
         project: Project,
         uptime_detector: Detector,
         capture_id: str,
-    ) -> Response:
+    ) -> Response[UptimeResponseCaptureResponse]:
         """
         Retrieve the HTTP response captured during an uptime check failure.
         """

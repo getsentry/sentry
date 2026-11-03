@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, cast, get_type_hints
 
 from drf_spectacular.extensions import (
@@ -13,6 +13,7 @@ from drf_spectacular.utils import Direction
 
 from sentry.api.serializers.rest_framework.base import snake_to_camel_case
 from sentry.apidocs.spectacular_ports import resolve_type_hint, resolve_type_hint_lenient
+from sentry.apidocs.utils import _JsonSchema
 from sentry.conf.server import GRANULAR_SCOPES
 
 
@@ -91,6 +92,35 @@ class SentryInlineResponseSerializerExtension(_TypedExtension, OpenApiSerializer
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint_lenient(self.target.typeSchema, self.target.__name__)
+
+
+class SentryInlineResponseSchemaExtension(_TypedExtension, OpenApiSerializerExtension):
+    """
+    This extension is used for the `inline_sentry_response_schema` utils function and
+    emits the JSON schema passed into the function, with each class that function made
+    inside it replaced by a reference to its component.
+    """
+
+    priority = 0
+    target_class = "sentry.apidocs.utils._JsonSchema"
+    match_subclasses = True
+
+    def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str | None:
+        name = self.target.__name__
+        return name
+
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
+        def resolve(value: Any) -> Any:
+            if isinstance(value, type) and issubclass(value, _JsonSchema):
+                # drf-spectacular resolves anything an extension maps, not only serializers.
+                return auto_schema.resolve_serializer(cast(Any, value), direction).ref
+            if isinstance(value, Mapping):
+                return {key: resolve(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [resolve(item) for item in value]
+            return value
+
+        return resolve(self.target.jsonSchema)
 
 
 class SentryAppIssueActionSerializerExtension(_TypedExtension, OpenApiSerializerExtension):

@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,10 +9,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, UptimeParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
 from sentry.uptime.models import UptimeResponseCapture, get_uptime_subscription
 from sentry.workflow_engine.models import Detector
+
+
+class DeleteUptimeResponseCapturesResponse(TypedDict):
+    deletedCount: int
 
 
 @cell_silo_endpoint
@@ -28,7 +35,9 @@ class ProjectUptimeResponseCapturesIndexEndpoint(ProjectUptimeAlertEndpoint):
             UptimeParams.UPTIME_ALERT_ID,
         ],
         responses={
-            200: dict,
+            200: inline_sentry_response_serializer(
+                "DeleteUptimeResponseCapturesResponse", DeleteUptimeResponseCapturesResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -39,7 +48,7 @@ class ProjectUptimeResponseCapturesIndexEndpoint(ProjectUptimeAlertEndpoint):
         request: Request,
         project: Project,
         uptime_detector: Detector,
-    ) -> Response:
+    ) -> Response[DeleteUptimeResponseCapturesResponse]:
         """
         Delete all captured HTTP responses for an uptime monitor.
         """
