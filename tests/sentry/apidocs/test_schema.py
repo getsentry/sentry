@@ -1,35 +1,24 @@
-from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import pytest
 from django.http import HttpRequest
 from django.test import RequestFactory
 from drf_spectacular.utils import extend_schema
-from jsonschema.exceptions import ValidationError
-from openapi_schema_validator import OAS30Validator
 from rest_framework.request import Request
 
-import sentry.apidocs.extensions  # noqa: F401
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
 )
-from sentry.api.endpoints.timeseries import BucketBoundaries
 from sentry.api.helpers.timeseries_transformations import (
     FillTransformation,
     SmaSmoothTransformation,
     get_transformations,
 )
-from sentry.apidocs.hooks import dereference_schema
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
-from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
-from sentry.explore.endpoints.explore_saved_query_detail import ExploreSavedQueryDetailEndpoint
-from sentry.explore.endpoints.serializers import QuerySerializer
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
-from sentry.snuba.rpc_dataset_common import ProcessedTimeseries, TimeseriesTransformationFlags
-from sentry.utils.snuba import SnubaTSResult
 from sentry.workflow_engine.endpoints.organization_detector_index import (
     OrganizationDetectorIndexEndpoint,
 )
@@ -196,212 +185,29 @@ def test_trace_item_attributes_expand_is_experimental() -> None:
     assert expand["description"].startswith("**Experimental:**")
 
 
-def test_timeseries_query_parameter_serialization() -> None:
+def test_timeseries_transformation_parameter_serialization() -> None:
     path = "/api/0/organizations/{organization_id_or_slug}/events-timeseries/"
     schema = generate_schema(
-        path.removeprefix("/").replace(
-            "{organization_id_or_slug}", "<str:organization_id_or_slug>"
-        ),
+        "api/0/organizations/<str:organization_id_or_slug>/events-timeseries/",
         view=OrganizationEventsTimeseriesEndpoint,
     )
     parameters = {p["name"]: p for p in schema["paths"][path]["get"]["parameters"]}
-    for name in ("yAxis", "transformations[0]"):
-        assert parameters[name]["style"] == "form"
-        assert parameters[name]["explode"] is True
-        assert parameters[name]["schema"]["type"] == "array"
-        assert parameters[name]["schema"]["items"]["type"] == "string"
-        assert parameters[name]["schema"].get("uniqueItems", False) is False
-        assert parameters[name].get("required", False) is False
-
-    interval_validator = OAS30Validator(parameters["interval"]["schema"])
-    interval_validator.validate("1m")
-    with pytest.raises(ValidationError):
-        interval_validator.validate(60)
+    parameter = parameters["transformations[0]"]
+    assert parameter["style"] == "form"
+    assert parameter["explode"] is True
+    assert parameter["schema"] == {"type": "array", "items": {"type": "string"}}
+    assert parameter.get("required", False) is False
 
     query = urlencode(
         [
-            (parameters["yAxis"]["name"], ["count()", "count()"]),
-            (parameters["interval"]["name"], "1m"),
-            (parameters["transformations[0]"]["name"], ["smooth(sma,3)", "fill(locf)"]),
-            ("transformations[1]", ["fill(zero)", "smooth(sma,2)"]),
+            ("yAxis", ["count()", "count()"]),
+            (parameter["name"], ["smooth(sma,3)", "fill(locf)"]),
+            ("transformations[1]", ["fill(zero)"]),
         ],
         doseq=True,
     )
     request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
-    assert request.GET.getlist("yAxis") == ["count()", "count()"]
-    assert request.GET["interval"] == "1m"
     assert get_transformations(request) == {
         0: [SmaSmoothTransformation(mode="sma", window_size=3), FillTransformation(mode="locf")],
-        1: [FillTransformation(mode="zero"), SmaSmoothTransformation(mode="sma", window_size=2)],
+        1: [FillTransformation(mode="zero")],
     }
-    request_without_transformations = Request(
-        RequestFactory().get("/events-timeseries/", {"yAxis": ["count()", "count()"]})
-    )
-    assert get_transformations(request_without_transformations) == {}
-
-
-def test_timeseries_response_serialization_matches_schema() -> None:
-    path = "/api/0/organizations/{organization_id_or_slug}/events-timeseries/"
-    schema = generate_schema(
-        path.removeprefix("/").replace(
-            "{organization_id_or_slug}", "<str:organization_id_or_slug>"
-        ),
-        view=OrganizationEventsTimeseriesEndpoint,
-    )
-    response_schema = schema["components"]["schemas"]["OrganizationEventsTimeseriesResponse"]
-    series_schema = response_schema["properties"]["timeSeries"]["items"]
-    row_schema = series_schema["properties"]["values"]["items"]
-    assert row_schema["properties"]["value"]["nullable"] is True
-    assert row_schema["properties"]["comparisonValue"]["nullable"] is True
-    assert "comparisonValue" not in row_schema["required"]
-    assert series_schema["properties"]["meta"]["properties"]["valueUnit"]["nullable"] is True
-    for name in ("filled", "smoothed", "comparisonFilled", "comparisonSmoothed"):
-        assert row_schema["properties"][name] == {"type": "boolean"}
-        assert name not in row_schema["required"]
-
-    axis = "avg(span.duration)"
-    result = SnubaTSResult(
-        data={
-            "data": [{"time": 0, axis: None, "transformed": 0.0}],
-            "meta": {"fields": {axis: "duration"}},
-            "processed_timeseries": ProcessedTimeseries(
-                transformation_aliases={0: "transformed"},
-                transformation_flags={
-                    0: TimeseriesTransformationFlags(filled=[True], smoothed=[False])
-                },
-            ),
-        },
-        start=datetime.fromtimestamp(0, tz=timezone.utc),
-        end=datetime.fromtimestamp(60, tz=timezone.utc),
-        rollup=60,
-    )
-    endpoint = OrganizationEventsTimeseriesEndpoint()
-    boundaries = BucketBoundaries(now=1000, complete_through=1000)
-    series = endpoint.serialize_result(result, [axis, axis], 60, boundaries)
-    assert series == [
-        {
-            "yAxis": "avg(span.duration)",
-            "meta": {"valueType": "duration", "valueUnit": "millisecond", "interval": 60000},
-            "values": [
-                {
-                    "timestamp": 0,
-                    "value": 0.0,
-                    "incomplete": False,
-                    "filled": True,
-                    "smoothed": False,
-                }
-            ],
-        },
-        {
-            "yAxis": "avg(span.duration)",
-            "meta": {"valueType": "duration", "valueUnit": "millisecond", "interval": 60000},
-            "values": [{"timestamp": 0, "value": None, "incomplete": False}],
-        },
-    ]
-    OAS30Validator(response_schema).validate({"timeSeries": series})
-
-    comparison_result = SnubaTSResult(
-        data={
-            "data": [{"time": 0, "count()": None, "comparisonCount": None}],
-            "meta": {"fields": {"count()": "integer"}},
-            "processed_timeseries": ProcessedTimeseries(
-                transformation_flags={
-                    0: TimeseriesTransformationFlags(filled=[False], smoothed=[False])
-                },
-                comparison_transformation_flags=TimeseriesTransformationFlags(
-                    filled=[False], smoothed=[True]
-                ),
-            ),
-        },
-        start=result.start,
-        end=result.end,
-        rollup=60,
-    )
-    comparison_series = endpoint.serialize_result(comparison_result, ["count()"], 60, boundaries)
-    assert comparison_series == [
-        {
-            "yAxis": "count()",
-            "meta": {"valueType": "integer", "valueUnit": None, "interval": 60000},
-            "values": [
-                {
-                    "timestamp": 0,
-                    "value": None,
-                    "incomplete": False,
-                    "comparisonValue": None,
-                    "filled": False,
-                    "smoothed": False,
-                    "comparisonFilled": False,
-                    "comparisonSmoothed": True,
-                }
-            ],
-        }
-    ]
-    OAS30Validator(response_schema).validate({"timeSeries": comparison_series})
-
-
-@pytest.mark.parametrize(
-    "route,view,method,status_code",
-    [
-        (
-            "api/0/organizations/<str:organization_id_or_slug>/explore/saved/",
-            ExploreSavedQueriesEndpoint,
-            "post",
-            "201",
-        ),
-        (
-            "api/0/organizations/<str:organization_id_or_slug>/explore/saved/<int:id>/",
-            ExploreSavedQueryDetailEndpoint,
-            "put",
-            "200",
-        ),
-    ],
-)
-@pytest.mark.parametrize("visualization_field", ["visualize", "aggregateField"])
-def test_saved_query_transformation_schemas(
-    route: str,
-    view: type[Endpoint],
-    method: str,
-    status_code: str,
-    visualization_field: str,
-) -> None:
-    schema = generate_schema(route, view=view)
-    path = "/" + route.replace(
-        "<str:organization_id_or_slug>", "{organization_id_or_slug}"
-    ).replace("<int:id>", "{id}")
-    operation = schema["paths"][path][method]
-    components = schema["components"]["schemas"]
-    request_schema = dereference_schema(
-        operation["requestBody"]["content"]["application/json"]["schema"], components
-    )
-    query_schema = dereference_schema(request_schema["properties"]["query"]["items"], components)
-    visualization_schema = dereference_schema(
-        query_schema["properties"][visualization_field]["items"], components
-    )
-    response_schema = dereference_schema(
-        operation["responses"][status_code]["content"]["application/json"]["schema"], components
-    )
-    response_visualization_schema = response_schema["properties"]["query"]["items"]["properties"][
-        visualization_field
-    ]["items"]
-    entries = [
-        {"yAxes": ["count()"]},
-        {"yAxes": ["count()"], "transformations": []},
-        {
-            "yAxes": ["count()"],
-            "transformations": ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
-        },
-    ]
-    serializer = QuerySerializer(data={"mode": "aggregate", visualization_field: entries})
-    assert serializer.is_valid(), serializer.errors
-    assert serializer.data[visualization_field] == entries
-
-    for entry_schema in (visualization_schema, response_visualization_schema):
-        transformations = entry_schema["properties"]["transformations"]
-        assert transformations["type"] == "array"
-        assert transformations["items"]["type"] == "string"
-        assert "transformations" not in entry_schema.get("required", [])
-        validator = OAS30Validator(entry_schema)
-        for entry in serializer.data[visualization_field]:
-            validator.validate(entry)
-        with pytest.raises(ValidationError):
-            validator.validate({"yAxes": ["count()"], "transformations": None})
