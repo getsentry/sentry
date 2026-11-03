@@ -1,3 +1,4 @@
+import type * as React from 'react';
 /**
  * Virtualized MenuList for the Select (react-select) component.
  * react-select re-renders every Option on hover/focus changes, which
@@ -11,13 +12,12 @@
  *
  * Implementation detail of the shared Select virtualized prop.
  */
-
 import {Children, isValidElement, type Ref, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
 
-import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
+import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
 
 const OPTION_HEIGHT = 36;
 const GROUP_HEADING_HEIGHT = 24;
