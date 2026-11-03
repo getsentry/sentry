@@ -110,7 +110,10 @@ import {
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 import {SETTINGS_V3_GENERAL_ICONS} from 'sentry/views/settings/settingsCommandPaletteActions';
-import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
+import {
+  getSettingsScopeIcon,
+  getSettingsScopeTitle,
+} from 'sentry/views/settings/settingsScope';
 import type {
   NavigationGroupProps,
   NavigationItem,
@@ -652,7 +655,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction
           display={{
             label: settingsV3 ? getSettingsScopeTitle('org') : t('Settings'),
-            icon: <IconSettings />,
+            icon: settingsV3 ? getSettingsScopeIcon('org') : <IconSettings />,
           }}
           limit={4}
         >
@@ -669,7 +672,10 @@ export function GlobalCommandPaletteActions() {
 
         {settingsV3 && (
           <CMDKAction
-            display={{label: getSettingsScopeTitle('account'), icon: <IconUser />}}
+            display={{
+              label: getSettingsScopeTitle('account'),
+              icon: getSettingsScopeIcon('account'),
+            }}
             limit={4}
           >
             {visibleAccountSettingsNavItems.map(item => (
@@ -754,7 +760,10 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction
-          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          display={{
+            label: getSettingsScopeTitle('project'),
+            icon: settingsV3 ? getSettingsScopeIcon('project') : <IconSettings />,
+          }}
           limit={4}
         >
           {currentProjects.map(project => (

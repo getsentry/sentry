@@ -1,17 +1,14 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
-import {IconBuilding} from '@sentry/icons/building';
 import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconMail} from '@sentry/icons/mail';
-import {IconProject} from '@sentry/icons/project';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
-import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -63,6 +60,10 @@ import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+import {
+  getSettingsScopeIcon,
+  type SettingsScope,
+} from 'sentry/views/settings/settingsScope';
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -212,23 +213,17 @@ export function SettingsPrimaryNavigationItems({
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
   const projectSlug = activeProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
-  const items = [
-    {
-      key: 'org',
-      label: t('Org'),
-      to: `/settings/${organizationSlug}/`,
-      icon: <IconBuilding />,
-    },
+  const items: Array<{key: SettingsScope; label: string; to: string}> = [
+    {key: 'org', label: t('Org'), to: `/settings/${organizationSlug}/`},
     {
       key: 'project',
       label: t('Project'),
       to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
-      icon: <IconProject />,
     },
-    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+    {key: 'account', label: t('Account'), to: '/settings/account/'},
   ];
 
-  return items.map(({key, label, to, icon}) => (
+  return items.map(({key, label, to}) => (
     <PrimaryNavigation.ListItem key={to}>
       <PrimaryNavigation.Link
         to={to}
@@ -236,7 +231,7 @@ export function SettingsPrimaryNavigationItems({
         label={label}
         aria-current={key === activeScope ? 'location' : undefined}
       >
-        {icon}
+        {getSettingsScopeIcon(key)}
       </PrimaryNavigation.Link>
     </PrimaryNavigation.ListItem>
   ));
