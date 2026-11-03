@@ -251,6 +251,14 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./codeBlock": {
+      "types": "./dist/codeBlock/index.d.ts",
+      "import": "./dist/codeBlock/index.js"
+    },
+    "./code": {
+      "types": "./dist/code/index.d.ts",
+      "import": "./dist/code/index.js"
+    },
     "./drawer": {
       "types": "./dist/drawer/index.d.ts",
       "import": "./dist/drawer/index.js"
@@ -320,6 +328,7 @@
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
+    "prismjs": "^1.30.0",
     "query-string": "7.0.1",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
@@ -340,6 +349,7 @@
     "@testing-library/user-event": "14.6.7",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.4",
+    "@types/prismjs": "^1.26.0",
     "@types/react-dom": "19.3.0",
     "expect-type": "1.4.0",
     "jest": "30.5.1",

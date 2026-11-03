@@ -314,7 +314,6 @@ function getOrganizationNavigationConfiguration({
             t('twilio'),
             t('victorops'),
             t('segment'),
-            t('code mappings'),
           ],
           description: t(
             'Manage organization-level integrations, including: Slack, GitHub, Bitbucket, Jira, and Azure DevOps'
@@ -325,6 +324,7 @@ function getOrganizationNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/repos/`,
           title: t('Repositories'),
+          keywords: [t('code mappings')],
           description: t('Manage repositories connected to the organization'),
           id: 'repos',
           recordAnalytics: true,
