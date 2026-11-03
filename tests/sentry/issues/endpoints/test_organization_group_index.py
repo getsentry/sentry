@@ -906,6 +906,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
+    def test_lookup_by_group_id_invalid(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_error_response(group="not-an-int", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="782672999178267162297826713017", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="-1", status_code=400)
+        assert "group" in response.data
+
     def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
