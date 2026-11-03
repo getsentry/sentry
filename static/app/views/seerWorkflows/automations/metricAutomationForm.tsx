@@ -226,147 +226,60 @@ export function MetricAutomationForm(props: Props) {
 
           <form.FieldGroup title={t('Scope')}>
             <form.Subscribe selector={state => state.values.monitorIds}>
-              {monitorIds => {
-                const selected = monitors.filter(monitor =>
-                  monitorIds.includes(monitor.id)
-                );
-                const projectIds = new Set(selected.map(monitor => monitor.projectId));
-
-                return (
-                  <Fragment>
-                    <Stack gap="lg">
-                      {monitorsQuery.isError ? (
-                        <LoadingError onRetry={monitorsQuery.refetch} />
-                      ) : (
-                        <form.AppField name="monitorIds">
-                          {field => (
-                            <field.Layout.Stack
-                              label={t('Connected monitors')}
-                              hintText={t(
-                                'Search by monitor or project name. You can connect more than one.'
-                              )}
-                            >
-                              <field.Select
-                                multiple
-                                clearable
-                                searchable
-                                value={field.state.value}
-                                onChange={field.handleChange}
-                                isLoading={monitorsQuery.isPending}
-                                placeholder={t('Connect metric monitors…')}
-                                options={monitors.map(monitor => ({
-                                  value: monitor.id,
-                                  label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
-                                }))}
-                              />
-                            </field.Layout.Stack>
-                          )}
-                        </form.AppField>
-                      )}
-                      {monitorIds.length === 0 ? (
-                        <Stack
-                          padding="xl"
-                          gap="sm"
-                          align="center"
-                          background="secondary"
-                          radius="md"
-                        >
-                          <Text bold>{t('No monitors connected')}</Text>
-                          <Text variant="muted" align="center">
-                            {t(
-                              'Connect a metric monitor above, or save now and choose monitors later.'
+              {monitorIds => (
+                <Fragment>
+                  <Stack gap="lg">
+                    {monitorsQuery.isError ? (
+                      <LoadingError onRetry={monitorsQuery.refetch} />
+                    ) : (
+                      <form.AppField name="monitorIds">
+                        {field => (
+                          <field.Layout.Stack
+                            label={t('Connected monitors')}
+                            hintText={t(
+                              'Search by monitor or project name. You can connect more than one.'
                             )}
-                          </Text>
-                        </Stack>
-                      ) : (
-                        <Stack gap="md">
-                          <Text size="sm" variant="muted">
-                            {tn(
-                              '%s monitor connected',
-                              '%s monitors connected',
-                              monitorIds.length
-                            )}
-                            {' · '}
-                            {tn('%s project', '%s projects', projectIds.size)}
-                          </Text>
-                          <Stack border="primary" radius="md">
-                            {selected.map((monitor, index) => (
-                              <Flex
-                                key={monitor.id}
-                                align="center"
-                                justify="between"
-                                gap="md"
-                                padding="lg"
-                                borderTop={index ? 'primary' : undefined}
-                              >
-                                <Stack gap="xs" minWidth={0}>
-                                  <ExternalLink
-                                    href={makeMonitorDetailsPathname(
-                                      organization.slug,
-                                      monitor.id
-                                    )}
-                                  >
-                                    {monitor.name}
-                                  </ExternalLink>
-                                  <Text size="sm" variant="muted">
-                                    {getProjectSlug(monitor.projectId)}
-                                    {!monitor.enabled && ` · ${t('Monitor paused')}`}
-                                  </Text>
-                                </Stack>
-                                <Button
-                                  size="xs"
-                                  variant="transparent"
-                                  icon={<IconClose />}
-                                  aria-label={t('Disconnect %s', monitor.name)}
-                                  onClick={() =>
-                                    form.setFieldValue(
-                                      'monitorIds',
-                                      monitorIds.filter(id => id !== monitor.id)
-                                    )
-                                  }
-                                />
-                              </Flex>
-                            ))}
-                          </Stack>
-                        </Stack>
-                      )}
-                    </Stack>
-                    <DisplayField.Row label={t('Projects and environments')}>
-                      {monitorIds.length === 0 ? (
-                        <Text variant="muted">
-                          {t('Connect monitors to see their projects and environments.')}
-                        </Text>
-                      ) : monitorsQuery.isPending ? (
-                        <Text variant="muted">{t('Loading monitor scope…')}</Text>
-                      ) : monitorsQuery.isError ? (
-                        <Text variant="muted">{t('Monitor scope is unavailable.')}</Text>
-                      ) : (
-                        <Stack gap="md">
-                          {Array.from(projectIds, projectId => {
-                            const environments = selected
-                              .filter(monitor => monitor.projectId === projectId)
-                              .map(
-                                monitor =>
-                                  monitor.dataSources[0].queryObj.snubaQuery.environment
-                              );
-
-                            return (
-                              <Stack key={projectId} gap="xs">
-                                <Text>{getProjectSlug(projectId)}</Text>
-                                <Text size="sm" variant="muted">
-                                  {environments.some(environment => !environment)
-                                    ? t('All environments')
-                                    : [...new Set(environments)].join(', ')}
-                                </Text>
-                              </Stack>
-                            );
-                          })}
-                        </Stack>
-                      )}
-                    </DisplayField.Row>
-                  </Fragment>
-                );
-              }}
+                          >
+                            <field.Select
+                              multiple
+                              clearable
+                              searchable
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              isLoading={monitorsQuery.isPending}
+                              placeholder={t('Connect metric monitors…')}
+                              options={monitors.map(monitor => ({
+                                value: monitor.id,
+                                label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
+                              }))}
+                            />
+                          </field.Layout.Stack>
+                        )}
+                      </form.AppField>
+                    )}
+                    <ConnectedMonitorList
+                      monitorIds={monitorIds}
+                      monitors={monitors}
+                      getProjectSlug={getProjectSlug}
+                      onDisconnect={monitorId =>
+                        form.setFieldValue(
+                          'monitorIds',
+                          monitorIds.filter(id => id !== monitorId)
+                        )
+                      }
+                    />
+                  </Stack>
+                  <DisplayField.Row label={t('Projects and environments')}>
+                    <MonitorProjectsSummary
+                      monitorIds={monitorIds}
+                      monitors={monitors}
+                      isPending={monitorsQuery.isPending}
+                      isError={monitorsQuery.isError}
+                      getProjectSlug={getProjectSlug}
+                    />
+                  </DisplayField.Row>
+                </Fragment>
+              )}
             </form.Subscribe>
           </form.FieldGroup>
 
@@ -500,6 +413,122 @@ export function MetricAutomationForm(props: Props) {
         </Stack>
       </form.AppForm>
     </Container>
+  );
+}
+
+type MonitorScopeProps = {
+  getProjectSlug: (projectId: string) => string;
+  monitorIds: string[];
+  monitors: MetricDetector[];
+};
+
+function ConnectedMonitorList({
+  monitorIds,
+  monitors,
+  getProjectSlug,
+  onDisconnect,
+}: MonitorScopeProps & {onDisconnect: (monitorId: string) => void}) {
+  const organization = useOrganization();
+
+  if (monitorIds.length === 0) {
+    return (
+      <Stack padding="xl" gap="sm" align="center" background="secondary" radius="md">
+        <Text bold>{t('No monitors connected')}</Text>
+        <Text variant="muted" align="center">
+          {t('Connect a metric monitor above, or save now and choose monitors later.')}
+        </Text>
+      </Stack>
+    );
+  }
+
+  const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
+  const projectCount = new Set(selected.map(monitor => monitor.projectId)).size;
+
+  return (
+    <Stack gap="md">
+      <Text size="sm" variant="muted">
+        {tn('%s monitor connected', '%s monitors connected', monitorIds.length)}
+        {' · '}
+        {tn('%s project', '%s projects', projectCount)}
+      </Text>
+      <Stack border="primary" radius="md">
+        {selected.map((monitor, index) => (
+          <Flex
+            key={monitor.id}
+            align="center"
+            justify="between"
+            gap="md"
+            padding="lg"
+            borderTop={index ? 'primary' : undefined}
+          >
+            <Stack gap="xs" minWidth={0}>
+              <ExternalLink
+                href={makeMonitorDetailsPathname(organization.slug, monitor.id)}
+              >
+                {monitor.name}
+              </ExternalLink>
+              <Text size="sm" variant="muted">
+                {getProjectSlug(monitor.projectId)}
+                {!monitor.enabled && ` · ${t('Monitor paused')}`}
+              </Text>
+            </Stack>
+            <Button
+              size="xs"
+              variant="transparent"
+              icon={<IconClose />}
+              aria-label={t('Disconnect %s', monitor.name)}
+              onClick={() => onDisconnect(monitor.id)}
+            />
+          </Flex>
+        ))}
+      </Stack>
+    </Stack>
+  );
+}
+
+function MonitorProjectsSummary({
+  monitorIds,
+  monitors,
+  getProjectSlug,
+  isPending,
+  isError,
+}: MonitorScopeProps & {isError: boolean; isPending: boolean}) {
+  if (monitorIds.length === 0) {
+    return (
+      <Text variant="muted">
+        {t('Connect monitors to see their projects and environments.')}
+      </Text>
+    );
+  }
+  if (isPending) {
+    return <Text variant="muted">{t('Loading monitor scope…')}</Text>;
+  }
+  if (isError) {
+    return <Text variant="muted">{t('Monitor scope is unavailable.')}</Text>;
+  }
+
+  const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
+  const projectIds = new Set(selected.map(monitor => monitor.projectId));
+
+  return (
+    <Stack gap="md">
+      {Array.from(projectIds, projectId => {
+        const environments = selected
+          .filter(monitor => monitor.projectId === projectId)
+          .map(monitor => monitor.dataSources[0].queryObj.snubaQuery.environment);
+
+        return (
+          <Stack key={projectId} gap="xs">
+            <Text>{getProjectSlug(projectId)}</Text>
+            <Text size="sm" variant="muted">
+              {environments.some(environment => !environment)
+                ? t('All environments')
+                : [...new Set(environments)].join(', ')}
+            </Text>
+          </Stack>
+        );
+      })}
+    </Stack>
   );
 }
 
