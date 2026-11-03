@@ -22,6 +22,8 @@ class AdminAutofixSingleRunSerializer(serializers.Serializer):
     short_id = serializers.CharField()
 
 
+# TEMPORARY: lets staff test single-run Autofix in prod before orgs are flagged.
+# Remove once single runs roll out (AIML-3802).
 @internal_cell_silo_endpoint
 class SeerAdminAutofixSingleRunEndpoint(Endpoint):
     owner = ApiOwner.ML_AI
