@@ -690,8 +690,8 @@ class SlackAgentEntrypoint(
                     reply["missing_scope_settings_url"] = data.missing_scope_settings_url
                 SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
             else:
-                # send_thread_update records why as a halt; this ties it to the run, which retries the
-                # reply on its next refresh.
+                # send_thread_update records why as a halt and doesn't raise, so this refresh isn't
+                # retried. The reply is posted on the run's next Seer completion hook, if there is one.
                 logger.warning(
                     "seer.entrypoint.slack.agent_update.reply_not_posted",
                     extra={
