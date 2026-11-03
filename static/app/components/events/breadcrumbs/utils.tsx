@@ -220,7 +220,8 @@ export function getEnhancedBreadcrumbsFromValues({
   meta = {},
   virtualCrumb,
 }: {
-  breadcrumbs: RawCrumb[];
+  // Entries can be null when invalid crumbs were removed during ingestion.
+  breadcrumbs: Array<RawCrumb | null>;
   theme: Theme;
   meta?: Record<number, any>;
   virtualCrumb?: RawCrumb;
@@ -229,14 +230,20 @@ export function getEnhancedBreadcrumbsFromValues({
     return [];
   }
 
-  const enhancedCrumbs = breadcrumbs.map<
-    Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>
-  >((raw, i) => ({
-    raw,
-    meta: meta[i],
-    // Converts breadcrumbs into other types if sufficient data is present.
-    breadcrumb: convertCrumbType(raw),
-  }));
+  // Skip null entries without filtering first, so `meta` (keyed by the original
+  // array index) stays aligned with its crumb.
+  const enhancedCrumbs: Array<Pick<EnhancedCrumb, 'raw' | 'meta' | 'breadcrumb'>> = [];
+  breadcrumbs.forEach((raw, i) => {
+    if (!raw) {
+      return;
+    }
+    enhancedCrumbs.push({
+      raw,
+      meta: meta[i],
+      // Converts breadcrumbs into other types if sufficient data is present.
+      breadcrumb: convertCrumbType(raw),
+    });
+  });
 
   const allCrumbs = virtualCrumb
     ? [...enhancedCrumbs, {breadcrumb: virtualCrumb}]
