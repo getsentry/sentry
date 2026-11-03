@@ -1,6 +1,7 @@
 from collections.abc import Callable
+from types import SimpleNamespace
 from typing import NoReturn, cast
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import responses
@@ -14,10 +15,13 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
 from sentry.integrations.gitlab.tasks import (
     MAX_RATE_LIMIT_DEFERRALS,
+    WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY,
     WebhookReconciliationRateLimitError,
     WebhookReconciliationRedisError,
     _consume_webhook_reconciliation_capacity,
     delete_redundant_project_webhook,
+    drain_project_webhook_reconciliations,
+    reconcile_all_project_webhooks,
     reconcile_project_webhook,
     update_all_project_webhooks,
     update_project_webhook,
@@ -27,6 +31,7 @@ from sentry.integrations.gitlab.webhook_reconciliation import (
     GitLabWebhookReconciliationStatus,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.ratelimits.leaky_bucket import LeakyBucketLimitInfo
@@ -37,6 +42,210 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import redis_clusters
+
+
+@cell_silo_test
+class ReconcileAllProjectWebhooksTest(GitLabTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.repos = [
+                self.create_gitlab_repo(name=f"test-repo-{index}", external_id=100 + index)
+                for index in range(1, 4)
+            ]
+
+    @patch("sentry.integrations.gitlab.tasks.drain_project_webhook_reconciliations.delay")
+    def test_marks_repositories_and_starts_drainer(self, drain) -> None:
+        reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+
+        for repo in self.repos:
+            repo.refresh_from_db()
+            state = repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+            assert state["status"] == GitLabWebhookReconciliationStatus.PENDING
+            assert state["integration_id"] == self.integration.id
+        drain.assert_called_once_with(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+    @patch("sentry.integrations.gitlab.tasks.drain_project_webhook_reconciliations.delay")
+    def test_duplicate_trigger_does_not_start_another_drainer(self, drain) -> None:
+        reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+        self.repos[0].refresh_from_db()
+        first_generation = self.repos[0].config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"]
+
+        reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+        self.repos[0].refresh_from_db()
+        assert (
+            self.repos[0].config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"]
+            == first_generation
+        )
+        assert drain.call_count == 1
+
+        reconcile_all_project_webhooks(self.integration.id, self.organization.id, force=True)
+        self.repos[0].refresh_from_db()
+        assert (
+            self.repos[0].config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"]
+            != first_generation
+        )
+        assert drain.call_count == 2
+
+    @patch("sentry.integrations.gitlab.tasks.drain_project_webhook_reconciliations.delay")
+    def test_coordinator_does_not_require_redis(self, drain) -> None:
+        with patch("sentry.integrations.gitlab.tasks.redis_clusters") as clusters:
+            clusters.get.side_effect = RedisConnectionError("Redis unavailable")
+            reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+
+        for repo in self.repos:
+            repo.refresh_from_db()
+            assert (
+                repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["status"]
+                == GitLabWebhookReconciliationStatus.PENDING
+            )
+        drain.assert_called_once()
+
+    @patch("sentry.integrations.gitlab.tasks.drain_project_webhook_reconciliations.delay")
+    def test_marker_failure_can_retry(self, drain) -> None:
+        with patch(
+            "sentry.integrations.gitlab.tasks.repository_service."
+            "mark_repositories_for_gitlab_webhook_reconciliation",
+            side_effect=RuntimeError("Database unavailable"),
+        ):
+            with pytest.raises(RuntimeError, match="Database unavailable"):
+                reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+
+        reconcile_all_project_webhooks(self.integration.id, self.organization.id)
+
+        drain.assert_called_once_with(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+
+@cell_silo_test
+class DrainProjectWebhookReconciliationsTest(GitLabTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.repos = [
+                self.create_gitlab_repo(name=f"test-repo-{index}", external_id=100 + index)
+                for index in range(1, 4)
+            ]
+        repository_service.mark_repositories_for_gitlab_webhook_reconciliation(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            generation="generation-1",
+            scheduled_at=10.0,
+        )
+
+    @patch("sentry.integrations.gitlab.tasks.reconcile_project_webhook.delay")
+    def test_claims_children_and_schedules_continuation_first(self, child_delay) -> None:
+        with patch.object(drain_project_webhook_reconciliations, "apply_async") as continuation:
+            drain_project_webhook_reconciliations(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )
+
+        continuation.assert_called_once()
+        assert child_delay.call_count == 3
+        for repo in self.repos:
+            repo.refresh_from_db()
+            state = repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+            assert state["status"] == GitLabWebhookReconciliationStatus.IN_PROGRESS
+            assert state["claim_token"]
+
+    def test_redelivered_drainer_does_not_spawn_another_chain(self) -> None:
+        activation_id = "drainer-activation"
+        with (
+            patch(
+                "sentry.integrations.gitlab.tasks.current_task",
+                return_value=SimpleNamespace(id=activation_id),
+            ),
+            patch(
+                "sentry.integrations.gitlab.tasks.already_spawned",
+                return_value=True,
+            ) as already_spawned,
+            patch.object(
+                repository_service,
+                "claim_repositories_for_gitlab_webhook_reconciliation",
+            ) as claim,
+        ):
+            drain_project_webhook_reconciliations(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )
+
+        already_spawned.assert_called_once_with(
+            WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY,
+            activation_id,
+        )
+        claim.assert_not_called()
+
+    @patch("sentry.integrations.gitlab.tasks.reconcile_project_webhook.delay")
+    def test_marks_activation_after_scheduling_continuation(self, child_delay) -> None:
+        activation_id = "drainer-activation"
+        with (
+            patch(
+                "sentry.integrations.gitlab.tasks.current_task",
+                return_value=SimpleNamespace(id=activation_id),
+            ),
+            patch("sentry.integrations.gitlab.tasks.already_spawned", return_value=False),
+            patch("sentry.integrations.gitlab.tasks.mark_spawned") as mark_spawned,
+            patch.object(drain_project_webhook_reconciliations, "apply_async") as continuation,
+        ):
+            drain_project_webhook_reconciliations(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )
+
+        continuation.assert_called_once()
+        mark_spawned.assert_called_once_with(
+            WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY,
+            activation_id,
+        )
+        assert child_delay.call_count == 3
+
+    def test_continuation_survives_partial_fanout_failure(self) -> None:
+        with (
+            patch.object(drain_project_webhook_reconciliations, "apply_async") as continuation,
+            patch(
+                "sentry.integrations.gitlab.tasks.reconcile_project_webhook.delay",
+                side_effect=[None, RuntimeError("Task broker unavailable"), None],
+            ) as child_delay,
+            patch("sentry.integrations.gitlab.tasks.logger.exception") as log_exception,
+        ):
+            drain_project_webhook_reconciliations(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+            )
+
+        continuation.assert_called_once()
+        assert child_delay.call_count == 3
+        log_exception.assert_called_once_with(
+            "reconcile-project-webhooks.child-publish-failed",
+            extra={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "repository_id": self.repos[1].id,
+                "claim_token": ANY,
+            },
+        )
+
+    def test_redis_failure_does_not_claim_repositories(self) -> None:
+        with patch("sentry.integrations.gitlab.tasks.redis_clusters") as clusters:
+            clusters.get.return_value.ping.side_effect = RedisConnectionError("Redis unavailable")
+            with pytest.raises(WebhookReconciliationRedisError):
+                drain_project_webhook_reconciliations(
+                    integration_id=self.integration.id,
+                    organization_id=self.organization.id,
+                )
+
+        for repo in self.repos:
+            repo.refresh_from_db()
+            assert (
+                repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["status"]
+                == GitLabWebhookReconciliationStatus.PENDING
+            )
 
 
 @cell_silo_test
@@ -1507,6 +1716,20 @@ class ReconcileProjectWebhookTest(GitLabTestCase):
         self.consume_capacity.assert_not_called()
 
     @responses.activate
+    def test_repository_moved_to_another_integration_does_not_call_gitlab(self) -> None:
+        other_integration = self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="other-integration",
+        )
+        self.repo.update(integration_id=other_integration.id)
+
+        self._run()
+
+        assert len(responses.calls) == 0
+        self.consume_capacity.assert_not_called()
+
+    @responses.activate
     def test_unauthorized_response_records_terminal_failure(self) -> None:
         responses.add(
             responses.PUT,
@@ -1532,3 +1755,33 @@ class ReconcileProjectWebhookTest(GitLabTestCase):
         self.repo.refresh_from_db()
         assert self.repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY] == self.state
         assert len(responses.calls) == 0
+
+    @patch("sentry.integrations.gitlab.tasks.time", return_value=30.0)
+    @patch("sentry.integrations.gitlab.tasks.randint", return_value=3)
+    def test_rate_limit_deferral_renews_the_claim(self, randint, time) -> None:
+        self.consume_capacity.return_value = LeakyBucketLimitInfo(
+            burst_limit=10,
+            drip_rate=2,
+            current_level=10,
+            wait_time=0.5,
+        )
+
+        with patch.object(reconcile_project_webhook, "apply_async") as apply_async:
+            self._run()
+
+        self.repo.refresh_from_db()
+        state = self.repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+        assert state["claimed_at"] == 30.0
+        time.assert_called_once_with()
+        randint.assert_called_once_with(0, 5)
+        apply_async.assert_called_once_with(
+            kwargs={
+                "integration_id": self.integration.id,
+                "organization_id": self.organization.id,
+                "repository_id": self.repo.id,
+                "generation": "generation-1",
+                "claim_token": "claim-1",
+                "rate_limit_deferrals": 1,
+            },
+            countdown=4,
+        )

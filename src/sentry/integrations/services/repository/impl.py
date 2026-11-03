@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.integrations.gitlab.tasks import update_all_project_webhooks
+from sentry.integrations.gitlab.tasks import reconcile_all_project_webhooks
 from sentry.integrations.gitlab.webhook_reconciliation import (
     GITLAB_WEBHOOK_RECONCILIATION_KEY,
     GitLabWebhookReconciliationState,
@@ -289,19 +289,27 @@ class DatabaseBackedRepositoryService(RepositoryService):
             GitLabWebhookReconciliationStatus.IN_PROGRESS: 0,
             GitLabWebhookReconciliationStatus.FAILED: 0,
         }
-        candidate_ids: list[int] = []
+        pending_ids: list[int] = []
+        stale_ids: list[int] = []
+        fresh_in_progress = 0
         for repository_id, config in repository_rows:
             state = get_reconciliation_state(config, integration_id=integration_id)
             if state is None:
                 continue
             status = GitLabWebhookReconciliationStatus(state["status"])
             counts[status] += 1
-            if status == GitLabWebhookReconciliationStatus.PENDING or (
+            if status == GitLabWebhookReconciliationStatus.PENDING:
+                pending_ids.append(repository_id)
+            elif (
                 status == GitLabWebhookReconciliationStatus.IN_PROGRESS
                 and state.get("claimed_at", 0) <= stale_before
             ):
-                if len(candidate_ids) < max(0, limit):
-                    candidate_ids.append(repository_id)
+                stale_ids.append(repository_id)
+            elif status == GitLabWebhookReconciliationStatus.IN_PROGRESS:
+                fresh_in_progress += 1
+
+        available_slots = max(0, limit - fresh_in_progress)
+        candidate_ids = [*stale_ids, *pending_ids][:available_slots]
 
         claimed: list[Repository] = []
         if candidate_ids:
@@ -685,7 +693,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         integration_id: int,
         force: bool = False,
     ) -> None:
-        update_all_project_webhooks.delay(
+        reconcile_all_project_webhooks.delay(
             integration_id=integration_id,
             organization_id=organization_id,
             force=force,

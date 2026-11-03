@@ -4,6 +4,7 @@ import errno
 import logging
 from math import ceil
 from random import randint
+from time import time
 from typing import Any
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -11,6 +12,7 @@ from uuid import uuid4
 from redis.exceptions import RedisError
 from rest_framework import status
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -41,6 +43,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
@@ -55,6 +58,10 @@ MAX_RATE_LIMIT_DEFERRALS = 1000
 WEBHOOK_RECONCILIATION_MAX_BURST = 10
 WEBHOOK_RECONCILIATION_MAX_PER_SECOND = 2
 WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS = 5
+WEBHOOK_RECONCILIATION_MAX_IN_PROGRESS = 100
+WEBHOOK_RECONCILIATION_CLAIM_TIMEOUT = 300
+WEBHOOK_RECONCILIATION_DRAIN_INTERVAL = 30
+WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY = "gitlab.drain_project_webhook_reconciliations"
 
 GITLAB_RETRY_CODES = (
     status.HTTP_429_TOO_MANY_REQUESTS,
@@ -206,6 +213,15 @@ def _webhook_reconciliation_rate_limits() -> tuple[int, int]:
             max(1, options.get("gitlab.webhook-reconcile.rate-limit.per-second")),
         ),
     )
+
+
+def _require_webhook_reconciliation_redis() -> None:
+    try:
+        redis_clusters.get("default").ping()
+    except RedisError as e:
+        raise WebhookReconciliationRedisError(
+            "Redis is unavailable for GitLab webhook reconciliation coordination"
+        ) from e
 
 
 def _consume_webhook_reconciliation_capacity(
@@ -632,7 +648,7 @@ def reconcile_project_webhook(
             organization_id=organization_id,
             id=repository_id,
         )
-        if not repo or repo.status != ObjectStatus.ACTIVE:
+        if not repo or repo.status != ObjectStatus.ACTIVE or repo.integration_id != integration_id:
             lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_NOT_FOUND)
             return
 
@@ -680,6 +696,21 @@ def reconcile_project_webhook(
                     "GitLab webhook reconciliation exceeded its rate-limit deferral budget"
                 )
             countdown = max(1, ceil(limit_info.wait_time)) + randint(0, 5)
+            renewed_state: GitLabWebhookReconciliationState = {
+                **reconciliation_state,
+                "claimed_at": time(),
+            }
+            if not repository_service.update_repository_config(
+                organization_id=organization_id,
+                id=repo.id,
+                config_updates={GITLAB_WEBHOOK_RECONCILIATION_KEY: renewed_state},
+                expected_integration_id=integration_id,
+                expected_config={
+                    GITLAB_WEBHOOK_RECONCILIATION_KEY: reconciliation_state,
+                },
+            ):
+                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+                return
             reconcile_project_webhook.apply_async(
                 kwargs={
                     "integration_id": integration_id,
@@ -742,6 +773,147 @@ def reconcile_project_webhook(
                 failure_reason="gitlab_api_error",
             )
             lifecycle.record_failure(e)
+
+
+@instrumented_task(
+    name="sentry.tasks.integrations.gitlab.drain_project_webhook_reconciliations",
+    namespace=integrations_tasks,
+    silo_mode=SiloMode.CELL,
+    retry=Retry(times=3, delay=60, on=(Exception,)),
+)
+def drain_project_webhook_reconciliations(
+    integration_id: int,
+    organization_id: int,
+) -> None:
+    _require_webhook_reconciliation_redis()
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY, activation_id):
+        logger.info(
+            "reconcile-project-webhooks.duplicate-drainer-skipped",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "activation_id": activation_id,
+            },
+        )
+        return
+
+    claimed_at = time()
+    claim_token = uuid4().hex
+    batch = repository_service.claim_repositories_for_gitlab_webhook_reconciliation(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        claim_token=claim_token,
+        claimed_at=claimed_at,
+        stale_before=claimed_at - WEBHOOK_RECONCILIATION_CLAIM_TIMEOUT,
+        limit=WEBHOOK_RECONCILIATION_MAX_IN_PROGRESS,
+    )
+
+    if batch.repositories or batch.pending or batch.in_progress:
+        # Schedule the durable continuation before fan-out. If this task dies while
+        # publishing children, stale claims will still be reclaimed by a later drain.
+        drain_project_webhook_reconciliations.apply_async(
+            kwargs={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+            },
+            countdown=WEBHOOK_RECONCILIATION_DRAIN_INTERVAL,
+        )
+        if activation_id:
+            mark_spawned(WEBHOOK_RECONCILIATION_DRAIN_TASK_KEY, activation_id)
+
+    for repo in batch.repositories:
+        reconciliation_state = get_reconciliation_state(repo.config, integration_id=integration_id)
+        if (
+            reconciliation_state is None
+            or reconciliation_state["status"] != GitLabWebhookReconciliationStatus.IN_PROGRESS
+            or reconciliation_state.get("claim_token") != claim_token
+        ):
+            continue
+        try:
+            reconcile_project_webhook.delay(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                repository_id=repo.id,
+                generation=reconciliation_state["generation"],
+                claim_token=claim_token,
+            )
+        except Exception:
+            # The continuation is already durable. Let it reclaim this child after the
+            # claim becomes stale instead of retrying this drainer into a second chain.
+            logger.exception(
+                "reconcile-project-webhooks.child-publish-failed",
+                extra={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "repository_id": repo.id,
+                    "claim_token": claim_token,
+                },
+            )
+
+    if batch.failed:
+        logger.warning(
+            "reconcile-project-webhooks.terminal-failures",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "failed_repositories": batch.failed,
+            },
+        )
+
+
+@instrumented_task(
+    name="sentry.tasks.integrations.gitlab.reconcile_all_project_webhooks",
+    namespace=integrations_tasks,
+    silo_mode=SiloMode.CELL,
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+)
+def reconcile_all_project_webhooks(
+    integration_id: int,
+    organization_id: int,
+    force: bool = False,
+) -> None:
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
+    if not integration:
+        return
+
+    org_integration = integration_service.get_organization_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+    )
+    if not org_integration:
+        return
+
+    generation = uuid4().hex
+    scheduled_at = time()
+    mark_result = repository_service.mark_repositories_for_gitlab_webhook_reconciliation(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        generation=generation,
+        scheduled_at=scheduled_at,
+        force=force,
+    )
+    if mark_result.newly_marked:
+        drain_project_webhook_reconciliations.delay(
+            integration_id=integration_id,
+            organization_id=organization_id,
+        )
+
+    logger.info(
+        "reconcile-project-webhooks.scheduled",
+        extra={
+            "integration_id": integration_id,
+            "organization_id": organization_id,
+            "generation": generation,
+            "active_repositories": mark_result.active,
+            "newly_marked_repositories": mark_result.newly_marked,
+        },
+    )
 
 
 @instrumented_task(
