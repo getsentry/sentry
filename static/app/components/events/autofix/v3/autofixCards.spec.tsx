@@ -1944,8 +1944,7 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(0, {text: 'first pass'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
@@ -1970,8 +1969,7 @@ describe('ArtifactCard', () => {
               },
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getAllByText('fix the CI failure')).toHaveLength(1);
