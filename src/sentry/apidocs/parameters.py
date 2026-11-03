@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiParameter
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
@@ -676,6 +677,7 @@ class WorkflowParams:
         required=False,
         type=str,
         many=True,
+        enum=sorted(workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES),
         description="The type of workflow you'd like to query. If not specified, all types are returned.",
     )
 
