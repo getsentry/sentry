@@ -12,10 +12,8 @@ from sentry.preprod.vcs.status_checks.size.tasks import SizeEvaluation
 from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule, TriggeredRule
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 
-FEATURE = "organizations:preprod-size-analysis-pr-comments"
 ENABLED_OPTION_KEY = "sentry:preprod_size_pr_comments_enabled"
 RULES_OPTION_KEY = "sentry:preprod_size_pr_comments_rules"
 
@@ -57,7 +55,6 @@ def _eval_result(
 
 
 @cell_silo_test
-@with_feature(FEATURE)
 class CreatePreprodSizePrCommentTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -307,19 +304,6 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
 
         self._import_task()(artifact.id)
 
-        mock_eval.assert_not_called()
-
-    @patch(_CLIENT_PATH)
-    @patch(_EVAL_PATH)
-    def test_skips_when_feature_flag_disabled(self, mock_eval, mock_get_client) -> None:
-        self._enable()
-        self._set_rules()
-        artifact = self._create_artifact()
-
-        with self.feature({FEATURE: False}):
-            self._import_task()(artifact.id)
-
-        mock_get_client.assert_not_called()
         mock_eval.assert_not_called()
 
     @patch(_CLIENT_PATH)

@@ -8,7 +8,6 @@ from typing import Any, NamedTuple
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.preprod.build_distribution_utils import is_installable_artifact
@@ -40,13 +39,12 @@ def resolve_pr_comment_context(
     log_prefix: str,
     enabled_option_key: str,
     caller: str | None = None,
-    feature_flag: str | None = None,
     with_build_configuration: bool = True,
 ) -> PrCommentContext | None:
     """Resolve common PR-comment inputs after applying the shared task guards.
 
     Returns ``None`` after logging when the artifact or required PR information
-    is missing, the project option is disabled, or the optional feature gate fails.
+    is missing, or the project option is disabled.
     """
 
     def event_name(suffix: str) -> str:
@@ -95,12 +93,6 @@ def resolve_pr_comment_context(
         return None
 
     organization = artifact.project.organization
-    if feature_flag is not None and not features.has(feature_flag, organization):
-        logger.info(
-            event_name("feature_disabled"),
-            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
-        )
-        return None
 
     return PrCommentContext(
         artifact,

@@ -44,7 +44,6 @@ def create_preprod_size_pr_comment_task(
         log_prefix="preprod.size_pr_comments",
         enabled_option_key=ENABLED_OPTION_KEY,
         caller=caller,
-        feature_flag="organizations:preprod-size-analysis-pr-comments",
         with_build_configuration=True,
     )
     if ctx is None:
