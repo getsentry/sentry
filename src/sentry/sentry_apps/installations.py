@@ -20,7 +20,7 @@ from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -61,7 +61,10 @@ class SentryAppInstallationTokenCreator:
     def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
         api_token: ApiToken | None = None
         try:
-            with transaction.atomic(router.db_for_write(ApiToken)):
+            # This transaction is required to bind the token to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
                 self._check_token_limit()
                 api_token = self._create_api_token()
                 self._create_sentry_app_installation_token(api_token=api_token)
@@ -80,10 +83,7 @@ class SentryAppInstallationTokenCreator:
                 },
                 exc_info=True,
             )
-            metrics.incr(
-                "api_key.outbox_flush_deferred",
-                tags={"category": "API_TOKEN_UPDATE", "callsite": "sentry_app_installation_token"},
-            )
+
         self.record_analytics(user)
         return api_token
 

@@ -40,7 +40,7 @@ class TestCreatorInternal(TestCreatorBase):
 
         self.sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
 
-    def test_returns_token_on_outbox_flush_failure(self) -> None:
+    def test_outbox_flush_failure_returns_token(self) -> None:
         request = self.make_request(user=self.user, method="GET")
         with patch.object(
             ApiToken, "handle_async_replication", side_effect=Exception("replication failed")

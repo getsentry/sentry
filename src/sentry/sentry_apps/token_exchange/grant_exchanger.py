@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -24,7 +24,6 @@ from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.token-exchange")
 
@@ -66,10 +65,11 @@ class GrantExchanger:
                 # an attacker could send two requests to create an access/refresh token pair
                 # at the same time, using the same grant, and get two different tokens.
                 # We take the lock before the transaction opens, so the transaction commits
-                # before another request can take the lock.
+                # before another request can take the lock. The outbox_context is
+                # just to flag that this is an outbox-producing operation.
                 with (
                     lock.acquire(),
-                    transaction.atomic(using=router.db_for_write(ApiToken)),
+                    outbox_context(transaction.atomic(using=router.db_for_write(ApiToken))),
                 ):
                     self._validate()
                     token = self._create_token()
@@ -89,17 +89,9 @@ class GrantExchanger:
                 # minted, and its outbox has been committed alongside it,
                 # guaranteeing that it will eventually be valid in all regions.
                 logger.warning(
-                    "grant-exchanger.outbox-failure",
-                    extra={
-                        "installation_uuid": self.install.uuid,
-                        "token_id": token.id,
-                        "last_characters": token.token_last_characters,
-                    },
-                    exc_info=e,
-                )
-                metrics.incr(
-                    "api_key.outbox_flush_deferred",
-                    tags={"category": "API_TOKEN_UPDATE", "callsite": "sentry_app_grant_exchanger"},
+                    "grant-exchanger.outbox-flush-failure",
+                    extra={"token_id": token.id, "installation_uuid": self.install.uuid},
+                    exc_info=True,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e)
