@@ -70,12 +70,6 @@ class SlackRequestRoutingTest(TestCase):
         assert tracked == f"{action_id}{TRACKING_SEPARATOR}{TRACKING.encode()}"
         assert decode_action_id(tracked).tracking == TRACKING
 
-    def test_add_action_tracking_keeps_existing_tracking(self) -> None:
-        tracked = add_action_tracking(f"{SlackAction.SEER_AUTOFIX_START}::1::2", TRACKING)
-        other = SlackActionTracking(notification_uuid="other", source="seer-autofix-update")
-
-        assert add_action_tracking(tracked, other) == tracked
-
     def test_add_action_tracking_too_long(self) -> None:
         action_id = f"{'a' * 250}::1::2"
         assert add_action_tracking(action_id, TRACKING) == action_id

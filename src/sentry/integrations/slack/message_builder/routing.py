@@ -57,11 +57,9 @@ def encode_action_id(*, action: str, organization_id: int, project_id: int | Non
 
 def add_action_tracking(encoded_action_id: str, tracking: SlackActionTracking) -> str:
     """
-    Returns the action ID with `tracking` appended, or unchanged if it already carries tracking
-    or the result would be longer than Slack allows.
+    Returns the action ID with `tracking` appended, or unchanged if the result would be longer
+    than Slack allows.
     """
-    if TRACKING_SEPARATOR in encoded_action_id:
-        return encoded_action_id
     tracked = f"{encoded_action_id}{TRACKING_SEPARATOR}{tracking.encode()}"
     return tracked if len(tracked) <= MAX_ACTION_ID_LENGTH else encoded_action_id
 

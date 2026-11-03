@@ -171,8 +171,8 @@ class NotificationProvider[RenderableT](Protocol):
         than open a page, with the notification they're sent in, so the provider's callback can
         attribute clicks on them. Returns the kinds of action marked.
 
-        Call this just before sending, never from rendering: shadow reads compare rendered payloads
-        with legacy ones, which don't carry these marks.
+        Modifies `renderable` in place, so call it once per renderable, after rendering and before
+        sending. Renderers don't mark their own actions.
         """
         return set()
 
