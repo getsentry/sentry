@@ -5,8 +5,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {SavedQueriesLandingContent} from './savedQueriesLandingContent';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();

@@ -63,11 +63,6 @@ import {
   LogTableBody,
   LogTableHeadCell,
 } from 'sentry/views/explore/logs/styles';
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -94,6 +89,12 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
+
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
+import {LogsEmptyResults} from './logsEmptyResults';
+import {LogsRateLimitError} from './logsRateLimitError';
+import {LogRowContent} from './logsTableRow';
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
 
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;

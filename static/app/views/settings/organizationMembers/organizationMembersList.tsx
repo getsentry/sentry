@@ -33,9 +33,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 import {MembersFilter} from './components/membersFilter';
+import {InviteBanner} from './inviteBanner';
 import {InviteRequestRow} from './inviteRequestRow';
 import {OrganizationMemberRow} from './organizationMemberRow';
 

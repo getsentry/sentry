@@ -25,7 +25,8 @@ import {
   getInvestigationPath,
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+
+import {EventListTable} from './eventListTable';
 
 interface OpenPeriodDisplayData {
   description: string;

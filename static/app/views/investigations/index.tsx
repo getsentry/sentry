@@ -32,21 +32,19 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {RouteError} from 'sentry/views/routeError';
+
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useSetInvestigationFavoriteMutation,
-} from 'sentry/views/investigations/api';
-import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import type {InvestigationListItem} from 'sentry/views/investigations/types';
-import {
-  getInvestigationPath,
-  useInvestigationsEnabled,
-} from 'sentry/views/investigations/utils';
-import {TopBar} from 'sentry/views/navigation/topBar';
-import {RouteError} from 'sentry/views/routeError';
+} from './api';
+import {updateInvestigationCache} from './investigationCache';
+import type {InvestigationListItem} from './types';
+import {getInvestigationPath, useInvestigationsEnabled} from './utils';
 
 enum ColumnKey {
   NAME = 'title',

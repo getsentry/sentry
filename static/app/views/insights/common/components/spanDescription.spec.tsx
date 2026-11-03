@@ -6,7 +6,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+
+import {DatabaseSpanDescription} from './spanDescription';
 
 describe('DatabaseSpanDescription', () => {
   beforeEach(() => {

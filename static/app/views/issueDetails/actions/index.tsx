@@ -52,10 +52,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
-import {SeerCommandPaletteActions} from 'sentry/views/issueDetails/actions/seerCommandPaletteActions';
-import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
-import {StatusBanner} from 'sentry/views/issueDetails/actions/statusBanner';
-import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssueMutationOptions';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
@@ -66,6 +62,11 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+
+import {SeerCommandPaletteActions} from './seerCommandPaletteActions';
+import {ShareIssueModal} from './shareModal';
+import {StatusBanner} from './statusBanner';
+import {SubscribeAction} from './subscribeAction';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}

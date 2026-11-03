@@ -8,10 +8,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {
-  DetectorSection,
-  getDetectorDetails,
-} from 'sentry/views/issueDetails/sidebar/detectorSection';
+
+import {DetectorSection, getDetectorDetails} from './detectorSection';
 
 describe('DetectorSection', () => {
   const detectorId = '123';

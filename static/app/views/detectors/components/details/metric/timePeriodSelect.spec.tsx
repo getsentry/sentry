@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+import {MetricTimePeriodSelect} from './timePeriodSelect';
 
 describe('MetricTimePeriodSelect', () => {
   it('syncs default statsPeriod into query when none is provided', async () => {

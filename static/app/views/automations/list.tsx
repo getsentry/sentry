@@ -19,16 +19,6 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationListTable} from 'sentry/views/automations/components/automationListTable';
-import {AutomationSearch} from 'sentry/views/automations/components/automationListTable/search';
-import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
-import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanCreateAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
-import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
@@ -38,6 +28,17 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationListTable} from './components/automationListTable';
+import {AutomationSearch} from './components/automationListTable/search';
+import {useAutomationListQueryOptions} from './hooks/useAutomationListDetectors';
+import {
+  getNoAlertWritePermissionTooltip,
+  useCanCreateAutomation,
+} from './hooks/useCanEditAutomation';
+import {AUTOMATION_LIST_PAGE_LIMIT} from './constants';
+import {makeAutomationCreatePathname} from './pathnames';
 
 const CONTEXT_HINT =
   'Sentry alerts list page. Alerts watch monitors and run actions when one fires — Slack and email ' +

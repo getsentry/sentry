@@ -3,7 +3,8 @@ import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
+
+import ApiTokenDetails from './apiTokenDetails';
 
 const ROUTER_CONFIG = {
   initialRouterConfig: {

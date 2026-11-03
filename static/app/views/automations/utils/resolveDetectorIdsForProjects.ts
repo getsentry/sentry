@@ -5,10 +5,11 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+
 import {
   fetchIssueStreamDetectorIdsForProjects,
   fetchAllProjectsDetectorId,
-} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIds';
+} from './fetchIssueStreamDetectorIds';
 
 type ResolveDetectorIdsForProjectsParams = {
   formData: AutomationFormData;

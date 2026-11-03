@@ -1,7 +1,7 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
+import {hasUnresolvedTraceMetric} from './hasUnresolvedTraceMetric';
 
 describe('hasUnresolvedTraceMetric', () => {
   it('is true when an aggregate carries no metric', () => {

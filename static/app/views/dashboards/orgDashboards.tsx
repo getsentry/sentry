@@ -17,9 +17,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {mergeGlobalFilters} from './globalFilter/utils';
+import {useGetPrebuiltDashboard} from './utils/usePopulateLinkedDashboards';
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
 import {getCurrentPageFilters, hasSavedPageFilters} from './utils';

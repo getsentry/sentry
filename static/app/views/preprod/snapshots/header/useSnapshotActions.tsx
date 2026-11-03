@@ -25,7 +25,6 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
 import {
   isForceApprovableSnapshotState,
   isSnapshotApproved,
@@ -33,6 +32,8 @@ import {
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
+
+import {openBuildDebugInfoModal} from './buildDebugInfoModal';
 
 interface UseSnapshotActionsParams {
   apiUrl: ReturnType<typeof getApiUrl>;

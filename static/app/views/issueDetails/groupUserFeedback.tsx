@@ -15,8 +15,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();

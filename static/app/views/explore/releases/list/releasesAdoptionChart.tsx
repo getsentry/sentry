@@ -44,10 +44,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {sessionDisplayToField} from 'sentry/views/explore/releases/list/releasesRequest';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {sessionDisplayToField} from './releasesRequest';
 
 type Props = {
   activeDisplay: ReleasesDisplayOption;

@@ -25,8 +25,9 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {Row} from './row';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 

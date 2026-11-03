@@ -9,7 +9,8 @@ import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-import GroupCheckIns from 'sentry/views/issueDetails/groupCheckIns';
+
+import GroupCheckIns from './groupCheckIns';
 
 describe('GroupCheckIns', () => {
   const monitorId = 'f75a223c-aae1-47e4-8f77-6c72243cb76e';

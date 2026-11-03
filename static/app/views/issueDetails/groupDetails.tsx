@@ -52,39 +52,40 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
-import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
-import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/hooks/useSimilarIssuesDrawer';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+
+import {hasAutofixPage, makeSeerLocation} from './autofix/utils';
+import {useGroupDistributionsDrawer} from './groupDistributions/useGroupDistributionsDrawer';
+import GroupEventDetails from './groupEventDetails/groupEventDetails';
+import {useAiConfig} from './hooks/useAiConfig';
+import {useIssueActivityDrawer} from './hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from './hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from './hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from './sidebar/seerDrawer';
+import {ERROR_TYPES} from './constants';
+import {GroupDataContextProvider} from './groupDataContext';
+import {GroupDetailsLayout} from './groupDetailsLayout';
+import {GroupIdProvider} from './groupIdContext';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
-} from 'sentry/views/issueDetails/issueDetailsTour';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {RESERVED_EVENT_IDS, useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+} from './issueDetailsTour';
+import {Tab} from './types';
+import {useEngagedViewTracking} from './useEngagedViewTracking';
+import {groupApiOptions, useGroup} from './useGroup';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+} from './utils';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 

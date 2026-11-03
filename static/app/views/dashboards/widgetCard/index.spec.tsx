@@ -21,9 +21,10 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
+
+import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 
 jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
   TableWidgetVisualization: jest.fn(() => <div />),

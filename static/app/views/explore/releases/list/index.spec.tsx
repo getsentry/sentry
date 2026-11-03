@@ -17,8 +17,9 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/explore/releases/list/';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {ReleasesStatusOption} from './releasesStatusOptions';
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({

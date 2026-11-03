@@ -11,7 +11,8 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
+
+import ApiNewToken from './apiNewToken';
 
 describe('ApiNewToken', () => {
   it('renders', () => {

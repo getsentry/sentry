@@ -24,8 +24,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
-import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
-import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
+
+import {KeyRateLimitsForm} from './keyRateLimitsForm';
+import {LoaderSettings} from './loaderSettings';
 
 type Props = {
   data: ProjectKey;

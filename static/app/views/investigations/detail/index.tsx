@@ -58,22 +58,6 @@ import {
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
-  InvestigationNotebookBlock,
-  isBlockWorking,
-  shouldDisplayInvestigationBlock,
-  shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/block';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
-import {
-  ACTIVITY_ELEMENT_ID,
-  getInvestigationOutline,
-  HYPOTHESES_ELEMENT_ID,
-  InvestigationOutline,
-  SUMMARY_ELEMENT_ID,
-} from 'sentry/views/investigations/detail/outline';
-import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
-import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
@@ -104,6 +88,23 @@ import {RouteError} from 'sentry/views/routeError';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {
+  InvestigationNotebookBlock,
+  isBlockWorking,
+  shouldDisplayInvestigationBlock,
+  shouldPollInvestigationBlocks,
+} from './block';
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from './outline';
+import {InvestigationViewers} from './presence';
+import {InvestigationRunTimer} from './runTimer';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 

@@ -28,7 +28,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
   DEFAULT_TIME_FILTERS,
@@ -45,6 +44,8 @@ import {
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {IssueViewsTable} from './issueViewsTable';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;

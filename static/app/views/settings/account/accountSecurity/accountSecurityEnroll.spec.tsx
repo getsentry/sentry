@@ -8,7 +8,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
+
+import AccountSecurityEnroll from './accountSecurityEnroll';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/webAuthn/handlers');

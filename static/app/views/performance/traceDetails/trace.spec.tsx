@@ -19,12 +19,9 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import TraceView from 'sentry/views/performance/traceDetails/index';
-import {
-  makeEAPError,
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {makeEAPError, makeEAPSpan, makeEAPTrace} from './traceModels/traceTreeTestUtils';
+import TraceView from './index';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;

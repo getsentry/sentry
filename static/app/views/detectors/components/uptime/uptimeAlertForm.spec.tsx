@@ -17,12 +17,9 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  UptimeComparisonType,
-  UptimeOpType,
-  type UptimeAssertion,
-} from 'sentry/views/detectors/components/uptime/types';
-import {UptimeAlertForm} from 'sentry/views/detectors/components/uptime/uptimeAlertForm';
+
+import {UptimeComparisonType, UptimeOpType, type UptimeAssertion} from './types';
+import {UptimeAlertForm} from './uptimeAlertForm';
 
 describe('Uptime Alert Form', () => {
   const organization = OrganizationFixture();

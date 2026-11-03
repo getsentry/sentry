@@ -1,8 +1,4 @@
-import {
-  getAgentRunsFilter,
-  getAiClientSpansFilter,
-  getToolSpansFilter,
-} from 'sentry/views/insights/pages/agents/utils/query';
+import {getAgentRunsFilter, getAiClientSpansFilter, getToolSpansFilter} from './query';
 
 describe('AI operation type filters', () => {
   it('filters agent runs', () => {

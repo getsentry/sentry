@@ -13,16 +13,17 @@ import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
-import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
-import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
-import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
-import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/schemas';
+
+import {useHasDynamicSamplingWriteAccess} from './utils/access';
+import {parsePercent} from './utils/parsePercent';
+import {targetSampleRateSchema} from './utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
-} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+} from './utils/useProjectSampleCounts';
+import {ProjectionPeriodControl} from './projectionPeriodControl';
+import {ProjectsPreviewTable} from './projectsPreviewTable';
+import {SamplingModeSwitch} from './samplingModeSwitch';
 
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'

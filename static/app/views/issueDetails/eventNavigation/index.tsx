@@ -34,7 +34,6 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {
   issueAndEventToMarkdown,
@@ -48,6 +47,8 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+
+import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 interface IssueEventNavigationProps {
   event: Event | undefined;

@@ -37,11 +37,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+import {TagBar} from './tagDistribution';
 
 const DEFAULT_SORT: TagSort = 'count';
 

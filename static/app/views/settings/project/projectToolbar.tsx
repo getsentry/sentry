@@ -16,8 +16,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const toolbarSchema = z.object({
   'sentry:toolbar_allowed_origins': z.string(),

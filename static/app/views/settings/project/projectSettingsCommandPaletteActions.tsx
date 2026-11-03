@@ -23,8 +23,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+
+import {getNavigationConfiguration} from './navigationConfiguration';
 
 type ProjectSettingsCommandPaletteEntry = {
   display: {

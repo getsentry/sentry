@@ -3,7 +3,8 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListContainer} from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+
+import IssueListOverview from './overview';
 
 export function OverviewWrapper() {
   const location = useLocation();

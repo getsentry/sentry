@@ -2,10 +2,8 @@ import {useCallback} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+
+import {buildDetectorZoomQuery, computeZoomRangeMs} from './buildDetectorZoomQuery';
 
 export function useZoomToOpenPeriodRange(intervalSeconds?: number) {
   const location = useLocation();

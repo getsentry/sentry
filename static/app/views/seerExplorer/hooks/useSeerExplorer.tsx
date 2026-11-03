@@ -25,7 +25,6 @@ import {
   type ChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
 import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -38,6 +37,8 @@ import type {
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
+import {usePageContextCapture} from './usePageContextCapture';
 
 type SeerExplorerChatResponse = {
   message: Block;

@@ -48,33 +48,22 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import {
-  useUpdateDashboard,
-  type UpdateDashboardVariables,
-} from 'sentry/views/dashboards/useUpdateDashboard';
-import {
-  cloneDashboard,
-  getCurrentPageFilters,
-  getMergedDashboardFilters,
-  hasUnsavedFilterChanges,
-  resetPageFilters,
-} from 'sentry/views/dashboards/utils';
-import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {
-  addWidgetBuilderSessionStorageParams,
-  cleanupWidgetBuilderSessionStorage,
-  DataSet,
-} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {WidgetQueryQueueProvider} from './utils/widgetQueryQueue';
+import {WidgetBuilderV2} from './widgetBuilder/components/newWidgetBuilder';
+import {
+  addWidgetBuilderSessionStorageParams,
+  cleanupWidgetBuilderSessionStorage,
+  DataSet,
+} from './widgetBuilder/utils';
+import {convertWidgetToQueryParams} from './widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from './widgetBuilder/utils/getDefaultWidget';
+import {getDefaultWidgets} from './widgetLibrary/data';
 import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
 import {DashboardActionBar} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
@@ -97,6 +86,14 @@ import type {
   Widget,
 } from './types';
 import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
+import {useUpdateDashboard, type UpdateDashboardVariables} from './useUpdateDashboard';
+import {
+  cloneDashboard,
+  getCurrentPageFilters,
+  getMergedDashboardFilters,
+  hasUnsavedFilterChanges,
+  resetPageFilters,
+} from './utils';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 

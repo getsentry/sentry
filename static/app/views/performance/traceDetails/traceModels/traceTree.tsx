@@ -23,10 +23,6 @@ import {
   isTraceError,
   isUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceGuards';
-import {
-  collectTraceMeasurements,
-  type RENDERABLE_MEASUREMENTS,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -40,6 +36,10 @@ import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
 import {makeExampleTraceData} from './makeExampleTraceData';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from './traceTree.measurements';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import {
   getVisibleParent,

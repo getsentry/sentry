@@ -32,10 +32,11 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
-import DetectorEdit from 'sentry/views/detectors/edit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {SnubaQueryType} from './components/forms/metric/metricFormData';
+import DetectorEdit from './edit';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({

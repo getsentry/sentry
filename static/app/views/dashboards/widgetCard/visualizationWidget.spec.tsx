@@ -9,10 +9,11 @@ import {Button} from '@sentry/scraps/button';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
-import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(

@@ -26,10 +26,11 @@ import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {SpansTabContent} from './spansTab';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;

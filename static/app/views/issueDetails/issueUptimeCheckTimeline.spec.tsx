@@ -11,9 +11,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
-import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {IssueUptimeCheckTimeline} from 'sentry/views/issueDetails/issueUptimeCheckTimeline';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
+
+import {IssueDetailsContext} from './context';
+import {IssueUptimeCheckTimeline} from './issueUptimeCheckTimeline';
+import {useIssueTimeWindowConfig} from './useIssueTimeWindowConfig';
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 

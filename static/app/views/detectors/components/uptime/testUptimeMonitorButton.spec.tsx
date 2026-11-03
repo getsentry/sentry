@@ -3,13 +3,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {TestUptimeMonitorButton} from 'sentry/views/detectors/components/uptime/testUptimeMonitorButton';
+
+import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {
   PreviewCheckStatus,
   UptimeComparisonType,
   UptimeOpType,
   type UptimeAssertion,
-} from 'sentry/views/detectors/components/uptime/types';
+} from './types';
 
 describe('TestUptimeMonitorButton', () => {
   const organization = OrganizationFixture();

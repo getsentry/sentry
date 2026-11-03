@@ -20,7 +20,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
+
+import OrganizationMembersList from './organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/actionCreators/indicator');

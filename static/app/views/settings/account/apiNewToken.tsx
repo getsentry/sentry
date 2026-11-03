@@ -31,17 +31,18 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  GranularPermissionSelection,
-  granularPermissionsToScopes,
-  type GranularPermissions,
-} from 'sentry/views/settings/account/granularPermissionSelection';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
   PermissionSelection,
   permissionStateToList,
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+
+import {
+  GranularPermissionSelection,
+  granularPermissionsToScopes,
+  type GranularPermissions,
+} from './granularPermissionSelection';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 

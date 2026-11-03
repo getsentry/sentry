@@ -27,16 +27,17 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
-import CreateDashboard from 'sentry/views/dashboards/create';
-import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
-import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import * as types from 'sentry/views/dashboards/types';
-import {DashboardState} from 'sentry/views/dashboards/types';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import ViewEditDashboard from 'sentry/views/dashboards/view';
-import {useWidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useGetStarredDashboards} from './hooks/useGetStarredDashboards';
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {useWidgetBuilderState} from './widgetBuilder/hooks/useWidgetBuilderState';
+import {UNSAVED_FILTERS_MESSAGE} from './constants';
+import CreateDashboard from './create';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
+import * as types from './types';
+import {DashboardState} from './types';
+import ViewEditDashboard from './view';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');

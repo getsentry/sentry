@@ -13,7 +13,8 @@ import {
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+
+import {GroupSimilarIssues} from './similarIssues';
 
 export function SimilarIssuesDrawer({group, project}: {group: Group; project: Project}) {
   return (

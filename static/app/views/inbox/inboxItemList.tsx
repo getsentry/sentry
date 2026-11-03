@@ -12,8 +12,9 @@ import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {InboxItem} from 'sentry/views/inbox/types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
+
+import type {InboxItem} from './types';
+import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
   items: InboxItem[];

@@ -12,8 +12,8 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
+import {StepHeading} from './components/stepHeading';
 import type {StepProps} from './types';
 
 const PROMO_CODE_ERROR_MSG = t(

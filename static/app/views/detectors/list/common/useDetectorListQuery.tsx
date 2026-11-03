@@ -7,8 +7,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
-import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
+
+import {DETECTOR_LIST_PAGE_LIMIT} from './constants';
+import {useDetectorListSort} from './useDetectorListSort';
 
 type UseDetectorListQueryOptions = {
   assigneeFilter?: string;

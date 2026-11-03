@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {getProjectSettingsCommandPaletteSections} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+import {getProjectSettingsCommandPaletteSections} from './projectSettingsCommandPaletteActions';
 
 describe('ProjectSettingsCommandPaletteActions', () => {
   it('returns current project settings sections with visibility rules applied', () => {

@@ -8,12 +8,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  type PreviewCheckPayload,
-  type PreviewCheckResult,
-  PreviewCheckStatus,
-  type UptimeAssertion,
-} from 'sentry/views/detectors/components/uptime/types';
 
 import {
   extractPreviewCheckError,
@@ -21,6 +15,12 @@ import {
   mapPreviewCheckResultToMessage,
 } from './formErrors';
 import {usePreviewCheckResult} from './previewCheckContext';
+import {
+  type PreviewCheckPayload,
+  type PreviewCheckResult,
+  PreviewCheckStatus,
+  type UptimeAssertion,
+} from './types';
 
 interface TestUptimeMonitorButtonProps {
   /**

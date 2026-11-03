@@ -32,7 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
+
+import {useTeamDetailsOutlet} from './teamDetails';
 
 export default function TeamProjects() {
   const location = useLocation();

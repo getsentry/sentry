@@ -18,13 +18,11 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
-import {
-  NOTIFICATION_SETTINGS_PATHNAMES,
-  NOTIFICATION_SETTINGS_TYPES,
-} from 'sentry/views/settings/account/notifications/constants';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import type {NotificationSettingsType} from './constants';
+import {NOTIFICATION_SETTINGS_PATHNAMES, NOTIFICATION_SETTINGS_TYPES} from './constants';
+import {NOTIFICATION_SETTING_FIELDS} from './fields';
 
 const NOTIFICATIONS_ENDPOINT = getApiUrl('/users/$userId/notifications/', {
   path: {userId: 'me'},

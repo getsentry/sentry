@@ -20,17 +20,12 @@ import {encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  AutomationsTableActions,
-  AutomationsTableActionsBanner,
-} from 'sentry/views/automations/components/automationListTable/actions';
-import {
-  AutomationListRow,
-  AutomationListRowSkeleton,
-} from 'sentry/views/automations/components/automationListTable/row';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {hasOrganizationAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+
+import {AutomationsTableActions, AutomationsTableActionsBanner} from './actions';
+import {AutomationListRow, AutomationListRowSkeleton} from './row';
 
 type AutomationListTableProps = {
   allResultsVisible: boolean;

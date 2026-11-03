@@ -45,14 +45,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {
-  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
-  AI_INSTRUMENTATION_DOCS_LINKS,
-} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -62,6 +54,15 @@ import {
   useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
+
+import {
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from './utils/docsLinks';
+import {getHasAiSpansFilter} from './utils/query';
+import {Referrer} from './utils/referrers';
+import {useAgentOnboardingOptions} from './utils/useAgentOnboardingOptions';
+import {LLM_ONBOARDING_COPY_MARKDOWN} from './llmOnboardingInstructions';
 
 function WaitingIndicator({project}: {project: Project}) {
   const spanRequest = useSpanWaiter({

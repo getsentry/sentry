@@ -9,10 +9,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
+import {EventGraph} from './eventGraph';
+import {GroupDataContextProvider} from './groupDataContext';
 
 describe('EventGraph', () => {
   const organization = OrganizationFixture();

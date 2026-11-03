@@ -3,12 +3,13 @@ import {useQuery} from '@tanstack/react-query';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
+
+import {useEventQuery} from './hooks/useEventQuery';
 import {
   groupEventApiOptions,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-} from 'sentry/views/issueDetails/utils';
+} from './utils';
 
 export const RESERVED_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
 interface UseGroupEventOptions {

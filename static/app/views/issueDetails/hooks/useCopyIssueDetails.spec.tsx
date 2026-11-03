@@ -12,11 +12,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
-import {
-  issueAndEventToMarkdown,
-  useCopyIssueDetails,
-} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+
+import {formatSpanEvidenceToMarkdown} from './spanEvidenceMarkdown';
+import {issueAndEventToMarkdown, useCopyIssueDetails} from './useCopyIssueDetails';
 
 jest.mock('sentry/utils/useCopyToClipboard');
 

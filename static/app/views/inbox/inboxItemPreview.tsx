@@ -4,8 +4,9 @@ import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
-import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
-import type {InboxItem} from 'sentry/views/inbox/types';
+
+import {InboxIssuePreview} from './inboxIssuePreview';
+import type {InboxItem} from './types';
 
 interface InboxItemPreviewProps {
   item: InboxItem | null;

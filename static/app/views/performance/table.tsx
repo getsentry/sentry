@@ -34,8 +34,8 @@ import {
   type RenderCellOptions,
 } from 'sentry/views/discover/table/useEventViewTable';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
+import {getLandingDisplayFromParam} from './landing/utils';
 import {getMEPQueryParams} from './landing/widgets/utils';
 import TransactionThresholdModal, {
   modalCss,

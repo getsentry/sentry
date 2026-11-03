@@ -8,14 +8,15 @@ import * as modal from 'sentry/actionCreators/modal';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
-import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {MockMetricQueryParamsContext} from './hooks/testUtils';
+import {encodeMetricQueryParams} from './metricQuery';
+import {useSaveAsMetricItems} from './useSaveAsMetricItems';
 
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/views/discover/utils');

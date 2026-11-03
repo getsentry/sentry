@@ -16,7 +16,8 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({

@@ -20,8 +20,9 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
-import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import {CreateProject} from './createProject';
 
 jest.mock('sentry/actionCreators/indicator');
 

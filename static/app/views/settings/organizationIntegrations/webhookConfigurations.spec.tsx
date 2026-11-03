@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import WebhookDetailedView from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+
+import WebhookDetailedView from './webhookDetailedView';
 
 describe('WebhookConfigurations', () => {
   const organization = OrganizationFixture();

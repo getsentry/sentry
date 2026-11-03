@@ -11,11 +11,9 @@ import {
   useCreateInvestigationCommentMutation,
   useUpdateInvestigationCommentMutation,
 } from 'sentry/views/investigations/api';
-import {
-  loadCommentDraft,
-  saveCommentDraft,
-} from 'sentry/views/investigations/comments/commentDrafts';
 import type {InvestigationComment} from 'sentry/views/investigations/types';
+
+import {loadCommentDraft, saveCommentDraft} from './commentDrafts';
 
 const EMPTY_VALUE: ComposerValue = {text: '', mentions: []};
 

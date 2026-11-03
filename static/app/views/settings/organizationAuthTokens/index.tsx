@@ -23,7 +23,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
+
+import {OrganizationAuthTokensAuthTokenRow} from './authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
 type FetchOrgAuthTokensParameters = {

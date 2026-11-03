@@ -38,8 +38,6 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/tabAnalytics';
-import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -50,7 +48,9 @@ import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {TransactionHeader} from './header';
+import {TAB_ANALYTICS} from './tabAnalytics';
 import {Tab} from './tabs';
+import {TransactionSummaryContext} from './transactionSummaryContext';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 

@@ -10,8 +10,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
+import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {Rules} from './rules';
 
 type Props = {

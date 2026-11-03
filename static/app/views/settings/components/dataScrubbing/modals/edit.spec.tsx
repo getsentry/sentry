@@ -15,13 +15,14 @@ import {
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import {Edit} from 'sentry/views/settings/components/dataScrubbing/modals/edit';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
+
+import {Edit} from './edit';
 
 jest.mock('sentry/actionCreators/indicator');
 

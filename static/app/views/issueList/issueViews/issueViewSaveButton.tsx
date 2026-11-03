@@ -18,14 +18,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {createIssueViewFromUrl} from './createIssueViewFromUrl';
+import {CreateIssueViewModal} from './createIssueViewModal';
+import {getIssueViewQueryParams} from './getIssueViewQueryParams';
+import {useIssueViewUnsavedChanges} from './useIssueViewUnsavedChanges';
+import {useSelectedGroupSearchView} from './useSelectedGroupSeachView';
+import {canEditIssueView} from './utils';
 
 type IssueViewSaveButtonProps = {
   query: string;

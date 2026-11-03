@@ -5,10 +5,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import {
-  CodeBlockWrapper,
-  InlineCode,
-} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
+
+import {CodeBlockWrapper, InlineCode} from './insightInfoModal';
 
 const COMMENT_EXAMPLE = `/* Title for the expired code alert. */
 "code_expired" = "Code Expired";`;

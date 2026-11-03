@@ -11,11 +11,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {
-  getAutomationRunsPath,
-  getAutomationsPath,
-  useAutomationsEnabled,
-} from 'sentry/views/seerWorkflows/utils';
+
+import {getAutomationRunsPath, getAutomationsPath, useAutomationsEnabled} from './utils';
 
 export default function AutomationsLayout() {
   const organization = useOrganization();

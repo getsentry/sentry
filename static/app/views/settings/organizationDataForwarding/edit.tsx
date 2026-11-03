@@ -23,21 +23,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {ProjectOverrideForm} from 'sentry/views/settings/organizationDataForwarding/components/projectOverrideForm';
-import {
-  useDataForwarders,
-  useMutateDataForwarder,
-} from 'sentry/views/settings/organizationDataForwarding/util/hooks';
-import {SegmentEditForm} from 'sentry/views/settings/organizationDataForwarding/util/segmentForm';
-import {SplunkEditForm} from 'sentry/views/settings/organizationDataForwarding/util/splunkForm';
-import {SQSEditForm} from 'sentry/views/settings/organizationDataForwarding/util/sqsForm';
+
+import {ProjectOverrideForm} from './components/projectOverrideForm';
+import {useDataForwarders, useMutateDataForwarder} from './util/hooks';
+import {SegmentEditForm} from './util/segmentForm';
+import {SplunkEditForm} from './util/splunkForm';
+import {SQSEditForm} from './util/sqsForm';
 import {
   DATA_FORWARDING_FEATURES,
   DataForwarderProviderSlug,
   ProviderLabels,
   type DataForwarder,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './util/types';
 
 export default function OrganizationDataForwardingEditWrapper() {
   const organization = useOrganization();

@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {RunsTable} from 'sentry/views/seerWorkflows/automations/runs/runsTable';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
+
+import {RunsTable} from './runsTable';
 
 // TEMPORARY: exercise the runs API instead of placeholder runs
 jest.mock('sentry/views/seerWorkflows/automations/runs/placeholderRuns', () => ({

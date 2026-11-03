@@ -23,30 +23,28 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
-} from 'sentry/views/automations/components/automationBuilderContext';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
-import {AutomationForm} from 'sentry/views/automations/components/automationForm';
-import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
+} from './components/automationBuilderContext';
+import {AutomationBuilderErrorContext} from './components/automationBuilderErrorContext';
+import {AutomationFeedbackButton} from './components/automationFeedbackButton';
+import {AutomationForm} from './components/automationForm';
+import type {AutomationFormData} from './components/automationFormData';
 import {
   getNewAutomationData,
   validateAutomationBuilderState,
-} from 'sentry/views/automations/components/automationFormData';
-import {EditableAutomationName} from 'sentry/views/automations/components/editableAutomationName';
-import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components/forms/common/getAutomationAnalyticsPayload';
-import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
-import {useCreateAutomation} from 'sentry/views/automations/hooks';
-import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {
-  makeAutomationBasePathname,
-  makeAutomationDetailsPathname,
-} from 'sentry/views/automations/pathnames';
-import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
-import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
-import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+} from './components/automationFormData';
+import {EditableAutomationName} from './components/editableAutomationName';
+import {getAutomationAnalyticsPayload} from './components/forms/common/getAutomationAnalyticsPayload';
+import {AutomationFormProvider} from './components/forms/context';
+import {useAutomationBuilderErrors} from './hooks/useAutomationBuilderErrors';
+import {mapAutomationFormErrors} from './utils/mapAutomationFormErrors';
+import {hasAutomationWriteAccess} from './utils/permissions';
+import {resolveDetectorIdsForProjects} from './utils/resolveDetectorIdsForProjects';
+import {useCreateAutomation} from './hooks';
+import {makeAutomationBasePathname, makeAutomationDetailsPathname} from './pathnames';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');

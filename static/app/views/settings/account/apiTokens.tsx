@@ -21,8 +21,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {ApiTokenRow} from './apiTokenRow';
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;

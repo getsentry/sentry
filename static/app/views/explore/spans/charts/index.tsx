@@ -53,7 +53,6 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -72,6 +71,8 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface ExploreChartsProps {
   extrapolate: boolean;

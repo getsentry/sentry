@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventMissingBanner} from 'sentry/views/issueDetails/eventMissingBanner';
+import {EventMissingBanner} from './eventMissingBanner';
 
 describe('EventMissingBanner', () => {
   it('renders elements for known event IDs', () => {

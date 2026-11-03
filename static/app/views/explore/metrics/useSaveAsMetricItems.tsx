@@ -19,9 +19,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
-import {useSaveMetricsMultiQuery} from 'sentry/views/explore/metrics/hooks/useSaveMetricsMultiQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -32,11 +29,14 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
+import {useAddMetricToDashboard} from './hooks/useAddMetricToDashboard';
+import {useSaveMetricsMultiQuery} from './hooks/useSaveMetricsMultiQuery';
 import {
   canUseMetricsAlertsUI,
   canUseMetricsEquationsInAlerts,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
+import {useMultiMetricsQueryParams} from './multiMetricsQueryParams';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;

@@ -9,8 +9,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {SpanFields} from 'sentry/views/insights/types';
-import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
-import {useWidgetChartVisualization} from 'sentry/views/performance/transactionSummary/transactionOverview/useWidgetChartVisualization';
+
+import {EAPWidgetType} from './eapWidgetTypes';
+import {useWidgetChartVisualization} from './useWidgetChartVisualization';
 
 export {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapWidgetTypes';
 

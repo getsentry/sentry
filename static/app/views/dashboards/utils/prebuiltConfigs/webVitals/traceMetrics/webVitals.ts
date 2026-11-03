@@ -6,16 +6,17 @@ import {
   DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {
-  scoreBreakdownChartWidget,
-  scoreBreakdownWheelWidget,
-  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {
   ISSUE_TYPES,
   WEB_VITALS_PREBUILT_CONFIG,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {
+  scoreBreakdownChartWidget,
+  scoreBreakdownWheelWidget,
+  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
+  webVitalP75Meter,
+} from './widgets';
 
 // TODO: Move the pages table to trace metrics once total score and opportunity are queryable
 const SPANS_PAGES_TABLE = WEB_VITALS_PREBUILT_CONFIG.widgets.find(

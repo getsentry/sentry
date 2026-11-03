@@ -27,11 +27,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
-import type {IssueSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
+
+import {IssuePreviewActions} from './issuePreviewActions';
+import {useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSeerActions} from './issuePreviewSeerActions';
+import type {IssueSummary} from './issuePreviewSummary';
 
 interface IssuePreviewHeaderActionsProps {
   event: Event | undefined;

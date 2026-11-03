@@ -24,8 +24,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForProject} from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 export default function ProjectTeams() {
   const navigate = useNavigate();

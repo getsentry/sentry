@@ -51,7 +51,6 @@ import {
   type WidgetBuilderStateLocalParams,
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/constants';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -72,6 +71,8 @@ import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/de
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSeededQueryState} from './useSeededQueryState';
 
 export {
   MAX_NUM_Y_AXES,

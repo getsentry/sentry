@@ -6,9 +6,10 @@ import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';
-import {COMMENTS_DRAWER_PARSERS} from 'sentry/views/investigations/comments/utils';
 import {getBlockElementId} from 'sentry/views/investigations/detail/block';
+
+import {BlockCommentsDrawer} from './blockCommentsDrawer';
+import {COMMENTS_DRAWER_PARSERS} from './utils';
 
 /**
  * A block's comments open in a drawer while `?comments=open&commentsBlock=<id>`

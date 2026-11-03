@@ -9,10 +9,10 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
-import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
+import {CreateFromSeerLoading} from './createFromSeerLoading';
+import {CreateFromSeerPrompt} from './createFromSeerPrompt';
 import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';

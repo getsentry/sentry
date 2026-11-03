@@ -37,8 +37,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
-import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
+
+import {AssociatedReleases} from './associatedReleases';
+import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
 type Props = {
   project: Project;

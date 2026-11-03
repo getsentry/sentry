@@ -8,10 +8,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+
+import {WidgetTemplatesList} from './widgetTemplatesList';
 
 jest.mock('sentry/views/dashboards/widgetLibrary/data', () => ({
   getDefaultWidgets: jest.fn(() => [

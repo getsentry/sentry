@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
+import {LogsAnsiHighlight} from './logsAnsiHighlight';
 
 describe('LogsAnsiHighlight', () => {
   it('highlights search terms when given plain text', () => {

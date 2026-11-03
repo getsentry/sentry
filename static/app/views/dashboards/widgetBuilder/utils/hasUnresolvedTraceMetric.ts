@@ -1,6 +1,7 @@
 import {explodeField, isEquation} from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+
+import {extractTraceMetricFromColumn} from './buildTraceMetricAggregate';
 
 /**
  * Whether any of a trace-metric widget's aggregates fail to resolve to a metric

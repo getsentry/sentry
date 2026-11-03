@@ -1,7 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {InboxActor, InboxItem} from 'sentry/views/inbox/types';
+
+import type {InboxActor, InboxItem} from './types';
 
 const SYSTEM_ACTOR: InboxActor = {type: 'system', id: null, name: 'Sentry', avatar: null};
 

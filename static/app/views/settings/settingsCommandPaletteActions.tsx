@@ -10,8 +10,9 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+
+import {getUserOrgNavigationConfiguration} from './organization/userOrgNavigationConfiguration';
+import {FORM_FIELD_REGISTRY} from './fieldRegistry.generated';
 
 const ROUTE_ICONS: Record<string, ReactNode> = {
   '/settings/account/details/': <IconUser />,

@@ -23,7 +23,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+
+import {getDatasetFromLocationOrSavedQueryDataset} from './datasets';
 
 const DATASET_PARAM = 'queryDataset';
 

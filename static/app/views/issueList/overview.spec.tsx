@@ -23,13 +23,14 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
-import IssueListOverview from 'sentry/views/issueList/overview';
+
+import IssueListOverview from './overview';
 import {
   DEFAULT_QUERY,
   getStoredIssueSort,
   IssueSortOptions,
   setStoredIssueSort,
-} from 'sentry/views/issueList/utils';
+} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +

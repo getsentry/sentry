@@ -12,9 +12,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {MonitorCheckInsGrid} from 'sentry/views/insights/crons/components/monitorCheckInsGrid';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
-import {useCronIssueAlertId} from 'sentry/views/issueDetails/issueCronCheckTimeline';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {EventListTable} from './eventListTable';
+import {useCronIssueAlertId} from './issueCronCheckTimeline';
+import {useGroup} from './useGroup';
 
 export default function GroupCheckIns() {
   const organization = useOrganization();

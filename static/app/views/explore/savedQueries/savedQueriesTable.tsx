@@ -34,13 +34,14 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
   getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
+
+import {ExploreParams} from './exploreParams';
 
 type Props = {
   title: string;

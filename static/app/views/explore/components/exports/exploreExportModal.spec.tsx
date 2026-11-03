@@ -10,9 +10,10 @@ import {
 } from '@sentry/scraps/modal';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import {ExploreExportModal} from 'sentry/views/explore/components/exports/exploreExportModal';
-import type {TraceItemExportConfig} from 'sentry/views/explore/components/exports/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExploreExportModal} from './exploreExportModal';
+import type {TraceItemExportConfig} from './types';
 
 const mockAddSuccessMessage = jest.fn();
 

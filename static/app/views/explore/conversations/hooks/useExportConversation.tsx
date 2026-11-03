@@ -16,12 +16,6 @@ import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  buildConversationNodes,
-  type ConversationApiResponse,
-  getConversationQueryOptions,
-  type UseConversationsOptions,
-} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -29,6 +23,13 @@ import {
   buildExportFilename,
   downloadTextFile,
 } from 'sentry/views/explore/conversations/utils/exportConversation';
+
+import {
+  buildConversationNodes,
+  type ConversationApiResponse,
+  getConversationQueryOptions,
+  type UseConversationsOptions,
+} from './useConversation';
 
 const MAX_EXPORT_SPANS = 50_000;
 
