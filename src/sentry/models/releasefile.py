@@ -40,6 +40,20 @@ from sentry.utils.zip import safe_extract_zip
 logger = logging.getLogger(__name__)
 
 
+def _load_json_object(data: str | bytes) -> dict[str, Any]:
+    raw = json.loads(data)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
+
+
+def _load_json_object_from_file(fp: IO[bytes]) -> dict[str, Any]:
+    raw = json.load(fp)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
+
+
 class ArtifactIndex(TypedDict, total=False):
     files: dict[str, dict[str, object]]
 
@@ -183,8 +197,10 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
         files = self.manifest.get("files", {})
+        if not isinstance(files, dict):
+            raise ValueError("expected manifest files to be a JSON object")
+        self.artifact_count = len(files)
         self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
     def __enter__(self) -> Self:
@@ -209,8 +225,7 @@ class ReleaseArchive:
         return self._zip_file.read(filename)
 
     def _read_manifest(self) -> dict[str, Any]:
-        manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        return _load_json_object(self.read("manifest.json"))
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
@@ -290,7 +305,7 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return json.load(fp)
+                return cast(ArtifactIndex, _load_json_object_from_file(fp))
 
     @contextmanager
     def writable_data(
@@ -325,7 +340,7 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
+                    raw_data = _load_json_object_from_file(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
