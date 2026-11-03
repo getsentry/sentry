@@ -38,8 +38,8 @@ class Commit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    repository_id = BoundedPositiveIntegerField()
-    new_repository_id = BoundedBigIntegerField()
+    repository_id = BoundedBigIntegerField()
+    new_repository_id = BoundedPositiveIntegerField()
     key = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
     # all commit metadata must be optional, as it may not be available
