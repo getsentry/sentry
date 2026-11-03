@@ -72,7 +72,7 @@ function mockMultiOutcomeDroppedData() {
 function DroppedDataTrigger({
   dataset,
   enabled,
-  interval,
+  interval = '1h',
 }: {
   dataset: DiscoverDatasets;
   enabled?: boolean;

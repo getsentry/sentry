@@ -29,13 +29,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
-  interval?: string;
+  interval: string;
   onAskSeer?: AskSeerHandler;
 }
 
@@ -46,10 +45,9 @@ export function DroppedDataDrawer({
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [chartInterval] = useChartInterval();
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
-    interval: interval ?? chartInterval,
+    interval,
   });
 
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');

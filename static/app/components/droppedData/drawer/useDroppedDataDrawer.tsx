@@ -20,7 +20,7 @@ const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
 interface UseDroppedDataDrawerParams {
   dataset: DiscoverDatasets;
-  interval?: string;
+  interval: string;
 }
 
 interface UseDroppedDataDrawerOptions {
