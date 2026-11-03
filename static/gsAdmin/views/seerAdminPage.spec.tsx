@@ -130,4 +130,35 @@ describe('SeerAdminPage', () => {
       'https://sentry.sentry.io/issues/7/?project=1&explorerRunId=321'
     );
   });
+
+  it('only allows single-run Autofix for the Sentry org', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/night-shift/trigger/',
+      method: 'POST',
+    });
+
+    render(<SeerAdminPage />);
+
+    const singleRun = screen.getByRole('checkbox', {
+      name: 'Single-run Autofix (Sentry org only)',
+    });
+    expect(singleRun).toBeDisabled();
+
+    await userEvent.type(
+      screen.getByRole('spinbutton', {name: 'Organization ID (blank = all orgs)'}),
+      '1'
+    );
+    expect(singleRun).toBeEnabled();
+    await userEvent.click(singleRun);
+    await userEvent.click(screen.getByRole('button', {name: 'Trigger Night Shift'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/internal/seer/night-shift/trigger/',
+        expect.objectContaining({
+          data: expect.objectContaining({organization_id: 1, single_run: true}),
+        })
+      )
+    );
+  });
 });
