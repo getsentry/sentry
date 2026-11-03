@@ -579,6 +579,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_failed_investigation_dispatch_fails_the_run(self) -> None:
         self.attach_service_account()
+        assert self.config.service_account_id is not None
         ServiceAccountReplica.objects.filter(
             organization_id=self.organization.id, service_account_id=self.config.service_account_id
         ).update(is_active=False)
