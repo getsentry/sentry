@@ -144,6 +144,8 @@ class OrganizationTraceItemStatsSerializer(serializers.Serializer):
         required=False,
         help_text="Restrict results to attribute names containing this substring (case-sensitive).",
     )
+    # TODO: Bound `limit` with an appropriate cap. Passed as `default_per_page`, it lifts the
+    # `explore.trace-items.keys.max` page-size cap, so any client can request an unbounded page.
     limit = serializers.IntegerField(
         required=False,
     )
