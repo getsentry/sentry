@@ -125,7 +125,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
-            integration = ensure_integration(self.provider, data)
+            integration = ensure_integration(self.provider, data, merge_metadata=True)
 
             # Note: Unlike in all other Jira webhooks, we don't call `bind_org_context_from_integration`
             # here, because at this point the integration hasn't yet been bound to an organization. The
