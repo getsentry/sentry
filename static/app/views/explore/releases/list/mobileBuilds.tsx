@@ -101,9 +101,13 @@ export function MobileBuilds({
 
   const handleSearch = useCallback(
     (query: string) => {
+      // SearchQueryBuilder re-emits onSearch when initialQuery syncs from the URL.
+      if (query === (searchQuery ?? '')) {
+        return;
+      }
       setQueryParams({cursor: null, query}, {history: 'push'});
     },
-    [setQueryParams]
+    [searchQuery, setQueryParams]
   );
 
   const handleDisplayChange = useCallback(

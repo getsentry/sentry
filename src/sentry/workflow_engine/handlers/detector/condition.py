@@ -36,7 +36,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
     def __init__(self, detector: Detector):
         super().__init__(detector)
 
-        if detector.workflow_condition_group_id is not None:
+        if detector.workflow_condition_group_id:
             try:
                 # Check if workflow_condition_group is already prefetched
                 if Detector.workflow_condition_group.is_cached(detector):

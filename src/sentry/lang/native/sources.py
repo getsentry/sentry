@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+from collections.abc import Callable, Iterator
 from copy import deepcopy
 from typing import Any
 
@@ -19,6 +20,7 @@ from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import redis, safe
 from sentry.utils.dates import deprecated_utcnow
@@ -36,7 +38,7 @@ VALID_LAYOUTS = (
     "unified",
     "debuginfod",
     "slashsymbols",
-    "nxsymstore",
+    "nnsymstore",
 )
 
 VALID_FILE_TYPES = (
@@ -252,13 +254,13 @@ PROJECT_ID_HEADER = "x-sentry-project-id"
 EVENT_ID_HEADER = "x-sentry-event-id"
 
 
-def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
+def _redact_schema(schema: dict[str, Any], keys_to_redact: list[str]) -> dict[str, Any]:
     """
     Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
     with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
     """
 
-    def override_key(schema: dict, keys_to_redact: list[str]) -> None:
+    def override_key(schema: dict[str, Any], keys_to_redact: list[str]) -> None:
         for key, value in schema.items():
             if key in keys_to_redact:
                 schema[key] = HIDDEN_SECRET_SCHEMA
@@ -307,12 +309,12 @@ def _last_upload_key(project_id: int) -> str:
     return f"symbols:last_upload:{project_id}"
 
 
-def record_last_upload(project: Project):
+def record_last_upload(project: Project) -> None:
     timestamp = int(deprecated_utcnow().timestamp() * 1000)
     _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 
-def get_last_upload(project_id: int):
+def get_last_upload(project_id: int) -> str | None:
     return _get_cluster().get(_last_upload_key(project_id))
 
 
@@ -340,7 +342,7 @@ def get_internal_url_prefix() -> str:
     return internal_url_prefix.rstrip("/")
 
 
-def get_internal_source(project: Project):
+def get_internal_source(project: Project) -> dict[str, str]:
     """
     Returns the source configuration for a Sentry project.
     """
@@ -370,7 +372,7 @@ def get_internal_source(project: Project):
     }
 
 
-def get_internal_artifact_lookup_source_url(project: Project):
+def get_internal_artifact_lookup_source_url(project: Project) -> str:
     """
     Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
@@ -411,7 +413,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     }
 
 
-def get_internal_artifact_lookup_source(project: Project):
+def get_internal_artifact_lookup_source(project: Project) -> dict[str, str]:
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
@@ -423,7 +425,7 @@ def get_internal_artifact_lookup_source(project: Project):
     }
 
 
-def is_internal_source_id(source_id: str):
+def is_internal_source_id(source_id: str) -> bool:
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 
     This is trivial, but multiple functions in this file need to use the same definition.
@@ -431,7 +433,9 @@ def is_internal_source_id(source_id: str):
     return source_id.startswith("sentry")
 
 
-def normalize_user_source(source, project_id=None, event_id=None):
+def normalize_user_source(
+    source: dict[str, Any], project_id: int | None = None, event_id: str | None = None
+) -> dict[str, Any]:
     """Sources supplied from the user frontend might not match the format that
     symbolicator expects.  For instance we currently do not permit headers to be
     configured in the UI, but we allow basic auth to be configured for HTTP.
@@ -464,7 +468,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
     return source
 
 
-def secret_fields(source_type):
+def secret_fields(source_type: str) -> Iterator[str]:
     """
     Returns a string list of all of the fields that contain a secret in a given source.
     """
@@ -481,7 +485,9 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
+def validate_sources(
+    sources: list[dict[str, Any]], schema: dict[str, Any] = SOURCES_WITHOUT_APPSTORE_CONNECT
+) -> None:
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
@@ -500,7 +506,7 @@ def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
         ids.add(source["id"])
 
 
-def parse_sources(config, filter_appconnect):
+def parse_sources(config: Any, filter_appconnect: bool) -> list[dict[str, Any]]:
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -522,7 +528,9 @@ def parse_sources(config, filter_appconnect):
     return sources
 
 
-def parse_backfill_sources(sources_json, original_sources):
+def parse_backfill_sources(
+    sources_json: str | None, original_sources: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """
     Parses a json string of sources passed in from a client and backfills any redacted secrets by
     finding their previous values stored in original_sources.
@@ -546,7 +554,9 @@ def parse_backfill_sources(sources_json, original_sources):
     return sources
 
 
-def backfill_source(source, original_sources_by_id):
+def backfill_source(
+    source: dict[str, Any], original_sources_by_id: dict[str, dict[str, Any]]
+) -> None:
     """
     Backfills redacted secrets in a source by
     finding their previous values stored in original_sources_by_id.
@@ -583,7 +593,7 @@ def redact_source_secrets(config_sources: Any) -> Any:
     return redacted_sources
 
 
-def get_sources_for_project(project, event_id=None):
+def get_sources_for_project(project: Project, event_id: str | None = None) -> list[dict[str, Any]]:
     """
     Returns a list of symbol sources for this project.
     """
@@ -619,7 +629,9 @@ def get_sources_for_project(project, event_id=None):
             # processing at this point.
             logger.exception("Invalid symbolicator source config")
 
-    def resolve_alias(source, organization):
+    def resolve_alias(
+        source: dict[str, Any], organization: Organization
+    ) -> Iterator[dict[str, Any]]:
         for key in source.get("sources") or ():
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
@@ -628,7 +640,9 @@ def get_sources_for_project(project, event_id=None):
                 else:
                     yield fetch_token_for_gcp_source_if_necessary(other_source, organization)
 
-    def fetch_token_for_gcp_source_if_necessary(source, organization):
+    def fetch_token_for_gcp_source_if_necessary(
+        source: dict[str, Any], organization: Organization
+    ) -> dict[str, Any]:
         if source.get("type") == "gcs":
             if "client_email" in source and "private_key" in source:
                 return source
@@ -671,7 +685,7 @@ def get_sources_for_project(project, event_id=None):
 # Expire the cached token 10 minutes earlier so that we can confidently pass it
 # to symbolicator with its configured timeout of 5 minutes
 @ttl_cache(ttl=TOKEN_TTL_SECONDS - 600)
-def get_gcp_token(client_email):
+def get_gcp_token(client_email: str | None) -> str | None:
     # Fetch the regular credentials for GCP
     source_credentials, _ = google.auth.default()
 
@@ -688,13 +702,11 @@ def get_gcp_token(client_email):
 
     target_credentials.refresh(Request())
 
-    if target_credentials.token is None:
-        return None
-
-    return target_credentials.token
+    token = target_credentials.token
+    return token
 
 
-def reverse_aliases_map(builtin_sources):
+def reverse_aliases_map(builtin_sources: dict[str, dict[str, Any]]) -> dict[str, str]:
     """Returns a map of source IDs to their original un-aliased source ID.
 
     :param builtin_sources: The value of `settings.SENTRY_BUILTIN_SOURCES`.
@@ -717,7 +729,9 @@ def reverse_aliases_map(builtin_sources):
     return reverse_aliases
 
 
-def filter_ignored_sources(sources, reversed_alias_map=None):
+def filter_ignored_sources(
+    sources: list[dict[str, Any]], reversed_alias_map: dict[str, str] | None = None
+) -> list[dict[str, Any]]:
     """
     Filters out sources that are meant to be blocked based on a global killswitch. If any sources
     were de-aliased, a reverse mapping of { unaliased id: alias } should be provided for this to
@@ -745,7 +759,7 @@ def filter_ignored_sources(sources, reversed_alias_map=None):
     return filtered
 
 
-def redact_internal_sources(response):
+def redact_internal_sources(response: dict[str, Any]) -> None:
     """Redacts information about internal sources from a response.
 
     Symbolicator responses can contain a section about DIF object file candidates where were
@@ -760,7 +774,7 @@ def redact_internal_sources(response):
         redact_internal_sources_from_module(module)
 
 
-def redact_internal_sources_from_module(module):
+def redact_internal_sources_from_module(module: dict[str, Any]) -> None:
     """Redacts information about internal sources from a single module.
 
     This in-place redacts candidates from only a single module of the symbolicator response.
@@ -797,7 +811,7 @@ def redact_internal_sources_from_module(module):
                     sources_other.add(source_id)
         new_candidates.append(candidate)
 
-    def should_keep(candidate):
+    def should_keep(candidate: dict[str, Any]) -> bool:
         """Returns `False` if the candidate should be kept in the list of candidates.
 
         This removes the candidates with a status of ``notfound`` *if* they also have
@@ -811,7 +825,9 @@ def redact_internal_sources_from_module(module):
         module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
-def sources_for_symbolication(project, event_id=None):
+def sources_for_symbolication(
+    project: Project, event_id: str | None = None
+) -> tuple[list[dict[str, Any]], Callable[[dict[str, Any]], dict[str, Any]]]:
     """
     Returns a list of symbol sources to attach to a native symbolication request,
     as well as a closure to post-process the resulting JSON response.
@@ -836,7 +852,7 @@ def sources_for_symbolication(project, event_id=None):
     # never be used.
     sources = filter_ignored_sources(sources, reverse_source_aliases)
 
-    def _process_response(json):
+    def _process_response(json: dict[str, Any]) -> dict[str, Any]:
         """Post-processes the JSON response.
 
         This modifies the candidates list from Symbolicator responses to undo aliased
@@ -865,7 +881,7 @@ def sources_for_symbolication(project, event_id=None):
     return (sources, _process_response)
 
 
-def collect_apple_symbol_stats(json):
+def collect_apple_symbol_stats(json: dict[str, Any]) -> None:
     eligible_symbols = 0
     neither_has_symbol = 0
     both_have_symbol = 0

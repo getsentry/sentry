@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +11,7 @@ from sentry.core.endpoints.organization_member_index import OrganizationMemberRe
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
@@ -21,8 +23,10 @@ from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
 
 
-def mock_organization_roles_get_factory(original_organization_roles_get):
-    def wrapped_method(role):
+def mock_organization_roles_get_factory(
+    original_organization_roles_get: Callable[[str], OrganizationRole],
+) -> Callable[[str], OrganizationRole]:
+    def wrapped_method(role: str) -> OrganizationRole:
         # emulate the 'member' role not having team-level permissions
         role_obj = original_organization_roles_get(role)
         if role == "member":
@@ -406,8 +410,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Two authenticators to ensure the user list is distinct
         with assume_test_silo_mode(SiloMode.CONTROL):
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=1, config={})
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=2, config={})
+            Authenticator.objects.create(user_id=user.id, type=1, config={})
+            Authenticator.objects.create(user_id=user.id, type=2, config={})
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -618,7 +622,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
-    def invite_all_helper(self, role):
+    def invite_all_helper(self, role: str) -> None:
         invite_roles = ["owner", "manager", "member"]
 
         user = self.create_user("user@localhost")
@@ -661,16 +665,18 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
             else:
                 self.get_error_response(self.organization.slug, **data, status_code=400)
 
-    def invite_to_other_team_helper(self, role):
+    def invite_to_other_team_helper(self, role: str) -> None:
         user = self.create_user("inviter@localhost")
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
         self.login_as(user=user)
 
         other_team = self.create_team(organization=self.organization, name="Moo Deng's Team")
 
-        def get_data(email: str, other_team_invite: bool = False, use_team_roles: bool = True):
+        def get_data(
+            email: str, other_team_invite: bool = False, use_team_roles: bool = True
+        ) -> dict[str, str | list[dict[str, str]] | list[str]]:
             team_slug = other_team.slug if other_team_invite else self.team.slug
-            data: dict[str, str | list] = {
+            data: dict[str, str | list[dict[str, str]] | list[str]] = {
                 "email": f"{email}@localhost",
                 "role": "member",
             }

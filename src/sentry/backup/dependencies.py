@@ -4,11 +4,11 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
-from django.db.models.fields.related import ForeignKey, OneToOneField
+from django.db.models.fields.related import OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
@@ -28,10 +28,10 @@ class NormalizedModelName:
             raise TypeError("cannot create NormalizedModelName from invalid input string")
         self.__model_name = model_name.lower()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__model_name)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if other is None:
             return False
         if not isinstance(other, self.__class__):
@@ -40,7 +40,7 @@ class NormalizedModelName:
             )
         return self.__model_name == other.__model_name
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             raise TypeError(
                 "NormalizedModelName can only be compared with other NormalizedModelName"
@@ -194,7 +194,7 @@ class DependenciesJSONEncoder(json.JSONEncoder):
     """JSON serializer that outputs a detailed serialization of all models included in a
     `ModelRelations`."""
 
-    def default(self, obj):
+    def default(self, obj: object) -> Any:
         if meta := getattr(obj, "_meta", None):
             return f"{meta.app_label}.{meta.object_name}".lower()
         if isinstance(obj, ModelRelations):
@@ -245,7 +245,7 @@ class PrimaryKeyMap:
 
     mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.mapping = defaultdict(dict)
 
     def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:
@@ -407,21 +407,24 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
-                is_nullable = getattr(field, "null", False)
+                is_nullable: bool = getattr(field, "null", False)
+                fk_field_name: str = field.name
                 if field.name != "id" and getattr(field, "unique", False):
-                    uniques.add(frozenset({field.name}))
+                    uniques.add(frozenset({fk_field_name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                fk_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if fk_rel_model is not None and fk_rel_model != model:
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, ForeignKey):
-                        foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                    elif field.many_to_one:
+                        foreign_keys[fk_field_name] = ForeignField(
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                             nullable=is_nullable,
                         )
@@ -442,22 +445,23 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 if getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                o2o_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if o2o_rel_model is not None and o2o_rel_model != model:
                     if isinstance(field, OneToOneCascadeDeletes):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, OneToOneField):
+                    else:
+                        # one_to_one_fields filters to OneToOneField instances.
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
                             nullable=is_nullable,
                         )
-                    else:
-                        raise RuntimeError("Unknown one to kind")
 
             # Use some heuristics to grab numeric-only unlinked dependencies.
             simple_integer_fields = [

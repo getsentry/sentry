@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -36,6 +36,7 @@ from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATU
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
@@ -79,7 +80,7 @@ class SuperuserAgentTokenTest(APITestCase):
         self.org = self.create_organization()
         self.path = f"/api/0/organizations/{self.org.slug}/"
 
-    def _chat_authorization(self):
+    def _chat_authorization(self) -> SuperuserAccess:
         self.login_as(self.employee, superuser=True)
         resolved_contexts: list[ViewerContext] = []
         with (
@@ -107,7 +108,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert grant is not None
         return grant
 
-    def _mint(self, grant):
+    def _mint(self, grant: SuperuserAccess | None) -> Response:
         viewer = encode_viewer_context(
             ViewerContext(
                 actor=Actor(type=ActorType.USER, actor_id=self.employee.id, superuser=grant),
@@ -115,17 +116,21 @@ class SuperuserAgentTokenTest(APITestCase):
             ),
             key=SECRET,
         )
-        return APIClient().post(
+        response: Response = APIClient().post(
             f"/api/0/organizations/{self.org.slug}/agent/token/",
             {"sessionId": "123"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=viewer,
         )
+        return response
 
-    def _read(self, token, path=None):
-        return APIClient().get(path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}")
+    def _read(self, token: str, path: str | None = None) -> Response:
+        response: Response = APIClient().get(
+            path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        return response
 
-    def test_chat_to_mint_to_read_without_membership(self):
+    def test_chat_to_mint_to_read_without_membership(self) -> None:
         assert not OrganizationMember.objects.filter(
             organization=self.org, user_id=self.employee.id
         ).exists()
@@ -146,12 +151,12 @@ class SuperuserAgentTokenTest(APITestCase):
         assert claims["superuser"] == {"expires_at": grant.expires_at}
         assert claims["exp"] <= grant.expires_at
 
-    def test_identity_alone_does_not_delegate_superuser(self):
+    def test_identity_alone_does_not_delegate_superuser(self) -> None:
         self._chat_authorization()
         with self.feature(FLAG):
             assert self._mint(None).status_code == 403
 
-    def test_nonmember_superuser_project_indexes_are_org_bound(self):
+    def test_nonmember_superuser_project_indexes_are_org_bound(self) -> None:
         assert not OrganizationMember.objects.filter(
             organization=self.org, user_id=self.employee.id
         ).exists()
@@ -170,7 +175,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert {int(item["id"]) for item in global_response.data} == {project.id}
         assert {int(item["id"]) for item in org_response.data} == {project.id}
 
-    def test_elevated_browser_can_also_mint_a_usable_token(self):
+    def test_elevated_browser_can_also_mint_a_usable_token(self) -> None:
         self.login_as(self.employee, superuser=True)
         with self.feature(FLAG):
             minted = self.client.post(
@@ -179,7 +184,7 @@ class SuperuserAgentTokenTest(APITestCase):
             assert minted.status_code == 200, minted.content
             assert self._read(minted.data["token"]).status_code == 200
 
-    def test_elevated_member_keeps_approved_agent_writes(self):
+    def test_elevated_member_keeps_approved_agent_writes(self) -> None:
         self.create_member(user=self.employee, organization=self.org, role="owner")
         self.create_seer_agent_write_grant(
             organization=self.org, user=self.employee, session_id="123", scope_list=["org:write"]
@@ -197,12 +202,12 @@ class SuperuserAgentTokenTest(APITestCase):
             client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
             assert client.put(self.path, {}, format="json").status_code == 200
 
-    def test_invalid_expiry_cannot_mint(self):
+    def test_invalid_expiry_cannot_mint(self) -> None:
         self._chat_authorization()
         with self.feature(FLAG):
             assert self._mint(SuperuserAccess(expires_at=True)).status_code == 401
 
-    def test_expired_elevation_cannot_mint_or_be_used(self):
+    def test_expired_elevation_cannot_mint_or_be_used(self) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -211,16 +216,16 @@ class SuperuserAgentTokenTest(APITestCase):
                 assert self._mint(grant).status_code == 401
                 assert self._read(minted.data["token"]).status_code == 401
 
-    def test_current_user_privilege_is_rechecked_without_cache_clear(self):
+    def test_current_user_privilege_is_rechecked_without_cache_clear(self) -> None:
         self._assert_revoked({"is_superuser": False})
 
-    def test_inactive_user_cannot_use_elevation(self):
+    def test_inactive_user_cannot_use_elevation(self) -> None:
         self._assert_revoked({"is_active": False})
 
-    def test_suspended_user_cannot_use_elevation(self):
+    def test_suspended_user_cannot_use_elevation(self) -> None:
         self._assert_revoked({"is_suspended": True})
 
-    def _assert_revoked(self, changes):
+    def _assert_revoked(self, changes: dict[str, object]) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -230,15 +235,15 @@ class SuperuserAgentTokenTest(APITestCase):
             assert self._mint(grant).status_code == 403
             assert self._read(minted.data["token"]).status_code == 401
 
-    def test_delegated_token_cannot_write_remint_or_cross_org(self):
+    def test_delegated_token_cannot_write_remint_or_cross_org(self) -> None:
         self._assert_read_only_delegated_token()
 
-    def test_writable_browser_cannot_delegate_agent_writes(self):
+    def test_writable_browser_cannot_delegate_agent_writes(self) -> None:
         self.add_user_permission(self.employee, "superuser.write")
         with self.options({"superuser.read-write.ga-rollout": True}):
             self._assert_read_only_delegated_token()
 
-    def _assert_read_only_delegated_token(self):
+    def _assert_read_only_delegated_token(self) -> None:
         grant = self._chat_authorization()
         other_org = self.create_organization()
         self.create_seer_agent_write_grant(
@@ -259,7 +264,7 @@ class SuperuserAgentTokenTest(APITestCase):
             )
             assert client.get(f"/api/0/organizations/{other_org.slug}/").status_code == 403
 
-    def test_customer_policy_is_rechecked(self):
+    def test_customer_policy_is_rechecked(self) -> None:
         grant = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(grant)
@@ -269,7 +274,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 assert self._read(minted.data["token"]).status_code == 401
 
     @override_settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
-    def test_delegation_requires_existing_org_approval(self):
+    def test_delegation_requires_existing_org_approval(self) -> None:
         with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
             self.login_as(self.employee, superuser=True)
         request = self.make_request(user=self.employee)
@@ -304,7 +309,7 @@ class SuperuserAgentTokenTest(APITestCase):
             assert grant is not None
             assert self._mint(grant).status_code == 200
 
-    def test_delegation_does_not_renew_idle_expiry(self):
+    def test_delegation_does_not_renew_idle_expiry(self) -> None:
         self.login_as(self.employee, superuser=True)
         request = self.make_request(user=self.employee)
         request.auth = None
@@ -369,6 +374,16 @@ def _declared_scopes(view: type[Any], method: str) -> frozenset[str]:
     return frozenset(scopes)
 
 
+def _discover_endpoints(
+    enumerator: CustomEndpointEnumerator,
+) -> list[tuple[str, str, str, Any]]:
+    discover = cast(
+        "Callable[[object, str], list[tuple[str, str, str, Any]]]",
+        enumerator._get_api_endpoints,
+    )
+    return discover(enumerator.patterns, "")
+
+
 class _CollectionSafeEndpointEnumerator(CustomEndpointEnumerator):
     """Inspect declared HTTP methods without constructing every endpoint view."""
 
@@ -399,7 +414,7 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
     """
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicGetEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -440,7 +455,7 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
     """Return every canonical public non-GET operation and its declared scopes."""
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicMutationEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -638,7 +653,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
 # service account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
-        "OrganizationGroupSearchViews",
         "OrganizationGroupSearchViews_post",
         "OrganizationMemberTeamDetails_post",
         "OrganizationProjects_post",
@@ -668,10 +682,11 @@ class OrganizationAgentTokenTest(APITestCase):
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
 
-    def _mint(self, **data):
-        return self.client.post(
+    def _mint(self, **data: object) -> Response:
+        response: Response = self.client.post(
             f"/api/0/organizations/{self.org.slug}/agent/token/", data=data, format="json"
         )
+        return response
 
     def _assert_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
         self.login_as(self.owner)
@@ -689,7 +704,13 @@ class OrganizationAgentTokenTest(APITestCase):
         assert agent_response.status_code == 403, agent_response.content
         assert "insufficient_scope" not in agent_response.get("WWW-Authenticate", "")
 
-    def _grant(self, *, organization=None, session_id="s1", scopes=("org:write",)):
+    def _grant(
+        self,
+        *,
+        organization: Organization | None = None,
+        session_id: str = "s1",
+        scopes: Sequence[str] = ("org:write",),
+    ) -> SeerAgentWriteGrant:
         return self.create_seer_agent_write_grant(
             organization=organization or self.org,
             user=self.owner,
@@ -1129,6 +1150,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if name in self._matrix_resources:
             return self._matrix_resources[name]
 
+        resource: Any
         if name == "dashboard":
             resource = self.create_dashboard(organization=self.org, created_by=self.owner)
         elif name == "custom_inbound_filter":
@@ -1164,6 +1186,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 data=b"permission matrix attachment",
             )
             attachment_file = EventAttachment.putfile(self.project.id, cached_attachment)
+            assert cached_attachment.name is not None
             resource = EventAttachment.objects.create(
                 event_id=event.event_id,
                 project_id=self.project.id,
@@ -1484,7 +1507,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             return str(detector.id)
         if placeholder == "environment":
-            return self._resource("environment").name
+            return str(self._resource("environment").name)
         if placeholder == "issue_id":
             return str(self._resource("group").id)
         if placeholder == "integration_id":
@@ -1506,9 +1529,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "artifact_id":
             return str(self._resource("preprod_artifact").id)
         if placeholder == "key_id":
-            return self._resource("project_key").public_key
+            return str(self._resource("project_key").public_key)
         if placeholder == "version":
-            return self._resource("release").version
+            return str(self._resource("release").version)
         if placeholder == "file_id":
             return str(self._resource("release_file").id)
         if placeholder == "repo_id":
@@ -1541,13 +1564,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 return str(self._resource("custom_inbound_filter").id)
             return "browser-extensions"
         if placeholder == "event_id":
-            return self._resource("event").event_id
+            return str(self._resource("event").event_id)
         if placeholder == "job_id":
             return str(self._resource("replay_deletion_job").id)
         if placeholder == "query_id":
             return str(self._resource("saved_query")["id"])
         if placeholder == "replay_id":
-            return self._resource("replay")
+            return str(self._resource("replay"))
         if placeholder == "segment_id":
             self._resource("replay_recording_segment")
             return "0"
@@ -1752,7 +1775,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert approved_scopes <= set(response.data["scopes"]), response.data
         if requested_scopes is not None:
             assert set(response.data["scopes"]) <= requested_scopes, response.data
-        return response.data["token"]
+        token = response.data["token"]
+        assert isinstance(token, str)
+        return token
 
     @staticmethod
     def _listed_ids(response: Response, *, nested_organization: bool = False) -> set[int]:
@@ -2261,14 +2286,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         user_token_scopes: frozenset[str] | None = None,
     ) -> Response:
         if authentication is MatrixAuthentication.SESSION:
-            return self.client.get(path)
+            session_response: Response = self.client.get(path)
+            return session_response
 
         client = APIClient()
         if authentication is MatrixAuthentication.USER_TOKEN:
-            return client.get(
+            user_token_response: Response = client.get(
                 path,
                 HTTP_AUTHORIZATION=f"Bearer {self._user_token(user_token_scopes)}",
             )
+            return user_token_response
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
@@ -2278,15 +2305,20 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
                 key=SECRET,
             )
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            viewer_response: Response = client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            return viewer_response
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=self._service_account_context)
+            service_account_response: Response = client.get(
+                path, HTTP_X_VIEWER_CONTEXT=self._service_account_context
+            )
+            return service_account_response
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
         }:
             assert agent_bearer is not None
-            return client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            agent_response: Response = client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            return agent_response
         raise AssertionError(f"unsupported authentication {authentication}")
 
     def _mutation_request(
@@ -2338,12 +2370,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
             }
             request_format = "multipart"
-        return request_method(
+        response: Response = request_method(
             path,
             data=request_payload,
             format=request_format,
             **headers,
         )
+        return response
 
     @contextmanager
     def _rolled_back(self) -> Generator[None]:

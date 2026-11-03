@@ -9,7 +9,8 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.monitors.models import MonitorCheckIn
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor, MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializer
 from sentry.monitors.utils import get_monitor_environment_ids
 from sentry.ratelimits.config import RateLimitConfig
@@ -27,7 +28,9 @@ CHECKIN_LIST_RATE_LIMITS = RateLimitConfig(
 
 
 class MonitorCheckInMixin(BaseEndpointMixin):
-    def get_monitor_checkins(self, request: Request, project, monitor) -> Response:
+    def get_monitor_checkins(
+        self, request: Request, project: Project, monitor: Monitor
+    ) -> Response:
         """
         Retrieve a list of check-ins for a monitor
         """

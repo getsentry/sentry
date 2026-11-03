@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.models.project import Project
 from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 
@@ -16,7 +17,7 @@ class EventReprocessableEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve information about whether an event can be reprocessed.
         ```````````````````````````````````````````````````````````````

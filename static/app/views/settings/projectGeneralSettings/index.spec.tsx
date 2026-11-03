@@ -63,6 +63,11 @@ describe('projectGeneralSettings', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'GET',
+      body: [],
+    });
     mockOnChangeSlug.mockClear();
   });
 
@@ -472,21 +477,6 @@ describe('projectGeneralSettings', () => {
   });
 
   describe('Console Platform Access Control', () => {
-    beforeEach(() => {
-      mockOnChangeSlug.mockClear();
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/environments/',
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        method: 'GET',
-        body: [],
-      });
-    });
-
     it('shows all platform options when all console platforms enabled', async () => {
       const orgWithGamingAccess = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
@@ -574,15 +564,8 @@ describe('projectGeneralSettings', () => {
   });
 
   it('renders connected repositories panel', async () => {
-    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
-      method: 'GET',
-      body: [],
-    });
-
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
-      organization: orgWithFlag,
+      organization,
       initialRouterConfig,
     });
 

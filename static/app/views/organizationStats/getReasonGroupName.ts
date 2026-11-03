@@ -99,6 +99,24 @@ enum RateLimitedReason {
   GLOBAL_ABUSE_LIMIT = 'global_abuse_limit',
 }
 
+const SOLUTIONS_PAUSE_NAME = 'Pause (solutions.sentry.io)';
+const SOLUTIONS_ORGANIZATION_PAUSE_NAME = 'Organization Pause (solutions.sentry.io)';
+
+// Reasons of pauses that are set through the pause API.
+const PAUSE_REASON_GROUP_NAMES = new Map([
+  ['project_category_pause', 'Manual Pause'],
+  ['project_category_pause_growth_limits', SOLUTIONS_PAUSE_NAME],
+  ['project_category_pause_cost_centers', SOLUTIONS_PAUSE_NAME],
+  ['organization_pause', 'Manual Organization Pause'],
+  ['organization_pause_growth_limits', SOLUTIONS_ORGANIZATION_PAUSE_NAME],
+  ['organization_pause_cost_centers', SOLUTIONS_ORGANIZATION_PAUSE_NAME],
+]);
+
+// Group names that are shown as written. Other group names go through `startCase`, which
+// removes punctuation. Solutions is a new concept, so these names must tell users where
+// to find it, and "solutions.sentry.io" needs its punctuation.
+export const VERBATIM_REASON_GROUP_NAMES = new Set(PAUSE_REASON_GROUP_NAMES.values());
+
 // Invalid reasons should not be exposed directly, but instead in the following groups:
 const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   duplicate: [DiscardReason.DUPLICATE],
@@ -214,6 +232,11 @@ function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): stri
 
   if (reason.endsWith('_disabled')) {
     return 'disabled';
+  }
+
+  const pauseName = PAUSE_REASON_GROUP_NAMES.get(reason);
+  if (pauseName) {
+    return pauseName;
   }
 
   switch (reason) {

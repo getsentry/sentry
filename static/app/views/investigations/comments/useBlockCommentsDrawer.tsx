@@ -42,7 +42,7 @@ export function useBlockCommentsDrawer(investigationId: string) {
       onClose: closeBlockComments,
       shouldCloseOnLocationChange: location =>
         location.pathname !== pathname ||
-        loadCommentsDrawerQuery(location.search).comments !== 'open',
+        loadCommentsDrawerQuery(location.search ?? '').comments !== 'open',
     });
   }, [closeBlockComments, investigationId, openDrawer, pathname]);
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 from django.db import connections, router
 from django.test import override_settings
 
@@ -10,7 +11,7 @@ from sentry.runner.commands.migrations import migrations
 from sentry.testutils.cases import TransactionTestCase
 
 
-def filter_queries(needle: str, queries: list) -> list[str]:
+def filter_queries(needle: str, queries: list[str]) -> list[str]:
     return list(filter(lambda sql: needle in sql, queries))
 
 
@@ -22,7 +23,7 @@ class MigrationsRunTest(TransactionTestCase):
     def runner(self) -> CliRunner:
         return CliRunner()
 
-    def invoke(self, *args, **kwargs):
+    def invoke(self, *args: str, **kwargs: Any) -> Result:
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
     def test_index_creation(self) -> None:

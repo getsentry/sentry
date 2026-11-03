@@ -28,27 +28,27 @@ from sentry.seer.autofix.pr_iteration.listeners.review import (  # noqa: F401
 
 
 @scm_event_stream.listen_for(event_type="check_run")
-def listen_for_check_run(e):
+def listen_for_check_run(e: CheckRunEvent) -> None:
     return None
 
 
 @scm_event_stream.listen_for(event_type="comment")
-def listen_for_comment(e):
+def listen_for_comment(e: CommentEvent) -> None:
     return None
 
 
 @scm_event_stream.listen_for(event_type="pull_request")
-def listen_for_pull_request(e):
+def listen_for_pull_request(e: PullRequestEvent) -> None:
     return None
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
-def listen_for_check_suite(e):
+def listen_for_check_suite(e: CheckSuiteEvent) -> None:
     return None
 
 
 @scm_event_stream.listen_for(event_type="pull_request_review")
-def listen_for_pull_request_review(e):
+def listen_for_pull_request_review(e: PullRequestReviewEvent) -> None:
     return None
 
 

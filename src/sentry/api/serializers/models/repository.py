@@ -1,10 +1,14 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RepositorySettingsSerializerResponse(TypedDict):
@@ -31,7 +35,11 @@ class RepositorySerializerResponse(RepositorySerializerResponseOptional):
 @register(RepositorySettings)
 class RepositorySettingsSerializer(Serializer[RepositorySettingsSerializerResponse]):
     def serialize(
-        self, obj: RepositorySettings, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: RepositorySettings,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> RepositorySettingsSerializerResponse:
         return {
             "enabledCodeReview": obj.enabled_code_review,
@@ -49,7 +57,10 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return key in self.expand
 
     def get_attrs(
-        self, item_list: Sequence[Repository], user: Any, **kwargs: Any
+        self,
+        item_list: Sequence[Repository],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> dict[Repository, dict[str, Any]]:
         result: dict[Repository, dict[str, Any]] = {repo: {} for repo in item_list}
 
@@ -65,14 +76,18 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         return result
 
     def serialize(
-        self, obj: Repository, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self,
+        obj: Repository,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> RepositorySerializerResponse:
         external_slug = None
         integration_id = None
         if obj.integration_id:
             integration_id = str(obj.integration_id)
         repo_provider = obj.get_provider() if obj.provider else None
-        if repo_provider is not None:
+        if repo_provider is not None and obj.provider is not None:
             provider = {"id": obj.provider, "name": repo_provider.name}
             external_slug = repo_provider.repository_external_slug(obj)
         else:
@@ -91,7 +106,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         }
 
         if self._expand("settings"):
-            settings = attrs.get("settings")
+            settings = cast(RepositorySettings | None, attrs.get("settings"))
             if settings:
                 data["settings"] = RepositorySettingsSerializer().serialize(settings, {}, user)
             else:

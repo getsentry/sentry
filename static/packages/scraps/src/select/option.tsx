@@ -1,0 +1,122 @@
+import type * as React from 'react';
+import {Fragment} from 'react';
+import {ClassNames} from '@emotion/react';
+import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+
+import {ListItem} from '@sentry/scraps/menu';
+
+import type {components as selectComponents} from './reactSelectWrapper';
+import type {BaseSelectProps} from './select';
+import {CheckWrap} from './styles';
+import type {SelectValue} from './types';
+
+type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
+  React.ComponentProps<typeof selectComponents.Option>,
+  'selectProps' | 'data'
+> & {
+  data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
+  selectProps: Pick<
+    BaseSelectProps<TValue, TOption>,
+    'showCreateOptionIcon' | 'showDividers'
+  > & {
+    contentComponents?: BaseSelectProps<TValue, TOption>['components'];
+    size?: BaseSelectProps<TValue, TOption>['size'];
+  };
+};
+
+export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
+  props: Props<TValue, TOption>
+) {
+  const {
+    label,
+    data,
+    selectProps,
+    isMulti,
+    isSelected,
+    isFocused,
+    isDisabled,
+    innerProps,
+    innerRef,
+  } = props;
+  const {showDividers, size = 'md'} = selectProps;
+  const leadingItems =
+    typeof data.leadingItems === 'function'
+      ? data.leadingItems({disabled: isDisabled, isFocused, isSelected})
+      : data.leadingItems;
+  const OptionLabel = selectProps.contentComponents?.OptionLabel;
+  const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
+  const {value, selectionMode, priority, ...itemProps} = data;
+
+  const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
+
+  // Unless the priority prop is explicitly defined, use 'default' for all items.
+  const itemPriority = priority ?? 'default';
+  const innerWrapProps: React.ComponentProps<typeof ListItem>['innerWrapProps'] & {
+    'data-test-id'?: string;
+  } = {'data-test-id': defined(value) ? String(value) : undefined};
+
+  return (
+    <ClassNames>
+      {({cx}) => (
+        <ListItem
+          {...itemProps}
+          {...{
+            ...innerProps,
+            role: isMultiple ? 'menuitemcheckbox' : 'menuitemradio',
+            'aria-checked': isSelected,
+            className: cx({
+              option: true,
+              'option--is-disabled': isDisabled,
+              'option--is-focused': isFocused,
+              'option--is-selected': isSelected,
+            }),
+            value,
+            showDivider: showDividers,
+          }}
+          ref={innerRef}
+          as="div"
+          label={renderedLabel}
+          disabled={isDisabled}
+          isFocused={isFocused}
+          priority={itemPriority}
+          size={size}
+          innerWrapProps={innerWrapProps}
+          labelProps={{as: typeof renderedLabel === 'string' ? 'p' : 'div'}}
+          leadingItems={
+            itemProps.__isNew__ && selectProps.showCreateOptionIcon !== false ? (
+              <Fragment>
+                <IconAdd size="sm" />
+                {leadingItems}
+              </Fragment>
+            ) : (
+              <Fragment>
+                <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
+                  {isSelected && (
+                    <StyledIconCheckmark
+                      size={isMultiple ? 'xs' : 'sm'}
+                      isMultiple={isMultiple}
+                    />
+                  )}
+                </CheckWrap>
+
+                {leadingItems}
+              </Fragment>
+            )
+          }
+        />
+      )}
+    </ClassNames>
+  );
+}
+
+const StyledIconCheckmark = styled(IconCheckmark, {
+  shouldForwardProp: prop => prop !== 'isMultiple',
+})<{isMultiple: boolean}>`
+  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
+`;
+
+function defined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
