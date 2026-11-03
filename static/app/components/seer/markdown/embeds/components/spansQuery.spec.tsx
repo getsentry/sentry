@@ -1,5 +1,3 @@
-import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
-
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -8,14 +6,10 @@ jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
 
-const SERIES = TimeSeriesFixture({
-  yAxis: 'count(span.duration)',
-  meta: {interval: 3_600_000, valueType: 'integer', valueUnit: null},
-  values: [
-    {timestamp: 1_700_000_000_000, value: 5},
-    {timestamp: 1_700_003_600_000, value: 8},
-  ],
-});
+const SERIES = [
+  [1_700_000_000, [{count: 5}]],
+  [1_700_003_600, [{count: 8}]],
+];
 
 function renderEmbed({
   data,
@@ -42,8 +36,8 @@ describe('spans query embed', () => {
       },
     });
     const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {timeSeries: [SERIES]},
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -92,7 +86,7 @@ describe('spans query embed', () => {
     // visualization as a single total for the period.
     await waitFor(() => {
       expect(statsRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
+        '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'spans',
@@ -104,8 +98,10 @@ describe('spans query embed', () => {
       );
     });
 
+    // Without group-by columns there is nothing to break the total into, so the
+    // grouping params must stay off the request.
     const [, options] = statsRequest.mock.calls.at(-1)!;
-    expect(options.query).not.toHaveProperty('groupBy');
+    expect(options.query).not.toHaveProperty('field');
     expect(options.query).not.toHaveProperty('topEvents');
   });
 
@@ -122,12 +118,10 @@ describe('spans query embed', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
+      url: '/organizations/org-slug/events-stats/',
       body: {
-        timeSeries: [
-          {...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]},
-          {...SERIES, groupBy: [{key: 'span.op', value: 'db.query'}]},
-        ],
+        'http.server': {data: SERIES, order: 0},
+        'db.query': {data: SERIES, order: 1},
       },
     });
 
@@ -173,10 +167,8 @@ describe('spans query embed', () => {
       body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [{...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]}],
-      },
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
     });
 
     renderEmbed({
@@ -210,10 +202,8 @@ describe('spans query embed', () => {
       body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [{...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]}],
-      },
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
     });
 
     renderEmbed({
@@ -249,10 +239,8 @@ describe('spans query embed', () => {
       body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [{...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]}],
-      },
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
     });
 
     renderEmbed({
@@ -294,12 +282,10 @@ describe('spans query embed', () => {
       body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
     });
     const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
+      url: '/organizations/org-slug/events-stats/',
       body: {
-        timeSeries: [
-          {...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]},
-          {...SERIES, groupBy: [{key: 'span.op', value: 'db.query'}]},
-        ],
+        'http.server': {data: SERIES, order: 0},
+        'db.query': {data: SERIES, order: 1},
       },
     });
 
@@ -317,18 +303,22 @@ describe('spans query embed', () => {
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
 
+    // The grouping column has to reach events-stats: `field` is what makes the
+    // endpoint break the result into a series per group, and `topEvents` is
+    // what caps how many come back. This is the split Explore's own chart
+    // shows, and it lines the series up with the table's rows.
     await waitFor(() => {
       expect(statsRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
+        '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'spans',
-            excludeOther: 0,
-            groupBy: ['span.op'],
+            excludeOther: '1',
+            field: ['span.op', 'p95(span.duration)'],
             query: 'span.op:http.server',
             sort: '-p95_span_duration',
             statsPeriod: '24h',
-            topEvents: 5,
+            topEvents: '5',
             yAxis: ['p95(span.duration)'],
           }),
         })
@@ -336,16 +326,14 @@ describe('spans query embed', () => {
     });
   });
 
-  it('preserves all grouped axes and their selected sort', async () => {
+  it('ranks top groups by the charted aggregate when the sort names another', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{'span.op': 'http.server', count_span_duration: 12}]},
     });
     const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [{...SERIES, groupBy: [{key: 'span.op', value: 'http.server'}]}],
-      },
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
     });
 
     renderEmbed({
@@ -353,6 +341,8 @@ describe('spans query embed', () => {
         query: '',
         mode: 'aggregate',
         groupBy: ['span.op'],
+        // Grouping already spends a series per group, so only the first y-axis
+        // is charted — and the sort naming the second cannot rank it.
         yAxes: ['count(span.duration)', 'p95(span.duration)'],
         sort: '-p95_span_duration',
         statsPeriod: '24h',
@@ -363,13 +353,13 @@ describe('spans query embed', () => {
 
     await waitFor(() => {
       expect(statsRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
+        '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
-            groupBy: ['span.op'],
-            sort: '-p95_span_duration',
-            topEvents: 5,
-            yAxis: ['count(span.duration)', 'p95(span.duration)'],
+            field: ['span.op', 'count(span.duration)'],
+            sort: '-count_span_duration',
+            topEvents: '5',
+            yAxis: ['count(span.duration)'],
           }),
         })
       );
@@ -382,8 +372,8 @@ describe('spans query embed', () => {
       body: {data: []},
     });
     const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {timeSeries: [SERIES]},
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -404,7 +394,7 @@ describe('spans query embed', () => {
 
     await waitFor(() => {
       expect(statsRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-timeseries/',
+        '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'spans',
@@ -451,8 +441,8 @@ describe('spans query embed', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {timeSeries: [SERIES]},
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -484,8 +474,8 @@ describe('spans query embed', () => {
       body: {data: []},
     });
     const statsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-timeseries/',
-      body: {timeSeries: [SERIES]},
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({

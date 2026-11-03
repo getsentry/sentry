@@ -1,9 +1,7 @@
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {getAggregateAlias, type Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {
   AlwaysPresentTraceMetricFields,
   TraceSamplesTableColumns,
@@ -70,31 +68,13 @@ export function getMetricsQueryFields(data: MetricsQueryData): string[] {
       );
 }
 
-function resolveMetricSort(data: MetricsQueryData): Sort {
-  const fallback: Sort = {
-    field: data.mode === 'aggregate' ? resolveMetricYAxes(data)[0]! : 'timestamp',
-    kind: 'desc',
-  };
-  const sort = decodeSorts(data.sort)[0];
-  if (!sort) {
-    return fallback;
-  }
-  const qualifiedField = getMetricYAxis(sort.field, toTraceMetric(data));
-  const field = getMetricsQueryFields(data).find(
-    candidate =>
-      candidate === qualifiedField || getAggregateAlias(candidate) === sort.field
-  );
-  return field ? {...sort, field} : fallback;
-}
-
 export function buildMetricsEventView(data: MetricsQueryData): EventView {
   const fields = getMetricsQueryFields(data);
-  const sort = resolveMetricSort(data);
   const query: NewQuery = {
     id: undefined,
     name: data.title ?? data.name,
     fields,
-    orderby: [encodeSort({...sort, field: getAggregateAlias(sort.field)})],
+    orderby: [data.sort ?? (data.mode === 'aggregate' ? `-${fields[0]}` : '-timestamp')],
     query: buildMetricsQuery(data),
     version: 2,
     dataset: DiscoverDatasets.TRACEMETRICS,
@@ -112,9 +92,8 @@ export function getMetricsQueryHref(
   data: MetricsQueryData,
   organization: Organization
 ): string {
-  const {name, type, unit, query, mode, groupBy, transformations, interval} = data;
+  const {name, type, unit, query, mode, sort, groupBy, transformations, interval} = data;
   const {projects, environments, datetime} = toPageFilters(data);
-  const sort = resolveMetricSort(data);
 
   const metric = JSON.stringify({
     metric: {name, type, unit},
@@ -124,8 +103,7 @@ export function getMetricsQueryHref(
       yAxes: resolveMetricYAxes(data),
       transformations,
     }),
-    aggregateSortBys: mode === 'aggregate' ? [sort] : undefined,
-    sortBys: mode === 'samples' ? [sort] : undefined,
+    aggregateSortBys: sort ? [sort] : undefined,
     mode: toMode(mode),
   });
 
