@@ -12,6 +12,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.group import GroupSubStatus
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -118,6 +119,77 @@ class ErrorsQueryBuilderTest(TestCase):
             ),
             Condition(
                 Column("project_id", entity=g_entity),
+                Op.IN,
+                self.projects,
+            ),
+        ]
+
+    def test_substatus_query(self) -> None:
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query="is:unresolved substatus:regressed",
+            selected_columns=["count_unique(user)"],
+            params={
+                "project_id": self.projects,
+            },
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+            ),
+        ).get_snql_query()
+        query.validate()
+        e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        g_entity = Entity("group_attributes", alias="ga")
+
+        assert query.query.match == Join([Relationship(e_entity, "attributes", g_entity)])
+        assert query.query.where == [
+            Condition(Column("group_status", entity=g_entity), Op.IN, [0]),
+            Condition(
+                Column("group_substatus", entity=g_entity),
+                Op.IN,
+                [GroupSubStatus.REGRESSED],
+            ),
+            Condition(
+                Column("project_id", entity=e_entity),
+                Op.IN,
+                self.projects,
+            ),
+            Condition(
+                Column("project_id", entity=g_entity),
+                Op.IN,
+                self.projects,
+            ),
+        ]
+
+    def test_explicit_substatus_tag_query(self) -> None:
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query="tags[substatus]:regressed",
+            selected_columns=["count_unique(user)"],
+            params={
+                "project_id": self.projects,
+            },
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+            ),
+        ).get_snql_query()
+        query.validate()
+        e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
+        assert query.query.match == e_entity
+        assert query.query.where == [
+            Condition(
+                Function("ifNull", [Column("tags[substatus]", entity=e_entity), ""]),
+                Op.EQ,
+                "regressed",
+            ),
+            Condition(
+                Column("project_id", entity=e_entity),
                 Op.IN,
                 self.projects,
             ),
