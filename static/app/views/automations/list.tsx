@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -164,22 +165,18 @@ function AutomationsListInner() {
 
 export default registerLLMContext('alert-list', AutomationsListInner);
 
+const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
+
 function TableHeader() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const canCreateAlert = useCanCreateAutomation();
-  const initialQuery =
-    typeof location.query.query === 'string' ? location.query.query : '';
+  const [{query: initialQuery}, setSearchParams] = useQueryStates(searchParsers);
 
   const onSearch = useCallback(
     (query: string) => {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, query, cursor: undefined},
-      });
+      setSearchParams({query, cursor: null}, {history: 'push'});
     },
-    [location.pathname, location.query, navigate]
+    [setSearchParams]
   );
 
   return (
