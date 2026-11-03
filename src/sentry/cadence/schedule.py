@@ -14,9 +14,13 @@ from sentry.cadence.models import ScheduledTrigger, ScheduleType
 MIN_INTERVAL = timedelta(minutes=30)
 MAX_INTERVAL = timedelta(weeks=1)
 
-# How many upcoming runs of a cron expression are checked against MIN_INTERVAL.
+# Upcoming runs of a cron expression are checked against MIN_INTERVAL until either limit, so
+# rare schedules, like leap days, stop well before datetime's year 9999 limit.
 CRON_SPACING_SAMPLE = 2000
+CRON_SPACING_HORIZON = timedelta(days=10 * 366)
 _CRON_SPACING_START = datetime(2024, 1, 1)
+# How many CronSim results _next_cron_after checks for one later than its input.
+_MAX_CRON_CANDIDATES = 10
 
 
 class InvalidSchedule(ValueError):
@@ -50,7 +54,9 @@ class CronSchedule:
     Run on a five-field cron `expression`, evaluated in `timezone`. Always valid once
     constructed: the expression parses, the timezone exists, and runs are at least
     MIN_INTERVAL apart in real time, including across daylight saving changes (checked over
-    the next CRON_SPACING_SAMPLE runs).
+    the next CRON_SPACING_SAMPLE runs, up to CRON_SPACING_HORIZON). A time that happens twice
+    when clocks go back runs once, at its first occurrence. A time skipped when clocks go
+    forward runs when they do, e.g. 02:30 runs at 03:00.
     """
 
     schedule_type: ClassVar[ScheduleType] = ScheduleType.CRON
@@ -68,8 +74,16 @@ class CronSchedule:
 
 
 def _next_cron_after(expression: str, timezone: str, after: datetime) -> datetime:
-    local_after = after.astimezone(ZoneInfo(timezone))
-    return next(CronSim(expression, local_after)).astimezone(UTC)
+    """The first cron time strictly after `after`, in UTC."""
+    after = after.astimezone(UTC)
+    runs = CronSim(expression, after.astimezone(ZoneInfo(timezone)))
+    # CronSim matches clock times, and gives the first occurrence of a time that happens twice
+    # when clocks go back. From within the second occurrence, that's already in the past, so
+    # skip to a time that isn't.
+    for run in islice(runs, _MAX_CRON_CANDIDATES):
+        if run.astimezone(UTC) > after:
+            return run.astimezone(UTC)
+    raise ValueError(f"No run of {expression!r} in {timezone} found after {after}")
 
 
 def _cron_error(expression: str, timezone: str) -> str | None:
@@ -90,17 +104,31 @@ def _cron_error(expression: str, timezone: str) -> str | None:
 @functools.lru_cache(maxsize=1024)
 def _cron_min_gap(expression: str, timezone: str) -> timedelta:
     """
-    The shortest time between consecutive runs, over the next CRON_SPACING_SAMPLE runs,
-    capped at MAX_INTERVAL. Takes tens of ms, so it's cached.
+    The shortest time between consecutive runs, over the next CRON_SPACING_SAMPLE runs or
+    CRON_SPACING_HORIZON, whichever ends first, capped at MAX_INTERVAL. Takes tens of ms, so
+    it's cached.
     """
-    runs = CronSim(expression, _CRON_SPACING_START.replace(tzinfo=ZoneInfo(timezone)))
     # Subtract in UTC: datetimes sharing a tzinfo subtract as wall-clock times, which would
     # hide daylight saving changes.
-    gaps = (
-        later.astimezone(UTC) - earlier.astimezone(UTC)
-        for earlier, later in pairwise(islice(runs, CRON_SPACING_SAMPLE))
-    )
+    runs = [run.astimezone(UTC) for run in _cron_spacing_sample(expression, timezone)]
+    gaps = (later - earlier for earlier, later in pairwise(runs))
     return min(min(gaps, default=MAX_INTERVAL), MAX_INTERVAL)
+
+
+def _cron_spacing_sample(expression: str, timezone: str) -> list[datetime]:
+    start = _CRON_SPACING_START.replace(tzinfo=ZoneInfo(timezone))
+    end = start + CRON_SPACING_HORIZON
+    sample: list[datetime] = []
+    runs = CronSim(expression, start)
+    try:
+        for run in islice(runs, CRON_SPACING_SAMPLE):
+            if run >= end:
+                break
+            sample.append(run)
+    except OverflowError:
+        # CronSim searched past datetime's limit for a run that never comes.
+        pass
+    return sample
 
 
 def min_gap(schedule: Schedule) -> timedelta:

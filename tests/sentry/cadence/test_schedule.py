@@ -56,10 +56,25 @@ def test_cron_builds_cron_schedule() -> None:
 
 @pytest.mark.parametrize(
     "expression",
-    ["*/30 * * * *", "0 10 * * *", "0 9 * * 1-5", "0 0 1 * *", "0 0 1 1 *"],
+    [
+        "*/30 * * * *",
+        "0 10 * * *",
+        "0 9 * * 1-5",
+        "0 0 1 * *",
+        "0 0 1 1 *",
+        # Rare enough that 2000 runs would pass datetime's year 9999 limit.
+        "0 0 29 2 *",
+    ],
 )
 def test_cron_schedule_accepts_valid(expression: str) -> None:
     assert cron(expression).expression == expression
+
+
+def test_leap_day_schedule() -> None:
+    schedule = cron("0 0 29 2 *")
+
+    assert schedule.next_after(NOW) == datetime(2028, 2, 29, tzinfo=UTC)
+    assert min_gap(schedule) == timedelta(weeks=1)
 
 
 @pytest.mark.parametrize(
@@ -116,6 +131,70 @@ def test_min_gap(schedule: Schedule, expected: timedelta) -> None:
 def test_min_gap_measures_daylight_saving_changes() -> None:
     # 9:00 every day is 23 hours after the previous 9:00 when the clocks go forward.
     assert min_gap(cron("0 9 * * *", "America/New_York")) == timedelta(hours=23)
+
+
+# New York's clocks go back at 02:00 EDT on 2024-11-03, so 01:00-02:00 happens twice: as EDT
+# (05:00-06:00 UTC), then as EST (06:00-07:00 UTC).
+FALL_BACK_FIRST_HOUR = datetime(2024, 11, 3, 5, 0, tzinfo=UTC)
+FALL_BACK_SECOND_HOUR = datetime(2024, 11, 3, 6, 0, tzinfo=UTC)
+# 01:30 EST the next day.
+FALL_BACK_NEXT_DAY_0130 = datetime(2024, 11, 4, 6, 30, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("after", "expected"),
+    [
+        # 01:30 runs at its first occurrence, 01:30 EDT...
+        (
+            FALL_BACK_FIRST_HOUR + timedelta(minutes=10),
+            FALL_BACK_FIRST_HOUR + timedelta(minutes=30),
+        ),
+        # ...and not again at 01:30 EST, even from within the second 01:00-02:00.
+        (FALL_BACK_FIRST_HOUR + timedelta(minutes=40), FALL_BACK_NEXT_DAY_0130),
+        (FALL_BACK_SECOND_HOUR + timedelta(minutes=10), FALL_BACK_NEXT_DAY_0130),
+        (FALL_BACK_SECOND_HOUR + timedelta(minutes=40), FALL_BACK_NEXT_DAY_0130),
+    ],
+)
+def test_cron_runs_a_repeated_time_once(after: datetime, expected: datetime) -> None:
+    schedule = cron("30 1 * * *", "America/New_York")
+
+    assert schedule.next_after(after) == expected
+
+
+def test_cron_next_run_is_always_later_across_clock_changes() -> None:
+    expressions = ["30 1 * * *", "0 1 * * *", "30 2 * * *", "45 1,3 * * *", "0,30 * * * *"]
+    schedules = [cron(expression, "America/New_York") for expression in expressions]
+    # Every 5 minutes across both 2024 clock change days, with half a day either side.
+    afters = [
+        start + timedelta(minutes=minute)
+        for start in (datetime(2024, 3, 9, 12, tzinfo=UTC), datetime(2024, 11, 2, 12, tzinfo=UTC))
+        for minute in range(0, 48 * 60, 5)
+    ]
+
+    assert [
+        (schedule.expression, after)
+        for schedule in schedules
+        for after in afters
+        if schedule.next_after(after) <= after
+    ] == []
+
+
+def test_cron_runs_a_skipped_time_when_clocks_go_forward() -> None:
+    # New York's clocks go forward at 02:00 EST on 2024-03-10, so 02:30 doesn't happen.
+    schedule = cron("30 2 * * *", "America/New_York")
+
+    assert schedule.next_after(datetime(2024, 3, 10, 6, 0, tzinfo=UTC)) == datetime(
+        2024, 3, 10, 7, 0, tzinfo=UTC
+    )
+
+
+def test_advance_cron_within_a_repeated_hour_moves_forward() -> None:
+    # A tick in the second 01:00-02:00 must not move the trigger back to the first 01:30.
+    trigger = cron_trigger("30 1 * * *", tz="America/New_York")
+    scheduled_for = FALL_BACK_FIRST_HOUR + timedelta(minutes=30)
+    now = FALL_BACK_SECOND_HOUR + timedelta(minutes=10)
+
+    assert advance(trigger, scheduled_for, now) == FALL_BACK_NEXT_DAY_0130
 
 
 def test_cron_schedule_next_after_uses_timezone() -> None:

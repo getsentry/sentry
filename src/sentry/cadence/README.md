@@ -35,7 +35,8 @@ clear_schedule(
 - `every(interval)` runs every `interval`, which must be between 30 minutes and 1 week.
 - `cron(expression, timezone)` runs on a five-field cron expression evaluated in `timezone`.
   Runs must be at least 30 minutes apart in real time, including across daylight saving
-  changes.
+  changes. A time that happens twice when clocks go back runs once, at its first occurrence;
+  a time skipped when clocks go forward runs when they do (02:30 runs at 03:00).
 - Both are validated when constructed, so a `Schedule` is always valid. Invalid input raises
   `InvalidSchedule`.
 - `set_schedule` creates or replaces a target's schedule. Setting the schedule a target
