@@ -9,12 +9,12 @@ from typing import Any, NotRequired, TypedDict
 from django.db.models import OuterRef, Subquery
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry import features, roles
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -50,7 +50,6 @@ from sentry.seer.workflows.workflow import (
     SelectedProjects,
     WorkflowUpdateError,
 )
-from sentry.service_accounts.models import ServiceAccountProjectReplica, ServiceAccountReplica
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,6 @@ class SeerWorkflowConfigResponse(TypedDict):
     version: int
     projects: list[int]
     monitorIds: list[int]
-    serviceAccountId: str | None
     environments: list[str]
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
@@ -109,7 +107,6 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
-    serviceAccountId = serializers.IntegerField(min_value=1, required=False)
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -140,19 +137,10 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"monitorIds": "Only metric automations support monitor selection."}
             )
-        if (
-            "serviceAccountId" in data
-            and data["strategy"] != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        ):
-            raise serializers.ValidationError(
-                {"serviceAccountId": "Only metric automations support agent capabilities."}
-            )
         return data
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
-    enabled = serializers.BooleanField(required=False)
-    serviceAccountId = serializers.IntegerField(min_value=1, required=False)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -171,12 +159,8 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if "projectIds" in data and "monitorIds" in data:
+        if ("projectIds" in data) == ("monitorIds" in data):
             raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
-        if not data:
-            raise serializers.ValidationError(
-                "Send projectIds, monitorIds, serviceAccountId, or enabled."
-            )
         return data
 
 
@@ -348,10 +332,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
-        service_account_id = data.get("serviceAccountId")
-        if service_account_id is not None:
-            check_service_account_access(service_account_id, request, organization, self)
-
         try:
             workflow: SeerWorkflow
             if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
@@ -361,7 +341,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     environments=data["environments"],
                     monitor_ids=monitor_ids,
                     name=data.get("name"),
-                    service_account_id=service_account_id,
                 )
             else:
                 workflow = SeerWorkflow.create(
@@ -475,30 +454,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
         workflow = get_seer_workflow(config)
 
-        enabled = serializer.validated_data.get("enabled")
-        if enabled is not None:
-            if not isinstance(workflow, BreachedMetricWorkflow):
-                return Response(
-                    {"detail": "Only metric automations support enabling investigations."},
-                    status=400,
-                )
-            denied = check_project_access(
-                workflow.get_project_ids(),
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-            if denied is not None:
-                raise PermissionDenied(denied)
-
-        service_account_id = serializer.validated_data.get("serviceAccountId")
-        if service_account_id is not None:
-            if not isinstance(workflow, BreachedMetricWorkflow):
-                return Response(
-                    {"detail": "Only metric automations support agent capabilities."}, status=400
-                )
-            check_service_account_access(service_account_id, request, organization, self)
-
         # Validate and update projects
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
@@ -560,17 +515,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
-
-        if service_account_id is not None:
-            try:
-                workflow.set_service_account(service_account_id)
-            except ValueError as error:
-                return Response({"detail": str(error)}, status=400)
-            config = workflow.get_config()
-
-        if enabled is not None and isinstance(workflow, BreachedMetricWorkflow):
-            workflow.set_enabled(enabled)
             config = workflow.get_config()
 
         return Response(self.serialize(request, organization, config))
@@ -670,7 +614,6 @@ def serialize_workflow_config(
         "version": config.version,
         "projects": project_ids,
         "monitorIds": connected_monitors.monitor_ids if connected_monitors else [],
-        "serviceAccountId": str(config.service_account_id) if config.service_account_id else None,
         "environments": filters.environments,
         "filters": convert_dict_key_case(
             {
@@ -692,46 +635,3 @@ def serialize_workflow_config(
     if name is not None:
         result["name"] = name
     return result
-
-
-def check_service_account_access(
-    service_account_id: int,
-    request: Request,
-    organization: Organization,
-    endpoint: OrganizationEndpoint,
-) -> None:
-    if not features.has("organizations:service-accounts", organization, actor=request.user):
-        raise NotFound
-    if not request.access.has_scope("service_account:write"):
-        raise PermissionDenied("You need permission to manage service accounts.")
-    account = ServiceAccountReplica.objects.filter(
-        service_account_id=service_account_id, organization_id=organization.id
-    ).first()
-    if account is None:
-        raise ServiceAccountUnavailable
-    if not account.is_active:
-        raise ValidationError({"serviceAccountId": "The service account is inactive."})
-    if set(account.scope_list) - request.access.scopes:
-        raise PermissionDenied("You can't use a service account with scopes you don't have.")
-    if account.all_projects:
-        role = request.access.role
-        if role is None or not roles.get(role).is_global:
-            raise PermissionDenied("This service account requires access to all projects.")
-    else:
-        project_ids = list(
-            ServiceAccountProjectReplica.objects.filter(service_account=account).values_list(
-                "project_id", flat=True
-            )
-        )
-        denied = check_project_access(
-            project_ids, request=request, organization=organization, endpoint=endpoint
-        )
-        if denied is not None:
-            raise PermissionDenied(denied)
-
-
-class ServiceAccountUnavailable(APIException):
-    status_code = 409
-    default_detail = (
-        "The service account is not available in this organization yet. Try again shortly."
-    )
