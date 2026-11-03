@@ -1,4 +1,5 @@
 import logging
+from typing import Any, cast
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -78,14 +79,14 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
     dataStorageLocation = serializers.CharField(required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
         self.fields["slug"].required = False
         self.fields["name"].required = True
 
-    def validate_agreeTerms(self, value):
+    def validate_agreeTerms(self, value: bool) -> bool:
         if not value:
             raise serializers.ValidationError("This attribute is required.")
         return value
@@ -112,13 +113,13 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
 
         locality_name = attrs.get("dataStorageLocation")
 
         if locality_name:
-            attrs["cell_name"] = resolve_provisioning_cell(locality_name)
+            attrs["cell_name"] = resolve_provisioning_cell(cast(str, locality_name))
         else:
             # TODO(cells) Remove this when cell silo compatibility is removed.
             attrs["cell_name"] = settings.SENTRY_LOCAL_CELL or settings.SENTRY_FALLBACK_CELL

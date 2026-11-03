@@ -197,7 +197,7 @@ def iteration_completed_webhook_fields(
     organization: Organization,
     group: Group,
     state: SeerRunState,
-    format_code_changes: Callable[[SeerRunState], dict],
+    format_code_changes: Callable[[SeerRunState], dict[str, Any]],
     *,
     retrying: bool,
 ) -> dict[str, Any] | None:

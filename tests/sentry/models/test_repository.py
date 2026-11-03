@@ -5,7 +5,7 @@ from django.core import mail
 
 from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.repository import Repository
+from sentry.models.repository import RepoResolution, Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -24,7 +24,7 @@ class RepositoryDeleteEmailTest(TestCase):
         )
         self.provider = MagicMock()
         self.provider.name = "Example"
-        self.repo.get_provider = lambda: self.provider
+        setattr(self.repo, "get_provider", lambda: self.provider)
 
     @with_feature("organizations:notification-platform.internal-testing")
     @override_options(
@@ -277,7 +277,7 @@ class RepositoryManagerResolveActiveTest(TestCase):
 
     def _resolve(
         self, *, name: str = "getsentry/sentry", normalized_provider: str | None = "github"
-    ):
+    ) -> tuple[Repository | None, RepoResolution]:
         return Repository.objects.resolve_active(
             organization_id=self.organization.id,
             name=name,

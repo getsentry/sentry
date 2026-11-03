@@ -1,5 +1,7 @@
+from typing import Any
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,16 +11,16 @@ class BackfillCommitNewRepositoryIdTest(TestMigrations):
     migrate_from = "1231_drop_group_logger_indexes"
     migrate_to = "1232_backfill_commit_new_repository_id"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.organization = self.create_organization()
         project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(project)
         self.other_repo = self.create_repo(project, name="other-repo")
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Commit = apps.get_model("sentry", "Commit")
 
-        def create(key, repository_id, **kwargs):
+        def create(key: str, repository_id: int, **kwargs: Any) -> Any:
             return Commit.objects.create(
                 organization_id=self.organization.id,
                 repository_id=repository_id,
@@ -33,7 +35,7 @@ class BackfillCommitNewRepositoryIdTest(TestMigrations):
         # Historical models skip Commit.save(), so these start out null.
         assert all(c.new_repository_id is None for c in self.pending)
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         for commit in self.pending:
             commit.refresh_from_db()
             assert commit.new_repository_id == self.repo.id

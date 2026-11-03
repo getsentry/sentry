@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -186,35 +186,41 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         base = super().serialize(obj, attrs, user)
 
         if not include_config:
-            return {**base}
+            return cast("IntegrationConfigSerializerResponse", base)
 
         if not self.organization_id:
-            return {**base, "configOrganization": []}
+            return cast("IntegrationConfigSerializerResponse", {**base, "configOrganization": []})
 
         try:
             installation = obj.get_installation(organization_id=self.organization_id)
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
-            return {**base, "configOrganization": []}
+            return cast("IntegrationConfigSerializerResponse", {**base, "configOrganization": []})
 
         if organization is not None:
             installation.organization = organization
 
         # TicketRuleModal only needs the ticket-creation form for this request.
         if self.params.get("action") == "create":
-            return {
-                **base,
-                "configOrganization": [],
-                # This method comes from IssueBasicIntegration within the integration's installation class
-                "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
-                    None,
-                    user,
-                    params=self.params,
-                ),
-            }
+            return cast(
+                "IntegrationConfigSerializerResponse",
+                {
+                    **base,
+                    "configOrganization": [],
+                    # This method comes from IssueBasicIntegration within the integration's installation class
+                    "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
+                        None,
+                        user,
+                        params=self.params,
+                    ),
+                },
+            )
 
-        return {**base, "configOrganization": installation.get_organization_config()}
+        return cast(
+            "IntegrationConfigSerializerResponse",
+            {**base, "configOrganization": installation.get_organization_config()},
+        )
 
 
 @register(OrganizationIntegration)

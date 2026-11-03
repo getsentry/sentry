@@ -97,7 +97,7 @@ their own alerts to be notified of new issues.
         initial=True,
     )
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str) -> str:
         if not Project.is_valid_platform(value):
             raise serializers.ValidationError("Invalid platform")
 
@@ -209,7 +209,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         examples=TeamExamples.LIST_TEAM_PROJECTS,
     )
     def get(
-        self, request: Request, team
+        self, request: Request, team: Team
     ) -> Response[list[OrganizationProjectResponse]] | Response[_StatsPeriodErrorResponse]:
         """
         Return a list of projects bound to a team.

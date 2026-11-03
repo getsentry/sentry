@@ -1,9 +1,12 @@
+from collections.abc import Mapping
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from django.http import QueryDict
 
 from sentry.exceptions import InvalidParams
+from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
@@ -14,7 +17,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def _make_query(qs, params=None):
+def _make_query(qs: str, params: Mapping[str, Any] | None = None) -> QueryDefinition:
     return QueryDefinition(QueryDict(qs), params or {})
 
 
@@ -203,7 +206,7 @@ def test_virtual_groupby_query() -> None:
 
 
 @freeze_time("2022-05-04T09:00:00.000Z")
-def _get_query_maker_params(project):
+def _get_query_maker_params(project: Project) -> dict[str, Any]:
     # These parameters are computed in the API endpoint, before the
     # QueryDefinition is built. Since we're only testing the query
     # definition here, we can safely mock these.
@@ -215,7 +218,7 @@ def _get_query_maker_params(project):
 
 
 @django_db_all
-def test_filter_proj_slug_in_query(default_project) -> None:
+def test_filter_proj_slug_in_query(default_project: Project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -227,7 +230,7 @@ def test_filter_proj_slug_in_query(default_project) -> None:
 
 
 @django_db_all
-def test_filter_proj_slug_in_top_filter(default_project) -> None:
+def test_filter_proj_slug_in_top_filter(default_project: Project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -239,7 +242,7 @@ def test_filter_proj_slug_in_top_filter(default_project) -> None:
 
 
 @django_db_all
-def test_filter_proj_slug_in_top_filter_and_query(default_project) -> None:
+def test_filter_proj_slug_in_top_filter_and_query(default_project: Project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -252,7 +255,7 @@ def test_filter_proj_slug_in_top_filter_and_query(default_project) -> None:
 
 
 @django_db_all
-def test_proj_neither_in_top_filter_nor_query(default_project) -> None:
+def test_proj_neither_in_top_filter_nor_query(default_project: Project) -> None:
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
         "field=sum(session)&interval=2h&statsPeriod=2h",
@@ -263,7 +266,7 @@ def test_proj_neither_in_top_filter_nor_query(default_project) -> None:
 
 
 @django_db_all
-def test_filter_env_in_query(default_project) -> None:
+def test_filter_env_in_query(default_project: Project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
@@ -274,7 +277,7 @@ def test_filter_env_in_query(default_project) -> None:
 
 
 @django_db_all
-def test_filter_env_in_top_filter(default_project) -> None:
+def test_filter_env_in_top_filter(default_project: Project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     params["environment"] = "prod"
@@ -286,7 +289,7 @@ def test_filter_env_in_top_filter(default_project) -> None:
 
 
 @django_db_all
-def test_filter_env_in_top_filter_and_query(default_project) -> None:
+def test_filter_env_in_top_filter_and_query(default_project: Project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     params["environment"] = "prod"
@@ -298,7 +301,7 @@ def test_filter_env_in_top_filter_and_query(default_project) -> None:
 
 
 @django_db_all
-def test_env_neither_in_top_filter_nor_query(default_project) -> None:
+def test_env_neither_in_top_filter_nor_query(default_project: Project) -> None:
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
         "field=sum(session)&interval=2h&statsPeriod=2h",

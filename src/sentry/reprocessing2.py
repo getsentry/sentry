@@ -290,11 +290,13 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
 
 
 def get_original_group_id(event: Event) -> int:
-    return event.data["contexts"]["reprocessing"]["original_issue_id"]
+    group_id = get_path(event.data, "contexts", "reprocessing", "original_issue_id")
+    return group_id
 
 
 def get_original_primary_hash(event: Event) -> str | None:
-    return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    return primary_hash
 
 
 def _send_delete_old_primary_hash_messages(
@@ -511,7 +513,8 @@ def is_reprocessed_event(data: Mapping[str, Any]) -> bool:
 
 
 def _get_original_issue_id(data: Mapping[str, Any]) -> int | None:
-    return get_path(data, "contexts", "reprocessing", "original_issue_id")
+    issue_id = get_path(data, "contexts", "reprocessing", "original_issue_id")
+    return issue_id
 
 
 def buffered_handle_remaining_events(
@@ -645,7 +648,8 @@ def start_group_reprocessing(
 
         # Create a duplicate row that has the same attributes by nulling out
         # the primary key and saving
-        group.pk = group.id = None  # XXX: intentional resetting pk
+        setattr(group, "pk", None)  # XXX: intentional resetting pk
+        setattr(group, "id", None)
         new_group = group  # rename variable just to avoid confusion
         del group
 

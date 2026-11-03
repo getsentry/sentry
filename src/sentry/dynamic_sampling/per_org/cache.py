@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import orjson
 import sentry_sdk
@@ -147,7 +147,8 @@ def get_adjusted_factor_age(org_id: int) -> timedelta | None:
     None when there is no stored factor or it has no expiry.
     """
     redis_client = get_redis_client_for_ds()
-    remaining_ms = redis_client.pttl(generate_recalibrate_orgs_cache_key(org_id))
+    pttl = cast("Callable[[str], int]", redis_client.pttl)
+    remaining_ms = pttl(generate_recalibrate_orgs_cache_key(org_id))
     if remaining_ms < 0:
         return None
     return timedelta(milliseconds=adjusted_factor_ttl_ms() - remaining_ms)

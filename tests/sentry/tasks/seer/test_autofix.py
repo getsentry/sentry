@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import orjson
@@ -7,6 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
@@ -257,7 +259,11 @@ class TestSummarizeIssue(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_agentic_triage_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(
+        self,
+        organization: Organization,
+        **kwargs: Any,
+    ) -> SeerWorkflowRun:
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )

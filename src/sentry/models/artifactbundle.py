@@ -3,7 +3,8 @@ from __future__ import annotations
 import zipfile
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any
+from types import TracebackType
+from typing import IO, Any, Self, cast
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -107,13 +108,13 @@ class ArtifactBundle(Model):
         ]
 
     @classmethod
-    def get_ident(cls, url, dist=None):
+    def get_ident(cls, url: str, dist: str | None = None) -> str:
         if dist is not None:
             return sha1_text(url + "\x00\x00" + dist).hexdigest()
         return sha1_text(url).hexdigest()
 
 
-def delete_file_for_artifact_bundle(instance, **kwargs):
+def delete_file_for_artifact_bundle(instance: ArtifactBundle, **kwargs: object) -> None:
     from sentry.models.files import File
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
@@ -212,7 +213,7 @@ class ProjectArtifactBundle(Model):
 class ArtifactBundleArchive:
     """Read-only view of uploaded ZIP artifact bundle."""
 
-    def __init__(self, fileobj: IO, build_memory_map: bool = True):
+    def __init__(self, fileobj: IO[bytes], build_memory_map: bool = True) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]
@@ -225,13 +226,18 @@ class ArtifactBundleArchive:
         if build_memory_map:
             self._build_memory_maps()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc, value, tb):
+    def __exit__(
+        self,
+        exc: type[BaseException] | None,
+        value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         self._zip_file.close()
         self._fileobj.close()
 
@@ -244,25 +250,26 @@ class ArtifactBundleArchive:
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
-    def _read_manifest(self) -> dict:
+    def _read_manifest(self) -> dict[str, Any]:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        return manifest
 
     @staticmethod
-    def normalize_headers(headers: dict) -> dict:
+    def normalize_headers(headers: dict[str, object]) -> dict[str, object]:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: str | None) -> str | None:
+    def normalize_debug_id(debug_id: object) -> str | None:
         if debug_id is None:
             return None
 
         try:
-            return normalize_debug_id(debug_id)
+            return normalize_debug_id(cast(str, debug_id))
         except SymbolicError:
             return None
 
-    def _build_memory_maps(self):
+    def _build_memory_maps(self) -> None:
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             url = info.get("url")
@@ -270,8 +277,9 @@ class ArtifactBundleArchive:
                 continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
+            raw_debug_id = headers.get("debug-id")
+            if raw_debug_id is not None:
+                debug_id = self.normalize_debug_id(raw_debug_id)
                 file_type = info.get("type")
                 if (
                     debug_id is not None
@@ -294,7 +302,7 @@ class ArtifactBundleArchive:
     def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
         return self._entries_by_debug_id.keys()
 
-    def has_debug_ids(self):
+    def has_debug_ids(self) -> bool:
         return len(self._entries_by_debug_id) > 0
 
     def get_files_without_debug_ids(self) -> list[tuple[str, dict[str, Any]]]:
@@ -323,25 +331,28 @@ class ArtifactBundleArchive:
 
         return bundle_id
 
-    def get_files(self) -> dict[str, dict]:
-        return self.manifest.get("files", {})
+    def get_files(self) -> dict[str, dict[str, Any]]:
+        files = self.manifest.get("files", {})
+        return files
 
-    def get_file_by_url(self, url: str) -> tuple[IO, dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, Any]]:
         file_path, info = self._entries_by_url[url]
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> tuple[IO[bytes], dict]:
+    ) -> tuple[IO[bytes], dict[str, Any]]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file(self, file_path: str) -> tuple[IO, dict]:
+    def get_file(self, file_path: str) -> tuple[IO[bytes], dict[str, Any]]:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
         return self._zip_file.open(file_path), file_info.get("headers", {})
 
-    def get_files_by(self, block: Callable[[str, dict], bool]) -> dict[str, dict]:
+    def get_files_by(
+        self, block: Callable[[str, dict[str, Any]], bool]
+    ) -> dict[str, dict[str, Any]]:
         files = self.manifest.get("files", {})
         results = {}
 
@@ -351,8 +362,8 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_url_or_debug_id(self, query: str | None) -> dict[str, dict]:
-        def filter_function(_: str, info: dict) -> bool:
+    def get_files_by_url_or_debug_id(self, query: str | None) -> dict[str, dict[str, Any]]:
+        def filter_function(_: str, info: dict[str, Any]) -> bool:
             if query is None:
                 return True
 
@@ -396,8 +407,9 @@ class ArtifactBundleArchive:
 
         return None
 
-    def get_file_url_by_file_path(self, file_path):
+    def get_file_url_by_file_path(self, file_path: str) -> str | None:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
 
-        return file_info.get("url")
+        url = file_info.get("url")
+        return url

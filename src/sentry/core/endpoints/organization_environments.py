@@ -57,9 +57,9 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
             project__in=self.get_projects(request, organization)
         )
         add_visibility_filters = environment_visibility_filter_options[visibility]
-        environment_projects = add_visibility_filters(environment_projects).values("environment")
+        environment_ids = add_visibility_filters(environment_projects).values("environment")
         queryset = (
-            Environment.objects.filter(id__in=environment_projects)
+            Environment.objects.filter(id__in=environment_ids)
             .exclude(
                 # HACK(mattrobenolt): We don't want to surface the
                 # "No Environment" environment to the UI since it

@@ -750,7 +750,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, id):
+    def url(self, id: str) -> str:
         return reverse(
             "sentry-api-0-explore-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "id": id},
@@ -762,7 +762,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert self.query.visits == 1
 
         with self.feature(self.feature_name):
-            response = self.client.post(self.url(self.query.id))
+            response = self.client.post(self.url(str(self.query.id)))
 
         assert response.status_code == 204
 
@@ -776,7 +776,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert self.query.visits == 1
 
         with self.feature({self.feature_name: False}):
-            response = self.client.post(self.url(self.query.id))
+            response = self.client.post(self.url(str(self.query.id)))
 
         assert response.status_code == 404
 
@@ -808,7 +808,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         self.login_as(user=member_user)
 
         with self.feature(self.feature_name):
-            response = self.client.post(self.url(restricted_query.id))
+            response = self.client.post(self.url(str(restricted_query.id)))
 
         assert response.status_code == 403, response.content
 

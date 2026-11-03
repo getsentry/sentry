@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from snuba_sdk import (
     Column,
@@ -30,6 +30,7 @@ from sentry.replays.usecases.query import (
     PREFERRED_SOURCE,
     VIEWED_BY_DENYLIST_MSG,
     Paginators,
+    QueryResponse,
     execute_query,
     make_full_aggregation_query,
     query_using_optimized_search,
@@ -37,6 +38,7 @@ from sentry.replays.usecases.query import (
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
+from sentry.types.actor import Actor
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -47,8 +49,36 @@ ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
 # Compatibility function for getsentry code.
-def query_replays_collection(*args, **kwargs):
-    return query_replays_collection_paginated(*args, **kwargs).response
+def query_replays_collection(
+    project_ids: list[int],
+    start: datetime,
+    end: datetime,
+    environment: list[str],
+    fields: list[str],
+    sort: str | None,
+    limit: int,
+    offset: int,
+    search_filters: Sequence[QueryToken],
+    preferred_source: PREFERRED_SOURCE,
+    organization: Organization | None = None,
+    actor: Actor | None = None,
+    referrer: str | None = None,
+) -> list[Any]:
+    return query_replays_collection_paginated(
+        project_ids=project_ids,
+        start=start,
+        end=end,
+        environment=environment,
+        fields=fields,
+        sort=sort,
+        limit=limit,
+        offset=offset,
+        search_filters=search_filters,
+        preferred_source=preferred_source,
+        organization=organization,
+        actor=actor,
+        referrer=referrer,
+    ).response
 
 
 def query_replays_collection_paginated(
@@ -63,9 +93,9 @@ def query_replays_collection_paginated(
     search_filters: Sequence[QueryToken],
     preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
-    actor: Any | None = None,
+    actor: Actor | None = None,
     referrer: str | None = None,
-):
+) -> QueryResponse:
     """Query aggregated replay collection."""
     paginators = Paginators(limit, offset)
 
@@ -92,25 +122,28 @@ def query_replay_instance(
     end: datetime,
     organization: Organization | None = None,
     request_user_id: int | None = None,
-):
+) -> list[object]:
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
         project_ids = project_id
     else:
         project_ids = [project_id]
 
-    return execute_query(
-        query=make_full_aggregation_query(
-            fields=[],
-            replay_ids=[replay_id],
-            project_ids=project_ids,
-            period_start=start,
-            period_end=end,
-            request_user_id=request_user_id,
-        ),
-        tenant_id={"organization_id": organization.id} if organization else {},
-        referrer="replays.query.details_query",
-    )["data"]
+    return cast(
+        "list[object]",
+        execute_query(
+            query=make_full_aggregation_query(
+                fields=[],
+                replay_ids=[replay_id],
+                project_ids=project_ids,
+                period_start=start,
+                period_end=end,
+                request_user_id=request_user_id,
+            ),
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.details_query",
+        )["data"],
+    )
 
 
 def query_replay_id_by_prefix(
@@ -201,18 +234,21 @@ def query_replay_viewed_by_ids(
         if project_id in options.get("replay.viewed-by.project-denylist"):
             raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
 
-    return execute_query(
-        query=make_full_aggregation_query(
-            fields=["viewed_by_ids"],
-            replay_ids=[replay_id],
-            project_ids=project_ids,
-            period_start=start,
-            period_end=end,
-            request_user_id=request_user_id,
-        ),
-        tenant_id={"organization_id": organization.id} if organization else {},
-        referrer="replays.query.viewed_by_query",
-    )["data"]
+    return cast(
+        "list[dict[str, Any]]",
+        execute_query(
+            query=make_full_aggregation_query(
+                fields=["viewed_by_ids"],
+                replay_ids=[replay_id],
+                project_ids=project_ids,
+                period_start=start,
+                period_end=end,
+                request_user_id=request_user_id,
+            ),
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.viewed_by_query",
+        )["data"],
+    )
 
 
 def query_replays_count(
@@ -221,7 +257,7 @@ def query_replays_count(
     end: datetime,
     replay_ids: list[str],
     tenant_ids: dict[str, Any],
-):
+) -> Mapping[str, Any]:
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -276,7 +312,7 @@ def query_replays_dataset_tagkey_values(
     tag_key: str,
     tag_substr_query: str | None,
     tenant_ids: dict[str, Any] | None,
-):
+) -> Mapping[str, Any]:
     """
     Query replay tagkey values. Like our other tag functionality, aggregates do not work here.
     This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
@@ -383,7 +419,7 @@ def anyIf(
     )
 
 
-def _sorted_aggregated_urls(agg_urls_column, alias):
+def _sorted_aggregated_urls(agg_urls_column: Expression, alias: str | None) -> Expression:
     mapped_urls = Function(
         "arrayMap",
         parameters=[
@@ -472,7 +508,7 @@ def _strip_uuid_dashes(
     input_value: Expression,
     alias: str | None = None,
     aliased: bool = True,
-):
+) -> Expression:
     return Function(
         "replaceAll",
         parameters=[Function("toString", parameters=[input_value]), "-", ""],
@@ -480,7 +516,7 @@ def _strip_uuid_dashes(
     )
 
 
-def _activity_score():
+def _activity_score() -> Expression:
     #  taken from frontend calculation:
     #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
@@ -525,7 +561,7 @@ def _activity_score():
     )
 
 
-def _collect_event_ids(alias, ids_type_list):
+def _collect_event_ids(alias: str, ids_type_list: Sequence[str]) -> Expression:
     id_types_to_aggregate = []
     for id_type in ids_type_list:
         id_types_to_aggregate.append(_filter_empty_uuids(id_type))
@@ -547,8 +583,8 @@ def _collect_event_ids(alias, ids_type_list):
     )
 
 
-def _collect_new_errors():
-    def _collect_non_empty_error_and_fatals():
+def _collect_new_errors() -> Expression:
+    def _collect_non_empty_error_and_fatals() -> list[Expression]:
         return [
             _filter_empty_uuids("error_id"),
             _filter_empty_uuids("fatal_id"),
@@ -584,8 +620,8 @@ def _collect_new_errors():
     )
 
 
-def _filter_empty_uuids(column_name):
-    def _empty_uuids_lambda():
+def _filter_empty_uuids(column_name: str) -> Expression:
+    def _empty_uuids_lambda() -> Lambda:
         return Lambda(
             ["id"],
             Function(

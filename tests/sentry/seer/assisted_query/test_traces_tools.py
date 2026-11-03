@@ -1,11 +1,17 @@
+from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.assisted_query.traces_tools import get_attribute_names
 from sentry.testutils.cases import TestCase
 
 
-def _attribute(name, attr_type="string", source="user", context=None):
-    attribute = {
+def _attribute(
+    name: str,
+    attr_type: str = "string",
+    source: str = "user",
+    context: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    attribute: dict[str, object] = {
         "key": name,
         "name": name,
         "attributeType": attr_type,
@@ -22,7 +28,12 @@ class TestGetAttributeNames(TestCase):
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
 
-    def _mock_responses(self, mock_client_cls, string_attrs, number_attrs=None):
+    def _mock_responses(
+        self,
+        mock_client_cls: MagicMock,
+        string_attrs: list[dict[str, object]],
+        number_attrs: list[dict[str, object]] | None = None,
+    ) -> MagicMock:
         """Stub the two per-type calls get_attribute_names makes (string, then number)."""
         mock_client = mock_client_cls.return_value
         string_response, number_response = MagicMock(), MagicMock()

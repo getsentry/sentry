@@ -1,12 +1,28 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.types import IntegrationProviderSlug
+
+if TYPE_CHECKING:
+    from sentry.integrations.models.integration import Integration
+    from sentry.integrations.services.integration.model import RpcIntegration
 
 
 class GitHubEnterpriseApiClient(GitHubBaseClient):
     integration_name = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
-    def __init__(self, base_url, integration, app_id, private_key, verify_ssl, org_integration_id):
+    def __init__(
+        self,
+        base_url: str,
+        integration: Integration | RpcIntegration,
+        app_id: str,
+        private_key: str,
+        verify_ssl: bool,
+        org_integration_id: int | None,
+    ) -> None:
         self._is_cloud_style: bool = base_url == "github.com" or base_url.endswith(".ghe.com")
         if self._is_cloud_style:
             self.base_url = f"https://api.{base_url}"
@@ -30,5 +46,5 @@ class GitHubEnterpriseApiClient(GitHubBaseClient):
     def _get_installation_id(self) -> str:
         return self.integration.metadata["installation_id"]
 
-    def _get_jwt(self):
+    def _get_jwt(self) -> str:
         return get_jwt(github_id=self.app_id, github_private_key=self.private_key)

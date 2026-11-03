@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
+from django.db.models import Model
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
@@ -287,12 +288,12 @@ def export_to_encrypted_tarball(
         )
 
 
-def is_control_model(model):
+def is_control_model(model: type[Model]) -> bool:
     meta = model._meta
     return not hasattr(meta, "silo_limit") or SiloMode.CONTROL in meta.silo_limit.modes
 
 
-def clear_model(model, *, reset_pks: bool):
+def clear_model(model: type[Model], *, reset_pks: bool) -> None:
     using = router.db_for_write(model)
     with unguarded_write(using=using):
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
@@ -308,7 +309,7 @@ def clear_model(model, *, reset_pks: bool):
 
 
 @assume_test_silo_mode(SiloMode.CELL)
-def clear_database(*, reset_pks: bool = False):
+def clear_database(*, reset_pks: bool = False) -> None:
     """
     Deletes all models we care about from the database, in a sequence that ensures we get no
     foreign key errors.
@@ -909,7 +910,9 @@ class ExhaustiveFixtures(Fixtures):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_organization_integration(self, org: Organization):
+    def create_exhaustive_organization_integration(
+        self, org: Organization
+    ) -> OrganizationIntegration:
         integration = Integration.objects.create(
             provider="slack", name=f"Slack for {org.slug}", external_id=f"slack:{org.slug}"
         )
@@ -929,6 +932,8 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         install = self.create_sentry_app_installation(slug=app.slug, organization=org, user=owner)
+        assert app.application is not None
+        assert app.proxy_user is not None
         updater = SentryAppUpdater(sentry_app=app)
         updater.schema = {"elements": [self.create_alert_rule_action_schema()]}
         updater.run(owner)
@@ -968,25 +973,26 @@ class ExhaustiveFixtures(Fixtures):
         return app
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization):
+    def create_exhaustive_sentry_app_notification(self, app: SentryApp, org: Organization) -> None:
         project = Project.objects.filter(organization=org).first()
+        assert project is not None
         self.create_notification_action(organization=org, sentry_app_id=app.id, projects=[project])
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_global_configs(self, owner: User):
+    def create_exhaustive_global_configs(self, owner: User) -> None:
         self.create_exhaustive_api_keys_for_user(owner)
         self.create_exhaustive_global_configs_regional()
         ControlOption.objects.create(key="bar", value="b")
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_exhaustive_global_configs_regional(self):
+    def create_exhaustive_global_configs_regional(self) -> None:
         _, public_key = generate_key_pair()
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
-        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
+        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=str(public_key))
         Option.objects.create(key="foo", value="a")
 
-    def create_exhaustive_instance(self, *, is_superadmin: bool = False):
+    def create_exhaustive_instance(self, *, is_superadmin: bool = False) -> None:
         """
         Takes an empty Sentry instance's database, and populates it with an "exhaustive" version of
         every model. The end result is two users, in one organization, with one full set of
@@ -1017,7 +1023,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_exhaustive_global_configs(owner)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_exhaustive_api_keys_for_user(self, user: User):
+    def create_exhaustive_api_keys_for_user(self, user: User) -> None:
         ApiAuthorization.objects.create(user=user)
         ApiToken.objects.create(
             user=user,
@@ -1026,7 +1032,7 @@ class ExhaustiveFixtures(Fixtures):
             token_type=AuthTokenType.USER,
         )
 
-    def import_export_then_validate(self, out_name, *, reset_pks: bool = True) -> Any:
+    def import_export_then_validate(self, out_name: str, *, reset_pks: bool = True) -> Any:
         return import_export_then_validate(out_name, reset_pks=reset_pks)
 
     def json_of_org_and_project(self) -> Any:
@@ -1080,7 +1086,7 @@ class ExhaustiveFixtures(Fixtures):
             if model_diff != 0:
                 return model_diff
 
-            return a["pk"] - b["pk"]
+            return int(a["pk"]) - int(b["pk"])
 
         return sorted(
             json_data,
