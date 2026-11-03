@@ -1,21 +1,6 @@
 import {IconList} from '@sentry/icons/list';
 
-import {t} from 'sentry/locale';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-
-import {LogSeverityDot, LogTimestamp} from './log/logRowParts';
 import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
-import {
-  chartUnitFromTimeSeries,
-  QueryEmbedChart,
-  seriesFromTimeSeries,
-} from './queryEmbed/queryEmbedChart';
-import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
 import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
 import {
   eventColumns,
@@ -23,17 +8,23 @@ import {
   QueryEmbedTable,
   type QueryEmbedColumn,
 } from './queryEmbed/queryEmbedTable';
+import {QueryEmbedTimeSeries} from './queryEmbed/queryEmbedTimeSeries';
+import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {LogSeverityDot, LogTimestamp} from './log/logRowParts';
 import {getLogsQueryTitle} from './logsQueryLink';
 import {
   buildLogsEventView,
-  getLogsGroupBy,
   getLogsQueryFields,
   getLogsQueryHref,
   hasNoGroupBy,
   resolveLogsYAxes,
   type LogsQueryData,
 } from './logsQueryUtils';
-import {toPageFilters} from './queryEmbedParams';
 
 type LogRow = Record<string, unknown>;
 
@@ -81,50 +72,6 @@ function logsQueryColumns(
   ];
 }
 
-function LogsQueryChart({
-  data,
-  hasTable,
-  sort,
-}: {
-  data: LogsQueryData;
-  hasTable: boolean;
-  sort: Sort | undefined;
-}) {
-  const groupBy = getLogsGroupBy(data);
-
-  // Logs charts through `/events-timeseries/` like the Logs page itself, not
-  // the `/events-stats/` endpoint the Discover-backed embeds use.
-  const query = useFetchEventsTimeSeries(
-    DiscoverDatasets.OURLOGS,
-    {
-      yAxis: resolveLogsYAxes(data),
-      query: data.query,
-      groupBy: groupBy.length > 0 ? groupBy : undefined,
-      topEvents: groupBy.length > 0 ? QUERY_EMBED_ROW_LIMIT : undefined,
-      // `topEvents` ranks the groups it keeps by this sort, so handing it the
-      // table's own sort is what makes the legend describe the rows below it.
-      // Without it the two rank differently and the series stop lining up.
-      sort: groupBy.length > 0 ? sort : undefined,
-      pageFilters: toPageFilters(data),
-    },
-    'seer-logs-query-embed'
-  );
-
-  const timeSeries = query.data?.timeSeries ?? [];
-
-  return (
-    <QueryEmbedChart
-      emptyMessage={t('No matching logs')}
-      hasTable={hasTable}
-      isError={query.isError}
-      isPending={query.isPending}
-      series={seriesFromTimeSeries(timeSeries)}
-      title={data.title ?? t('Logs over time')}
-      unit={chartUnitFromTimeSeries(timeSeries)}
-    />
-  );
-}
-
 export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
   const organization = useOrganization();
   const eventView = buildLogsEventView(data);
@@ -158,7 +105,15 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
       testId={`seer-logs-query-${data.mode}-embed`}
       title={getLogsQueryTitle(data)}
     >
-      <LogsQueryChart data={data} hasTable={!isChartOnly} sort={eventView.sorts[0]} />
+      <QueryEmbedTimeSeries
+        data={data}
+        dataset={DiscoverDatasets.OURLOGS}
+        emptyMessage={t('No matching logs')}
+        hasTable={!isChartOnly}
+        referrer="seer-logs-query-embed"
+        sort={eventView.sorts[0]}
+        yAxes={resolveLogsYAxes(data)}
+      />
     </QueryEmbedCard>
   );
 }

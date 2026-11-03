@@ -102,15 +102,20 @@ export function getLogsQueryHref(
   data: LogsQueryData,
   organization: Organization
 ): string {
-  const {query, mode, sort, fields, groupBy, yAxes} = data;
+  const {query, mode, sort, fields, groupBy, transformations, interval} = data;
 
   return getLogsUrl({
     organization,
     selection: toPageFilters(data),
     query,
+    interval,
     mode: toMode(mode),
     field: fields,
     sortBy: sort,
-    aggregateFields: toAggregateFields({groupBy, yAxes}),
+    aggregateFields: toAggregateFields({
+      groupBy,
+      yAxes: resolveLogsYAxes(data),
+      transformations,
+    }),
   });
 }

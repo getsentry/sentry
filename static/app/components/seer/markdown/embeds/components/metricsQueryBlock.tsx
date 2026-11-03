@@ -1,19 +1,17 @@
 import {IconGraph} from '@sentry/icons/graph';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
+import {
+  eventColumns,
+  eventRowKey,
+  QueryEmbedTable,
+} from './queryEmbed/queryEmbedTable';
+import {QueryEmbedTimeSeries} from './queryEmbed/queryEmbedTimeSeries';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
-import {
-  chartUnitFromTimeSeries,
-  QueryEmbedChart,
-  seriesFromTimeSeries,
-} from './queryEmbed/queryEmbedChart';
-import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
-import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
-import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
 import {getMetricsQueryTitle} from './metricsQueryLink';
 import {
   buildMetricsEventView,
@@ -22,50 +20,10 @@ import {
   resolveMetricYAxes,
   type MetricsQueryData,
 } from './metricsQueryUtils';
-import {toPageFilters} from './queryEmbedParams';
 
 /** An aggregate that groups by nothing collapses to one row per y-axis. */
 function hasNoGroupBy(data: MetricsQueryData): boolean {
   return data.mode === 'aggregate' && !(data.groupBy ?? []).some(Boolean);
-}
-
-function MetricsQueryChart({
-  data,
-  hasTable,
-}: {
-  data: MetricsQueryData;
-  hasTable: boolean;
-}) {
-  const groupBy = (data.groupBy ?? []).filter(Boolean);
-
-  // The metric's identity rides in the y-axis arguments, so the search string
-  // stays the user's own predicate — unlike the samples table, which has no
-  // aggregate to carry it.
-  const query = useFetchEventsTimeSeries(
-    DiscoverDatasets.TRACEMETRICS,
-    {
-      yAxis: resolveMetricYAxes(data),
-      query: data.query,
-      groupBy: groupBy.length > 0 ? groupBy : undefined,
-      topEvents: groupBy.length > 0 ? QUERY_EMBED_ROW_LIMIT : undefined,
-      pageFilters: toPageFilters(data),
-    },
-    'seer-metrics-query-embed'
-  );
-
-  const timeSeries = query.data?.timeSeries ?? [];
-
-  return (
-    <QueryEmbedChart
-      emptyMessage={t('No matching metric values')}
-      hasTable={hasTable}
-      isError={query.isError}
-      isPending={query.isPending}
-      series={seriesFromTimeSeries(timeSeries)}
-      title={data.title ?? data.name}
-      unit={chartUnitFromTimeSeries(timeSeries)}
-    />
-  );
 }
 
 export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
@@ -101,7 +59,15 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
       testId={`seer-metrics-query-${data.mode}-embed`}
       title={getMetricsQueryTitle(data)}
     >
-      <MetricsQueryChart data={data} hasTable={!isChartOnly} />
+      <QueryEmbedTimeSeries
+        data={data}
+        dataset={DiscoverDatasets.TRACEMETRICS}
+        emptyMessage={t('No matching metric values')}
+        hasTable={!isChartOnly}
+        referrer="seer-metrics-query-embed"
+        sort={eventView.sorts[0]}
+        yAxes={resolveMetricYAxes(data)}
+      />
     </QueryEmbedCard>
   );
 }
