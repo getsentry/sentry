@@ -30,5 +30,5 @@ export function useOnboardingAgentSetupRun({enabled}: {enabled: boolean}) {
     [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]
   );
 
-  return useAgenticSetupRun({enabled, session, onSessionChange});
+  return useAgenticSetupRun({enabled, session, onSessionChange, origin: 'onboarding'});
 }

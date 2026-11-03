@@ -39,7 +39,12 @@ describe('useAgenticSetupRun', () => {
       ({enabled}: {enabled: boolean}) => {
         const [session, setSession] = useState<AgenticRunSession>();
 
-        return useAgenticSetupRun({enabled, session, onSessionChange: setSession});
+        return useAgenticSetupRun({
+          enabled,
+          session,
+          onSessionChange: setSession,
+          origin: 'onboarding',
+        });
       },
       {organization, initialProps: {enabled: true}}
     );
