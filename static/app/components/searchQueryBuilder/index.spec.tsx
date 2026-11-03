@@ -1,4 +1,4 @@
-import {Fragment, useState, type ComponentProps} from 'react';
+import {Fragment, useLayoutEffect, useState, type ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -997,6 +997,106 @@ describe('SearchQueryBuilder', () => {
         expect(mockOnSearch).toHaveBeenCalledWith('ab', expect.anything());
         expect(mockOnChange).toHaveBeenCalledTimes(1);
         expect(mockOnChange).toHaveBeenCalledWith('ab', expect.anything());
+      });
+    });
+
+    describe('with a parent that replaces a cleared query', () => {
+      function ParentReplacingSearchQueryBuilder({
+        onChange,
+        onSearch,
+      }: Pick<SearchQueryBuilderProps, 'onChange' | 'onSearch'>) {
+        const [query, setQuery] = useState('browser.name:firefox');
+
+        return (
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery={query}
+            onChange={onChange}
+            onSearch={(newQuery, state) => {
+              onSearch?.(newQuery, state);
+              setQuery(newQuery || 'browser.name:chrome');
+            }}
+          />
+        );
+      }
+
+      it('does not call onChange or onSearch for the replacement when the user clears the query', async () => {
+        const mockOnChange = jest.fn();
+        const mockOnSearch = jest.fn();
+        render(
+          <ParentReplacingSearchQueryBuilder
+            onChange={mockOnChange}
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+        await screen.findByRole('row', {name: 'browser.name:chrome'});
+
+        expect(mockOnChange.mock.calls.map(([query]) => query)).toEqual(['']);
+        expect(mockOnSearch).not.toHaveBeenCalledWith(
+          'browser.name:chrome',
+          expect.anything()
+        );
+      });
+    });
+
+    describe('with a parent that remaps initialQuery in a layout effect', () => {
+      function QueryRemapper({
+        query,
+        onRemap,
+      }: {
+        onRemap: (query: string) => void;
+        query: string;
+      }) {
+        useLayoutEffect(() => {
+          if (query === 'browser.name:safari') {
+            onRemap('browser.name:chrome');
+          }
+        }, [onRemap, query]);
+
+        return null;
+      }
+
+      function ParentRemappingSearchQueryBuilder({
+        onChange,
+        onSearch,
+      }: Pick<SearchQueryBuilderProps, 'onChange' | 'onSearch'>) {
+        const [query, setQuery] = useState('browser.name:firefox');
+
+        return (
+          <Fragment>
+            <QueryRemapper query={query} onRemap={setQuery} />
+            <button type="button" onClick={() => setQuery('browser.name:safari')}>
+              Change query externally
+            </button>
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery={query}
+              onChange={onChange}
+              onSearch={onSearch}
+            />
+          </Fragment>
+        );
+      }
+
+      it('does not call onChange or onSearch when initialQuery changes in consecutive commits', async () => {
+        const mockOnChange = jest.fn();
+        const mockOnSearch = jest.fn();
+        render(
+          <ParentRemappingSearchQueryBuilder
+            onChange={mockOnChange}
+            onSearch={mockOnSearch}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Change query externally'})
+        );
+        await screen.findByRole('row', {name: 'browser.name:chrome'});
+
+        expect(mockOnChange).not.toHaveBeenCalled();
+        expect(mockOnSearch).not.toHaveBeenCalled();
       });
     });
   });
@@ -7782,6 +7882,36 @@ describe('SearchQueryBuilder', () => {
         <SearchQueryBuilder
           {...defaultProps}
           initialQuery={rewrittenQuery}
+          onSearch={mockOnSearch}
+          replaceRawSearchKeys={['span.description']}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}randomValue');
+      await userEvent.click(document.body);
+
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      });
+      expect(mockOnSearch).toHaveBeenCalledWith('randomValue', expect.anything());
+    });
+
+    it('calls onSearch when the user commits raw text after initialQuery changed to it without changing the committed query', async () => {
+      const mockOnSearch = jest.fn();
+      const rewrittenQuery = `span.description:${WildcardOperators.CONTAINS}randomValue`;
+      const {rerender} = render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery={rewrittenQuery}
+          onSearch={mockOnSearch}
+          replaceRawSearchKeys={['span.description']}
+        />
+      );
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="randomValue"
           onSearch={mockOnSearch}
           replaceRawSearchKeys={['span.description']}
         />
