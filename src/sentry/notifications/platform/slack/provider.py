@@ -160,12 +160,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         """
         Adds the notification to the action ID of each button that calls back into Sentry, in the
         message's blocks and its attachments' blocks. Link buttons are skipped, since page loads
-        count their clicks. Returns the Slack actions of the buttons marked. Never raises.
+        count their clicks, as are buttons whose action ID names no organization, since their
+        clicks can't be attributed. Returns the Slack actions of the buttons marked. Never raises.
         """
         from sentry.integrations.slack.message_builder.routing import (
             SlackActionTracking,
-            add_action_tracking,
             decode_action_id,
+            encode_action_id,
         )
         from sentry.integrations.slack.message_builder.types import SlackAction
 
@@ -181,13 +182,18 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         def track(action_id: str | None) -> str | None:
             if not action_id:
                 return None
-            action = decode_action_id(action_id).action
-            if action not in SlackAction:
+            routing_data = decode_action_id(action_id)
+            if routing_data.action not in SlackAction or routing_data.organization_id is None:
                 return None
-            tracked_action_id = add_action_tracking(action_id, tracking)
+            tracked_action_id = encode_action_id(
+                action=routing_data.action,
+                organization_id=routing_data.organization_id,
+                project_id=routing_data.project_id,
+                tracking=tracking,
+            )
             if tracked_action_id == action_id:
                 return None
-            tracked.add(SlackAction(action))
+            tracked.add(SlackAction(routing_data.action))
             return tracked_action_id
 
         try:

@@ -18,7 +18,6 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.integrations.slack.message_builder.routing import (
     SlackActionTracking,
-    add_action_tracking,
     decode_action_id,
     encode_action_id,
 )
@@ -208,6 +207,7 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
                         ),
                         ButtonElement(text="Cancel", value="ignore"),
                         ButtonElement(text="Unknown", action_id="not_a_slack_action::1"),
+                        ButtonElement(text="Unrouted", action_id=SlackAction.SEER_AUTOFIX_START),
                     ]
                 )
             ],
@@ -241,9 +241,15 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
         assert tracked == {SlackAction.SEER_AUTOFIX_START, SlackAction.SEER_INVESTIGATION_START}
         assert self._button_action_ids(renderable) == [
             self._action_id(SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY),
-            add_action_tracking(self._action_id(SlackAction.SEER_AUTOFIX_START), self.tracking),
+            encode_action_id(
+                action=SlackAction.SEER_AUTOFIX_START,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                tracking=self.tracking,
+            ),
             None,
             "not_a_slack_action::1",
+            SlackAction.SEER_AUTOFIX_START,
         ]
         investigate = renderable["attachments"][0]["blocks"][0]["elements"][0]
         assert decode_action_id(investigate["action_id"]).tracking == self.tracking

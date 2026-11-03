@@ -6,7 +6,7 @@ from urllib.parse import parse_qsl, urlencode
 
 logger = logging.getLogger(__name__)
 
-TRACKING_SEPARATOR = "|"
+_TRACKING_SEPARATOR = "|"
 """Separates the routing data in an action ID from the tracking data that follows it."""
 
 MAX_ACTION_ID_LENGTH = 255
@@ -46,27 +46,31 @@ class SlackRoutingData:
     tracking: SlackActionTracking | None = None
 
 
-def encode_action_id(*, action: str, organization_id: int, project_id: int | None) -> str:
-    """Used to encode routing data into the outbound action_id for a Slack block."""
-    return (
+def encode_action_id(
+    *,
+    action: str,
+    organization_id: int,
+    project_id: int | None,
+    tracking: SlackActionTracking | None = None,
+) -> str:
+    """
+    Used to encode routing data into the outbound action_id for a Slack block. `tracking` is left
+    off if it would make the action ID longer than Slack allows.
+    """
+    routing = (
         f"{action}::{organization_id}::{project_id}"
         if project_id
         else f"{action}::{organization_id}"
     )
-
-
-def add_action_tracking(encoded_action_id: str, tracking: SlackActionTracking) -> str:
-    """
-    Returns the action ID with `tracking` appended, or unchanged if the result would be longer
-    than Slack allows.
-    """
-    tracked = f"{encoded_action_id}{TRACKING_SEPARATOR}{tracking.encode()}"
-    return tracked if len(tracked) <= MAX_ACTION_ID_LENGTH else encoded_action_id
+    if tracking is None:
+        return routing
+    tracked = f"{routing}{_TRACKING_SEPARATOR}{tracking.encode()}"
+    return tracked if len(tracked) <= MAX_ACTION_ID_LENGTH else routing
 
 
 def decode_action_id(encoded_action_id: str) -> SlackRoutingData:
     """Used to decode the routing data from the inbound action_id on a Slack block."""
-    routing, separator, encoded_tracking = encoded_action_id.partition(TRACKING_SEPARATOR)
+    routing, separator, encoded_tracking = encoded_action_id.partition(_TRACKING_SEPARATOR)
     tracking = SlackActionTracking.decode(encoded_tracking) if separator else None
     action_target_values = routing.split("::")
     try:

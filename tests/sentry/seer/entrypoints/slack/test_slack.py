@@ -317,12 +317,14 @@ class SlackAutofixEntrypointTest(TestCase):
         return_value={"ok": True, "ts": "1234567890.000100"},
     )
     def test_send_thread_update_tracks_buttons_and_records_sent(
-        self, mock_send_threaded_message, mock_record_sent, _mock_get_option
-    ):
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_record_sent: MagicMock,
+        _mock_get_option: MagicMock,
+    ) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        install = self.integration.get_installation(organization_id=self.organization.id)
 
-        send_thread_update(install=install, thread=self.thread, data=data)
+        send_thread_update(install=self._get_installation(), thread=self.thread, data=data)
 
         context = NotificationTrackingContext(
             source=NotificationSource.SEER_AUTOFIX_UPDATE,
@@ -358,11 +360,11 @@ class SlackAutofixEntrypointTest(TestCase):
         return_value=None,
     )
     def test_send_thread_update_without_response_does_not_record_sent(
-        self, _mock_send_threaded_message, mock_record_sent
-    ):
-        install = self.integration.get_installation(organization_id=self.organization.id)
-
-        send_thread_update(install=install, thread=self.thread, data=self._create_update())
+        self, _mock_send_threaded_message: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
+        send_thread_update(
+            install=self._get_installation(), thread=self.thread, data=self._create_update()
+        )
 
         mock_record_sent.assert_not_called()
 

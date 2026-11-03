@@ -1,7 +1,5 @@
 from sentry.integrations.slack.message_builder.routing import (
-    TRACKING_SEPARATOR,
     SlackActionTracking,
-    add_action_tracking,
     decode_action_id,
     encode_action_id,
 )
@@ -56,23 +54,21 @@ class SlackRequestRoutingTest(TestCase):
                 action=SlackAction.SEER_AUTOFIX_START,
                 organization_id=self.organization.id,
                 project_id=project_id,
+                tracking=TRACKING,
             )
-            decoded = decode_action_id(f"{encoded}{TRACKING_SEPARATOR}{TRACKING.encode()}")
+            decoded = decode_action_id(encoded)
             assert decoded.action == SlackAction.SEER_AUTOFIX_START
             assert decoded.organization_id == self.organization.id
             assert decoded.project_id == project_id
             assert decoded.tracking == TRACKING
 
-    def test_add_action_tracking(self) -> None:
-        action_id = f"{SlackAction.SEER_AUTOFIX_START}::1::2"
-        tracked = add_action_tracking(action_id, TRACKING)
-
-        assert tracked == f"{action_id}{TRACKING_SEPARATOR}{TRACKING.encode()}"
-        assert decode_action_id(tracked).tracking == TRACKING
-
-    def test_add_action_tracking_too_long(self) -> None:
-        action_id = f"{'a' * 250}::1::2"
-        assert add_action_tracking(action_id, TRACKING) == action_id
+    def test_encode_action_id_drops_tracking_when_too_long(self) -> None:
+        action = "a" * 250
+        untracked = encode_action_id(action=action, organization_id=1, project_id=2)
+        tracked = encode_action_id(
+            action=action, organization_id=1, project_id=2, tracking=TRACKING
+        )
+        assert tracked == untracked
 
     def test_decode_action_id_incomplete_tracking(self) -> None:
         decoded = decode_action_id(f"{SlackAction.SEER_AUTOFIX_START}::1::2|n=abc")
