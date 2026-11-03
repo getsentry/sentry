@@ -130,21 +130,26 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         jungle = self._create_monitor_environment(monitor, name="jungle")
         volcano = self._create_monitor_environment(monitor, name="volcano")
+        desert = self._create_monitor_environment(monitor, name="desert")
 
         base = (monitor.date_added - timedelta(minutes=30)).replace(microsecond=0)
         for i in range(7):
-            for seconds, monitor_environment in ((0, jungle), (20, volcano)):
+            # Missed check-ins in different environments share a timestamp.
+            for seconds, monitor_environment in ((0, jungle), (0, desert), (20, volcano)):
                 MonitorCheckIn.objects.create(
                     monitor_environment=monitor_environment,
                     date_added=base + timedelta(minutes=i, seconds=seconds),
                     status=CheckInStatus.OK,
                 )
 
-        for env_params, envs in (({}, (jungle, volcano)), ({"environment": "jungle"}, (jungle,))):
+        for env_params, envs in (
+            ({}, (jungle, volcano, desert)),
+            ({"environment": "jungle"}, (jungle,)),
+        ):
             expected = [
                 str(guid)
                 for guid in MonitorCheckIn.objects.filter(monitor_environment__in=envs)
-                .order_by("-date_added")
+                .order_by("-date_added", "-id")
                 .values_list("guid", flat=True)
             ]
             for per_page in (1, 2, 3, 5):
