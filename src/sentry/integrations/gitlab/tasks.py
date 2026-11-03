@@ -20,6 +20,12 @@ from sentry.integrations.gitlab.metrics import (
     GitLabTaskInteractionType,
     GitLabWebhookUpdateHaltReason,
 )
+from sentry.integrations.gitlab.webhook_reconciliation import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY,
+    GitLabWebhookReconciliationState,
+    GitLabWebhookReconciliationStatus,
+    get_reconciliation_state,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
@@ -219,6 +225,60 @@ def _consume_webhook_reconciliation_capacity(
         raise WebhookReconciliationRedisError(
             "Redis is unavailable for GitLab webhook reconciliation rate limiting"
         ) from e
+
+
+def _discard_project_webhook(client, project_id: int | str, hook_id: int | str) -> None:
+    # Retrying the task would not come back here: it re-reads the repository and either
+    # halts or reconciles the hook the repository now holds. So this is the only chance
+    # to delete the hook, and a failure only leaves it orphaned.
+    try:
+        client.delete_project_webhook(project_id, hook_id)
+    except ApiError as e:
+        if e.code != 404:
+            logger.warning(
+                "update-project-webhook.discard-failed",
+                extra={"project_id": project_id, "webhook_id": hook_id, "status_code": e.code},
+            )
+
+
+def _claimed_reconciliation_state(
+    *,
+    config: dict[str, Any],
+    integration_id: int,
+    generation: str,
+    claim_token: str,
+) -> GitLabWebhookReconciliationState | None:
+    state = get_reconciliation_state(config, integration_id=integration_id)
+    if (
+        state is None
+        or state["status"] != GitLabWebhookReconciliationStatus.IN_PROGRESS
+        or state["generation"] != generation
+        or state.get("claim_token") != claim_token
+    ):
+        return None
+    return state
+
+
+def _fail_webhook_reconciliation(
+    *,
+    organization_id: int,
+    integration_id: int,
+    repository_id: int,
+    state: GitLabWebhookReconciliationState,
+    failure_reason: str,
+) -> None:
+    failed_state: GitLabWebhookReconciliationState = {
+        **state,
+        "status": GitLabWebhookReconciliationStatus.FAILED,
+        "failure_reason": failure_reason,
+    }
+    repository_service.update_repository_config(
+        organization_id=organization_id,
+        id=repository_id,
+        config_updates={GITLAB_WEBHOOK_RECONCILIATION_KEY: failed_state},
+        expected_integration_id=integration_id,
+        expected_config={GITLAB_WEBHOOK_RECONCILIATION_KEY: state},
+    )
 
 
 @instrumented_task(
@@ -536,6 +596,152 @@ def update_project_webhook(
         finally:
             if outcome is not None:
                 metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
+
+
+@instrumented_task(
+    name="sentry.tasks.integrations.gitlab.reconcile_project_webhook",
+    namespace=integrations_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
+)
+def reconcile_project_webhook(
+    integration_id: int,
+    organization_id: int,
+    repository_id: int,
+    generation: str,
+    claim_token: str,
+    rate_limit_deferrals: int = 0,
+) -> None:
+    """
+    Reconcile one claimed repository without allowing stale tasks to complete newer work.
+    """
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
+    if not integration:
+        return
+
+    with GitLabTaskEvent(
+        interaction_type=GitLabTaskInteractionType.UPDATE_PROJECT_WEBHOOK,
+        integration=integration,
+    ).capture() as lifecycle:
+        repo = repository_service.get_repository(
+            organization_id=organization_id,
+            id=repository_id,
+        )
+        if not repo or repo.status != ObjectStatus.ACTIVE:
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_NOT_FOUND)
+            return
+
+        reconciliation_state = _claimed_reconciliation_state(
+            config=repo.config,
+            integration_id=integration_id,
+            generation=generation,
+            claim_token=claim_token,
+        )
+        if reconciliation_state is None:
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+            return
+
+        webhook_id = repo.config.get("webhook_id")
+        project_id = repo.config.get("project_id")
+        lifecycle.add_extras(
+            {
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+                "generation": generation,
+                "webhook_id": webhook_id,
+                "project_id": project_id,
+            }
+        )
+        if not project_id:
+            _fail_webhook_reconciliation(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+                state=reconciliation_state,
+                failure_reason="missing_webhook_config",
+            )
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.MISSING_WEBHOOK_CONFIG)
+            return
+
+        installation = integration.get_installation(organization_id=organization_id)
+        client = installation.get_client()
+        limit_info = _consume_webhook_reconciliation_capacity(
+            client.base_url, client.identity.external_id
+        )
+        if limit_info.wait_time:
+            if rate_limit_deferrals >= MAX_RATE_LIMIT_DEFERRALS:
+                raise WebhookReconciliationRateLimitError(
+                    "GitLab webhook reconciliation exceeded its rate-limit deferral budget"
+                )
+            countdown = max(1, ceil(limit_info.wait_time)) + randint(0, 5)
+            reconcile_project_webhook.apply_async(
+                kwargs={
+                    "integration_id": integration_id,
+                    "organization_id": organization_id,
+                    "repository_id": repository_id,
+                    "generation": generation,
+                    "claim_token": claim_token,
+                    "rate_limit_deferrals": rate_limit_deferrals + 1,
+                },
+                countdown=countdown,
+            )
+            lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
+            return
+
+        try:
+            hook_id = client.ensure_project_webhook(project_id, webhook_id)
+            updates = {"webhook_id": hook_id} if hook_id != webhook_id else {}
+            completed = repository_service.update_repository_config(
+                organization_id=organization_id,
+                id=repo.id,
+                config_updates=updates,
+                config_deletions=[GITLAB_WEBHOOK_RECONCILIATION_KEY],
+                expected_integration_id=integration_id,
+                expected_config={
+                    "webhook_id": webhook_id,
+                    GITLAB_WEBHOOK_RECONCILIATION_KEY: reconciliation_state,
+                },
+            )
+            if not completed:
+                if hook_id != webhook_id:
+                    lifecycle.add_extra("created_webhook_id", hook_id)
+                    _discard_project_webhook(client, project_id, hook_id)
+                lifecycle.record_halt(GitLabWebhookUpdateHaltReason.REPOSITORY_CHANGED)
+        except ApiUnauthorized as e:
+            _fail_webhook_reconciliation(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+                state=reconciliation_state,
+                failure_reason="authentication_failed",
+            )
+            lifecycle.record_halt(e)
+        except ApiForbiddenError as e:
+            _fail_webhook_reconciliation(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+                state=reconciliation_state,
+                failure_reason="missing_webhook_admin_permissions",
+            )
+            lifecycle.record_halt(e)
+        except ApiError as e:
+            if e.code in GITLAB_RETRY_CODES:
+                raise
+            _fail_webhook_reconciliation(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+                state=reconciliation_state,
+                failure_reason="gitlab_api_error",
+            )
+            lifecycle.record_failure(e)
 
 
 @instrumented_task(

@@ -18,8 +18,13 @@ from sentry.integrations.gitlab.tasks import (
     WebhookReconciliationRedisError,
     _consume_webhook_reconciliation_capacity,
     delete_redundant_project_webhook,
+    reconcile_project_webhook,
     update_all_project_webhooks,
     update_project_webhook,
+)
+from sentry.integrations.gitlab.webhook_reconciliation import (
+    GITLAB_WEBHOOK_RECONCILIATION_KEY,
+    GitLabWebhookReconciliationStatus,
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome
@@ -1428,3 +1433,102 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
         # Verify SLO metrics were recorded
         assert_slo_metric(mock_record_event)
+
+
+@cell_silo_test
+class ReconcileProjectWebhookTest(GitLabTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        capacity_patcher = patch(
+            "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+            return_value=LeakyBucketLimitInfo(burst_limit=10, drip_rate=2),
+        )
+        self.consume_capacity = capacity_patcher.start()
+        self.addCleanup(capacity_patcher.stop)
+        self.state = {
+            "status": GitLabWebhookReconciliationStatus.IN_PROGRESS,
+            "generation": "generation-1",
+            "integration_id": self.integration.id,
+            "scheduled_at": 10.0,
+            "claim_token": "claim-1",
+            "claimed_at": 20.0,
+        }
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.repo = self.create_gitlab_repo(name="test-repo", external_id=101)
+            self.repo.config = {
+                "project_id": "101",
+                "webhook_id": "webhook-1",
+                GITLAB_WEBHOOK_RECONCILIATION_KEY: self.state,
+            }
+            self.repo.save()
+
+    def _run(self) -> None:
+        reconcile_project_webhook(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            generation="generation-1",
+            claim_token="claim-1",
+        )
+
+    @responses.activate
+    def test_success_clears_the_claim(self) -> None:
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
+            json={"id": "webhook-1"},
+            status=200,
+        )
+
+        self._run()
+
+        self.repo.refresh_from_db()
+        assert GITLAB_WEBHOOK_RECONCILIATION_KEY not in self.repo.config
+        assert len(responses.calls) == 1
+        self.consume_capacity.assert_called_once_with("https://example.gitlab.com", "gitlab123")
+
+    @responses.activate
+    def test_stale_generation_does_not_call_gitlab(self) -> None:
+        self.repo.update(
+            config={
+                **self.repo.config,
+                GITLAB_WEBHOOK_RECONCILIATION_KEY: {
+                    **self.state,
+                    "generation": "generation-2",
+                },
+            }
+        )
+
+        self._run()
+
+        self.repo.refresh_from_db()
+        assert self.repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]["generation"] == "generation-2"
+        assert len(responses.calls) == 0
+        self.consume_capacity.assert_not_called()
+
+    @responses.activate
+    def test_unauthorized_response_records_terminal_failure(self) -> None:
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
+            json={"error": "Unauthorized"},
+            status=401,
+        )
+
+        self._run()
+
+        self.repo.refresh_from_db()
+        state = self.repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY]
+        assert state["status"] == GitLabWebhookReconciliationStatus.FAILED
+        assert state["failure_reason"] == "authentication_failed"
+
+    @responses.activate
+    def test_redis_failure_preserves_claim_without_calling_gitlab(self) -> None:
+        self.consume_capacity.side_effect = WebhookReconciliationRedisError("Redis unavailable")
+
+        with pytest.raises(WebhookReconciliationRedisError):
+            self._run()
+
+        self.repo.refresh_from_db()
+        assert self.repo.config[GITLAB_WEBHOOK_RECONCILIATION_KEY] == self.state
+        assert len(responses.calls) == 0
