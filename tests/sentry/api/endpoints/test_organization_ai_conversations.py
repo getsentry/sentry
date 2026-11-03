@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -12,6 +12,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
+from sentry.models.project import Project
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
@@ -235,7 +236,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
         )
 
-    def do_request(self, query=None, **kwargs):
+    def do_request(self, query: dict[str, Any] | None = None, **kwargs: Any) -> Any:
         query = query or {}
 
         return self.client.get(
@@ -792,7 +793,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == "Hello, I need help"
         assert conversation["lastOutput"] == last_response_text
 
-    def _store_minimal_conversation(self, conversation_id: str, timestamp) -> None:
+    def _store_minimal_conversation(self, conversation_id: str, timestamp: datetime) -> None:
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=timestamp,
@@ -1858,7 +1859,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 1
         assert conversation["flow"] == ["Test Agent"]
 
-    def _store_conversation_span(self, conversation_id, timestamp, project=None):
+    def _store_conversation_span(
+        self, conversation_id: str, timestamp: datetime, project: Project | None = None
+    ) -> None:
         """Store one minimal ai_client span so a conversation shows up in the list."""
         self.store_ai_span(
             conversation_id=conversation_id,

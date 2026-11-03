@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
@@ -101,18 +101,21 @@ class DiscoverProcessor:
             dataset = discover
 
         def data_fn(offset: int, limit: int) -> dict[str, Any]:
-            return dataset.query(
-                selected_columns=fields,
-                equations=equations,
-                query=query,
-                snuba_params=snuba_params,
-                offset=offset,
-                orderby=sort,
-                limit=limit,
-                referrer="data_export.tasks.discover",
-                auto_fields=True,
-                auto_aggregations=True,
-                use_aggregate_conditions=True,
+            return cast(
+                "dict[str, Any]",
+                dataset.query(
+                    selected_columns=fields,
+                    equations=equations,
+                    query=query,
+                    snuba_params=snuba_params,
+                    offset=offset,
+                    orderby=sort,
+                    limit=limit,
+                    referrer="data_export.tasks.discover",
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    use_aggregate_conditions=True,
+                ),
             )
 
         return data_fn

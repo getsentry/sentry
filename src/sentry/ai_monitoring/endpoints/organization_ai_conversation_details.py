@@ -322,7 +322,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.AGENT_TRACING
 
     @extend_schema(
         operation_id="retrieveOrganizationAIConversation",
@@ -471,7 +471,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     None,
                 )
                 projects_by_id = {project.id: project for project in resolved_params.projects}
-                project = projects_by_id.get(project_id)
+                project = projects_by_id.get(project_id) if project_id is not None else None
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),

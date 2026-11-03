@@ -335,7 +335,7 @@ class RecordErrorTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_handles_hitting_max_errors_in_non_broken_state(
         self, mock_logger: MagicMock, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         config = self.config
         breaker = self.breaker
         now = int(time.time())
@@ -385,7 +385,7 @@ class RecordErrorTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_stays_in_current_state_if_redis_call_changing_state_fails(
         self, mock_logger: MagicMock
-    ):
+    ) -> None:
         breaker = self.breaker
 
         for current_state, quota, limit, seconds_left in [
@@ -454,7 +454,7 @@ class ShouldAllowRequestTest(TestCase):
     @patch("sentry.utils.circuit_breaker2.metrics.incr")
     def test_blocks_request_in_non_broken_state_with_no_quota_remaining(
         self, mock_metrics_incr: MagicMock
-    ):
+    ) -> None:
         breaker = self.breaker
 
         for state, quota, limit in [

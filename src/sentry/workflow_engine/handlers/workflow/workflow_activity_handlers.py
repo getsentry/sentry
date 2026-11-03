@@ -56,7 +56,7 @@ def seer_activity_handler(
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    logging_ctx = {
+    logging_ctx: dict[str, object] = {
         "activity_type": activity.type,
         "group_id": group.id,
         "project_id": group.project_id,
@@ -165,7 +165,7 @@ def activity_handler(
     If there's a need for greater flexibility, create a new handler in the registry.
     But, these custom handlers will not have the platform metrics or logging.
     """
-    logging_ctx = {
+    logging_ctx: dict[str, object] = {
         "activity_type": activity.type,
         "group_id": group.id,
         "project_id": group.project_id,

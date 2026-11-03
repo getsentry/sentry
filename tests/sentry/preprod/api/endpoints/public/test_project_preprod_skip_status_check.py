@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, _patch, patch
 
 from django.urls import reverse
 
@@ -34,13 +35,19 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
         )
         self.sha = "a" * 40
 
-    def _url(self, organization_slug=None, project_slug=None):
+    def _url(self, organization_slug: str | None = None, project_slug: str | None = None) -> str:
         return reverse(
             self.endpoint,
             args=[organization_slug or self.organization.slug, project_slug or self.project.slug],
         )
 
-    def _post(self, data, scope_list=None, url=None, include_provider=True):
+    def _post(
+        self,
+        data: dict[str, Any],
+        scope_list: list[str] | None = None,
+        url: str | None = None,
+        include_provider: bool = True,
+    ) -> Any:
         # project:releases is what CI upload tokens (sentry-cli) carry, so it's the
         # realistic scope for this endpoint (see ProjectReleasePermission).
         token = self.create_user_auth_token(
@@ -53,7 +60,9 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
-    def _patch_provider(self, mock_provider):
+    def _patch_provider(
+        self, mock_provider: MagicMock
+    ) -> tuple[_patch[MagicMock], _patch[MagicMock]]:
         return (
             patch(
                 f"{SKIP_MODULE}.get_status_check_client_for_repo",

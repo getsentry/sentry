@@ -1,7 +1,7 @@
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Sum
@@ -32,6 +32,9 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
+if TYPE_CHECKING:
+    from sentry.tagstore.types import TagValue
+
 
 @traces.trace
 def serialize(
@@ -41,7 +44,7 @@ def serialize(
     environment_ids: list[int],
     projects: list[Project],
     current_project_meta: dict[str, Any] | None = None,
-    no_snuba_for_release_creation: bool = False,
+    skip_snuba: bool = False,
 ) -> list[ReleaseSerializerResponse]:
     if not releases:
         return []
@@ -96,7 +99,7 @@ def serialize(
             {r.version: r.id for r in releases},
             organization_id,
             project_ids,
-            no_snuba_for_release_creation=no_snuba_for_release_creation,
+            skip_snuba=skip_snuba,
             fetch_first_last_seen=tagstore.backend.get_release_tags,
         )
 
@@ -170,8 +173,10 @@ def get_release_project_first_last_seen(
     release_version_and_id_map: dict[str, int],
     organization_id: int,
     project_ids: list[int],
-    no_snuba_for_release_creation: bool,
-    fetch_first_last_seen: Callable[[int, list[int], int | None, list[str]], list[Any]],
+    skip_snuba: bool,
+    fetch_first_last_seen: Callable[
+        [int, Sequence[int], int | None, Sequence[str]], Iterable["TagValue"]
+    ],
 ) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
     Returns a tuple of first_seen and last_seen dictionaries where the key is the release version
@@ -186,7 +191,8 @@ def get_release_project_first_last_seen(
         rid: None for rid in release_version_and_id_map.values()
     }
 
-    if no_snuba_for_release_creation:
+    tag_values: Iterable[TagValue]
+    if skip_snuba:
         tag_values = []
     else:
         tag_values = fetch_first_last_seen(
@@ -197,14 +203,12 @@ def get_release_project_first_last_seen(
         )
 
     for tv in tag_values:
-        first_val = first_seen.get(tv.value)
-        last_val = last_seen.get(tv.value)
-        first_seen[release_version_and_id_map[tv.value]] = (
-            min(tv.first_seen, first_val) if first_val else tv.first_seen
-        )
-        last_seen[release_version_and_id_map[tv.value]] = (
-            max(tv.last_seen, last_val) if last_val else tv.last_seen
-        )
+        assert tv.value is not None
+        assert tv.first_seen is not None
+        assert tv.last_seen is not None
+        release_id = release_version_and_id_map[tv.value]
+        first_seen[release_id] = tv.first_seen
+        last_seen[release_id] = tv.last_seen
 
     return first_seen, last_seen
 

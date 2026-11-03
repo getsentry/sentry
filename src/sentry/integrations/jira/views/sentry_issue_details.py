@@ -8,10 +8,10 @@ from urllib.parse import quote
 
 import sentry_sdk
 from django.db.models.query import QuerySet
+from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
@@ -108,8 +108,8 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
     html_file = "sentry/integrations/jira-issue.html"
 
-    def handle_groups(self, groups: QuerySet[Group]) -> Response:
-        response_context = {"groups": [build_context(group) for group in groups]}
+    def handle_groups(self, groups: QuerySet[Group]) -> HttpResponse:
+        response_context: dict[str, object] = {"groups": [build_context(group) for group in groups]}
 
         logger.info(
             "issue_hook.response",
@@ -118,17 +118,19 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
         return self.get_response(response_context)
 
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         try:
             return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:
             # Sometime set_badge() will fail to connect.
             response_option = handle_jira_api_error(exc, " to set badge")
             if response_option:
-                return self.get_response(response_option)
+                return self.get_response(dict(response_option))
             raise
 
-    def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
+    def get(
+        self, request: Request, issue_key: str, *args: object, **kwargs: object
+    ) -> HttpResponse:
         scope = sentry_sdk.get_isolation_scope()
 
         try:
@@ -199,8 +201,8 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
 
     html_file = "sentry/integrations/jira-issue-list.html"
 
-    def handle_groups(self, groups: list[RpcExternalIssueGroupMetadata]) -> Response:
-        response_context = {"groups": [dict(group) for group in groups]}
+    def handle_groups(self, groups: list[RpcExternalIssueGroupMetadata]) -> HttpResponse:
+        response_context: dict[str, object] = {"groups": [dict(group) for group in groups]}
 
         logger.info(
             "issue_hook.response",
@@ -209,17 +211,19 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
 
         return self.get_response(response_context)
 
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         try:
             return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:
             # Sometime set_badge() will fail to connect.
             response_option = handle_jira_api_error(exc, " to set badge")
             if response_option:
-                return self.get_response(response_option)
+                return self.get_response(dict(response_option))
             raise
 
-    def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
+    def get(
+        self, request: Request, issue_key: str, *args: object, **kwargs: object
+    ) -> HttpResponse:
         scope = sentry_sdk.get_isolation_scope()
 
         try:

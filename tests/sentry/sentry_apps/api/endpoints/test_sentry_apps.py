@@ -187,13 +187,14 @@ class SentryAppsTest(APITestCase):
         method: str = "get",
         data: Mapping[str, Any] | None = None,
     ) -> Response:
-        return getattr(self.client, method)(
+        response: Response[Any] = getattr(self.client, method)(
             reverse(endpoint),
             format="json",
             **(data or {}),
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
             headers={"Content-Type": "application/json"},
         )
+        return response
 
 
 @control_silo_test
@@ -856,6 +857,7 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.webhook_headers == ["X-Trailing: value", "Authorization: Bearer token"]
         for header in sentry_app.webhook_headers:
+            assert header is not None
             assert "\n" not in header
             assert "\r" not in header
 

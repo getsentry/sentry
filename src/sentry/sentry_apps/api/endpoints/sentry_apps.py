@@ -14,11 +14,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppsBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
@@ -76,7 +78,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             ),
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: RpcOrganization) -> Response:
         data = {
             "name": request.data.get("name"),
             "user": request.user,
@@ -158,7 +160,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 name = "sentry_app.schema_validation_error"
                 log_info = {
                     "schema": orjson.dumps(data["schema"]).decode(),
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "sentry_app_name": data["name"],
                     "organization_id": organization.id,
                     "error_message": error_message,
@@ -167,7 +169,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 analytics.record(
                     SentryAppSchemaValidationError(
                         schema=orjson.dumps(data["schema"]).decode(),
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         sentry_app_name=data["name"],
                         organization_id=organization.id,
                         error_message=error_message,
@@ -175,7 +177,9 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 )
         return Response(serializer.errors, status=400)
 
-    def _filter_queryset_for_user(self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int):
+    def _filter_queryset_for_user(
+        self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int
+    ) -> BaseQuerySet[SentryApp, SentryApp]:
         owner_ids = []
         for o in user_service.get_organizations(user_id=user_id, only_visible=True):
             org_context = organization_service.get_organization_by_id(id=o.id, user_id=user_id)

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -31,6 +32,7 @@ from sentry.notifications.types import (
     NotificationOrigin,
 )
 from sentry.plugins.base import Notification
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
@@ -49,7 +51,10 @@ pytestmark = [requires_snuba]
 old_get_tags = get_tags
 
 
-def fake_get_tags(event_for_tags, tags):
+def fake_get_tags(
+    event_for_tags: Event | GroupEvent | None,
+    tags: set[str] | list[tuple[str]] | None,
+) -> Sequence[Mapping[str, str | bool | None]]:
     return old_get_tags(event_for_tags, None)
 
 
@@ -129,13 +134,14 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_performance_issue_alert_user_block(self, occurrence) -> None:
+    def test_performance_issue_alert_user_block(self, occurrence: object) -> None:
         """
         Test that performance issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
         """
 
         event = self.create_performance_issue()
+        assert event.group is not None
         # this is a PerformanceNPlusOneGroupType event
         notification = AlertRuleNotification(
             Notification(event=event, rule=self.create_workflow_origin(self.rule)),
@@ -221,6 +227,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
+        assert event.group is not None
         group_event = event.for_group(event.groups[0])
 
         notification = AlertRuleNotification(
@@ -261,6 +268,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
+        assert event.group is not None
         group_event = event.for_group(event.groups[0])
 
         workflow_id = 123

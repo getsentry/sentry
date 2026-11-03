@@ -29,4 +29,5 @@ def get_supergroups_by_group_ids(
     )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
-    return orjson.loads(response.data)
+    data = orjson.loads(response.data)
+    return data

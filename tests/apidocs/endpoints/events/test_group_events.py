@@ -22,6 +22,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
         for timestamp in last_release.values():
             event = self.create_event("c", release="1.0a", timestamp=timestamp.isoformat())
 
+        assert event.group is not None
         self.group_id = event.group.id
 
         self.login_as(user=self.user)

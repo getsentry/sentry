@@ -23,7 +23,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -53,7 +53,7 @@ jobs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     env:
       DEVSERVICES_TIMEOUT: '10'
     steps:
@@ -106,7 +106,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     needs: files-changed
     name: select tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -189,7 +189,7 @@ jobs:
       needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, select-tests]
     name: calculate test shards
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 5
     outputs:
       shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
@@ -440,7 +440,7 @@ jobs:
       )
     needs: files-changed
     name: backend migration tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -510,7 +510,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -540,7 +540,7 @@ jobs:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -580,7 +580,7 @@ jobs:
     if: needs.files-changed.outputs.backend_api_urls == 'true'
     needs: files-changed
     name: api url typescript generation
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -611,7 +611,7 @@ jobs:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
 
     steps:
       - name: Checkout sentry
@@ -641,7 +641,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -687,7 +687,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -774,7 +774,7 @@ jobs:
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

@@ -2,9 +2,9 @@
 title: CodeBlock
 description: CodeBlock displays multi-line code snippets with syntax highlighting, copy functionality, and support for tabs, filenames, and line highlighting.
 category: display
-source: '@sentry/scraps/code'
+source: '@sentry/scraps/codeBlock'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/code/codeBlock.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/codeBlock/codeBlock.tsx
   a11y:
     WCAG 1.4.3: https://www.w3.org/TR/WCAG22/#contrast-minimum
     WCAG 1.4.8: https://www.w3.org/TR/WCAG22/#visual-presentation
@@ -12,7 +12,7 @@ resources:
 
 import {Fragment, useState} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {toast} from '@sentry/scraps/toast';
 
 import {IconStar} from '@sentry/icons/star';
@@ -20,7 +20,7 @@ import * as Storybook from 'sentry/stories';
 
 import {OnTabClickExample} from './__stories__/components';
 
-export const documentation = import('!!type-loader!@sentry/scraps/code/codeBlock');
+export const documentation = import('!!type-loader!@sentry/scraps/codeBlock');
 
 export const sampleJavaScript = `Sentry.init({
   // Note, Replay is NOT instantiated below:
