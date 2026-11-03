@@ -1,6 +1,7 @@
 import {useId} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -14,6 +15,35 @@ import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxS
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InboxItem} from 'sentry/views/inbox/types';
 import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
+
+export function InboxItemListHeader() {
+  const {isAllSelected, isAnySelected, selectAll, deselectAll} =
+    useListItemCheckboxContext();
+
+  return (
+    <Flex
+      as="header"
+      align="center"
+      gap="md"
+      padding="md xl"
+      borderBottom="primary"
+      minHeight="48px"
+      flexShrink={0}
+    >
+      <Checkbox
+        aria-label={t('Select all inbox items')}
+        checked={isAllSelected}
+        onChange={() => (isAllSelected === true ? deselectAll() : selectAll())}
+      />
+      {isAnySelected && (
+        <Flex gap="sm" wrap="wrap" minWidth={0}>
+          <Button size="xs">{t('Mark as read')}</Button>
+          <Button size="xs">{t('Remove from inbox')}</Button>
+        </Flex>
+      )}
+    </Flex>
+  );
+}
 
 interface InboxItemListProps {
   items: InboxItem[];

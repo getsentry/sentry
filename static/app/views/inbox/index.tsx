@@ -15,7 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {InboxItemList} from 'sentry/views/inbox/inboxItemList';
+import {InboxItemList, InboxItemListHeader} from 'sentry/views/inbox/inboxItemList';
 import {InboxItemPreview} from 'sentry/views/inbox/inboxItemPreview';
 import {useInboxItems} from 'sentry/views/inbox/useInboxItems';
 import {INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
@@ -86,6 +86,7 @@ function InboxContent() {
           minHeight={0}
           borderRight="primary"
         >
+          <InboxItemListHeader />
           <Container flex={1} overflowY="auto" minHeight={0}>
             <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
           </Container>
@@ -119,7 +120,7 @@ export default function Inbox() {
   return (
     <SentryDocumentTitle title={t('Inbox')} orgSlug={organization.slug}>
       <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Inbox')}} />
-      <Stack flex={1} minHeight={0} background="primary" overflow="hidden">
+      <Stack flex={1} minHeight={0} contain="size" background="primary" overflow="hidden">
         <InboxContent />
       </Stack>
     </SentryDocumentTitle>

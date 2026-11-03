@@ -119,10 +119,19 @@ describe('Inbox', () => {
       name: 'Select OperationalError: could not connect to server',
     });
     expect(checkbox).not.toBeChecked();
+    expect(
+      screen.queryByRole('button', {name: 'Remove from inbox'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Mark as read'})).not.toBeInTheDocument();
 
     await userEvent.click(checkbox);
 
     expect(checkbox).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Select all inbox items'})
+    ).toBePartiallyChecked();
+    expect(screen.getByRole('button', {name: 'Remove from inbox'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Mark as read'})).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', {name: 'Select Checkout latency regression'})
     ).not.toBeChecked();
@@ -131,6 +140,59 @@ describe('Inbox', () => {
     await userEvent.click(checkbox);
 
     expect(checkbox).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Select all inbox items'})
+    ).not.toBePartiallyChecked();
+    expect(
+      screen.queryByRole('button', {name: 'Remove from inbox'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Mark as read'})).not.toBeInTheDocument();
+  });
+
+  it('selects all items from a partial selection and clears all selections', async () => {
+    const {router} = render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    const selectAll = await screen.findByRole('checkbox', {
+      name: 'Select all inbox items',
+    });
+    const itemCheckbox = screen.getByRole('checkbox', {
+      name: 'Select OperationalError: could not connect to server',
+    });
+
+    await userEvent.click(itemCheckbox);
+    expect(selectAll).toBePartiallyChecked();
+
+    await userEvent.click(selectAll);
+
+    for (const checkbox of screen.getAllByRole('checkbox')) {
+      expect(checkbox).toBeChecked();
+    }
+    expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+
+    await userEvent.click(itemCheckbox);
+
+    expect(itemCheckbox).not.toBeChecked();
+    expect(selectAll).toBePartiallyChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Select Checkout latency regression'})
+    ).toBeChecked();
+
+    await userEvent.click(selectAll);
+    await userEvent.click(selectAll);
+
+    for (const checkbox of screen.getAllByRole('checkbox')) {
+      expect(checkbox).not.toBeChecked();
+    }
+    expect(
+      screen.queryByRole('button', {name: 'Remove from inbox'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Mark as read'})).not.toBeInTheDocument();
   });
 
   it('renders not found without the feature flag', () => {

@@ -114,6 +114,8 @@ export interface SectionConfig {
 
 interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
+  /** Override the top bar offset when issue details scroll inside a separate pane. */
+  stickyTopOffset?: number;
 }
 
 const initialState: IssueDetailsState = {
@@ -217,7 +219,13 @@ function updateEventSection(
  * If trying to use the current state of the issue/event page, you likely want to use
  * `useIssueDetails` instead. This hook is just meant to create state for the provider.
  */
-export function IssueDetailsContextProvider({children}: {children: React.ReactNode}) {
+export function IssueDetailsContextProvider({
+  children,
+  stickyTopOffset,
+}: {
+  children: React.ReactNode;
+  stickyTopOffset?: number;
+}) {
   const reducer: Reducer<IssueDetailsState, IssueDetailsActions> = useCallback(
     (state, action): IssueDetailsState => {
       switch (action.type) {
@@ -249,7 +257,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
 
   const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
-  const value = useMemo(() => ({...issueDetails, dispatch}), [issueDetails, dispatch]);
+  const value = useMemo(
+    () => ({...issueDetails, dispatch, stickyTopOffset}),
+    [issueDetails, dispatch, stickyTopOffset]
+  );
 
   return <IssueDetailsContext value={value}>{children}</IssueDetailsContext>;
 }

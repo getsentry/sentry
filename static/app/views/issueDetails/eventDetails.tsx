@@ -41,23 +41,29 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 
 export function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const navRef = useRef<HTMLDivElement>(null);
-  const {dispatch, eventNavigationHeight} = useIssueDetails();
+  const {
+    dispatch,
+    eventNavigationHeight,
+    stickyTopOffset: stickyTopOffsetOverride,
+  } = useIssueDetails();
   const {pageContentTop} = useTopOffset();
-  const stickyTopOffset = Number.parseInt(pageContentTop, 10);
+  const stickyTopOffset =
+    (stickyTopOffsetOverride ?? Number.parseInt(pageContentTop, 10)) +
+    eventNavigationHeight;
 
   const updateNavScrollMargin = useCallback(() => {
     const navHeight = navRef.current?.offsetHeight ?? 0;
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
-      margin: navHeight + stickyTopOffset + eventNavigationHeight,
+      margin: navHeight + stickyTopOffset,
     });
-  }, [dispatch, eventNavigationHeight, stickyTopOffset]);
+  }, [dispatch, stickyTopOffset]);
 
   useLayoutEffect(updateNavScrollMargin, [updateNavScrollMargin]);
   useResizeObserver({ref: navRef, onResize: updateNavScrollMargin});
 
   return (
-    <FloatingEventNavigation topOffset={eventNavigationHeight}>
+    <FloatingEventNavigation top={stickyTopOffset}>
       <EventTitle event={event} group={group} ref={navRef} />
     </FloatingEventNavigation>
   );

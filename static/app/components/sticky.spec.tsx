@@ -88,4 +88,35 @@ describe('Sticky', () => {
     expect(stackedObserverOffset).not.toBeNaN();
     expect(stackedObserverOffset).toBe(initialObserverOffset - 20);
   });
+
+  it.each([0, 16])(
+    'uses an explicit top position of %ipx inside a scroll container',
+    top => {
+      render(
+        <div role="region" aria-label="Preview" style={{overflowY: 'auto'}}>
+          <Sticky top={top} topOffset={20}>
+            Sticky content
+          </Sticky>
+        </div>
+      );
+
+      const sticky = screen.getByText('Sticky content');
+      const scrollContainer = screen.getByRole('region', {name: 'Preview'});
+
+      // The global getComputedStyle stub only reads inline styles.
+      const rules = Array.from(document.styleSheets).flatMap(sheet =>
+        Array.from(sheet.cssRules)
+      );
+      expect(
+        rules.some(
+          rule =>
+            rule instanceof CSSStyleRule &&
+            sticky.matches(rule.selectorText) &&
+            rule.style.getPropertyValue('top') === `${top}px`
+        )
+      ).toBe(true);
+      expect(observerOptions.at(-1)?.root).toBe(scrollContainer);
+      expect(observerOptions.at(-1)?.rootMargin).toBe(`${-top - 1}px 0px 0px 0px`);
+    }
+  );
 });
