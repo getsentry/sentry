@@ -484,7 +484,7 @@ class UpdateDetectorKind(ActionKind):
         validator = get_detector_validator(
             context.request,
             detector.linked_project,
-            detector.group_type.slug,
+            detector.type,
             detector,
             partial=True,
             data=state.update(changes),

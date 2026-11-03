@@ -145,6 +145,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert first.data["id"] != second.data["id"]
         assert mock_client.return_value.start_run.call_count == 2
         self.block.refresh_from_db()
+        assert self.block.current_execution is not None
         assert str(self.block.current_execution.id) == second.data["id"]
 
     @patch(

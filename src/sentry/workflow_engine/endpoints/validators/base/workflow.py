@@ -116,9 +116,10 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return actions, action_filter
 
-    def validate_config(self, value: Any) -> bool:
+    def validate_config[T](self, value: T) -> T:
         schema = Workflow.config_schema
-        return validate_json_schema(value, schema)
+        validate_json_schema(value, schema)
+        return value
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:

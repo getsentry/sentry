@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status as status_
@@ -22,6 +22,10 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.safe import get_path
 
 _logger = logging.getLogger(__name__)
+
+
+def string_field(data: Mapping[str, object], key: str, default: str = "") -> str:
+    return cast(str, data.get(key, default))
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
@@ -137,7 +141,7 @@ class SlackRequest:
 
     @property
     def response_url(self) -> str:
-        return self.data.get("response_url", "")
+        return string_field(self.data, "response_url")
 
     @property
     def team_id(self) -> str | None:
@@ -282,15 +286,15 @@ class SlackDMRequest(SlackRequest):
 
     @property
     def type(self) -> str:
-        return self.dm_data.get("type", "")
+        return string_field(self.dm_data, "type")
 
     @property
     def text(self) -> str:
-        return self.dm_data.get("text", "")
+        return string_field(self.dm_data, "text")
 
     @property
     def channel_name(self) -> str:
-        return self.dm_data.get("channel_name", "")
+        return string_field(self.dm_data, "channel_name")
 
     def get_command_and_args(self) -> tuple[str, Sequence[str]]:
         command = self.text.lower().split()

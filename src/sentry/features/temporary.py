@@ -55,6 +55,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Expose the per-project toggle for auto-creating releases from ingested telemetry
     manager.add("organizations:auto-release-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:azure-symbol-sources", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the classifiers UI
+    manager.add("organizations:classifiers-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the project↔repo code mappings refactor UI
     manager.add("organizations:code-mappings-refactor", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for orgs that participated in the code review beta
@@ -272,6 +274,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:events-endpoint-transactions-discover-blocked", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Relay git fetches and pushes for coding jobs through Sentry's git endpoint, with the org's integration credentials
+    manager.add("organizations:scm-git-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Seer Automations UI and APIs
@@ -325,8 +329,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-thinking-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-agent-enable-assisted-query-code-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
-    manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable browser notifications for autofix runs
     manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
@@ -348,6 +350,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-verify-pr-content", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Steer autofix to run the repo's linter and tests over its changes
     manager.add("organizations:autofix-should-run-repo-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
@@ -595,5 +598,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable humanized string to ESQ conversion
     manager.add("organizations:search-query-builder-humanized-esq", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
+    # Enable the experimental Relay Browser Report integration
+    manager.add("organizations:browser-report-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # fmt: on

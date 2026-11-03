@@ -110,7 +110,9 @@ def verify_models_in_output(expected_models: list[type[models.Model]], actual_js
             raise AssertionError(f"Model {name} has {num} mistakes: {mistakes}")
 
 
-def expect_models(group: set[NormalizedModelName], *marking: type | Literal["__all__"]) -> Callable:
+def expect_models(
+    group: set[NormalizedModelName], *marking: type | Literal["__all__"]
+) -> Callable[[Callable[..., object]], Callable[..., object]]:
     """
     A function that runs at module load time and marks all models that appear in a given test
     function. The first argument stores the tracked models in a global group, which we then check in
@@ -131,9 +133,9 @@ def expect_models(group: set[NormalizedModelName], *marking: type | Literal["__a
         group.add(get_model_name(model))
         target_models.add(model)
 
-    def decorator(func: Callable):
+    def decorator(func: Callable[..., object]) -> Callable[..., object]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: object, **kwargs: object) -> object:
             return func(*args, target_models, **kwargs)
 
         return wrapper

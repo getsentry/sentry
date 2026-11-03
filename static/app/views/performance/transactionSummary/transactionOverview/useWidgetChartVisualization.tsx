@@ -1,16 +1,16 @@
 import {useTheme} from '@emotion/react';
+import {useQueryState} from 'nuqs';
 
-import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
+import {getInterval} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -76,6 +76,23 @@ export function useWidgetChartVisualization({
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
 }
 
+function useUrlLegendSelection() {
+  const [unselectedSeries, setUnselectedSeries] = useQueryState(
+    'unselectedSeries',
+    parseAsStringArray
+  );
+  const legendSelection = Object.fromEntries(
+    unselectedSeries.map(series => [series, false])
+  );
+  const onLegendSelectionChange = (selected: Record<string, boolean>) => {
+    setUnselectedSeries(
+      Object.keys(selected).filter(key => !selected[key]),
+      {history: 'push'}
+    );
+  };
+  return {legendSelection, onLegendSelectionChange};
+}
+
 type DurationBreakdownVisualizationOptions = {
   enabled: boolean;
   query: string;
@@ -87,11 +104,9 @@ function useDurationBreakdownVisualization({
   transactionName,
   query,
 }: DurationBreakdownVisualizationOptions) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+  const [spanCategoryUrlParam] = useQueryState(SpanFields.SPAN_CATEGORY, parseAsScalar);
+  const {legendSelection, onLegendSelectionChange} = useUrlLegendSelection();
   const {selection} = usePageFilters();
-  const legendSelection = getSeriesSelection(location);
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
@@ -151,16 +166,7 @@ function useDurationBreakdownVisualization({
       releases={releases}
       showReleaseAs="bubble"
       legendSelection={legendSelection}
-      onLegendSelectionChange={selected => {
-        const unselected = Object.keys(selected).filter(key => !selected[key]);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries: unselected,
-          },
-        });
-      }}
+      onLegendSelectionChange={onLegendSelectionChange}
     />
   );
 }
@@ -176,11 +182,10 @@ function useDurationPercentilesVisualization({
   transactionName,
   query,
 }: DurationPercentilesVisualizationOptions) {
-  const location = useLocation();
   const {selection} = usePageFilters();
   const theme = useTheme();
 
-  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+  const [spanCategoryUrlParam] = useQueryState(SpanFields.SPAN_CATEGORY, parseAsScalar);
 
   const newQuery = new MutableSearch(query);
   newQuery.addFilterValue('transaction', transactionName);
@@ -212,7 +217,7 @@ function useDurationPercentilesVisualization({
   }
 
   const colors = () =>
-    spanCategoryUrlParam === undefined
+    spanCategoryUrlParam === null
       ? theme.chart.getColorPalette(1)
       : [filterToColor(spanCategoryUrlParam as SpanOperationBreakdownFilter, theme)];
 
@@ -235,10 +240,8 @@ function useWebVitalsVisualization({
   transactionName,
   query,
 }: WebVitalsVisualizationOptions) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const {legendSelection, onLegendSelectionChange} = useUrlLegendSelection();
   const {selection} = usePageFilters();
-  const legendSelection = getSeriesSelection(location);
 
   const {releases: releasesWithDate} = useReleaseStats(selection);
   const releases =
@@ -284,16 +287,7 @@ function useWebVitalsVisualization({
       releases={releases}
       showReleaseAs="bubble"
       legendSelection={legendSelection}
-      onLegendSelectionChange={selected => {
-        const unselected = Object.keys(selected).filter(key => !selected[key]);
-        navigate({
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries: unselected,
-          },
-        });
-      }}
+      onLegendSelectionChange={onLegendSelectionChange}
     />
   );
 }

@@ -77,9 +77,11 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         self.login_as(user=self.user)
 
+        api_token = install.api_token
+        assert api_token is not None
         response = self.get_error_response(
             install.sentry_app.slug,
-            install.api_token.id,
+            api_token.id,
             status_code=status.HTTP_403_FORBIDDEN,
         )
         assert response.data == "This route is limited to internal integrations only"

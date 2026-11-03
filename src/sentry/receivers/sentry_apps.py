@@ -27,7 +27,9 @@ from sentry.users.services.user import RpcUser
 
 
 @issue_assigned.connect(weak=False)
-def send_issue_assigned_webhook(project, group, user, **kwargs):
+def send_issue_assigned_webhook(
+    project: Project, group: Group, user: User | RpcUser | None, **kwargs: object
+) -> None:
     assignee = GroupAssignee.objects.get(group_id=group.id).assigned_actor()
 
     actor: RpcUser | Team = assignee.resolve()
@@ -45,7 +47,14 @@ def send_issue_assigned_webhook(project, group, user, **kwargs):
 
 
 @issue_resolved.connect(weak=False)
-def send_issue_resolved_webhook(organization_id, project, group, user, resolution_type, **kwargs):
+def send_issue_resolved_webhook(
+    organization_id: int,
+    project: Project,
+    group: Group,
+    user: User | RpcUser | None,
+    resolution_type: str,
+    **kwargs: object,
+) -> None:
     send_workflow_webhooks(
         project.organization,
         group,
@@ -56,7 +65,9 @@ def send_issue_resolved_webhook(organization_id, project, group, user, resolutio
 
 
 @issue_ignored.connect(weak=False)
-def send_issue_ignored_webhook(project, user, group_list, **kwargs):
+def send_issue_ignored_webhook(
+    project: Project, user: User | RpcUser | None, group_list: list[Group], **kwargs: object
+) -> None:
     for issue in group_list:
         send_workflow_webhooks(project.organization, issue, user, "issue.ignored")
 
@@ -66,19 +77,19 @@ def send_issue_unresolved_webhook(
     group: Group,
     project: Project,
     user: User | RpcUser | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
-    send_issue_unresolved_webhook_helper(group=group, project=project, user=user, **kwargs)
+    send_issue_unresolved_webhook_helper(group=group, project=project, user=user)
 
 
 @issue_escalating.connect(weak=False)
 def send_issue_escalating_webhook(
     group: Group,
     project: Project,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     # Escalating is a form of unresolved so we send the same webhook
-    send_issue_unresolved_webhook_helper(group=group, project=project, **kwargs)
+    send_issue_unresolved_webhook_helper(group=group, project=project)
 
 
 def send_issue_unresolved_webhook_helper(
@@ -86,7 +97,6 @@ def send_issue_unresolved_webhook_helper(
     project: Project,
     user: User | RpcUser | None = None,
     data: Mapping[str, Any] | None = None,
-    **kwargs,
 ) -> None:
     organization = project.organization
     send_workflow_webhooks(
@@ -99,21 +109,45 @@ def send_issue_unresolved_webhook_helper(
 
 
 @comment_created.connect(weak=False)
-def send_comment_created_webhook(project, user, group, data, **kwargs):
+def send_comment_created_webhook(
+    project: Project,
+    user: User | RpcUser | None,
+    group: Group,
+    data: dict[str, Any],
+    **kwargs: object,
+) -> None:
     send_comment_webhooks(project.organization, group, user, "comment.created", data=data)
 
 
 @comment_updated.connect(weak=False)
-def send_comment_updated_webhook(project, user, group, data, **kwargs):
+def send_comment_updated_webhook(
+    project: Project,
+    user: User | RpcUser | None,
+    group: Group,
+    data: dict[str, Any],
+    **kwargs: object,
+) -> None:
     send_comment_webhooks(project.organization, group, user, "comment.updated", data=data)
 
 
 @comment_deleted.connect(weak=False)
-def send_comment_deleted_webhook(project, user, group, data, **kwargs):
+def send_comment_deleted_webhook(
+    project: Project,
+    user: User | RpcUser | None,
+    group: Group,
+    data: dict[str, Any],
+    **kwargs: object,
+) -> None:
     send_comment_webhooks(project.organization, group, user, "comment.deleted", data=data)
 
 
-def send_comment_webhooks(organization, issue, user, event, data=None):
+def send_comment_webhooks(
+    organization: Organization,
+    issue: Group,
+    user: User | RpcUser | None,
+    event: str,
+    data: dict[str, Any] | None = None,
+) -> None:
     data = data or {}
     if "timestamp" in data:
         data["timestamp"] = data["timestamp"].isoformat()

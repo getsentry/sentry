@@ -10,6 +10,7 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.investigations.contracts import ActionRequestItem
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -493,6 +494,18 @@ class ConnectionHookTest(TelemetryFixtures):
         assert {"type": rerun.type, **rerun.payload} == fixture("command_rerun_after_connection")
         assert request.followup_request_id == rerun.request_id
 
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connection_counts_the_applied_request(self, incr: mock.MagicMock) -> None:
+        self.connect_request()
+
+        self.connected(self.user.id)
+
+        incr.assert_any_call(
+            "investigations.action_request.applied",
+            tags={"kind": "connect_telemetry", "provider": "datadog"},
+            sample_rate=1.0,
+        )
+
     def test_requests_for_the_same_provider_share_one_re_run(self) -> None:
         first = self.connect_request()
         second = self.connect_request(key="connect-telemetry-datadog-r2")
@@ -676,3 +689,35 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
         delay.assert_called_once_with(
             organization_id=self.organization.id, provider="gcp", user_id=None, retry=False
         )
+
+    @mock.patch("sentry.tasks.seer.investigation.mark_investigation_telemetry_connected.delay")
+    @mock.patch("sentry.notebooks.telemetry.metrics.incr")
+    def test_a_connect_request_is_counted_once_when_suggested(
+        self, incr: mock.MagicMock, delay: mock.MagicMock
+    ) -> None:
+        item: ActionRequestItem = {
+            "key": "connect-telemetry-gcp-r0",
+            "reportRevision": 0,
+            "title": "Connect Google Cloud",
+            "rationale": "Logs live there.",
+            "impact": None,
+            "primary": False,
+            "anchor": None,
+            "action": {"kind": "connect_telemetry", "provider": "gcp"},
+        }
+
+        upsert_action_request(self.orchestration_run, item)
+        upsert_action_request(self.orchestration_run, {**item, "title": "Connect GCP"})
+
+        suggested = [
+            call
+            for call in incr.call_args_list
+            if call.args[0] == "investigations.action_request.suggested"
+        ]
+        assert suggested == [
+            mock.call(
+                "investigations.action_request.suggested",
+                tags={"kind": "connect_telemetry", "provider": "gcp"},
+                sample_rate=1.0,
+            )
+        ]

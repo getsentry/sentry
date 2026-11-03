@@ -20,6 +20,7 @@ from .model import (
     OnboardingRun,
     OnboardingRunTerminal,
     ProgressUpdate,
+    RunOrigin,
     RunStatus,
     apply_update,
     initial_stages,
@@ -89,6 +90,7 @@ class OnboardingProgressService:
         organization_id: int,
         client_run_id: str,
         onboarding_code: str,
+        origin: RunOrigin | None = None,
     ) -> RegisteredRun:
         index_key = self._client_index_key(user_id, organization_id, client_run_id)
         claim = self._claim_client_run(index_key)
@@ -105,6 +107,7 @@ class OnboardingProgressService:
         try:
             self._claim_token_index(token_key, claim.claimed_run_id, ttl)
             run = OnboardingRun(
+                origin=origin,
                 run_id=claim.claimed_run_id,
                 channel_id=uuid.uuid4().hex,
                 token_hash=token_hash,

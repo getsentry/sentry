@@ -188,7 +188,7 @@ class SeerInvestigationConclusionTemplateTest(TestCase):
         rendered = template.render_example()
 
         assert rendered.subject == "Seer investigation conclusion"
-        assert len(rendered.body) == 2
+        assert len(rendered.body) == 3
         (action,) = rendered.actions
         assert action.label == "View full investigation"
         assert action.link == template.example_data.investigation_url

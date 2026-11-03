@@ -30,6 +30,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
@@ -97,7 +98,7 @@ their own alerts to be notified of new issues.
         initial=True,
     )
 
-    def validate_platform(self, value):
+    def validate_platform(self, value: str) -> str:
         if not Project.is_valid_platform(value):
             raise serializers.ValidationError("Invalid platform")
 
@@ -166,8 +167,8 @@ def _has_team_admin_membership(request: Request, team: Team) -> bool:
     ):
         return False
     return OrganizationMemberTeam.objects.filter(
+        is_owned_by_acting_user(request.user, "organizationmember__user_id"),
         team=team,
-        organizationmember__user_id=request.user.id,
         is_active=True,
         role__in=[role.id for role in team_roles.with_scope("team:admin")],
     ).exists()
@@ -209,7 +210,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         examples=TeamExamples.LIST_TEAM_PROJECTS,
     )
     def get(
-        self, request: Request, team
+        self, request: Request, team: Team
     ) -> Response[list[OrganizationProjectResponse]] | Response[_StatsPeriodErrorResponse]:
         """
         Return a list of projects bound to a team.

@@ -1,3 +1,4 @@
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -85,5 +86,55 @@ describe('useFetchGroupDetails', () => {
       return eventResponse.promise;
     });
     await waitFor(() => expect(result.current.event).toEqual(nextEvent));
+  });
+
+  it('adds the issue project to the URL by replacing history when the URL has none', async () => {
+    const onUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    setWindowLocation(`http://localhost/organizations/org-slug/issues/${group.id}/`);
+
+    const {router} = renderHookWithProviders(useFetchGroupDetails, {
+      additionalWrapper: GroupRouteProvider,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/:groupId/',
+        location: {pathname: `/organizations/org-slug/issues/${group.id}/`},
+      },
+      onNuqsUrlUpdate: onUrlUpdate,
+    });
+
+    await waitFor(() => expect(router.location.query.project).toBe(project.id));
+    expect(onUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
+  });
+
+  it('removes the project and _allp from the URL when the issue was opened from all projects', async () => {
+    const onUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    setWindowLocation(
+      `http://localhost/organizations/org-slug/issues/${group.id}/?_allp=1&project=${project.id}&referrer=issue-stream`
+    );
+
+    const {router} = renderHookWithProviders(useFetchGroupDetails, {
+      additionalWrapper: GroupRouteProvider,
+      initialRouterConfig: {
+        route: '/organizations/:orgId/issues/:groupId/',
+        location: {
+          pathname: `/organizations/org-slug/issues/${group.id}/`,
+          query: {_allp: '1', project: project.id, referrer: 'issue-stream'},
+        },
+      },
+      onNuqsUrlUpdate: onUrlUpdate,
+    });
+
+    await waitFor(() => expect(router.location.query._allp).toBeUndefined());
+    expect(router.location.query).toEqual({referrer: 'issue-stream'});
+    expect(onUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 });
