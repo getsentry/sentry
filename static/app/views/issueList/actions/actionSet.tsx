@@ -10,7 +10,7 @@ import {ArchiveActions} from 'sentry/components/actions/archive';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -171,8 +171,16 @@ export function ActionSet({
     copyToClipboard(text, {
       successMessage:
         copyType === 'short_ids'
-          ? t('Copied %s issue IDs to clipboard', selectedIssues.length)
-          : t('Copied %s issue links to clipboard', selectedIssues.length),
+          ? tn(
+              'Copied %s issue ID to clipboard',
+              'Copied %s issue IDs to clipboard',
+              selectedIssues.length
+            )
+          : tn(
+              'Copied %s issue link to clipboard',
+              'Copied %s issue links to clipboard',
+              selectedIssues.length
+            ),
     });
     trackAnalytics('issues_stream.copied', {
       organization,
