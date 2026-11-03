@@ -4,6 +4,9 @@ from unittest.mock import Mock
 from django.urls import reverse
 from requests.models import Response
 
+from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
+    SentryAppWebhookRequestSerializerResponse,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -12,6 +15,39 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 pytestmark = [requires_snuba]
+
+# Fields org:read callers may see. Everything else needs org:write or org:admin
+# because it can carry signatures, payloads, or other orgs' data (#125667).
+SUMMARY_FIELDS = {
+    "webhookUrl",
+    "sentryAppSlug",
+    "eventType",
+    "date",
+    "responseCode",
+    "requestId",
+    "subjectId",
+    "subjectType",
+    "durationMs",
+}
+DETAIL_ONLY_FIELDS = {
+    "organization",
+    "project_id",
+    "error_id",
+    "request_body",
+    "request_headers",
+    "response_body",
+}
+
+
+def test_every_response_field_is_classified() -> None:
+    response_fields = (
+        SentryAppWebhookRequestSerializerResponse.__required_keys__
+        | SentryAppWebhookRequestSerializerResponse.__optional_keys__
+    )
+    # A new response field must be added to exactly one of these sets, which
+    # forces a decision on whether org:read callers may see it.
+    assert SUMMARY_FIELDS.isdisjoint(DETAIL_ONLY_FIELDS)
+    assert response_fields == SUMMARY_FIELDS | DETAIL_ONLY_FIELDS
 
 
 def webhook_url(sentry_app: SentryApp) -> str:
@@ -286,6 +322,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
 
         assert response.status_code == 200
         assert len(response.data) == 1
+        assert set(response.data[0]) == SUMMARY_FIELDS
         assert response.data[0] == {
             "webhookUrl": "https://hooks.example.com:8443",
             "sentryAppSlug": self.internal_app.slug,

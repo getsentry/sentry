@@ -94,15 +94,13 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SentryAppWebhookRequestSerializerResponse:
-        organization = attrs.get("organization")
         response_code = obj.data.response_code
 
+        # Everything in this dict is returned to org:read callers. Add new fields
+        # below the include_details check unless they are safe for every org
+        # member; request details stay restricted per #125667.
         data: SentryAppWebhookRequestSerializerResponse = {
-            "webhookUrl": (
-                obj.data.webhook_url
-                if self.include_details
-                else _webhook_url_origin(obj.data.webhook_url)
-            ),
+            "webhookUrl": _webhook_url_origin(obj.data.webhook_url),
             "sentryAppSlug": self.sentry_app.slug,
             "eventType": obj.data.event_type,
             "date": obj.data.date,
@@ -112,10 +110,12 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "subjectType": obj.data.subject_type,
             "durationMs": obj.data.duration_ms,
         }
+        if not self.include_details:
+            return data
 
-        if self.include_details and (
-            response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES
-        ):
+        data["webhookUrl"] = obj.data.webhook_url
+
+        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             # add error data to display in Sentry app dashboard
             data.update(
                 {
@@ -127,6 +127,7 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
                 }
             )
 
+        organization = attrs.get("organization")
         if organization:
             data["organization"] = {
                 "name": organization.name,
