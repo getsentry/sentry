@@ -198,7 +198,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = workflow._set_monitor_selection(config, monitor_ids) if monitor_ids else None
             if change is not None:
-                config.save(using=database, update_fields=["backing_workflow", "date_updated"])
+                config.save(using=database, update_fields=["backing_workflow"])
             transaction.on_commit(
                 partial(
                     logger.info,
