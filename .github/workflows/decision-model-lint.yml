@@ -15,7 +15,7 @@ jobs:
     # Branches in this repo only, so employees and internal bots but never forks. Every label
     # change re-runs the lint, because a skipped run would replace the last result.
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 15
     permissions:
       contents: read

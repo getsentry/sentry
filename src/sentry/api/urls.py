@@ -593,6 +593,9 @@ from sentry.seer.endpoints.organization_seer_autofix_overview import (
 from sentry.seer.endpoints.organization_seer_chat_suggestions import (
     OrganizationSeerChatSuggestionsEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_credit_check import (
+    OrganizationSeerCreditCheckEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -810,7 +813,6 @@ from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndp
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
 from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
-from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
@@ -1762,11 +1764,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-validate",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-sql/$",
-        OrganizationEventsSqlEndpoint.as_view(),
-        name="sentry-api-0-organization-events-sql",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events/(?P<project_id_or_slug>[^/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-event-details",
@@ -2560,6 +2557,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/setup-check/$",
         OrganizationSeerSetupCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-setup-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/credit-check/$",
+        OrganizationSeerCreditCheckEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-credit-check",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",

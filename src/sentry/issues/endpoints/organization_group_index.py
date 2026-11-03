@@ -58,6 +58,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -149,7 +150,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
@@ -268,6 +269,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
@@ -381,21 +383,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         query = request.GET.get("query", "").strip()
 
         # record analytics for search query
-        if request.user:
-            try:
-                analytics.record(
-                    IssueSearchEndpointQueriedEvent(
-                        user_id=request.user.id,
-                        organization_id=organization.id,
-                        project_ids=",".join(map(str, project_ids)),
-                        full_query_params=",".join(
-                            f"{key}={value}" for key, value in request.GET.items()
-                        ),
-                        query=query,
-                    )
+        try:
+            analytics.record(
+                IssueSearchEndpointQueriedEvent(
+                    user_id=acting_user_id(request.user),
+                    organization_id=organization.id,
+                    project_ids=",".join(map(str, project_ids)),
+                    full_query_params=",".join(
+                        f"{key}={value}" for key, value in request.GET.items()
+                    ),
+                    query=query,
                 )
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID

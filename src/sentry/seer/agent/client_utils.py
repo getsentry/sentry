@@ -15,13 +15,13 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
@@ -392,7 +392,7 @@ def get_agent_state_from_pr_id(
 
 def has_seer_agent_access_with_detail(
     organization: Organization | RpcOrganization,
-    actor: SentryUser | AnonymousUser | RpcUser | None = None,
+    actor: RequestPrincipal | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Agent.
@@ -421,7 +421,7 @@ def has_seer_agent_access_with_detail(
 
 
 def collect_user_org_context(
-    user: SentryUser | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     organization: Organization,
     request: Request | None = None,
 ) -> UserOrgContext:
@@ -442,7 +442,7 @@ def collect_user_org_context(
         for p in all_projects
     ]
 
-    if user is None or isinstance(user, AnonymousUser):
+    if user is None or not has_user(user):
         return {
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,

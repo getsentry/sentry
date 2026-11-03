@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -32,8 +32,8 @@ from sentry.utils.cursors import Cursor, CursorResult
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
 
-# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
-EndpointFunction = Callable[..., Response]
+P = ParamSpec("P")
+R = TypeVar("R", bound=Response)
 
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
@@ -178,13 +178,13 @@ def get_by_short_ids(
     return groups
 
 
-def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFunction]:
-    def inner_func(function: EndpointFunction) -> EndpointFunction:
-        def wrapper(request: Request, *args: Any, **kwargs: Any) -> Response:
+def track_slo_response(name: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def inner_func(function: Callable[P, R]) -> Callable[P, R]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             from sentry.utils import snuba
 
             try:
-                response = function(request, *args, **kwargs)
+                response = function(*args, **kwargs)
             except snuba.RateLimitExceeded:
                 metrics.incr(
                     f"{name}.slo.http_response",

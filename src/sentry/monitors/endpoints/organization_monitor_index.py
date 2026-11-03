@@ -87,6 +87,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         # TODO(davidenwang): After this is merged and good to go, make this public
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationAlertRulePermission,)
 

@@ -124,6 +124,13 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/synapse.git
         mode: default
+    conduit:
+      description: Real-time streaming delivery service (gateway, publish, cleanup)
+      remote:
+        repo_name: conduit
+        branch: main
+        repo_link: https://github.com/getsentry/conduit.git
+        mode: containerized
     #########################################################
     # Supervisor Programs
     #########################################################
@@ -301,6 +308,19 @@ x-sentry-service-config:
         post-process-forwarder-errors,
       ]
     minimal: [postgres, snuba]
+    # Conduit real-time streaming stack (gateway, publish, cleanup) plus the
+    # taskworker stack needed to publish demo streams (sentry.conduit.tasks).
+    conduit:
+      [
+        postgres,
+        snuba,
+        redis,
+        conduit,
+        taskbroker,
+        taskbroker-sentry,
+        taskworker,
+        taskworker-sentry,
+      ]
     cell-routing:
       [
         postgres,

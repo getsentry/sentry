@@ -931,6 +931,15 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsAdmin/views/sentryAppDetails.spec.tsx        @getsentry/design-engineering
 ## End of Frontend Platform
 
+# Universal Inbox
+/src/sentry/inbox/                                          @getsentry/issues-feed
+/src/sentry/notifications/models/inboxitem.py               @getsentry/issues-feed
+/src/sentry/notifications/models/inboxitemevent.py          @getsentry/issues-feed
+/tests/sentry/inbox/                                        @getsentry/issues-feed
+/static/app/views/inbox/                                    @getsentry/issues-feed
+/static/app/views/navigation/secondary/sections/inbox/      @getsentry/issues-feed
+# End of Universal Inbox
+
 # Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
 /static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
 /static/app/views/settings/project/projectFilters/                  @getsentry/telemetry-experience
