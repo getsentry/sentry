@@ -268,7 +268,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <Fragment>
         {resetPrompt(
           t('How can this code change be improved?'),
-          t('Give seer additional context to improve this code change.')
+          t('Give Seer additional context to improve this code change.')
         )}
         <ArtifactDetails>
           <Text>{summary}</Text>
@@ -298,7 +298,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <Fragment>
         {resetPrompt(
           t('How can this code change be improved?'),
-          t('Give seer additional context to improve this code change.')
+          t('Give Seer additional context to improve this code change.')
         )}
         <ArtifactDetails>
           <SeerMarkdown raw={explanation} />
