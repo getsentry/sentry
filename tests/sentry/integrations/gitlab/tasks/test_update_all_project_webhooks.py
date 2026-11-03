@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import NoReturn, cast
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -5,6 +7,7 @@ import responses
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import RedisError
 from redis.exceptions import TimeoutError as RedisTimeoutError
+from requests import PreparedRequest
 
 from fixtures.gitlab import GitLabTestCase
 from sentry.constants import ObjectStatus
@@ -30,7 +33,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
     """Tests for the main orchestration task that spawns individual webhook update tasks"""
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_debounce_has_ttl_and_force_bypasses_it(self, mock_delay):
+    def test_debounce_has_ttl_and_force_bypasses_it(self, mock_delay: MagicMock) -> None:
         kwargs = {"integration_id": self.integration.id, "organization_id": self.organization.id}
         org_integration = integration_service.get_organization_integration(**kwargs)
         assert org_integration is not None
@@ -55,15 +58,17 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert refreshed is not None
         assert refreshed.config == config
 
-    def test_redis_connection_error_does_not_block_reconciliation(self):
+    def test_redis_connection_error_does_not_block_reconciliation(self) -> None:
         self.assert_reconciliation_without_debounce(RedisConnectionError("Redis unavailable"))
 
-    def test_redis_timeout_does_not_block_forced_reconciliation(self):
+    def test_redis_timeout_does_not_block_forced_reconciliation(self) -> None:
         self.assert_reconciliation_without_debounce(
             RedisTimeoutError("Redis timed out"), force=True
         )
 
-    def assert_reconciliation_without_debounce(self, error: RedisError, force: bool = False):
+    def assert_reconciliation_without_debounce(
+        self, error: RedisError, force: bool = False
+    ) -> None:
         with (
             patch("sentry.integrations.gitlab.tasks.redis_clusters") as clusters,
             patch("sentry.integrations.gitlab.tasks.logger.exception") as log_exception,
@@ -83,7 +88,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
             extra={"integration_id": self.integration.id, "organization_id": self.organization.id},
         )
 
-    def test_fanout_failure_still_raises_when_debounce_is_unavailable(self):
+    def test_fanout_failure_still_raises_when_debounce_is_unavailable(self) -> None:
         with (
             patch("sentry.integrations.gitlab.tasks.redis_clusters") as clusters,
             patch("sentry.integrations.gitlab.tasks.logger.exception"),
@@ -97,7 +102,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
                 update_all_project_webhooks(self.integration.id, self.organization.id)
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_failed_fanout_can_retry_immediately(self, mock_delay):
+    def test_failed_fanout_can_retry_immediately(self, mock_delay: MagicMock) -> None:
         mock_delay.side_effect = RuntimeError("Task broker unavailable")
         with pytest.raises(RuntimeError, match="Task broker unavailable"):
             update_all_project_webhooks(self.integration.id, self.organization.id)
@@ -107,7 +112,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert mock_delay.call_count == 3
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_debounced_run_does_not_load_repositories(self, mock_delay):
+    def test_debounced_run_does_not_load_repositories(self, mock_delay: MagicMock) -> None:
         update_all_project_webhooks(self.integration.id, self.organization.id)
         mock_delay.reset_mock()
         with patch(
@@ -118,7 +123,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         mock_delay.assert_not_called()
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_repository_lookup_failure_can_retry_immediately(self, mock_delay):
+    def test_repository_lookup_failure_can_retry_immediately(self, mock_delay: MagicMock) -> None:
         with patch(
             "sentry.integrations.gitlab.tasks.repository_service.get_repositories",
             side_effect=RuntimeError("Repository service unavailable"),
@@ -128,11 +133,11 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         update_all_project_webhooks(self.integration.id, self.organization.id)
         assert mock_delay.call_count == 3
 
-    def test_failed_run_does_not_clear_a_newer_debounce(self):
+    def test_failed_run_does_not_clear_a_newer_debounce(self) -> None:
         key = f"gitlab:webhook-reconcile:{self.organization.id}:{self.integration.id}"
         redis = redis_clusters.get("default")
 
-        def fail_after_debounce_was_replaced(*args):
+        def fail_after_debounce_was_replaced(*args: object) -> NoReturn:
             # Simulate a newer run claiming the key after this run's TTL elapsed.
             redis.set(key, "newer-run", ex=600)
             raise RuntimeError("Task broker unavailable")
@@ -146,7 +151,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert redis.get(key) == "newer-run"
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_forced_failure_preserves_existing_debounce(self, mock_delay):
+    def test_forced_failure_preserves_existing_debounce(self, mock_delay: MagicMock) -> None:
         update_all_project_webhooks(self.integration.id, self.organization.id)
         key = f"gitlab:webhook-reconcile:{self.organization.id}:{self.integration.id}"
         redis = redis_clusters.get("default")
@@ -156,7 +161,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
             update_all_project_webhooks(self.integration.id, self.organization.id, force=True)
         assert redis.get(key) == token
 
-    def test_debounce_cleanup_failure_preserves_original_error(self):
+    def test_debounce_cleanup_failure_preserves_original_error(self) -> None:
         with (
             patch(
                 "sentry.integrations.gitlab.tasks.update_project_webhook.delay",
@@ -176,7 +181,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         )
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_debounce_is_scoped_to_organization_and_integration(self, mock_delay):
+    def test_debounce_is_scoped_to_organization_and_integration(
+        self, mock_delay: MagicMock
+    ) -> None:
         other_org = self.create_organization()
         self.create_organization_integration(
             organization_id=other_org.id, integration=self.integration
@@ -239,7 +246,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_spawns_individual_tasks(self, mock_delay, mock_record_event):
+    def test_task_spawns_individual_tasks(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that the task spawns individual tasks for each repository"""
         update_all_project_webhooks(
             integration_id=self.integration.id,
@@ -263,7 +272,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_handles_integration_not_found(self, mock_delay, mock_record_event):
+    def test_task_handles_integration_not_found(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that the task handles missing integration gracefully"""
         # Should not raise exception and no tasks should be spawned
         update_all_project_webhooks(
@@ -276,7 +287,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert mock_record_event.call_count == 0
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_only_updates_active_repositories_for_installing_organization(self, mock_delay):
+    def test_task_only_updates_active_repositories_for_installing_organization(
+        self, mock_delay: MagicMock
+    ) -> None:
         other_org = self.create_organization()
         other_integration = self.create_provider_integration(provider="gitlab", external_id="other")
         with assume_test_silo_mode(SiloMode.CELL):
@@ -296,7 +309,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_handles_no_repositories(self, mock_delay, mock_record_event):
+    def test_task_handles_no_repositories(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that the task handles case with no repositories and records halt metric"""
         # Delete all repositories
         with assume_test_silo_mode(SiloMode.CELL):
@@ -320,7 +335,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_handles_org_integration_not_found(self, mock_delay, mock_record_event):
+    def test_task_handles_org_integration_not_found(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that the task handles missing org integration"""
         with assume_test_silo_mode(SiloMode.CONTROL):
             # Delete org integration
@@ -346,7 +363,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_skips_repositories_missing_webhook_config(self, mock_delay, mock_record_event):
+    def test_task_skips_repositories_missing_webhook_config(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that the task spawns tasks for all repos - filtering happens in individual tasks"""
         with assume_test_silo_mode(SiloMode.CELL):
             # Repository missing webhook_id
@@ -388,7 +407,9 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
-    def test_task_only_processes_active_repositories(self, mock_delay, mock_record_event):
+    def test_task_only_processes_active_repositories(
+        self, mock_delay: MagicMock, mock_record_event: MagicMock
+    ) -> None:
         """Test that only active repositories are processed"""
         with assume_test_silo_mode(SiloMode.CELL):
             # Mark one repository as inactive
@@ -457,7 +478,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_updates_webhook(self, mock_record_event):
+    def test_task_updates_webhook(self, mock_record_event: MagicMock) -> None:
         """Test that the task successfully updates a webhook"""
         responses.add(
             responses.PUT,
@@ -482,7 +503,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_integration_not_found(self, mock_record_event):
+    def test_task_handles_integration_not_found(self, mock_record_event: MagicMock) -> None:
         """Test that the task handles missing integration gracefully"""
         update_project_webhook(
             integration_id=99999,
@@ -498,7 +519,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks._project_webhook_lock")
-    def test_task_retries_lock_contention_as_halt(self, project_webhook_lock, record_event):
+    def test_task_retries_lock_contention_as_halt(
+        self, project_webhook_lock: MagicMock, record_event: MagicMock
+    ) -> None:
         lock = MagicMock()
         lock.blocking_acquire.side_effect = UnableToAcquireLock
         project_webhook_lock.return_value = lock
@@ -514,7 +537,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_repository_not_found(self, mock_record_event):
+    def test_task_handles_repository_not_found(self, mock_record_event: MagicMock) -> None:
         """Test that the task handles missing repository gracefully"""
         update_project_webhook(
             integration_id=self.integration.id,
@@ -535,7 +558,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_inactive_repository(self, mock_record_event):
+    def test_task_handles_inactive_repository(self, mock_record_event: MagicMock) -> None:
         """Test that the task handles inactive repositories"""
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo.status = ObjectStatus.DISABLED
@@ -560,7 +583,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_halts_when_repository_was_repointed(self, mock_record_event):
+    def test_task_halts_when_repository_was_repointed(self, mock_record_event: MagicMock) -> None:
         other = self.create_integration(
             organization=self.organization, external_id="other", provider="gitlab"
         )
@@ -579,7 +602,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_missing_project_id(self, mock_record_event):
+    def test_task_handles_missing_project_id(self, mock_record_event: MagicMock) -> None:
         """Test that the task handles repositories without webhook configuration"""
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo.config = {"webhook_id": "webhook-1"}
@@ -604,7 +627,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_retries_on_failure(self, mock_record_event):
+    def test_task_retries_on_failure(self, mock_record_event: MagicMock) -> None:
         """Test that the task retries on API failures"""
         responses.add(
             responses.PUT,
@@ -629,7 +652,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_auth_errors(self, mock_record_event):
+    def test_task_handles_auth_errors(self, mock_record_event: MagicMock) -> None:
         """Test that the task retries on API failures"""
         responses.add(
             responses.PUT,
@@ -653,7 +676,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_handles_not_found_errors(self, mock_record_event):
+    def test_task_handles_not_found_errors(self, mock_record_event: MagicMock) -> None:
         """Test that the task retries on API failures"""
         responses.add(
             responses.PUT,
@@ -683,7 +706,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert_slo_metric(mock_record_event, event_outcome=EventLifecycleOutcome.FAILURE)
 
     @responses.activate
-    def test_task_creates_missing_webhook(self):
+    def test_task_creates_missing_webhook(self) -> None:
         self._set_missing_webhook()
         self._add_hook_list()
         responses.add(
@@ -703,7 +726,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_task_does_not_create_when_hook_listing_is_truncated(self, record_event):
+    def test_task_does_not_create_when_hook_listing_is_truncated(
+        self, record_event: MagicMock
+    ) -> None:
         self._set_missing_webhook()
         self._add_hook_list(
             [
@@ -730,15 +755,15 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
 
     @responses.activate
-    def test_task_persists_creation_identity_before_post(self):
+    def test_task_persists_creation_identity_before_post(self) -> None:
         self.repo.update(config={"project_id": "101", "path": "test-group/repo"})
         self._add_hook_list()
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             self.repo.refresh_from_db()
             reconciliation_id = self.repo.config["webhook_reconciliation_id"]
             assert self.repo.config["webhook_reconciliation_pending"] is True
-            assert reconciliation_id.encode() in request.body
+            assert reconciliation_id.encode() in cast(bytes, request.body)
             return 201, {}, '{"id": 100}'
 
         responses.add_callback(
@@ -761,8 +786,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         return_value=False,
     )
     def test_task_records_repository_changed_when_reconciliation_id_write_loses_race(
-        self, update_repository_config, record_event, incr
-    ):
+        self, update_repository_config: MagicMock, record_event: MagicMock, incr: MagicMock
+    ) -> None:
         responses.add(
             responses.PUT,
             "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
@@ -779,7 +804,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
 
     @responses.activate
-    def test_task_recreates_stale_webhook(self):
+    def test_task_recreates_stale_webhook(self) -> None:
         self.repo.config["webhook_reconciliation_id"] = self.reconciliation_id
         self.repo.save()
         responses.add(
@@ -799,7 +824,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert [call.request.method for call in responses.calls] == ["PUT", "GET", "POST"]
 
     @responses.activate
-    def test_task_replaces_disabled_webhook(self):
+    def test_task_replaces_disabled_webhook(self) -> None:
         self.repo.config["webhook_reconciliation_id"] = self.reconciliation_id
         self.repo.save()
         responses.add(
@@ -828,10 +853,10 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             "POST",
         ]
 
-    def _create_hook_while(self, change_repository):
+    def _create_hook_while(self, change_repository: Callable[[], object]) -> None:
         """Register a hook create that changes the repository mid-request, as a concurrent writer would."""
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             change_repository()
             return 201, {}, '{"id": 100}'
 
@@ -843,8 +868,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
 
     @responses.activate
-    def test_task_preserves_config_written_during_repair(self):
-        def change_repository():
+    def test_task_preserves_config_written_during_repair(self) -> None:
+        def change_repository() -> None:
             current = Repository.objects.get(id=self.repo.id)
             Repository.objects.filter(id=self.repo.id).update(
                 name="renamed", config={**current.config, "sync_comments": True}
@@ -868,8 +893,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
     def test_task_queues_cleanup_when_repository_disabled_during_repair(
-        self, cleanup_delay, record_event, incr
-    ):
+        self, cleanup_delay: MagicMock, record_event: MagicMock, incr: MagicMock
+    ) -> None:
         self._create_hook_while(
             lambda: Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
         )
@@ -893,7 +918,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
-    def test_task_queues_cleanup_when_repository_moved_during_repair(self, cleanup_delay):
+    def test_task_queues_cleanup_when_repository_moved_during_repair(
+        self, cleanup_delay: MagicMock
+    ) -> None:
         other = self.create_integration(
             organization=self.organization, external_id="other", provider="gitlab"
         )
@@ -909,7 +936,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
-    def test_task_queues_cleanup_when_repaired_concurrently(self, cleanup_delay):
+    def test_task_queues_cleanup_when_repaired_concurrently(self, cleanup_delay: MagicMock) -> None:
         self._create_hook_while(
             lambda: Repository.objects.filter(id=self.repo.id).update(
                 config={**self.repo.config, "webhook_id": 99}
@@ -924,7 +951,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.metrics.incr")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_forbidden_is_terminal(self, record_event, incr):
+    def test_create_forbidden_is_terminal(self, record_event: MagicMock, incr: MagicMock) -> None:
         self._set_missing_webhook()
         self._add_hook_list()
         responses.add(
@@ -941,7 +968,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
-    def test_task_adopts_marked_hook_and_queues_duplicate_cleanup(self, cleanup_delay):
+    def test_task_adopts_marked_hook_and_queues_duplicate_cleanup(
+        self, cleanup_delay: MagicMock
+    ) -> None:
         self._set_missing_webhook()
         self._add_hook_list(
             [
@@ -976,7 +1005,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
 
     @responses.activate
-    def test_task_does_not_adopt_disabled_marked_hook(self):
+    def test_task_does_not_adopt_disabled_marked_hook(self) -> None:
         self._set_missing_webhook()
         self._add_hook_list(
             [
@@ -1000,7 +1029,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert [call.request.method for call in responses.calls] == ["GET", "POST"]
 
     @responses.activate
-    def test_task_adopts_hook_after_ambiguous_create_failure(self):
+    def test_task_adopts_hook_after_ambiguous_create_failure(self) -> None:
         self._set_missing_webhook()
         self._add_hook_list()
         responses.add(
@@ -1039,8 +1068,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         return_value=False,
     )
     def test_task_records_repository_changed_when_pending_clear_loses_race(
-        self, update_repository_config, record_event, incr
-    ):
+        self, update_repository_config: MagicMock, record_event: MagicMock, incr: MagicMock
+    ) -> None:
         self.repo.update(
             config={
                 **self.repo.config,
@@ -1065,7 +1094,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
-    def test_task_resumes_duplicate_cleanup_while_pending(self, cleanup_delay):
+    def test_task_resumes_duplicate_cleanup_while_pending(self, cleanup_delay: MagicMock) -> None:
         self.repo.update(
             config={
                 **self.repo.config,
@@ -1099,7 +1128,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
 
     @responses.activate
-    def test_cleanup_deletes_only_an_exact_unreferenced_hook(self):
+    def test_cleanup_deletes_only_an_exact_unreferenced_hook(self) -> None:
         self._set_missing_webhook()
         responses.add(
             responses.GET,
@@ -1124,7 +1153,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert [call.request.method for call in responses.calls] == ["GET", "DELETE"]
 
     @responses.activate
-    def test_cleanup_preserves_a_hook_without_the_exact_marker(self):
+    def test_cleanup_preserves_a_hook_without_the_exact_marker(self) -> None:
         self._set_missing_webhook()
         responses.add(
             responses.GET,
@@ -1144,7 +1173,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert [call.request.method for call in responses.calls] == ["GET"]
 
     @responses.activate
-    def test_cleanup_preserves_stored_hook_after_integration_repoint(self):
+    def test_cleanup_preserves_stored_hook_after_integration_repoint(self) -> None:
         other = self.create_integration(
             organization=self.organization, external_id="other", provider="gitlab"
         )
@@ -1169,13 +1198,13 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    def test_cleanup_preserves_hook_repointed_during_remote_fetch(self):
+    def test_cleanup_preserves_hook_repointed_during_remote_fetch(self) -> None:
         self._set_missing_webhook()
         other = self.create_integration(
             organization=self.organization, external_id="other", provider="gitlab"
         )
 
-        def get_hook(request):
+        def get_hook(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=self.repo.id).update(
                 integration_id=other.id,
                 config={
@@ -1208,7 +1237,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         "sentry.integrations.gitlab.integration.GitlabIntegration.get_client",
         side_effect=IntegrationConfigurationError("Identity not found."),
     )
-    def test_cleanup_halts_when_identity_is_unavailable(self, get_client, logger_info):
+    def test_cleanup_halts_when_identity_is_unavailable(
+        self, get_client: MagicMock, logger_info: MagicMock
+    ) -> None:
         self._set_missing_webhook()
 
         delete_redundant_project_webhook(
@@ -1228,7 +1259,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
-    def test_task_updates_webhook_with_correct_data(self, mock_record_event):
+    def test_task_updates_webhook_with_correct_data(self, mock_record_event: MagicMock) -> None:
         """Test that webhook update includes correct event subscriptions"""
         responses.add(
             responses.PUT,

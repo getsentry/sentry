@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -19,14 +20,14 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -36,7 +37,7 @@ class TrendType(Enum):
     REGRESSION = "regression"
     IMPROVEMENT = "improvement"
 
-    def as_sort(self):
+    def as_sort(self) -> str:
         if self is TrendType.REGRESSION:
             return "-trend_percentage()"
 
@@ -46,11 +47,11 @@ class TrendType(Enum):
         raise ValueError(f"Unknown TrendType: {self.value}")
 
 
-class TrendTypeField(serializers.Field):
-    def to_representation(self, trend_type: TrendType):
+class TrendTypeField(serializers.Field[TrendType, Any, str, object]):
+    def to_representation(self, trend_type: TrendType) -> str:
         return trend_type.value
 
-    def to_internal_value(self, data: Any) -> TrendType | None:
+    def to_internal_value(self, data: Any) -> TrendType:
         for trend_type in TrendType:
             if data == trend_type.value:
                 return trend_type
@@ -73,7 +74,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization: Organization, request: Request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:profiling-global-suspect-functions", organization, actor=request.user
         )
@@ -114,8 +115,13 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             )
 
         def get_event_stats(
-            _columns, query, snuba_params, _rollup, zerofill_results, _comparison_delta
-        ):
+            _columns: list[str],
+            query: str,
+            snuba_params: SnubaParams,
+            _rollup: int,
+            zerofill_results: bool,
+            _comparison_delta: timedelta | None,
+        ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             rollup = get_rollup_from_range(snuba_params.date_range)
 
             chunks = [
@@ -151,20 +157,23 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             results = {}
 
             for chunk, builder, result in zip(chunks, builders, bulk_results):
-                formatted_results = functions.format_top_events_timeseries_results(
-                    result,
-                    builder,
-                    rollup=rollup,
-                    snuba_params=snuba_params,
-                    top_events={"data": chunk},
-                    result_key_order=["project.id", "fingerprint"],
+                formatted_results = cast(
+                    dict[str, SnubaTSResult],
+                    functions.format_top_events_timeseries_results(
+                        result,
+                        builder,
+                        rollup=rollup,
+                        snuba_params=snuba_params,
+                        top_events={"data": chunk},
+                        result_key_order=["project.id", "fingerprint"],
+                    ),
                 )
 
                 results.update(formatted_results)
 
             return results
 
-        def get_trends_data(stats_data) -> list[BreakpointData]:
+        def get_trends_data(stats_data: Mapping[str, Any]) -> list[BreakpointData]:
             if not stats_data:
                 return []
 
@@ -232,10 +241,12 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             reverse=data["trend"] is TrendType.REGRESSION,
         )
 
-        def paginate_trending_events(offset, limit):
+        def paginate_trending_events(offset: int, limit: int) -> dict[str, Any]:
             return {"data": trending_functions[offset : limit + offset]}
 
-        def get_stats_data_for_trending_events(results):
+        def get_stats_data_for_trending_events(
+            results: Mapping[str, Any],
+        ) -> list[dict[str, Any]]:
             functions = {
                 f"{function['project.id']},{function['fingerprint']}": function
                 for function in top_functions.get("data", [])
@@ -294,7 +305,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             )
 
 
-def get_rollup_from_range(date_range: timedelta, top_functions=TOP_FUNCTIONS_LIMIT) -> int:
+def get_rollup_from_range(date_range: timedelta, top_functions: int = TOP_FUNCTIONS_LIMIT) -> int:
     interval = parse_stats_period(get_interval_from_range(date_range))
     if interval is None:
         interval = timedelta(hours=1)

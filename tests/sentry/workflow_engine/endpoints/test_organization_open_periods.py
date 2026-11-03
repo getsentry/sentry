@@ -50,6 +50,10 @@ class OrganizationOpenPeriodsTest(APITestCase):
     def endpoint(self) -> str:
         return "sentry-api-0-organization-open-periods"
 
+    def priority_str(self) -> str:
+        assert self.group.priority is not None
+        return PriorityLevel(self.group.priority).to_str()
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -96,7 +100,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -328,7 +332,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -414,7 +418,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": opened_gopa2.date_added,
             "eventId": None,
         }
@@ -435,7 +439,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -669,7 +673,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(update_gopa.id),
             "type": OpenPeriodActivityType.STATUS_CHANGE.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": update_gopa.date_added,
             "eventId": "a" * 32,
         }

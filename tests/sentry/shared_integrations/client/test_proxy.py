@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import responses
 from django.test import override_settings
 from pytest import raises
-from requests import Request
+from requests import PreparedRequest, Request
 from requests.adapters import HTTPAdapter
 
 from sentry.constants import ObjectStatus
@@ -79,7 +79,7 @@ class IntegrationProxyClientTest(TestCase):
     def test_authorize_request_basic(self) -> None:
         prepared_request = Request(method="POST", url=self.test_url).prepare()
 
-        def authorize_request(prepared_request):
+        def authorize_request(prepared_request: PreparedRequest) -> PreparedRequest:
             prepared_request.headers["Authorization"] = "Bearer tkn"
             return prepared_request
 
@@ -158,8 +158,8 @@ class IntegrationProxyClientTest(TestCase):
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_invalid_control_silo_ip_address(
-        self, mock_getaddrinfo, mock_get_control_silo_ip_address
-    ):
+        self, mock_getaddrinfo: MagicMock, mock_get_control_silo_ip_address: MagicMock
+    ) -> None:
         with patch("sentry_sdk.capture_exception") as mock_capture_exception, raises(ApiHostError):
             mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("127.0.0.1")
             mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
@@ -175,8 +175,11 @@ class IntegrationProxyClientTest(TestCase):
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_valid_control_silo_ip_address(
-        self, mock_getaddrinfo, mock_get_control_silo_ip_address, mock_is_control_silo_ip_address
-    ):
+        self,
+        mock_getaddrinfo: MagicMock,
+        mock_get_control_silo_ip_address: MagicMock,
+        mock_is_control_silo_ip_address: MagicMock,
+    ) -> None:
         mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("172.31.255.255")
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
         client = self.client_cls(org_integration_id=self.oi_id)
@@ -184,7 +187,7 @@ class IntegrationProxyClientTest(TestCase):
         class BailOut(Exception):
             pass
 
-        def test_is_control_silo_ip_address(ip) -> None:
+        def test_is_control_silo_ip_address(ip: object) -> None:
             assert ip == "172.31.255.255"
             # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
             # is_control_silo_ip_address function is properly called.
@@ -203,11 +206,11 @@ class IntegrationProxyClientTest(TestCase):
     @patch("socket.getaddrinfo")
     def test_does_not_validate_control_silo_ip_address_in_control(
         self,
-        mock_getaddrinfo,
-        mock_get_control_silo_ip_address,
-        mock_is_control_silo_ip_address,
-        mock_is_ipaddress_allowed,
-    ):
+        mock_getaddrinfo: MagicMock,
+        mock_get_control_silo_ip_address: MagicMock,
+        mock_is_control_silo_ip_address: MagicMock,
+        mock_is_ipaddress_allowed: MagicMock,
+    ) -> None:
         mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("172.31.255.255")
         mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
         mock_is_ipaddress_allowed.return_value = True
@@ -216,7 +219,7 @@ class IntegrationProxyClientTest(TestCase):
         class BailOut(Exception):
             pass
 
-        def test_socket_connection(*args, **kwargs) -> None:
+        def test_socket_connection(*args: object, **kwargs: object) -> None:
             # We can't use responses library for this unit test as it hooks Session.send. So we assert that the
             # socket connection is being opened.
             raise BailOut()
@@ -250,7 +253,7 @@ class IntegrationProxyClientTest(TestCase):
         client = self.client_cls(org_integration_id=self.oi_id)
 
         with self.options({"hybridcloud.integrationproxy.retries": 1}):
-            assert client.post("/some/endpoint") == {"ok": True}
+            assert client.post("/some/endpoint").json == {"ok": True}
 
         assert len(responses.calls) == 2
 

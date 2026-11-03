@@ -39,7 +39,7 @@ def _make_request(
 
 @pytest.mark.snuba
 class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
-    def test_accepted_errors(self):
+    def test_accepted_errors(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -65,7 +65,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert len(day.usage) == 1
 
         usage = day.usage[0]
-        assert usage.category == DataCategory.ERROR
+        assert usage.category == ProtoDataCategory.DATA_CATEGORY_ERROR
         assert usage.data.accepted == 30
         assert usage.data.total == 30
         assert usage.data.dropped == 0
@@ -74,7 +74,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert usage.data.spike_protection == 0
         assert usage.data.dynamic_sampling == 0
 
-    def test_rate_limited_over_quota(self):
+    def test_rate_limited_over_quota(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -96,14 +96,14 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 1
         usage = response.days[0].usage[0]
-        assert usage.category == DataCategory.ERROR
+        assert usage.category == ProtoDataCategory.DATA_CATEGORY_ERROR
         assert usage.data.total == 50
         assert usage.data.accepted == 0
         assert usage.data.dropped == 50
         assert usage.data.over_quota == 50
         assert usage.data.spike_protection == 0
 
-    def test_rate_limited_spike_protection(self):
+    def test_rate_limited_spike_protection(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -125,13 +125,13 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 1
         usage = response.days[0].usage[0]
-        assert usage.category == DataCategory.TRANSACTION
+        assert usage.category == ProtoDataCategory.DATA_CATEGORY_TRANSACTION
         assert usage.data.total == 25
         assert usage.data.dropped == 25
         assert usage.data.spike_protection == 25
         assert usage.data.over_quota == 0
 
-    def test_filtered_dynamic_sampling(self):
+    def test_filtered_dynamic_sampling(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -153,14 +153,14 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 1
         usage = response.days[0].usage[0]
-        assert usage.category == DataCategory.TRANSACTION
+        assert usage.category == ProtoDataCategory.DATA_CATEGORY_TRANSACTION
         assert usage.data.total == 100
         assert usage.data.filtered == 100
         assert usage.data.dynamic_sampling == 100
         assert usage.data.accepted == 0
         assert usage.data.dropped == 0
 
-    def test_multiple_days_and_categories(self):
+    def test_multiple_days_and_categories(self) -> None:
         today = _now - timedelta(hours=1)
         yesterday = _now - timedelta(days=1, hours=1)
 
@@ -231,7 +231,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert today_usage[DataCategory.ERROR].accepted == 10
         assert today_usage[DataCategory.TRANSACTION].accepted == 20
 
-    def test_empty_org(self):
+    def test_empty_org(self) -> None:
         other_org = self.create_organization()
 
         request = _make_request(
@@ -243,7 +243,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 0
 
-    def test_end_date_inclusive(self):
+    def test_end_date_inclusive(self) -> None:
         """Data on the last included day (end date) must be returned.
 
         The proto end field is inclusive — midnight of the last day to include.
@@ -278,7 +278,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert len(response.days) == 1
         assert response.days[0].usage[0].data.accepted == 77
 
-    def test_category_filter(self):
+    def test_category_filter(self) -> None:
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -313,10 +313,10 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
 
         assert len(response.days) == 1
         assert len(response.days[0].usage) == 1
-        assert response.days[0].usage[0].category == DataCategory.ERROR
+        assert response.days[0].usage[0].category == ProtoDataCategory.DATA_CATEGORY_ERROR
         assert response.days[0].usage[0].data.accepted == 10
 
-    def test_category_filter_proto_to_relay_conversion(self):
+    def test_category_filter_proto_to_relay_conversion(self) -> None:
         """Proto ATTACHMENT=3 must map to Relay ATTACHMENT=4 when filtering CH.
 
         Proto and Relay use different int values for some categories.
@@ -360,7 +360,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert response.days[0].usage[0].category == ProtoDataCategory.DATA_CATEGORY_ATTACHMENT
         assert response.days[0].usage[0].data.accepted == 512
 
-    def test_overlapping_semantics(self):
+    def test_overlapping_semantics(self) -> None:
         """Verify dropped >= over_quota + spike_protection with real data."""
         # over_quota
         self.store_outcomes(
@@ -414,7 +414,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         assert data.spike_protection == 20
         assert data.dropped >= data.over_quota + data.spike_protection
 
-    def test_non_billable_outcomes_ignored(self):
+    def test_non_billable_outcomes_ignored(self) -> None:
         billable_time = _now - timedelta(days=1, hours=1)
         non_billable_time = _now - timedelta(hours=1)
         self.store_outcomes(
@@ -459,7 +459,7 @@ class TestOutcomesIntegration(OutcomesSnubaTest, TestCase):
         non_billable_day = non_billable_time.replace(hour=0, minute=0, second=0)
         assert response.last_usage_ts.ToDatetime(tzinfo=UTC) < non_billable_day
 
-    def test_full_usage_service_e2e(self):
+    def test_full_usage_service_e2e(self) -> None:
         """End-to-end test via UsageService().get_usage()."""
         self.store_outcomes(
             {

@@ -47,6 +47,7 @@ from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
     SeerInvestigationEntrypoint,
+    SeerOperatorCacheResult,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
@@ -320,6 +321,7 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             # Let the entrypoint signal to the external service that the run started
@@ -411,10 +413,12 @@ class SeerAutofixOperator[CachePayloadT]:
             lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
             try:
                 with lock.acquire():
-                    non_failed = [a for a in coding_agents if a.status != CodingAgentStatus.FAILED]
+                    non_failed = [
+                        a for a in coding_agents if a.status != CodingAgentStatus.FAILED.value
+                    ]
                     if non_failed:
                         has_complete_stage = any(
-                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                            a.status == CodingAgentStatus.COMPLETED.value for a in non_failed
                         )
                         lifecycle.add_extra("active_agents", str(len(non_failed)))
                         with SeerOperatorEventLifecycleMetric(
@@ -586,7 +590,7 @@ class SeerAgentOperator[CachePayloadT]:
                 # Discovery uses the local run mirror; continue/start stays remote.
                 existing_run = client.latest_run(only_current_user=False)
 
-                if existing_run is not None:
+                if existing_run is not None and existing_run.run.seer_run_state_id is not None:
                     run_id = client.continue_run(
                         run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
@@ -608,6 +612,7 @@ class SeerAgentOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(
@@ -910,7 +915,7 @@ def process_autofix_updates(
                 logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
                 continue
 
-            cache_result = SeerOperatorAutofixCache.get(
+            cache_result: SeerOperatorCacheResult[object] | None = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:

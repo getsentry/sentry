@@ -102,7 +102,7 @@ def _initial_level(event: GroupEvent, group: Group) -> int:
     return logging.ERROR if level is None else level
 
 
-initial_fields = {
+initial_fields: dict[str, Callable[[GroupEvent, Group], Any]] = {
     "culprit": lambda event, group: generate_culprit(event.data),
     "data": lambda event, group: {
         "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
@@ -118,7 +118,7 @@ initial_fields = {
 }
 
 
-backfill_fields = {
+backfill_fields: dict[str, Callable[[Mapping[str, Any], dict[str, Any], GroupEvent], Any]] = {
     "platform": lambda caches, data, event: event.platform,
     "logger": lambda caches, data, event: event.get_tag("logger") or DEFAULT_LOGGER_NAME,
     "first_seen": lambda caches, data, event: event.datetime,

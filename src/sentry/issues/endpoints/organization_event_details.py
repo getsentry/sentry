@@ -25,6 +25,7 @@ from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -40,7 +41,7 @@ class OrganizationEventDetailsResponse(SqlFormatEventSerializerResponse):
     projectSlug: str
 
 
-def add_comparison_to_event(event: BaseEvent, average_columns: list[str]):
+def add_comparison_to_event(event: BaseEvent, average_columns: list[str]) -> None:
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
@@ -155,7 +156,7 @@ class OrganizationEventDetailsEndpoint(ConditionalGetResponseMixin, Organization
         },
     )
     def get(
-        self, request: Request, organization, project: Project, event_id
+        self, request: Request, organization: Organization, project: Project, event_id: str
     ) -> Response[OrganizationEventDetailsResponse] | Response[DetailResponse] | Response[None]:
         """
         Return details on an individual event, looked up by project and event ID. The

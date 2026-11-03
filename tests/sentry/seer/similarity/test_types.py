@@ -96,7 +96,7 @@ class SeerSimilarIssueDataTest(TestCase):
 
     def test_from_raw_grouphash_with_no_group(self) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         with pytest.raises(SimilarHashMissingGroupError):
             raw_similar_issue_data = {

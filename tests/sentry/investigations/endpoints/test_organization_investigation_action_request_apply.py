@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.test import override_settings
 from django.urls import reverse
@@ -126,7 +126,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             self.create_data_condition(
                 condition_group=group,
                 type=condition_type,
-                comparison=comparison,
+                comparison=cast("str | int | Mapping[str, object]", comparison),
                 condition_result=result,
             )
         detector = self.create_detector(

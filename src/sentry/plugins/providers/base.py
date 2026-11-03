@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -18,7 +21,12 @@ class ProviderMixin:
     auth_provider: str | None = None
     logger = logging.getLogger(__name__)
 
-    def link_auth(self, user, organization, data):
+    def link_auth(
+        self,
+        user: User | RpcUser,
+        organization: Organization,
+        data: Mapping[str, Any],
+    ) -> None:
         usa = usersocialauth_service.get_one_or_none(
             filter={
                 "id": data["default_auth_id"],
@@ -32,7 +40,7 @@ class ProviderMixin:
         rpc_organization = serialize_rpc_organization(org=organization)
         usersocialauth_service.link_auth(usa=usa, organization=rpc_organization)
 
-    def get_auth(self, user: RpcUser | User, **kwargs) -> RpcUserSocialAuth | None:
+    def get_auth(self, user: RpcUser | User, **kwargs: Any) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
 
