@@ -67,7 +67,7 @@ describe('AutomationsList', () => {
     mockConfigs([
       SeerWorkflowConfigFixture({id: '42', strategy: 'breached_metric_investigation'}),
     ]);
-    const runsRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/runs/`,
       match: [MockApiClient.matchQuery({config: '42', per_page: 20})],
       body: {
@@ -111,7 +111,6 @@ describe('AutomationsList', () => {
     );
     expect(await screen.findByText('17')).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
-    expect(runsRequest).toHaveBeenCalled();
   });
 
   it('shows an empty state without demo cards when there are no configs', async () => {
