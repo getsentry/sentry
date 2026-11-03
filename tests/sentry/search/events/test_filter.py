@@ -1,5 +1,6 @@
 import re
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -33,7 +34,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
 
 
-def with_type(type, argument):
+def with_type(type: Any, argument: Any) -> Any:
     argument.get_type = lambda *_: type
     return argument
 
@@ -132,18 +133,20 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_result_type_fn(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
-        assert fn.get_result_type("fn()", []) is None
+        assert fn.get_result_type("fn()", {}) is None
 
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: "number")
-        assert fn.get_result_type("fn()", []) == "number"
+        assert fn.get_result_type("fn()", {}) == "number"
 
         fn = DiscoverFunction(
             "fn",
             required_args=[with_type("number", FunctionArg("arg1"))],
             transform="",
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=lambda args, columns: args[0].get_type(
+                str(next(iter(columns.values())))
+            ),
         )
-        assert fn.get_result_type("fn()", ["arg1"]) == "number"
+        assert fn.get_result_type("fn()", {"arg1": "arg1"}) == "number"
 
     def test_private_function(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
@@ -157,21 +160,21 @@ class DiscoverFunctionTest(unittest.TestCase):
 class BaseSemverConverterTest(TestCase):
     key: str
 
-    def converter(self, *args, **kwargs):
+    def converter(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
     def run_test(
         self,
-        operator,
-        version,
-        expected_operator,
-        expected_releases,
-        organization_id=None,
-        project_id=None,
-    ):
+        operator: str,
+        version: str | list[str],
+        expected_operator: str,
+        expected_releases: list[str],
+        organization_id: int | None = None,
+        project_id: int | list[int] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         filter = SearchFilter(SearchKey(self.key), operator, SearchValue(version))
-        params = {}
+        params: dict[str, int | list[int]] = {}
         if organization_id:
             params["organization_id"] = organization_id
         if project_id:
@@ -185,7 +188,7 @@ class BaseSemverConverterTest(TestCase):
 class SemverFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_ALIAS
 
-    def converter(self, *args, **kwargs):
+    def converter(self, *args: Any, **kwargs: Any) -> Any:
         return _semver_filter_converter(*args, **kwargs)
 
     def test_invalid_params(self) -> None:
@@ -345,7 +348,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
 class SemverPackageFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_PACKAGE_ALIAS
 
-    def converter(self, *args, **kwargs):
+    def converter(self, *args: Any, **kwargs: Any) -> Any:
         return _semver_package_filter_converter(*args, **kwargs)
 
     def test_invalid_params(self) -> None:
@@ -395,7 +398,7 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
 class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_BUILD_ALIAS
 
-    def converter(self, *args, **kwargs):
+    def converter(self, *args: Any, **kwargs: Any) -> Any:
         return _semver_build_filter_converter(*args, **kwargs)
 
     def test_invalid_params(self) -> None:
@@ -426,7 +429,7 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
 
 
 class ParseSemverTest(unittest.TestCase):
-    def run_test(self, version: str, operator: str, expected: SemverFilter):
+    def run_test(self, version: str, operator: str, expected: SemverFilter) -> None:
         semver_filter = parse_semver(version, operator)
         assert semver_filter == expected
 
@@ -464,36 +467,36 @@ class ParseSemverTest(unittest.TestCase):
         self.run_test("1.X", "=", SemverFilter("exact", [1]))
 
 
-def _cond(lhs, op, rhs):
+def _cond(lhs: str, op: str | Op, rhs: Any) -> Condition:
     return Condition(lhs=Column(name=lhs), op=op, rhs=rhs)
 
 
-def _email(x):
+def _email(x: str) -> Condition:
     return _cond("email", Op.EQ, x)
 
 
-def _message(x):
+def _message(x: str) -> Condition:
     return Condition(
         lhs=Function("positionCaseInsensitive", [Column("message"), x]), op=Op.NEQ, rhs=0
     )
 
 
-def _tag(key, value, op=None):
+def _tag(key: str, value: Any, op: str | Op | None = None) -> Condition:
     if op is None:
         op = Op.IN if isinstance(value, list) else Op.EQ
     return Condition(lhs=Function("ifNull", [Column(f"tags[{key}]"), ""]), op=op, rhs=value)
 
 
-def _ntag(key, value):
+def _ntag(key: str, value: Any) -> Condition:
     op = Op.NOT_IN if isinstance(value, list) else Op.NEQ
     return _tag(key, value, op=op)
 
 
-def _count(op, x):
+def _count(op: str | Op, x: Any) -> Condition:
     return Condition(lhs=Function("count", [], "count"), op=op, rhs=x)
 
 
-def _project(x):
+def _project(x: Any) -> Condition:
     return _cond("project_id", Op.EQ, x)
 
 
@@ -1174,7 +1177,9 @@ def _project(x):
         ),
     ],
 )
-def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:
+def test_snql_boolean_search(
+    description: str, query: str, expected_where: list[Any], expected_having: list[Any]
+) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": [1]}
     query_filter = UnresolvedQuery(

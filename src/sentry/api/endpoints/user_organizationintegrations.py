@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import organization_service
 from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 
@@ -21,7 +22,7 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Retrieve all of a users' organization integrations
         --------------------------------------------------

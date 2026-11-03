@@ -5,6 +5,8 @@ import hmac
 import logging
 import re
 import time
+from collections.abc import Mapping
+from typing import cast
 
 import orjson
 import sentry_sdk
@@ -96,9 +98,11 @@ def get_host(request: HttpRequest) -> str | None:
     return None
 
 
-def get_installation_metadata(event, host):
+def get_installation_metadata(
+    event: Mapping[str, object], host: str | None
+) -> Mapping[str, object] | None:
     if not host:
-        return
+        return None
     external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
         external_id=external_id,
@@ -108,8 +112,9 @@ def get_installation_metadata(event, host):
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
-        return
-    return integration.metadata["installation"]
+        return None
+    installation = integration.metadata["installation"]
+    return installation
 
 
 class GitHubEnterpriseWebhook:
@@ -209,10 +214,10 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return get_host(request)
 
     # https://developer.github.com/webhooks/
-    def get_handler(self, event_type):
+    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
         return self._handlers.get(event_type)
 
-    def is_valid_signature(self, method, body, secret, signature):
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method != "sha1" and method != "sha256":
             raise UnsupportedSignatureAlgorithmError()
 
@@ -228,16 +233,16 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def get_secret(self, event, host):
+    def get_secret(self, event: Mapping[str, object], host: str | None) -> str | None:
         metadata = get_installation_metadata(event, host)
         if metadata:
-            return metadata.get("webhook_secret")
+            return cast("str | None", metadata.get("webhook_secret"))
         else:
             return None
 
@@ -446,7 +451,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -464,7 +469,7 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
         return "github.com"
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
         return super().dispatch(request, *args, **kwargs)

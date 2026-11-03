@@ -75,7 +75,7 @@ def build_trigger_action_task_params(
     elif isinstance(event_data.event, Activity):
         activity_id = event_data.event.id
 
-    task_params = {
+    task_params: dict[str, object] = {
         "action_id": action.id,
         "workflow_id": workflow_id,
         "event_id": event_id,

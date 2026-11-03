@@ -1,11 +1,13 @@
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
+from typing import Any
 
 from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus, ScheduleType
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
@@ -22,7 +24,9 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def create_error(self, platform, trace_id, project_id, timestamp):
+    def create_error(
+        self, platform: str, trace_id: str, project_id: int, timestamp: datetime
+    ) -> Event:
         data = load_data(platform, timestamp=timestamp)
         if "contexts" not in data:
             data["contexts"] = {}
@@ -199,6 +203,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
             project_id=self.project.id,
             timestamp=monitor.date_added,
         )
+        assert error.group_id is not None
         group = Group.objects.get(id=error.group_id)
 
         checkin1 = MonitorCheckIn.objects.create(
@@ -228,7 +233,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
 
     def test_serializes_monitor_config_correctly(self) -> None:
         monitor = self.create_monitor(project=self.project)
-        config = {
+        config: dict[str, Any] = {
             "schedule": "0 0 * * *",
             "schedule_type": ScheduleType.CRONTAB,
             "timezone": "US/Arizona",

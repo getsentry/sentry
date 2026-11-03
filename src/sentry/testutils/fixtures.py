@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import pytest
@@ -71,7 +71,12 @@ from sentry.testutils.silo import assume_test_silo_mode
 # on a per-class method basis
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import (
+    IntervalSecondsLiteral,
+    SupportedHTTPMethodsLiteral,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+)
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
     DEFAULT_DOWNTIME_THRESHOLD,
@@ -86,14 +91,131 @@ from sentry.workflow_engine.models import DataSource, Detector, DetectorState, W
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
+if TYPE_CHECKING:
+    from django.contrib.sessions.backends.base import SessionBase
+
+    from sentry.ai_monitoring.models import AIConversationMetadata
+    from sentry.auth.access import RpcBackedAccess
+    from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+    from sentry.discover.models import DiscoverSavedQuery
+    from sentry.explore.models import ExploreSavedFormula, ExploreSavedQuery
+    from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+    from sentry.integrations.models.data_forwarder import DataForwarder
+    from sentry.integrations.models.data_forwarder_project import DataForwarderProject
+    from sentry.integrations.models.doc_integration import DocIntegration
+    from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
+    from sentry.integrations.models.external_actor import ExternalActor
+    from sentry.integrations.models.external_issue import ExternalIssue
+    from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+    from sentry.integrations.models.integration_feature import IntegrationFeature
+    from sentry.integrations.models.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
+    from sentry.investigations.models import (
+        InvestigationOrchestrationCommand,
+        InvestigationOrchestrationEvent,
+        InvestigationOrchestrationRun,
+    )
+    from sentry.models.apiapplication import ApiApplication
+    from sentry.models.apidevicecode import ApiDeviceCode
+    from sentry.models.apikey import ApiKey
+    from sentry.models.apitoken import ApiToken
+    from sentry.models.artifactbundle import ArtifactBundle
+    from sentry.models.authidentity import AuthIdentity
+    from sentry.models.authprovider import AuthProvider
+    from sentry.models.avatars.organization_avatar import OrganizationAvatar
+    from sentry.models.commit import Commit
+    from sentry.models.commitauthor import CommitAuthor
+    from sentry.models.commitfilechange import CommitFileChange
+    from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+    from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetQuery
+    from sentry.models.debugfile import ProjectDebugFile
+    from sentry.models.files.file import File
+    from sentry.models.grouphistory import GroupHistory
+    from sentry.models.grouplink import GroupLink
+    from sentry.models.groupowner import GroupOwner
+    from sentry.models.groupresolution import GroupResolution
+    from sentry.models.groupsubscription import GroupSubscription
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.models.organizationmemberinvite import OrganizationMemberInvite
+    from sentry.models.orgauthtoken import OrgAuthToken
+    from sentry.models.projectbookmark import ProjectBookmark
+    from sentry.models.projectcodeowners import ProjectCodeOwners
+    from sentry.models.projectkey import ProjectKey
+    from sentry.models.projectrepository import ProjectRepository
+    from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
+    from sentry.models.release import Release
+    from sentry.models.releasecommit import ReleaseCommit
+    from sentry.models.releasefile import ReleaseFile
+    from sentry.models.repository import Repository
+    from sentry.models.repositorysettings import RepositorySettings
+    from sentry.models.userreport import UserReport
+    from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
+    from sentry.notebooks.models import (
+        Notebook,
+        NotebookActionRequest,
+        NotebookBlock,
+        NotebookBlockExecution,
+        NotebookBlockExecutionProject,
+        NotebookComment,
+        NotebookFavoriteUser,
+        NotebookProject,
+        NotebookSeen,
+    )
+    from sentry.notifications.models.inboxitem import InboxItem
+    from sentry.notifications.models.inboxitemevent import InboxItemEvent
+    from sentry.notifications.models.notificationaction import NotificationAction
+    from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+    from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+    from sentry.preprod.models import InstallablePreprodArtifact
+    from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+    from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
+    from sentry.seer.models.project_repository import SeerProjectRepository
+    from sentry.seer.models.run import (
+        SeerAgentRun,
+        SeerRun,
+        SeerRunCodingAgentHandoff,
+        SeerRunPullRequest,
+    )
+    from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+    from sentry.sentry_apps.models.sentry_app import SentryApp
+    from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
+    from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+    from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+        SentryAppInstallationForProvider,
+    )
+    from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
+    from sentry.users.models.identity import OrganizationIdentity
+    from sentry.users.models.user_avatar import UserAvatar
+    from sentry.users.models.user_option import UserOption
+    from sentry.users.models.useremail import UserEmail
+    from sentry.users.models.userrole import UserRole
+    from sentry.workflow_engine.models import (
+        Action,
+        ActionAlertRuleTriggerAction,
+        AlertRuleDetector,
+        AlertRuleWorkflow,
+        DataCondition,
+        DataConditionAlertRuleTrigger,
+        DataConditionGroup,
+        DataConditionGroupAction,
+        DataSourceDetector,
+        DetectorGroup,
+        DetectorWorkflow,
+        IncidentGroupOpenPeriod,
+        WorkflowDataConditionGroup,
+    )
+    from sentry.workflow_engine.types import ActionInvocation
+    from social_auth.models import UserSocialAuth
+
 
 class Fixtures:
     @cached_property
-    def session(self):
+    def session(self) -> SessionBase:
         return Factories.create_session()
 
     @cached_property
-    def projectkey(self):
+    def projectkey(self) -> ProjectKey:
         return self.create_project_key(project=self.project)
 
     @cached_property
@@ -110,14 +232,14 @@ class Fixtures:
                 return User.objects.get(email="admin@localhost")
 
     @cached_property
-    def organization(self):
+    def organization(self) -> Organization:
         # XXX(dcramer): ensure that your org slug doesnt match your team slug
         # and the same for your project slug
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
     @assume_test_silo_mode(SiloMode.CELL)
-    def team(self):
+    def team(self) -> Team:
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
         queryset = OrganizationMember.objects.filter(organization=self.organization)
@@ -126,23 +248,23 @@ class Fixtures:
         return team
 
     @cached_property
-    def project(self):
+    def project(self) -> Project:
         return self.create_project(name="Bar", slug="bar", teams=[self.team])
 
     @cached_property
-    def release(self):
+    def release(self) -> Release:
         return self.create_release(project=self.project, version="foo-1.0")
 
     @cached_property
-    def environment(self):
+    def environment(self) -> Environment:
         return self.create_environment(name="development", project=self.project)
 
     @cached_property
-    def group(self):
+    def group(self) -> Group:
         return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property
-    def event(self):
+    def event(self) -> Event:
         return self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -154,7 +276,7 @@ class Fixtures:
 
     @cached_property
     @assume_test_silo_mode(SiloMode.CELL)
-    def activity(self):
+    def activity(self) -> Activity:
         return Activity.objects.create(
             group=self.group,
             project=self.project,
@@ -165,7 +287,7 @@ class Fixtures:
 
     @cached_property
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def integration(self):
+    def integration(self) -> Integration:
         integration = Integration.objects.create(
             provider=IntegrationProviderSlug.GITHUB.value,
             name="GitHub",
@@ -180,221 +302,265 @@ class Fixtures:
 
     @cached_property
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def organization_integration(self):
+    def organization_integration(self) -> OrganizationIntegration | None:
         return self.integration.add_organization(self.organization, self.user)
 
-    def create_organization(self, *args, **kwargs):
+    def create_organization(self, *args: Any, **kwargs: Any) -> Organization:
         return Factories.create_organization(*args, **kwargs)
 
-    def create_organization_avatar(self, *args, **kwargs):
+    def create_organization_avatar(self, *args: Any, **kwargs: Any) -> OrganizationAvatar:
         return Factories.create_organization_avatar(*args, **kwargs)
 
-    def create_notebook(self, *args, **kwargs):
+    def create_notebook(self, *args: Any, **kwargs: Any) -> Notebook:
         return Factories.create_notebook(*args, **kwargs)
 
-    def create_notebook_project(self, *args, **kwargs):
+    def create_notebook_project(self, *args: Any, **kwargs: Any) -> NotebookProject:
         return Factories.create_notebook_project(*args, **kwargs)
 
-    def create_notebook_favorite(self, *args, **kwargs):
+    def create_notebook_favorite(self, *args: Any, **kwargs: Any) -> NotebookFavoriteUser:
         return Factories.create_notebook_favorite(*args, **kwargs)
 
-    def create_notebook_seen(self, *args, **kwargs):
+    def create_notebook_seen(self, *args: Any, **kwargs: Any) -> NotebookSeen:
         return Factories.create_notebook_seen(*args, **kwargs)
 
-    def create_notebook_comment(self, *args, **kwargs):
+    def create_notebook_comment(self, *args: Any, **kwargs: Any) -> NotebookComment:
         return Factories.create_notebook_comment(*args, **kwargs)
 
-    def create_notebook_action_request(self, *args, **kwargs):
+    def create_notebook_action_request(self, *args: Any, **kwargs: Any) -> NotebookActionRequest:
         return Factories.create_notebook_action_request(*args, **kwargs)
 
-    def create_notebook_block(self, *args, **kwargs):
+    def create_notebook_block(self, *args: Any, **kwargs: Any) -> NotebookBlock:
         return Factories.create_notebook_block(*args, **kwargs)
 
-    def create_notebook_block_execution(self, *args, **kwargs):
+    def create_notebook_block_execution(self, *args: Any, **kwargs: Any) -> NotebookBlockExecution:
         return Factories.create_notebook_block_execution(*args, **kwargs)
 
-    def create_notebook_block_execution_project(self, *args, **kwargs):
+    def create_notebook_block_execution_project(
+        self, *args: Any, **kwargs: Any
+    ) -> NotebookBlockExecutionProject:
         return Factories.create_notebook_block_execution_project(*args, **kwargs)
 
-    def create_investigation_orchestration_run(self, *args, **kwargs):
+    def create_investigation_orchestration_run(
+        self, *args: Any, **kwargs: Any
+    ) -> InvestigationOrchestrationRun:
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
 
-    def create_investigation_orchestration_event(self, *args, **kwargs):
+    def create_investigation_orchestration_event(
+        self, *args: Any, **kwargs: Any
+    ) -> InvestigationOrchestrationEvent:
         return Factories.create_investigation_orchestration_event(*args, **kwargs)
 
-    def create_investigation_orchestration_command(self, *args, **kwargs):
+    def create_investigation_orchestration_command(
+        self, *args: Any, **kwargs: Any
+    ) -> InvestigationOrchestrationCommand:
         return Factories.create_investigation_orchestration_command(*args, **kwargs)
 
-    def create_member(self, *args, **kwargs):
+    def create_member(self, *args: Any, **kwargs: Any) -> OrganizationMember:
         return Factories.create_member(*args, **kwargs)
 
-    def create_member_invite(self, *args, **kwargs):
+    def create_member_invite(self, *args: Any, **kwargs: Any) -> OrganizationMemberInvite:
         return Factories.create_member_invite(*args, **kwargs)
 
-    def create_api_key(self, *args, **kwargs):
+    def create_api_key(self, *args: Any, **kwargs: Any) -> ApiKey:
         return Factories.create_api_key(*args, **kwargs)
 
-    def create_api_application(self, **kwargs):
+    def create_api_application(self, **kwargs: Any) -> ApiApplication:
         kwargs.setdefault("owner", self.user)
         return Factories.create_api_application(**kwargs)
 
-    def create_api_device_code(self, *args, **kwargs):
+    def create_api_device_code(self, *args: Any, **kwargs: Any) -> ApiDeviceCode:
         return Factories.create_api_device_code(*args, **kwargs)
 
-    def create_auth_provider(self, *args, **kwargs):
+    def create_auth_provider(self, *args: Any, **kwargs: Any) -> AuthProvider:
         return Factories.create_auth_provider(*args, **kwargs)
 
-    def create_auth_identity(self, *args, **kwargs):
+    def create_auth_identity(self, *args: Any, **kwargs: Any) -> AuthIdentity:
         return Factories.create_auth_identity(*args, **kwargs)
 
-    def create_user_auth_token(self, *args, **kwargs):
+    def create_user_auth_token(self, *args: Any, **kwargs: Any) -> ApiToken:
         return Factories.create_user_auth_token(*args, **kwargs)
 
-    def create_org_auth_token(self, *args, **kwargs):
+    def create_org_auth_token(self, *args: Any, **kwargs: Any) -> OrgAuthToken:
         return Factories.create_org_auth_token(*args, **kwargs)
 
-    def create_team_membership(self, *args, **kwargs):
+    def create_team_membership(self, *args: Any, **kwargs: Any) -> OrganizationMemberTeam:
         return Factories.create_team_membership(*args, **kwargs)
 
-    def create_team(self, organization=None, **kwargs):
+    def create_team(self, organization: Organization | None = None, **kwargs: Any) -> Team:
         if organization is None:
             organization = self.organization
 
         return Factories.create_team(organization=organization, **kwargs)
 
-    def create_environment(self, project=None, **kwargs):
+    def create_environment(self, project: Project | None = None, **kwargs: Any) -> Environment:
         if project is None:
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
 
-    def create_project(self, **kwargs) -> Project:
+    def create_project(self, **kwargs: Any) -> Project:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
-    def create_project_bookmark(self, project=None, *args, **kwargs):
+    def create_project_bookmark(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> ProjectBookmark:
         if project is None:
             project = self.project
         return Factories.create_project_bookmark(project, *args, **kwargs)
 
-    def create_ai_conversation_metadata(self, project=None, *args, **kwargs):
+    def create_ai_conversation_metadata(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> AIConversationMetadata:
         if project is None:
             project = self.project
         return Factories.create_ai_conversation_metadata(project, *args, **kwargs)
 
-    def create_replay_deletion_job(self, project=None, **kwargs) -> ReplayDeletionJobModel:
+    def create_replay_deletion_job(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> ReplayDeletionJobModel:
         if project is None:
             project = self.project
         return Factories.create_replay_deletion_job(project, **kwargs)
 
-    def create_project_key(self, project=None, *args, **kwargs):
+    def create_project_key(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> ProjectKey:
         if project is None:
             project = self.project
         return Factories.create_project_key(project, *args, **kwargs)
 
     def create_project_custom_inbound_filter(
-        self, project=None, *args, **kwargs
+        self, project: Project | None = None, *args: Any, **kwargs: Any
     ) -> CustomInboundFilter:
         if project is None:
             project = self.project
         return Factories.create_project_custom_inbound_filter(project, *args, **kwargs)
 
-    def create_project_rule(self, project=None, *args, **kwargs) -> Rule:
+    def create_project_rule(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_project_rule(project, *args, **kwargs)
 
-    def create_slack_project_rule(self, project=None, *args, **kwargs):
+    def create_slack_project_rule(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_slack_project_rule(project, *args, **kwargs)
 
-    def create_release(self, project=None, *args, **kwargs):
+    def create_release(self, project: Project | None = None, *args: Any, **kwargs: Any) -> Release:
         if project is None:
             project = self.project
         return Factories.create_release(project, *args, **kwargs)
 
-    def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
+    def create_group_release(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> GroupRelease:
         if project is None:
             project = self.project
         return Factories.create_group_release(project, *args, **kwargs)
 
-    def create_release_file(self, release_id=None, file=None, name=None, dist_id=None):
+    def create_release_file(
+        self,
+        release_id: int | None = None,
+        file: File | None = None,
+        name: str | None = None,
+        dist_id: int | None = None,
+    ) -> ReleaseFile:
         if release_id is None:
             release_id = self.release.id
         return Factories.create_release_file(release_id, file, name, dist_id)
 
-    def create_artifact_bundle_zip(self, org=None, release=None, *args, **kwargs):
+    def create_artifact_bundle_zip(
+        self, org: str | None = None, release: str | None = None, *args: Any, **kwargs: Any
+    ) -> bytes:
         return Factories.create_artifact_bundle_zip(org, release, *args, **kwargs)
 
-    def create_release_archive(self, org=None, release=None, *args, **kwargs):
+    def create_release_archive(
+        self, org: str | None = None, release: str | None = None, *args: Any, **kwargs: Any
+    ) -> ReleaseFile | None:
         if org is None:
             org = self.organization.slug
         if release is None:
             release = self.release.version
         return Factories.create_release_archive(org, release, *args, **kwargs)
 
-    def create_artifact_bundle(self, org=None, *args, **kwargs):
+    def create_artifact_bundle(
+        self, org: Organization | None = None, *args: Any, **kwargs: Any
+    ) -> ArtifactBundle:
         if org is None:
             org = self.organization
         return Factories.create_artifact_bundle(org, *args, **kwargs)
 
-    def create_code_mapping(self, project=None, repo=None, organization_integration=None, **kwargs):
+    def create_code_mapping(
+        self,
+        project: Project | None = None,
+        repo: Repository | None = None,
+        organization_integration: OrganizationIntegration | None = None,
+        **kwargs: Any,
+    ) -> RepositoryProjectPathConfig:
         if project is None:
             project = self.project
         if organization_integration is None:
             organization_integration = self.organization_integration
         return Factories.create_code_mapping(project, repo, organization_integration, **kwargs)
 
-    def create_repo(self, project=None, *args, **kwargs):
+    def create_repo(self, project: Project | None = None, *args: Any, **kwargs: Any) -> Repository:
         if project is None:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
 
-    def create_project_repository(self, project=None, **kwargs):
+    def create_project_repository(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> ProjectRepository:
         if project is None:
             project = self.project
         return Factories.create_project_repository(project, **kwargs)
 
-    def create_seer_project_repository(self, project=None, **kwargs):
+    def create_seer_project_repository(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> SeerProjectRepository:
         if project is None:
             project = self.project
         return Factories.create_seer_project_repository(project, **kwargs)
 
-    def create_repository_settings(self, *args, **kwargs):
+    def create_repository_settings(self, *args: Any, **kwargs: Any) -> RepositorySettings:
         return Factories.create_repository_settings(*args, **kwargs)
 
-    def create_commit(self, *args, **kwargs):
+    def create_commit(self, *args: Any, **kwargs: Any) -> Commit:
         return Factories.create_commit(*args, **kwargs)
 
-    def create_commit_author(self, *args, **kwargs):
+    def create_commit_author(self, *args: Any, **kwargs: Any) -> CommitAuthor:
         return Factories.create_commit_author(*args, **kwargs)
 
-    def create_commit_file_change(self, *args, **kwargs):
+    def create_commit_file_change(self, *args: Any, **kwargs: Any) -> tuple[CommitFileChange, bool]:
         return Factories.create_commit_file_change(*args, **kwargs)
 
-    def create_pull_request(self, *args, **kwargs):
+    def create_pull_request(self, *args: Any, **kwargs: Any) -> PullRequest:
         return Factories.create_pull_request(*args, **kwargs)
 
-    def create_pull_request_comment(self, *args, **kwargs):
+    def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> PullRequestComment:
         return Factories.create_pull_request_comment(*args, **kwargs)
 
-    def create_pull_request_commit(self, *args, **kwargs):
+    def create_pull_request_commit(self, *args: Any, **kwargs: Any) -> PullRequestCommit:
         return Factories.create_pull_request_commit(*args, **kwargs)
 
-    def create_release_commit(self, *args, **kwargs):
+    def create_release_commit(self, *args: Any, **kwargs: Any) -> ReleaseCommit:
         return Factories.create_release_commit(*args, **kwargs)
 
-    def create_user(self, *args, **kwargs) -> User:
+    def create_user(self, *args: Any, **kwargs: Any) -> User:
         return Factories.create_user(*args, **kwargs)
 
-    def create_useremail(self, *args, **kwargs):
+    def create_useremail(self, *args: Any, **kwargs: Any) -> UserEmail:
         return Factories.create_useremail(*args, **kwargs)
 
-    def create_user_avatar(self, *args, **kwargs):
+    def create_user_avatar(self, *args: Any, **kwargs: Any) -> UserAvatar:
         return Factories.create_user_avatar(*args, **kwargs)
 
-    def create_user_role(self, *args, **kwargs):
+    def create_user_role(self, *args: Any, **kwargs: Any) -> UserRole:
         return Factories.create_user_role(*args, **kwargs)
 
     def create_usersocialauth(
@@ -403,65 +569,75 @@ class Fixtures:
         provider: str | None = None,
         uid: str | None = None,
         extra_data: dict[str, Any] | None = None,
-    ):
+    ) -> UserSocialAuth:
         if not user:
             user = self.user
         return Factories.create_usersocialauth(
             user=user, provider=provider, uid=uid, extra_data=extra_data
         )
 
-    def store_event(self, *args, **kwargs) -> Event:
+    def store_event(self, *args: Any, **kwargs: Any) -> Event:
         return Factories.store_event(*args, **kwargs)
 
-    def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
+    def create_tempest_credentials(
+        self, project: Project, *args: Any, **kwargs: Any
+    ) -> TempestCredentials:
         return Factories.create_tempest_credentials(project, *args, **kwargs)
 
     def create_github_identity(
-        self, user: User | None = None, idp: IdentityProvider | None = None, **kwargs
+        self, user: User | None = None, idp: IdentityProvider | None = None, **kwargs: Any
     ) -> Identity:
         if not user:
             user = self.user
         return Factories.create_github_identity(user=user, idp=idp, **kwargs)
 
-    def create_github_provider(self, **kwargs) -> IdentityProvider:
+    def create_github_provider(self, **kwargs: Any) -> IdentityProvider:
         return Factories.create_github_provider(**kwargs)
 
-    def create_group(self, project=None, *args, **kwargs):
+    def create_group(self, project: Project | None = None, *args: Any, **kwargs: Any) -> Group:
         if project is None:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
-    def create_group_activity(self, group=None, *args, **kwargs):
+    def create_group_activity(
+        self, group: Group | None = None, *args: Any, **kwargs: Any
+    ) -> Activity:
         if group is None:
             group = self.group
         return Factories.create_group_activity(group, *args, **kwargs)
 
-    def create_group_link(self, group=None, **kwargs):
+    def create_group_link(self, group: Group | None = None, **kwargs: Any) -> GroupLink:
         if group is None:
             group = self.group
         return Factories.create_group_link(group, **kwargs)
 
-    def create_group_resolution(self, group=None, **kwargs):
+    def create_group_resolution(self, group: Group | None = None, **kwargs: Any) -> GroupResolution:
         if group is None:
             group = self.group
         return Factories.create_group_resolution(group, **kwargs)
 
-    def create_group_subscription(self, group=None, **kwargs):
+    def create_group_subscription(
+        self, group: Group | None = None, **kwargs: Any
+    ) -> GroupSubscription:
         if group is None:
             group = self.group
         return Factories.create_group_subscription(group, **kwargs)
 
-    def create_group_owner(self, group=None, **kwargs):
+    def create_group_owner(self, group: Group | None = None, **kwargs: Any) -> GroupOwner:
         if group is None:
             group = self.group
         return Factories.create_group_owner(group, **kwargs)
 
-    def create_group_action_log_entry(self, group=None, *args, **kwargs) -> GroupActionLogEntry:
+    def create_group_action_log_entry(
+        self, group: Group | None = None, *args: Any, **kwargs: Any
+    ) -> GroupActionLogEntry:
         if group is None:
             group = self.group
         return Factories.create_group_action_log_entry(group, *args, **kwargs)
 
-    def create_group_derived_data(self, group=None, **kwargs) -> GroupDerivedData:
+    def create_group_derived_data(
+        self, group: Group | None = None, **kwargs: Any
+    ) -> GroupDerivedData:
         if group is None:
             group = self.group
         return Factories.create_group_derived_data(group, **kwargs)
@@ -483,125 +659,162 @@ class Fixtures:
 
         return groups
 
-    def create_file(self, **kwargs):
+    def create_file(self, **kwargs: Any) -> File:
         return Factories.create_file(**kwargs)
 
-    def create_data_forwarder(self, organization=None, *args, **kwargs):
+    def create_data_forwarder(
+        self, organization: Organization | None = None, *args: Any, **kwargs: Any
+    ) -> DataForwarder:
         if organization is None:
             organization = self.organization
         return Factories.create_data_forwarder(organization, *args, **kwargs)
 
-    def create_data_forwarder_project(self, data_forwarder=None, project=None, **kwargs):
+    def create_data_forwarder_project(
+        self,
+        data_forwarder: DataForwarder | None = None,
+        project: Project | None = None,
+        **kwargs: Any,
+    ) -> DataForwarderProject:
         if project is None:
             project = self.project
+        assert data_forwarder is not None
         return Factories.create_data_forwarder_project(data_forwarder, project, **kwargs)
 
-    def create_file_from_path(self, *args, **kwargs):
+    def create_file_from_path(self, *args: Any, **kwargs: Any) -> File:
         return Factories.create_file_from_path(*args, **kwargs)
 
-    def create_dif_file(self, project: Project | None = None, *args, **kwargs):
+    def create_dif_file(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> ProjectDebugFile:
         if project is None:
             project = self.project
         return Factories.create_dif_file(project, *args, **kwargs)
 
-    def create_dif_from_path(self, project=None, *args, **kwargs):
+    def create_dif_from_path(
+        self, project: Project | None = None, *args: Any, **kwargs: Any
+    ) -> ProjectDebugFile:
         if project is None:
             project = self.project
         return Factories.create_dif_from_path(project=project, *args, **kwargs)
 
-    def add_user_permission(self, *args, **kwargs):
+    def add_user_permission(self, *args: Any, **kwargs: Any) -> None:
         return Factories.add_user_permission(*args, **kwargs)
 
-    def create_sentry_app(self, *args, **kwargs):
+    def create_sentry_app(self, *args: Any, **kwargs: Any) -> SentryApp:
         return Factories.create_sentry_app(*args, **kwargs)
 
-    def create_sentry_app_avatar(self, *args, **kwargs):
+    def create_sentry_app_avatar(self, *args: Any, **kwargs: Any) -> SentryAppAvatar:
         return Factories.create_sentry_app_avatar(*args, **kwargs)
 
-    def create_internal_integration(self, *args, **kwargs):
+    def create_internal_integration(self, *args: Any, **kwargs: Any) -> SentryApp:
         return Factories.create_internal_integration(*args, **kwargs)
 
-    def create_internal_integration_token(self, *args, **kwargs):
+    def create_internal_integration_token(self, *args: Any, **kwargs: Any) -> ApiToken:
         return Factories.create_internal_integration_token(*args, **kwargs)
 
-    def create_sentry_app_installation(self, *args, **kwargs):
+    def create_sentry_app_installation(self, *args: Any, **kwargs: Any) -> SentryAppInstallation:
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
-    def create_sentry_app_installation_for_provider(self, *args, **kwargs):
+    def create_sentry_app_installation_for_provider(
+        self, *args: Any, **kwargs: Any
+    ) -> SentryAppInstallationForProvider:
         return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
 
-    def create_stacktrace_link_schema(self, *args, **kwargs):
+    def create_stacktrace_link_schema(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return Factories.create_stacktrace_link_schema(*args, **kwargs)
 
-    def create_issue_link_schema(self, *args, **kwargs):
+    def create_issue_link_schema(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return Factories.create_issue_link_schema(*args, **kwargs)
 
-    def create_alert_rule_action_schema(self, *args, **kwargs):
+    def create_alert_rule_action_schema(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         return Factories.create_alert_rule_action_schema(*args, **kwargs)
 
-    def create_sentry_app_feature(self, *args, **kwargs):
+    def create_sentry_app_feature(self, *args: Any, **kwargs: Any) -> IntegrationFeature:
         return Factories.create_sentry_app_feature(*args, **kwargs)
 
-    def create_doc_integration(self, *args, **kwargs):
+    def create_doc_integration(self, *args: Any, **kwargs: Any) -> DocIntegration:
         return Factories.create_doc_integration(*args, **kwargs)
 
-    def create_doc_integration_features(self, *args, **kwargs):
+    def create_doc_integration_features(
+        self, *args: Any, **kwargs: Any
+    ) -> list[IntegrationFeature]:
         return Factories.create_doc_integration_features(*args, **kwargs)
 
-    def create_doc_integration_avatar(self, *args, **kwargs):
+    def create_doc_integration_avatar(self, *args: Any, **kwargs: Any) -> DocIntegrationAvatar:
         return Factories.create_doc_integration_avatar(*args, **kwargs)
 
-    def create_service_hook(self, *args, **kwargs):
+    def create_service_hook(self, *args: Any, **kwargs: Any) -> ServiceHook:
         return Factories.create_service_hook(*args, **kwargs)
 
-    def create_service_hook_project_for_installation(self, *args, **kwargs):
+    def create_service_hook_project_for_installation(
+        self, *args: Any, **kwargs: Any
+    ) -> ServiceHookProject:
         return Factories.create_service_hook_project_for_installation(*args, **kwargs)
 
-    def create_userreport(self, *args, **kwargs):
+    def create_userreport(self, *args: Any, **kwargs: Any) -> UserReport:
         return Factories.create_userreport(*args, **kwargs)
 
-    def create_platform_external_issue(self, *args, **kwargs):
+    def create_platform_external_issue(self, *args: Any, **kwargs: Any) -> PlatformExternalIssue:
         return Factories.create_platform_external_issue(*args, **kwargs)
 
-    def create_integration_external_issue(self, *args, **kwargs):
+    def create_integration_external_issue(self, *args: Any, **kwargs: Any) -> ExternalIssue:
         return Factories.create_integration_external_issue(*args, **kwargs)
 
-    def create_integration_external_project(self, *args, **kwargs):
+    def create_integration_external_project(
+        self, *args: Any, **kwargs: Any
+    ) -> IntegrationExternalProject:
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
+    def create_alert_rule(
+        self,
+        organization: Organization | None = None,
+        projects: Sequence[Project] | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> AlertRule:
         if not organization:
             organization = self.organization
         if projects is None:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
-    def create_notification_action(self, organization=None, projects=None, **kwargs):
+    def create_notification_action(
+        self,
+        organization: Organization | None = None,
+        projects: list[Project] | None = None,
+        **kwargs: Any,
+    ) -> NotificationAction:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
 
-    def create_notification_setting_option(self, *args, **kwargs):
+    def create_notification_setting_option(
+        self, *args: Any, **kwargs: Any
+    ) -> NotificationSettingOption:
         return Factories.create_notification_setting_option(*args, **kwargs)
 
-    def create_notification_settings_provider(self, *args, **kwargs):
+    def create_notification_settings_provider(
+        self, *args: Any, **kwargs: Any
+    ) -> NotificationSettingProvider:
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
-    def create_inbox_item(self, organization=None, user=None, **kwargs):
+    def create_inbox_item(
+        self, organization: Organization | None = None, user: User | None = None, **kwargs: Any
+    ) -> InboxItem:
         return Factories.create_inbox_item(
             organization=organization or self.organization, user=user or self.user, **kwargs
         )
 
-    def create_inbox_item_event(self, *args, **kwargs):
+    def create_inbox_item_event(self, *args: Any, **kwargs: Any) -> InboxItemEvent:
         return Factories.create_inbox_item_event(*args, **kwargs)
 
-    def create_weekly_report_project_exclusion(self, **kwargs):
+    def create_weekly_report_project_exclusion(self, **kwargs: Any) -> WeeklyReportProjectExclusion:
         return Factories.create_weekly_report_project_exclusion(**kwargs)
 
-    def create_user_option(self, *args, **kwargs):
+    def create_user_option(self, *args: Any, **kwargs: Any) -> UserOption:
         return Factories.create_user_option(*args, **kwargs)
 
-    def create_monitor(self, **kwargs):
+    def create_monitor(self, **kwargs: Any) -> Monitor:
         if "owner_user_id" not in kwargs:
             kwargs["owner_user_id"] = self.user.id
 
@@ -627,16 +840,22 @@ class Fixtures:
             **kwargs,
         )
 
-    def create_monitor_environment(self, **kwargs):
+    def create_monitor_environment(self, **kwargs: Any) -> MonitorEnvironment:
         return MonitorEnvironment.objects.create(**kwargs)
 
-    def create_monitor_incident(self, **kwargs):
+    def create_monitor_incident(self, **kwargs: Any) -> MonitorIncident:
         return MonitorIncident.objects.create(**kwargs)
 
-    def create_monitor_checkin(self, **kwargs):
+    def create_monitor_checkin(self, **kwargs: Any) -> MonitorCheckIn:
         return MonitorCheckIn.objects.create(**kwargs)
 
-    def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
+    def create_external_user(
+        self,
+        user: User | None = None,
+        organization: Organization | None = None,
+        integration: Integration | None = None,
+        **kwargs: Any,
+    ) -> ExternalActor:
         if not user:
             user = self.user
         if not organization:
@@ -648,7 +867,9 @@ class Fixtures:
             user=user, organization=organization, integration_id=integration.id, **kwargs
         )
 
-    def create_external_team(self, team=None, integration=None, **kwargs):
+    def create_external_team(
+        self, team: Team | None = None, integration: Integration | None = None, **kwargs: Any
+    ) -> ExternalActor:
         if not team:
             team = self.team
         if not integration:
@@ -658,10 +879,15 @@ class Fixtures:
             team=team, organization=team.organization, integration_id=integration.id, **kwargs
         )
 
-    def create_data_access_grant(self, **kwargs):
+    def create_data_access_grant(self, **kwargs: Any) -> DataAccessGrant:
         return Factories.create_data_access_grant(**kwargs)
 
-    def create_codeowners(self, project=None, code_mapping=None, **kwargs):
+    def create_codeowners(
+        self,
+        project: Project | None = None,
+        code_mapping: RepositoryProjectPathConfig | None = None,
+        **kwargs: Any,
+    ) -> ProjectCodeOwners:
         if not project:
             project = self.project
         if not code_mapping:
@@ -677,7 +903,7 @@ class Fixtures:
         user: RpcUser | User | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
-    ):
+    ) -> Integration:
         if user is None:
             with assume_test_silo_mode(SiloMode.CELL):
                 user = organization.get_default_owner()
@@ -746,10 +972,10 @@ class Fixtures:
         """Create an OrganizationIntegration entity."""
         return Factories.create_organization_integration(**integration_params)
 
-    def create_identity(self, *args, **kwargs):
+    def create_identity(self, *args: Any, **kwargs: Any) -> Identity:
         return Factories.create_identity(*args, **kwargs)
 
-    def create_organization_identity(self, *args, **kwargs):
+    def create_organization_identity(self, *args: Any, **kwargs: Any) -> OrganizationIdentity:
         return Factories.create_organization_identity(*args, **kwargs)
 
     def create_identity_provider(
@@ -760,69 +986,75 @@ class Fixtures:
     ) -> IdentityProvider:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
-    def create_group_history(self, *args, **kwargs):
+    def create_group_history(self, *args: Any, **kwargs: Any) -> GroupHistory:
         if "user_id" not in kwargs and "team" not in kwargs and "team_id" not in kwargs:
             kwargs["user_id"] = self.user.id
         return Factories.create_group_history(*args, **kwargs)
 
-    def create_comment(self, *args, **kwargs):
+    def create_comment(self, *args: Any, **kwargs: Any) -> Activity:
         return Factories.create_comment(*args, **kwargs)
 
-    def create_organization_mapping(self, *args, **kwargs):
+    def create_organization_mapping(self, *args: Any, **kwargs: Any) -> OrganizationMapping:
         return Factories.create_org_mapping(*args, **kwargs)
 
-    def create_basic_auth_header(self, *args, **kwargs) -> bytes:
+    def create_basic_auth_header(self, *args: Any, **kwargs: Any) -> bytes:
         return Factories.create_basic_auth_header(*args, **kwargs)
 
-    def create_request_access(self, *args, **kwargs):
+    def create_request_access(self, *args: Any, **kwargs: Any) -> RpcBackedAccess:
         return Factories.create_request_access(*args, **kwargs)
 
-    def create_webhook_payload(self, *args, **kwargs):
+    def create_webhook_payload(self, *args: Any, **kwargs: Any) -> WebhookPayload:
         return Factories.create_webhook_payload(*args, **kwargs)
 
-    def create_dashboard(self, *args, **kwargs):
+    def create_dashboard(self, *args: Any, **kwargs: Any) -> Dashboard:
         return Factories.create_dashboard(*args, **kwargs)
 
-    def create_explore_saved_formula(self, organization=None, *args, **kwargs):
+    def create_explore_saved_formula(
+        self, organization: Organization | None = None, *args: Any, **kwargs: Any
+    ) -> ExploreSavedFormula:
         if organization is None:
             organization = self.organization
         return Factories.create_explore_saved_formula(organization, *args, **kwargs)
 
-    def create_explore_saved_query(self, organization=None, **kwargs):
+    def create_explore_saved_query(
+        self, organization: Organization | None = None, **kwargs: Any
+    ) -> ExploreSavedQuery:
         if organization is None:
             organization = self.organization
         return Factories.create_explore_saved_query(organization, **kwargs)
 
-    def create_discover_saved_query(self, organization=None, **kwargs):
+    def create_discover_saved_query(
+        self, organization: Organization | None = None, **kwargs: Any
+    ) -> DiscoverSavedQuery:
         if organization is None:
             organization = self.organization
         return Factories.create_discover_saved_query(organization, **kwargs)
 
-    def create_dashboard_favorite_user(self, *args, **kwargs):
+    def create_dashboard_favorite_user(self, *args: Any, **kwargs: Any) -> DashboardFavoriteUser:
         return Factories.create_dashboard_favorite_user(*args, **kwargs)
 
-    def create_dashboard_widget(self, *args, **kwargs):
+    def create_dashboard_widget(self, *args: Any, **kwargs: Any) -> DashboardWidget:
         return Factories.create_dashboard_widget(*args, **kwargs)
 
-    def create_dashboard_widget_query(self, *args, **kwargs):
+    def create_dashboard_widget_query(self, *args: Any, **kwargs: Any) -> DashboardWidgetQuery:
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
-    def create_workflow(self, *args, **kwargs) -> Workflow:
+    def create_workflow(self, *args: Any, **kwargs: Any) -> Workflow:
         if "organization" not in kwargs:
             kwargs["organization"] = self.organization
         return Factories.create_workflow(*args, **kwargs)
 
-    def create_data_source(self, *args, **kwargs) -> DataSource:
+    def create_data_source(self, *args: Any, **kwargs: Any) -> DataSource:
         return Factories.create_data_source(*args, **kwargs)
 
     def create_data_condition(
         self,
-        comparison="10",
-        type=Condition.EQUAL,
-        condition_result=None,
-        condition_group=None,
-        **kwargs,
-    ):
+        comparison: str | int | float | list[object] | Mapping[str, object] = "10",
+        type: Condition = Condition.EQUAL,
+        condition_result: str | int | float | list[object] | Mapping[str, object] | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs: Any,
+    ) -> DataCondition:
         if condition_result is None:
             condition_result = str(DetectorPriorityLevel.HIGH.value)
         if condition_group is None:
@@ -840,65 +1072,77 @@ class Fixtures:
         self,
         project: Project | None = None,
         type: str | None = ErrorGroupType.slug,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
 
-    def create_all_projects_detector(self, organization: Organization, **kwargs):
+    def create_all_projects_detector(self, organization: Organization, **kwargs: Any) -> Detector:
         return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
 
-    def create_detector_state(self, *args, **kwargs) -> DetectorState:
+    def create_detector_state(self, *args: Any, **kwargs: Any) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
 
-    def create_data_source_detector(self, *args, **kwargs):
+    def create_data_source_detector(self, *args: Any, **kwargs: Any) -> DataSourceDetector:
         return Factories.create_data_source_detector(*args, **kwargs)
 
-    def create_data_condition_group(self, organization=None, **kwargs):
+    def create_data_condition_group(
+        self, organization: Organization | None = None, **kwargs: Any
+    ) -> DataConditionGroup:
         if organization is None:
             organization = self.organization
 
         return Factories.create_data_condition_group(organization=organization, **kwargs)
 
-    def create_data_condition_group_action(self, *args, **kwargs):
+    def create_data_condition_group_action(
+        self, *args: Any, **kwargs: Any
+    ) -> DataConditionGroupAction:
         return Factories.create_data_condition_group_action(*args, **kwargs)
 
-    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+    def create_data_condition_alert_rule_trigger(
+        self, *args: Any, **kwargs: Any
+    ) -> DataConditionAlertRuleTrigger:
         return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
-    def create_detector_workflow(self, *args, **kwargs):
+    def create_detector_workflow(self, *args: Any, **kwargs: Any) -> DetectorWorkflow:
         return Factories.create_detector_workflow(*args, **kwargs)
 
-    def create_detector_group(self, *args, **kwargs):
+    def create_detector_group(self, *args: Any, **kwargs: Any) -> DetectorGroup:
         return Factories.create_detector_group(*args, **kwargs)
 
-    def create_alert_rule_detector(self, *args, **kwargs):
+    def create_alert_rule_detector(self, *args: Any, **kwargs: Any) -> AlertRuleDetector:
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_detector(*args, **kwargs)
 
-    def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+    def create_action_alert_rule_trigger_action(
+        self, *args: Any, **kwargs: Any
+    ) -> ActionAlertRuleTriggerAction:
         # TODO: this is only needed during the ACI migration
         return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
 
-    def create_alert_rule_workflow(self, *args, **kwargs):
+    def create_alert_rule_workflow(self, *args: Any, **kwargs: Any) -> AlertRuleWorkflow:
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
-    def create_incident_group_open_period(self, *args, **kwargs):
+    def create_incident_group_open_period(
+        self, *args: Any, **kwargs: Any
+    ) -> IncidentGroupOpenPeriod:
         # TODO: this is only needed during the ACI migration
         return Factories.create_incident_group_open_period(*args, **kwargs)
 
-    def create_workflow_data_condition_group(self, *args, **kwargs):
+    def create_workflow_data_condition_group(
+        self, *args: Any, **kwargs: Any
+    ) -> WorkflowDataConditionGroup:
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
     # workflow_engine.models.action
-    def create_action(self, *args, **kwargs):
+    def create_action(self, *args: Any, **kwargs: Any) -> Action:
         return Factories.create_action(*args, **kwargs)
 
-    def create_action_invocation(self, *args, **kwargs):
+    def create_action_invocation(self, *args: Any, **kwargs: Any) -> ActionInvocation:
         return Factories.create_action_invocation(*args, **kwargs)
 
     def create_uptime_subscription(
@@ -907,15 +1151,15 @@ class Fixtures:
         subscription_id: str | None = None,
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url: str | None = None,
-        host_provider_id="TEST",
-        host_provider_name="TEST",
-        url_domain="sentry",
-        url_domain_suffix="io",
-        interval_seconds=60,
-        timeout_ms=100,
-        method="GET",
-        headers=None,
-        body=None,
+        host_provider_id: str = "TEST",
+        host_provider_name: str = "TEST",
+        url_domain: str = "sentry",
+        url_domain_suffix: str = "io",
+        interval_seconds: IntervalSecondsLiteral = 60,
+        timeout_ms: int = 100,
+        method: SupportedHTTPMethodsLiteral = "GET",
+        headers: Sequence[Sequence[str]] | None = None,
+        body: str | None = None,
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
@@ -956,7 +1200,7 @@ class Fixtures:
         subscription: UptimeSubscription,
         region_slug: str,
         mode: UptimeSubscriptionRegion.RegionMode = UptimeSubscriptionRegion.RegionMode.ACTIVE,
-    ):
+    ) -> None:
         Factories.create_uptime_subscription_region(subscription, region_slug, mode)
 
     def create_uptime_detector(
@@ -966,7 +1210,7 @@ class Fixtures:
         uptime_subscription: UptimeSubscription | None = None,
         status: int = ObjectStatus.ACTIVE,
         enabled: bool = True,
-        mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
+        mode: UptimeMonitorMode = UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         name: str | None = None,
         owner: User | Team | None = None,
         id: int | None = None,
@@ -1047,26 +1291,28 @@ class Fixtures:
     # Preprod artifact helpers
 
     def create_commit_comparison(
-        self, organization: Organization | None = None, **kwargs
+        self, organization: Organization | None = None, **kwargs: Any
     ) -> CommitComparison:
         if organization is None:
             organization = self.organization
         return Factories.create_commit_comparison(organization=organization, **kwargs)
 
-    def create_preprod_artifact(self, project: Project | None = None, **kwargs) -> PreprodArtifact:
+    def create_preprod_artifact(
+        self, project: Project | None = None, **kwargs: Any
+    ) -> PreprodArtifact:
         if project is None:
             project = self.project
         return Factories.create_preprod_artifact(project=project, **kwargs)
 
     def create_preprod_artifact_mobile_app_info(
-        self, preprod_artifact: PreprodArtifact, **kwargs
+        self, preprod_artifact: PreprodArtifact, **kwargs: Any
     ) -> PreprodArtifactMobileAppInfo:
         return Factories.create_preprod_artifact_mobile_app_info(
             preprod_artifact=preprod_artifact, **kwargs
         )
 
     def create_preprod_artifact_size_metrics(
-        self, preprod_artifact: PreprodArtifact, **kwargs
+        self, preprod_artifact: PreprodArtifact, **kwargs: Any
     ) -> PreprodArtifactSizeMetrics:
         return Factories.create_preprod_artifact_size_metrics(artifact=preprod_artifact, **kwargs)
 
@@ -1075,7 +1321,7 @@ class Fixtures:
         head_size_analysis: PreprodArtifactSizeMetrics,
         base_size_analysis: PreprodArtifactSizeMetrics,
         organization: Organization | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> PreprodArtifactSizeComparison:
         if organization is None:
             organization = self.organization
@@ -1087,7 +1333,7 @@ class Fixtures:
         )
 
     def create_preprod_snapshot_metrics(
-        self, preprod_artifact: PreprodArtifact, **kwargs
+        self, preprod_artifact: PreprodArtifact, **kwargs: Any
     ) -> PreprodSnapshotMetrics:
         return Factories.create_preprod_snapshot_metrics(
             preprod_artifact=preprod_artifact, **kwargs
@@ -1097,7 +1343,7 @@ class Fixtures:
         self,
         head_snapshot_metrics: PreprodSnapshotMetrics,
         base_snapshot_metrics: PreprodSnapshotMetrics,
-        **kwargs,
+        **kwargs: Any,
     ) -> PreprodSnapshotComparison:
         return Factories.create_preprod_snapshot_comparison(
             head_snapshot_metrics=head_snapshot_metrics,
@@ -1106,20 +1352,22 @@ class Fixtures:
         )
 
     def create_preprod_comparison_approval(
-        self, preprod_artifact: PreprodArtifact, **kwargs
+        self, preprod_artifact: PreprodArtifact, **kwargs: Any
     ) -> PreprodComparisonApproval:
         return Factories.create_preprod_comparison_approval(
             preprod_artifact=preprod_artifact, **kwargs
         )
 
     def create_preprod_build_configuration(
-        self, project: Project | None = None, **kwargs
+        self, project: Project | None = None, **kwargs: Any
     ) -> PreprodBuildConfiguration:
         if project is None:
             project = self.project
         return Factories.create_preprod_build_configuration(project=project, **kwargs)
 
-    def create_installable_preprod_artifact(self, preprod_artifact, **kwargs):
+    def create_installable_preprod_artifact(
+        self, preprod_artifact: PreprodArtifact, **kwargs: Any
+    ) -> InstallablePreprodArtifact:
         return Factories.create_installable_preprod_artifact(
             preprod_artifact=preprod_artifact, **kwargs
         )
@@ -1133,7 +1381,7 @@ class Fixtures:
         build_number: int = 1,
         state: int = PreprodArtifact.ArtifactState.PROCESSED,
         commit_comparison: CommitComparison | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> PreprodArtifact:
         """Create a processed iOS preprod artifact (xcarchive)."""
         if project is None:
@@ -1160,7 +1408,7 @@ class Fixtures:
         state: int = PreprodArtifact.ArtifactState.PROCESSED,
         artifact_type: int = PreprodArtifact.ArtifactType.APK,
         commit_comparison: CommitComparison | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> PreprodArtifact:
         """Create a processed Android preprod artifact (APK or AAB)."""
         if project is None:
@@ -1188,7 +1436,7 @@ class Fixtures:
         max_install_size: int = 50 * 1024 * 1024,  # 50 MB
         max_download_size: int = 25 * 1024 * 1024,  # 25 MB
         size_analysis_state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
         """
         Create a fully processed iOS preprod artifact with completed size metrics.
@@ -1227,7 +1475,7 @@ class Fixtures:
         max_install_size: int = 30 * 1024 * 1024,  # 30 MB
         max_download_size: int = 15 * 1024 * 1024,  # 15 MB
         size_analysis_state: int = PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        **kwargs,
+        **kwargs: Any,
     ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
         """
         Create a fully processed Android preprod artifact with completed size metrics.
@@ -1336,28 +1584,34 @@ class Fixtures:
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
-    def create_seer_autofix_issue_data(self, group, **kwargs):
+    def create_seer_autofix_issue_data(self, group: Group, **kwargs: Any) -> SeerAutofixIssueData:
         return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
 
-    def create_seer_run(self, organization=None, **kwargs):
+    def create_seer_run(self, organization: Organization | None = None, **kwargs: Any) -> SeerRun:
         if organization is None:
             organization = self.organization
         return Factories.create_seer_run(organization=organization, **kwargs)
 
-    def create_seer_agent_write_grant(self, organization=None, user=None, **kwargs):
+    def create_seer_agent_write_grant(
+        self, organization: Organization | None = None, user: User | None = None, **kwargs: Any
+    ) -> SeerAgentWriteGrant:
         return Factories.create_seer_agent_write_grant(
             organization=organization or self.organization,
             user=user or self.user,
             **kwargs,
         )
 
-    def create_seer_agent_run(self, run, **kwargs):
+    def create_seer_agent_run(self, run: SeerRun, **kwargs: Any) -> SeerAgentRun:
         return Factories.create_seer_agent_run(run=run, **kwargs)
 
-    def create_seer_run_coding_agent_handoff(self, seer_run, **kwargs):
+    def create_seer_run_coding_agent_handoff(
+        self, seer_run: SeerRun, **kwargs: Any
+    ) -> SeerRunCodingAgentHandoff:
         return Factories.create_seer_run_coding_agent_handoff(seer_run=seer_run, **kwargs)
 
-    def create_seer_run_pull_request(self, run, pull_request, **kwargs):
+    def create_seer_run_pull_request(
+        self, run: SeerRun, pull_request: PullRequest, **kwargs: Any
+    ) -> SeerRunPullRequest:
         return Factories.create_seer_run_pull_request(run=run, pull_request=pull_request, **kwargs)
 
     @pytest.fixture(autouse=True)

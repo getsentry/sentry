@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, TypedDict, TypeVar
@@ -283,7 +283,11 @@ class BaseTSDB(Service):
         return rollups
 
     def make_series(
-        self, default, start: datetime, end: datetime | None = None, rollup: int | None = None
+        self,
+        default: int | Callable[[int], int],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
     ) -> list[tuple[int, int]]:
         f = default if callable(default) else lambda timestamp: default
         return [
@@ -404,7 +408,7 @@ class BaseTSDB(Service):
         end: datetime,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
-        conditions=None,
+        conditions: list[SnubaCondition] | None = None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -466,7 +470,7 @@ class BaseTSDB(Service):
         end: datetime,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
-        conditions=None,
+        conditions: list[SnubaCondition] | None = None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,

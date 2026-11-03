@@ -12,6 +12,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
 
@@ -65,7 +66,7 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, sentry_app) -> Response[SentryAppStatsResponse]:
+    def get(self, request: Request, sentry_app: SentryApp) -> Response[SentryAppStatsResponse]:
         """
         Return the number of installations and uninstallations of a custom integration
         (Sentry App) over a time series range.

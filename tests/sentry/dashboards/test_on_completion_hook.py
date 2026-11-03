@@ -21,7 +21,7 @@ from sentry.testutils.cases import TestCase
 
 def _make_state(
     status: str = "completed",
-    artifact_data: dict | None = None,
+    artifact_data: dict[str, Any] | None = None,
     previous_blocks: list[MemoryBlock] | None = None,
 ) -> SeerRunState:
     blocks: list[MemoryBlock] = list(previous_blocks or [])

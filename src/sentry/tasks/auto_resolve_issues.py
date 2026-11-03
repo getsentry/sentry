@@ -34,7 +34,7 @@ TEN_MINUTES = 10 * 60
     processing_deadline_duration=75,
     silo_mode=SiloMode.CELL,
 )
-def schedule_auto_resolution():
+def schedule_auto_resolution() -> None:
     options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
@@ -67,7 +67,12 @@ def schedule_auto_resolution():
     processing_deadline_duration=90,
     silo_mode=SiloMode.CELL,
 )
-def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
+def auto_resolve_project_issues(
+    project_id: int,
+    cutoff: int | None = None,
+    chunk_size: int = 1000,
+    **kwargs: Any,
+) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -76,13 +81,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     project.update_option("sentry:_last_auto_resolve", int(time()))
 
     if cutoff:
-        cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
+        cutoff_dt = datetime.fromtimestamp(cutoff, timezone.utc)
     else:
-        cutoff = django_timezone.now() - timedelta(hours=int(age))
+        cutoff_dt = django_timezone.now() - timedelta(hours=int(age))
 
-    filter_conditions = {
+    filter_conditions: dict[str, Any] = {
         "project": project,
-        "last_seen__lte": cutoff,
+        "last_seen__lte": cutoff_dt,
         "status": GroupStatus.UNRESOLVED,
     }
 
@@ -102,7 +107,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         happened = Group.objects.filter(
             id=group.id,
             status=GroupStatus.UNRESOLVED,
-            last_seen__lte=cutoff,
+            last_seen__lte=cutoff_dt,
         ).update(
             status=GroupStatus.RESOLVED,
             resolved_at=resolution_time,
@@ -154,7 +159,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     if might_have_more:
         auto_resolve_project_issues.apply_async(
             args=[project_id],
-            kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
+            kwargs={"cutoff": int(cutoff_dt.strftime("%s")), "chunk_size": chunk_size},
             expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )

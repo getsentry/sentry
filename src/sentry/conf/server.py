@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, NotRequired, TypedDict, Union, overload
 from urllib.parse import urlparse
 
 import orjson
@@ -41,7 +41,7 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_EnvTypes = Union[str, float, int, list, dict]
+_EnvTypes = Union[str, float, int, list[object], dict[str, object]]
 
 
 @overload
@@ -49,13 +49,15 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
+def env(
+    key: str, default: _EnvTypes, type: env_types.Type[_EnvTypes] | None = None
+) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: env_types.Type | None = None,
+    type: env_types.Type[_EnvTypes] | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -1027,7 +1029,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.tasks",
+    "sentry.telemetry_classifiers.poc_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1249,13 +1251,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
-    "llm-cache-issue-detection": {
-        "task": (
-            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
-            "run_llm_cache_issue_detection"
-        ),
-        "schedule": timedelta(minutes=1),
-    },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
@@ -1450,7 +1445,10 @@ REST_FRAMEWORK = {
 }
 
 
-def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+_OperationParameter = TypedDict("_OperationParameter", {"in": str, "required": NotRequired[bool]})
+
+
+def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
     """
     Sort parameters by type then if the parameter is required or not.
     It should group path parameters first, then query parameters.
@@ -3394,7 +3392,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 SENTRY_GITHUB_APP_USER_ID = 39604003
 
-SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+SEER_AUTOFIX_FORCE_USE_REPOS: list[dict[str, object]] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")

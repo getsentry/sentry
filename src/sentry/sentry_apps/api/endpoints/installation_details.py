@@ -34,6 +34,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
@@ -61,7 +62,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, installation) -> Response[SentryAppInstallationResult]:
+    def get(
+        self, request: Request, installation: RpcSentryAppInstallation
+    ) -> Response[SentryAppInstallationResult]:
         """
         Return details about a single custom integration (Sentry App) installation.
         """
@@ -83,7 +86,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, installation) -> Response:
+    def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
         """
         Uninstall a custom integration (Sentry App) from an organization.
         """
@@ -142,7 +145,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         },
     )
     def put(
-        self, request: Request, installation
+        self, request: Request, installation: RpcSentryAppInstallation
     ) -> Response[SentryAppInstallationResult] | Response[ValidationErrorResponse]:
         """
         Update a custom integration (Sentry App) installation, for example to mark a

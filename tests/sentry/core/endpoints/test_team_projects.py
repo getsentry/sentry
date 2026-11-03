@@ -1,3 +1,4 @@
+from typing import cast
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
@@ -395,7 +396,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         }
 
         assert javascript_filter_states["browser-extensions"]
-        assert set(javascript_filter_states["legacy-browsers"]) == {
+        assert set(cast(list[str], javascript_filter_states["legacy-browsers"])) == {
             "ie",
             "firefox",
             "chrome",
@@ -651,7 +652,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Ensure no org-level default is set
         self.organization.delete_option("sentry:default_autofix_automation_tuning")
@@ -671,7 +672,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org explicitly sets "off" - should be respected even with seat-based tier
         self.organization.update_option("sentry:default_autofix_automation_tuning", "off")
@@ -691,7 +692,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
     def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
-        self, mock_seat_based_tier
+        self, mock_seat_based_tier: MagicMock
     ) -> None:
         # Org sets "high" but seat-based tier overrides to "medium"
         self.organization.update_option("sentry:default_autofix_automation_tuning", "high")

@@ -887,7 +887,7 @@ def _dispatch_pending_shards(
     for shard_index, planned_shard in enumerate(planned_shards):
         with transaction.atomic(using=using):
             shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=planned_shard.id)
-            if shard.seer_run_id is not None:
+            if shard.seer_run_id:
                 dispatched += 1
                 continue
 

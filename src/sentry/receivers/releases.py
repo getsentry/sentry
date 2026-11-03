@@ -92,7 +92,7 @@ def _capture_pull_request_link(
             outcome.succeeded = True
 
 
-def validate_release_empty_version(instance: Release, **kwargs):
+def validate_release_empty_version(instance: Release, **kwargs: object) -> None:
     if not Release.is_valid_version(instance.version):
         raise ValidationError(
             f"release_id({instance.id}) failed to save because of invalid version"
@@ -100,7 +100,10 @@ def validate_release_empty_version(instance: Release, **kwargs):
 
 
 def invalidate_release_cache(
-    instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
+    instance: Release,
+    created: bool,
+    update_fields: Iterable[str] | None = None,
+    **kwargs: object,
 ) -> None:
     if created:
         return
@@ -131,7 +134,10 @@ def invalidate_release_cache(
 
 
 def resolve_group_resolutions(
-    instance: Release, created: bool, update_fields: Iterable[str] | None = None, **kwargs
+    instance: Release,
+    created: bool,
+    update_fields: Iterable[str] | None = None,
+    **kwargs: object,
 ) -> None:
     # save() without update_fields may change either timestamp. Reevaluation
     # is idempotent, so conservatively handle those saves too.
@@ -153,7 +159,7 @@ def resolve_group_resolutions(
     transaction.on_commit(on_commit, router.db_for_write(Release))
 
 
-def remove_resolved_link(link):
+def remove_resolved_link(link: GroupLink) -> None:
     with transaction.atomic(router.db_for_write(GroupLink)):
         link.delete()
 
@@ -197,7 +203,7 @@ def _find_pull_request_author_user(
     )
 
 
-def resolved_in_commit(instance: Commit, created, **kwargs):
+def resolved_in_commit(instance: Commit, created: bool, **kwargs: object) -> None:
     """
     Creates GroupLinks and referenced activity for commits that reference issues.
 
@@ -326,7 +332,7 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 )
 
 
-def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
+def resolved_in_pull_request(instance: PullRequest, created: bool, **kwargs: object) -> None:
     groups = instance.find_referenced_groups()
 
     # Delete GroupLinks where message may have changed
@@ -607,7 +613,7 @@ post_save.connect(
 @buffer_incr_complete.connect(
     sender=ReleaseProject, dispatch_uid="project_has_releases_receiver", weak=False
 )
-def project_has_releases_receiver(filters, **_):
+def project_has_releases_receiver(filters: dict[str, object], **_: object) -> None:
     try:
         project = ReleaseProject.objects.select_related("project").get(**filters).project
     except ReleaseProject.DoesNotExist:

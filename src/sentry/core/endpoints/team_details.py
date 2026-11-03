@@ -34,7 +34,7 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 
 
-class TeamDetailsSerializer(CamelSnakeModelSerializer):
+class TeamDetailsSerializer(CamelSnakeModelSerializer[Team]):
     name = serializers.CharField(
         max_length=64,
         required=False,
@@ -71,7 +71,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
     # OrganizationSCIMTeamDetails inherits this endpoint, but toggles this setting
     _allow_idp_changes = False
 
-    def can_modify_idp_team(self, team: Team):
+    def can_modify_idp_team(self, team: Team) -> bool:
         if not team.idp_provisioned:
             return True
         return self._allow_idp_changes
@@ -93,7 +93,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
         examples=TeamExamples.RETRIEVE_TEAM_DETAILS,
     )
-    def get(self, request: Request, team) -> Response[TeamSerializerResponse]:
+    def get(self, request: Request, team: Team) -> Response[TeamSerializerResponse]:
         """
         Return details on an individual team.
         """
@@ -125,7 +125,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         examples=TeamExamples.UPDATE_TEAM,
     )
     def put(
-        self, request: Request, team
+        self, request: Request, team: Team
     ) -> (
         Response[TeamSerializerResponse]
         | Response[DetailResponse]
@@ -171,7 +171,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
         },
     )
     @sudo_required
-    def delete(self, request: Request, team) -> Response[None] | Response[DetailResponse]:
+    def delete(self, request: Request, team: Team) -> Response[None] | Response[DetailResponse]:
         """
         Schedules a team for deletion.
 
