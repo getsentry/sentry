@@ -199,6 +199,8 @@ class SwapGroupReleaseReleaseIdTest(TestMigrations):
 
 
 class SwapUs1ShapedGroupReleaseReleaseIdTest(SwapGroupReleaseReleaseIdTest):
+    """The same swap against US-1's shape: older unique and index names, and a bigint release_id."""
+
     narrow_type = "bigint"
 
     def prepare_table_shape(self) -> None:
@@ -214,6 +216,7 @@ class SwapUs1ShapedGroupReleaseReleaseIdTest(SwapGroupReleaseReleaseIdTest):
 
     def tearDown(self) -> None:
         super().tearDown()
+        # Later test classes expect the canonical integer column.
         with connection.cursor() as cursor:
             cursor.execute(
                 "ALTER TABLE sentry_grouprelease ALTER COLUMN new_release_id TYPE integer"
@@ -222,6 +225,7 @@ class SwapUs1ShapedGroupReleaseReleaseIdTest(SwapGroupReleaseReleaseIdTest):
 
 class SwapGroupReleaseInvalidTwinTest(TestMigrations):
     app = "sentry"
+    # Both 1249, so the table is left unswapped and the test runs SWAP_SQL itself.
     migrate_from = "1249_remove_artifactbundleindex_url_index"
     migrate_to = "1249_remove_artifactbundleindex_url_index"
 
@@ -229,6 +233,7 @@ class SwapGroupReleaseInvalidTwinTest(TestMigrations):
         snapshot_before = fetch_catalog_snapshot()
 
         with connection.cursor() as cursor:
+            # What an interrupted CREATE INDEX CONCURRENTLY leaves behind.
             cursor.execute(
                 "UPDATE pg_index SET indisvalid = false "
                 "WHERE indexrelid = 'sentry_grouprelease_new_release_id'::regclass"

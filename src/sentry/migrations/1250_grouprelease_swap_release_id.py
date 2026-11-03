@@ -4,7 +4,7 @@ from django.db import migrations
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
-# Django's names for the swapped columns, copied from sqlmigrate and the schema editor.
+# Django's generated names for these columns' constraints and indexes.
 UNIQUE_NAME = "sentry_grouprelease_group_id_release_id_envi_044354c8_uniq"
 RELEASE_ID_INDEX = "sentry_grouprelease_release_id_f0ccbbfc"
 NEW_RELEASE_ID_INDEX = "sentry_grouprelease_new_release_id_9a0f50dc"
@@ -15,9 +15,8 @@ NEW_RELEASE_ID_CHECK = "sentry_grouprelease_new_release_id_check"
 UNIQUE_TWIN = "sentry_grouprelease_group_id_new_release_id_environment_uniq"
 INDEX_TWIN = "sentry_grouprelease_new_release_id"
 
-# `migrations run` executes the operation without consulting django_migrations, so a second
-# manual run would rotate the columns straight back. The guard makes a re-run a no-op; it reads
-# attnum because in US-1 both columns are already bigint.
+# `migrations run` ignores django_migrations, so a manual re-run would swap the columns back.
+# The guard compares attnum, which a rename keeps: the original release_id has the lower one.
 # The old unique, index and check have different names per region, so they are found by column.
 SWAP_SQL = f"""
 DO $$
@@ -29,8 +28,7 @@ DECLARE
     old_check_name text;
     twin_is_usable boolean;
 BEGIN
-    -- Every second spent waiting queues about 2,300 statements on this table; a timeout is
-    -- re-run by hand.
+    -- Waiting here queues every statement on a hot table, so give up fast; re-run on timeout.
     SET LOCAL lock_timeout = '2s';
     LOCK TABLE "sentry_grouprelease" IN ACCESS EXCLUSIVE MODE;
 
@@ -66,7 +64,7 @@ BEGIN
       AND contype = 'c'
       AND conkey = ARRAY[release_id_attnum];
 
-    -- USING INDEX refuses an invalid unique twin by itself; a renamed invalid index would not.
+    -- Renaming would accept an invalid index; USING INDEX already rejects an invalid unique twin.
     SELECT indisvalid AND indisready INTO twin_is_usable
     FROM pg_index
     WHERE indexrelid = to_regclass('{INDEX_TWIN}');
@@ -84,7 +82,7 @@ BEGIN
     ALTER TABLE "sentry_grouprelease"
         ADD CONSTRAINT "{UNIQUE_NAME}" UNIQUE USING INDEX "{UNIQUE_TWIN}";
 
-    -- The old index first: in DE it already holds the name the twin takes.
+    -- The old index first: it may already hold the name the twin takes.
     EXECUTE format('ALTER INDEX %I RENAME TO %I', old_index_name, '{NEW_RELEASE_ID_INDEX}');
     ALTER INDEX "{INDEX_TWIN}" RENAME TO "{RELEASE_ID_INDEX}";
 
@@ -98,7 +96,7 @@ END $$;
 """
 
 # Builds both unique indexes inside the lock, so it is for tests and local work, not a
-# production rollback plan. Names come back as Django and 1234 give them, whatever the region.
+# production rollback plan.
 UNSWAP_SQL = f"""
 DO $$
 DECLARE
