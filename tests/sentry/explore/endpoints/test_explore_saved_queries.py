@@ -395,6 +395,74 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_get_saved_query_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [{"fields": ["formula.apdex(span.duration,300)"], "mode": "samples"}],
+        }
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_search_querystring_with_formula(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [
+                {"query": ["field:foo formula.apdex(span.duration,300):>0.7"], "mode": "samples"}
+            ],
+        }
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query=query,
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
+    def test_get_saved_query_with_formula_dont_get_similar(self) -> None:
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Formula query",
+            query={
+                "range": "24h",
+                "query": [{"fields": ["formula.apdex(span.duration, 300)"], "mode": "samples"}],
+            },
+        )
+
+        ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="non formula query",
+            query={
+                "range": "24h",
+                "query": [{"query": ["field:formula.apdex(span.duration,300)"], "mode": "samples"}],
+            },
+        )
+
+        self.features["organizations:explore-saved-formulas"] = True
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"formula": "formula.apdex"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Formula query"
+
     def test_get_hides_queries_when_no_project_access(self) -> None:
         # Disable Open Membership so project-level access actually applies.
         self.org.flags.allow_joinleave = False

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import cast
+import re
 
 import sentry_sdk
 from django.db import router, transaction
@@ -16,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.creator import get_creator_reference
+from sentry.api.endpoints.organization_explore_formulas import FORMULA_PREFIX
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.exploresavedquery import (
@@ -483,6 +485,19 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(created_by_id=request.user.id)
         elif exclude == "owned":
             queryset = queryset.exclude(created_by_id=request.user.id)
+
+        formula = request.query_params.get("formula")
+        saved_formula_feature = features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        )
+        if formula is not None and saved_formula_feature:
+            if formula.startswith(FORMULA_PREFIX):
+                formula = re.escape(formula)
+                queryset = queryset.filter(
+                    query__query__regex=rf'(^|[^\\]"|[[:space:]])(-)?{formula}\([^")]*\)(:|")'
+                )
+            else:
+                raise ParseError(f"Formulas start with {FORMULA_PREFIX}")
 
         starred = request.query_params.get("starred")
 
