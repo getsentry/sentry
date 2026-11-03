@@ -60,8 +60,11 @@ class IssuePRReadyForReviewData(InboxEventData):
 ISSUE = IssueItemType()
 inbox_item_type_registry.register(ISSUE.subject_type)(ISSUE)
 
-ISSUE_ASSIGNED = InboxEventType(
-    event_type="issue.assigned", item_type=ISSUE, data_class=IssueAssignedData
+ISSUE_USER_ASSIGNED = InboxEventType(
+    event_type="issue.user_assigned", item_type=ISSUE, data_class=IssueAssignedData
+)
+ISSUE_TEAM_ASSIGNED = InboxEventType(
+    event_type="issue.team_assigned", item_type=ISSUE, data_class=IssueAssignedData
 )
 ISSUE_USER_MENTIONED = InboxEventType(
     event_type="issue.user_mentioned", item_type=ISSUE, data_class=IssueMentionedData
@@ -73,7 +76,8 @@ ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData
 )
 
-inbox_item_event_type_registry.register(ISSUE_ASSIGNED.event_type)(ISSUE_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_TEAM_ASSIGNED.event_type)(ISSUE_TEAM_ASSIGNED)
 inbox_item_event_type_registry.register(ISSUE_USER_MENTIONED.event_type)(ISSUE_USER_MENTIONED)
 inbox_item_event_type_registry.register(ISSUE_TEAM_MENTIONED.event_type)(ISSUE_TEAM_MENTIONED)
 inbox_item_event_type_registry.register(ISSUE_PR_READY_FOR_REVIEW.event_type)(
@@ -112,7 +116,8 @@ def record_issue_assignment(
         return
 
     is_team = isinstance(assignee, Team)
-    ISSUE_ASSIGNED.record(
+    event_type = ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED
+    event_type.record(
         subject=group,
         data=IssueAssignedData(
             summary="Assigned to your team" if is_team else "Assigned to you",
