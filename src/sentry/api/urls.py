@@ -218,6 +218,13 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
+from sentry.inbox.endpoints.organization_inbox import OrganizationInboxIndexEndpoint
+from sentry.inbox.endpoints.organization_inbox_count import (
+    OrganizationInboxCountEndpoint,
+)
+from sentry.inbox.endpoints.organization_inbox_item_events import (
+    OrganizationInboxItemEventsEndpoint,
+)
 from sentry.insights.endpoints.starred_segments import OrganizationStarredServiceSpansEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
@@ -2379,6 +2386,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-apps/$",
         OrganizationSentryAppsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-apps",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/$",
+        OrganizationInboxIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/count/$",
+        OrganizationInboxCountEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox-count",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/(?P<item_id>\d+)/events/$",
+        OrganizationInboxItemEventsEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox-item-events",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",

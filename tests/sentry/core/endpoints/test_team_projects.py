@@ -410,10 +410,10 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert javascript_filter_states["filtered-transaction"]
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    def test_similarity_project_option_valid(self) -> None:
+    def test_similarity_project_option_region_enabled(self) -> None:
         """
-        Test that project option for similarity grouping is created when the project platform is
-        Seer-eligible.
+        Test that project option for similarity grouping is created when the region has new
+        project Seer grouping enabled.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -435,25 +435,20 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             is not None
         )
 
-    def test_similarity_project_option_invalid(self) -> None:
+    @override_options({"similarity.new_project_seer_grouping.enabled": False})
+    def test_similarity_project_option_region_disabled(self) -> None:
         """
-        Test that project option for similarity grouping is not created when the project platform
-        is not seer eligible.
+        Test that project option for similarity grouping is not created when the region has new
+        project Seer grouping disabled.
         """
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
-            name="foo",
-            slug="bar",
-            platform="php",
+            **self.data,
             status_code=201,
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert project.name == "foo"
-        assert project.slug == "bar"
-        assert project.platform == "php"
-        assert project.teams.first() == self.team
 
         assert (
             ProjectOption.objects.get_value(
