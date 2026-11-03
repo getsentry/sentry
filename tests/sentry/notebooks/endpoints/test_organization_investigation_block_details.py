@@ -22,7 +22,7 @@ class InvestigationBlockDetailsEndpointTest(APITestCase):
 
     def block_url(self, block: NotebookBlock) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-block-details",
+            "sentry-api-0-organization-notebook-block-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

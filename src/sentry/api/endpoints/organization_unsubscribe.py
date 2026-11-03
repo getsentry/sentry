@@ -41,14 +41,14 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def fetch_instance(self, request: Request, organization_id_or_slug: int | str, id: int) -> T:
         raise NotImplementedError()
 
-    def unsubscribe(self, request: Request, instance: T):
+    def unsubscribe(self, request: Request, instance: T) -> None:
         raise NotImplementedError()
 
     def add_instance_data(self, data: dict[str, Any], instance: T) -> dict[str, Any]:
         return data
 
     def get(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
+        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs: object
     ) -> Response:
         if not auth.is_user_signed_request(request):
             raise NotFound()
@@ -69,7 +69,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         return Response(self.add_instance_data(data, instance), 200)
 
     def post(
-        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
+        self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs: object
     ) -> Response:
         if not request.user_from_signed_request:
             raise NotFound()
@@ -108,7 +108,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
 
         return data
 
-    def unsubscribe(self, request: Request, instance: Project):
+    def unsubscribe(self, request: Request, instance: Project) -> None:
         notifications_service.update_notification_options(
             actor=Actor(id=request.user.pk, actor_type=ActorType.USER),
             type=NotificationSettingEnum.ISSUE_ALERTS,
@@ -142,7 +142,7 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
             raise NotFound()
         return issue
 
-    def unsubscribe(self, request: Request, instance: Group):
+    def unsubscribe(self, request: Request, instance: Group) -> None:
         GroupSubscription.objects.update_or_create(
             group=instance,
             project_id=instance.project_id,

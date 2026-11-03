@@ -21,6 +21,8 @@ from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.services.github_copilot_identity import github_copilot_identity_service
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestAttributionSignalType, parse_pull_request_url
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
@@ -107,7 +109,9 @@ def store_coding_agent_states_to_seer(
     )
 
 
-def validate_and_get_integration(organization, integration_id: int):
+def validate_and_get_integration(
+    organization: Organization, integration_id: int
+) -> tuple[RpcIntegration, CodingAgentIntegration]:
     """Validate request and get the coding agent integration."""
     integration_id_int = integration_id
 
@@ -353,9 +357,9 @@ def poll_claude_code_agents(
 
 
 def poll_claude_agent(
-    clients,
-    agent_id,
-    org_id,
+    clients: dict[int, Any],
+    agent_id: str,
+    org_id: int,
     agent_state: CodingAgentState,
     run_id: int | None = None,
     group_id: int | None = None,
@@ -439,7 +443,12 @@ def poll_claude_agent(
             )
 
 
-def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:
+def get_claude_code_client(
+    clients: dict[int, Any],
+    agent_id: str,
+    org_id: int,
+    integration_id: int | None,
+) -> Any | None:
     if integration_id is None:
         logger.warning(
             "coding_agent.claude_code.missing_integration_id",

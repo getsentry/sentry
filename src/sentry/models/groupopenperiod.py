@@ -41,7 +41,8 @@ class TsTzRange(models.Func):
 
 
 def get_group_types_without_open_periods() -> Collection[int]:
-    return options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+    type_ids = options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+    return type_ids
 
 
 def should_create_open_periods(type_id: int) -> bool:

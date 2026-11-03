@@ -1,9 +1,11 @@
 import datetime
+from collections.abc import Mapping, MutableMapping
 from datetime import timezone
 from functools import cached_property
 
 import pytest
 import responses
+from requests import PreparedRequest
 
 from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.constants import ObjectStatus
@@ -44,7 +46,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         )
 
     @cached_property
-    def provider(self):
+    def provider(self) -> BitbucketRepositoryProvider:
         return BitbucketRepositoryProvider("bitbucket")
 
     def test_get_client(self) -> None:
@@ -86,7 +88,7 @@ class BitbucketRepositoryProviderTest(TestCase):
     def _on_create_repository_discards_hook_when_repository_disabled(
         self, delete_status: int
     ) -> None:
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"uuid": "hook-uuid"}'
 
@@ -122,7 +124,7 @@ class BitbucketRepositoryProviderTest(TestCase):
 
     @responses.activate
     def test_on_create_repository_preserves_concurrent_changes(self) -> None:
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             Repository.objects.filter(id=self.repo.id).update(name="renamed")
             return 201, {}, '{"uuid": "hook-uuid"}'
 
@@ -179,11 +181,12 @@ class BitbucketRepositoryProviderTest(TestCase):
                 },
             )
             integration.add_organization(organization)
-        data = {
+        data: MutableMapping[str, object] = {
             "provider": "integrations:bitbucket",
             "identifier": full_repo_name,
             "installation": integration.id,
         }
+        rpc_organization = serialize_rpc_organization(organization)
         data = self.provider.get_repository_data(organization, data)
         assert data == {
             "provider": "integrations:bitbucket",
@@ -192,9 +195,9 @@ class BitbucketRepositoryProviderTest(TestCase):
             "external_id": REPO["uuid"],
             "name": full_repo_name,
         }
-        data = self.provider.build_repository_config(organization, data)
+        repository_config = self.provider.build_repository_config(rpc_organization, data)
 
-        assert data == {
+        assert repository_config == {
             "name": full_repo_name,
             "external_id": REPO["uuid"],
             "url": "https://bitbucket.org/laurynsentry/helloworld",
@@ -242,7 +245,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
         )
         self.default_repository_config = {"full_name": "getsentry/example-repo", "id": "123"}
 
-    def add_create_repository_responses(self, repository_config):
+    def add_create_repository_responses(self, repository_config: Mapping[str, object]) -> None:
         responses.add(
             responses.GET,
             f"{self.base_url}/2.0/repositories/{self.repo.name}",

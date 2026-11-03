@@ -1,8 +1,10 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -21,7 +23,12 @@ from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.auth.principal import set_request_principal
+from sentry.auth.principal import (
+    acting_user_id,
+    owned_by_acting_user,
+    require_user,
+    set_request_principal,
+)
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID, SuperuserAccessSerializer
@@ -85,7 +92,7 @@ class BaseAuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                interface = Authenticator.objects.get_interface(require_user(request), "u2f")
                 assert isinstance(interface, U2fInterface)
                 if not interface.is_enrolled():
                     raise LookupError()
@@ -95,7 +102,7 @@ class BaseAuthIndexEndpoint(Endpoint):
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",
-                        extra={"user": request.user.id},
+                        extra={"user": acting_user_id(request.user)},
                     )
                 else:
                     metrics.incr("auth.2fa.success", sample_rate=1.0, skip_internal=False)
@@ -103,12 +110,15 @@ class BaseAuthIndexEndpoint(Endpoint):
             except ValueError as err:
                 logger.warning(
                     "u2f_authentication.value_error",
-                    extra={"user": request.user.id, "error_message": err},
+                    extra={"user": acting_user_id(request.user), "error_message": err},
                 )
             except LookupError:
                 logger.warning(
                     "u2f_authentication.interface_not_enrolled",
-                    extra={"validated_data": validator.validated_data, "user": request.user.id},
+                    extra={
+                        "validated_data": validator.validated_data,
+                        "user": acting_user_id(request.user),
+                    },
                 )
         # attempt password authentication
         elif "password" in validator.validated_data:
@@ -137,7 +147,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     and simple HTTP authentication.
     """
 
-    def initialize_request(self, request, *args, **kwargs):
+    def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         rv = super().initialize_request(request, *args, **kwargs)
         # Allow Bearer token authentication for GET (whoami) only.
         # POST/PUT/DELETE are session-management operations where Bearer auth
@@ -174,7 +184,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         logger.info(
             "auth-index.validate_superuser",
             extra={
-                "user": request.user.id,
+                "user": acting_user_id(request.user),
                 "raise_exception": not DISABLE_SSO_CHECK_FOR_LOCAL_DEV,
                 "verify_authenticator": verify_authenticator,
             },
@@ -219,7 +229,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
-        if request.user.has_2fa():
+        if require_user(request).has_2fa():
             return Response(
                 {
                     "2fa_required": True,
@@ -305,7 +315,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
                 if verify_authenticator:
                     if not Authenticator.objects.filter(
-                        user_id=request.user.id, type=U2fInterface.type
+                        owned_by_acting_user(request.user), type=U2fInterface.type
                     ).exists():
                         return Response(
                             {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
@@ -314,7 +324,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     "auth-index.put",
                     extra={
                         "organization": SUPERUSER_ORG_ID,
-                        "user": request.user.id,
+                        "user": acting_user_id(request.user),
                         "verify_authenticator": verify_authenticator,
                     },
                 )
@@ -361,7 +371,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         return self.get(request)
 
-    def delete(self, request: Request, *args, **kwargs) -> Response:
+    def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Logout the Authenticated User
         `````````````````````````````

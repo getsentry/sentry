@@ -1,6 +1,7 @@
 import logging
 import random
 import string
+from collections.abc import Sequence
 from email.headerregistry import Address
 from typing import Any, TypedDict, TypeIs
 
@@ -130,6 +131,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationProjectsPermission,)
     owner = ApiOwner.FOUNDATIONS
     logger = logging.getLogger("team-project.create")
@@ -247,7 +249,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
-                    queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+                    # isnull=False: a caller with no user (id None) would otherwise match
+                    # teamless projects and teams with pending invites.
+                    queryset = queryset.filter(
+                        teams__organizationmember__user_id=request.user.id,
+                        teams__organizationmember__user_id__isnull=False,
+                    )
                 else:
                     queryset = queryset.none()
 
@@ -276,7 +283,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             if expand_context:
                 expand.add("options")
 
-            def serialize_on_result(result):
+            def serialize_on_result(result: Sequence[Project]) -> list[object]:
                 environment_id = get_environment_id(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
@@ -286,7 +293,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     collapse=collapse,
                     dataset=dataset,
                 )
-                return serialize(result, request.user, serializer)
+                return list(serialize(result, request.user, serializer))
 
             return self.paginate(
                 request=request,
@@ -479,6 +486,9 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
+        my_projects = queryset.filter(
+            teams__organizationmember__user_id=request.user.id,
+            teams__organizationmember__user_id__isnull=False,
+        ).count()
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

@@ -1551,6 +1551,15 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Endpoint class names whose ConditionalGetResponseMixin cache_tier is applied.
+# Requires api.conditional_get.enabled. A browser keeps a cached response for up to
+# the tier's seconds after its endpoint is removed from this list.
+register(
+    "api.conditional_get.max_age_endpoints",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. 0.0 disables generation; 1.0 enables it for every
@@ -2756,6 +2765,16 @@ register("features.error.capture_rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFI
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},

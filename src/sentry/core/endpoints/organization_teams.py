@@ -73,7 +73,7 @@ class TeamPostSerializer(serializers.Serializer):
     )
     idp_provisioned = serializers.BooleanField(required=False, default=False)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         if not (attrs.get("name") or attrs.get("slug")):
             raise serializers.ValidationError("Name or slug is required")
         return attrs
@@ -86,9 +86,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationTeamsPermission,)
 
-    def team_serializer_for_post(self):
+    def team_serializer_for_post(self) -> TeamSerializer:
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
@@ -177,7 +178,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def should_add_creator_to_team(self, request: Request):
+    def should_add_creator_to_team(self, request: Request) -> bool:
         return has_user(request.user)
 
     @extend_schema(
@@ -196,7 +197,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         examples=TeamExamples.CREATE_TEAM,
     )
     def post(
-        self, request: Request, organization, **kwargs
+        self, request: Request, organization: Organization, **kwargs: object
     ) -> Response[TeamSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new team bound to an organization. Requires at least one of the `name`

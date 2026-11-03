@@ -8,11 +8,11 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.contrib.messages.storage.base import Message
 from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
 from django.http import HttpRequest
 from packaging.version import parse as parse_version
-from rest_framework.request import Request
 
 import sentry
 from sentry import features, options
@@ -63,7 +63,7 @@ def _get_support_mail() -> str | None:
     return options.get("system.support-email") or options.get("system.admin-email") or None
 
 
-def _get_version_info():
+def _get_version_info() -> dict[str, str | bool]:
     current = sentry.VERSION
 
     latest = options.get("sentry:latest_version") or current
@@ -78,7 +78,7 @@ def _get_version_info():
     }
 
 
-def _needs_upgrade():
+def _needs_upgrade() -> bool:
     version_configured = options.get("sentry:version-configured")
     if not version_configured:
         # If we were never previously upgraded (being a new install)
@@ -140,7 +140,7 @@ def _get_public_dsn() -> str | None:
     return result
 
 
-def _delete_activeorg(session):
+def _delete_activeorg(session: SessionBase | None) -> None:
     if session and "activeorg" in session:
         del session["activeorg"]
 
@@ -183,7 +183,7 @@ def _resolve_last_org(
 class _ClientConfig:
     def __init__(
         self,
-        request: Request | None = None,
+        request: HttpRequest | None = None,
         org_context: RpcUserOrganizationContext | None = None,
     ) -> None:
         self.request = request
@@ -239,7 +239,7 @@ class _ClientConfig:
         return _get_public_dsn()
 
     @property
-    def messages(self):
+    def messages(self) -> Iterable[Message]:
         if self.request is None:
             return []
         return get_messages(self.request)
@@ -320,7 +320,7 @@ class _ClientConfig:
             filter={"user_ids": [self.user.id]},
             serializer=UserSerializeType.SELF_DETAILED,
             auth_context=AuthenticationContext(
-                auth=self.request.auth if self.request is not None else None,
+                auth=getattr(self.request, "auth", None) if self.request is not None else None,
                 user=serialize_generic_user(self.user),
             ),
         )
@@ -498,7 +498,7 @@ class _ClientConfig:
 
 
 def get_client_config(
-    request=None, org_context: RpcUserOrganizationContext | None = None
+    request: HttpRequest | None = None, org_context: RpcUserOrganizationContext | None = None
 ) -> Mapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.

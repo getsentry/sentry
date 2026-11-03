@@ -1,6 +1,9 @@
 __all__ = ["ReleaseHook"]
 
 import logging
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import Any, TypedDict, Unpack, cast
 
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest
@@ -9,20 +12,28 @@ from django.utils import timezone
 
 from sentry.exceptions import HookValidationError
 from sentry.models.activity import Activity
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.types.activity import ActivityType
 
 logger = logging.getLogger(__name__)
 
 
+class _ReleaseValues(TypedDict, total=False):
+    date_released: datetime
+    ref: str | None
+    url: str | None
+    status: int
+
+
 class ReleaseHook:
-    def __init__(self, project):
+    def __init__(self, project: Project) -> None:
         self.project = project
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
     # hook simply called out to the endpoint
-    def set_commits(self, version, commit_list):
+    def set_commits(self, version: str, commit_list: Sequence[Mapping[str, object]]) -> None:
         """
         Commits should be ordered oldest to newest.
 
@@ -41,12 +52,12 @@ class ReleaseHook:
             release = Release.objects.get(organization_id=project.organization_id, version=version)
         release.add_project(project)
 
-        release.set_commits(commit_list)
+        release.set_commits(cast("list[Any]", commit_list))
 
-    def set_refs(self, release, **values):
+    def set_refs(self, release: Release, **values: Unpack[_ReleaseValues]) -> None:
         pass
 
-    def finish_release(self, version, **values):
+    def finish_release(self, version: str, **values: Unpack[_ReleaseValues]) -> None:
         if not Release.is_valid_version(version):
             raise HookValidationError("Invalid release version: %s" % version)
 

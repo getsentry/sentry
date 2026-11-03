@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
+from drf_spectacular.utils import extend_schema_field
 from jsonschema import ValidationError as JSONSchemaValidationError
 from rest_framework import serializers
 
@@ -29,6 +30,9 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
     DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_source import DataSourceInput
+from sentry.workflow_engine.endpoints.validators.metric_data_source_schema import (
+    METRIC_DATA_SOURCE_SCHEMA,
+)
 from sentry.workflow_engine.endpoints.validators.utils import (
     connect_detectors_to_workflows,
     get_unknown_detector_type_error,
@@ -64,6 +68,13 @@ class DetectorInput(TypedDict):
     enabled: NotRequired[bool]
 
 
+# Each detector type validates its own data sources. The public API only documents metric
+# monitors, so the schema only describes metric data sources; see metric_data_source_schema.
+@extend_schema_field({"type": "array", "items": METRIC_DATA_SOURCE_SCHEMA})
+class DataSourcesField(serializers.ListField):
+    pass
+
+
 class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
     enforce_single_datasource = False
     """
@@ -88,7 +99,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         required=False,
         help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
     )
-    data_sources = serializers.ListField(
+    data_sources: serializers.ListField = DataSourcesField(
         required=False,
         help_text=DATA_SOURCES_HELP_TEXT,
     )

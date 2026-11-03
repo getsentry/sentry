@@ -1,6 +1,8 @@
 import time
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from inspect import unwrap
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -8,11 +10,12 @@ from django.conf import settings
 from django.test import override_settings
 from taskbroker_client.scheduler.config import crontab
 from taskbroker_client.scheduler.runner import ScheduleEntry
+from taskbroker_client.task import Task
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
-from sentry.models.organization import OrganizationStatus
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
@@ -65,7 +68,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.redis import redis_clusters
 
 
-def _dispatched_feature_body(organization):
+def _dispatched_feature_body(
+    organization: Organization,
+) -> tuple[SeerRun, Any]:
     seer_run = SeerRun.objects.get(organization=organization, type=SeerRunType.FEATURE_RUN)
     outbox = CellOutbox.objects.get(
         category=OutboxCategory.SEER_RUN_CREATE,
@@ -77,7 +82,7 @@ def _dispatched_feature_body(organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_dispatch_leaves_tool_mode_to_seer(default_organization):
+def test_dispatch_leaves_tool_mode_to_seer(default_organization: Organization) -> None:
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shards = [
@@ -100,7 +105,7 @@ def test_dispatch_leaves_tool_mode_to_seer(default_organization):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @django_db_all
-def test_redispatch_preserves_original_request(default_organization):
+def test_redispatch_preserves_original_request(default_organization: Organization) -> None:
     run = Factories.create_seer_workflow_run(organization=default_organization)
     plan = AgenticTriageShardPlan(payload={"candidates": []}, title="Triage")
     shard = Factories.create_seer_workflow_run_execution(run=run, extras=plan.to_extras())
@@ -127,7 +132,7 @@ class AgenticTriageFixtures(Fixtures):
     project-eligibility and event-seeding logic lives in one place."""
 
     @pytest.fixture(autouse=True)
-    def enable_agentic_triage(self):
+    def enable_agentic_triage(self) -> Iterator[None]:
         with (
             override_options({"seer.night_shift.enable": True}),
             with_feature("organizations:seer-night-shift"),
@@ -135,8 +140,12 @@ class AgenticTriageFixtures(Fixtures):
             yield
 
     def _make_eligible(
-        self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
-    ):
+        self,
+        project: Project,
+        *,
+        stopping_point: str = AutofixStoppingPoint.OPEN_PR.value,
+        **tweak_overrides: object,
+    ) -> Project:
         """Configure a project to pass every eligibility gate: automation on, a
         connected repo, a PR-producing stopping point, and tweaks enabled.
         Override stopping_point (or pass enabled=False) to exercise one gate."""
@@ -149,7 +158,14 @@ class AgenticTriageFixtures(Fixtures):
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
-    def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
+    def _store_event_and_update_group(
+        self,
+        project: Project,
+        fingerprint: object,
+        *,
+        timestamp: datetime | None = None,
+        **group_attrs: object,
+    ) -> Group:
         event = self.store_event(
             data={
                 "fingerprint": [fingerprint],
@@ -231,7 +247,7 @@ class TestBuildRunOptions(TestCase):
         (run_agentic_triage_execution, "run_agentic_triage_execution"),
     ],
 )
-def test_dispatch_keeps_names_known_to_old_workers(task, suffix: str) -> None:
+def test_dispatch_keeps_names_known_to_old_workers(task: Task[..., Any], suffix: str) -> None:
     legacy_suffix = suffix.replace("agentic_triage", "night_shift")
     assert task.fullname == f"seer:sentry.tasks.seer.night_shift.{legacy_suffix}"
     assert seer_tasks.get(task.name) is task
@@ -276,7 +292,7 @@ class TestCurrentScheduleId:
 @django_db_all
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestScheduleAgenticTriage(TestCase):
-    def create_org_with_seer(self):
+    def create_org_with_seer(self) -> Organization:
         """Create an org with a SeerProjectRepository so it survives the pre-filter."""
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -1027,7 +1043,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
     reset_snuba_data = False
 
-    def _shard_group_ids(self, shard):
+    def _shard_group_ids(self, shard: SeerWorkflowRunExecution) -> list[int]:
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=shard.seer_run_id
         )
@@ -1279,7 +1295,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
         real_start_feature_run = SeerAgentClient.start_feature_run
         calls = 0
 
-        def fail_second_dispatch(client, *args, **kwargs):
+        def fail_second_dispatch(client: SeerAgentClient, *args: Any, **kwargs: Any) -> SeerRun:
             nonlocal calls
             calls += 1
             if calls == 2:

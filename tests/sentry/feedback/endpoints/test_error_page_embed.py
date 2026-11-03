@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from unittest import mock
+from unittest.mock import MagicMock
 from urllib.parse import quote, urlencode, urljoin, urlparse
 from uuid import uuid4
 
@@ -20,6 +21,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase
@@ -244,7 +246,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         )
         self.environment.add_project(self.project)
 
-    def make_event(self, **kwargs):
+    def make_event(self, **kwargs: object) -> Event:
         min_ago = before_now(minutes=1).isoformat()
         result = {
             "event_id": "a" * 32,
@@ -295,8 +297,8 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
 
     @mock.patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_does_not_call_feedback_shim_no_event_if_ff_enabled(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         self.client.post(
             self.path,
             {
@@ -413,7 +415,10 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
 
     @property
     def app_host(self) -> str:
-        return urlparse(options.get("system.url-prefix")).netloc
+        host = urlparse(options.get("system.url-prefix")).netloc
+        if not isinstance(host, str) or not host:
+            raise TypeError("system.url-prefix has no hostname")
+        return host
 
     def _cell_dsn(self, project_key: ProjectKey, cell: Cell, port: int | None = None) -> str:
         """Build a cell-style ingest DSN (``o{org_id}.ingest.{cell}.{app_host}``)."""

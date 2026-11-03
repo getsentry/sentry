@@ -1,4 +1,5 @@
 import time
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
@@ -8,7 +9,7 @@ from sentry.utils.kafka import delay_kafka_rebalance
 
 
 @pytest.fixture
-def frozen_time_with_warp():
+def frozen_time_with_warp() -> Iterator[None]:
     with freeze_time() as frozen:
         with mock.patch.object(time, "sleep", frozen.shift):
             yield

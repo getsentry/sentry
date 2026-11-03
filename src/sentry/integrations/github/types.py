@@ -13,6 +13,6 @@ class GitHubIssueStatus(StrEnum):
     CLOSED = "closed"
 
     @classmethod
-    def get_choices(cls):
+    def get_choices(cls) -> list[tuple[str, str]]:
         """Return choices formatted for dropdown selectors"""
         return [(status.value, status.value.capitalize()) for status in cls]

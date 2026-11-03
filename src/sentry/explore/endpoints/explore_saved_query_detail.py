@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -36,13 +38,20 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str,
+        id: str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
             kwargs["query"] = ExploreSavedQuery.objects.get(
                 id=to_valid_int_id("id", id, raise_404=True),
-                organization=kwargs["organization"],
+                organization=cast(Organization, kwargs["organization"]),
             )
         except ExploreSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
@@ -59,7 +68,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -182,12 +191,14 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
-    def post(self, request: Request, organization, query) -> Response:
+    def post(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response:
         """
         Update last_visited and increment visits counter
         """
@@ -196,7 +207,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        query.visits = F("visits") + 1
+        query.visits = cast(int, F("visits") + 1)
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

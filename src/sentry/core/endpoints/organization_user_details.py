@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberPermission
+from sentry.models.organization import Organization
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
@@ -17,7 +18,7 @@ class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (MemberPermission,)
 
-    def get(self, request: Request, organization, user_id) -> Response:
+    def get(self, request: Request, organization: Organization, user_id: str) -> Response:
         try:
             int(user_id)
         except ValueError:

@@ -370,11 +370,12 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert data["configData"] is None
         assert data["externalId"] == self.integration.external_id
         assert data["organizationId"] == self.organization.id
+        organization_integration = self.organization_integration
+        assert organization_integration is not None
         assert (
-            data["organizationIntegrationStatus"]
-            == self.organization_integration.get_status_display()
+            data["organizationIntegrationStatus"] == organization_integration.get_status_display()
         )
-        assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
+        assert data["gracePeriodEnd"] == organization_integration.grace_period_end
 
         jira_request_urls = [call.request.url for call in responses.calls]
         assert len(jira_request_urls) == 2
