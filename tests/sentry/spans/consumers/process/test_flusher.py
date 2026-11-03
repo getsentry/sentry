@@ -11,10 +11,15 @@ from unittest import mock
 import orjson
 import pytest
 from arroyo.processing.strategies.noop import Noop
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
-from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
+from sentry.spans.consumers.process.flusher import (
+    STARTUP_CONNECT_ATTEMPTS,
+    ProduceToPipe,
+    SpanFlusher,
+)
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -372,3 +377,54 @@ def test_flusher_join_timeout_kills_all_processes() -> None:
                 assert isinstance(process, multiprocessing.process.BaseProcess)
                 if process.is_alive():
                     original_kill(process)
+
+
+def _main_args() -> dict[str, Any]:
+    return {
+        "shards": [0],
+        "stopped": cast("Synchronized[int]", SimpleNamespace(value=0)),
+        "current_drift": cast("Synchronized[int]", SimpleNamespace(value=0)),
+        "backpressure_since": cast("Synchronized[int]", SimpleNamespace(value=0)),
+        "healthy_since": cast("Synchronized[int]", SimpleNamespace(value=0)),
+        "produce_to_pipe": None,
+    }
+
+
+@override_options(DEFAULT_OPTIONS)
+def test_flusher_retries_redis_connect_errors_on_first_flush() -> None:
+    args = _main_args()
+    buffer = mock.Mock(any_shard_at_limit=False)
+    calls = 0
+
+    def flush_segments(now: int) -> dict[Any, Any]:
+        nonlocal calls
+        calls += 1
+        if calls <= 2:
+            raise RedisClusterException("Redis Cluster cannot be connected.")
+        args["stopped"].value = 1
+        return {}
+
+    buffer.flush_segments.side_effect = flush_segments
+
+    with mock.patch("sentry.spans.consumers.process.flusher.time.sleep") as mock_sleep:
+        SpanFlusher.main(buffer, **args)
+
+    assert calls == 3
+    assert args["healthy_since"].value != 0
+    assert [c.args[0] for c in mock_sleep.call_args_list[:2]] == [1.0, 2.0]
+
+
+@override_options(DEFAULT_OPTIONS)
+def test_flusher_gives_up_after_startup_connect_attempts() -> None:
+    args = _main_args()
+    buffer = mock.Mock(any_shard_at_limit=False)
+    buffer.flush_segments.side_effect = RedisClusterException("Redis Cluster cannot be connected.")
+
+    with (
+        mock.patch("sentry.spans.consumers.process.flusher.time.sleep"),
+        pytest.raises(RedisClusterException),
+    ):
+        SpanFlusher.main(buffer, **args)
+
+    assert buffer.flush_segments.call_count == STARTUP_CONNECT_ATTEMPTS
+    assert args["healthy_since"].value == 0
