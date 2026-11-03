@@ -121,6 +121,7 @@ export function ReleaseCardProjectRow({
                   }),
                   query: {
                     ...location.query,
+                    cursor: undefined,
                     query: `release.stage:${adoptionStage}`,
                   },
                 }}

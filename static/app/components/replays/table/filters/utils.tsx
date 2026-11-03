@@ -25,6 +25,7 @@ export function generateAction({
       pathname: location.pathname,
       query: {
         ...location.query,
+        cursor: undefined,
         query: search.setFilterValues(key, [value]).formatString(),
       },
     });

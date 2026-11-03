@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCase} from '@sentry/icons/case';
@@ -339,7 +339,7 @@ function SearchQueryBuilderUI({
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
-  const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
+  const {parsedQuery, query} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
     useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
@@ -358,10 +358,7 @@ function SearchQueryBuilderUI({
     [skipNextSearchQueryBuilderAutoFocusRef, wrapperRef]
   );
 
-  useOnChange({onChange});
-  useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
-  }, [dispatch, initialQuery]);
+  useOnChange({initialQuery, onChange});
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 

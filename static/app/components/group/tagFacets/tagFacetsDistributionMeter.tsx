@@ -54,7 +54,7 @@ export function TagFacetsDistributionMeter({
   );
   const excludeTopSegmentsUrl: LocationDescriptor = {
     ...location,
-    query: {...location.query, query},
+    query: {...location.query, cursor: undefined, query},
   };
 
   if (hasOther) {
