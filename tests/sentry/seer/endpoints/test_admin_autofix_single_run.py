@@ -1,4 +1,7 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+from rest_framework.response import Response
 
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
@@ -19,11 +22,11 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: Any, **params: Any) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
-    def test_starts_single_run_and_returns_link(self, mock_trigger) -> None:
+    def test_starts_single_run_and_returns_link(self, mock_trigger: MagicMock) -> None:
         mock_trigger.return_value = self.create_seer_run(
             organization=self.organization, seer_run_state_id=321
         )
@@ -43,7 +46,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
             query=f"project={self.project.id}&explorerRunId=321",
         )
 
-    def test_coding_agent_project_is_rejected(self, mock_trigger) -> None:
+    def test_coding_agent_project_is_rejected(self, mock_trigger: MagicMock) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -56,7 +59,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
         mock_trigger.assert_not_called()
 
-    def test_out_of_quota_returns_reason(self, mock_trigger) -> None:
+    def test_out_of_quota_returns_reason(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = NoSeerQuotaException()
 
         response = self.get_error_response(
@@ -65,12 +68,12 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
         assert response.data["detail"]
 
-    def test_unknown_issue_returns_404(self, mock_trigger) -> None:
+    def test_unknown_issue_returns_404(self, mock_trigger: MagicMock) -> None:
         self.get_error_response(organization_slug="sentry", short_id="NOPE-1", status_code=404)
 
         mock_trigger.assert_not_called()
 
-    def test_requires_staff(self, mock_trigger) -> None:
+    def test_requires_staff(self, mock_trigger: MagicMock) -> None:
         self.login_as(user=self.create_user())
 
         with patch("sentry.api.permissions.is_active_staff", return_value=False):
