@@ -250,6 +250,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^extensions/jira/ui-hook/$'),
   new RegExp('^extensions/jira/descriptor/$'),
   new RegExp('^extensions/jira/installed/$'),
+  new RegExp('^extensions/jira/forge/installation/$'),
   new RegExp('^extensions/jira/uninstalled/$'),
   new RegExp('^extensions/jira/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/jira/configure/$'),

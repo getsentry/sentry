@@ -1694,6 +1694,13 @@ class JiraIntegrationProvider(IntegrationProvider):
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
             }
+        # ensure_integration replaces metadata wholesale, and the pipeline's copy can
+        # be stale, so carry over the latest Forge installation and token.
+        existing = integration_service.get_integration(
+            provider=IntegrationProviderSlug.JIRA.value, external_id=external_id
+        )
+        if existing is not None and "forge" in existing.metadata:
+            metadata = {**metadata, "forge": existing.metadata["forge"]}
         return {
             "external_id": external_id,
             "provider": IntegrationProviderSlug.JIRA.value,

@@ -979,6 +979,14 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Jira integrations whose outbound API calls use their Forge system token instead
+# of the Connect JWT. Forge-only integrations have no Connect secret and always do.
+register(
+    "jira.forge.integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
