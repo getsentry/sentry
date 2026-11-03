@@ -11,7 +11,7 @@ from sentry.api.helpers.oauth_consent import (
     persist_authorization,
     resolve_organization,
 )
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.utils import metrics
@@ -87,7 +87,10 @@ def issue_implicit_token(
 ) -> str:
     token: ApiToken | None = None
     try:
-        with transaction.atomic(router.db_for_write(ApiToken)):
+        # This transaction is required to bind the token to a variable
+        # when replication fails. The outbox_context is just to flag
+        # that this is an outbox-producing operation.
+        with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
             token = ApiToken.objects.create(
                 application=authorization.application,
                 user_id=user_id,
@@ -106,10 +109,6 @@ def issue_implicit_token(
             "approve.token.outbox-flush-failure",
             extra={"token_id": token.id, "user_id": user_id},
             exc_info=True,
-        )
-        metrics.incr(
-            "api_key.outbox_flush_deferred",
-            tags={"category": "API_TOKEN_UPDATE", "callsite": "oauth_implicit_grant"},
         )
 
     logger.info(

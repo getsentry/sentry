@@ -15,7 +15,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
@@ -616,8 +616,9 @@ class OAuthTokenView(View):
                 try:
                     # Use a transaction to ensure token creation and device code deletion
                     # are atomic. This prevents duplicate tokens if delete fails after
-                    # token creation succeeds.
-                    with transaction.atomic(router.db_for_write(ApiToken)):
+                    # token creation succeeds. The outbox_context is just to flag
+                    # that this is an outbox-producing operation.
+                    with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
                         # Create the access token for the device flow
                         token = ApiToken.objects.create(
                             application=application,
@@ -639,10 +640,6 @@ class OAuthTokenView(View):
                         "oauth.device-code-exchanged.outbox-flush-failure",
                         extra={"token_id": token.id, "device_code_id": device_code.id},
                         exc_info=True,
-                    )
-                    metrics.incr(
-                        "api_key.outbox_flush_deferred",
-                        tags={"category": "API_TOKEN_UPDATE", "callsite": "oauth_device_code"},
                     )
 
                 metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
