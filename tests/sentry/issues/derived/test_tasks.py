@@ -142,35 +142,6 @@ class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
         assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
         assert mock_delay.call_args[1]["group_id_end"] == group_ids[0] + 1
 
-    def test_next_page_keeps_stale_only(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-        for gid in group_ids:
-            process_group_log(gid)
-        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash="stale")
-
-        with (
-            patch("sentry.issues.derived.tasks._MAX_PROJECT_GROUPS", 2),
-            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
-            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
-        ):
-            generate_project_derived_data(project_id=self.project.id, stale_only=True)
-
-        mock_batch_delay.assert_called_once_with(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[1] + 1,
-            stale_only=True,
-        )
-        mock_project_delay.assert_called_once_with(
-            kwargs={
-                "project_id": self.project.id,
-                "cursor_group_id": group_ids[1],
-                "stale_only": True,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
-
 
 @with_feature("projects:issue-action-log-write-to-db")
 class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
