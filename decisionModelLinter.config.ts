@@ -166,7 +166,7 @@ const api = {
         {
           value: 'INTRODUCED',
           description:
-            'This change adds a GET handler, or a newly returned list, whose growing collection nothing paginates or limits, or it removes pagination from a list that had it.',
+            'This change adds a GET handler, or a newly returned list, whose growing collection nothing paginates or limits, or it removes pagination from a list that had it. When diff says No diff available., this is the answer for any such problem.',
           severity: 'warn',
           report:
             "List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This change returns a list that can keep growing without paginating it. If the endpoint already existed, don't add pagination to it: that changes what existing callers get back.",
@@ -174,7 +174,7 @@ const api = {
         {
           value: 'PREEXISTING',
           description:
-            'The endpoint already returned the unpaginated list before this change: its handler and return lines are not added in diff, and the change only touches nearby code.',
+            'The endpoint already returned the unpaginated list before this change: its handler and return lines are not added in diff, and the change only touches nearby code. Never the answer when diff says No diff available.',
         },
         {
           value: 'NONE',
@@ -192,7 +192,7 @@ const api = {
         {
           value: 'INTRODUCED',
           description:
-            'This change adds a request list field, or new code that uses one, to replace the whole stored set of members on an existing object, and diff shows no removed line for that field or logic.',
+            'This change adds a request list field, or new code that uses one, to replace the whole stored set of members on an existing object, and diff shows no removed line for that field or logic. When diff says No diff available., this is the answer for any such problem.',
           severity: 'warn',
           report:
             "A list field that replaces a whole set of members lets two concurrent edits overwrite each other. Prefer separate endpoints to add and remove one member. Don't change or remove an existing field to fix this, because that breaks its callers.",
@@ -200,7 +200,7 @@ const api = {
         {
           value: 'PREEXISTING',
           description:
-            'A list already replaced the stored set before this change: the field and the replacing code are not added in diff, or appear as both removed and added lines.',
+            'A list already replaced the stored set before this change: the field and the replacing code are not added in diff, or appear as both removed and added lines. Never the answer when diff says No diff available.',
         },
         {
           value: 'NONE',
@@ -217,7 +217,7 @@ const api = {
         {
           value: 'INTRODUCED',
           description:
-            'An added line returns a numeric ID as an integer, for example "id": obj.id, or declares an ID field as int in a response TypedDict, and no removed line in diff had that field: a new field, serializer, or endpoint.',
+            'An added line returns a numeric ID as an integer, for example "id": obj.id, or declares an ID field as int in a response TypedDict, and no removed line in diff had that field: a new field, serializer, or endpoint. When diff says No diff available., this is the answer for any such problem.',
           severity: 'warn',
           report:
             "API responses should return numeric IDs as strings, for example `str(obj.id)`. This change adds one returned as an integer. If the field already existed, don't change its type, because callers expect a number.",
@@ -225,7 +225,7 @@ const api = {
         {
           value: 'PREEXISTING',
           description:
-            'An ID is returned as an integer, but it already was before this change: the field also appears in a removed line in diff, or the change only touches nearby code.',
+            'An ID is returned as an integer, but it already was before this change: the field also appears in a removed line in diff, or the change only touches nearby code. Never the answer when diff says No diff available.',
         },
         {
           value: 'NONE',
