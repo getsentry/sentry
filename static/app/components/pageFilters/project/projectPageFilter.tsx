@@ -572,7 +572,10 @@ export function ProjectPageFilter({
   // React Compiler could not prove this memoization is preserved; it bails out on
   // code this callback depends on. Revisit once those bailouts are fixed.
   // oxlint-disable-next-line react/preserve-manual-memoization
-  const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
+  const defaultMenuWidth = useMemo(
+    () => getMenuWidthForLabels(options.map(option => option.textValue ?? '')),
+    [options]
+  );
 
   const canCreateProject = useCanCreateProject();
 
@@ -840,11 +843,6 @@ function toURLSelection({
   }
 
   return value;
-}
-
-function computeMenuWidth(options: Array<SelectOption<number>>): string {
-  // ProjectPageFilter will try to expand to accommodate the longest project slug
-  return getMenuWidthForLabels(options.map(option => option.textValue ?? ''));
 }
 
 // Helper functions for data selection
