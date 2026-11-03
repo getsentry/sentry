@@ -1,6 +1,7 @@
 import type React from 'react';
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
@@ -8,12 +9,7 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -48,10 +44,11 @@ export function TraceViewMetricsProviderWrapper({
   children,
   traceSlug,
 }: UseTraceViewMetricsDataProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const queryParams = useTraceQueryParams();
-  const metricsQuery = decodeScalar(location.query[TRACE_METRICS_QUERY_KEY], '');
+  const [metricsQuery, setMetricsQuery] = useQueryState(
+    TRACE_METRICS_QUERY_KEY,
+    parseAsString.withDefault('')
+  );
   const metricsQueryParams = useMemo(
     () =>
       new ReadableQueryParams({
@@ -69,15 +66,11 @@ export function TraceViewMetricsProviderWrapper({
   );
   const setMetricsQueryParams = useCallback(
     (newQueryParams: ReadableQueryParams) => {
-      const target = {...location, query: {...location.query}};
-      if (newQueryParams.query) {
-        updateNullableLocation(target, TRACE_METRICS_QUERY_KEY, newQueryParams.query);
-      } else {
-        delete target.query[TRACE_METRICS_QUERY_KEY];
+      if (newQueryParams.query !== metricsQuery) {
+        setMetricsQuery(newQueryParams.query, {history: 'push'});
       }
-      navigateIfQueryChanged(navigate, location, target);
     },
-    [location, navigate]
+    [metricsQuery, setMetricsQuery]
   );
 
   const tracePeriod: TracePeriod | undefined = useMemo(() => {

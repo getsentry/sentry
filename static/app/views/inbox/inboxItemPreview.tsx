@@ -1,17 +1,18 @@
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Container} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
-import type {InboxItem} from 'sentry/views/inbox/types';
+import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
+import {InboxNotebookPreview} from 'sentry/views/inbox/inboxNotebookPreview';
+import type {InboxSubject} from 'sentry/views/inbox/types';
 
 interface InboxItemPreviewProps {
-  item: InboxItem | null;
+  subject: InboxSubject | null;
 }
 
-export function InboxItemPreview({item}: InboxItemPreviewProps) {
-  if (!item) {
+function InboxItemPreviewContent({subject}: InboxItemPreviewProps) {
+  if (!subject) {
     return (
       <EmptyState
         padding="2xl"
@@ -21,35 +22,26 @@ export function InboxItemPreview({item}: InboxItemPreviewProps) {
     );
   }
 
-  switch (item.subjectType) {
+  switch (subject.subjectType) {
     case 'issue':
-      return <InboxIssuePreview item={item} />;
+      return <InboxIssuePreview key={subject.subjectId} groupId={subject.subjectId} />;
     case 'notebook':
-      return <InboxNotebookPreview item={item} />;
+      return (
+        <InboxNotebookPreview
+          key={subject.subjectId}
+          investigationId={subject.subjectId}
+        />
+      );
     default:
-      unreachable(item.subjectType);
+      unreachable(subject.subjectType);
       return null;
   }
 }
 
-interface InboxSubjectPreviewProps {
-  item: InboxItem;
-}
-
-// TODO: Render the issue details
-function InboxIssuePreview({item}: InboxSubjectPreviewProps) {
+export function InboxItemPreview({subject}: InboxItemPreviewProps) {
   return (
-    <Container padding="xl">
-      <Heading as="h2">{item.subject?.title ?? t('Unavailable')}</Heading>
-    </Container>
-  );
-}
-
-// TODO: Render the investigation notebook
-function InboxNotebookPreview({item}: InboxSubjectPreviewProps) {
-  return (
-    <Container padding="xl">
-      <Heading as="h2">{item.subject?.title ?? t('Unavailable')}</Heading>
-    </Container>
+    <AnalyticsArea name="inbox.preview" overrideParent>
+      <InboxItemPreviewContent subject={subject} />
+    </AnalyticsArea>
   );
 }

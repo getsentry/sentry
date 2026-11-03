@@ -10,6 +10,7 @@ from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
@@ -24,6 +25,7 @@ from sentry.tasks.commits import (
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 from sentry.utils.cache import cache
 from social_auth.models import UserSocialAuth
 
@@ -37,7 +39,9 @@ class FetchCommitsTest(TestCase):
             {"id": end_sha, "repository": repo_name},
         ]
 
-    def _setup_github_compare_commits_cache_context(self):
+    def _setup_github_compare_commits_cache_context(
+        self,
+    ) -> tuple[Organization, Repository, Release, Release, Release, list[dict[str, str]]]:
         org = self.create_organization(owner=self.user, name="baz")
         repo = Repository.objects.create(
             name="example",
@@ -68,7 +72,7 @@ class FetchCommitsTest(TestCase):
 
         assert key_one != key_two
 
-    def _create_example_repo(self, org):
+    def _create_example_repo(self, org: Organization) -> Repository:
         integration = self.create_integration(
             organization=org, provider="example", external_id="example:1"
         )
@@ -79,7 +83,7 @@ class FetchCommitsTest(TestCase):
             integration_id=integration.id,
         )
 
-    def _test_simple_action(self, user, org):
+    def _test_simple_action(self, user: User, org: Organization) -> None:
         repo = self._create_example_repo(org)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
 
@@ -310,8 +314,11 @@ class FetchCommitsTest(TestCase):
     @patch("sentry.tasks.commits.handle_invalid_identity")
     @patch.object(ExampleRepositoryProvider, "compare_commits")
     def test_fetch_error_invalid_identity(
-        self, mock_compare_commits, mock_handle_invalid_identity, mock_record
-    ):
+        self,
+        mock_compare_commits: MagicMock,
+        mock_handle_invalid_identity: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 

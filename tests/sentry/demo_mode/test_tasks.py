@@ -280,8 +280,8 @@ class SyncArtifactBundlesTest(TestCase):
             debug_id=source_project_debug_file.debug_id,
         )
 
-        assert target_project_debug_file.file_id is None
-        assert target_project_debug_file.storage_path is not None
+        assert not target_project_debug_file.file_id
+        assert target_project_debug_file.storage_path
         assert target_project_debug_file.storage_path != source_project_debug_file.storage_path
         assert target_project_debug_file.content_type == content_type
         assert target_project_debug_file.file_size == len(content)
@@ -306,6 +306,7 @@ class SyncArtifactBundlesTest(TestCase):
         source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
             b"objectstore-backed-debug-file", compress="none"
         )
+        assert source_project_debug_file.file is not None
         source_project_debug_file.update(
             storage_path=source_storage_path,
             content_type=source_project_debug_file.file.headers["Content-Type"],

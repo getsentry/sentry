@@ -342,7 +342,8 @@ def generate_locality_url(locality_name: str | None = None) -> str:
     ):
         locality_name = get_locality_name_for_cell(settings.SENTRY_LOCAL_CELL)
     if not region_url_template or not locality_name:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        return url_prefix
     return region_url_template.replace("{region}", locality_name)
 
 

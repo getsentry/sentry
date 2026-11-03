@@ -477,27 +477,27 @@ class SafeExecuteTest(TestCase):
         assert safe_execute(lambda: eval("a")) is None
 
     def test_with_simple_function(self) -> None:
-        def simple(a):
+        def simple(a: object) -> object:
             return a
 
         assert safe_execute(simple, 1) == 1
 
     def test_with_simple_function_raising_exception(self) -> None:
-        def simple(a):
+        def simple(a: object) -> object:
             raise Exception()
 
         assert safe_execute(simple, 1) is None
 
     def test_with_instance_method(self) -> None:
         class Foo:
-            def simple(self, a):
+            def simple(self, a: object) -> object:
                 return a
 
         assert safe_execute(Foo().simple, 1) == 1
 
     def test_with_instance_method_raising_exception(self) -> None:
         class Foo:
-            def simple(self, a):
+            def simple(self, a: object) -> object:
                 raise Exception()
 
         assert safe_execute(Foo().simple, 1) is None

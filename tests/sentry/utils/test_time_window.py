@@ -13,7 +13,7 @@ from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time
         pytest.param(10.0, 90.0, 80.0 * 1000),
     ],
 )
-def test_time_window_duration(start, end, expected) -> None:
+def test_time_window_duration(start: float, end: float, expected: float) -> None:
     time_window = TimeWindow(start, end)
     assert time_window.duration_ms == expected
 
@@ -46,7 +46,9 @@ union_time_windows_test_cases = [
         for inputs, outputs, test_case_id in union_time_windows_test_cases
     ],
 )
-def test_union_time_windows(time_windows, expected) -> None:
+def test_union_time_windows(
+    time_windows: list[tuple[float, float]], expected: list[tuple[float, float]]
+) -> None:
     time_window_objs = [TimeWindow(start, end) for start, end in time_windows]
     expected_objs = [TimeWindow(start, end) for start, end in expected]
     assert union_time_windows(time_window_objs) == expected_objs, time_windows
@@ -82,7 +84,11 @@ remove_time_windows_test_cases = [
         for src, inputs, outputs, test_case_id in remove_time_windows_test_cases
     ],
 )
-def test_remove_time_windows(source_time_window, time_windows, expected) -> None:
+def test_remove_time_windows(
+    source_time_window: tuple[float, float],
+    time_windows: list[tuple[float, float]],
+    expected: list[tuple[float, float]],
+) -> None:
     source_time_window_obj = TimeWindow(source_time_window[0], source_time_window[1])
     time_window_objs = [TimeWindow(start, end) for start, end in time_windows]
     expected_objs = [TimeWindow(start, end) for start, end in expected]

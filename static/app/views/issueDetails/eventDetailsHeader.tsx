@@ -49,9 +49,15 @@ interface EventDetailsHeaderProps {
   group: Group;
   project: Project;
   event?: Event;
+  showSidebarToggle?: boolean;
 }
 
-export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+export function EventDetailsHeader({
+  group,
+  event,
+  project,
+  showSidebarToggle = true,
+}: EventDetailsHeaderProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -230,7 +236,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                       />
                     )}
                   </Grid>
-                  <ToggleSidebar />
+                  {showSidebarToggle && <ToggleSidebar />}
                 </Flex>
               </div>
             )}

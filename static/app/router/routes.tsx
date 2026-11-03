@@ -1910,7 +1910,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2812,6 +2811,24 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/seerWorkflows/automations/detail/runs')
           ),
+        },
+      ],
+    },
+    {
+      path: 'classifiers/',
+      component: make(() => import('sentry/views/classifiers')),
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/classifiers/list')),
+        },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/classifiers/new')),
+        },
+        {
+          path: ':classifierId/',
+          component: make(() => import('sentry/views/classifiers/detail')),
         },
       ],
     },

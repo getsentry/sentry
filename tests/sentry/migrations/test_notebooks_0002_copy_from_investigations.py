@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 from importlib import import_module
 from types import SimpleNamespace
 
+import pytest
 from django.db import connections
 
+from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
@@ -12,12 +14,13 @@ migration = import_module("sentry.notebooks.migrations.0002_copy_from_investigat
 OLD = datetime(2020, 9, 1, tzinfo=timezone.utc)
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class CopyFromInvestigationsTest(TestMigrations):
     app = "notebooks"
     migrate_from = "0001_initial"
     migrate_to = "0002_copy_from_investigations"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Project = apps.get_model("sentry", "Project")
         Investigation = apps.get_model("investigations", "Investigation")
@@ -111,7 +114,7 @@ class CopyFromInvestigationsTest(TestMigrations):
 
         Investigation.objects.update(date_added=OLD, date_updated=OLD)
 
-    def test_copies_notebooks_and_can_run_again(self):
+    def test_copies_notebooks_and_can_run_again(self) -> None:
         Investigation = self.apps.get_model("investigations", "Investigation")
         InvestigationFavoriteUser = self.apps.get_model(
             "investigations", "InvestigationFavoriteUser"

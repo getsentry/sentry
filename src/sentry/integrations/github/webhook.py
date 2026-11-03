@@ -1436,7 +1436,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         }
 
     def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
+        secret = options.get("github-app.webhook-secret")
+        return secret
 
     def post(self, request: HttpRequest) -> HttpResponse:
         with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):

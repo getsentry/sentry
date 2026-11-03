@@ -8,11 +8,12 @@ from sentry.api.bases.avatar import AvatarMixin
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app_avatar import SentryAppAvatarParser
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 
 
 @control_silo_endpoint
-class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoint):
+class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar, SentryApp], SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -22,15 +23,15 @@ class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoin
     model = SentryAppAvatar
     serializer_cls = SentryAppAvatarParser
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, **kwargs: object) -> Response:
         return super().get(
             request, access=request.access, serializer=SentryAppSerializer(), **kwargs
         )
 
-    def put(self, request: Request, **kwargs) -> Response:
+    def put(self, request: Request, **kwargs: object) -> Response:
         return super().put(
             request, access=request.access, serializer=SentryAppSerializer(), **kwargs
         )
 
-    def get_avatar_filename(self, obj) -> str:
+    def get_avatar_filename(self, obj: SentryApp) -> str:
         return f"{obj.slug}.png"

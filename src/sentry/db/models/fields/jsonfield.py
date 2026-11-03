@@ -28,7 +28,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -39,8 +40,19 @@ from django.utils.translation import gettext_lazy as _
 from sentry.db.models.utils import Creator
 from sentry.utils import json
 
+if TYPE_CHECKING:
+    _Lookup = Lookup[Any]
+    _Exact = Exact[Any]
+    _IExact = IExact[Any]
+    _In = In[Any]
+else:
+    _Lookup = Lookup
+    _Exact = Exact
+    _IExact = IExact
+    _In = In
 
-class JSONField(models.TextField):
+
+class JSONField(models.TextField[Any, Any]):
     """
     A field that will ensure the data entered into it is valid JSON.
 
@@ -60,7 +72,9 @@ class JSONField(models.TextField):
     description = "JSON object"
     no_creator_hook = False
 
-    def __init__(self, *args, json_dumps=json.dumps, **kwargs):
+    def __init__(
+        self, *args: Any, json_dumps: Callable[[Any], str] = json.dumps, **kwargs: Any
+    ) -> None:
         self.json_dumps = json_dumps
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
@@ -78,7 +92,7 @@ class JSONField(models.TextField):
         if not self.no_creator_hook:
             setattr(cls, name, Creator(self))
 
-    def validate(self, value, model_instance):
+    def validate(self, value: Any, model_instance: models.Model | None) -> None:
         if not self.null and value is None:
             raise ValidationError(self.error_messages["null"])
         try:
@@ -86,7 +100,7 @@ class JSONField(models.TextField):
         except Exception:
             raise ValidationError(self.error_messages["invalid"] % value)
 
-    def get_default(self):
+    def get_default(self) -> Any:
         if self.has_default():
             default = self.default
             if callable(default):
@@ -99,10 +113,10 @@ class JSONField(models.TextField):
     def get_internal_type(self) -> str:
         return "TextField"
 
-    def db_type(self, connection) -> str:
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
         return "text"
 
-    def to_python(self, value):
+    def to_python(self, value: Any) -> Any:
         if isinstance(value, str) or self.no_creator_hook:
             if value == "":
                 if self.null:
@@ -117,45 +131,47 @@ class JSONField(models.TextField):
         # TODO: Look for date/time/datetime objects within the structure?
         return value
 
-    def get_db_prep_value(self, value, connection=None, prepared=None):
+    def get_db_prep_value(
+        self, value: Any, connection: BaseDatabaseWrapper | None = None, prepared: bool = False
+    ) -> Any:
         return self.get_prep_value(value)
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: Any) -> str | None:
         if value is None:
             if not self.null and self.blank:
                 return ""
             return None
         return self.json_dumps(value)
 
-    def value_to_string(self, obj):
+    def value_to_string(self, obj: models.Model) -> Any:
         return self.value_from_object(obj)
 
 
-class NoPrepareMixin(Lookup):
-    def get_prep_lookup(self):
+class NoPrepareMixin(_Lookup):
+    def get_prep_lookup(self) -> Any:
         return self.rhs
 
 
-class JSONFieldExactLookup(NoPrepareMixin, Exact):
-    def get_prep_lookup(self):
+class JSONFieldExactLookup(NoPrepareMixin, _Exact):
+    def get_prep_lookup(self) -> Any:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldIExactLookup(NoPrepareMixin, IExact):
-    def get_prep_lookup(self):
+class JSONFieldIExactLookup(NoPrepareMixin, _IExact):
+    def get_prep_lookup(self) -> Any:
         return self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(self.rhs))
 
 
-class JSONFieldInLookup(NoPrepareMixin, In):
-    def get_prep_lookup(self):
+class JSONFieldInLookup(NoPrepareMixin, _In):
+    def get_prep_lookup(self) -> Any:
         return [
             self.lhs.output_field.to_python(self.lhs.output_field.get_prep_value(v))
             for v in self.rhs
         ]
 
 
-class ContainsLookupMixin(Lookup):
-    def get_prep_lookup(self):
+class ContainsLookupMixin(_Lookup):
+    def get_prep_lookup(self) -> Any:
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(
                 "Lookup type %r not supported with %s argument"

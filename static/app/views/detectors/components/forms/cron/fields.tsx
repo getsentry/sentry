@@ -20,7 +20,7 @@ export const CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT = 'day';
 export const CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD = 1;
 export const CRON_DEFAULT_RECOVERY_THRESHOLD = 1;
 
-interface CronDetectorFormData {
+export interface CronDetectorFormData {
   checkinMargin: number | null;
   description: string | null;
   failureIssueThreshold: number;

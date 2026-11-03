@@ -22,6 +22,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -71,12 +72,12 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-tag-key-details",
         url_names=["sentry-api-0-group-tag-key-details"],
     )
-    def get(self, request: Request, group, key) -> Response[TagKeySerializerResponse]:
+    def get(self, request: Request, group: Group, key: str) -> Response[TagKeySerializerResponse]:
         """
         Returns the values and aggregate details of a given tag key related to an issue.
         """
         lookup_key = tagstore.backend.prefix_reserved_key(key)
-        tenant_ids = {"organization_id": group.project.organization_id}
+        tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
         try:
             environment_id = get_environment_id(request, group.project.organization_id)
         except Environment.DoesNotExist:

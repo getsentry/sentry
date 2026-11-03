@@ -13,7 +13,6 @@ from typing import Any, NamedTuple
 
 from pydantic import ValidationError
 
-from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -79,10 +78,6 @@ def _resolve_comment_dispatch(
     rather than a message of its own.
     """
     log_extra = {**log_extra, "command": command}
-
-    if not features.has("organizations:autofix-pr-iteration-manual", organization):
-        logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
-        return None
 
     if integration is None:
         logger.info("autofix.pr_iteration.comment_trigger.no_integration", extra=log_extra)

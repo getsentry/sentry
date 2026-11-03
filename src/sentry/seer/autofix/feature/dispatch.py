@@ -7,7 +7,7 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -151,6 +151,10 @@ def trigger_autofix_feature(
         enable_coding=enable_coding,
         enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
+    if args.step == AutofixStep.PR_ITERATION and features.has(
+        "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
+    ):
+        agent_run_options["pin_to_pr_head"] = True
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,
