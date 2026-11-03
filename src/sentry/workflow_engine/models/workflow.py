@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import replace
 from enum import StrEnum
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, Literal, TypedDict, get_args
 
 from django.conf import settings
 from django.db import models
@@ -55,7 +55,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     after detectors have been processed.
 
     Not every workflow is user-facing. The `type` field says what the workflow is for, and the public
-    API only exposes workflows with a type in `VisibleWorkflowTypes`
+    API only exposes workflows with a type in `VISIBLE_WORKFLOW_TYPES`
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -214,7 +214,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_evaluation, remaining_conditions
 
 
-VISIBLE_WORKFLOW_TYPES = frozenset({Workflow.Type.ALERT})
+VisibleWorkflowType = Literal[Workflow.Type.ALERT]
+
+VISIBLE_WORKFLOW_TYPES = frozenset(get_args(VisibleWorkflowType))
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

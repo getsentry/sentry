@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -28,6 +28,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.workflow import VisibleWorkflowType
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 
 # The values of Action.Type and DataConditionGroup.Type.
@@ -104,13 +105,16 @@ class TriggerSerializerResponse(TypedDict, total=False):
 class WorkflowSerializerResponse(TypedDict):
     id: Annotated[str, ApiDescription("Workflow ID")]
     name: Annotated[str, ApiDescription("Workflow name")]
-    type: Annotated[str, ApiDescription("Type of the workflow, such as alert")]
+    type: Annotated[VisibleWorkflowType, ApiDescription("Type of the workflow, such as alert")]
     organizationId: Annotated[str, ApiDescription("ID of the organization the workflow belongs to")]
     createdBy: Annotated[str | None, ApiDescription("ID of the user who created the workflow")]
     dateCreated: Annotated[datetime, ApiDescription("When the workflow was created (ISO 8601)")]
-    dateUpdated: Annotated[datetime, ApiDescription("When the workflow was last updated (ISO 8601)")]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the workflow was last updated (ISO 8601)")
+    ]
     triggers: Annotated[
-        TriggerSerializerResponse | None, ApiDescription("Conditions on which the workflow triggers")
+        TriggerSerializerResponse | None,
+        ApiDescription("Conditions on which the workflow triggers"),
     ]
     actionFilters: Annotated[
         list[TriggerSerializerResponse] | None,
@@ -135,7 +139,8 @@ class WorkflowSerializerResponse(TypedDict):
         datetime | None, ApiDescription("When the workflow last fired (ISO 8601)")
     ]
     owner: Annotated[
-        str | None, ApiDescription("Team or user that owns the workflow, such as user:123 or team:456")
+        str | None,
+        ApiDescription("Team or user that owns the workflow, such as user:123 or team:456"),
     ]
 
 
@@ -203,7 +208,7 @@ class WorkflowSerializer(Serializer[WorkflowSerializerResponse]):
         return {
             "id": str(obj.id),
             "name": str(obj.name),
-            "type": obj.type,
+            "type": cast(VisibleWorkflowType, obj.type),
             "organizationId": str(obj.organization_id),
             "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
             "dateCreated": obj.date_added,
