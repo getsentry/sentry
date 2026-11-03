@@ -1298,8 +1298,10 @@ class SlackAgentEntrypointTest(TestCase):
                 reply=SlackSeerAgentReply(message_ts=ts, pr_status_hash="stale"),
             )
         update.side_effect = [
-            SlackApiError("error", _slack_response({"ok": False, "error": "ratelimited"})),
-            SlackApiError("error", _slack_response({"ok": False, "error": "message_not_found"})),
+            TypedSlackApiError("error", _slack_response({"ok": False, "error": "ratelimited"})),
+            TypedSlackApiError(
+                "error", _slack_response({"ok": False, "error": "message_not_found"})
+            ),
             _slack_response({"ok": True}),
         ]
         cache_payload = self._get_entrypoint().create_agent_cache_payload()
