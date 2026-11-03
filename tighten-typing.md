@@ -4,11 +4,11 @@
 
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
 - **Baseline revision:** `1cd41fc29e1` (`origin/master`, 2026-11-03).
-- **Remaining (sweep counter):** cast 1204, Any 3357, type-ignore 13, fixed-name-reflection 79.
-- **Accepted:** C1 (draft #129702). **Red:** none. **Parked:** none.
+- **Remaining (sweep counter, `master` + open campaign drafts):** cast 1202, Any 3355, type-ignore 13, fixed-name-reflection 79.
+- **Items:** 1 of 31 in draft (C1, #129702); 0 of 159 sweep packages. **Red:** none. **Parked:** none.
 - **Next:** G1, then B1.
 
-The executor rewrites this block in place after every accepted slice. The **Ledger** at the end records each item's PR and disposition.
+The executor rewrites this block in place after every accepted slice. The **Ledger** is the single tracker for all work: every item, every audit finding (through its item), and every sweep package has a row there.
 
 ## Charter
 
@@ -32,7 +32,7 @@ The executor rewrites this block in place after every accepted slice. The **Ledg
 - **The executor may fix CI on its own drafts.** Check status with `gh pr checks <n>`. Reproduce a failure locally, fix it on the same branch, and push. Never touch workflow files, and never rerun or fix CI on PRs it did not open.
 - **Titles use Sentry style**, overriding the owner's global lowercase rule for this campaign.
 
-### Escape-hatch policy (prescribed; the owner may overrule)
+### Escape-hatch policy (owner, 2026-11-03)
 
 The audit's original rule banned `Any` outright. That is too strict for a Django/DRF codebase. Some dependency generics and test doubles genuinely produce `Any`, and replacing those with `object` buys nothing except `isinstance` noise. Treat each hatch by what it hides:
 
@@ -123,10 +123,11 @@ Branches are named `josh/typing-contracts/<id>-<slug>`. Line numbers were verifi
 
 ### Phase 1: behavior regressions and latent bugs (each its own `fix(...)` PR, with a test that fails before the fix)
 
-| ID  | Files                                                        | Work                                                                                                                                                                                                                                                                                                                         |
-| --- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1  | `src/sentry/integrations/slack/unfurl/dashboards.py:153,250` | #129614 added `assert widget.widget_type is not None`. The model allows null (`src/sentry/models/dashboard_widget.py`), and before #129614 a null type fell through to the missing-config skip. Restore the skip with explicit narrowing. Test: a null-type widget among valid unfurls is skipped and the rest still unfurl. |
-| B2  | `src/sentry/utils/concurrent.py:270` (`FutureSet`)           | `__init__` iterates its `Iterable` argument twice, so a generator loses the aggregate completion callback. Materialize the argument once into a stable snapshot. Iterating the live pending set is unsafe because callbacks fire synchronously. Test: a generator input fires the callback.                                  |
+| ID  | Files                                                        | Work                                                                                                                                                                                                                                                                                                                                        |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1  | `src/sentry/integrations/slack/unfurl/dashboards.py:153,250` | #129614 added `assert widget.widget_type is not None`. The model allows null (`src/sentry/models/dashboard_widget.py`), and before #129614 a null type fell through to the missing-config skip. Restore the skip with explicit narrowing. Test: a null-type widget among valid unfurls is skipped and the rest still unfurl.                |
+| B2  | `src/sentry/utils/concurrent.py:270` (`FutureSet`)           | `__init__` iterates its `Iterable` argument twice, so a generator loses the aggregate completion callback. Materialize the argument once into a stable snapshot. Iterating the live pending set is unsafe because callbacks fire synchronously. Test: a generator input fires the callback.                                                 |
+| B3  | `src/sentry/api/endpoints/organization_stats_summary.py:174` | `_generate_csv` returns `str \| None`. With no projects the `cast(str, ...)` hides `None`, and Django writes the literal body `None` into the downloaded CSV (it does not raise). Remove the cast and produce a real empty CSV (match the header the non-empty path writes). Test: a download with no projects yields that CSV, not `None`. |
 
 ### Phase 2: seed contract repairs (one `ref(...)` PR each unless noted)
 
@@ -164,7 +165,7 @@ Work packages in descending order of the sweep counter's output. Each PR clears 
 
 ### Phase 4: close
 
-Run `review` on the combined campaign diff (all campaign branches merged into a scratch branch under `.work/wt/close`). Fix P1/P2 findings in new drafts. Write the final Ledger dispositions and **Status**.
+Run `review` on the combined campaign diff (all campaign branches merged into a scratch branch under `.work/wt/close`). Fix P1/P2 findings in new drafts. Close every Ledger row and write the final **Status**.
 
 ### Parallelism
 
@@ -202,10 +203,10 @@ Write it with the repo's `pr-writer` skill: a short reviewer cover note with no 
 
 - `python3 -I .work/bin/escape_hatches.py sweep` reports a TOTAL where every remaining count appears as an exemption in the Ledger.
 - Full mypy is green on a scratch merge of all campaign branches.
-- Every seed item (B*, C*) has a PR or a parked Ledger row with a cause.
+- Every **Ledger** row is `merged`, `parked`, `exempt`, or `n/a`.
 - A Phase 4 `review` has no open P1/P2 findings.
 
-The campaign is not "fully repaired" while any Ledger row is open.
+The campaign is not "fully repaired" while any Ledger row is `todo` or `draft`, or is `parked` without a recorded cause.
 
 ## Needs environment
 
@@ -219,25 +220,277 @@ The campaign is not "fully repaired" while any Ledger row is open.
 - **Non-goals:** escape hatches that existed before #129614, unless a repair has to go through them; rewriting the followups; and runtime refactors that don't improve a contract.
 - **Contract changes to surface to the owner:** each PR that changes a public signature, a serializer response type, or a stub says so under **Contract**. A response-type change that alters the generated OpenAPI spec is a public API contract change, so its PR body says so in **Behavior change**.
 
-## Reference: audit findings that are not bugs
+## Audit
 
-Don't "fix" these:
+This section inlines the owner's audit of #129614 (2,474-file diff; checked against `7a6446c9b5e`, re-verified at `1cd41fc29e1`). The audit summarized 45 detailed finding records. Only that summary reached this campaign, so the findings below are the complete known set. Anything else the records held is found by the Phase 3 sweep, which covers every file #129614 touched.
 
-- The CSV `None` cast is a false contract, but Django stringifies it to `b"None"`; it does not raise. Fix the type only.
-- Some suspicious fallthroughs are constrained by earlier validation, and some assertions reflect real internal invariants. Before changing anything, check the producer.
-- The RPC top-events cast is unchecked and needlessly broad; it is not a false runtime shape.
-- The audit's isolated probes are not integration results. Re-verify behavior with repository tests.
+### What the audit established
 
-The owner's full audit (45 finding records) is not in this repo. If the owner places it at `tighten-typing-audit.txt` next to this doc, add its records missing from **Sequence** to Phase 3, attached to their packages.
+- The criticism is right in substance. Some casts are only unnecessary, but others promise values, classes, or response fields the code never produces. The followups #129615–#129624 explain why some behavior fixes were split out. They do not make the remaining contracts sound, and several of them still use casts or `Any`.
+- `**kwargs: object` is safer than `**kwargs: Any`, but neither states a known keyword schema. Known options take `Unpack[TypedDict]` or keyword-only parameters.
+- Banning the spelling `cast` is not enough. With an `Any` producer, a plain annotation such as `rpc_result: SnubaTSResult = ...` can be just as false.
+- An annotation is unsound even when it caused no new runtime failure. Most findings below keep the runtime behavior that predates #129614 and add a false type on top.
+- The audit did not run full mypy or pytest; its isolated probes are not integration results.
+
+Finding classes used below: **FC** false contract, **LI** lost inference (types already exist and an escape hatch drops them), **BR** behavior regression from #129614, **LB** latent bug, **ST** stub stronger than the pinned dependency, **TD** test hides a supported state, **NB** examined and not a bug (change the type only).
+
+| ID  | Location                                                                          | Finding                                                                                                                                                                                                     | Class | Item                                            |
+| --- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------------------------------------------- |
+| A01 | `src/sentry/api/endpoints/organization_events.py` `_data_fn`                      | A typed `DatasetQuery` result (`EventsResponse`) is cast to `dict[str, Any]`.                                                                                                                               | LI    | C14                                             |
+| A02 | `organization_events.py:584` (`scoped_dataset: Any`), `rpc_dataset_common.py:564` | RPC table-query paths lose their method signatures through an `Any` receiver, so `run_table_query`'s `EAPResponse` checks nothing.                                                                          | LI    | C14                                             |
+| A03 | `src/sentry/snuba/rpc_dataset_common.py:1175`                                     | `run_top_events_timeseries_query -> Any` builds `{}` or a dict of `SnubaTSResult`. Type both the return value and the accumulator.                                                                          | LI    | C15                                             |
+| A04 | `organization_events_timeseries.py` consumers                                     | The cast to `SnubaTSResult \| dict[str, SnubaTSResult]` is unchecked and broader than needed, but it is not a false runtime shape.                                                                          | LI    | C15                                             |
+| A05 | `src/sentry/snuba/discover.py` `top_events_timeseries`                            | The legacy Discover/errors paths really do return the union. Do not narrow them to dict-only.                                                                                                               | NB    | C15                                             |
+| A06 | `organization_events_stats.py:311,325`                                            | `rpc_result: SnubaTSResult` receives a dict, and `top_events_result: SnubaTSResult` can receive one. `Any` lets both annotations through.                                                                   | FC    | C15                                             |
+| A07 | `organization_events_stats.py:107` (`check_if_results_have_data`)                 | A content predicate: either representation can be empty or non-empty. Keep it `-> bool`; never make it a type guard.                                                                                        | NB    | C15                                             |
+| A08 | `src/sentry/api/fields/empty_decimal.py`, `empty_integer.py`                      | Blank input returns `cast(Decimal/int, None)`.                                                                                                                                                              | FC    | C1                                              |
+| A09 | `src/sentry/integrations/gitlab/issue_sync.py:346`                                | An invalid issue key returns `cast("IssuePayload", None)`.                                                                                                                                                  | FC    | C2                                              |
+| A10 | `jira/integration.py:1465`, `jira_server/integration.py:1323`                     | Ordinary unassignment sends `None` disguised as `str`. An assert or `"None"` would break valid behavior.                                                                                                    | FC    | C3                                              |
+| A11 | `src/sentry/api/base.py:795`                                                      | With no environment, `environment_id and [environment_id]` is `None`, cast to `list[int]`.                                                                                                                  | FC    | C4                                              |
+| A12 | `src/sentry/utils/samples.py:190`                                                 | The no-sample branch returns `None` while promising a dict.                                                                                                                                                 | FC    | C5                                              |
+| A13 | `src/sentry/api/serializers/models/event.py:640`                                  | `SharedEventSerializer` deletes six keys, then claims the full response type, in which they are required.                                                                                                   | FC    | C6                                              |
+| A14 | `src/sentry/api/serializers/models/pullrequest.py:140-142`                        | An empty author object is cast to a populated `Author`, and an optional URL to `str`.                                                                                                                       | FC    | C7                                              |
+| A15 | `src/sentry/api/serializers/models/userreport.py:158`                             | `group=None` produces `issue=None`, which is claimed to be a dict.                                                                                                                                          | FC    | C8                                              |
+| A16 | `src/sentry/replays/endpoints/project_replay_jobs_delete.py:77`                   | Four `datetime` values are cast into a `TypedDict` that declares `str`.                                                                                                                                     | FC    | C9                                              |
+| A17 | `src/sentry/api/paginator.py:622,928-933`                                         | A whole page dict is advertised as a `Sequence` of rows.                                                                                                                                                    | FC    | C10                                             |
+| A18 | `src/sentry/api/endpoints/organization_trace_item_stats.py:118`                   | `(dict, count)` is advertised as a sequence of dicts.                                                                                                                                                       | FC    | C10                                             |
+| A19 | `src/sentry/api/paginator.py` order_by typo                                       | Already corrected on `master` even though its PR (#129615) is open. Check the code, not the PR status.                                                                                                      | NB    | C10                                             |
+| A20 | `src/sentry/integrations/jira/client.py:171,212`                                  | Plain nested JSON is cast to the HTTP wrapper classes `MappingApiResponse`/`SequenceApiResponse`.                                                                                                           | FC    | C11                                             |
+| A21 | `src/sentry/snuba/metrics/mqb_query_transformer.py:316,334`                       | `Sequence[int]` project IDs are cast to `Sequence[Project]`. The resolver's generic fallback (`metrics/fields/base.py`) reads project attributes, although known-entity branches return before reaching it. | FC    | C12                                             |
+| A22 | `src/sentry/services/eventstore/snuba/backend.py:536`                             | String event IDs are cast to `Sequence[int]`. The filter mapping needs value types per key.                                                                                                                 | FC    | C13                                             |
+| A23 | `src/sentry/api/serializers/rest_framework/base.py:73`                            | `convert_dict_key_case(obj: T) -> T` renames keys, so a `TypedDict` requiring `snake_key` comes back as `snakeKey`.                                                                                         | FC    | C16                                             |
+| A24 | `src/sentry/api/serializers/rest_framework/dashboard.py:465`                      | In `_get_attr(..., empty_value: T) -> T`, the fallback picks the claimed type of `Any` data.                                                                                                                | FC    | C17a                                            |
+| A25 | `dashboard.py:1347-1353,1586-1600`                                                | `None` is cast to `int`, and `setattr(widget, "widget_type", None)` hides model fields that are nullable.                                                                                                   | FC    | C17b                                            |
+| A26 | `src/sentry/snuba/snuba_query_validator.py:223`                                   | `validate` normalizes fields and checks query/event-type combinations, then returns `dict[str, Any]`.                                                                                                       | LI    | C18                                             |
+| A27 | `src/sentry/utils/types.py:51,126`                                                | `Type.test`'s `TypeGuard` checks only `isinstance`, while `DictType` promises `str` keys: `{1: "one"}` passes. YAML conversion can return a scalar typed as a dict.                                         | FC    | C19                                             |
+| A28 | `fixtures/stubs-for-mypy/google/cloud/storage/blob.pyi:9`                         | `updated: datetime`, but GCS 2.18.0 returns `None` before metadata is loaded.                                                                                                                               | ST    | C20a                                            |
+| A29 | `fixtures/stubs-for-mypy/selenium/webdriver/support/wait.pyi:17`                  | `until_not -> T`, but Selenium 4.16.0 also returns `Literal[True]` on an ignored exception.                                                                                                                 | ST    | C20b                                            |
+| A30 | `fixtures/stubs-for-mypy/sentry_relay/processing.pyi:22`                          | `split_chunks -> list[str]`, but Relay's own tests receive structured chunk dicts. Verify against the installed wheel.                                                                                      | ST    | C20c                                            |
+| A31 | `src/sentry/testutils/pytest/mocking.py:112-114`                                  | `capture_results` records caught exceptions into an accumulator typed as holding only `T`.                                                                                                                  | FC    | C21                                             |
+| A32 | `tests/sentry/tasks/test_assemble.py:52`                                          | `_NO_RELEASE = cast(str, None)` hides supported artifact assembly without a release.                                                                                                                        | TD    | C22                                             |
+| A33 | `tests/snuba/search/test_backend.py:55`                                           | `UNBOUNDED_DATETIME = cast("datetime", None)` hides supported unbounded searches. Widen only the paths that support them.                                                                                   | TD    | C22                                             |
+| A34 | `tests/sentry/incidents/serializers/test_workflow_engine_data_condition.py:26`    | `_float_comparison` returns a float typed as a union that excludes floats.                                                                                                                                  | TD    | C22                                             |
+| A35 | `src/sentry/integrations/slack/unfurl/dashboards.py:153,250`                      | The added `assert widget.widget_type is not None` turns the null-type skip into a crash.                                                                                                                    | BR    | B1                                              |
+| A36 | `src/sentry/utils/concurrent.py:270`                                              | The `FutureSet(Iterable)` annotation admits generators, but the constructor iterates its argument twice, so a generator gets no completion callback.                                                        | LB    | B2                                              |
+| A37 | `src/sentry/api/endpoints/organization_stats_summary.py:174`                      | A `str \| None` CSV is cast to `str`. Django writes `b"None"` rather than raising.                                                                                                                          | NB/LB | B3                                              |
+| A38 | #129616 (msteams)                                                                 | The followup still casts the Teams result while changing `.get("id")` to `["id"]`.                                                                                                                          | FC    | P3 `src/sentry/integrations`; supersede #129616 |
+| A39 | #129620 (releases artifacts)                                                      | The followup casts the artifact schema after checking only the outer shape.                                                                                                                                 | FC    | P3 `src/sentry/api`; supersede #129620          |
+| A40 | #129624 (projects allowed domains)                                                | The followup still uses `Any`/`list[Any]`.                                                                                                                                                                  | LI    | P3 `src/sentry/api`; supersede #129624          |
+| A41 | Sweep-wide patterns named by the audit                                            | Known `**kwargs` typed as `object`/`Any`, untruthful factories and task kwargs, normalized argument defaults, metrics parameter schemas.                                                                    | LI    | P3 (every package)                              |
+
+Also from the audit: some suspicious fallthroughs are already constrained by earlier validation, and some assertions reflect real internal invariants. Before treating either as a bug, read the producer.
 
 ## Ledger
 
-| ID  | PR      | Disposition   |
-| --- | ------- | ------------- |
-| G1  |         |               |
-| C1  | #129702 | draft #129702 |
+Statuses: `todo`, `draft #N`, `merged #N`, `parked: <cause>; retry when <condition>`, `exempt: <category>` (sweep packages only), `n/a: <reason>`. Every row is updated in place, and the campaign is done only when no row is `todo` or `draft`.
 
-The executor adds one row per item and per Phase 3 package. Dispositions are `draft #N`, `parked: <cause>, retry when <condition>`, or `exempt: <category>`.
+### Items
+
+| ID    | Status        | Notes                                        |
+| ----- | ------------- | -------------------------------------------- |
+| G1    | todo          |                                              |
+| B1    | todo          |                                              |
+| B2    | todo          |                                              |
+| B3    | todo          |                                              |
+| C1    | draft #129702 | Override deleted; `MissedMarginField` typed. |
+| C2    | todo          |                                              |
+| C3    | todo          |                                              |
+| C4    | todo          |                                              |
+| C5    | todo          |                                              |
+| C6    | todo          |                                              |
+| C7    | todo          |                                              |
+| C8    | todo          |                                              |
+| C9    | todo          |                                              |
+| C10   | todo          |                                              |
+| C11   | todo          |                                              |
+| C12   | todo          |                                              |
+| C13   | todo          |                                              |
+| C14   | todo          |                                              |
+| C15   | todo          |                                              |
+| C16   | todo          |                                              |
+| C17a  | todo          |                                              |
+| C17b  | todo          |                                              |
+| C18   | todo          |                                              |
+| C19   | todo          |                                              |
+| C20a  | todo          |                                              |
+| C20b  | todo          |                                              |
+| C20c  | todo          |                                              |
+| C21   | todo          |                                              |
+| C22   | todo          |                                              |
+| Close | todo          | Phase 4 review                               |
+
+### Discovered during the campaign
+
+Record findings here that come up mid-campaign and need their own work (Charter 6, delegated open questions, getsentry breakage), each with an ID `D<n>`, location, finding, and status.
+
+| ID  | Location | Finding | Status |
+| --- | -------- | ------- | ------ |
+
+### Sweep packages (Phase 3)
+
+The counts are hatches #129614 added that remain, measured on `master` plus open campaign drafts on 2026-11-03. Refresh a row with `escape_hatches.py sweep <package>/` when its PR opens. A package that a Phase 2 item partly covers still needs its own row closed.
+
+| Package                          | cast | Any | ignore | reflection | Status |
+| -------------------------------- | ---- | --- | ------ | ---------- | ------ |
+| `src/sentry/testutils`           | 31   | 536 | 0      | 8          | todo   |
+| `src/sentry/api`                 | 218  | 188 | 2      | 7          | todo   |
+| `src/sentry/integrations`        | 121  | 155 | 1      | 0          | todo   |
+| `fixtures/stubs-for-mypy`        | 0    | 161 | 0      | 0          | todo   |
+| `tests/sentry/utils`             | 14   | 140 | 1      | 1          | todo   |
+| `src/sentry/utils`               | 28   | 121 | 0      | 4          | todo   |
+| `tests/sentry/integrations`      | 19   | 133 | 0      | 0          | todo   |
+| `tests/sentry/seer`              | 5    | 124 | 0      | 0          | todo   |
+| `src/sentry/interfaces`          | 1    | 115 | 0      | 1          | todo   |
+| `tests/sentry/api`               | 28   | 85  | 0      | 4          | todo   |
+| `src/sentry/lang`                | 2    | 114 | 0      | 0          | todo   |
+| `src/social_auth/backends`       | 6    | 103 | 0      | 3          | todo   |
+| `src/sentry/db`                  | 14   | 90  | 7      | 0          | todo   |
+| `tests/sentry/tasks`             | 46   | 58  | 0      | 0          | todo   |
+| `tests/snuba/api`                | 0    | 95  | 0      | 0          | todo   |
+| `tests/sentry/preprod`           | 25   | 68  | 0      | 0          | todo   |
+| `src/sentry/models`              | 33   | 44  | 0      | 5          | todo   |
+| `src/sentry/monitors`            | 17   | 53  | 0      | 2          | todo   |
+| `src/sentry/snuba`               | 30   | 37  | 0      | 0          | todo   |
+| `src/sentry/sentry_apps`         | 7    | 52  | 0      | 0          | todo   |
+| `src/sentry/tagstore`            | 19   | 39  | 0      | 0          | todo   |
+| `src/sentry/search`              | 24   | 27  | 1      | 1          | todo   |
+| `tests/sentry/middleware`        | 3    | 47  | 1      | 0          | todo   |
+| `src/sentry/seer`                | 5    | 44  | 0      | 0          | todo   |
+| `tests/sentry/profiles`          | 12   | 37  | 0      | 0          | todo   |
+| `fixtures/integrations`          | 4    | 34  | 0      | 0          | todo   |
+| `src/sentry/grouping`            | 4    | 34  | 0      | 0          | todo   |
+| `src/sentry/replays`             | 12   | 26  | 0      | 0          | todo   |
+| `src/sentry/discover`            | 12   | 24  | 0      | 0          | todo   |
+| `src/sentry/identity`            | 28   | 7   | 0      | 0          | todo   |
+| `tests/sentry/spans`             | 23   | 6   | 0      | 0          | todo   |
+| `src/sentry/tasks`               | 6    | 22  | 0      | 0          | todo   |
+| `src/social_auth`                | 6    | 21  | 0      | 1          | todo   |
+| `src/sentry/apidocs`             | 17   | 9   | 0      | 0          | todo   |
+| `src/sentry/tsdb`                | 21   | 5   | 0      | 0          | todo   |
+| `src/sentry/uptime`              | 5    | 21  | 0      | 0          | todo   |
+| `src/sentry/issues`              | 18   | 7   | 0      | 0          | todo   |
+| `tests/sentry/auth`              | 16   | 6   | 0      | 3          | todo   |
+| `src/sentry/core`                | 18   | 2   | 0      | 4          | todo   |
+| `tests/sentry/search`            | 0    | 24  | 0      | 0          | todo   |
+| `src/sentry/backup`              | 3    | 19  | 0      | 0          | todo   |
+| `tests/relay_integration`        | 0    | 21  | 0      | 0          | todo   |
+| `tests/sentry/core`              | 2    | 19  | 0      | 0          | todo   |
+| `src/sentry/releases`            | 3    | 16  | 0      | 1          | todo   |
+| `src/sentry/services`            | 11   | 9   | 0      | 0          | todo   |
+| `src/sentry/web`                 | 4    | 12  | 0      | 2          | todo   |
+| `tests/sentry/identity`          | 2    | 15  | 0      | 0          | todo   |
+| `tests/sentry/notifications`     | 7    | 8   | 0      | 2          | todo   |
+| `tests/sentry/uptime`            | 4    | 13  | 0      | 0          | todo   |
+| `tests/sentry/web`               | 3    | 11  | 0      | 3          | todo   |
+| `src/sentry/similarity`          | 16   | 0   | 0      | 0          | todo   |
+| `tests/sentry/issues`            | 7    | 9   | 0      | 0          | todo   |
+| `tests/sentry/monitors`          | 0    | 16  | 0      | 0          | todo   |
+| `tests/snuba`                    | 8    | 8   | 0      | 0          | todo   |
+| `tests/sentry/migrations`        | 0    | 15  | 0      | 0          | todo   |
+| `tests/sentry/services`          | 11   | 4   | 0      | 0          | todo   |
+| `tests/snuba/search`             | 10   | 5   | 0      | 0          | todo   |
+| `tests/snuba/tasks`              | 0    | 15  | 0      | 0          | todo   |
+| `src/sentry`                     | 12   | 0   | 0      | 2          | todo   |
+| `src/sentry/management`          | 12   | 2   | 0      | 0          | todo   |
+| `src/sentry/net`                 | 1    | 13  | 0      | 0          | todo   |
+| `tests/sentry/buffer`            | 1    | 12  | 0      | 0          | todo   |
+| `tests/sentry/dashboards`        | 0    | 12  | 0      | 0          | todo   |
+| `src/sentry/explore`             | 10   | 1   | 0      | 0          | todo   |
+| `src/sentry/plugins`             | 1    | 9   | 0      | 0          | todo   |
+| `src/sentry/relay`               | 6    | 4   | 0      | 0          | todo   |
+| `src/sentry/shared_integrations` | 2    | 8   | 0      | 0          | todo   |
+| `tests/sentry/incidents`         | 9    | 0   | 0      | 1          | todo   |
+| `tests/sentry/investigations`    | 8    | 2   | 0      | 0          | todo   |
+| `tests/sentry/rules`             | 6    | 4   | 0      | 0          | todo   |
+| `tests/sentry/event_manager`     | 2    | 7   | 0      | 0          | todo   |
+| `tests/sentry/features`          | 3    | 6   | 0      | 0          | todo   |
+| `tests/symbolicator`             | 8    | 1   | 0      | 0          | todo   |
+| `src/bitfield`                   | 3    | 5   | 0      | 0          | todo   |
+| `src/sentry/release_health`      | 8    | 0   | 0      | 0          | todo   |
+| `src/sentry/toolbar`             | 0    | 8   | 0      | 0          | todo   |
+| `tests/sentry/dynamic_sampling`  | 4    | 4   | 0      | 0          | todo   |
+| `tests/sentry/models`            | 3    | 4   | 0      | 1          | todo   |
+| `tests/snuba/sessions`           | 0    | 8   | 0      | 0          | todo   |
+| `fixtures/sudo_testutils.py`     | 1    | 6   | 0      | 0          | todo   |
+| `src/sentry/attachments`         | 6    | 1   | 0      | 0          | todo   |
+| `src/sentry/flags`               | 5    | 2   | 0      | 0          | todo   |
+| `src/sentry/incidents`           | 1    | 4   | 0      | 2          | todo   |
+| `src/sentry/notebooks`           | 3    | 4   | 0      | 0          | todo   |
+| `src/sentry/receivers`           | 2    | 5   | 0      | 0          | todo   |
+| `tests/sentry/issue_detection`   | 7    | 0   | 0      | 0          | todo   |
+| `tests/sentry/sudo`              | 3    | 0   | 0      | 4          | todo   |
+| `src/sentry/new_migrations`      | 3    | 2   | 0      | 1          | todo   |
+| `src/sentry/notifications`       | 5    | 1   | 0      | 0          | todo   |
+| `tests/sentry/apidocs`           | 3    | 3   | 0      | 0          | todo   |
+| `tests/sentry/sentry_apps`       | 2    | 4   | 0      | 0          | todo   |
+| `fixtures/page_objects`          | 1    | 4   | 0      | 0          | todo   |
+| `src/sentry/stacktraces`         | 0    | 5   | 0      | 0          | todo   |
+| `src/sentry/users`               | 5    | 0   | 0      | 0          | todo   |
+| `src/sentry/workflow_engine`     | 3    | 0   | 0      | 2          | todo   |
+| `tests/relay_integration/lang`   | 0    | 5   | 0      | 0          | todo   |
+| `tests/sentry/db`                | 3    | 2   | 0      | 0          | todo   |
+| `fixtures/sdk_crash_detection`   | 0    | 4   | 0      | 0          | todo   |
+| `src/sentry/hybridcloud`         | 2    | 0   | 0      | 2          | todo   |
+| `src/sentry/ingest`              | 1    | 3   | 0      | 0          | todo   |
+| `src/sentry/options`             | 2    | 2   | 0      | 0          | todo   |
+| `src/sentry/profiles`            | 4    | 0   | 0      | 0          | todo   |
+| `src/sentry/spans`               | 2    | 2   | 0      | 0          | todo   |
+| `tests/acceptance`               | 1    | 1   | 0      | 2          | todo   |
+| `tests/apigw`                    | 2    | 2   | 0      | 0          | todo   |
+| `tests/sentry/lang`              | 0    | 4   | 0      | 0          | todo   |
+| `tests/sentry/processing_errors` | 1    | 3   | 0      | 0          | todo   |
+| `tests/sentry/replays`           | 2    | 2   | 0      | 0          | todo   |
+| `tests/sentry/scm`               | 0    | 4   | 0      | 0          | todo   |
+| `tests/sentry/snuba`             | 1    | 3   | 0      | 0          | todo   |
+| `src/apigw`                      | 2    | 1   | 0      | 0          | todo   |
+| `src/sentry/auth`                | 2    | 1   | 0      | 0          | todo   |
+| `src/sentry/cache`               | 2    | 1   | 0      | 0          | todo   |
+| `src/sentry/dashboards`          | 3    | 0   | 0      | 0          | todo   |
+| `src/sentry/investigations`      | 2    | 1   | 0      | 0          | todo   |
+| `src/sentry/metrics`             | 3    | 0   | 0      | 0          | todo   |
+| `src/sentry/templatetags`        | 1    | 0   | 0      | 2          | todo   |
+| `tests/sentry/feedback`          | 3    | 0   | 0      | 0          | todo   |
+| `tests/sentry/hybridcloud`       | 1    | 1   | 0      | 1          | todo   |
+| `tests/sentry/options`           | 2    | 1   | 0      | 0          | todo   |
+| `tests/sentry/release_health`    | 0    | 3   | 0      | 0          | todo   |
+| `tests/sentry`                   | 0    | 1   | 0      | 2          | todo   |
+| `src/sentry/data_export`         | 1    | 1   | 0      | 0          | todo   |
+| `src/sentry/digests`             | 2    | 0   | 0      | 0          | todo   |
+| `src/sentry/loader`              | 2    | 0   | 0      | 0          | todo   |
+| `src/sentry/logging`             | 0    | 2   | 0      | 0          | todo   |
+| `src/sentry/middleware`          | 0    | 0   | 0      | 2          | todo   |
+| `src/sentry/preprod`             | 2    | 0   | 0      | 0          | todo   |
+| `src/sentry/silo`                | 1    | 1   | 0      | 0          | todo   |
+| `tests/sentry/eventstream`       | 2    | 0   | 0      | 0          | todo   |
+| `tests/sentry/explore`           | 0    | 2   | 0      | 0          | todo   |
+| `tests/sentry/ingest`            | 0    | 2   | 0      | 0          | todo   |
+| `tests/sentry/mail`              | 1    | 1   | 0      | 0          | todo   |
+| `tests/sentry/metrics`           | 0    | 0   | 0      | 2          | todo   |
+| `tests/sentry/pipeline`          | 0    | 2   | 0      | 0          | todo   |
+| `tests/sentry/relocation`        | 2    | 0   | 0      | 0          | todo   |
+| `tests/sentry/sentry_metrics`    | 2    | 0   | 0      | 0          | todo   |
+| `tests/sentry/tagstore`          | 0    | 2   | 0      | 0          | todo   |
+| `tests/sentry/workflow_engine`   | 0    | 2   | 0      | 0          | todo   |
+| `tests/snuba/tsdb`               | 0    | 2   | 0      | 0          | todo   |
+| `src/apigw/views`                | 1    | 0   | 0      | 0          | todo   |
+| `src/sentry/adoption`            | 1    | 0   | 0      | 0          | todo   |
+| `src/sentry/assistant`           | 0    | 1   | 0      | 0          | todo   |
+| `src/sentry/conf`                | 0    | 1   | 0      | 0          | todo   |
+| `src/sentry/dynamic_sampling`    | 1    | 0   | 0      | 0          | todo   |
+| `src/sentry/feedback`            | 0    | 1   | 0      | 0          | todo   |
+| `src/sentry/mail`                | 1    | 0   | 0      | 0          | todo   |
+| `src/sentry/projectoptions`      | 0    | 1   | 0      | 0          | todo   |
+| `src/sentry/rules`               | 0    | 1   | 0      | 0          | todo   |
+| `src/sentry/runner`              | 1    | 0   | 0      | 0          | todo   |
+| `tests/apidocs/endpoints`        | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/analytics`         | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/debug_files`       | 0    | 0   | 0      | 1          | todo   |
+| `tests/sentry/receivers`         | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/relay`             | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/releases`          | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/runner`            | 0    | 1   | 0      | 0          | todo   |
+| `tests/sentry/tsdb`              | 1    | 0   | 0      | 0          | todo   |
+| `tests/snuba/tagstore`           | 1    | 0   | 0      | 0          | todo   |
 
 ## Appendix: `escape_hatches.py`
 
