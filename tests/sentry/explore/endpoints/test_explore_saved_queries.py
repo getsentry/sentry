@@ -22,6 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -2254,3 +2255,24 @@ class ExploreSavedQueryScopeTest(APITestCase):
         self._use_token(["saved_query:read", "saved_query:write"])
         assert self.client.get(self.details_url).status_code == 200
         assert self.client.delete(self.details_url).status_code == 204
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert ExploreSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200

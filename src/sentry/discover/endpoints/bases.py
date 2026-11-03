@@ -18,6 +18,9 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
     def has_object_permission(
         self,
         request: Request,
