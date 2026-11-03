@@ -50,7 +50,7 @@ class OrganizationApiKeyIndex(APITestCase):
             category=OutboxCategory.API_KEY_UPDATE, object_identifier=key.id
         ).exists()
 
-        # At this point, the token change has been committed, but the outbox
+        # At this point, the key change has been committed, but the outbox
         # has not been processed, so there should be no replica.
         with assume_test_silo_mode(SiloMode.CELL):
             assert not ApiKeyReplica.objects.filter(apikey_id=key.id).exists()
