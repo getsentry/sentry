@@ -461,3 +461,37 @@ describe('Tooltip', () => {
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
+
+describe('Tooltip trigger ref swaps', () => {
+  it('keeps the trigger attached when the child ref changes on every render', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    function Trigger({count}: {count: number}) {
+      return (
+        <ThemeWrapper>
+          <Tooltip title="hello" skipWrapper delay={0}>
+            {/* A new callback ref every render makes React detach and re-attach */}
+            <button type="button" ref={() => {}}>
+              trigger {count}
+            </button>
+          </Tooltip>
+        </ThemeWrapper>
+      );
+    }
+
+    const {rerender} = render(<Trigger count={0} />);
+    for (let i = 1; i <= 60; i++) {
+      rerender(<Trigger count={i} />);
+    }
+    // Let any deferred trigger clears run.
+    await act(() => Promise.resolve());
+
+    await userEvent.hover(screen.getByRole('button', {name: 'trigger 60'}));
+    expect(await screen.findByText('hello')).toBeInTheDocument();
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining('Maximum update depth exceeded')
+    );
+    consoleError.mockRestore();
+  });
+});
