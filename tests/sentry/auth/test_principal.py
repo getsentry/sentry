@@ -277,7 +277,7 @@ def _is_request_user_type_check(node: ast.AST) -> bool:
 # Lower these as callers move off. Exact, so the baseline can't drift back up.
 REQUEST_USER_ID_BASELINE = 124
 REQUEST_USER_TYPE_CHECK_BASELINE = 29
-REQUEST_USER_ALLOWLIST_BASELINE = 1
+REQUEST_USER_ALLOWLIST_BASELINE = 0
 
 
 def test_request_user_id_uses_only_go_down() -> None:
