@@ -142,7 +142,8 @@ def _unfurl_dashboards(
         if widget is None:
             continue
 
-        assert widget.widget_type is not None
+        if widget.widget_type is None:
+            continue
         config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
         if config is None:
             continue
@@ -239,13 +240,12 @@ def build_widget_timeseries_params(
     widget: DashboardWidget, url_params: QueryDict
 ) -> list[dict[str, str | list[str]]]:
     """Build one timeseries param dict per widget query."""
-    assert widget.widget_type is not None
-    config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
-    if config is None:
-        raise ValueError(f"Unsupported widget type: {widget.widget_type}")
+    widget_type = widget.widget_type
+    if widget_type is None or (config := _WIDGET_TYPE_TO_CONFIG.get(widget_type)) is None:
+        raise ValueError(f"Unsupported widget type: {widget_type}")
 
     dashboard_filters = widget.dashboard.get_filters()
-    global_filters = _dashboard_filter_conditions(url_params, dashboard_filters, widget.widget_type)
+    global_filters = _dashboard_filter_conditions(url_params, dashboard_filters, widget_type)
 
     return [
         _params_for_widget_query(wq, url_params, config, dashboard_filters, global_filters)
