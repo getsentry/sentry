@@ -1610,7 +1610,6 @@ module = [
     "tests.sentry.api.endpoints.test_project_transaction_threshold_override",
     "tests.sentry.api.endpoints.test_prompts_activity",
     "tests.sentry.api.endpoints.test_relay_globalconfig_v3",
-    "tests.sentry.api.endpoints.test_relay_healthcheck",
     "tests.sentry.api.endpoints.test_relay_projectconfigs",
     "tests.sentry.api.endpoints.test_relay_projectconfigs_v2",
     "tests.sentry.api.endpoints.test_relay_projectconfigs_v3",
