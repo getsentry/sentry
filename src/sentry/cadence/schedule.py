@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import islice, pairwise
-from typing import Any, ClassVar
+from typing import Any, ClassVar, assert_never
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from cronsim import CronSim, CronSimError
@@ -48,7 +49,8 @@ class CronSchedule:
     """
     Run on a five-field cron `expression`, evaluated in `timezone`. Always valid once
     constructed: the expression parses, the timezone exists, and runs are at least
-    MIN_INTERVAL apart (checked over the next CRON_SPACING_SAMPLE runs).
+    MIN_INTERVAL apart in real time, including across daylight saving changes (checked over
+    the next CRON_SPACING_SAMPLE runs).
     """
 
     schedule_type: ClassVar[ScheduleType] = ScheduleType.CRON
@@ -73,17 +75,43 @@ def _next_cron_after(expression: str, timezone: str, after: datetime) -> datetim
 def _cron_error(expression: str, timezone: str) -> str | None:
     """Why a cron schedule is invalid, or None. Takes tens of ms: checks spacing of many runs."""
     try:
-        tz = ZoneInfo(timezone)
+        ZoneInfo(timezone)
     except (ZoneInfoNotFoundError, ValueError):
         return f"Unknown timezone: {timezone}"
     try:
-        runs = CronSim(expression, _CRON_SPACING_START.replace(tzinfo=tz))
+        CronSim(expression, _CRON_SPACING_START)
     except CronSimError as exc:
         return f"Invalid cron expression {expression!r}: {exc}"
-    for earlier, later in pairwise(islice(runs, CRON_SPACING_SAMPLE)):
-        if later - earlier < MIN_INTERVAL:
-            return f"Cron runs must be at least {MIN_INTERVAL} apart"
+    if _cron_min_gap(expression, timezone) < MIN_INTERVAL:
+        return f"Cron runs must be at least {MIN_INTERVAL} apart"
     return None
+
+
+@functools.lru_cache(maxsize=1024)
+def _cron_min_gap(expression: str, timezone: str) -> timedelta:
+    """
+    The shortest time between consecutive runs, over the next CRON_SPACING_SAMPLE runs,
+    capped at MAX_INTERVAL. Takes tens of ms, so it's cached.
+    """
+    runs = CronSim(expression, _CRON_SPACING_START.replace(tzinfo=ZoneInfo(timezone)))
+    # Subtract in UTC: datetimes sharing a tzinfo subtract as wall-clock times, which would
+    # hide daylight saving changes.
+    gaps = (
+        later.astimezone(UTC) - earlier.astimezone(UTC)
+        for earlier, later in pairwise(islice(runs, CRON_SPACING_SAMPLE))
+    )
+    return min(min(gaps, default=MAX_INTERVAL), MAX_INTERVAL)
+
+
+def min_gap(schedule: Schedule) -> timedelta:
+    """The shortest time between consecutive runs of `schedule`, capped at MAX_INTERVAL."""
+    match schedule:
+        case IntervalSchedule(interval=interval):
+            return interval
+        case CronSchedule(expression=expression, timezone=timezone):
+            return _cron_min_gap(expression, timezone)
+        case _:
+            assert_never(schedule)
 
 
 def every(interval: timedelta) -> IntervalSchedule:
@@ -151,16 +179,13 @@ def advance(trigger: ScheduledTrigger, scheduled_for: datetime, now: datetime) -
 
 
 def reschedule_for_new_interval(
-    current_next_run: datetime | None,
-    new_interval: timedelta,
-    now: datetime,
-    jitter: timedelta = timedelta(0),
+    current_next_run: datetime | None, new_interval: timedelta, now: datetime
 ) -> datetime:
     """
     Keep the existing next run if it would still happen within the new interval,
-    otherwise start the new interval from `now`, delayed by `jitter`.
+    otherwise start the new interval from `now`.
     """
     latest = now + new_interval
     if current_next_run is not None and current_next_run <= latest:
         return current_next_run
-    return latest + jitter
+    return latest

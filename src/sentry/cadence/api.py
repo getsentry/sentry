@@ -8,13 +8,13 @@ come due, the action registered for their trigger type is called with a batch of
 Actions should do nothing more than schedule a task or publish a Kafka message per run;
 see `TriggerAction` for the contract.
 
-Runs are never handed off before their scheduled time, and normally within 20 seconds of it,
-but can be arbitrarily late while Cadence is behind. See "Timing" in README.md.
+Runs are never handed off before they are due (their scheduled time plus their offset within
+their trigger type's spread window), and normally within 20 seconds of it, but can be
+arbitrarily late while Cadence is behind. See "Timing" in README.md.
 """
 
 from __future__ import annotations
 
-import random
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -32,9 +32,11 @@ from sentry.cadence.schedule import (
     Schedule,
     cron,
     every,
+    min_gap,
     reschedule_for_new_interval,
     schedule_of,
 )
+from sentry.cadence.spread import offset_of
 
 __all__ = (
     "CronSchedule",
@@ -53,15 +55,16 @@ __all__ = (
     "set_schedule",
 )
 
-MAX_JITTER = timedelta(minutes=5)
-
 
 @dataclass(frozen=True)
 class ScheduledTriggerInfo:
     target_id: int
     schedule: Schedule
+    # When the next run actually happens: its scheduled time plus the trigger's offset.
     # None if the trigger isn't scheduled to run.
     next_run_at: datetime | None
+    # The next run's scheduled time, which its TriggerContext.scheduled_for will be.
+    next_scheduled_for: datetime | None
 
 
 def _to_info(trigger: ScheduledTrigger) -> ScheduledTriggerInfo:
@@ -69,27 +72,19 @@ def _to_info(trigger: ScheduledTrigger) -> ScheduledTriggerInfo:
         target_id=trigger.target_id,
         schedule=schedule_of(trigger),
         next_run_at=trigger.next_run_at,
+        next_scheduled_for=trigger.next_scheduled_for,
     )
 
 
-def _jitter(interval: timedelta) -> timedelta:
-    """
-    A random delay added when an interval schedule's cadence is (re)started, so triggers
-    created together don't all run together. At most 10% of the interval, capped at
-    MAX_JITTER.
-    """
-    max_jitter = min(interval / 10, MAX_JITTER)
-    return timedelta(seconds=random.randint(0, int(max_jitter.total_seconds())))
-
-
-def _next_run(schedule: Schedule, current_next_run: datetime | None, now: datetime) -> datetime:
+def _next_scheduled_for(
+    schedule: Schedule, current: datetime | None, now: datetime, offset: timedelta
+) -> datetime:
     match schedule:
         case IntervalSchedule(interval=interval):
-            return reschedule_for_new_interval(
-                current_next_run, interval, now, jitter=_jitter(interval)
-            )
+            return reschedule_for_new_interval(current, interval, now)
         case CronSchedule():
-            return schedule.next_after(now)
+            # A scheduled time that has passed still runs if its offset run hasn't.
+            return schedule.next_after(now - offset)
         case _:
             assert_never(schedule)
 
@@ -107,7 +102,12 @@ def _apply_schedule(trigger: ScheduledTrigger, schedule: Schedule, now: datetime
             trigger.timezone = schedule.timezone
         case _:
             assert_never(schedule)
-    trigger.next_run_at = _next_run(schedule, trigger.next_run_at, now)
+    trigger.min_gap_seconds = int(min_gap(schedule).total_seconds())
+    offset = offset_of(trigger)
+    trigger.next_scheduled_for = _next_scheduled_for(
+        schedule, trigger.next_scheduled_for, now, offset
+    )
+    trigger.next_run_at = trigger.next_scheduled_for + offset
 
 
 def set_schedule(
@@ -121,10 +121,14 @@ def set_schedule(
     Schedule `target_id` to run on `schedule`, creating or replacing its schedule. Setting
     the schedule it already has changes nothing, so this is safe to call repeatedly.
 
-    - A new interval schedule first runs one interval (plus jitter) from now.
-    - A changed interval schedule keeps its pending run if that would still happen within
-      the new interval, otherwise it next runs one interval (plus jitter) from now.
-    - A new or changed cron schedule next runs at its next cron time.
+    - A new interval schedule is first scheduled for one interval from now.
+    - A changed interval schedule keeps its pending run if that is scheduled within the
+      new interval, otherwise it is next scheduled for one interval from now.
+    - A new or changed cron schedule is next scheduled for its next cron time.
+
+    Each run may happen up to its trigger type's spread window after it is scheduled for;
+    see `register_trigger_action`. Raises NoRegistrationExistsError if `trigger_type` has no
+    registered action, so a schedule is never created without knowing its spread window.
     """
     trigger_type = ScheduledTriggerType(trigger_type)
     for attempt in range(2):

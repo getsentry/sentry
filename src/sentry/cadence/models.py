@@ -30,6 +30,10 @@ class ScheduledTrigger(DefaultFieldsModel):
 
     Interval schedules run every `interval_seconds`, anchored to when they were created.
     Cron schedules run on `cron_expression`, evaluated in `timezone`.
+
+    `next_scheduled_for` is the next run's scheduled time, which the schedule defines.
+    `next_run_at` is when it actually runs: the scheduled time plus the trigger's offset
+    (see `spread.run_offset`).
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -44,7 +48,11 @@ class ScheduledTrigger(DefaultFieldsModel):
     interval_seconds = models.PositiveIntegerField(null=True)
     cron_expression = models.CharField(max_length=255, null=True)
     timezone = models.CharField(max_length=64, default="UTC", db_default="UTC")
-    # NULL means the trigger is not scheduled to run.
+    # The shortest time between consecutive runs, capped at a week. It bounds the trigger's
+    # spread window, and is stored because it's slow to compute for cron schedules.
+    min_gap_seconds = models.PositiveIntegerField()
+    # NULL means the trigger is not scheduled to run. Both are set, or neither.
+    next_scheduled_for = models.DateTimeField(null=True)
     next_run_at = models.DateTimeField(null=True)
 
     class Meta:
@@ -70,6 +78,13 @@ class ScheduledTrigger(DefaultFieldsModel):
                     )
                 ),
                 name="cadence_scheduledtrigger_schedule_fields",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(next_scheduled_for__isnull=True, next_run_at__isnull=True)
+                    | models.Q(next_scheduled_for__isnull=False, next_run_at__isnull=False)
+                ),
+                name="cadence_scheduledtrigger_next_run_fields",
             ),
         ]
 

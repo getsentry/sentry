@@ -8,9 +8,11 @@ from sentry.cadence.schedule import (
     CronSchedule,
     IntervalSchedule,
     InvalidSchedule,
+    Schedule,
     advance,
     cron,
     every,
+    min_gap,
     next_run_after,
     reschedule_for_new_interval,
     schedule_of,
@@ -83,6 +85,37 @@ def test_cron_schedule_rejects_invalid(expression: str) -> None:
 def test_cron_schedule_rejects_unknown_timezone() -> None:
     with pytest.raises(InvalidSchedule):
         cron("0 10 * * *", "Mars/Olympus_Mons")
+
+
+def test_cron_spacing_is_checked_in_real_time() -> None:
+    # 75 minutes apart on the clock, but 15 minutes apart when New York's clocks go forward
+    # (01:45 EST to 03:00 EDT).
+    assert cron("0,45 1,3 * * *").expression == "0,45 1,3 * * *"
+    with pytest.raises(InvalidSchedule):
+        cron("0,45 1,3 * * *", "America/New_York")
+
+
+@pytest.mark.parametrize(
+    ("schedule", "expected"),
+    [
+        (every(timedelta(hours=3)), timedelta(hours=3)),
+        (cron("0 * * * *"), timedelta(hours=1)),
+        (cron("0 9 * * *"), timedelta(days=1)),
+        # Only 24 hours apart during the week, and longer over the weekend.
+        (cron("0 9 * * 1-5", "America/New_York"), timedelta(days=1)),
+        # 45 minutes apart once a day.
+        (cron("0,45 9 * * *"), timedelta(minutes=45)),
+        # Capped at a week.
+        (cron("0 0 1 * *"), timedelta(weeks=1)),
+    ],
+)
+def test_min_gap(schedule: Schedule, expected: timedelta) -> None:
+    assert min_gap(schedule) == expected
+
+
+def test_min_gap_measures_daylight_saving_changes() -> None:
+    # 9:00 every day is 23 hours after the previous 9:00 when the clocks go forward.
+    assert min_gap(cron("0 9 * * *", "America/New_York")) == timedelta(hours=23)
 
 
 def test_cron_schedule_next_after_uses_timezone() -> None:
@@ -192,16 +225,6 @@ def test_reschedule_pulls_in_next_run_beyond_new_interval() -> None:
     assert reschedule_for_new_interval(current, timedelta(minutes=30), NOW) == NOW + timedelta(
         minutes=30
     )
-
-
-def test_reschedule_jitter_only_applies_to_new_runs() -> None:
-    jitter = timedelta(seconds=42)
-    kept = NOW + timedelta(minutes=5)
-    assert reschedule_for_new_interval(kept, timedelta(minutes=30), NOW, jitter) == kept
-    pulled_in = NOW + timedelta(minutes=59)
-    assert reschedule_for_new_interval(
-        pulled_in, timedelta(minutes=30), NOW, jitter
-    ) == NOW + timedelta(minutes=30, seconds=42)
 
 
 def test_reschedule_without_next_run() -> None:

@@ -2,10 +2,14 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import call, patch
 
 from sentry.cadence.models import ScheduledTriggerType
-from sentry.cadence.registry import TriggerContext, trigger_action_registry
+from sentry.cadence.registry import TriggerContext, trigger_type_registry
 from sentry.testutils.helpers.datetime import freeze_time
 
 NOW = datetime(2024, 3, 9, 12, 0, tzinfo=UTC)
+
+
+def test_log_runs_are_spread() -> None:
+    assert trigger_type_registry.get(ScheduledTriggerType.LOG).spread_window == timedelta(minutes=5)
 
 
 @freeze_time(NOW)
@@ -21,7 +25,7 @@ def test_log_action_logs_each_run() -> None:
     ]
 
     with patch("sentry.cadence.actions.logger") as logger:
-        trigger_action_registry.get(ScheduledTriggerType.LOG)(runs)
+        trigger_type_registry.get(ScheduledTriggerType.LOG).action(runs)
 
     assert logger.info.call_args_list == [
         call(

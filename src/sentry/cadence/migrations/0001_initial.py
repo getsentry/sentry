@@ -47,6 +47,8 @@ class Migration(CheckedMigration):
                 ("interval_seconds", models.PositiveIntegerField(null=True)),
                 ("cron_expression", models.CharField(max_length=255, null=True)),
                 ("timezone", models.CharField(db_default="UTC", default="UTC", max_length=64)),
+                ("min_gap_seconds", models.PositiveIntegerField()),
+                ("next_scheduled_for", models.DateTimeField(null=True)),
                 ("next_run_at", models.DateTimeField(null=True)),
                 (
                     "organization",
@@ -82,6 +84,19 @@ class Migration(CheckedMigration):
                             _connector="OR",
                         ),
                         name="cadence_scheduledtrigger_schedule_fields",
+                    ),
+                    models.CheckConstraint(
+                        condition=models.Q(
+                            models.Q(
+                                ("next_run_at__isnull", True), ("next_scheduled_for__isnull", True)
+                            ),
+                            models.Q(
+                                ("next_run_at__isnull", False),
+                                ("next_scheduled_for__isnull", False),
+                            ),
+                            _connector="OR",
+                        ),
+                        name="cadence_scheduledtrigger_next_run_fields",
                     ),
                 ],
             },
