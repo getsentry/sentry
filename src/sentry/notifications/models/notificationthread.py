@@ -14,6 +14,7 @@ class NotificationThreadObjectType(StrEnum):
     """The kind of object a NotificationThread is about, which object_id points to."""
 
     GROUP = "group"
+    INVESTIGATION = "investigation"
 
 
 @cell_silo_model
