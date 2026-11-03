@@ -860,11 +860,17 @@ def trigger_push_changes(
         )
     )
 
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
+
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
         run_id,
         repo_name=repo_name,
-        pr_description_suffix=build_pr_description_suffix(group, run_id),
+        pr_description_suffix=build_pr_description_suffix(
+            group, seer_run.referrer if seer_run is not None else None
+        ),
         ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
@@ -925,7 +931,7 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
     return lines
 
 
-def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
+def build_pr_description_suffix(group: Group, referrer: str | None) -> str | None:
     lines = _build_issue_reference_lines(group)
     lines.append(
         # One command per line, and one `<sub>` tag per line: a blank line
@@ -934,11 +940,7 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
         "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
     )
 
-    seer_run = SeerRun.objects.filter(
-        organization_id=group.organization.id, seer_run_state_id=run_id
-    ).first()
-    is_automated_run = seer_run is not None and seer_run.referrer in AUTOMATED_AUTOFIX_REFERRERS
-    if is_automated_run:
+    if referrer in AUTOMATED_AUTOFIX_REFERRERS:
         settings_url = group.organization.absolute_url(
             f"/settings/{group.organization.slug}/projects/{group.project.slug}/seer/"
         )

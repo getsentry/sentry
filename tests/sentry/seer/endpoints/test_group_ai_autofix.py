@@ -598,6 +598,76 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             )
         mock_trigger_explorer.assert_not_called()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_project_open_pr_requires_event_write(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_single_run_project_code_changes_is_allowed(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "code_changes")
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_handoff_project_open_pr_is_not_a_single_run(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
+        group.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        group.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        group.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123
+        )
+
+        with self.feature("organizations:autofix-single-run"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={},
+                format="json",
+                HTTP_AUTHORIZATION=self._seer_write_bearer(),
+            )
+
+        assert response.status_code == 202, response.data
+
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_seer_write_token_continuing_run_gates_on_stored_stopping_point(
