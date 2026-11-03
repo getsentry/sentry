@@ -4,7 +4,7 @@ from typing import Any
 
 import psycopg2.errors
 from django.db import DataError, IntegrityError, router, transaction
-from django.db.models import F
+from django.db.models import Case, F, Value, When
 
 from sentry.db import models
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
@@ -109,6 +109,7 @@ class Buffer(Service):
         **kwargs: Any,
     ) -> None:
         from sentry.models.group import Group
+        from sentry.models.grouptombstone import GroupTombstone
 
         if not columns:
             columns = {}
@@ -119,6 +120,15 @@ class Buffer(Service):
 
         if not signal_only:
             update_kwargs: dict[str, Any] = {c: F(c) + v for c, v in columns.items()}
+
+            if model is GroupTombstone and "times_seen" in columns:
+                # The exact count isn't important, so saturate rather than overflow.
+                max_value = BoundedPositiveIntegerField.MAX_VALUE
+                increment = columns["times_seen"]
+                update_kwargs["times_seen"] = Case(
+                    When(times_seen__gte=max_value - increment, then=Value(max_value)),
+                    default=F("times_seen") + increment,
+                )
 
             if extra:
                 # Because of the group.update() below, we need to parse
