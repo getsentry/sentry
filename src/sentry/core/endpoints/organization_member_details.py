@@ -4,7 +4,7 @@ from typing import Literal
 
 from django.db import router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -83,6 +84,40 @@ Configures the team role of the member. The two roles are:
 }
 ```
 """
+
+
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "email": "Validated as it is for an invite, but an update never changes a member's email.",
+        "role": "The deprecated spelling of `orgRole`, still read when `orgRole` is absent.",
+        "teams": (
+            "The deprecated slug-only form of `teamRoles`, still read when `teamRoles` is absent."
+        ),
+        "sendInvite": "Read only when adding a member; an update ignores it.",
+        "reinvite": (
+            "Resends a pending invitation for Sentry's members page, and cannot be combined "
+            "with a role change."
+        ),
+        "regenerate": (
+            "Reissues the token of an invitation resent with `reinvite`, for Sentry's members page."
+        ),
+    }
+)
+class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
+    # Redeclared for the update's own wording, and without the invite's default role: a partial
+    # update applies no defaults.
+    orgRole = serializers.ChoiceField(
+        help_text="The organization role of the member. The options are:",
+        choices=ROLE_CHOICES,
+        required=False,
+    )
+    teamRoles = serializers.ListField(
+        help_text=_team_roles_description,
+        required=False,
+        allow_null=True,
+        default=list,
+        child=serializers.JSONField(),
+    )
 
 
 @extend_schema(tags=["Organizations"])
@@ -152,23 +187,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
-        request=inline_serializer(
-            "UpdateOrgMemberRoles",
-            fields={
-                "orgRole": serializers.ChoiceField(
-                    help_text="The organization role of the member. The options are:",
-                    choices=ROLE_CHOICES,
-                    required=False,
-                ),
-                "teamRoles": serializers.ListField(
-                    help_text=_team_roles_description,
-                    required=False,
-                    allow_null=True,
-                    default=list,
-                    child=serializers.JSONField(),
-                ),
-            },
-        ),
+        request=UpdateOrgMemberRolesSerializer,
         responses={
             200: OrganizationMemberWithRolesSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -203,7 +222,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberRequestSerializer(
+        serializer = UpdateOrgMemberRolesSerializer(
             data=request.data,
             partial=True,
             context={
