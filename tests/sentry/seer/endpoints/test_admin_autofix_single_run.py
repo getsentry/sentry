@@ -39,7 +39,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         assert kwargs["single_run"] is True
         assert kwargs["user"].id == self.user.id
         assert response.data["url"] == self.organization.absolute_url(
-            f"/organizations/sentry/issues/{self.group.id}/autofix/",
+            f"/organizations/sentry/issues/{self.group.id}/",
             query=f"project={self.project.id}&explorerRunId=321",
         )
 

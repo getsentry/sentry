@@ -78,7 +78,7 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 "project_id": group.project_id,
                 "run_id": run.seer_run_state_id,
                 "url": organization.absolute_url(
-                    f"/organizations/{slug}/issues/{group.id}/autofix/",
+                    f"/organizations/{slug}/issues/{group.id}/",
                     query=f"project={group.project_id}&explorerRunId={run.seer_run_state_id}",
                 ),
             }

@@ -105,7 +105,7 @@ describe('SeerAdminPage', () => {
         group_id: 7,
         project_id: 1,
         run_id: 321,
-        url: 'https://sentry.sentry.io/issues/7/autofix/?project=1&explorerRunId=321',
+        url: 'https://sentry.sentry.io/issues/7/?project=1&explorerRunId=321',
       },
     });
 
@@ -127,7 +127,7 @@ describe('SeerAdminPage', () => {
     );
     expect(await screen.findByRole('link', {name: 'Open run 321'})).toHaveAttribute(
       'href',
-      'https://sentry.sentry.io/issues/7/autofix/?project=1&explorerRunId=321'
+      'https://sentry.sentry.io/issues/7/?project=1&explorerRunId=321'
     );
   });
 });
