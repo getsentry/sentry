@@ -130,6 +130,20 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
+    def test_back_link_label(self) -> None:
+        owner = self.create_owner_and_attach_identity()
+        self.login_as(owner, organization_id=self.organization.id)
+
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert b"Back to Organization Settings" in resp.content
+
+        with self.feature(["organizations:sso-basic", "organizations:settings-v3"]):
+            resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert b"Back to Org Settings" in resp.content
+
 
 @control_silo_test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):

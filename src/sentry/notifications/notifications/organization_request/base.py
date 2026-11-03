@@ -12,7 +12,9 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingEnum
+from sentry.organizations.settings_label import get_organization_settings_label
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -36,6 +38,16 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
+
+    def get_recipient_context(
+        self, recipient: Actor, extra_context: Mapping[str, Any]
+    ) -> MutableMapping[str, Any]:
+        context = super().get_recipient_context(recipient, extra_context)
+        user = user_service.get_user(user_id=recipient.id) if recipient.is_user else None
+        context["organization_settings_label"] = get_organization_settings_label(
+            self.organization, user
+        )
+        return context
 
     def determine_recipients(self) -> list[Actor]:
         return Actor.many_from_object(self.role_based_recipient_strategy.determine_recipients())

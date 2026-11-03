@@ -14,4 +14,4 @@ You can learn more about the wonderful world of permissions in our docs: https:/
 Let’s get integrated.
 
 You are receiving this email because you’re listed as an organization Owner or Manager.
-Requests to join your organization can be disabled in Organization Settings: {{ settings_link }}.
+Requests to join your organization can be disabled in {{ organization_settings_label }}: {{ settings_link }}.

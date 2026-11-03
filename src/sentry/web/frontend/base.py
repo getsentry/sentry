@@ -42,6 +42,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.organizations.settings_label import get_organization_settings_label
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.cell import subdomain_is_locality
 from sentry.users.services.user.service import user_service
@@ -497,7 +498,12 @@ class BaseView(View, OrganizationMixin):
         except DataSecrecyError:
             return render_to_response(
                 "sentry/data-secrecy.html",
-                context={"organization_slug": organization_slug},
+                context={
+                    "organization_slug": organization_slug,
+                    "organization_settings_label": get_organization_settings_label(
+                        kwargs.get("organization"), request.user
+                    ),
+                },
                 status=403,
                 request=request,
             )

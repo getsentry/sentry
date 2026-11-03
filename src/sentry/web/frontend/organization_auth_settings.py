@@ -20,6 +20,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.organizations.settings_label import get_organization_settings_label
 from sentry.plugins.base.response import DeferredResponse
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.utils.http import absolute_uri
@@ -235,6 +236,9 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
             "login_url": organization.absolute_url(Organization.get_url(organization.slug)),
             "settings_url": organization.absolute_url(
                 reverse("sentry-organization-settings", args=[organization.slug])
+            ),
+            "organization_settings_label": get_organization_settings_label(
+                organization, request.user
             ),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
