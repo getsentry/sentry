@@ -34,6 +34,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
@@ -825,14 +826,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 
-        if result.get("isBookmarked"):
-            try:
-                with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
-            except IntegrityError:
-                pass
-        elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+        # Bookmarks are per user: skipped without one, like token callers always were.
+        bookmark_user_id = acting_user_id(request.user)
+        if bookmark_user_id is not None:
+            if result.get("isBookmarked"):
+                try:
+                    with transaction.atomic(router.db_for_write(ProjectBookmark)):
+                        ProjectBookmark.objects.create(
+                            project_id=project.id, user_id=bookmark_user_id
+                        )
+                except IntegrityError:
+                    pass
+            elif result.get("isBookmarked") is False:
+                ProjectBookmark.objects.filter(
+                    project_id=project.id, user_id=bookmark_user_id
+                ).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])

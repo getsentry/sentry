@@ -9,6 +9,7 @@ from unittest import mock
 
 import orjson
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -42,6 +43,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 def first_symbol_source_id(sources_json: bytes | str) -> Any:
@@ -336,6 +338,34 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_update_skips_bookmark(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+            data={"platform": "rust", "isBookmarked": True},
+        )
+
+        assert response.status_code == 200, response.content
+        self.project.refresh_from_db()
+        assert self.project.platform == "rust"
+        assert not ProjectBookmark.objects.filter(project_id=self.project.id).exists()
 
     def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
