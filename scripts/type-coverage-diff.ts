@@ -49,7 +49,7 @@ export function parseGitDiffText(diff: string): Map<string, GitDiffChange> {
       const file = line.startsWith('+++ b/') ? line.slice(6) : oldFile;
       change = {
         file,
-        oldFile: oldFile || file,
+        oldFile,
         addedLines: new Set(),
         removedLines: new Set(),
         blocks: [],
@@ -122,10 +122,15 @@ export function compareItems<T extends CoverageItem>(
   const unmatchedCurrent = new Set(current);
   const unmatchedOld = new Set(old);
 
-  function match(currentItems: T[], oldItems: T[], key: (item: T) => string | undefined) {
+  function match(
+    currentItems: T[],
+    oldItems: T[],
+    key: (item: T) => string | undefined,
+    oldKey = key
+  ) {
     const candidates = new Map<string, T[]>();
     for (const item of oldItems) {
-      const itemKey = key(item);
+      const itemKey = oldKey(item);
       if (itemKey === undefined || !unmatchedOld.has(item)) {
         continue;
       }
@@ -153,9 +158,10 @@ export function compareItems<T extends CoverageItem>(
   match(
     [...current].sort((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
     [...old].sort((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
+    item => JSON.stringify([item.file, semanticKey(item)]),
     item =>
       JSON.stringify([
-        // Use the new path when Git identifies a rename.
+        // Only old items need their path mapped to the rename destination.
         oldChanges.get(item.file)?.file ?? item.file,
         semanticKey(item),
       ])

@@ -220,6 +220,73 @@ test('renames support operand edits and preserve any symbols', () => {
   });
 });
 
+for (const renameFirst of [true, false]) {
+  const order = renameFirst ? 'before' : 'after';
+  const renamedFile = 'static/app/renamed.tsx';
+  const rename =
+    `diff --git a/${file} b/${renamedFile}\n--- a/${file}\n+++ b/${renamedFile}\n` +
+    '@@ -1,2 +1 @@\n-old assertion\n context\n';
+  const addition =
+    `diff --git a/${file} b/${file}\n--- /dev/null\n+++ b/${file}\n` +
+    '@@ -0,0 +1 @@\n+new assertion\n';
+  const changes = parseGitDiffText(renameFirst ? rename + addition : addition + rename);
+
+  test(`a rename ${order} a new file at the original path preserves removals and moves`, () => {
+    const old = assertion();
+    const moved = assertion({file: 'static/app/moved.tsx'});
+    const withMove = new Map([
+      ...changes,
+      ...diff('@@ -0,0 +1 @@\n+moved assertion', moved.file),
+    ]);
+    assert.deepEqual(compareItems([moved], [old], withMove), {
+      added: [],
+      removed: [],
+    });
+    assert.deepEqual(compareItems([], [old], changes), {
+      added: [],
+      removed: [old],
+    });
+  });
+
+  test(`a rename ${order} a new file at the original path reserves unchanged assertions`, () => {
+    const old = assertion({line: 2});
+    const unchanged = assertion({file: renamedFile});
+    const added = assertion();
+    assert.deepEqual(compareItems([added, unchanged], [old], changes), {
+      added: [added],
+      removed: [],
+    });
+    const oldSymbol: CoverageItem = {
+      file,
+      line: 2,
+      column: 1,
+      kind: 'var',
+      name: 'value',
+    };
+    const unchangedSymbol = {...oldSymbol, file: renamedFile, line: 1};
+    const addedSymbol = {...oldSymbol, line: 1};
+    assert.deepEqual(compareItems([addedSymbol, unchangedSymbol], [oldSymbol], changes), {
+      added: [addedSymbol],
+      removed: [],
+    });
+  });
+
+  test(`a rename ${order} a new file at the original path reserves edited assertions`, () => {
+    const editedRename =
+      `diff --git a/${file} b/${renamedFile}\n--- a/${file}\n+++ b/${renamedFile}\n` +
+      '@@ -1 +1 @@\n-old assertion\n+new assertion\n';
+    const renamed = assertion({file: renamedFile});
+    const added = assertion();
+    const editedChanges = parseGitDiffText(
+      renameFirst ? editedRename + addition : addition + editedRename
+    );
+    assert.deepEqual(compareItems([added, renamed], [assertion()], editedChanges), {
+      added: [added],
+      removed: [],
+    });
+  });
+}
+
 test('unrelated any symbols in different files do not cancel each other', () => {
   const newFile = 'static/app/other.tsx';
   const old: CoverageItem = {file, line: 1, column: 1, kind: 'var', name: 'value'};
