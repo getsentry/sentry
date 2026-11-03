@@ -1,6 +1,7 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
@@ -40,6 +41,32 @@ function ExampleMetricsQueryEmbed({
 }
 
 describe('metrics query embed', () => {
+  it('restores the selected aggregate sort alongside its pipeline', () => {
+    render(
+      <ExampleMetricsQueryEmbed
+        data={{
+          ...METRIC,
+          mode: 'aggregate',
+          yAxes: ['sum(value)', 'p95(value)'],
+          transformations: [[], ['smooth(sma,3)']],
+          sort: '-p95(value)',
+          interval: '5m',
+        }}
+        level="inline"
+      />
+    );
+    const href = screen.getByRole('link', {name: METRIC.name}).getAttribute('href')!;
+    const params = new URL(href, 'https://sentry.io').searchParams;
+    const restored = decodeMetricsQueryParams(params.get('metric')!);
+    expect(restored?.queryParams.aggregateSortBys).toEqual([
+      {field: 'p95(value,checkout.latency,distribution,millisecond)', kind: 'desc'},
+    ]);
+    expect(restored?.queryParams.aggregateFields).toMatchObject([
+      {yAxis: QUALIFIED_DEFAULT, transformations: []},
+      {yAxis: QUALIFIED_P95, transformations: ['smooth(sma,3)']},
+    ]);
+  });
+
   it('qualifies a bare y-axis with the metric it measures', () => {
     render(
       <ExampleMetricsQueryEmbed
@@ -114,6 +141,7 @@ describe('metrics query embed', () => {
             dataset: 'tracemetrics',
             yAxis: [QUALIFIED_P95],
             groupBy: ['service.name'],
+            sort: '-p95_value_checkout_latency_distribution_millisecond',
             // The identity lives in the y-axis, so the search stays the
             // user's own predicate.
             query: 'release:1.0',
@@ -130,10 +158,19 @@ describe('metrics query embed', () => {
             dataset: 'tracemetrics',
             field: ['service.name', QUALIFIED_P95],
             per_page: 5,
+            sort: '-p95_value_checkout_latency_distribution_millisecond',
           }),
         })
       );
     });
+
+    const href = screen.getByRole('link', {name: 'View Metrics'}).getAttribute('href')!;
+    const params = new URL(href, 'https://sentry.io').searchParams;
+    expect(
+      decodeMetricsQueryParams(params.get('metric')!)?.queryParams.aggregateSortBys
+    ).toEqual([
+      {field: 'p95(value,checkout.latency,distribution,millisecond)', kind: 'desc'},
+    ]);
   });
 
   it('drops the table when an aggregate groups by nothing', async () => {

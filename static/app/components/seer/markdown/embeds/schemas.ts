@@ -55,11 +55,6 @@ const pageFilterFields = {
   end: pageFilterTimestampSchema.optional(),
 };
 
-/**
- * Explore surfaces (spans, logs, metrics) share a samples/aggregate mode. In
- * aggregate mode `groupBy` and `yAxes` drive the chart and table; in samples
- * mode they are ignored in favour of `fields`.
- */
 const exploreQueryFields = {
   ...pageFilterFields,
   query: z.string().default(''),
@@ -69,10 +64,30 @@ const exploreQueryFields = {
     .array(z.string())
     .optional()
     .describe('Aggregate functions to chart, e.g. "count()" or "p95(span.duration)".'),
+  transformations: z
+    .array(z.array(z.string().min(1)))
+    .optional()
+    .describe(
+      'Ordered pipelines indexed by yAxes, including duplicate axes. Use [] for a raw axis. ' +
+        'Steps use events-timeseries syntax, e.g. [[], ["fill(locf)", "smooth(sma,3)"]]. ' +
+        'With no yAxes, one pipeline applies to the default aggregate.'
+    ),
+  interval: z
+    .string()
+    .regex(/^[1-9]\d*[smhdw]$/)
+    .optional()
+    .describe('Bucket interval shared by all axes, e.g. "5m" or "1h".'),
   sort: z.string().optional(),
   fields: z.array(z.string()).optional(),
   title: z.string().min(1).optional(),
 };
+
+const exploreQuerySchema = z
+  .object(exploreQueryFields)
+  .refine(data => (data.transformations?.length ?? 0) <= (data.yAxes?.length || 1), {
+    path: ['transformations'],
+    message: 'Each pipeline must correspond to a y-axis.',
+  });
 
 type SeerEmbedLevel = 'inline' | 'block';
 
@@ -907,7 +922,7 @@ export const SEER_EMBED_SCHEMAS = {
       'The block already lists those rows and charts them, so do NOT repeat ' +
       'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
-    schema: z.object(exploreQueryFields),
+    schema: exploreQuerySchema,
     examples: [
       {
         label: 'Slow HTTP spans',
@@ -959,7 +974,7 @@ export const SEER_EMBED_SCHEMAS = {
       'The block already lists those rows and charts them, so do NOT repeat ' +
       'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
-    schema: z.object(exploreQueryFields),
+    schema: exploreQuerySchema,
     examples: [
       {
         label: 'Error logs',
@@ -1080,8 +1095,7 @@ export const SEER_EMBED_SCHEMAS = {
       'The block already lists those rows and charts them, so do NOT repeat ' +
       'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
-    schema: z.object({
-      ...exploreQueryFields,
+    schema: exploreQuerySchema.safeExtend({
       name: z.string().min(1),
       type: z.string().min(1),
       unit: z.string().min(1).nullish(),

@@ -1,56 +1,25 @@
 import {IconSpan} from '@sentry/icons/span';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
+import {
+  eventColumns,
+  eventRowKey,
+  QueryEmbedTable,
+} from './queryEmbed/queryEmbedTable';
+import {QueryEmbedTimeSeries} from './queryEmbed/queryEmbedTimeSeries';
 import {t} from 'sentry/locale';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
-import {
-  QueryEmbedChart,
-  seriesFromEventsStats,
-  toChartUnit,
-} from './queryEmbed/queryEmbedChart';
-import {
-  useQueryEmbedEventsStats,
-  useQueryEmbedEventsTable,
-} from './queryEmbed/queryEmbedQueries';
-import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
 import {getSpansQueryTitle} from './spansQueryLink';
 import {
-  buildSpansChartQuery,
   buildSpansEventView,
   getSpansQueryHref,
   hasNoGroupBy,
   resolveChartYAxes,
   type SpansQueryData,
 } from './spansQueryUtils';
-
-function SpansQueryChart({
-  data,
-  eventView,
-  hasTable,
-}: {
-  data: SpansQueryData;
-  eventView: ReturnType<typeof buildSpansEventView>;
-  hasTable: boolean;
-}) {
-  const yAxisFields = resolveChartYAxes(data);
-  const query = useQueryEmbedEventsStats(
-    buildSpansChartQuery(eventView, data, yAxisFields)
-  );
-
-  return (
-    <QueryEmbedChart
-      emptyMessage={t('No matching spans')}
-      hasTable={hasTable}
-      isError={query.isError}
-      isPending={query.isPending}
-      series={query.data ? seriesFromEventsStats(query.data, yAxisFields) : []}
-      title={data.title ?? t('Spans over time')}
-      unit={toChartUnit(aggregateOutputType(yAxisFields[0]))}
-    />
-  );
-}
 
 export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
   const organization = useOrganization();
@@ -88,7 +57,15 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
       testId={`seer-spans-query-${data.mode}-embed`}
       title={getSpansQueryTitle(data)}
     >
-      <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
+      <QueryEmbedTimeSeries
+        data={data}
+        dataset={DiscoverDatasets.SPANS}
+        emptyMessage={t('No matching spans')}
+        hasTable={!isChartOnly}
+        referrer="seer-spans-query-embed"
+        sort={eventView.sorts[0]}
+        yAxes={resolveChartYAxes(data)}
+      />
     </QueryEmbedCard>
   );
 }
