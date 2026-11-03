@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
@@ -13,6 +16,9 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
+
+if TYPE_CHECKING:
+    from django.test.client import _MonkeyPatchedWSGIResponse
 
 
 @control_silo_test
@@ -2047,7 +2053,9 @@ class OAuthTokenSetupCodeTest(TestCase):
             organization_id=None,
         )
 
-    def exchange(self, code: str | None = None, client_id: str | None = None):
+    def exchange(
+        self, code: str | None = None, client_id: str | None = None
+    ) -> _MonkeyPatchedWSGIResponse:
         data = {"grant_type": self.grant_type, "client_id": client_id or self.application.client_id}
         if code is not None:
             data["setup_code"] = code
