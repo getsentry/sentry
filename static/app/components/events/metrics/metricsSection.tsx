@@ -123,7 +123,9 @@ function MetricsSectionContent({
           ariaLabel: 'metrics drawer',
           drawerKey: 'metrics-issue-drawer',
           shouldCloseOnLocationChange: nextLocation =>
-            !loadMetricsDrawerParam(nextLocation.search)[METRICS_DRAWER_QUERY_PARAM],
+            !loadMetricsDrawerParam(nextLocation.search ?? '')[
+              METRICS_DRAWER_QUERY_PARAM
+            ],
           shouldCloseOnInteractOutside: element => {
             const viewAllButton = viewAllButtonRef.current;
             return !viewAllButton?.contains(element);

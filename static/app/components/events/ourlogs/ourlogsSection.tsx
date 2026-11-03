@@ -212,7 +212,7 @@ function OurlogsSectionContent({
           ariaLabel: 'logs drawer',
           drawerKey: 'logs-issue-drawer',
           shouldCloseOnLocationChange: nextLocation =>
-            !loadLogsDrawerParams(nextLocation.search)[LOGS_DRAWER_QUERY_PARAM],
+            !loadLogsDrawerParams(nextLocation.search ?? '')[LOGS_DRAWER_QUERY_PARAM],
           shouldCloseOnInteractOutside: element => {
             const viewAllButton = viewAllButtonRef.current;
             return !viewAllButton?.contains(element);
