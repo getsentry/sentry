@@ -11,7 +11,15 @@ import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+import {
+  getUserNavigationConfiguration,
+  getUserOrgNavigationConfiguration,
+} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+import {
+  getSettingsScopeTitle,
+  type SettingsScope,
+} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const ROUTE_ICONS: Record<string, ReactNode> = {
   '/settings/account/details/': <IconUser />,
@@ -79,13 +87,39 @@ type SettingsFieldSection = {
 
 type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
-function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
+// With settings-v3, the org and account index pages are both titled "General",
+// so their field sections are named after their scope to tell them apart.
+const SETTINGS_V3_INDEX_SCOPES: Record<string, SettingsScope> = {
+  '/settings/:orgId/': 'org',
+  '/settings/account/details/': 'account',
+};
+
+function getRouteTitleMap(settingsV3: boolean): Map<string, string> {
+  const sections = settingsV3
+    ? [
+        ...getUserOrgNavigationConfiguration({settingsV3}),
+        ...getUserNavigationConfiguration({settingsV3}),
+      ]
+    : getUserOrgNavigationConfiguration();
+
   const routeTitleMap = new Map<string, string>();
-  for (const section of getUserOrgNavigationConfiguration()) {
+  for (const section of sections) {
     for (const item of section.items) {
-      routeTitleMap.set(item.path, item.title);
+      const scope = settingsV3 ? SETTINGS_V3_INDEX_SCOPES[item.path] : undefined;
+      routeTitleMap.set(
+        item.path,
+        scope ? `${getSettingsScopeTitle(scope)} › ${item.title}` : item.title
+      );
     }
   }
+  return routeTitleMap;
+}
+
+function getSettingsFieldSections(
+  orgSlug: string,
+  settingsV3: boolean
+): SettingsFieldSection[] {
+  const routeTitleMap = getRouteTitleMap(settingsV3);
 
   const groups = new Map<string, Map<string, FormFieldDefinition>>();
   for (const field of Object.values(FORM_FIELD_REGISTRY)) {
@@ -140,9 +174,10 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
 
 export function SettingsCommandPaletteActions() {
   const organization = useOrganization({allowNull: true});
+  const settingsV3 = useSettingsV3();
   const sections = useMemo(
-    () => (organization ? getSettingsFieldSections(organization.slug) : []),
-    [organization]
+    () => (organization ? getSettingsFieldSections(organization.slug, settingsV3) : []),
+    [organization, settingsV3]
   );
 
   if (sections.length === 0) {

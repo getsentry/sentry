@@ -97,7 +97,10 @@ export default function OrganizationGeneralSettings() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
+      <SentryDocumentTitle
+        title={settingsV3 ? t('General') : t('General Settings')}
+        orgSlug={organization.slug}
+      />
       <div>
         <SettingsPageHeader
           title={settingsV3 ? t('General') : t('Organization Settings')}

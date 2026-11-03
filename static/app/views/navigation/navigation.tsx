@@ -69,6 +69,7 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
+  const settingsV3 = useSettingsV3();
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -84,12 +85,16 @@ function NavigationImpl() {
   const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
 
   useLLMContext({
-    contextHint:
-      "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
-      'Explore, Dashboards, Insights, Monitors, Settings, ...) plus a secondary ' +
-      'panel for whichever group is active. Child nodes carry each active ' +
-      "secondary panel's own detail (starred views/queries/dashboards, issue " +
-      'counts, settings categories, etc).',
+    contextHint: isSettingsNavigation
+      ? "The settings navigation sidebar — a primary icon rail with a 'Back to app' " +
+        'button and the Org, Project and Account settings scopes, plus a secondary ' +
+        'panel listing the settings pages of the active scope. Child nodes carry ' +
+        "the secondary panel's own detail."
+      : "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
+        `Explore, Dashboards, Insights, Monitors${settingsV3 ? '' : ', Settings'}, ...) ` +
+        'plus a secondary panel for whichever group is active. Child nodes carry ' +
+        "each active secondary panel's own detail (starred views/queries/dashboards, " +
+        'issue counts, settings categories, etc).',
     activeGroup,
     isCollapsed,
   });

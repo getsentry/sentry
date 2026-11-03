@@ -526,6 +526,81 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   });
 });
 
+describe('GlobalCommandPaletteActions - settings-v3', () => {
+  function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
+    for (const url of [
+      'group-search-views/starred/',
+      'dashboards/starred/',
+      'dashboards/',
+      'explore/all-queries/',
+      'members/',
+      'teams/',
+      'projects/',
+    ]) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/${url}`,
+        body: [],
+      });
+    }
+
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+  }
+
+  it('lists account pages under Account Settings', async () => {
+    renderPalette(OrganizationFixture({features: ['settings-v3']}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'Personal Tokens');
+
+    expect(
+      await screen.findByRole('option', {name: /Account Settings.*Personal Tokens/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Org Settings.*Personal Tokens/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('titles the organization index page "General"', async () => {
+    renderPalette(OrganizationFixture({features: ['settings-v3']}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'General');
+
+    expect(
+      await screen.findByRole('option', {name: /Org Settings.*General/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /General Settings/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps account pages under Settings without the flag', async () => {
+    renderPalette(OrganizationFixture({features: []}));
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'Personal Tokens');
+
+    expect(
+      await screen.findByRole('option', {name: /Settings.*Personal Tokens/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: /Account Settings/})
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
   function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
     MockApiClient.addMockResponse({

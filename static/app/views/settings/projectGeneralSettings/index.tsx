@@ -678,7 +678,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
+      <SentryDocumentTitle
+        title={settingsV3 ? t('General') : t('Project Settings')}
+        projectSlug={project.slug}
+      />
       <SettingsPageHeader title={settingsV3 ? t('General') : t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
 

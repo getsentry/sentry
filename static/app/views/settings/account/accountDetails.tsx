@@ -166,7 +166,7 @@ function AccountDetails() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Account Details')} />
+      <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       <FormSearch route="/settings/account/details/">
         <FieldGroup title={t('Account Details')}>

@@ -1,8 +1,23 @@
 import {matchPath} from 'react-router';
 
+import {t} from 'sentry/locale';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export type SettingsScope = 'account' | 'org' | 'project';
+
+export function getSettingsScopeTitle(scope: SettingsScope): string {
+  switch (scope) {
+    case 'account':
+      return t('Account Settings');
+    case 'project':
+      return t('Project Settings');
+    case 'org':
+      return t('Org Settings');
+    default:
+      return unreachable(scope);
+  }
+}
 
 /**
  * Which settings scope the current route belongs to. Derived from the pathname

@@ -25,6 +25,7 @@ import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 type ProjectSettingsCommandPaletteEntry = {
   display: {
@@ -86,9 +87,11 @@ function shouldShowItem(
 export function getProjectSettingsCommandPaletteSections({
   organization,
   project,
+  settingsV3,
 }: {
   organization: Organization;
   project: Project;
+  settingsV3?: boolean;
 }): ProjectSettingsCommandPaletteSection[] {
   const context = {
     access: new Set(organization.access),
@@ -107,6 +110,7 @@ export function getProjectSettingsCommandPaletteSections({
     debugFilesNeedsReview: false,
     organization,
     project,
+    settingsV3,
   })
     .map(section => {
       const label =
@@ -184,7 +188,12 @@ export function ProjectSettingsCommandPaletteActions({
   organization: Organization;
   project: Project;
 }) {
-  const sections = getProjectSettingsCommandPaletteSections({organization, project});
+  const settingsV3 = useSettingsV3();
+  const sections = getProjectSettingsCommandPaletteSections({
+    organization,
+    project,
+    settingsV3,
+  });
 
   return (
     <Fragment>

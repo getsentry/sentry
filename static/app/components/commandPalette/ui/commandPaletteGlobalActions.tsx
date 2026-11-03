@@ -103,10 +103,19 @@ import {
   toggleXRayMode,
   useXRayModeEnabled,
 } from 'sentry/views/seerExplorer/xray/xrayModeStore';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+import {
+  getUserNavigationConfiguration,
+  getUserOrgNavigationConfiguration,
+} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
-import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import type {
+  NavigationGroupProps,
+  NavigationItem,
+  NavigationSection,
+} from 'sentry/views/settings/types';
+import {getSettingsScopeTitle} from 'sentry/views/settings/useSettingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 /**
  * Returns true if a settings navigation item should be shown in cmd+k.
@@ -311,6 +320,7 @@ export function GlobalCommandPaletteActions() {
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const sentryConfig = useLegacyStore(ConfigStore);
+  const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -349,6 +359,7 @@ export function GlobalCommandPaletteActions() {
     };
     return getNavigationConfiguration({
       organization,
+      settingsV3,
     })
       .flatMap(section =>
         section.items.filter(navItem =>
@@ -356,23 +367,35 @@ export function GlobalCommandPaletteActions() {
         )
       )
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [organization]);
+  }, [organization, settingsV3]);
 
-  const visibleOrgSettingsNavItems = useMemo(() => {
+  const {visibleOrgSettingsNavItems, visibleAccountSettingsNavItems} = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
       features: new Set(organization.features),
       isSelfHosted: sentryConfig.isSelfHosted,
       organization,
     };
-    return getUserOrgNavigationConfiguration()
-      .flatMap(section =>
-        section.items.filter(navItem =>
-          isNavItemVisible(navItem, {...context, ...section})
+    const getVisibleItems = (sections: NavigationSection[]) =>
+      sections
+        .flatMap(section =>
+          section.items.filter(navItem =>
+            isNavItemVisible(navItem, {...context, ...section})
+          )
         )
-      )
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [organization, sentryConfig.isSelfHosted]);
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+    return {
+      visibleOrgSettingsNavItems: getVisibleItems(
+        getUserOrgNavigationConfiguration({settingsV3})
+      ),
+      // With settings-v3, account pages leave the organization settings for
+      // their own scope, so they get their own group here too.
+      visibleAccountSettingsNavItems: settingsV3
+        ? getVisibleItems(getUserNavigationConfiguration({settingsV3}))
+        : [],
+    };
+  }, [organization, sentryConfig.isSelfHosted, settingsV3]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -621,7 +644,13 @@ export function GlobalCommandPaletteActions() {
           />
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
+        <CMDKAction
+          display={{
+            label: settingsV3 ? getSettingsScopeTitle('org') : t('Settings'),
+            icon: <IconSettings />,
+          }}
+          limit={4}
+        >
           {visibleOrgSettingsNavItems.map(item => (
             <CMDKAction
               key={item.path}
@@ -632,6 +661,22 @@ export function GlobalCommandPaletteActions() {
           ))}
           <Override name="cmdk:global-settings-actions" />
         </CMDKAction>
+
+        {settingsV3 && (
+          <CMDKAction
+            display={{label: getSettingsScopeTitle('account'), icon: <IconUser />}}
+            limit={4}
+          >
+            {visibleAccountSettingsNavItems.map(item => (
+              <CMDKAction
+                key={item.path}
+                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                keywords={item.keywords}
+                to={item.path}
+              />
+            ))}
+          </CMDKAction>
+        )}
 
         <CMDKAction
           display={{label: t('Projects'), icon: <IconAllProjects />}}
