@@ -373,7 +373,9 @@ class SetPriorityAction(GroupAction):
 
 
 class MergeIntoOtherAction(GroupAction):
-    user_visible = True
+    # Hidden since merging moves this entry onto the surviving group, where it would only
+    # point back at that group. MergeFromOtherAction represents the merge there.
+    user_visible = False
     counterpart_group_id: int
 
     @classmethod
@@ -391,16 +393,12 @@ class MergeFromOtherAction(GroupAction):
 
 
 class DeleteAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.DELETE
 
 
 class BookmarkAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.BOOKMARK
@@ -453,16 +451,12 @@ class CommentDeleteAction(GroupAction):
 
 
 class SubscribeAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SUBSCRIBE
 
 
 class UnsubscribeAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNSUBSCRIBE
@@ -486,7 +480,9 @@ class TriggerAutofixAction(GroupAction):
 
 
 class CreateExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     provider: str
     external_issue_key: str
 
@@ -496,7 +492,9 @@ class CreateExternalIssueAction(GroupAction):
 
 
 class LinkExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     provider: str
     external_issue_key: str
 
@@ -516,7 +514,9 @@ class UnlinkExternalIssueAction(GroupAction):
 
 
 class CreatePlatformExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     service_type: str
     display_name: str
     web_url: str
@@ -527,7 +527,9 @@ class CreatePlatformExternalIssueAction(GroupAction):
 
 
 class LinkPlatformExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     service_type: str
     display_name: str
     web_url: str
@@ -549,7 +551,6 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 
 
 class AutofixPrCreatedAction(GroupAction):
-    user_visible = True
     run_id: str | None = None
     # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
@@ -571,8 +572,6 @@ class ResolvedInPullRequestAction(GroupAction):
 class RootCauseIdentifiedAction(GroupAction):
     """Seer (or a human) identified the root cause of an issue."""
 
-    user_visible = True
-
     run_id: str | None = None
     summary: str | None = None
 
@@ -583,8 +582,6 @@ class RootCauseIdentifiedAction(GroupAction):
 
 class AutofixCodingCompleteAction(GroupAction):
     """Seer finished writing a fix (code ready, PR not yet created)."""
-
-    user_visible = True
 
     run_id: str | None = None
 
@@ -718,7 +715,6 @@ class SetResolvedInCommitAction(GroupAction):
 
 
 class DeployAction(GroupAction):
-    user_visible = True
     deploy_id: int
     version: str
     environment: str
@@ -729,7 +725,6 @@ class DeployAction(GroupAction):
 
 
 class NewProcessingIssuesAction(GroupAction):
-    user_visible = True
     reprocessing_active: bool
     # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]

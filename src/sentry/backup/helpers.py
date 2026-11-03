@@ -8,7 +8,9 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
 # Django apps we take care to never import or export from.
-EXCLUDED_APPS = frozenset(("auth", "contenttypes", "fixtures", "investigations", "notebooks"))
+EXCLUDED_APPS = frozenset(
+    ("auth", "contenttypes", "fixtures", "investigations", "notebooks", "seer_workflow_outputs")
+)
 
 
 class Printer:

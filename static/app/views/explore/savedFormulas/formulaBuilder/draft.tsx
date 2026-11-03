@@ -53,6 +53,15 @@ export function isInvalidSuggestedNumber(param: DraftParam) {
   return param.type === 'number' && value !== '' && !Number.isFinite(Number(value));
 }
 
+export function exceedsApiLimits(draft: FormulaDraft) {
+  const inputParams = draft.params.filter(param => param.type !== 'calculation');
+  return (
+    draft.params.length > MAX_PARAMS ||
+    inputParams.length > MAX_INPUT_PARAMS ||
+    draft.references.length > MAX_REFERENCES
+  );
+}
+
 export function stripNamePrefix(name: string) {
   return name.startsWith(NAME_PREFIX) ? name.slice(NAME_PREFIX.length) : name;
 }

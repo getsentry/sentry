@@ -88,7 +88,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       <Flex wrap="wrap" marginBottom="xl" gap="md">
         <Text>
           {scheduleAsText(monitor.config)}{' '}
-          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone ?? 'UTC'})`}
         </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>

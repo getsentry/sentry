@@ -37,8 +37,8 @@ class StarSegmentSerializer(serializers.Serializer):
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "member:write"],
-        "DELETE": ["member:read", "member:write"],
+        "POST": ["member:read", "member:write", "user_preference:write"],
+        "DELETE": ["member:read", "member:write", "user_preference:write"],
     }
 
 
@@ -49,6 +49,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 

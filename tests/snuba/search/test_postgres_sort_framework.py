@@ -9,16 +9,19 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend, issue_progress_filter
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
     PostgresSortStrategy,
+    _progress_native_order_by,
+    resolve_progress_signal,
 )
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -850,3 +853,27 @@ class TestDefaultPostgresSortStrategies(TestCase):
         # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
         # real aggregation to fall back to on candidate overflow.
         assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"
+
+
+class TestCorruptProgressSort(TestCase):
+    def test_python_and_sql_use_same_rank_without_claiming_known_progress(self) -> None:
+        now = before_now(days=1)
+        corrupt = self.create_group(last_seen=now)
+        missing = self.create_group(project=corrupt.project, last_seen=now)
+        diagnosed = self.create_group(project=corrupt.project, last_seen=now)
+        closed = self.create_group(project=corrupt.project, last_seen=now)
+        self.create_group_derived_data(corrupt, progress="invalid")
+        self.create_group_derived_data(diagnosed, progress="diagnosed")
+        self.create_group_derived_data(closed, progress=None)
+        ids = [corrupt.id, missing.id, diagnosed.id, closed.id]
+        ranks = resolve_progress_signal(None, self.organization, [corrupt.project], ids)
+        assert ranks == {corrupt.id: 1, missing.id: 1, diagnosed.id: 3, closed.id: 5}
+        queryset = Group.objects.filter(id__in=ids)
+        ordered, _ = _progress_native_order_by(queryset)
+        assert list(ordered.values_list("id", flat=True)) == sorted(
+            ids, key=lambda gid: (ranks[gid], gid), reverse=True
+        )
+        known = queryset.filter(
+            issue_progress_filter([state.value for state in IssueProgressState], [corrupt.project])
+        )
+        assert set(known.values_list("id", flat=True)) == {missing.id, diagnosed.id, closed.id}

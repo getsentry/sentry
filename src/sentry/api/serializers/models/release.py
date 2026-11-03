@@ -439,7 +439,7 @@ class ReleaseSerializer(Serializer):
             .distinct()
         )
 
-    def __get_release_data_no_environment(self, project, item_list, no_snuba_for_release_creation):
+    def __get_release_data_no_environment(self, project, item_list, skip_snuba):
         if project is not None:
             project_ids = [project.id]
             organization_id = project.organization_id
@@ -449,7 +449,7 @@ class ReleaseSerializer(Serializer):
 
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
-        if no_snuba_for_release_creation:
+        if skip_snuba:
             tag_values = []
         else:
             tag_values = tagstore.backend.get_release_tags(
@@ -558,8 +558,8 @@ class ReleaseSerializer(Serializer):
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
-        no_snuba_for_release_creation = kwargs.get("no_snuba_for_release_creation")
-        if with_health_data and no_snuba_for_release_creation:
+        skip_snuba = kwargs.get("skip_snuba")
+        if with_health_data and skip_snuba:
             raise TypeError("health data requires snuba")
 
         adoption_stages = {}
@@ -569,7 +569,7 @@ class ReleaseSerializer(Serializer):
 
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
-                project, item_list, no_snuba_for_release_creation
+                project, item_list, skip_snuba
             )
         else:
             release_project_envs = self._get_release_project_envs_unordered(

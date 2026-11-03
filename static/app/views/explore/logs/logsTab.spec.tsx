@@ -936,6 +936,63 @@ describe('LogsTabContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns that results may be incomplete while auto-refresh is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we don't scan your full log volume while auto-refresh is on/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when auto-refresh finds no logs in a full scan', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'full'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({

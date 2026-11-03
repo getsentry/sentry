@@ -28,7 +28,11 @@ import {
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
+import {
+  bigNumFormatter,
+  BigNumUnits,
+  getRequestErrorMessage,
+} from 'getsentry/views/spendAllocations/utils';
 
 import {ProjectSelectControl} from './projectSelectControl';
 import {HalvedGrid} from './styles';
@@ -203,8 +207,13 @@ export function AllocationForm({
           end_timestamp: new Date(end).getTime() / 1000,
         },
       });
-    } catch (err: any) {
-      addErrorMessage(err.responseJSON.detail);
+    } catch (err) {
+      addErrorMessage(
+        getRequestErrorMessage(
+          err,
+          t('Unable to save spend allocation. Please try again.')
+        )
+      );
       return;
     }
 

@@ -21,11 +21,11 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
-      code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(hover: hover)');",
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia('(hover: hover)');",
     },
     {
       filename,
-      code: "import {useMedia} from 'sentry/utils/useMedia'; function check(useMedia) { useMedia('(max-width: 800px)'); }",
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; function check(useMedia) { useMedia('(max-width: 800px)'); }",
     },
     {
       filename,
@@ -45,7 +45,7 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
-      code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(max-height: 800px)');",
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia('(max-height: 800px)');",
     },
     {
       filename,
@@ -134,12 +134,12 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
-      code: "import {useMedia as media} from 'sentry/utils/useMedia'; media(`(width < ${theme.breakpoints.md})`);",
+      code: "import {useMedia as media} from '@sentry/scraps/useMedia'; media(`(width < ${theme.breakpoints.md})`);",
       errors: [{messageId: 'forbidden'}],
     },
     {
       filename,
-      code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(max-width: 800px)');",
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia('(max-width: 800px)');",
       errors: [{messageId: 'forbidden'}],
     },
     {

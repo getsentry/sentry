@@ -76,6 +76,29 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         )
         assert response.status_code == 400, response.data
 
+    def test_unmatched_parentheses_on_percentile_query_returns_400(self) -> None:
+        response = self.do_request(
+            query={
+                "query_1": "((span.op:db",
+                "query_2": "span.op:db",
+                "function": "p95(span.duration)",
+                "above": "1",
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.data
+
+    def test_invalid_function_returns_400(self) -> None:
+        response = self.do_request(
+            query={
+                "query_1": "span.op:db",
+                "query_2": "",
+                "function": "not_a_function",
+                "project": self.project.id,
+            }
+        )
+        assert response.status_code == 400, response.data
+
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_distribution_values(self, mock_compare_distributions) -> None:
         mock_compare_distributions.return_value = {

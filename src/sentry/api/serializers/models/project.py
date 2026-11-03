@@ -18,6 +18,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
+from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
@@ -104,7 +105,7 @@ def _get_team_memberships(
     team_list: Collection[int], user: User | RpcUser | AnonymousUser
 ) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
-    if not user.is_authenticated:
+    if not has_user(user):
         return []
 
     return list(
@@ -386,7 +387,7 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated and item_list:
+            if has_user(user) and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user_id=user.id, project_id__in=project_ids
@@ -625,7 +626,7 @@ class ProjectSerializer(Serializer):
             "features": attrs["features"],
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
-            "access": attrs["access"],
+            "access": sorted(attrs["access"]),
             "hasAccess": attrs["has_access"],
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
@@ -858,7 +859,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             slug=obj.slug,
             isBookmarked=attrs["is_bookmarked"],
             isMember=attrs["is_member"],
-            access=attrs["access"],
+            access=sorted(attrs["access"]),
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],

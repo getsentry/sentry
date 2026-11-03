@@ -83,8 +83,6 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             return Response({"detail": "query is a required parameter"}, status=400)
 
         if field in ("externalIssue", "parent"):
-            if not query:
-                return Response([])
             with ProjectManagementEvent(
                 action_type=ProjectManagementActionType.SEARCH_ISSUES,
                 integration=integration,

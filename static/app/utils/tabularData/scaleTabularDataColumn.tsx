@@ -2,10 +2,12 @@ import * as Sentry from '@sentry/react';
 import partialRight from 'lodash/partialRight';
 
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
+import {convertFraction} from 'sentry/utils/unitConversion/convertFraction';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
   isADurationUnit,
+  isAFractionUnit,
   isARateUnit,
   isASizeUnit,
   isAUnitConvertibleFieldType,
@@ -41,7 +43,8 @@ export function scaleTabularDataColumn(
   if (
     (sourceType === 'duration' && !isADurationUnit(destinationUnit)) ||
     (sourceType === 'size' && !isASizeUnit(destinationUnit)) ||
-    (sourceType === 'rate' && !isARateUnit(destinationUnit))
+    (sourceType === 'rate' && !isARateUnit(destinationUnit)) ||
+    (sourceType === 'percentage' && !isAFractionUnit(destinationUnit))
   ) {
     Sentry.captureMessage(
       `Attempted invalid timeseries conversion from ${sourceType} in ${sourceUnit} to ${destinationUnit}`
@@ -67,6 +70,12 @@ export function scaleTabularDataColumn(
     scaler = partialRight(
       convertRate,
       sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.rate,
+      destinationUnit
+    );
+  } else if (sourceType === 'percentage') {
+    scaler = partialRight(
+      convertFraction,
+      sourceUnit ?? FALLBACK_UNIT_FOR_FIELD_TYPE.percentage,
       destinationUnit
     );
   }

@@ -288,7 +288,7 @@ export function DataScrubFormModal({
                         options={methodOptions}
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
-                        isSearchable={false}
+                        searchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -343,7 +343,7 @@ export function DataScrubFormModal({
                     options={typeOptions}
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
-                    isSearchable={false}
+                    searchable={false}
                   />
                 </typeField.Layout.Stack>
               )}

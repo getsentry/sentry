@@ -156,6 +156,8 @@ EAP_FUNCTIONS = [
     "eps",
     "apdex",
     "user_misery",
+    "performance_score",
+    "opportunity_score",
 ]
 
 

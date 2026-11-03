@@ -8,6 +8,7 @@ from django.http.request import HttpRequest
 from sentry import audit_log
 from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.audit_log.services.log import log_service
+from sentry.auth.principal import has_user, resolve_actor
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedentry import DeletedEntry
@@ -37,7 +38,7 @@ def create_audit_entry(
     **kwargs: Any,
 ) -> AuditLogEntry:
     auth = getattr(request, "auth", None)
-    user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
+    user = kwargs.pop("actor", request.user if has_user(request.user) else None)
     if user is None:
         # An agent token acts on behalf of a member but authenticates as a non-user actor,
         # so attribute the audit entry to the delegating user.
@@ -50,6 +51,14 @@ def create_audit_entry(
     # Without this, the AuditLogEntry fails on save because it cannot find an actor_label
     if org_auth_token:
         kwargs["actor_label"] = org_auth_token.name
+    elif user is None and request.user.is_authenticated:
+        # No user behind the caller, e.g. a service account: until the audit log has actor
+        # columns for it, the label carries its type and id so it can't pass for a person.
+        name = request.user.get_display_name()
+        actor = resolve_actor(request.user, auth)
+        kwargs.setdefault(
+            "actor_label", f"{actor.type}:{actor.actor_id} ({name})" if actor else name
+        )
 
     return create_audit_entry_from_user(
         user,

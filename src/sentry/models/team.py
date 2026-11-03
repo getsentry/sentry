@@ -4,7 +4,6 @@ from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -25,27 +24,27 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         scope: str | None = None,
         is_team_admin: bool = False,
     ) -> Sequence[Team]:
         """
         Returns a list of all teams a user has some level of access to.
         """
+        from sentry.auth.principal import has_user
         from sentry.auth.superuser import is_active_superuser
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
-        if not user.is_authenticated:
+        if not has_user(user):
             return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)

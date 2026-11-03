@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
@@ -158,7 +159,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 name = "sentry_app.schema_validation_error"
                 log_info = {
                     "schema": orjson.dumps(data["schema"]).decode(),
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "sentry_app_name": data["name"],
                     "organization_id": organization.id,
                     "error_message": error_message,
@@ -167,7 +168,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 analytics.record(
                     SentryAppSchemaValidationError(
                         schema=orjson.dumps(data["schema"]).decode(),
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         sentry_app_name=data["name"],
                         organization_id=organization.id,
                         error_message=error_message,

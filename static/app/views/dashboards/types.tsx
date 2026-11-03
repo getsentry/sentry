@@ -120,6 +120,7 @@ export type WidgetQuery = {
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
+  transformations?: Record<string, string[]>;
 };
 
 type WidgetChangedReason = {
