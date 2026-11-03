@@ -130,11 +130,12 @@ class MonitorSelectionChange:
 
 
 def get_config_monitors_bulk(
-    configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
+    configs: Sequence[SeerWorkflowConfig], *, project_filter: Sequence[int] | None = None
 ) -> dict[int, list[tuple[int, int]]]:
     """
-    Return the active monitors connected to each metric automation as sorted
-    (monitor_id, project_id) pairs.
+    Return the active metric monitors connected to each metric automation as sorted
+    (monitor_id, project_id) pairs. With ``project_filter``, only monitors in
+    those projects are included.
     """
     config_ids_by_workflow_id = {
         config.backing_workflow_id: config.id
@@ -142,17 +143,24 @@ def get_config_monitors_bulk(
         if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         and config.backing_workflow_id is not None
     }
-    monitors: defaultdict[int, set[tuple[int, int]]] = defaultdict(set)
     connections = DetectorWorkflow.objects.filter(
         workflow_id__in=config_ids_by_workflow_id,
         workflow__status=ObjectStatus.ACTIVE,
+        detector__type=MetricIssue.slug,
         detector__status=ObjectStatus.ACTIVE,
         detector__project__status=ObjectStatus.ACTIVE,
-        detector__project_id__in=accessible_project_ids,
-    ).values_list("workflow_id", "detector_id", "detector__project_id")
-    for workflow_id, detector_id, project_id in connections:
-        monitors[config_ids_by_workflow_id[workflow_id]].add((detector_id, project_id))
-    return {config_id: sorted(pairs) for config_id, pairs in monitors.items()}
+    )
+    if project_filter is not None:
+        connections = connections.filter(detector__project_id__in=project_filter)
+
+    monitors: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
+    for workflow_id, detector_id, project_id in connections.order_by("detector_id").values_list(
+        "workflow_id", "detector_id", "detector__project_id"
+    ):
+        config_id = config_ids_by_workflow_id[workflow_id]
+        monitors[config_id].append((detector_id, project_id))
+
+    return dict(monitors)
 
 
 def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organization) -> list[int]:
@@ -206,6 +214,10 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 using=database,
             )
         return workflow
+
+    def get_monitors(self) -> list[tuple[int, int]]:
+        """Return the connected active metric monitors as sorted (monitor_id, project_id) pairs."""
+        return get_config_monitors_bulk([self.get_config()]).get(self.config_id, [])
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""

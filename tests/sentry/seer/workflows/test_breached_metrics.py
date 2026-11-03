@@ -738,7 +738,7 @@ class GetConfigMonitorsBulkTest(TestCase):
 
         result = get_config_monitors_bulk(
             [connected, unconnected, triage],
-            accessible_project_ids=[first_project.id, second_project.id],
+            project_filter=[first_project.id, second_project.id],
         )
 
         assert result == {connected.id: sorted((m.id, m.project_id) for m in monitors)}

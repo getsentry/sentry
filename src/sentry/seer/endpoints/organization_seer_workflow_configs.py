@@ -199,6 +199,54 @@ def _check_project_access(
     return None
 
 
+def _with_no_access_project_ids(
+    project_ids: Sequence[int],
+    curr_project_ids: Sequence[int],
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> list[int]:
+    """
+    Return the requested projects plus the current ones the caller can't read, so a
+    replace keeps projects outside the caller's access. Inputs must be pre-validated
+    as active projects in the organization.
+    """
+    if not curr_project_ids:
+        return sorted(set(project_ids))
+    readable = {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+    return sorted(set(project_ids) | (set(curr_project_ids) - readable))
+
+
+def _with_no_access_monitor_ids(
+    monitor_ids: Sequence[int],
+    curr_monitors: Sequence[tuple[int, int]],
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> list[int]:
+    """
+    Return the requested monitors plus the current ones in projects the caller can't
+    read. ``curr_monitors`` are (monitor_id, project_id) pairs of active monitors.
+    """
+    if not curr_monitors:
+        return sorted(set(monitor_ids))
+    readable = {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+    return sorted(
+        set(monitor_ids)
+        | {monitor_id for monitor_id, project_id in curr_monitors if project_id not in readable}
+    )
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
@@ -470,7 +518,17 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if all_projects:
                     workflow.set_project_selection(AllProjects())
                 else:
-                    workflow.set_project_selection(SelectedProjects(project_ids=tuple(project_ids)))
+                    # Replace only what the caller can see; keep current projects they can't.
+                    merged_project_ids = _with_no_access_project_ids(
+                        project_ids,
+                        workflow.get_project_ids(),
+                        request=request,
+                        organization=organization,
+                        endpoint=self,
+                    )
+                    workflow.set_project_selection(
+                        SelectedProjects(project_ids=tuple(merged_project_ids))
+                    )
             except ValueError as e:
                 logger.exception(
                     "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
@@ -496,7 +554,16 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             if denied is not None:
                 raise PermissionDenied(detail=denied)
             try:
-                workflow.set_monitor_selection(monitor_ids)
+                # Replace only what the caller can see; keep monitors in projects they can't.
+                workflow.set_monitor_selection(
+                    _with_no_access_monitor_ids(
+                        monitor_ids,
+                        workflow.get_monitors(),
+                        request=request,
+                        organization=organization,
+                        endpoint=self,
+                    )
+                )
             except ValueError as e:
                 logger.exception(
                     "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
@@ -518,9 +585,7 @@ def serialize_workflow_configs(
     selected_projects = get_selected_project_ids(
         configs, accessible_project_ids=accessible_project_ids
     )
-    connected_monitors = get_config_monitors_bulk(
-        configs, accessible_project_ids=accessible_project_ids
-    )
+    connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
     last_runs = get_config_last_runs(
         configs,
         accessible_project_ids=accessible_project_ids,
