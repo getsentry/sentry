@@ -79,6 +79,11 @@ class Environment(Model):
         return ""
 
     @classmethod
+    def get_cached(cls, organization_id: int, name: str | None) -> Self | None:
+        """Cache-only lookup; returns None on a cache miss without querying."""
+        return cache.get(cls.get_cache_key(organization_id, cls.get_name_or_default(name)))
+
+    @classmethod
     def get_for_organization_id(cls, organization_id: int, name: str | None) -> Self:
         name = cls.get_name_or_default(name)
 
