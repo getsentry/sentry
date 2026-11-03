@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -41,6 +41,26 @@ function makeProps(
 }
 
 describe('InputSection', () => {
+  it('ignores the approval shortcuts while they are off', async () => {
+    const fileApprovalActions = {
+      currentIndex: 0,
+      totalPatches: 1,
+      onApprove: jest.fn(),
+      onReject: jest.fn(),
+    };
+    const {rerender} = render(
+      <InputSection {...makeProps({fileApprovalActions, shortcutsEnabled: false})} />
+    );
+
+    await userEvent.keyboard('{Enter}{Escape}');
+    expect(fileApprovalActions.onApprove).not.toHaveBeenCalled();
+    expect(fileApprovalActions.onReject).not.toHaveBeenCalled();
+
+    rerender(<InputSection {...makeProps({fileApprovalActions})} />);
+    await userEvent.keyboard('{Enter}');
+    expect(fileApprovalActions.onApprove).toHaveBeenCalledTimes(1);
+  });
+
   it('styles the interrupted placeholder with the warning color', () => {
     render(
       <InputSection
@@ -82,7 +102,7 @@ describe('InputSection', () => {
       render(<InputSection {...makeProps({enabled: false})} />, {organization});
 
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
     });
   });
 });
