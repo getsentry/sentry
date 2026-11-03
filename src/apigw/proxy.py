@@ -1,7 +1,7 @@
 import asyncio
 import time
 from collections import defaultdict
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, cast
 from urllib.parse import urljoin, urlsplit
 
 import prometheus_client
@@ -199,7 +199,7 @@ def adapt_response(presp: punkreq.Response) -> Any:
         headers[key].append(val)
     for key, vals in headers.items():
         response.headers[key] = ",".join(vals)
-    response.cookies = {
+    cast("Any", response).cookies = {
         f"_proxied{idx}": ResponseCookieGlue(val) for idx, val in enumerate(cookies)
     }
     return response.stream(presp.iter_raw(CHUNK_SIZE))

@@ -3,10 +3,10 @@ import {TranslationContextProvider} from '@sentry/scraps/translation';
 
 import {t, tct} from 'sentry/locale';
 
-import {SentryClipboardProvider} from './clipboard';
 import {SentryDateTimeProvider} from './datetime';
 import {SentryFormErrorProvider} from './formError';
 import {SentryLinkBehaviorProvider} from './link';
+import {SentryOverlayProvider} from './overlay';
 
 const sentryTranslation = {t, tct};
 
@@ -16,9 +16,9 @@ export function ScrapsProviders({children}: {children: React.ReactNode}) {
       <TranslationContextProvider value={sentryTranslation}>
         <SentryDateTimeProvider>
           <SentryLinkBehaviorProvider>
-            <SentryClipboardProvider>
+            <SentryOverlayProvider>
               <ToastProvider>{children}</ToastProvider>
-            </SentryClipboardProvider>
+            </SentryOverlayProvider>
           </SentryLinkBehaviorProvider>
         </SentryDateTimeProvider>
       </TranslationContextProvider>

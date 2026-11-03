@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.urls import reverse
 
+from sentry.integrations.mixins.issues import IssuePayload
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
@@ -27,7 +29,7 @@ GITLAB_ISSUE_TITLE_MAX_LENGTH = 255
 
 
 class GitlabIssuesSpec(SourceCodeIssueIntegration):
-    def make_external_key(self, data):
+    def make_external_key(self, data: Mapping[str, str]) -> str:
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
@@ -39,7 +41,9 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group: Group | None, params: Mapping[str, Any], **kwargs):
+    def get_projects_and_default(
+        self, group: Group | None, params: Mapping[str, object], **kwargs: object
+    ) -> tuple[str, list[tuple[str, str]]]:
         if group:
             defaults = self.get_project_defaults(group.project_id)
         else:
@@ -55,7 +59,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         default_project, project_choices = self.get_repository_choices(group, params_mut)
         return default_project, project_choices
 
-    def create_default_repo_choice(self, default_repo):
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         client = self.get_client()
         try:
             # default_repo should be the project_id
@@ -66,11 +70,12 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = self.organization
@@ -91,7 +96,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             *fields,
         ]
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: IssuePayload, **kwargs: object) -> IssuePayload:
         client = self.get_client()
 
         project_id = data.get("project")
@@ -124,7 +129,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             "metadata": {"display_name": project_and_issue_iid},
         }
 
-    def after_link_issue(self, external_issue, **kwargs):
+    def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
         project_id, issue_id = data.get("externalIssue", "").split("#")
         if not (project_id and issue_id):
@@ -141,7 +146,9 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
@@ -194,7 +201,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             )
         return {"externalIssue": f"{match[1]}#{match[2]}"}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> IssuePayload:
+        issue_id = cast(str, issue_id)
         project_id, issue_num = issue_id.split("#")
         client = self.get_client()
 
@@ -220,5 +228,6 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             "metadata": {"display_name": project_and_issue_iid},
         }
 
-    def get_issue_display_name(self, external_issue):
-        return external_issue.metadata["display_name"]
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
+        display_name = external_issue.metadata["display_name"]
+        return display_name

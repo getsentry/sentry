@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 
 # This __must__ match the EventType enum in RRWeb, for the version of rrweb that we are using.
@@ -33,7 +33,7 @@ def ms(timestamp: datetime.datetime) -> int:
 
 def assert_viewed_by_expected_ids_and_unique(
     viewed_by: list[dict[str, Any]], expected_ids: set[int]
-):
+) -> None:
     seen = set()
     for user_dict in viewed_by:
         id = int(user_dict["id"])
@@ -150,9 +150,9 @@ def mock_replay(
     replay_id: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    tags = kwargs.pop("tags", {})
+    tags = cast("dict[str, object]", kwargs.pop("tags", {}))
     tags.update({"transaction": kwargs.pop("title", "Title")})
-    tags = [[key, value] for key, value in tags.items()]
+    tags_list = [[key, value] for key, value in tags.items()]
 
     return {
         "type": "replay_event",
@@ -165,7 +165,7 @@ def mock_replay(
             "replay_id": replay_id,
             "replay_type": kwargs.pop("replay_type", "session"),
             "segment_id": kwargs.pop("segment_id", 0),
-            "tags": tags,
+            "tags": tags_list,
             "urls": kwargs.pop("urls", []),
             "segment_names": kwargs.pop("segment_names", []),
             "is_archived": kwargs.pop("is_archived", None),
@@ -514,20 +514,22 @@ def mock_rrweb_div_helloworld() -> RRWebNode:
     )
 
 
-def mock_replay_event(replay_id="b58a67446c914f44a4e329763420047b", **kwargs):
+def mock_replay_event(
+    replay_id: str = "b58a67446c914f44a4e329763420047b", **kwargs: object
+) -> dict[str, object]:
     """
     mock a replay event for useage in our recording consumer tests
     """
     timestamp = datetime.datetime.now() - datetime.timedelta(minutes=10)
-    tags = kwargs.pop("tags", {})
+    tags = cast("dict[str, object]", kwargs.pop("tags", {}))
     tags.update({"transaction": kwargs.pop("title", "Title")})
-    tags = [[key, value] for key, value in tags.items()]
+    tags_list = [[key, value] for key, value in tags.items()]
     return {
         "type": "replay_event",
         "replay_id": replay_id,
         "replay_type": kwargs.pop("replay_type", "session"),
         "segment_id": kwargs.pop("segment_id", 0),
-        "tags": tags,
+        "tags": tags_list,
         "urls": kwargs.pop("urls", []),
         "segment_names": kwargs.pop("segment_names", []),
         "is_archived": kwargs.pop("is_archived", None),

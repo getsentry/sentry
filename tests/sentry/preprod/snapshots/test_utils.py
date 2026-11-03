@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 from sentry.testutils.cases import TestCase
@@ -8,7 +10,7 @@ from sentry.testutils.silo import cell_silo_test
 
 @cell_silo_test
 class FindBaseSnapshotArtifactTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         cc = CommitComparison.objects.create(
             organization_id=self.organization.id,
@@ -23,7 +25,7 @@ class FindBaseSnapshotArtifactTest(TestCase):
         )
         self.create_preprod_snapshot_metrics(self.artifact, is_selective=True)
 
-    def _args(self):
+    def _args(self) -> dict[str, Any]:
         return dict(
             organization_id=self.organization.id,
             base_sha="base_head_sha",
@@ -34,12 +36,12 @@ class FindBaseSnapshotArtifactTest(TestCase):
             build_configuration=None,
         )
 
-    def test_selective_base_returned(self):
+    def test_selective_base_returned(self) -> None:
         result = find_base_snapshot_artifact(**self._args())
         assert result is not None
         assert result.preprodsnapshotmetrics.is_selective is True
 
-    def test_non_selective_base_returned(self):
+    def test_non_selective_base_returned(self) -> None:
         cc = CommitComparison.objects.create(
             organization_id=self.organization.id,
             head_repo_name="o/r",
@@ -52,7 +54,7 @@ class FindBaseSnapshotArtifactTest(TestCase):
             project=self.project, app_id="com.x", commit_comparison=cc
         )
         self.create_preprod_snapshot_metrics(artifact, is_selective=False)
-        args = dict(
+        args: dict[str, Any] = dict(
             organization_id=self.organization.id,
             base_sha="full_base_head_sha",
             base_repo_name="o/r",

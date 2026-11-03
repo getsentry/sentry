@@ -4,19 +4,25 @@ import {render, screen, waitFor} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {lightTheme} from '@sentry/scraps/theme';
+import {toast} from '@sentry/scraps/toast';
 
-import {ClipboardFeedbackContextProvider, CopyToClipboardButton} from './index';
+import {CopyToClipboardButton} from './index';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
 
 describe('CopyToClipboardButton', () => {
-  it('copies with keyboard activation without an application provider', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('copies with keyboard activation and reports success without an app adapter', async () => {
     const user = userEvent.setup();
     const onCopy = jest.fn();
     const onClick = jest.fn();
     const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+    const success = jest.spyOn(toast, 'success');
     render(
       <CopyToClipboardButton
         aria-label="Copy message"
@@ -26,16 +32,15 @@ describe('CopyToClipboardButton', () => {
       />,
       {wrapper: ThemeWrapper}
     );
-
     await user.tab();
     await user.keyboard('{Enter}');
-
     expect(writeText).toHaveBeenCalledWith('message');
     expect(onCopy).toHaveBeenCalledWith('message');
     expect(onClick).toHaveBeenCalledTimes(1);
+    expect(success).toHaveBeenCalledWith('Copied to clipboard');
   });
 
-  it('waits for a successful write before reporting success', async () => {
+  it('waits for the write before showing feedback or reporting success', async () => {
     const user = userEvent.setup();
     let finish: () => void = () => {};
     jest.spyOn(navigator.clipboard, 'writeText').mockImplementation(
@@ -45,78 +50,107 @@ describe('CopyToClipboardButton', () => {
         })
     );
     const onCopy = jest.fn();
-    const feedback = {onCopy: jest.fn(), onError: jest.fn()};
-    render(
-      <ClipboardFeedbackContextProvider value={feedback}>
-        <CopyToClipboardButton aria-label="Copy" text="message" onCopy={onCopy} />
-      </ClipboardFeedbackContextProvider>,
-      {wrapper: ThemeWrapper}
-    );
-
+    const success = jest.spyOn(toast, 'success');
+    render(<CopyToClipboardButton aria-label="Copy" text="message" onCopy={onCopy} />, {
+      wrapper: ThemeWrapper,
+    });
     await user.click(screen.getByRole('button', {name: 'Copy'}));
     expect(onCopy).not.toHaveBeenCalled();
-    expect(feedback.onCopy).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
     finish();
     await waitFor(() => expect(onCopy).toHaveBeenCalledWith('message'));
-    expect(feedback.onCopy).toHaveBeenCalledWith('message');
-    expect(feedback.onError).not.toHaveBeenCalled();
+    expect(success).toHaveBeenCalledWith('Copied to clipboard');
   });
 
-  it('reports a failed write without calling success handlers', async () => {
+  it('reports a rejected write with failure feedback and no success callback', async () => {
     const user = userEvent.setup();
     const error = new Error('Permission denied');
     jest.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(error);
     const onCopy = jest.fn();
     const onError = jest.fn();
-    const feedback = {onCopy: jest.fn(), onError: jest.fn()};
+    const success = jest.spyOn(toast, 'success');
+    const failure = jest.spyOn(toast, 'error');
     render(
-      <ClipboardFeedbackContextProvider value={feedback}>
-        <CopyToClipboardButton
-          aria-label="Copy"
-          text="message"
-          onCopy={onCopy}
-          onError={onError}
-        />
-      </ClipboardFeedbackContextProvider>,
+      <CopyToClipboardButton
+        aria-label="Copy"
+        text="message"
+        onCopy={onCopy}
+        onError={onError}
+      />,
       {wrapper: ThemeWrapper}
     );
-
     await user.click(screen.getByRole('button', {name: 'Copy'}));
     expect(onError).toHaveBeenCalledWith(error);
-    expect(feedback.onError).toHaveBeenCalledWith(error);
+    expect(failure).toHaveBeenCalledWith('Error copying to clipboard');
     expect(onCopy).not.toHaveBeenCalled();
-    expect(feedback.onCopy).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
   });
 
   it('handles an unavailable clipboard API', async () => {
     const user = userEvent.setup();
     Object.defineProperty(navigator, 'clipboard', {configurable: true, value: undefined});
     const onError = jest.fn();
+    const failure = jest.spyOn(toast, 'error');
     render(<CopyToClipboardButton aria-label="Copy" text="message" onError={onError} />, {
       wrapper: ThemeWrapper,
     });
-
     await user.click(screen.getByRole('button', {name: 'Copy'}));
     expect(onError).toHaveBeenCalledWith(expect.any(TypeError));
+    expect(failure).toHaveBeenCalledWith('Error copying to clipboard');
   });
 
-  it.each([false, true])('does not copy when disabled (tooltip: %s)', async tooltip => {
+  it.each([false, true])(
+    'does not write or notify when disabled (tooltip: %s)',
+    async tooltip => {
+      const user = userEvent.setup();
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+      const success = jest.spyOn(toast, 'success');
+      render(
+        <CopyToClipboardButton
+          aria-label="Copy"
+          text="message"
+          disabled
+          tooltipProps={tooltip ? {title: 'Unavailable'} : undefined}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+      await user.click(screen.getByRole('button', {name: 'Copy'}));
+      expect(writeText).not.toHaveBeenCalled();
+      expect(success).not.toHaveBeenCalled();
+    }
+  );
+
+  it('uses per-instance success feedback', async () => {
     const user = userEvent.setup();
-    const writeText = jest.spyOn(navigator.clipboard, 'writeText');
-    const onCopy = jest.fn();
+    const success = jest.spyOn(toast, 'success');
     render(
       <CopyToClipboardButton
         aria-label="Copy"
         text="message"
-        disabled
-        onCopy={onCopy}
-        tooltipProps={tooltip ? {title: 'Unavailable'} : undefined}
+        successMessage="Message copied"
       />,
       {wrapper: ThemeWrapper}
     );
-
     await user.click(screen.getByRole('button', {name: 'Copy'}));
-    expect(writeText).not.toHaveBeenCalled();
-    expect(onCopy).not.toHaveBeenCalled();
+    expect(success).toHaveBeenCalledWith('Message copied');
+  });
+
+  it('supports disabling success and failure feedback per instance', async () => {
+    const user = userEvent.setup();
+    const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+    const success = jest.spyOn(toast, 'success');
+    const failure = jest.spyOn(toast, 'error');
+    const {rerender} = render(
+      <CopyToClipboardButton aria-label="Copy" text="message" successMessage={false} />,
+      {wrapper: ThemeWrapper}
+    );
+    await user.click(screen.getByRole('button', {name: 'Copy'}));
+    expect(success).not.toHaveBeenCalled();
+    writeText.mockRejectedValue(new Error('Denied'));
+    rerender(
+      <CopyToClipboardButton aria-label="Copy" text="message" errorMessage={false} />
+    );
+    await user.click(screen.getByRole('button', {name: 'Copy'}));
+    expect(failure).not.toHaveBeenCalled();
   });
 });

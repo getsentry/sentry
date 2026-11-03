@@ -1,8 +1,11 @@
+from typing import Any
+
 import pytest
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -17,7 +20,7 @@ class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
     @staticmethod
-    def check_valid_response(response, expected_projects):
+    def check_valid_response(response: Any, expected_projects: list[Project]) -> None:
         assert [project.id for project in expected_projects] == [
             int(project_resp["id"]) for project_resp in response.data
         ]
@@ -36,6 +39,30 @@ class OrganizationProjectsTestBase(APITestCase):
             HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
         )
         self.check_valid_response(response, [project])
+
+    def _projects_no_member_of_the_caller_is_on(self) -> None:
+        self.create_project(organization=self.organization, teams=[])
+        invite_team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization, email="invited@example.com", teams=[invite_team]
+        )
+        self.create_project(organization=self.organization, teams=[invite_team])
+
+    def test_api_key_is_member_matches_no_projects(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read"]
+            )
+        self._projects_no_member_of_the_caller_is_on()
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"query": "is_member:1"},
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")
@@ -376,6 +403,27 @@ class OrganizationProjectsCountTest(APITestCase):
         super().setUp()
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
+
+    def test_api_key_has_no_projects_of_its_own(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read"]
+            )
+        self.create_project(organization=self.organization, teams=[])
+        invite_team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization, email="invited@example.com", teams=[invite_team]
+        )
+        self.create_project(organization=self.organization, teams=[invite_team])
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"get_counts": "1"},
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"allProjects": 2, "myProjects": 0}
 
     def test_project_count(self) -> None:
         other_team = self.create_team(organization=self.organization)

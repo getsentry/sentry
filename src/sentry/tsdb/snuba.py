@@ -3,10 +3,10 @@ from __future__ import annotations
 import dataclasses
 import functools
 import itertools
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Iterable, Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from snuba_sdk import (
     Column,
@@ -31,7 +31,7 @@ from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
-from sentry.tsdb.base import TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBItem, TSDBKey, TSDBModel
 from sentry.tsdb.dummy import DummyTSDB
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
@@ -44,6 +44,8 @@ from sentry.utils.snuba import (
 )
 
 LIMIT = 10000
+
+TSDBResult = dict[str | int, "TSDBResult | int"]
 
 
 @dataclasses.dataclass
@@ -215,10 +217,15 @@ class SnubaTSDB(DummyTSDB):
         )
     )
 
-    def __init__(self, **options):
-        super().__init__(**options)
+    def __init__(
+        self,
+        rollups: Iterable[tuple[int, int]] | None = None,
+        legacy_rollups: dict[int, int] | None = None,
+        **options: object,
+    ) -> None:
+        super().__init__(rollups=rollups, legacy_rollups=legacy_rollups, **options)
 
-    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> list[Any]:
+    def __manual_group_on_time_aggregation(self, rollup: int, time_column_alias: str) -> list[Any]:
         """
         Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
         Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
@@ -226,7 +233,7 @@ class SnubaTSDB(DummyTSDB):
         we need to manually insert the equivalent query to get the same result.
         """
 
-        def rollup_agg(rollup_granularity, alias):
+        def rollup_agg(rollup_granularity: int, alias: str) -> list[Any] | None:
             if rollup_granularity == 60:
                 return ["toUnixTimestamp", [["toStartOfMinute", "timestamp"]], alias]
             elif rollup_granularity == 3600:
@@ -254,21 +261,21 @@ class SnubaTSDB(DummyTSDB):
 
     def get_data(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
-        aggregation="count()",
-        group_on_model=True,
-        group_on_time=False,
-        conditions=None,
-        use_cache=False,
-        jitter_value=None,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey] | Set[TSDBKey] | Mapping[TSDBKey, Sequence[object]],
+        start: datetime,
+        end: datetime | None,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        aggregation: str = "count()",
+        group_on_model: bool = True,
+        group_on_time: bool = False,
+        conditions: Sequence[object] | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ):
+    ) -> TSDBResult:
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
             # is used everywhere that expects `conditions` to be legacy format
@@ -276,7 +283,7 @@ class SnubaTSDB(DummyTSDB):
             for cond in conditions or ():
                 if not is_condition(cond):
                     or_conditions = []
-                    for or_cond in cond:
+                    for or_cond in cast("Sequence[SnubaCondition]", cond):
                         or_conditions.append(parse_condition(or_cond))
 
                     if len(or_conditions) > 1:
@@ -284,7 +291,7 @@ class SnubaTSDB(DummyTSDB):
                     else:
                         parsed_conditions.extend(or_conditions)
                 else:
-                    parsed_conditions.append(parse_condition(cond))
+                    parsed_conditions.append(parse_condition(cast("SnubaCondition", cond)))
 
             return self.__get_data_snql(
                 model,
@@ -327,7 +334,7 @@ class SnubaTSDB(DummyTSDB):
     def __get_data_snql(
         self,
         model: TSDBModel,
-        keys: Sequence | Set | Mapping,
+        keys: Sequence[TSDBKey] | Set[TSDBKey] | Mapping[TSDBKey, Sequence[object]],
         start: datetime,
         end: datetime | None,
         rollup: int | None = None,
@@ -342,7 +349,7 @@ class SnubaTSDB(DummyTSDB):
         is_grouprelease: bool = False,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ):
+    ) -> TSDBResult:
         """
         Similar to __get_data_legacy but uses the SnQL format. For future additions, prefer using this impl over
         the legacy format.
@@ -416,9 +423,13 @@ class SnubaTSDB(DummyTSDB):
             if model_query_settings.conditions is not None:
                 conditions += model_query_settings.conditions
 
-            project_ids = infer_project_ids_from_related_models(keys_map)
+            project_ids = infer_project_ids_from_related_models(
+                cast("Mapping[str, Sequence[int]]", keys_map)
+            )
             keys_map["project_id"] = project_ids
-            forward, reverse = get_snuba_translators(keys_map, is_grouprelease)
+            forward, reverse = get_snuba_translators(
+                cast("Mapping[str, Sequence[int]]", keys_map), is_grouprelease
+            )
 
             # resolve filter_key values to the right values environment.id -> environment.name, etc.
             mapped_filter_conditions = []
@@ -479,7 +490,11 @@ class SnubaTSDB(DummyTSDB):
         if group_on_time:
             keys_map["time"] = series
 
-        self.zerofill(result, groupby, keys_map)
+        self.zerofill(
+            cast("TSDBResult", result),
+            groupby,
+            cast("Mapping[str, Sequence[object] | None]", keys_map),
+        )
         self.trim(result, groupby, keys)
 
         if group_on_time and manual_group_on_time:
@@ -490,21 +505,21 @@ class SnubaTSDB(DummyTSDB):
 
     def __get_data_legacy(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
-        aggregation="count()",
-        group_on_model=True,
-        group_on_time=False,
-        conditions=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-    ):
+        model: TSDBModel,
+        keys: Sequence[TSDBKey] | Set[TSDBKey] | Mapping[TSDBKey, Sequence[object]],
+        start: datetime,
+        end: datetime | None,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        aggregation: str = "count()",
+        group_on_model: bool = True,
+        group_on_time: bool = False,
+        conditions: Sequence[object] | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+    ) -> TSDBResult:
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
 
@@ -517,7 +532,7 @@ class SnubaTSDB(DummyTSDB):
             TSDBModel.key_total_blacklisted,
             TSDBModel.key_total_rejected,
         ]:
-            keys = list(set(map(lambda x: int(x), keys)))
+            keys = cast("Sequence[TSDBKey]", list({int(x) for x in keys}))
 
         model_requires_manual_group_on_time = model in (
             TSDBModel.group_generic,
@@ -580,9 +595,9 @@ class SnubaTSDB(DummyTSDB):
         end = to_datetime(series[-1] + rollup)
         limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
-        conditions = conditions if conditions is not None else []
+        conditions_list = cast("list[Any]", conditions) if conditions is not None else []
         if model_query_settings.conditions is not None:
-            conditions += deepcopy(model_query_settings.conditions)
+            conditions_list += deepcopy(model_query_settings.conditions)
             # copy because we modify the conditions in snuba.query
 
         orderby = []
@@ -606,7 +621,7 @@ class SnubaTSDB(DummyTSDB):
                 start=start,
                 end=end,
                 groupby=groupby,
-                conditions=conditions,
+                conditions=conditions_list,
                 filter_keys=keys_map,
                 aggregations=aggregations,
                 rollup=rollup,
@@ -633,7 +648,11 @@ class SnubaTSDB(DummyTSDB):
             else:
                 keys_map[group_on_time_column_alias] = series
 
-        self.zerofill(result, groupby, keys_map)
+        self.zerofill(
+            cast("TSDBResult", result),
+            groupby,
+            cast("Mapping[str, Sequence[object] | None]", keys_map),
+        )
         self.trim(result, groupby, keys)
 
         if group_on_time and model_requires_manual_group_on_time:
@@ -643,7 +662,12 @@ class SnubaTSDB(DummyTSDB):
         else:
             return result
 
-    def zerofill(self, result, groups, flat_keys):
+    def zerofill(
+        self,
+        result: TSDBResult,
+        groups: Sequence[str],
+        flat_keys: Mapping[str, Sequence[object] | None],
+    ) -> None:
         """
         Fills in missing keys in the nested result with zeroes.
         `result` is the nested result
@@ -654,15 +678,15 @@ class SnubaTSDB(DummyTSDB):
         if len(groups) > 0:
             group, subgroups = groups[0], groups[1:]
             # Zerofill missing keys
-            for k in flat_keys[group]:
+            for k in cast(Any, flat_keys[group]):
                 if k not in result:
                     result[k] = 0 if len(groups) == 1 else {}
 
             if subgroups:
                 for v in result.values():
-                    self.zerofill(v, subgroups, flat_keys)
+                    self.zerofill(cast(Any, v), subgroups, flat_keys)
 
-    def trim(self, result, groups, keys):
+    def trim(self, result: object, groups: Sequence[str], keys: object) -> None:
         """
         Similar to zerofill, but removes keys that should not exist.
         Uses the non-flattened version of keys, so that different sets
@@ -670,17 +694,18 @@ class SnubaTSDB(DummyTSDB):
         """
         if len(groups) > 0:
             group, subgroups = groups[0], groups[1:]
+            keys_map = cast(Any, keys)
             if isinstance(result, dict):
                 for rk in list(result.keys()):
                     if group == "time":  # Skip over time group
                         self.trim(result[rk], subgroups, keys)
-                    elif rk in keys:
-                        if isinstance(keys, dict):
-                            self.trim(result[rk], subgroups, keys[rk])
+                    elif rk in keys_map:
+                        if isinstance(keys_map, dict):
+                            self.trim(result[rk], subgroups, keys_map[rk])
                     else:
                         del result[rk]
 
-    def unnest(self, result, aggregated_as):
+    def unnest(self, result: object, aggregated_as: str) -> None:
         """
         Unnests the aggregated value in results and places it one level higher to conform to the
         proper result format
@@ -715,7 +740,7 @@ class SnubaTSDB(DummyTSDB):
                     else:
                         self.unnest(val, aggregated_as)
 
-    def get_aggregate_function(self, model) -> str:
+    def get_aggregate_function(self, model: TSDBModel) -> str:
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
@@ -733,7 +758,7 @@ class SnubaTSDB(DummyTSDB):
         end: datetime,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
-        conditions=None,
+        conditions: list[SnubaCondition] | None = None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -746,20 +771,23 @@ class SnubaTSDB(DummyTSDB):
         if self._should_use_upsampled_aggregation(model, project_ids):
             aggregation = "upsampled_count"
 
-        result: Mapping[TSDBKey, int] = self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            environment_ids,
-            aggregation=aggregation,
-            group_on_time=group_on_time,
-            conditions=conditions,
-            use_cache=use_cache,
-            jitter_value=jitter_value,
-            tenant_ids=tenant_ids,
-            referrer_suffix=referrer_suffix,
+        result = cast(
+            "Mapping[TSDBKey, int]",
+            self.get_data(
+                model,
+                keys,
+                start,
+                end,
+                rollup,
+                environment_ids,
+                aggregation=aggregation,
+                group_on_time=group_on_time,
+                conditions=conditions,
+                use_cache=use_cache,
+                jitter_value=jitter_value,
+                tenant_ids=tenant_ids,
+                referrer_suffix=referrer_suffix,
+            ),
         )
         return result
 
@@ -791,7 +819,7 @@ class SnubaTSDB(DummyTSDB):
         end: datetime,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
-        conditions=None,
+        conditions: list[SnubaCondition] | None = None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -827,19 +855,22 @@ class SnubaTSDB(DummyTSDB):
         #    {group:{timestamp:count, ...}}
         # into
         #    {group: [(timestamp, count), ...]}
-        return {k: sorted(result[k].items()) for k in result}
+        return cast(
+            "dict[TSDBKey, list[tuple[int, int]]]",
+            {k: sorted(cast("Mapping[int, int]", result[k]).items()) for k in result},
+        )
 
     def get_distinct_counts_series(
         self,
-        model,
+        model: TSDBModel,
         keys: Sequence[TSDBKey],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        tenant_ids=None,
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
         project_ids: Sequence[int] | None = None,
-    ):
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         result = self.get_data(
             model,
             keys,
@@ -855,38 +886,44 @@ class SnubaTSDB(DummyTSDB):
         #    {group:{timestamp:count, ...}}
         # into
         #    {group: [(timestamp, count), ...]}
-        return {k: sorted(result[k].items()) for k in result}
+        return cast(
+            "dict[TSDBKey, list[tuple[int, int]]]",
+            {k: sorted(cast("Mapping[int, int]", result[k]).items()) for k in result},
+        )
 
     def get_distinct_counts_totals(
         self,
-        model,
+        model: TSDBModel,
         keys: Sequence[TSDBKey],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-        conditions=None,
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
         project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
-        return self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation="uniq",
-            use_cache=use_cache,
-            jitter_value=jitter_value,
-            tenant_ids=tenant_ids,
-            referrer_suffix=referrer_suffix,
-            conditions=conditions,
-            group_on_time=group_on_time,
+        return cast(
+            "Mapping[TSDBKey, int]",
+            self.get_data(
+                model,
+                keys,
+                start,
+                end,
+                rollup,
+                [environment_id] if environment_id is not None else None,
+                aggregation="uniq",
+                use_cache=use_cache,
+                jitter_value=jitter_value,
+                tenant_ids=tenant_ids,
+                referrer_suffix=referrer_suffix,
+                conditions=conditions,
+                group_on_time=group_on_time,
+            ),
         )
 
     def get_frequency_series(
@@ -915,9 +952,17 @@ class SnubaTSDB(DummyTSDB):
         #    {group:{timestamp:{agg:count}}}
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
-        return {k: sorted(result[k].items()) for k in result}
+        return cast(
+            "dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]",
+            {
+                k: sorted(cast("Mapping[float, dict[TSDBItem, float]]", result[k]).items())
+                for k in result
+            },
+        )
 
-    def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
+    def flatten_keys(
+        self, items: Mapping[TSDBKey, Sequence[object]] | Sequence[object] | Set[object]
+    ) -> tuple[list[object], Sequence[object] | None]:
         """
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the

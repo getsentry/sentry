@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from django.http.request import HttpRequest
 from rest_framework.fields import CharField
@@ -22,19 +22,24 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.repository import (
+    RepositoryClient,
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class ExampleSetupSerializer(CamelSnakeSerializer):
+class ExampleSetupSerializer(CamelSnakeSerializer[dict[str, str]]):
     """Validates the POST data submitted during the setup step. CamelSnakeSerializer
     automatically converts between camelCase (frontend) and snake_case (backend)."""
 
@@ -97,13 +102,15 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     def integration_name(self) -> str:
         return "example"
 
-    def get_client(self):
-        pass
+    def get_client(self) -> RepositoryClient:
+        return cast(RepositoryClient, None)
 
-    def get_issue_url(self, key) -> str:
+    def get_issue_url(self, key: str) -> str:
         return f"https://example/issues/{key}"
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(
+        self, issue_id: str, user_id: int, group_note: Activity
+    ) -> Mapping[str, str]:
         user = user_service.get_user(user_id)
         assert user is not None
         attribution = f"{user.name} wrote:\n\n"
@@ -118,15 +125,20 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["assignedTo", "reportedBy"]
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "example_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
+        assert group is not None
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
 
-    def generate_example_project_field(self, default_fields):
-        project_field = {
+    def generate_example_project_field(
+        self, default_fields: Mapping[str, object]
+    ) -> IntegrationIssueConfigField:
+        project_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Project",
             "choices": [("1", "Project 1"), ("2", "Project 2")],
@@ -139,13 +151,15 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
 
         return project_field
 
-    def get_link_issue_config(self, group, **kwargs):
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
         fields = super().get_link_issue_config(group, **kwargs)
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: Mapping[str, object], **kwargs: object) -> Mapping[str, object]:
         if "assignee" not in data:
             raise IntegrationError("Assignee is required")
         return {
@@ -154,7 +168,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             "description": "This is a test external issue description",
         }
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> Mapping[str, object]:
         return {
             "key": issue_id,
             "title": "This is a test external issue title",
@@ -193,7 +207,7 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             should_unresolve=category != "done",
         )
 
-    def get_issue_display_name(self, external_issue) -> str:
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(
@@ -216,7 +230,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
     def has_repo_access(self, repo: RpcRepository) -> bool:
         return False
 
-    def search_issues(self, query: str | None, **kwargs):
+    def search_issues(
+        self, query: str | None, **kwargs: object
+    ) -> list[dict[str, object]] | dict[str, object]:
         return []
 
 
@@ -242,7 +258,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [ExampleSetupApiStep()]
 
-    def get_config(self):
+    def get_config(self) -> list[IntegrationIssueConfigField]:
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
     def post_install(
@@ -257,7 +273,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {"external_id": state.get("name", "example")}
 
-    def setup(self):
+    def setup(self) -> None:
         """
         Executed once Sentry has been initialized at runtime.
 

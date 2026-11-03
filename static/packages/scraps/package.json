@@ -131,10 +131,6 @@
       "types": "./dist/descriptionList/index.d.ts",
       "import": "./dist/descriptionList/index.js"
     },
-    "./interactionStateLayer": {
-      "types": "./dist/interactionStateLayer/index.d.ts",
-      "import": "./dist/interactionStateLayer/index.js"
-    },
     "./radio": {
       "types": "./dist/radio/index.d.ts",
       "import": "./dist/radio/index.js"
@@ -255,6 +251,26 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./drawer": {
+      "types": "./dist/drawer/index.d.ts",
+      "import": "./dist/drawer/index.js"
+    },
+    "./slideOverPanel": {
+      "types": "./dist/slideOverPanel.d.ts",
+      "import": "./dist/slideOverPanel.js"
+    },
+    "./overlayContext": {
+      "types": "./dist/overlayContext.d.ts",
+      "import": "./dist/overlayContext.js"
+    },
+    "./select": {
+      "types": "./dist/select/index.d.ts",
+      "import": "./dist/select/index.js"
+    },
+    "./useVirtualRows": {
+      "types": "./dist/useVirtualRows.d.ts",
+      "import": "./dist/useVirtualRows.js"
+    },
     "./clipboard": {
       "types": "./dist/clipboard/index.d.ts",
       "import": "./dist/clipboard/index.js"
@@ -278,6 +294,7 @@
     "@floating-ui/react-dom": "^2.1.9",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
+    "@react-aria/focus": "3.22.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
     "@react-aria/numberfield": "3.13.1",
@@ -296,12 +313,15 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
-    "@tanstack/react-hotkeys": "0.17.0",
+    "@tanstack/react-hotkeys": "0.18.0",
+    "@tanstack/react-virtual": "3.14.6",
     "@types/react": "19.3.0",
+    "@types/react-select": "4.0.18",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "query-string": "7.0.1",
+    "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "sonner": "2.0.8",
     "type-fest": "^5.10.0"

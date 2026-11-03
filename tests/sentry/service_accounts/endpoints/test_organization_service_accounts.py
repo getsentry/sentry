@@ -110,6 +110,20 @@ class OrganizationServiceAccountIndexTest(APITestCase):
 
         assert len(response.data) == 1
 
+    def test_list_with_token_scopes(self) -> None:
+        self.create_service_account(organization=self.organization)
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        def list_with(scope_list: list[str]) -> Any:
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+            return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        with self.feature(FEATURE_FLAG):
+            assert list_with(["service_account:read"]).status_code == 200
+            # Neither org:read nor the explicit write scope grants reads.
+            assert list_with(["org:read"]).status_code == 403
+            assert list_with(["service_account:write"]).status_code == 403
+
     def test_create(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             project = self.create_project(organization=self.organization)

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.http import Http404
@@ -32,6 +32,7 @@ from sentry.integrations.api.serializers.models.repository_project_path_config i
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.path import normalize_repository_source_root
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
@@ -50,7 +51,9 @@ def validate_source_root(path: str) -> None:
         raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
 
 
-def gen_path_regex_field(*, validate_source: bool = False, help_text: str | None = None):
+def gen_path_regex_field(
+    *, validate_source: bool = False, help_text: str | None = None
+) -> serializers.RegexField:
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
@@ -64,7 +67,7 @@ def gen_path_regex_field(*, validate_source: bool = False, help_text: str | None
 BRANCH_NAME_ERROR_MESSAGE = "Branch name may only have letters, numbers, underscores, forward slashes, dashes, and periods. Branch name may not start or end with a forward slash."
 
 
-class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
+class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer[RepositoryProjectPathConfig]):
     repository_id = serializers.IntegerField(
         required=True, help_text="The ID of a repository belonging to the installed integration."
     )
@@ -99,16 +102,16 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         extra_kwargs: dict[str, Any] = {}
 
     @property
-    def org_integration(self):
+    def org_integration(self) -> RpcOrganizationIntegration:
         return self.context["organization_integration"]
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         query = RepositoryProjectPathConfig.objects.filter(
-            project_repository__project_id=attrs.get("project_id"),
+            project_repository__project_id=cast("str | int", attrs.get("project_id")),
             stack_root=attrs.get("stack_root"),
             source_root=attrs.get("source_root"),
         )
@@ -120,7 +123,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             )
         return attrs
 
-    def validate_repository_id(self, repository_id):
+    def validate_repository_id(self, repository_id: int) -> int:
         # validate repo exists on this org
         repo_query = Repository.objects.filter(
             id=repository_id, organization_id=self.organization.id
@@ -133,14 +136,14 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
 
-    def validate_project_id(self, project_id):
+    def validate_project_id(self, project_id: int) -> int:
         # validate project exists on this org
         project_query = Project.objects.filter(id=project_id, organization_id=self.organization.id)
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
 
-    def validate_default_branch(self, default_branch):
+    def validate_default_branch(self, default_branch: str | None) -> str | None:
         # Get the integration to check if it's Perforce
         integration = integration_service.get_integration(
             integration_id=self.org_integration.integration_id,
@@ -158,7 +161,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
         return default_branch
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> RepositoryProjectPathConfig:
         with transaction.atomic(using=router.db_for_write(RepositoryProjectPathConfig)):
             project_repo, _ = ProjectRepository.objects.get_or_create_with_source(
                 project_id=validated_data.pop("project_id"),
@@ -173,7 +176,9 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
                 **validated_data,
             )
 
-    def update(self, instance, validated_data):
+    def update(
+        self, instance: RepositoryProjectPathConfig, validated_data: dict[str, Any]
+    ) -> RepositoryProjectPathConfig:
         if "id" in validated_data:
             validated_data.pop("id")
         if self.instance:
@@ -191,7 +196,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
                 for key, value in validated_data.items():
                     setattr(self.instance, key, value)
                 self.instance.save()
-        return self.instance
+        return cast(RepositoryProjectPathConfig, self.instance)
 
 
 class CreateOrganizationCodeMappingRequestSerializer(RepositoryProjectPathConfigSerializer):
@@ -204,15 +209,17 @@ class CreateOrganizationCodeMappingRequestSerializer(RepositoryProjectPathConfig
 
 
 class OrganizationIntegrationMixin:
-    def get_organization_integration(self, organization, integration_id):
+    def get_organization_integration(
+        self, organization: Organization, integration_id: object
+    ) -> RpcOrganizationIntegration:
         org_integration = integration_service.get_organization_integration(
-            integration_id=integration_id, organization_id=organization.id
+            integration_id=cast(int, integration_id), organization_id=organization.id
         )
         if not org_integration:
             raise Http404
         return org_integration
 
-    def get_project(self, organization, project_id):
+    def get_project(self, organization: Organization, project_id: int | str) -> Project:
         try:
             return Project.objects.get(organization=organization, id=project_id)
 
@@ -228,6 +235,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     @extend_schema(

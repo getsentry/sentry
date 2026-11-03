@@ -1,8 +1,9 @@
+import type * as React from 'react';
 import {IconCopy} from '@sentry/icons/copy';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-
-import {useClipboardFeedback} from './clipboardFeedbackContext';
+import {toast} from '@sentry/scraps/toast';
+import {useTranslation} from '@sentry/scraps/translation';
 
 export interface CopyToClipboardButtonProps extends Omit<
   Extract<ButtonProps, {'aria-label': string}>,
@@ -10,8 +11,12 @@ export interface CopyToClipboardButtonProps extends Omit<
 > {
   text: string;
   children?: never;
+  /** Custom failure feedback. Pass false to suppress the toast. */
+  errorMessage?: React.ReactNode;
   onCopy?: (copiedText: string) => void;
   onError?: (error: unknown) => void;
+  /** Custom success feedback. Pass false to suppress the toast. */
+  successMessage?: React.ReactNode;
 }
 
 export function CopyToClipboardButton({
@@ -20,19 +25,27 @@ export function CopyToClipboardButton({
   onClick,
   text,
   icon,
+  errorMessage,
+  successMessage,
   ...props
 }: CopyToClipboardButtonProps) {
-  const feedback = useClipboardFeedback();
+  const {t} = useTranslation();
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
     } catch (error) {
-      feedback.onError?.(error);
+      const message = errorMessage ?? t('Error copying to clipboard');
+      if (message) {
+        toast.error(message);
+      }
       onError?.(error);
       return;
     }
-    feedback.onCopy?.(text);
+    const message = successMessage ?? t('Copied to clipboard');
+    if (message) {
+      toast.success(message);
+    }
     onCopy?.(text);
   }
 

@@ -2,8 +2,12 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class ProfileChunkAttachmentSerializerResponse(TypedDict):
@@ -21,7 +25,7 @@ class ProfileChunkAttachmentSerializer(Serializer[ProfileChunkAttachmentSerializ
         self,
         obj: ProfileChunkAttachment,
         attrs: Mapping[str, Any],
-        user: Any,
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ProfileChunkAttachmentSerializerResponse:
         return {

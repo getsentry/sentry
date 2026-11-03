@@ -52,7 +52,7 @@ class ApiAuthorization(Model, HasApiScopes):
     __repr__ = sane_repr("user_id", "application_id")
 
     def get_relocation_scope(self) -> RelocationScope:
-        if self.application_id is not None:
+        if getattr(self, "application_id", None) is not None:
             # TODO(getsentry/team-ospo#188): this should be extension scope once that gets added.
             return RelocationScope.Global
 

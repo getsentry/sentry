@@ -1,13 +1,16 @@
 import datetime
+from collections.abc import Mapping
 from datetime import timezone
 from functools import cached_property
 from time import time
+from typing import cast
 
 import responses
 
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -21,7 +24,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         self.vsts_external_id = "654321"
 
     @cached_property
-    def provider(self):
+    def provider(self) -> VstsRepositoryProvider:
         return VstsRepositoryProvider("integrations:vsts")
 
     @responses.activate
@@ -101,9 +104,12 @@ class VisualStudioRepositoryProviderTest(TestCase):
             "project": "MyFirstProject",
             "installation": integration.id,
         }
-        data = self.provider.build_repository_config(organization, data)
+        repository_config = self.provider.build_repository_config(
+            serialize_rpc_organization(organization, include_projects=False, include_teams=False),
+            data,
+        )
 
-        assert data == {
+        assert repository_config == {
             "name": "MyFirstProject",
             "external_id": self.vsts_external_id,
             "url": "https://mbittker.visualstudio.com/_git/MyFirstProject/",
@@ -184,7 +190,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().tearDown()
         responses.reset()
 
-    def add_create_repository_responses(self, repository_config):
+    def add_create_repository_responses(self, repository_config: Mapping[str, object]) -> None:
         responses.add(
             responses.GET,
             "https://visualstudio.com/_apis/git/repositories/123",
@@ -192,18 +198,21 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def assert_repository(self, repository_config, organization_id=None):
+    def assert_repository(
+        self, repository_config: Mapping[str, object], organization_id: int | None = None
+    ) -> None:
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
             external_id=repository_config["id"],
         )
         assert repo.name == repository_config["name"]
-        assert repo.url == repository_config["_links"]["web"]["href"]
+        links = cast(Mapping[str, Mapping[str, object]], repository_config["_links"])
+        assert repo.url == links["web"]["href"]
         assert repo.integration_id == self.integration.id
         assert repo.config == {
             "instance": self.base_url,
-            "project": repository_config["project"]["name"],
+            "project": cast(Mapping[str, object], repository_config["project"])["name"],
             "name": repository_config["name"],
         }
 

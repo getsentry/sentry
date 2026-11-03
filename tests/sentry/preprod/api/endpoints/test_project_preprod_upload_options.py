@@ -21,7 +21,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
-    def test_returns_upload_options(self, mock_get_session) -> None:
+    def test_returns_upload_options(self, mock_get_session: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session
@@ -44,7 +44,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
-    def test_auto_returns_preprod_snapshots(self, mock_get_session) -> None:
+    def test_auto_returns_preprod_snapshots(self, mock_get_session: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session
@@ -61,7 +61,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
-    def test_objectstore_url_uses_region_endpoint(self, mock_get_session) -> None:
+    def test_objectstore_url_uses_region_endpoint(self, mock_get_session: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session

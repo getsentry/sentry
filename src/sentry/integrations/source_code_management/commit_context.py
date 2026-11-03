@@ -528,7 +528,8 @@ class PRCommentWorkflow(ABC):
                 .set_limit(5)
             ),
         )
-        return raw_snql_query(request, referrer=self.referrer.value)["data"]
+        data = raw_snql_query(request, referrer=self.referrer.value)["data"]
+        return data
 
     def _get_top_5_issues_by_count_eap(
         self, issue_ids: list[int], project: Project

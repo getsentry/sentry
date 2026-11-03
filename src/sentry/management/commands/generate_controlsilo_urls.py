@@ -3,13 +3,14 @@ from __future__ import annotations
 import functools
 import importlib
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.exceptions import ViewDoesNotExist
 from django.core.management import CommandError
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
 from django.urls import URLPattern, URLResolver
 
 from sentry.silo.base import SiloMode
@@ -25,7 +26,7 @@ IGNORED_PATTERN_NAMES = {
 
 @dataclass
 class PatternInfo:
-    callable: Callable
+    callable: Callable[..., object]
     pattern: str
     name: str | None
 
@@ -34,7 +35,7 @@ class PatternInfo:
         return self.name or ""
 
 
-def describe_pattern(pattern):
+def describe_pattern(pattern: Any) -> str:
     return str(pattern.pattern)
 
 
@@ -61,7 +62,7 @@ def simplify_regex(pattern: str) -> str:
 class Command(BaseCommand):
     help = "Generate a list of URL patterns served by control silo endpoints"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--format",
             choices=["text", "js"],
@@ -83,9 +84,9 @@ class Command(BaseCommand):
             help="The settings attribute with URL configuration.",
         )
 
-    def handle(self, **options):
+    def handle(self, **options: object) -> None:
         try:
-            urlconf = importlib.import_module(getattr(settings, options["urlconf"]))
+            urlconf = importlib.import_module(getattr(settings, cast(str, options["urlconf"])))
         except ImportError as e:
             self.stdout.write(f"Failed to load URL configuration {e}")
             raise CommandError("Could not load URL configuration")
@@ -141,13 +142,13 @@ class Command(BaseCommand):
                 simple_pattern = simplify_regex(info.pattern)
                 url_patterns.append(simple_pattern)
 
-        contents = self.render(url_patterns, options["format"])
+        contents = self.render(url_patterns, cast(str, options["format"]))
 
         if not options["output"]:
             self.stdout.write(contents)
         else:
             self.stdout.write(f"Writing {options['output']} file..")
-            with open(options["output"], "w") as fh:
+            with open(cast(str, options["output"]), "w") as fh:
                 fh.write(contents)
             self.stdout.write("All done")
 
@@ -168,7 +169,10 @@ export const controlsiloUrlPatterns: RegExp[] = [
         raise TypeError(f"Invalid format chosen {format}")
 
     def extract_views_from_urlpatterns(
-        self, urlpatterns, base: str = "", namespace: str | None = None
+        self,
+        urlpatterns: Iterable[Any],
+        base: str = "",
+        namespace: str | None = None,
     ) -> list[PatternInfo]:
         # Inspired by
         # https://github.com/django-extensions/django-extensions/blob/main/django_extensions/management/commands/show_urls.py

@@ -62,10 +62,11 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (DiscoverSavedQueryPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has("organizations:discover-query", organization, actor=request.user)
 
     @extend_schema(
@@ -195,7 +196,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 status=200,
             )
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[DiscoverSavedQuery]:
             return list(queryset[offset : offset + limit])
 
         return self.paginate(
@@ -219,7 +220,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         examples=DiscoverExamples.DISCOVER_SAVED_QUERY_POST_RESPONSE,
     )
     def post(
-        self, request: Request, organization
+        self, request: Request, organization: Organization
     ) -> Response[DiscoverSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Create a new saved query for the given organization.

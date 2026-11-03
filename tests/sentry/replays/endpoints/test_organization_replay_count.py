@@ -108,6 +108,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_c.group is not None
         query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -184,6 +186,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_c.group is not None
         query: dict[str, Any] = {
             "query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]",
             "returnIds": True,
@@ -340,6 +344,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {
             "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
             "data_source": data_source,
@@ -420,6 +426,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -462,6 +470,8 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -628,6 +638,7 @@ class OrganizationReplayCountEndpointTest(
             },
             project_id=self.project.id,
         )
+        assert event_a.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}]"}
 
         with self.feature(self.features):
@@ -696,6 +707,8 @@ class OrganizationReplayCountEndpointTest(
         )
 
         # IDs from both orgs are passed to the endpoint.
+        assert event_a.group is not None
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
@@ -747,6 +760,7 @@ class OrganizationReplayCountEndpointTest(
         )
 
         self.login_as(user=restricted_user)
+        assert event_b.group is not None
         query = {"query": f"issue.id:[{event_b.group.id}]"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")

@@ -40,7 +40,7 @@ class _CommentScmStub:
     def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
-def _run_state(*, repo_pr_states=None) -> SeerRunState:
+def _run_state(*, repo_pr_states: dict[str, RepoPRState] | None = None) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=[],
@@ -50,7 +50,7 @@ def _run_state(*, repo_pr_states=None) -> SeerRunState:
     )
 
 
-def _check_suite_event() -> dict:
+def _check_suite_event() -> dict[str, Any]:
     return {
         "check_suite": {
             "id": 1,
@@ -257,7 +257,7 @@ class StopCommandEndToEndTest(TestCase):
         )
         self.group = self.create_group(project=self.project)
 
-    def _event(self, body: str) -> dict:
+    def _event(self, body: str) -> dict[str, Any]:
         return {
             "action": "created",
             "comment": {

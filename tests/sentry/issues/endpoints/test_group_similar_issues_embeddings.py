@@ -85,8 +85,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "platform": "python",
         }
         self.event = self.store_event(data=self.base_error_trace, project_id=self.project)
+        assert self.event.group is not None
         self.group = self.event.group
-        assert self.group
         self.path = f"/api/0/organizations/{self.org.slug}/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_event = self.store_event(
             data={"message": "Dogs are great!"}, project_id=self.project
@@ -113,6 +113,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 )
             )
         return response
+
+    def get_latest_event_id(self) -> str:
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        return latest_event.event_id
 
     def test_get_formatted_results(self) -> None:
         event_from_second_similar_group = save_new_event(
@@ -239,7 +244,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         expected_seer_request_params = {
             "threshold": 0.01,
-            "event_id": self.group.get_latest_event().event_id,
+            "event_id": self.get_latest_event_id(),
             "hash": self.event.get_primary_hash(),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -411,7 +416,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "Seer similar issues response entry missing key 'parent_hash'",
             extra={
                 "request_params": {
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -531,7 +536,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         Test that these groups are not returned.
         """
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert not existing_grouphash.group_id
 
         # Create metadata for the grouphash so it has a creation date
         GroupHashMetadata.objects.get_or_create(grouphash=existing_grouphash)
@@ -707,7 +712,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -742,7 +747,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
@@ -780,7 +785,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=orjson.dumps(
                 {
                     "threshold": 0.01,
-                    "event_id": self.group.get_latest_event().event_id,
+                    "event_id": self.get_latest_event_id(),
                     "hash": self.event.get_primary_hash(),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,

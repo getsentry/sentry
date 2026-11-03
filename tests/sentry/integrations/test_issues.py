@@ -577,8 +577,8 @@ class IssueSyncIntegrationWebhookTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.analytics.record")
     def test_status_sync_inbound_resolve_webhook_and_sends_to_sentry_app(
-        self, mock_record, mock_safe_urlopen
-    ):
+        self, mock_record: MagicMock, mock_safe_urlopen: MagicMock
+    ) -> None:
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             assert isinstance(self.installation, IssueSyncIntegrationBase)
@@ -643,6 +643,7 @@ class IssueDefaultTest(TestCase):
             data={"message": "test error", "level": "error"},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.group = event.group
 
         self.group.status = GroupStatus.RESOLVED
@@ -790,6 +791,7 @@ class IssueDefaultTest(TestCase):
         desc_field = next(f for f in config if f["name"] == "description")
 
         assert title_field["default"] == "LLM Title"
+        assert isinstance(desc_field["default"], str)
         assert desc_field["default"].startswith("**")
         assert "LLM Description" in desc_field["default"]
 
@@ -800,14 +802,18 @@ class IssueDefaultTest(TestCase):
         config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
 
     @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_feature_flag_disabled_skips_ai(self, mock_request: MagicMock) -> None:
         config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
         mock_request.assert_not_called()
 
     @patch("sentry.integrations.utils.external_issues.run_oneshot")
@@ -818,7 +824,9 @@ class IssueDefaultTest(TestCase):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
         mock_request.assert_not_called()
 
     @patch("sentry.integrations.utils.external_issues.run_oneshot")
@@ -829,4 +837,6 @@ class IssueDefaultTest(TestCase):
             config = self.installation.get_create_issue_config(self.group, self.user)
 
         title_field = next(f for f in config if f["name"] == "title")
-        assert title_field["default"] == self.group.get_latest_event().title
+        latest_event = self.group.get_latest_event()
+        assert latest_event is not None
+        assert title_field["default"] == latest_event.title
