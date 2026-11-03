@@ -58,10 +58,6 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-/**
- * Total score formulas. They share their spelling with the spans dataset and
- * resolve their metrics on the backend, so they don't carry a metric tuple.
- */
 export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
 export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
 

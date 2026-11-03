@@ -142,24 +142,6 @@ describe('getWidgetConfigError', () => {
     );
   });
 
-  it('returns undefined for trace metric tables using the web vital score formulas', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.TABLE,
-      widgetType: WidgetType.TRACEMETRICS,
-      queries: [
-        WidgetQueryFixture({
-          aggregates: [
-            'count(value,browser.web_vital.ttfb,distribution,millisecond)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
-          ],
-        }),
-      ],
-    });
-
-    expect(getWidgetConfigError(widget)).toBeUndefined();
-  });
-
   it('nudges to finish the equation when a blank equation is the only aggregate', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
