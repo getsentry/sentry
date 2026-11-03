@@ -216,7 +216,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
 VisibleWorkflowType = Literal[Workflow.Type.ALERT]
 
-VISIBLE_WORKFLOW_TYPES = frozenset(get_args(VisibleWorkflowType))
+VISIBLE_WORKFLOW_TYPES: frozenset[VisibleWorkflowType] = frozenset(get_args(VisibleWorkflowType))
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:
