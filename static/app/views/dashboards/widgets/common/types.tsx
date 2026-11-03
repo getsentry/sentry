@@ -51,10 +51,7 @@ export type TimeSeriesItem = {
    */
   timestamp: number;
   value: number | null;
-  comparisonFilled?: boolean;
-  comparisonSmoothed?: boolean;
   confidence?: Confidence;
-  filled?: boolean;
   /**
    * Indicates that the data point only contains partial data. The frontend uses this information when plotting timeseries, to indicate to the user that some of the data is not reliable. A reason may be attached.
    */
@@ -68,7 +65,6 @@ export type TimeSeriesItem = {
    * Indicates the sampling rate that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
    */
   sampleRate?: number | null;
-  smoothed?: boolean;
 };
 
 /**

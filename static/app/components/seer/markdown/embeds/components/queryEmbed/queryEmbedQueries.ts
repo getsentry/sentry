@@ -48,14 +48,14 @@ export function useQueryEmbedEventsTable({
  * query themselves — whether the chart splits into a series per group is the
  * one thing that genuinely differs between datasets.
  */
-export function useQueryEmbedEventsStats(query: Query) {
+export function useQueryEmbedEventsStats(query: Query, enabled = true) {
   const organization = useOrganization();
 
   return useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
-        path: {organizationIdOrSlug: organization.slug},
+        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
         query,
         staleTime: STALE_TIME,
       }
