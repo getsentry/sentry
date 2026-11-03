@@ -642,18 +642,17 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         if not Environment.is_valid_name(environment_name):
             return None
 
-        environment = Environment.get_cached(project.organization_id, environment_name)
-        if environment is None:
-            return None
-
         try:
+            environment = Environment.get_for_organization_id(
+                project.organization_id, environment_name
+            )
             return self.select_related("monitor").get(
                 monitor__organization_id=project.organization_id,
                 monitor__project_id=project.id,
                 monitor__slug=monitor_slug,
                 environment_id=environment.id,
             )
-        except MonitorEnvironment.DoesNotExist:
+        except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
             return None
 
     def ensure_environment(
