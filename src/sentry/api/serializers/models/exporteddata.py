@@ -67,6 +67,7 @@ class ExportedDataSerializer(Serializer):
         return {
             "id": obj.id,
             "user": attrs.get("user"),
+            "organizationId": obj.organization_id,
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,

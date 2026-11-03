@@ -60,7 +60,7 @@ class FlagLogDetailsResponse(TypedDict):
 class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
         return {
-            "id": obj.id,
+            "id": obj.id,  # the audit log row
             "action": ActionEnum.to_string(obj.action),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,

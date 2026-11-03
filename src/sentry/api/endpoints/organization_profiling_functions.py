@@ -62,7 +62,7 @@ class TrendTypeField(serializers.Field):
 class FunctionTrendsSerializer(serializers.Serializer):
     function = serializers.CharField(max_length=10)
     trend = TrendTypeField()
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(required=False, help_text="A search query.")
     threshold = serializers.IntegerField(min_value=0, max_value=1000, default=16, required=False)
 
 
