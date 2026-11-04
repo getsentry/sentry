@@ -343,9 +343,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
                   <SeerPanelActions
                     autofixState={autofixPanel.runState}
-                    enableBashMode={autofixPanel.enableBashMode}
                     onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                    onEnableBashModeChange={autofixPanel.setEnableBashMode}
                     onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
                     onReset={autofixPanel.handleRestart}
                   />
