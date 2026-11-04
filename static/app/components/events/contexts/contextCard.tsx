@@ -4,14 +4,6 @@ import startCase from 'lodash/startCase';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import type {ContextValue} from 'sentry/components/events/contexts';
-import {
-  getContextIcon,
-  getContextMeta,
-  getContextTitle,
-  getContextType,
-  getFormattedContextData,
-} from 'sentry/components/events/contexts/utils';
 import {
   KeyValueTableCard,
   KeyValueTableDataRow,
@@ -23,6 +15,15 @@ import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {ContextValue} from './contextItems';
+import {getContextMeta} from './dataUtils';
+import {
+  getContextIcon,
+  getContextTitle,
+  getContextType,
+  getFormattedContextData,
+} from './utils';
 
 interface ContextCardProps {
   alias: string;

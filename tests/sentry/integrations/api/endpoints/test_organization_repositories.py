@@ -382,7 +382,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
             name="getsentry/sentry",
             status=0,
             external_id="my_external_id",
-            integration_id="2",
+            integration_id=2,
             provider="integrations:example",
             url="https://github.com/getsentry/sentry",
         )

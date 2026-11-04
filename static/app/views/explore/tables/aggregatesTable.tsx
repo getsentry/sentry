@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -41,7 +42,7 @@ import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
 import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTable';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 interface AggregatesTableProps {
@@ -175,7 +176,7 @@ export function AggregatesTable({
         {result.isPending ? (
           <SimpleTable.Loading />
         ) : result.isError ? (
-          <SimpleTable.Error />
+          <SimpleTable.Error message={getQueryErrorMessage(result.error)} />
         ) : result.isFetched && result.data?.length ? (
           result.data?.map((row, i) => {
             const menuItems: MenuItemProps[] = [

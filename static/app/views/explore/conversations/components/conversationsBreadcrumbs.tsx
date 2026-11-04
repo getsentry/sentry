@@ -9,17 +9,13 @@ import {
   EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const COPY_ID_LABEL = t('Copy conversation ID');
 
 interface ConversationsBreadcrumbsProps {
   conversationId: string;
-}
-
-/** UUIDs are shown truncated, so the full value needs a tooltip to stay readable. */
-function getDisplayId(conversationId: string) {
-  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 }
 
 export function ConversationsBreadcrumbs({
@@ -47,7 +43,8 @@ export function ConversationsBreadcrumbs({
       name="breadcrumbs"
       title={{
         type: 'page-title',
-        label: t('Conversation %s', getDisplayId(conversationId)),
+        label: t('Conversation %s', getConversationDisplayId(conversationId)),
+        // UUIDs are shown truncated, so the full value needs a tooltip to stay readable.
         labelTooltip: isUUID(conversationId) ? conversationId : undefined,
         trailingActions: {
           type: 'copy',

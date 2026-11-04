@@ -10,8 +10,8 @@ from sentry.app import env
 from sentry.utils.http import absolute_uri, is_using_customer_domain
 
 _path_patterns: list[tuple[re.Pattern[str], str]] = [
-    # /organizations/slug/section, but not /organizations/new
-    (re.compile(r"\/?organizations\/(?!new)[^/]+\/(.*)"), r"/\1"),
+    # /organizations/slug/section, but not /organizations/new/ (slugs like new-moray still match)
+    (re.compile(r"\/?organizations\/(?!new\/)[^/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
         re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|seer\/|teams)[^/]+\/?$"),
@@ -59,7 +59,8 @@ def _generate_organization_hostname(org_slug: str) -> str:
 def generate_organization_url(org_slug: str) -> str:
     org_url_template: str | None = settings.SENTRY_ORGANIZATION_URL_TEMPLATE
     if not org_url_template:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        return url_prefix
     return org_url_template.replace("{hostname}", _generate_organization_hostname(org_slug))
 
 

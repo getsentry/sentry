@@ -20,6 +20,11 @@ SCHEMA_VERSION = 1
 MAX_EVENT_NOTE_LENGTH = 256
 
 
+class RunOrigin(StrEnum):
+    ONBOARDING = "onboarding"
+    PROJECT_CREATION = "project_creation"
+
+
 class Stage(StrEnum):
     """Stages that can be progressed during agentic onboarding."""
 
@@ -135,6 +140,7 @@ class PersistedOnboardingRun(BaseModel):
     expires_at: datetime
     sequence: StrictInt
     stages: tuple[PersistedStageState, ...]
+    origin: RunOrigin | None = None
     run_status: StrictStr = RunStatus.ACTIVE
     schema_version: StrictInt
 
@@ -393,6 +399,9 @@ class OnboardingRun:
     stages: tuple[StageState[Any], ...]
     """State for every available stage, in canonical STAGE_DEFINITIONS order."""
 
+    origin: RunOrigin | None = None
+    """Entry flow that registered this run."""
+
     run_status: RunStatus = RunStatus.ACTIVE
     """Lifecycle state of the complete onboarding run."""
 
@@ -454,6 +463,7 @@ class OnboardingRun:
                 for stage in expected_stages
             )
             return cls(
+                origin=persisted.origin,
                 run_id=persisted.run_id,
                 channel_id=persisted.channel_id,
                 token_hash=persisted.token_hash,
@@ -475,6 +485,7 @@ class OnboardingRun:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "origin": self.origin,
             "run_id": self.run_id,
             "channel_id": self.channel_id,
             "token_hash": self.token_hash,

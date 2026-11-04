@@ -167,7 +167,7 @@ export function ProjectCard({
           <Placeholder height="150px" />
         )}
       </ChartContainer>
-      <CardFooter>
+      <Grid gap="md" columns="1fr 1fr">
         <ScoreCardWrapper>
           {stats ? (
             hasHealthData ? (
@@ -201,7 +201,7 @@ export function ProjectCard({
             <FooterPlaceholder />
           )}
         </div>
-      </CardFooter>
+      </Grid>
     </CardPanel>
   );
 }
@@ -213,12 +213,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardFooter = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`

@@ -1,18 +1,23 @@
-import styled from '@emotion/styled';
-
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
 
 type InvestigationSummaryCardProps = {
   summary: string | null;
   summaryDescription: string | null;
   className?: string;
+  id?: string;
 };
 
+/**
+ * The investigation's conclusion: the summary as the first sentence, followed
+ * by the description, in one paragraph.
+ */
 export function InvestigationSummaryCard({
   className,
+  id,
   summary,
   summaryDescription,
 }: InvestigationSummaryCardProps) {
@@ -20,23 +25,28 @@ export function InvestigationSummaryCard({
     return null;
   }
 
+  // Seer writes the summary without a closing period and the description as
+  // separate lines.
+  const paragraph = [summary, ...summaryDescription.split('\n')]
+    .map(sentence => sentence.trim())
+    .filter(Boolean)
+    .map(ensureSentenceEnd)
+    .join(' ');
+
   return (
-    <Stack className={className} gap="md" data-test-id="investigation-summary">
-      <Text size="md" variant="muted" bold>
-        {t('Investigation conclusion')}
+    <Stack
+      as="section"
+      id={id}
+      className={className}
+      gap="lg"
+      data-test-id="investigation-summary"
+    >
+      <Heading as="h2" size="lg">
+        {t('Summary')}
+      </Heading>
+      <Text as="p" size="md" density="comfortable" tabular>
+        {paragraph}
       </Text>
-      <Stack gap="xs">
-        <SummaryTitle as="h2" size="xl" tabular>
-          {summary}
-        </SummaryTitle>
-        <Text size="md" density="comfortable" tabular>
-          {summaryDescription}
-        </Text>
-      </Stack>
     </Stack>
   );
 }
-
-const SummaryTitle = styled(Heading)`
-  color: ${p => p.theme.tokens.content.headings};
-`;

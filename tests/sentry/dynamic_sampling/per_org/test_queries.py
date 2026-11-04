@@ -24,6 +24,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     run_eap_spans_table_query_in_chunks,
 )
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -503,7 +504,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         low_volume_project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
-        def segment(originating_project, root_project):
+        def segment(originating_project: Project, root_project: Project) -> dict[str, Any]:
             return self.create_span(
                 {
                     "is_segment": True,
@@ -589,7 +590,9 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         other_project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
-        def segment(transaction, root_project_id, project, offset):
+        def segment(
+            transaction: str, root_project_id: int, project: Project, offset: int
+        ) -> dict[str, Any]:
             return self.create_span(
                 {
                     "is_segment": True,
@@ -643,7 +646,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
-        def segment(transaction, offset):
+        def segment(transaction: str, offset: int) -> dict[str, Any]:
             return self.create_span(
                 {
                     "is_segment": True,
@@ -736,7 +739,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         quiet_project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
-        def segment(transaction, project, offset):
+        def segment(transaction: str, project: Project, offset: int) -> dict[str, Any]:
             return self.create_span(
                 {
                     "is_segment": True,

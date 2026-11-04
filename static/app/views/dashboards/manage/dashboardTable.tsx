@@ -13,6 +13,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -193,7 +194,7 @@ function DashboardRowActions({
         return (
           <DropdownMenu
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.IconButton
                 {...triggerProps}
                 aria-label={t('Dashboard actions')}
                 size="sm"

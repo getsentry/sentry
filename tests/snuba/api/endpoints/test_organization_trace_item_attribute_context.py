@@ -1,7 +1,9 @@
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.explore.models import (
     TraceItemAttributeContext,
@@ -39,7 +41,13 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             tags=tags,
         )
 
-    def do_request(self, key, data, query=None, features=None):
+    def do_request(
+        self,
+        key: str,
+        data: dict[str, Any],
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = self.feature_flags
         if query is None:
@@ -49,12 +57,13 @@ class OrganizationTraceItemAttributeContextEndpointTest(
             kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
         )
         with self.feature(features):
-            return self.client.put(
+            response: Response[Any] = self.client.put(
                 url,
                 data,
                 format="json",
                 QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
+            return response
 
     def test_creates_context(self) -> None:
         self.store_attribute(my_custom_attr="value")

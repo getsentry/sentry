@@ -1,4 +1,4 @@
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.conf import settings
 from django.test import override_settings
@@ -48,11 +48,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_opened(
         self,
-        mock_metrics_distribution,
-        mock_metrics_incr,
-        mock_analytics_record,
-        mock_get_agent_state_from_pr_id,
-    ):
+        mock_metrics_distribution: MagicMock,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
         previous_date_updated = issue_data.date_updated
@@ -120,8 +120,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_opened_sentry_app(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
@@ -176,11 +179,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_closed(
         self,
-        mock_metrics_distribution,
-        mock_metrics_incr,
-        mock_analytics_record,
-        mock_get_agent_state_from_pr_id,
-    ):
+        mock_metrics_distribution: MagicMock,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
@@ -250,11 +253,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.metrics.distribution")
     def test_merged(
         self,
-        mock_metrics_distribution,
-        mock_metrics_incr,
-        mock_analytics_record,
-        mock_get_agent_state_from_pr_id,
-    ):
+        mock_metrics_distribution: MagicMock,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         issue_data = self.create_autofix_issue_data(group)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
@@ -319,8 +322,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_merges_with_existing_seer_created_attribution(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         """The seer.pr_created flow may have already written a SEER_DATA/SENTRY_APP
         row (via ``attribute_seer_created_pull_requests``) for a different group_id
         than what the live RPC lookup resolves here — the two writes must merge
@@ -382,8 +388,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_skips_attribution_when_pr_number_missing(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
@@ -435,11 +444,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_attribution_failure_does_not_block_analytics(
         self,
-        mock_metrics_incr,
-        mock_analytics_record,
-        mock_get_agent_state_from_pr_id,
-        mock_record_attribution_signal,
-    ):
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+        mock_record_attribution_signal: MagicMock,
+    ) -> None:
         group = self.create_group(project=self.project)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
@@ -491,8 +500,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_run(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         mock_get_agent_state_from_pr_id.return_value = None
         handle_github_pr_webhook_for_autofix(
             self.organization,
@@ -517,13 +529,43 @@ class AutofixPrWebhookTest(APITestCase):
         assert_not_analytics_event(mock_analytics_record, AiAutofixPrOpenedEvent)
         assert not PullRequestAttribution.objects.exists()
 
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @patch("sentry.seer.autofix.webhooks.sentry_sdk.capture_exception")
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    def test_run_without_group_is_skipped(
+        self,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1, blocks=[], status="completed", updated_at="2025-01-15T10:30:00Z", metadata={}
+        )
+
+        with self.feature("organizations:pr-metrics"):
+            handle_github_pr_webhook_for_autofix(
+                self.organization,
+                "opened",
+                {"id": 1, "number": 42, "merged": False, "created_at": "2025-01-15T10:30:00Z"},
+                {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
+                self.repo.id,
+            )
+
+        mock_capture_exception.assert_not_called()
+        mock_analytics_record.assert_not_called()
+        assert not PullRequest.objects.exists()
+
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID=None)
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_settings_github_app_id_set(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         mock_get_agent_state_from_pr_id.return_value = None
         handle_github_pr_webhook_for_autofix(
             self.organization,
@@ -549,8 +591,11 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_different_github_app(
-        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
-    ):
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_analytics_record: MagicMock,
+        mock_get_agent_state_from_pr_id: MagicMock,
+    ) -> None:
         mock_get_agent_state_from_pr_id.return_value = None
         handle_github_pr_webhook_for_autofix(
             self.organization,

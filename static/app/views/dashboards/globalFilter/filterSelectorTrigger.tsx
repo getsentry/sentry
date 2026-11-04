@@ -9,7 +9,7 @@ import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/util
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';

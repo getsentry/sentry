@@ -23,13 +23,13 @@ export function SearchButton(props: Pick<ButtonProps, 'className'>) {
     <Button
       {...props}
       variant="secondary"
-      icon={<IconSearch size="xs" />}
+      icon={<IconSearch />}
       aria-label={t('Command Palette')}
       tooltipProps={{
         title: (
           <Flex align="center" gap="sm">
             {t('Command Palette')}
-            <Hotkey value="command+k" />
+            <Hotkey value="Mod+K" />
           </Flex>
         ),
       }}

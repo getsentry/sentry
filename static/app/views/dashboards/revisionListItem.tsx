@@ -6,12 +6,12 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';

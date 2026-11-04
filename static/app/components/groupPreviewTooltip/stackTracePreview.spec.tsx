@@ -10,6 +10,10 @@ import {StackTracePreview} from './stackTracePreview';
 beforeEach(() => {
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/sentry-app-components/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/123/',
   });
 });

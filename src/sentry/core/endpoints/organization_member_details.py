@@ -4,7 +4,7 @@ from typing import Literal
 
 from django.db import router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -27,11 +27,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
 )
+from sentry.auth.principal import has_user, require_user
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
@@ -47,6 +49,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -85,6 +88,40 @@ Configures the team role of the member. The two roles are:
 """
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "email": "Validated as it is for an invite, but an update never changes a member's email.",
+        "role": "The deprecated spelling of `orgRole`, still read when `orgRole` is absent.",
+        "teams": (
+            "The deprecated slug-only form of `teamRoles`, still read when `teamRoles` is absent."
+        ),
+        "sendInvite": "Read only when adding a member; an update ignores it.",
+        "reinvite": (
+            "Resends a pending invitation for Sentry's members page, and cannot be combined "
+            "with a role change."
+        ),
+        "regenerate": (
+            "Reissues the token of an invitation resent with `reinvite`, for Sentry's members page."
+        ),
+    }
+)
+class UpdateOrgMemberRolesSerializer(OrganizationMemberRequestSerializer):
+    # Redeclared for the update's own wording, and without the invite's default role: a partial
+    # update applies no defaults.
+    orgRole = serializers.ChoiceField(
+        help_text="The organization role of the member. The options are:",
+        choices=ROLE_CHOICES,
+        required=False,
+    )
+    teamRoles = serializers.ListField(
+        help_text=_team_roles_description,
+        required=False,
+        allow_null=True,
+        default=list,
+        child=serializers.JSONField(),
+    )
+
+
 @extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
@@ -93,12 +130,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (RelaxedMemberPermission,)
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcUser,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -151,23 +189,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.member_id("The ID of the member to update."),
         ],
-        request=inline_serializer(
-            "UpdateOrgMemberRoles",
-            fields={
-                "orgRole": serializers.ChoiceField(
-                    help_text="The organization role of the member. The options are:",
-                    choices=ROLE_CHOICES,
-                    required=False,
-                ),
-                "teamRoles": serializers.ListField(
-                    help_text=_team_roles_description,
-                    required=False,
-                    allow_null=True,
-                    default=list,
-                    child=serializers.JSONField(),
-                ),
-            },
-        ),
+        request=UpdateOrgMemberRolesSerializer,
         responses={
             200: OrganizationMemberWithRolesSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -200,9 +222,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        request_user = require_user(request)
 
         allowed_roles = get_allowed_org_roles(request, organization)
-        serializer = OrganizationMemberRequestSerializer(
+        serializer = UpdateOrgMemberRolesSerializer(
             data=request.data,
             partial=True,
             context={
@@ -233,7 +256,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # Members can only resend invites
         is_reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
         # Members can only resend invites that they sent
-        is_invite_from_user = member.inviter_id == request.user.id
+        is_invite_from_user = member.inviter_id == request_user.id
 
         if is_member:
             if not (members_can_invite and member.is_pending and is_reinvite_request_only):
@@ -251,7 +274,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
                     email=member.email,
-                    user=request.user,
+                    user=request_user,
                     auth=request.auth,
                 ):
                     metrics.incr(
@@ -273,7 +296,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user.email, auth_provider)
+                member.send_sso_link_email(request_user.email, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
@@ -363,7 +386,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user_id == request.user.id and (assigned_org_role != member.role):
+            if member.user_id == request_user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -482,7 +505,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
-        if request.user.is_authenticated and not is_active_superuser(request):
+        if has_user(request.user) and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization, user_id=request.user.id

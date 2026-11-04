@@ -46,13 +46,17 @@ from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
 from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
+    create_workflow_notification_origin_for_rule,
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -105,6 +109,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             external_id="f3ll0wsh1p",
             metadata={},
         )
+        self.rpc_integration: RpcIntegration = serialize_integration(self.integration)
         self.create_organization_integration(
             organization_id=self.org.id, integration=self.integration
         )
@@ -121,6 +126,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
+        self.origins = [create_workflow_notification_origin_for_rule(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -333,7 +339,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         body = issue_card["body"]
@@ -360,6 +369,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_id_and_rule = footer["columns"][1]["items"][0]
         assert _is_text_block(issue_id_and_rule)
+        assert self.group1.qualified_short_id is not None
         assert self.group1.qualified_short_id in issue_id_and_rule["text"]
         assert "rule1" in issue_id_and_rule["text"]
         assert "+1 other" in issue_id_and_rule["text"]
@@ -421,19 +431,23 @@ class MSTeamsMessageBuilderTest(TestCase):
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
-    def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].data["actions"][0].update(
-            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
+    def test_issue_action_payload_includes_workflow_ids_only(self) -> None:
+        origin = self.origins[0]
+        rule = NotificationOrigin(
+            label=origin.label,
+            environment_id=origin.environment_id,
+            legacy_rule_id=origin.legacy_rule_id,
+            workflow_id=123,
         )
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
-            integration=self.integration,
+            rules=[rule],
+            integration=self.rpc_integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
-        assert payload["rules"] == [self.rules[0].id]
+        assert "rules" not in payload
         assert payload["workflows"] == [123]
 
     def test_issue_description_uses_event(self) -> None:
@@ -442,7 +456,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -454,7 +471,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -463,15 +483,18 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self) -> None:
-        one_rule = self.rules[:1]
+        one_rule = self.origins[:1]
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
+            group=self.group1, event=self.event1, rules=one_rule, integration=self.rpc_integration
         ).build_group_card()
 
         assert _is_column_set_block(issue_card["body"][1])
@@ -487,7 +510,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -503,7 +529,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -518,7 +547,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         body = issue_card["body"]
@@ -562,25 +594,31 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         assert 4 == len(body)
 
         title = body[0]
+        assert _is_text_block(title)
         assert "Notification Title with some\\_value" == title["text"]
 
         group_title = body[1]
+        assert _is_text_block(group_title)
         assert "[My Title]" in group_title["text"]
         assert TextSize.LARGE == group_title["size"]
         assert TextWeight.BOLDER == group_title["weight"]
 
         description = body[2]
+        assert _is_text_block(description)
         assert "Message Description" in description["text"]
         assert TextSize.MEDIUM == description["size"]
 
         footer = body[3]
-        assert 2 == len(footer)
+        assert _is_column_set_block(footer)
+        assert 2 == len(footer["columns"])
 
         logo = footer["columns"][0]["items"][0]
+        assert _is_image_block(logo)
         assert "Image" == logo["type"]
         assert "20px" == logo["height"]
 
         footer_text = footer["columns"][1]["items"][0]
+        assert _is_text_block(footer_text)
         assert "Notification Footer" in footer_text["text"]
         assert TextSize.SMALL == footer_text["size"]
 

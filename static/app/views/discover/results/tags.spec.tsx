@@ -94,7 +94,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}
@@ -115,6 +114,51 @@ describe('Tags', () => {
     );
   });
 
+  it('requests facets with only the query and page filter params', async () => {
+    const facets = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      body: [],
+    });
+    const view = new EventView({
+      fields: [{field: 'title'}, {field: 'count()'}],
+      sorts: [{field: 'count', kind: 'desc'}],
+      query: 'event.type:csp',
+      ...commonQueryConditions,
+    });
+    const location = LocationFixture({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: {cursor: '0:10:0', sort: '-count', field: ['title', 'count()']},
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        totalValues={30}
+        organization={org}
+        location={location}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />,
+      {
+        initialRouterConfig,
+      }
+    );
+
+    expect(await screen.findByText('No tags found')).toBeInTheDocument();
+    expect(facets).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          query: 'event.type:csp',
+          project: ['1'],
+          environment: [],
+          team: ['1'],
+          statsPeriod: '14d',
+        },
+      })
+    );
+  });
+
   it('creates URLs with generateUrl', async () => {
     const view = new EventView({
       fields: [],
@@ -126,7 +170,6 @@ describe('Tags', () => {
     const {router} = render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         organization={org}
         totalValues={30}
         location={defaultLocation}
@@ -164,7 +207,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}
@@ -196,7 +238,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={LocationFixture({
@@ -269,7 +310,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}

@@ -9,12 +9,28 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.monitors.models import MonitorCheckIn
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor, MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializer
+from sentry.monitors.utils import get_monitor_environment_ids
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+CHECKIN_LIST_RATE_LIMITS = RateLimitConfig(
+    limit_overrides={
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=60, window=60, concurrent_limit=3),
+            RateLimitCategory.USER: RateLimit(limit=60, window=60, concurrent_limit=3),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=300, window=60, concurrent_limit=5),
+        }
+    }
+)
 
 
 class MonitorCheckInMixin(BaseEndpointMixin):
-    def get_monitor_checkins(self, request: Request, project, monitor) -> Response:
+    def get_monitor_checkins(
+        self, request: Request, project: Project, monitor: Monitor
+    ) -> Response:
         """
         Retrieve a list of check-ins for a monitor
         """
@@ -22,18 +38,12 @@ class MonitorCheckInMixin(BaseEndpointMixin):
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
 
+        environments = get_environments(request, project.organization)
         queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id,
+            monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             date_added__gte=start,
             date_added__lte=end,
         )
-
-        environments = get_environments(request, project.organization)
-
-        if environments:
-            queryset = queryset.filter(
-                monitor_environment__environment_id__in=[e.id for e in environments]
-            )
 
         expand: list[str] = request.GET.getlist("expand", [])
 

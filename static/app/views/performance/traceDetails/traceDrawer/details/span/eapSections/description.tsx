@@ -4,7 +4,7 @@ import {IconGraph} from '@sentry/icons/graph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -210,7 +210,6 @@ export function SpanDescription({
             size="zero"
             aria-label={t('Copy span URL to clipboard')}
             text={spanURL}
-            tooltipProps={{disabled: true}}
           />
         </Flex>
         {codeFilepath && (
@@ -241,7 +240,6 @@ export function SpanDescription({
           size="zero"
           text={span.name}
           aria-label={t('Copy span name to clipboard')}
-          tooltipProps={{disabled: true}}
         />
       </DescriptionWrapper>
     ) : (
@@ -257,7 +255,6 @@ export function SpanDescription({
               size="zero"
               text={formattedDescription}
               aria-label={t('Copy formatted description to clipboard')}
-              tooltipProps={{disabled: true}}
             />
           </Fragment>
         ) : (
@@ -280,6 +277,8 @@ export function SpanDescription({
         attributes,
         spanId: span.event_id,
         op: span.op,
+        projectId: span.project_id,
+        description: span.description,
       })}
     />
   );

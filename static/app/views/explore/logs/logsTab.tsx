@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -63,6 +64,7 @@ import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBys
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/logsIngestDelay';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -77,7 +79,6 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -225,20 +226,15 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                   trigger={triggerProps => (
                     <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
-                        <Button
+                        <OverlayTrigger.Button
+                          showChevron={false}
                           {...buttonProps}
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
-                          onClick={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
-
-                            triggerProps.onClick?.(e);
-                          }}
                         >
                           {t('Save as')}
-                        </Button>
+                        </OverlayTrigger.Button>
                       )}
                     </Container>
                   )}

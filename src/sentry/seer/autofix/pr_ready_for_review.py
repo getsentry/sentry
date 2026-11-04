@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -18,7 +19,9 @@ def _public_pr_id(pr_id: str | None) -> int | str | None:
     return pr_id
 
 
-def format_pull_requests_payload(state: SeerRunState) -> list[dict]:
+def format_pull_requests_payload(
+    state: SeerRunState,
+) -> list[dict[str, Any]]:
     return [
         {
             "provider": pull_request.provider or "unknown",

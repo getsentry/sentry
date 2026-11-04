@@ -52,6 +52,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="environment_tracking"
         )
+        assert feature_complete is not None
         assert feature_complete.complete
 
     def test_first_event(self) -> None:
@@ -64,6 +65,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="first_event"
         )
+        assert first_event is not None
         assert first_event.complete
 
     def test_javascript(self) -> None:
@@ -71,6 +73,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
+        assert js is not None
         assert js.complete
 
     def test_python(self) -> None:
@@ -81,6 +84,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         python = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="python")
+        assert python is not None
         assert python.complete
 
     def test_node(self) -> None:
@@ -90,6 +94,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         node = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="node")
+        assert node is not None
         assert node.complete
 
     def test_ruby(self) -> None:
@@ -99,6 +104,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         ruby = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="ruby")
+        assert ruby is not None
         assert ruby.complete
 
     def test_java(self) -> None:
@@ -108,6 +114,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         java = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="java")
+        assert java is not None
         assert java.complete
 
     def test_cocoa(self) -> None:
@@ -117,6 +124,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cocoa = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cocoa")
+        assert cocoa is not None
         assert cocoa.complete
 
     def test_objc(self) -> None:
@@ -126,6 +134,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         objc = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="objc")
+        assert objc is not None
         assert objc.complete
 
     def test_php(self) -> None:
@@ -135,6 +144,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         php = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="php")
+        assert php is not None
         assert php.complete
 
     def test_go(self) -> None:
@@ -144,6 +154,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         go = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="go")
+        assert go is not None
         assert go.complete
 
     def test_csharp(self) -> None:
@@ -154,6 +165,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         csharp = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="csharp")
+        assert csharp is not None
         assert csharp.complete
 
     def test_perl(self) -> None:
@@ -163,6 +175,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         perl = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="perl")
+        assert perl is not None
         assert perl.complete
 
     def test_elixir(self) -> None:
@@ -173,6 +186,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         elixir = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="elixir")
+        assert elixir is not None
         assert elixir.complete
 
     def test_cfml(self) -> None:
@@ -182,6 +196,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         cfml = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="cfml")
+        assert cfml is not None
         assert cfml.complete
 
     def test_groovy(self) -> None:
@@ -192,6 +207,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         event_processed.send(project=self.project, event=event, sender=type(self.project))
 
         groovy = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="groovy")
+        assert groovy is not None
         assert groovy.complete
 
     def test_release_tracking(self) -> None:
@@ -358,9 +374,11 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, slug="first_event"
         )
 
+        assert first_event is not None
         assert first_event.complete
 
         js = FeatureAdoption.objects.get_by_slug(organization=self.organization, slug="javascript")
+        assert js is not None
         assert js.complete
 
         full_event = self.store_event(

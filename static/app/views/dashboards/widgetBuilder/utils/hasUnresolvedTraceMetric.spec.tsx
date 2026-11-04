@@ -45,4 +45,20 @@ describe('hasUnresolvedTraceMetric', () => {
 
     expect(hasUnresolvedTraceMetric(widget)).toBe(false);
   });
+
+  it('ignores the web vital score formulas, which resolve their metrics on the backend', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          aggregates: [
+            'count(value,browser.web_vital.ttfb,distribution,millisecond)',
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
+          ],
+        }),
+      ],
+    });
+
+    expect(hasUnresolvedTraceMetric(widget)).toBe(false);
+  });
 });

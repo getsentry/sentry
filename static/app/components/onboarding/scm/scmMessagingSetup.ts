@@ -1,5 +1,5 @@
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
-import type {NotificationSelection} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {NotificationSelection} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 /**
  * The project created by this onboarding session, with the messaging

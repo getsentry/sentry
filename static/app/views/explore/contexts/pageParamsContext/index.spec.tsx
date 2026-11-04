@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
@@ -74,11 +75,15 @@ describe('SpanQueryParamsProvider', () => {
     return <br />;
   }
 
-  function renderTestComponent(defaultPageParams?: any) {
+  function renderTestComponent(
+    defaultPageParams?: any,
+    organization?: Parameters<typeof OrganizationFixture>[0]
+  ) {
     render(
       <Wrapper>
         <Component />
-      </Wrapper>
+      </Wrapper>,
+      {organization: OrganizationFixture(organization)}
     );
 
     act(() =>
@@ -573,6 +578,39 @@ describe('SpanQueryParamsProvider', () => {
         ],
       })
     );
+  });
+
+  it('keeps group bys between charts in place when updating a shared chart', () => {
+    renderTestComponent(
+      {
+        aggregateFields: [
+          {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+          {groupBy: 'span.op'},
+          {yAxes: ['count(span.duration)']},
+        ],
+      },
+      {features: ['explore-multi-aggregate-charts']}
+    );
+
+    act(() =>
+      setVisualizes([
+        {yAxes: ['p50(span.duration)', 'p99(span.duration)'], chartType: ChartType.BAR},
+        {yAxes: ['count(span.duration)']},
+      ])
+    );
+
+    expect(queryParams.aggregateFields).toEqual([
+      new VisualizeFunction('p50(span.duration)', {
+        chartType: ChartType.BAR,
+        chartGroup: expect.any(String),
+      }),
+      new VisualizeFunction('p99(span.duration)', {
+        chartType: ChartType.BAR,
+        chartGroup: expect.any(String),
+      }),
+      {groupBy: 'span.op'},
+      new VisualizeFunction('count(span.duration)'),
+    ]);
   });
 
   it('manages inserting and deleting a column when added/removed', () => {

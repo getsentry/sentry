@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {
   SectionLabel,
   SectionLabelSecondary,

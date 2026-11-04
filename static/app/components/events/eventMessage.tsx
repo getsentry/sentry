@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -24,10 +27,21 @@ export function EventMessage({
   showUnhandled = false,
 }: Props) {
   const showEventLevel = level && eventTypeHasLogLevel(type);
+  const messageContent =
+    typeof message === 'string' ? <AnsiText>{message}</AnsiText> : message;
   const renderedMessage = message ? (
-    <Message>
-      {typeof message === 'string' ? <AnsiText>{message}</AnsiText> : message}
-    </Message>
+    <Tooltip
+      title={
+        <Text as="div" align="left">
+          {messageContent}
+        </Text>
+      }
+      maxWidth={500}
+      showOnlyOnOverflow
+      skipWrapper
+    >
+      <Message>{messageContent}</Message>
+    </Tooltip>
   ) : (
     <NoMessage>({t('No error message')})</NoMessage>
   );

@@ -5,6 +5,7 @@ from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -23,7 +24,7 @@ logger = logging.getLogger("sentry.mailgun")
 
 @control_silo_view
 class MailgunInboundWebhookView(View):
-    def verify(self, api_key, token, timestamp, signature):
+    def verify(self, api_key: str, token: str, timestamp: str, signature: str) -> bool:
         return constant_time_compare(
             signature,
             hmac.new(
@@ -34,7 +35,7 @@ class MailgunInboundWebhookView(View):
         )
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
+    def dispatch(self, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(*args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:

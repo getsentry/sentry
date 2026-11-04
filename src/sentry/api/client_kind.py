@@ -234,9 +234,12 @@ def _record_attribution_span(
         if user_agent is not None:
             span.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
-    # A token's own scopes; otherwise the access resolved for the request. Not every
-    # `request.auth` is a token: HMAC signature authentication sets it to a string.
-    get_token_scopes = getattr(request.auth, "get_scopes", None)
+    # A token's stored (untranslated) scopes; otherwise the access resolved for the
+    # request. Not every `request.auth` is a token: HMAC signature authentication sets
+    # it to a string, and the internal API client can pass a raw token model.
+    get_token_scopes = getattr(request.auth, "get_stored_scopes", None) or getattr(
+        request.auth, "get_scopes", None
+    )
     scopes = get_token_scopes() if get_token_scopes else request.access.scopes
     tags = {ATTRIBUTE_NAMES.HTTP_ROUTE: route, "client_kind": client_kind.value}
     if has_deprecated_scopes(scopes):

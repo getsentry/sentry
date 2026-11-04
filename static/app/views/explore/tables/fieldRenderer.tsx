@@ -11,18 +11,19 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {
+  type CaseInsensitive,
+  useCaseInsensitivity,
+} from 'sentry/components/searchQueryBuilder/hooks';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {nullableValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  getFieldRenderer,
-  nullableValue,
-  renderUrlCellValue,
-} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -51,7 +52,7 @@ import {
   isPartialSpanOrTraceData,
 } from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 interface FieldProps {
@@ -124,6 +125,7 @@ export function MultiQueryFieldRenderer({
       tooltipTitle={tooltipTitle}
       userQuery={userQuery}
       setUserQuery={(query: string) => updateQuerySearch({query})}
+      caseInsensitive={queries[index]?.caseInsensitive === '1' ? true : null}
     />
   );
 }
@@ -131,6 +133,7 @@ export function MultiQueryFieldRenderer({
 interface BaseFieldProps extends FieldProps {
   setUserQuery: (query: string) => void;
   userQuery: string;
+  caseInsensitive?: CaseInsensitive;
 }
 
 function BaseExploreFieldRenderer({
@@ -145,14 +148,72 @@ function BaseExploreFieldRenderer({
   setUserQuery,
   tooltipTitle,
   usePortalOnDropdown,
+  caseInsensitive: queryCaseInsensitive,
 }: BaseFieldProps) {
+  if (!defined(column)) {
+    return nullableValue(null);
+  }
+
+  let rendered: React.ReactNode = (
+    <ExploreFieldValue
+      data={data}
+      meta={meta}
+      unit={unit}
+      column={column}
+      disableTraceLinks={disableTraceLinks}
+      queryCaseInsensitive={queryCaseInsensitive}
+    />
+  );
+
+  if (String(column.key) === 'id') {
+    return rendered;
+  }
+
+  if (defined(tooltipTitle)) {
+    rendered = (
+      <Tooltip title={tooltipTitle} showOnlyOnOverflow containerDisplayMode="block">
+        {rendered}
+      </Tooltip>
+    );
+  }
+
+  return (
+    <CellAction
+      column={column}
+      dataRow={data as TableDataRow}
+      handleCellAction={(actions, value) => {
+        const query = new MutableSearch(userQuery);
+        updateQuery(query, actions, column, value);
+        setUserQuery(query.formatString());
+      }}
+      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
+      extraMenuItems={extraMenuItems}
+      usePortalOnDropdown={usePortalOnDropdown}
+    >
+      {rendered}
+    </CellAction>
+  );
+}
+
+function ExploreFieldValue({
+  data,
+  meta,
+  unit,
+  column,
+  disableTraceLinks,
+  queryCaseInsensitive,
+}: Pick<FieldProps, 'data' | 'meta' | 'unit' | 'disableTraceLinks'> & {
+  column: TableColumn<keyof TableDataRow>;
+  queryCaseInsensitive?: CaseInsensitive;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
+  const [pageCaseInsensitive] = useCaseInsensitivity();
+  const caseInsensitive = queryCaseInsensitive ?? pageCaseInsensitive;
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
-  const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
     return projects.reduce<Record<string, Project>>((acc, project) => {
@@ -162,10 +223,6 @@ function BaseExploreFieldRenderer({
   }, [projects]);
 
   const project = projectsMap[data.project];
-
-  if (!defined(column)) {
-    return nullableValue(null);
-  }
 
   const field = String(column.key);
 
@@ -207,6 +264,7 @@ function BaseExploreFieldRenderer({
                     similarTraces: (
                       <Link
                         to={getSimilarEventsUrl({
+                          caseInsensitive,
                           queryString: queryString.formatString(),
                           table: 'trace',
                           organization,
@@ -270,6 +328,7 @@ function BaseExploreFieldRenderer({
                   similarSpans: (
                     <Link
                       to={getSimilarEventsUrl({
+                        caseInsensitive,
                         queryString: queryString.formatString(),
                         organization,
                         projectIds: defined(project?.id)
@@ -306,33 +365,7 @@ function BaseExploreFieldRenderer({
     }
   }
 
-  if (field === 'id') {
-    return rendered;
-  }
-
-  if (defined(tooltipTitle)) {
-    rendered = (
-      <Tooltip title={tooltipTitle} showOnlyOnOverflow containerDisplayMode="block">
-        {rendered}
-      </Tooltip>
-    );
-  }
-
-  return (
-    <CellAction
-      column={column}
-      dataRow={data as TableDataRow}
-      handleCellAction={(actions, value) => {
-        updateQuery(query, actions, column, value);
-        setUserQuery(query.formatString());
-      }}
-      allowActions={allowActions ?? ALLOWED_CELL_ACTIONS}
-      extraMenuItems={extraMenuItems}
-      usePortalOnDropdown={usePortalOnDropdown}
-    >
-      {rendered}
-    </CellAction>
-  );
+  return rendered;
 }
 
 function getExploreFieldRenderer(

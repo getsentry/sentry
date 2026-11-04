@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
+from sentry.auth.principal import is_acting_user
 from sentry.integrations.manager import default_manager as integrations
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
@@ -18,6 +19,8 @@ from sentry.sentry_apps.services.app import app_service
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+    from sentry.models.organization import Organization
 
 
 def get_provider_name(provider_type: str, provider_slug: str) -> str | _StrPromise | None:
@@ -49,7 +52,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Email the organization owners asking them to install an integration.
         ````````````````````````````````````````````````````````````````````
@@ -67,7 +70,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         message_option = request.data.get("message", "").strip()
 
         requester = request.user
-        if requester.id in [user.id for user in organization.get_owners()]:
+        if any(is_acting_user(requester, user.id) for user in organization.get_owners()):
             return Response({"detail": "User can install integration"}, status=200)
 
         provider_name = get_provider_name(provider_type, provider_slug)

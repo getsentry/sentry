@@ -35,7 +35,9 @@ import {
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
+  getScalarAttributeValue,
   useTraceItemDetails,
+  type TraceItemAttributeScalarValue,
   type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
@@ -63,7 +65,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import {BreadCrumbs} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 import {LogDetails} from './components/logDetails';
@@ -247,10 +249,13 @@ function EAPSpanNodeDetailsContent({
 
   const attributesMap = useMemo(
     () =>
-      attributes.reduce<Record<string, string | number | boolean>>((acc, attribute) => {
-        acc[attribute.name] = attribute.value;
-        return acc;
-      }, {}),
+      attributes.reduce<Record<string, TraceItemAttributeScalarValue>>(
+        (acc, attribute) => {
+          acc[attribute.name] = getScalarAttributeValue(attribute);
+          return acc;
+        },
+        {}
+      ),
     [attributes]
   );
 

@@ -55,6 +55,7 @@ function RelocationForm() {
             addErrorMessage(PROMO_CODE_ERROR_MSG);
             return;
           }
+          // oxlint-disable-next-line react/todo
           throw error;
         }
       }

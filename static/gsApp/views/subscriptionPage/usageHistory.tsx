@@ -38,13 +38,13 @@ import {OnDemandBudgetMode} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   displayBudgetName,
+  displayPriceWithCents,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 

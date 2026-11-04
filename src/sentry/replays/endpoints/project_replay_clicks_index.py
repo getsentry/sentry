@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from collections.abc import Sequence
-from typing import TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -39,7 +39,7 @@ from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoi
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
-from sentry.replays.usecases.query import search_filter_to_condition
+from sentry.replays.usecases.query import search_filter_to_condition, validate_boolean_operators
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.utils.snuba import raw_snql_query
 
@@ -90,12 +90,9 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> Mapping[str, Any]:
             try:
                 search_filters = parse_search_query(request.query_params.get("query", ""))
             except InvalidSearchQuery as e:
@@ -129,7 +126,7 @@ def query_replay_clicks(
     offset: int,
     search_filters: Sequence[QueryToken],
     organization_id: int,
-):
+) -> Mapping[str, Any]:
     """Query replay clicks.
 
     This query is atypical in that it does not aggregate by replay_id and it is not exposed as a
@@ -198,6 +195,8 @@ def handle_search_filters(
     search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
+    validate_boolean_operators(search_filters)
+
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:

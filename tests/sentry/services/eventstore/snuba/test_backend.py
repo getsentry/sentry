@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
 from snuba_sdk import Column, Condition, Op
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -294,7 +295,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert [e.event_id for e in with_inner] == [event_middle.event_id, event_newest.event_id]
 
     def test_get_event_beyond_retention(self) -> None:
-        event = self.store_event(
+        self.store_event(
             data={
                 "event_id": "d" * 32,
                 "type": "default",
@@ -307,8 +308,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         )
 
         with mock.patch("sentry.quotas.backend.get_event_retention", return_value=7):
-            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
-            assert event is None
+            retained_event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+            assert retained_event is None
 
     def test_get_adjacent_event_ids(self) -> None:
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
@@ -356,6 +357,48 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event is None
         assert next_event is None
 
+    def test_get_adjacent_event_ids_with_excluded_group(self) -> None:
+        event = self.event2
+        assert event.group_id is not None
+        event_filter = Filter(
+            project_ids=[event.project_id],
+            group_ids=[event.group_id],
+            conditions=[["group_id", "!=", event.group_id]],
+        )
+
+        with mock.patch("sentry.utils.snuba.bulk_raw_query") as bulk_raw_query:
+            prev_event, next_event = self.eventstore.get_adjacent_event_ids(
+                event, filter=event_filter
+            )
+
+        assert prev_event is None
+        assert next_event is None
+        bulk_raw_query.assert_not_called()
+
+    def test_get_adjacent_event_ids_propagates_query_construction_error(self) -> None:
+        event = self.event2
+        assert event.group_id is not None
+        event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
+
+        with mock.patch(
+            "sentry.utils.snuba.SnubaQueryParams",
+            side_effect=snuba.SnubaError("Unexpected query failure"),
+        ):
+            with pytest.raises(snuba.SnubaError, match="Unexpected query failure"):
+                self.eventstore.get_adjacent_event_ids(event, filter=event_filter)
+
+    def test_get_adjacent_event_ids_propagates_query_execution_error(self) -> None:
+        event = self.event2
+        assert event.group_id is not None
+        event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
+
+        with mock.patch(
+            "sentry.utils.snuba.bulk_raw_query",
+            side_effect=RuntimeError("Unexpected query failure"),
+        ):
+            with pytest.raises(RuntimeError, match="Unexpected query failure"):
+                self.eventstore.get_adjacent_event_ids(event, filter=event_filter)
+
     def test_adjacent_event_ids_same_timestamp(self) -> None:
         project = self.create_project()
 
@@ -384,6 +427,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event1.group_id == event2.group_id
         # the 2 events should have the same timestamp
         assert event1.datetime == event2.datetime
+        assert event1.group_id is not None
 
         _filter = Filter(
             project_ids=[project.id],
@@ -1041,6 +1085,7 @@ class EAPEventStorageTest(TestCase, SnubaTestCase, OccurrenceTestCase):
             project_id=self.project.id,
         )
 
+        assert event.group_id is not None
         trace_item = self.create_eap_occurrence(
             group_id=event.group_id,
             event_id=event.event_id,

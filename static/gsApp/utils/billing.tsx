@@ -14,6 +14,7 @@ import {
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
@@ -40,9 +41,104 @@ import type {
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 
-export const MILLISECONDS_IN_HOUR = 3600_000;
+const CURRENCY_LOCALE = 'en-US';
+
+/**
+ * Includes $, and cents in the price when needed.
+ *
+ * 100.01 => $100.01
+ * 100.00 => $100
+ * 100.30 => $100.30
+ * -100 => -$100
+ */
+export function displayPrice({
+  cents,
+  formatBigNum = false,
+}: {
+  cents: number;
+  formatBigNum?: boolean;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  if (formatBigNum) {
+    return prefix + bigNumFormatter(Math.abs(dollars));
+  }
+  const hasCents = dollars % 1 !== 0;
+  if (hasCents) {
+    return displayPriceWithCents({cents});
+  }
+  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
+}
+
+/**
+ * Includes cents in the price when needed and excludes $ for separate formatting.
+ * Note: Use `displayPrice` if prices can be negative (ex: credits)
+ *
+ * 100.01 => 100.01
+ * 100.00 => 100
+ * 100.30 => 100.30
+ * -100 => -100
+ */
+export function formatPrice({cents}: {cents: number}): string {
+  return displayPrice({cents}).replace('$', '');
+}
+
+/**
+ * Format per unit price for events,
+ * where errors and transactions default to 5 digits
+ * and attachments should use 2 digits.
+ */
+export function displayUnitPrice({
+  cents,
+  minDigits = 5,
+  maxDigits = 7,
+}: {
+  cents: number;
+  maxDigits?: number;
+  minDigits?: number;
+}): string {
+  const dollars = cents / 100;
+
+  return (
+    '$' +
+    dollars.toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minDigits,
+      maximumFractionDigits: maxDigits,
+    })
+  );
+}
+
+/**
+ * Always include $ and cents in the price.
+ *
+ * $100.01 => $100.01
+ * $100.00 => $100.00
+ * $100.30 => $100.30
+ * -100 => -$100.00
+ */
+export function displayPriceWithCents({
+  cents,
+  minimumFractionDigits,
+  maximumFractionDigits,
+}: {
+  cents: number;
+  maximumFractionDigits?: number;
+  minimumFractionDigits?: number;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  return (
+    prefix +
+    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minimumFractionDigits ?? 2,
+      maximumFractionDigits: maximumFractionDigits ?? 2,
+    })
+  );
+}
 
 function isNum(val: unknown): val is number {
   return typeof val === 'number';

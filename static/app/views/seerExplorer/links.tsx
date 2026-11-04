@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -14,6 +13,7 @@ import {
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
@@ -437,55 +437,17 @@ export const LINK_RULES: LinkRule[] = [
   },
   {
     id: 'get_cron_monitor_details',
-    // Classic cron monitors. The workflow-engine `detectors` route is a different surface and is
-    // claimed above; these still need project + slug for the alerts UI.
     prefix: /\/monitors\/\{monitor_id_or_slug\}/,
     resolve: ({params, title}, {organization, projects}) => {
-      const monitor = asUrlSegment(params.monitor_id_or_slug);
-      if (!monitor) {
-        return null;
-      }
-
       const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        // Org-level monitor fetch has no project in path params. The cron detail page needs one,
-        // and guessing wrong lands on a 404 — leave the row unlinked.
-        return null;
-      }
-
       return {
-        label: title ?? t('View monitor'),
+        label: title ?? t('View cron monitors'),
         url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/crons/${project.slug}/${encodeURIComponent(monitor)}/details/`,
-          }),
-        },
-      };
-    },
-  },
-  {
-    id: 'get_issue_alert_rule',
-    prefix: /\/rules\/\{rule_id\}/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const ruleId = asUrlSegment(params.rule_id);
-      if (!ruleId) {
-        return null;
-      }
-
-      const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        return null;
-      }
-
-      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
-      return {
-        label: title ?? t('View alert rule'),
-        url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/${project.slug}/${ruleId}/`,
-          }),
+          pathname: makeMonitorTypePathname(
+            organization.slug,
+            'monitor_check_in_failure'
+          ),
+          ...(project?.id ? {query: {project: project.id}} : {}),
         },
       };
     },

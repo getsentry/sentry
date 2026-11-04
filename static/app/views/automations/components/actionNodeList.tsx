@@ -5,7 +5,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-import {Select, components as selectComponents} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import {
@@ -234,28 +234,18 @@ const AddActionSelect = memo(function AddActionSelect({
 }: AddActionSelectProps) {
   const organization = useOrganization();
   const {removeError} = useAutomationBuilderErrorContext();
-  const components = useMemo(
-    () => ({
-      Menu: ({children, ...props}: any) => (
-        <selectComponents.Menu {...props}>
-          <Fragment>
-            {children}
-            <Container padding="md" borderTop="muted">
-              <LinkButton
-                size="xs"
-                variant="secondary"
-                icon={<IconAdd />}
-                href={`/settings/${organization.slug}/integrations/`}
-                external
-              >
-                {t('Add another integration')}
-              </LinkButton>
-            </Container>
-          </Fragment>
-        </selectComponents.Menu>
-      ),
-    }),
-    [organization.slug]
+  const menuFooter = (
+    <Container padding="md" borderTop="muted">
+      <LinkButton
+        size="xs"
+        variant="secondary"
+        icon={<IconAdd />}
+        href={`/settings/${organization.slug}/integrations/`}
+        external
+      >
+        {t('Add another integration')}
+      </LinkButton>
+    </Container>
   );
 
   return (
@@ -268,7 +258,7 @@ const AddActionSelect = memo(function AddActionSelect({
       }}
       placeholder={placeholder}
       value={null}
-      components={components}
+      menuFooter={menuFooter}
     />
   );
 });
@@ -283,4 +273,4 @@ function Node() {
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

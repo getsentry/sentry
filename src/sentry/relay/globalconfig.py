@@ -1,6 +1,7 @@
 from typing import Any, TypedDict
 
 import sentry.options
+from sentry.ingest.inbound_filters import get_global_generic_filters
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.relay.types import GenericFiltersConfig, RuleCondition
@@ -40,13 +41,6 @@ class GlobalConfig(TypedDict, total=False):
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults
     options: dict[str, Any]
-
-
-def get_global_generic_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def span_op_defaults() -> SpanOpDefaults:

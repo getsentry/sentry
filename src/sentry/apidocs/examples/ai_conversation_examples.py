@@ -13,6 +13,9 @@ class AIConversationExamples:
                 "stats": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
+                    "cacheReadCost": 0.0,
+                    "cacheWriteCost": 0.0,
+                    "reasoningCost": 0.0,
                     "endTimestamp": 1743465601250,
                     "errors": 0,
                     "errorToolNames": [],
@@ -39,6 +42,9 @@ class AIConversationExamples:
                             "reasoningTokens": 0,
                             "inputCost": 0,
                             "outputCost": 0,
+                            "cacheReadCost": 0.0,
+                            "cacheWriteCost": 0.0,
+                            "reasoningCost": 0.0,
                             "totalCost": 0.0042,
                         }
                     ],
@@ -75,7 +81,40 @@ class AIConversationExamples:
             },
             response_only=True,
             status_codes=["200"],
-        )
+        ),
+        OpenApiExample(
+            "Return a normalized AI conversation transcript",
+            description="Request view=transcript with feature access. Raw spans remain available through view=timeline.",
+            value={
+                "conversationId": "conversation-1",
+                "title": "Greeting",
+                "projects": [{"id": 1, "name": "Example Agent", "slug": "example-agent"}],
+                "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/conversation-1/?project=1",
+                "stats": None,
+                "complete": True,
+                "sourceSpanCount": 1,
+                "transcript": [
+                    {
+                        "id": "user-a1b2c3d4e5f67890",
+                        "role": "user",
+                        "content": "Hello",
+                        "timestamp": 1743465600.0,
+                        "nodeId": "a1b2c3d4e5f67890",
+                        "userEmail": "",
+                    },
+                    {
+                        "id": "assistant-a1b2c3d4e5f67890",
+                        "role": "assistant",
+                        "content": "Hi",
+                        "timestamp": 1743465601.25,
+                        "nodeId": "a1b2c3d4e5f67890",
+                        "duration": 1.25,
+                    },
+                ],
+            },
+            response_only=True,
+            status_codes=["200"],
+        ),
     ]
 
     LIST_AI_CONVERSATIONS = [

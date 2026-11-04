@@ -189,7 +189,9 @@ class GroupHistory(Model):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
 
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    user_id = HybridCloudForeignKey[int | None, int | None](
+        settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL"
+    )
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
@@ -238,7 +240,7 @@ class GroupHistory(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned protocol"""
-        self.team_id = None
+        setattr(self, "team_id", None)
         self.user_id = None
         if actor and actor.is_user:
             self.user_id = actor.id
@@ -246,18 +248,24 @@ class GroupHistory(Model):
             self.team_id = actor.id
 
 
-def get_prev_history(group: Group, status: int) -> GroupHistory | None:
+def get_prev_history_date(group: Group, status: int) -> datetime.datetime | None:
     """
-    Finds the most recent row that is the inverse of this history row, if one exists.
+    Finds when the most recent row that is the inverse of this history row was added, if one exists.
     """
     previous_statuses = PREVIOUS_STATUSES.get(status)
     if not previous_statuses:
         return None
 
-    prev_histories = GroupHistory.objects.filter(
-        group=group, status__in=previous_statuses
-    ).order_by("-date_added")
-    return prev_histories.first()
+    # Look up the newest row per status so each lookup can use the (group, status, date_added)
+    # index. A single `status IN (...)` query reads and sorts every matching row.
+    newest_per_status = [
+        GroupHistory.objects.filter(group=group, status=previous_status)
+        .order_by("-date_added")
+        .values_list("date_added", flat=True)[:1]
+        for previous_status in set(previous_statuses)
+    ]
+    newest_dates = newest_per_status[0].union(*newest_per_status[1:], all=True)
+    return max(newest_dates, default=None)
 
 
 def record_group_history_from_activity_type(
@@ -293,7 +301,6 @@ def record_group_history(
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
-    prev_history = get_prev_history(group, status)
     user_id = None
     team_id = None
     if actor:
@@ -312,7 +319,7 @@ def record_group_history(
         user_id=user_id,
         team_id=team_id,
         status=status,
-        prev_history_date=prev_history.date_added if prev_history else None,
+        prev_history_date=get_prev_history_date(group, status),
     )
 
 
@@ -325,10 +332,6 @@ def bulk_record_group_history(
     from sentry.models.team import Team
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
-
-    def get_prev_history_date(group: Group, status: int) -> datetime.datetime | None:
-        prev_history = get_prev_history(group, status)
-        return prev_history.date_added if prev_history else None
 
     user_id: int | None = None
     team_id: int | None = None

@@ -13,6 +13,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {isOverflown} from '@sentry/scraps/useHoverOverlay';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -32,19 +33,20 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {isOverflown} from 'sentry/utils/useHoverOverlay';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {
+  DashboardFilterKeys,
   WidgetType,
   type DashboardFilters,
   type GlobalFilter,
@@ -68,8 +70,10 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/cells';
 import {
   getAgentRunsFilter,
+  getAiClientSpansFilter,
   getHasAgentNameFilter,
   getHasAiSpansFilter,
+  getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -79,7 +83,7 @@ import {
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
@@ -121,6 +125,8 @@ const rightAlignColumns = new Set([
 ]);
 
 const DEFAULT_LIMIT = 10;
+const LLM_CALLS_FIELD = `count_if(\`${getAiClientSpansFilter()}\`)` as const;
+const TOOL_CALLS_FIELD = `count_if(\`${getToolSpansFilter()}\`)` as const;
 
 type AgentFilterMode = 'dashboard-global' | 'page-agent';
 
@@ -181,8 +187,8 @@ export function TracesTable({
       search: `${getAgentRunsFilter({negated: true})} trace:[${tracesData?.map(span => span.trace).join(',')}]`,
       fields: [
         'trace',
-        'count_if(`gen_ai.operation.type:ai_client`)',
-        'count_if(`gen_ai.operation.type:tool`)',
+        LLM_CALLS_FIELD,
+        TOOL_CALLS_FIELD,
         'sum(gen_ai.usage.total_tokens)',
         'sum(gen_ai.cost.total_tokens)',
       ],
@@ -255,8 +261,8 @@ export function TracesTable({
       >
     >((acc, span) => {
       acc[span.trace] = {
-        llmCalls: Number(span['count_if(`gen_ai.operation.type:ai_client`)'] ?? 0),
-        toolCalls: Number(span['count_if(`gen_ai.operation.type:tool`)'] ?? 0),
+        llmCalls: Number(span[LLM_CALLS_FIELD] ?? 0),
+        toolCalls: Number(span[TOOL_CALLS_FIELD] ?? 0),
         totalTokens: Number(span['sum(gen_ai.usage.total_tokens)'] ?? 0),
         totalCost: Number(span['sum(gen_ai.cost.total_tokens)'] ?? 0),
         totalErrors: Number(errors[span.trace] ?? 0),
@@ -298,7 +304,7 @@ export function TracesTable({
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'age' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'agents' && <CellExpander />}
+        {column.key === 'agents' && <Container width="100vw" />}
       </HeadCell>
     );
   }, []);
@@ -330,6 +336,7 @@ export function TracesTable({
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}
+      emptyMessage={<TableNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
       grid={{
@@ -345,10 +352,10 @@ export function TracesTable({
   }
   return (
     <Container>
-      <GridEditableContainer>
+      <Container position="relative">
         {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
-      </GridEditableContainer>
+      </Container>
       <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
     </Container>
   );
@@ -447,11 +454,11 @@ function AgentTags({
 }) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const [{agent: urlAgents}, setPageFilterQueryStates] = useQueryStates(
     {
       [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
+      [DashboardFilterKeys.GLOBAL_FILTER]: parseAsStringArray,
     },
     {history: 'replace'}
   );
@@ -558,14 +565,15 @@ function AgentTags({
       ];
     }
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+    setPageFilterQueryStates(
+      {
+        [DashboardFilterKeys.GLOBAL_FILTER]: newFilters.map(filter =>
+          JSON.stringify(filter)
+        ),
         [TableUrlParams.CURSOR]: null,
       },
-    });
+      {history: 'push'}
+    );
   };
 
   const handleShowAll = () => {
@@ -652,10 +660,6 @@ const FramelessContainer = styled('div')`
   }
 `;
 
-const GridEditableContainer = styled('div')`
-  position: relative;
-`;
-
 const LoadingOverlay = styled('div')`
   position: absolute;
   top: 0;
@@ -671,10 +675,6 @@ const LoadingOverlay = styled('div')`
  * Used to force the cell to expand take as much width as possible in the table layout
  * otherwise grid editable will let the last column grow
  */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
 const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;

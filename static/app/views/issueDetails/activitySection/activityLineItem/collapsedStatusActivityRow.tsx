@@ -5,8 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
-import {ActivityLineRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
-import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
+import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/marker';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 interface CollapsedStatusActivityRowProps {
   children: ReactNode;
@@ -46,27 +46,22 @@ export function CollapsedStatusActivityRow({
 
 function StatusActivityToggleRow({label, onClick}: StatusActivityToggleRowProps) {
   return (
-    <ActivityLineRow>
-      <ActivityLineDotMarker />
-      <Flex
-        column={2}
-        row={1}
-        minHeight="22px"
-        align="baseline"
-        position="relative"
-        bottom="2px"
-      >
-        <Button
-          variant="transparent"
-          size="zero"
-          style={{marginLeft: -6}}
-          onClick={onClick}
-        >
-          <Text as="span" variant="muted" size="md" density="comfortable">
-            {label}
-          </Text>
-        </Button>
-      </Flex>
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={<ActivityLineDotMarker />}
+      headline={
+        <Flex minHeight="22px" align="baseline" position="relative" bottom="2px">
+          <Button
+            variant="transparent"
+            size="zero"
+            style={{marginLeft: -6}}
+            onClick={onClick}
+          >
+            <Text as="span" variant="muted" size="md" density="comfortable">
+              {label}
+            </Text>
+          </Button>
+        </Flex>
+      }
+    />
   );
 }

@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -29,6 +30,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -36,7 +38,9 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-_CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+_CODE_MODE_VALUES = frozenset({"off", "only"})
+
+_DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -44,31 +48,29 @@ class SeerAgentChatStateResponse(BaseModel):
     sentry_run_id: str | None
 
 
-class CodeModeField(serializers.Field):
-    """Accepts 'off'|'on'|'only' strings, or booleans for backwards compat.
+class CodeModeField(serializers.Field[str | None, str | None, str | None, object]):
+    """Accepts 'off'|'only', plus the retired 'on' and booleans from stored frontend settings.
 
-    DRF's CharField rejects raw booleans before the field-level validator
-    runs, so we handle coercion in to_internal_value instead.
+    True and 'on' read as 'only'. DRF's CharField rejects raw booleans before the field-level
+    validator runs, so coercion happens in to_internal_value instead.
     """
 
     def to_internal_value(self, data: object) -> str | None:
         if data is None:
             return None
         if data is True:
-            return "on"
+            return "only"
         if data is False:
             return "off"
         if isinstance(data, str):
             lowered = data.lower()
-            if lowered in ("true",):
-                return "on"
+            if lowered in ("true", "on"):
+                return "only"
             if lowered in ("false",):
                 return "off"
             if lowered in _CODE_MODE_VALUES:
                 return lowered
-        raise serializers.ValidationError(
-            f"Invalid value '{data}'. Must be 'off', 'on', 'only', or a boolean."
-        )
+        raise serializers.ValidationError(f"Invalid value '{data}'. Must be 'off' or 'only'.")
 
     def to_representation(self, value: object) -> str | None:
         if value is None:
@@ -144,7 +146,7 @@ class SeerAgentChatSerializer(serializers.Serializer):
         required=False,
         default=None,
         allow_null=True,
-        help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
+        help_text="Override code mode tools: 'off' or 'only'.",
     )
     ui_tools = serializers.CharField(
         required=False,
@@ -196,6 +198,19 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
         return super().has_object_permission(request, view, obj)
 
 
+def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSeerRun) -> bool:
+    """A run that may be read or continued without explorer access.
+
+    Explorer chats are not included, so a saved run_id stops working once open
+    membership is turned off.
+    """
+    return SeerAgentRun.objects.filter(
+        run__organization_id=organization.id,
+        run__seer_run_state_id=resolved.seer_run_state_id,
+        source=_DASHBOARD_GENERATE_RUN_SOURCE,
+    ).exists()
+
+
 @cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -230,15 +245,20 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         has_seer_access, _ = has_seer_access_with_detail(organization)
 
+        if not run_id:
+            if not has_access:
+                raise PermissionDenied(error)
+            return Response({"session": None}, status=404)
+
         if not has_access and not has_seer_access:
             raise PermissionDenied(error)
-
-        if not run_id:
-            return Response({"session": None}, status=404)
 
         resolved = resolve_seer_run(run_id, organization)
         if isinstance(resolved, Response):
             return resolved
+
+        if not has_access and not _is_dashboard_generate_run(organization, resolved):
+            raise PermissionDenied(error)
 
         try:
             client = SeerAgentClient(organization, request.user)
@@ -279,10 +299,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization)
-        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
-
-        if not has_access and not can_continue_dashboards_generate_run:
+        if not has_access and (run_id is None or not has_seer_access):
             raise PermissionDenied(error)
 
         serializer = SeerAgentChatSerializer(data=request.data)
@@ -331,7 +348,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         resolved: ResolvedSeerRun | None = None
         if run_id:
-            user_id = request.user.id
+            user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
             result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
@@ -339,11 +356,18 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 return result
             resolved = result
 
+        if not has_access and not (
+            resolved is not None and _is_dashboard_generate_run(organization, resolved)
+        ):
+            raise PermissionDenied(error)
+
         try:
-            enable_coding = organization.get_option(
+            # Seer only exposes write_pull_request when coding and bash mode are also on.
+            has_create_pr = features.has(
+                "organizations:ask-seer-create-pr", organization, actor=request.user
+            )
+            enable_coding = has_create_pr and organization.get_option(
                 "sentry:enable_seer_coding", False
-            ) and features.has(
-                "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
 
             has_code_mode_feature = features.has(
@@ -354,19 +378,22 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
             else:
-                # "only" rather than "on": running Code Mode alongside the classic tools
-                # gives the agent two ways to do everything and it mixes them, so the
-                # surface being dogfooded is never the one that ships. The frontend
-                # override still selects either mode for comparison.
+                # Code Mode only, not alongside the classic tools: with both, the agent has
+                # two ways to do everything and mixes them, so the surface being dogfooded is
+                # never the one that ships. The frontend override can still turn it off for
+                # comparison.
                 enable_code_mode_tools = "only"
 
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_bash_mode=override_bash_mode_enabled,
+                # The client still requires seer-explorer-allow-bash-mode.
+                enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
+                enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:

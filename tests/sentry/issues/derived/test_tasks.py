@@ -1,15 +1,22 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.db.utils import OperationalError
+from django.utils import timezone as django_timezone
 
 from sentry.issues.action_log.publish import publish_action
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+    ViewAction,
+)
 from sentry.issues.derived.check import CheckId, CheckTimeout
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.heal_state import (
     CURRENT_STATE_VERSION,
@@ -19,10 +26,13 @@ from sentry.issues.derived.heal_state import (
     save_state,
 )
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+from sentry.issues.derived.promote import build_and_promote_batch
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
+    _StaleHashDiscovery,
     check_fresh_derived_data_batch,
+    generate_group_derived_data,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
@@ -36,6 +46,7 @@ from sentry.issues.derived.tasks_util import (
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -43,6 +54,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.db import statement_timeout
 
 
 class DerivedDataTaskTestBase(TestCase):
@@ -133,6 +145,35 @@ class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
+    def test_failed_groups_are_counted_in_batch_metrics(self) -> None:
+        bad, good = self.create_unprocessed_groups(2)
+        self.create_group_derived_data(bad, pipeline_hash="old")
+        self.create_group_derived_data(good, pipeline_hash="old")
+        self.create_group_action_log_entry(
+            bad, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        with (
+            patch("sentry.issues.derived.tasks.metrics.incr") as incr,
+            patch("sentry.issues.derived.tasks.logger") as logger,
+        ):
+            generate_project_derived_data_batch(
+                project_id=self.project.id,
+                group_id_start=bad.id,
+                group_id_end=good.id + 1,
+                stale_only=False,
+            )
+        incr.assert_any_call(
+            "issues.derived.generate_project_groups_processed",
+            amount=1,
+            sample_rate=1.0,
+            tags={"result": "error"},
+        )
+        assert logger.info.call_args.kwargs["extra"]["errors"] == 1
+        assert GroupDerivedData.objects.get(group_id=bad.id).pipeline_hash == "old"
+        assert (
+            GroupDerivedData.objects.get(group_id=good.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
     def test_resume_generation_id_not_applied_when_start_group_filtered_out(self) -> None:
         # A resume ``GenerationId`` identifies a specific group. If that
         # group is no longer in the batch queryset (e.g. under stale_only
@@ -373,14 +414,21 @@ class HealSchedulerStateTest(TestCase):
         with patch.object(_state_cache, "get", return_value=state):
             assert load_state() is None
 
-    def test_expired(self) -> None:
+    def test_incomplete_discovery_state_loads(self) -> None:
+        state = HealSchedulerState(head_hash="current", stale={"stale-a": 42})
+
+        with patch.object(_state_cache, "get", return_value=state):
+            assert load_state() == state
+
+    def test_old_discovery_keeps_hashes_and_marks(self) -> None:
         state = HealSchedulerState(
             head_hash="current",
-            discovered_at=datetime.now(timezone.utc) - timedelta(days=3),
+            stale={"stale-a": 42},
+            discovered_at=datetime.now(timezone.utc) - timedelta(days=10),
         )
 
         with patch.object(_state_cache, "get", return_value=state):
-            assert load_state() is None
+            assert load_state() == state
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -473,7 +521,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.check-task-count": 0}),
             patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[]),
             ) as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -493,7 +542,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             in mock_incr.call_args_list
         )
 
-    def test_discovery_metric_reports_healed_state_when_nothing_is_stale(self) -> None:
+    def test_completed_discovery_is_not_repeated_when_nothing_is_stale(self) -> None:
         state = HealSchedulerState(
             head_hash=PIPELINE.pipeline_hash,
             discovered_at=datetime.now(timezone.utc),
@@ -501,7 +550,27 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             override_options({"issues.derived.check-task-count": 0}),
             patch("sentry.issues.derived.tasks.load_state", return_value=state),
-            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]),
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
+            ),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
+        mock_save.assert_not_called()
+
+    def test_incomplete_discovery_is_retried_when_nothing_is_stale(self) -> None:
+        state = HealSchedulerState(head_hash=PIPELINE.pipeline_hash)
+        with (
+            override_options({"issues.derived.check-task-count": 0}),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[]),
+            ) as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
                 return_value=GroupIdRangeResult(ranges=[], drained=True),
@@ -510,11 +579,13 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         ):
             heal_stale_derived_data()
 
+        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+        assert state.discovered_at is not None
         assert (
             call(
                 "issues.derived.heal_stale_hash_discovery",
                 sample_rate=1.0,
-                tags={"reason": "stale_empty"},
+                tags={"reason": "incomplete"},
             )
             in mock_incr.call_args_list
         )
@@ -581,11 +652,12 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         assert mock_save.call_args.args[0].stale == {old_hash: 2}
 
     def test_discovery_timeout_still_schedules_null_and_saves_retryable_state(self) -> None:
+        error = OperationalError("canceling statement due to statement timeout")
         with (
             override_options({"issues.derived.heal-max-tasks": 1}),
             patch(
                 "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                side_effect=OperationalError,
+                return_value=_StaleHashDiscovery(hashes=[], error=error),
             ),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -600,9 +672,57 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         delay.assert_called_once()
         saved_state = mock_save.call_args.args[0]
         assert saved_state.discovered_at is None
-        mock_logger.exception.assert_called_once_with(
-            "heal_stale_derived_data.stale_hash_discovery_failed"
-        )
+        assert saved_state.head_hash == PIPELINE.pipeline_hash
+        failure_log = mock_logger.error.call_args
+        assert failure_log.args == ("heal_stale_derived_data.stale_hash_discovery_failed",)
+        assert failure_log.kwargs["exc_info"] is error
+
+    def test_partial_discovery_heals_found_hashes_before_retrying(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        options = {
+            "issues.derived.heal-max-tasks": 1,
+            "issues.derived.check-task-count": 0,
+        }
+        with (
+            override_options(options),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=_StaleHashDiscovery(hashes=[stale_hash], error=OperationalError()),
+            ),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks.save_state") as first_save,
+        ):
+            heal_stale_derived_data()
+
+        delay.assert_called_once_with(target_hash=stale_hash, group_id_start=10, group_id_end=20)
+        persisted = first_save.call_args.args[0].copy(deep=True)
+        assert persisted.discovered_at is None
+        assert persisted.stale == {stale_hash: 20}
+
+        with (
+            override_options(options),
+            patch("sentry.issues.derived.tasks.load_state", return_value=persisted),
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(20, 30)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch("sentry.issues.derived.tasks.save_state"),
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
 
     def test_range_selection_timeout_is_reported_and_other_hashes_continue(self) -> None:
         stale_hash = self._pick_stale_hash()
@@ -687,7 +807,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with (
             patch(
                 "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                return_value=[stale_hash],
+                return_value=_StaleHashDiscovery(hashes=[stale_hash]),
             ),
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
@@ -761,7 +881,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         assert second_ranges.call_args_list[1].kwargs["group_id_lower_bound"] == 20
         discover.assert_not_called()
 
-    def test_drained_hash_is_removed_then_rediscovered(self) -> None:
+    def test_drained_hash_is_removed_without_rediscovery(self) -> None:
         stale_hash = self._pick_stale_hash()
         state = HealSchedulerState(
             head_hash=PIPELINE.pipeline_hash,
@@ -792,22 +912,15 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             override_options(options),
             patch("sentry.issues.derived.tasks.load_state", return_value=retired),
             patch("sentry.issues.derived.tasks.save_state"),
-            patch(
-                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
-                return_value=[stale_hash],
-            ) as discover,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
             patch(
                 "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
-                side_effect=[
-                    GroupIdRangeResult(ranges=[], drained=True),
-                    GroupIdRangeResult(ranges=[(1, 2)], drained=False),
-                ],
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
             ),
-            patch.object(regenerate_stale_derived_data_batch, "delay"),
         ):
             heal_stale_derived_data()
 
-        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+        discover.assert_not_called()
 
     def test_null_starts_at_zero_without_rewriting_state(self) -> None:
         stale_hash = self._pick_stale_hash()
@@ -1136,6 +1249,42 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
+    @override_options({"issues.derived.status-consistency-check-enabled": False})
+    def test_corrupt_row_does_not_abort_other_checks(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        ids = sorted(group.id for group in groups)
+        for group_id in ids:
+            process_group_log(group_id)
+        GroupDerivedData.objects.filter(group_id=ids[0]).update(data={"status": "invalid"})
+        with (
+            patch.object(check_fresh_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks_util.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
+            check_fresh_derived_data_batch(group_id_start=ids[0], group_id_end=ids[-1] + 1)
+        delay.assert_not_called()
+        check_calls = [
+            call for call in incr.call_args_list if call.args[0] == "issues.derived.check_group"
+        ]
+        assert check_calls == [
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "error"}),
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+        ]
+        logger.exception.assert_called_once()
+        assert logger.exception.call_args.kwargs["extra"]["operation"] == "check"
+
+    def test_check_database_failure_propagates(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=OperationalError("offline"),
+            ),
+            pytest.raises(OperationalError),
+        ):
+            check_fresh_derived_data_batch(group_id_start=group.id, group_id_end=group.id + 1)
+
     def test_checks_only_fresh_rows_inline(self) -> None:
         groups = self.create_unprocessed_groups(3)
         group_ids = sorted(group.id for group in groups)
@@ -1163,6 +1312,28 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
         ]
+
+    def test_records_recent_backfill(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        GroupActionLogEntry.objects.filter(group_id=group.id).update(
+            date_added=django_timezone.now() - timedelta(days=30)
+        )
+
+        with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        assert (
+            call(
+                "issues.derived.check_group",
+                sample_rate=1.0,
+                tags={"result": "recent_backfill"},
+            )
+            in mock_incr.call_args_list
+        )
 
     def test_reschedules_timed_out_group_with_check_id(self) -> None:
         group = self.create_unprocessed_groups(1)[0]
@@ -1571,9 +1742,43 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
+    def test_failed_groups_are_counted_in_batch_metrics(self) -> None:
+        bad, good = self.create_unprocessed_groups(2)
+        self.create_group_derived_data(bad, pipeline_hash="old")
+        self.create_group_derived_data(good, pipeline_hash="old")
+        self.create_group_action_log_entry(
+            bad, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        with (
+            patch("sentry.issues.derived.tasks.metrics.incr") as incr,
+            patch("sentry.issues.derived.tasks.logger") as logger,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash="old", group_id_start=bad.id, group_id_end=good.id + 1
+            )
+        incr.assert_any_call(
+            "issues.derived.regenerate_stale_groups_processed",
+            amount=1,
+            sample_rate=1.0,
+            tags={"result": "error"},
+        )
+        assert logger.info.call_args.kwargs["extra"]["errors"] == 1
+        assert GroupDerivedData.objects.get(group_id=bad.id).pipeline_hash == "old"
+        assert (
+            GroupDerivedData.objects.get(group_id=good.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
     @staticmethod
     def _stale() -> str:
         return "0" * 16 if PIPELINE.pipeline_hash != "0" * 16 else "z" * 16
+
+    @staticmethod
+    def _rows_found_calls(distribution: MagicMock) -> list[Any]:
+        return [
+            c
+            for c in distribution.call_args_list
+            if c.args[0] == "issues.derived.heal_range_rows_found"
+        ]
 
     def test_rebuilds_stale_rows(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -1609,6 +1814,62 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         gdd = GroupDerivedData.objects.get(group_id=gid)
         assert gdd.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_backfills_first_seen_before_rebuild(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
+
+        first_seen_at_build: list[int] = []
+
+        def record_first_seen(*args: Any, **kwargs: Any) -> Any:
+            first_seen_at_build.extend(
+                GroupActionLogEntry.objects.filter(
+                    group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+                ).values_list("group_id", flat=True)
+            )
+            return build_and_promote_batch(*args, **kwargs)
+
+        with patch(
+            "sentry.issues.derived.promote.build_and_promote_batch",
+            side_effect=record_first_seen,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash=stale,
+                group_id_start=group_ids[0],
+                group_id_end=group_ids[-1] + 1,
+            )
+
+        assert sorted(first_seen_at_build) == group_ids
+        for gid in group_ids:
+            assert (
+                GroupDerivedData.objects.get(group_id=gid).pipeline_hash == PIPELINE.pipeline_hash
+            )
+
+    def test_does_not_backfill_first_seen_outside_batch(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=stale)
+
+        regenerate_stale_derived_data_batch(
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+        assert list(
+            GroupActionLogEntry.objects.filter(
+                group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+            ).values_list("group_id", flat=True)
+        ) == [group_ids[1]]
 
     def test_targets_only_the_given_hash(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -1663,9 +1924,9 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            # Helper start(), iter 1 remaining, iter 1 deadline check
-            # (triggers reschedule after the first group).
-            mock_time.monotonic.side_effect = [0.0, 0.0, expired]
+            # Helper start(), iter 1 start, iter 1 metrics, iter 1 deadline
+            # check (triggers reschedule after the first group).
+            mock_time.monotonic.side_effect = [0.0, 0.0, 0.0, expired]
 
             regenerate_stale_derived_data_batch(
                 target_hash=stale,
@@ -1736,15 +1997,17 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
                 group_id_end=group_ids[-1] + 1,
             )
 
-            distribution.assert_not_called()
+            assert not self._rows_found_calls(distribution)
             regenerate_stale_derived_data_batch(**mock_delay.call_args.kwargs)
 
-        distribution.assert_called_once_with(
-            "issues.derived.heal_range_rows_found",
-            3,
-            sample_rate=1.0,
-            tags={"hash_kind": "stale", "range_overflowed": "true"},
-        )
+        assert self._rows_found_calls(distribution) == [
+            call(
+                "issues.derived.heal_range_rows_found",
+                3,
+                sample_rate=1.0,
+                tags={"hash_kind": "stale", "range_overflowed": "true"},
+            )
+        ]
 
     def test_reschedules_on_group_log_timeout(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -1787,22 +2050,51 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         current = PIPELINE.pipeline_hash
         self._seed_hashes([current, current, current])
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == []
 
     def test_returns_empty_when_table_empty(self) -> None:
-        assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
+        assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5).hashes == []
 
     def test_query_has_statement_timeout(self) -> None:
         with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
             _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
 
-        assert timeout.call_args.args[1] == timedelta(seconds=25)
+        assert timedelta(seconds=80) < timeout.call_args.args[1] <= timedelta(seconds=90)
+
+    def test_timeout_returns_partial_progress(self) -> None:
+        self._seed_hashes(["a-hash", "m-current", "y-hash"])
+        real_statement_timeout = statement_timeout
+        calls = 0
+
+        def fail_third_lookup(alias: str, timeout: timedelta) -> Any:
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                raise OperationalError("canceling statement due to statement timeout")
+            return real_statement_timeout(alias, timeout)
+
+        with patch("sentry.issues.derived.tasks.statement_timeout", side_effect=fail_third_lookup):
+            result = _discover_stale_pipeline_hashes("m-current", limit=5)
+
+        assert result.hashes == ["a-hash"]
+        assert isinstance(result.error, OperationalError)
+
+    def test_exhausted_budget_returns_error(self) -> None:
+        self._seed_hashes(["a-hash"])
+
+        with patch(
+            "sentry.issues.derived.tasks._STALE_HASH_DISCOVERY_TIMEOUT", timedelta(seconds=0)
+        ):
+            result = _discover_stale_pipeline_hashes("m-current", limit=5)
+
+        assert result.hashes == []
+        assert isinstance(result.error, OperationalError)
 
     def test_excludes_null_pipeline_hash(self) -> None:
         current = PIPELINE.pipeline_hash
         self._seed_hashes([None, None])
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == []
 
     def test_excludes_current_hash(self) -> None:
         current = PIPELINE.pipeline_hash
@@ -1810,7 +2102,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale_high = "z" * 16
         self._seed_hashes([stale_low, current, stale_high])
 
-        result = _discover_stale_pipeline_hashes(current, limit=5)
+        result = _discover_stale_pipeline_hashes(current, limit=5).hashes
         assert current not in result
         assert set(result) == {stale_low, stale_high}
 
@@ -1819,7 +2111,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale = "0" * 16 if current != "0" * 16 else "1" * 16
         self._seed_hashes([stale], per_hash=25)
 
-        assert _discover_stale_pipeline_hashes(current, limit=5) == [stale]
+        assert _discover_stale_pipeline_hashes(current, limit=5).hashes == [stale]
 
     def test_respects_limit(self) -> None:
         current = PIPELINE.pipeline_hash
@@ -1827,7 +2119,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert current not in stale_hashes
         self._seed_hashes(stale_hashes)
 
-        result = _discover_stale_pipeline_hashes(current, limit=3)
+        result = _discover_stale_pipeline_hashes(current, limit=3).hashes
         assert len(result) == 3
         assert result == sorted(result)
         assert set(result).issubset(set(stale_hashes))
@@ -1838,7 +2130,7 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert current not in stale_hashes
         self._seed_hashes(stale_hashes)
 
-        result = _discover_stale_pipeline_hashes(current, limit=10)
+        result = _discover_stale_pipeline_hashes(current, limit=10).hashes
         assert result == ["a-hash", "b-hash", "c-hash"]
 
     def test_limit_honored_when_current_hash_appears_mid_walk(self) -> None:
@@ -1846,5 +2138,31 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         stale_hashes = ["a-hash", "b-hash", "y-hash", "z-hash"]
         self._seed_hashes(stale_hashes + [current])
 
-        result = _discover_stale_pipeline_hashes(current, limit=3)
+        result = _discover_stale_pipeline_hashes(current, limit=3).hashes
         assert result == ["a-hash", "b-hash", "y-hash"]
+
+
+@pytest.mark.parametrize("stage", ["decode", "aggregate", "encode"])
+def test_failed_generation_does_not_reschedule(
+    stage: Literal["decode", "aggregate", "encode"],
+) -> None:
+    with (
+        patch(
+            "sentry.issues.derived.promote.build_and_promote_derived_data",
+            side_effect=DerivedDataError(stage),
+        ),
+        patch.object(generate_group_derived_data, "delay") as delay,
+    ):
+        generate_group_derived_data(group_id=123)
+    delay.assert_not_called()
+
+
+def test_generation_database_failure_propagates() -> None:
+    with (
+        patch(
+            "sentry.issues.derived.promote.build_and_promote_derived_data",
+            side_effect=OperationalError("offline"),
+        ),
+        pytest.raises(OperationalError),
+    ):
+        generate_group_derived_data(group_id=123)

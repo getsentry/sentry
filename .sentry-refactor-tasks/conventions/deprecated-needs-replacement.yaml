@@ -119,14 +119,15 @@ examples:
        */
       export function adjustTimestamps() {}
 
-include:
-  - 'static/**/*.tsx'
-  - 'static/**/*.ts'
-exclude:
-  - '**/__fixtures__/**'
-  - '**/__mocks__/**'
-  - '**/*.spec.*'
-  - '**/*.test.*'
-  - '**/test/**'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' '@deprecated' {repo_path}/static/"
+search:
+  match: '@deprecated'
+  include:
+    - 'static/**/*.tsx'
+    - 'static/**/*.ts'
+  exclude:
+    - '**/__fixtures__/**'
+    - '**/__mocks__/**'
+    - '**/*.spec.*'
+    - '**/*.test.*'
+    - '**/test/**'
+  excerpt: 10

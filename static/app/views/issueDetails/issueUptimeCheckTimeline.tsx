@@ -20,11 +20,13 @@ import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndi
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useDispatchIssueEventCount} from 'sentry/views/issueDetails/hooks/useDispatchIssueEventCount';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
@@ -70,7 +72,13 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
-  const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+  const timeWindowConfig = useIssueTimeWindowConfig({
+    timelineWidth,
+    group,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
+  });
+
+  useDispatchIssueEventCount(group);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: detectorId ? [detectorId] : [],

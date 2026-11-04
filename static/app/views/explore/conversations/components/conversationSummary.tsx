@@ -39,6 +39,7 @@ import type {
   ConversationStats,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -67,6 +68,7 @@ interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -93,6 +95,7 @@ export function ConversationSummary({
   conversationId,
   title,
   project,
+  hasMoreSpans,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -108,7 +111,7 @@ export function ConversationSummary({
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  const displayId = getConversationDisplayId(conversationId);
   // Prefer the human-readable title; fall back to the (possibly truncated) id.
   const headingText = title || displayId;
   const headingTooltip = title || conversationId;
@@ -238,7 +241,11 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />

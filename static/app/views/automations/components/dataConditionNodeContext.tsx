@@ -11,6 +11,14 @@ interface DataConditionNodeProps {
   onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
 }
 
+/**
+ * Node components receive defaults through props because the registry that
+ * holds them imports every node component.
+ */
+export interface DataConditionNodeComponentProps {
+  getDefaultComparison: (type: DataConditionType) => DataCondition['comparison'];
+}
+
 export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
   null
 );

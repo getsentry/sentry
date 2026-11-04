@@ -59,20 +59,8 @@ describe('ProjectsStore', () => {
 
     it('adds project to store on "create success"', () => {
       const project = ProjectFixture({id: '11', slug: 'created-project'});
-      const reloadOrgRequest = MockApiClient.addMockResponse({
-        url: '/organizations/my-org/',
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/my-org/projects/',
-        body: [project, projectBar, projectFoo],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/my-org/teams/',
-        body: [],
-      });
 
-      ProjectsStore.onCreateSuccess(project, 'my-org');
+      ProjectsStore.onCreateSuccess(project);
 
       expect(ProjectsStore.getById(project.id)).toMatchObject({
         id: '11',
@@ -87,8 +75,6 @@ describe('ProjectsStore', () => {
         id: '10',
         slug: 'bar',
       });
-
-      expect(reloadOrgRequest).toHaveBeenCalled();
     });
 
     it('updates a project in store', () => {

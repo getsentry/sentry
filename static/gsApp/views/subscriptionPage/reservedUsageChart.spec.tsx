@@ -1,9 +1,8 @@
 import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
-import {GIGABYTE} from 'getsentry/constants';
+import {GIGABYTE, MILLISECONDS_IN_HOUR} from 'getsentry/constants';
 import {type BillingStats} from 'getsentry/types';
-import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 
 import {mapReservedToChart, mapStatsToChart} from './reservedUsageChart';
 
