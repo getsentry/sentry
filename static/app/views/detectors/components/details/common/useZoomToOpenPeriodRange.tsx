@@ -1,15 +1,16 @@
 import {useCallback} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
 } from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 
 export function useZoomToOpenPeriodRange(intervalSeconds?: number) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setTimeParams] = useQueryStates(
+    {start: parseAsString, end: parseAsString, statsPeriod: parseAsString},
+    {history: 'push'}
+  );
 
   return useCallback(
     (start: Date, end?: Date) => {
@@ -18,12 +19,14 @@ export function useZoomToOpenPeriodRange(intervalSeconds?: number) {
         endMs: (end ?? new Date()).getTime(),
         intervalSeconds,
       });
+      const zoomQuery = buildDetectorZoomQuery({}, zoomRange);
 
-      navigate({
-        pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomRange),
+      setTimeParams({
+        start: zoomQuery.start ?? null,
+        end: zoomQuery.end ?? null,
+        statsPeriod: zoomQuery.statsPeriod ?? null,
       });
     },
-    [location.pathname, location.query, navigate, intervalSeconds]
+    [setTimeParams, intervalSeconds]
   );
 }

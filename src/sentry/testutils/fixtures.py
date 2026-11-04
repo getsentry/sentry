@@ -31,6 +31,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
@@ -1029,6 +1030,14 @@ class Fixtures:
         if organization is None:
             organization = self.organization
         return Factories.create_discover_saved_query(organization, **kwargs)
+
+    def create_group_search_view(
+        self, organization: Organization | None = None, **kwargs: Any
+    ) -> GroupSearchView:
+        if organization is None:
+            organization = self.organization
+        kwargs.setdefault("user_id", self.user.id)
+        return Factories.create_group_search_view(organization, **kwargs)
 
     def create_dashboard_favorite_user(self, *args: Any, **kwargs: Any) -> DashboardFavoriteUser:
         return Factories.create_dashboard_favorite_user(*args, **kwargs)

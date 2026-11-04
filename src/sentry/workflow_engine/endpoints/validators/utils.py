@@ -14,7 +14,6 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.permissions import enforce_scope
 from sentry.auth.access import Access
-from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.actor import Actor
@@ -22,9 +21,10 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
-from sentry.workflow_engine.types import DetectorId, WorkflowId
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,10 @@ ORGANIZATION_WORKFLOW_WRITE_SCOPES = ("org:write", "org:admin", "alerts:write")
 def is_system_created_detector(detector: Detector) -> bool:
     # Lazy imports to avoid circular imports: grouptype imports from validators/base
     # which imports from this module.
-    from sentry.grouping.grouptype import ErrorGroupType
     from sentry.issue_detection.performance_detection import PERFORMANCE_WFE_DETECTOR_TYPES
 
     return (
-        detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
+        detector.type in (DetectorType.ERROR, DetectorType.ISSUE_STREAM)
         or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
     )
 
@@ -75,7 +74,7 @@ def can_edit_detector_with_access(detector: Detector, access: Access) -> bool:
     """Like can_edit_detector, for callers that have an Access instead of a request."""
     if is_system_created_detector(detector):
         # Check this first, because the all-projects issue stream detector has no project.
-        if detector.type == IssueStreamGroupType.slug:
+        if detector.type == DetectorType.ISSUE_STREAM:
             return False
         if not access.has_any_project_scope(
             detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
@@ -516,9 +515,9 @@ def remove_items_by_api_input(
 
 def get_unknown_detector_type_error(bad_value: str, organization: Organization) -> str:
     available_types = [
-        gt.slug
-        for gt in grouptype.registry.get_visible(organization)
-        if gt.detector_settings is not None and gt.detector_settings.validator is not None
+        detector_type
+        for detector_type in get_visible_detector_types(organization)
+        if detector_settings_registry.get(detector_type).validator is not None
     ]
     available_types.sort()
 

@@ -9,7 +9,7 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar, TypeAlias
 
 from sentry import features
-from sentry.auth.principal import has_user
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -29,7 +29,6 @@ from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.silo.base import all_silo_function, cell_silo_function
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 
@@ -161,7 +160,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         """
         These fields are used to render a form for the user,
@@ -232,7 +231,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return []
 
     def store_issue_last_defaults(
-        self, project: Project, user: RpcUser | User, data: IssuePayload
+        self, project: Project, user: RequestPrincipal, data: IssuePayload
     ) -> None:
         """
         Stores the last used field defaults on a per-project basis. This
@@ -277,7 +276,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User | RpcUser) -> IssueDefaults:
+    def get_defaults(self, project: Project, user: RequestPrincipal) -> IssueDefaults:
         project_defaults = (
             {}
             if not self.org_integration
@@ -286,9 +285,14 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
             )
         )
 
+        # Only a user has saved defaults of their own.
+        user_id = acting_user_id(user)
+        if user_id is None:
+            return project_defaults
+
         user_option_value = get_option_from_list(
             user_option_service.get_many(
-                filter={"user_ids": [user.id], "keys": ["issue:defaults"], "project_id": project.id}
+                filter={"user_ids": [user_id], "keys": ["issue:defaults"], "project_id": project.id}
             ),
             key="issue:defaults",
             default={},

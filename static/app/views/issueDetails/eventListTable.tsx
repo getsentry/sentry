@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -10,6 +11,9 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import type {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
+
+export const CURSOR_PARSERS = {cursor: parseAsString};
 
 interface EventListTableProps {
   /**
@@ -94,13 +98,9 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.previous?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links?.previous?.cursor ?? null,
+                    })}
                     disabled={previousDisabled}
                   />
                   <PaginationButton
@@ -108,13 +108,9 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links?.next?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links?.next?.cursor ?? null,
+                    })}
                     disabled={nextDisabled}
                   />
                 </Grid>
@@ -194,8 +190,8 @@ export function PaginationText({
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
-  const location = useLocation();
-  const currentCursor = parseCursor(location.query?.cursor);
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const currentCursor = parseCursor(cursor);
 
   if (pageCount === 0) {
     return null;

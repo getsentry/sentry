@@ -161,7 +161,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             name=name,
             organization_id=organization.id,
             scope_list=sorted(set(scopes)),
-            created_by_id=request.user.id,
+            created_by_id=acting_user_id(request.user),
             token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
         )

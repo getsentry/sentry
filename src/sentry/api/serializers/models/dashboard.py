@@ -108,7 +108,7 @@ class DashboardWidgetResponse(TypedDict):
     id: str
     title: str
     description: str | None
-    displayType: str
+    displayType: str | None
     thresholds: ThresholdType | None
     interval: str
     dateCreated: datetime
@@ -371,14 +371,11 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             except Exception:
                 explore_urls = None
 
-        display_type_name = DashboardWidgetDisplayTypes.get_type_name(obj.display_type)
-        assert display_type_name is not None
-
         serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "description": obj.description,
-            "displayType": display_type_name,
+            "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
             "thresholds": _convert_thresholds_to_camel_case(obj.thresholds),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
@@ -510,8 +507,8 @@ class DashboardListResponse(TypedDict):
     environment: list[str]
     filters: DashboardFilters
     lastVisited: datetime | None
-    widgetDisplay: list[str]
-    widgetPreview: list[dict[str, str]]
+    widgetDisplay: list[str | None]
+    widgetPreview: list[dict[str, str | None]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
     projects: list[int]
@@ -519,12 +516,12 @@ class DashboardListResponse(TypedDict):
 
 
 class _WidgetPreview(TypedDict):
-    displayType: str
+    displayType: str | None
     layout: dict[str, str] | None
 
 
 class _Widget(TypedDict):
-    widget_display: list[str]
+    widget_display: list[str | None]
     widget_preview: list[_WidgetPreview]
     created_by: dict[str, object] | None
     permissions: NotRequired[dict[str, object]]
@@ -633,16 +630,14 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         )
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
-            display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
-            assert display_type is not None
-            result[dashboard]["widget_display"].append(display_type)
+            result[dashboard]["widget_display"].append(
+                DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
+            )
 
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
-            display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
-            assert display_type is not None
             widget_preview: _WidgetPreview = {
-                "displayType": display_type,
+                "displayType": DashboardWidgetDisplayTypes.get_type_name(widget.display_type),
                 "layout": None,
             }
             if widget.detail:

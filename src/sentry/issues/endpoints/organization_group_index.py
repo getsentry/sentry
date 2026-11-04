@@ -16,7 +16,7 @@ from sentry import analytics, features, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
@@ -273,6 +273,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     }
     idempotent_methods = frozenset()
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0, "DELETE": 10.0}
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
@@ -453,10 +454,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 return response
 
         # If group ids specified, just ignore any query components
-        try:
-            group_ids = set(map(int, request.GET.getlist("group")))
-        except ValueError:
-            return Response({"detail": "Group ids must be integers"}, status=400)
+        group_ids = set(to_valid_int_id_list("group", request.GET.getlist("group")))
 
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))

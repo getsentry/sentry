@@ -86,6 +86,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [section.blocks]
   );
 
+  // A PR iteration that ends without a diff is the agent's answer to the
+  // feedback (e.g. a CI failure unrelated to the PR), not a fix that failed to
+  // apply, so there is nothing to retry.
+  const latestStepBlock = section.blocks[currentStepStart];
+  const isLatestStepPrIteration =
+    defined(latestStepBlock) && isPrIterationBlock(latestStepBlock);
+
   const {feedback, latestIterationIndex} = usePrIterationFeedback(
     section,
     autofix,
@@ -261,7 +268,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <Fragment>
         {resetPrompt(
           t('How can this code change be improved?'),
-          t('Give seer additional context to improve this code change.')
+          t('Give Seer additional context to improve this code change.')
         )}
         <ArtifactDetails>
           <Text>{summary}</Text>
@@ -284,6 +291,18 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             ))}
           </ArtifactDetails>
         ))}
+      </Fragment>
+    );
+  } else if (explanation && isLatestStepPrIteration) {
+    content = (
+      <Fragment>
+        {resetPrompt(
+          t('How can this code change be improved?'),
+          t('Give Seer additional context to improve this code change.')
+        )}
+        <ArtifactDetails>
+          <SeerMarkdown raw={explanation} />
+        </ArtifactDetails>
       </Fragment>
     );
   } else if (explanation) {

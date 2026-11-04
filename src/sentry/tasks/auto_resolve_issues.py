@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 
+from django.db.models import Exists, OuterRef
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -98,63 +99,74 @@ def auto_resolve_project_issues(
     ]
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
-    queryset = list(Group.objects.filter(**filter_conditions)[:chunk_size])
+    recently_reopened = Exists(
+        Activity.objects.get_recent_unresolved_activities(project.id, cutoff_dt).filter(
+            group_id=OuterRef("id")
+        )
+    )
+    queryset = list(
+        Group.objects.filter(**filter_conditions).exclude(recently_reopened)[:chunk_size]
+    )
 
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
         resolution_time = django_timezone.now()
-        happened = Group.objects.filter(
-            id=group.id,
-            status=GroupStatus.UNRESOLVED,
-            last_seen__lte=cutoff_dt,
-        ).update(
-            status=GroupStatus.RESOLVED,
-            resolved_at=resolution_time,
-            substatus=None,
+        # Recheck this issue's Activity in the UPDATE: it may have been reopened
+        # after candidate selection. Status and Activity writes are not atomic,
+        # so a reopening whose Activity is not yet committed can still race.
+        happened = (
+            Group.objects.filter(id=group.id, **filter_conditions)
+            .exclude(recently_reopened)
+            .update(status=GroupStatus.RESOLVED, resolved_at=resolution_time, substatus=None)
         )
+        if not happened:
+            continue
+
+        group.status = GroupStatus.RESOLVED
+        group.resolved_at = resolution_time
+        group.substatus = None
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
-        if happened:
-            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
-                Activity.objects.create(
-                    group=group,
-                    project=project,
-                    type=ActivityType.SET_RESOLVED_BY_AGE.value,
-                    data={"age": age},
-                )
-                record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
-            update_group_open_period(
-                group=group,
-                new_status=GroupStatus.RESOLVED,
-                resolution_time=resolution_time,
-            )
-
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
-
-            analytics.record(
-                IssueAutoResolvedEvent(
-                    project_id=project.id,
-                    organization_id=project.organization_id,
-                    group_id=group.id,
-                    issue_type=group.issue_type.slug,
-                    issue_category=group.issue_category.name.lower(),
-                )
-            )
-            # auto-resolve is a kind of resolve and this signal makes
-            # sure all things that need to happen after resolve are triggered
-            # examples are analytics and webhooks
-            issue_resolved.send_robust(
-                organization_id=project.organization_id,
-                user=None,
+        with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+            Activity.objects.create(
                 group=group,
                 project=project,
-                resolution_type="autoresolve",
-                commit_id=None,
-                sender="auto_resolve_issues",
+                type=ActivityType.SET_RESOLVED_BY_AGE.value,
+                data={"age": age},
             )
+            record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=resolution_time,
+        )
+
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+        analytics.record(
+            IssueAutoResolvedEvent(
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            )
+        )
+        # auto-resolve is a kind of resolve and this signal makes
+        # sure all things that need to happen after resolve are triggered
+        # examples are analytics and webhooks
+        issue_resolved.send_robust(
+            organization_id=project.organization_id,
+            user=None,
+            group=group,
+            project=project,
+            resolution_type="autoresolve",
+            commit_id=None,
+            sender="auto_resolve_issues",
+        )
 
     if might_have_more:
         auto_resolve_project_issues.apply_async(

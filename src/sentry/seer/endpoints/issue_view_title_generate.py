@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.oneshot import run_oneshot
 
@@ -61,7 +62,9 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
             )
 
         try:
-            title = generate_title_from_query(query, organization, user_id=request.user.id)
+            title = generate_title_from_query(
+                query, organization, user_id=acting_user_id(request.user)
+            )
             if not title or not title.strip():
                 logger.error(
                     "No title returned from Seer",
