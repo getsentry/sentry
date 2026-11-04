@@ -226,11 +226,10 @@ def traces_sampler(sampling_context: dict[str, Any]) -> float:
 
 
 def before_send(event: Event, hint: Hint) -> Event | None:
-    if event.get("tags"):
-        if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
-        if settings.SENTRY_LOCAL_CELL:
-            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
+    if settings.SILO_MODE:
+        event.setdefault("tags", {})["silo_mode"] = str(settings.SILO_MODE)
+    if settings.SENTRY_LOCAL_CELL:
+        event.setdefault("tags", {})["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
     event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
     if event_exc == asyncio.CancelledError:
