@@ -398,21 +398,21 @@ class OrganizationInboxUpdateTest(APITestCase):
 
     def test_shared_filters_intersect(self) -> None:
         target = self.create_inbox_item(subject_id="1")
-        self.create_inbox_item_event(inbox_item=target, type="issue.assigned")
-        self.create_inbox_item_event(inbox_item=target, type="issue.assigned")
+        self.create_inbox_item_event(inbox_item=target, type="issue.user_assigned")
+        self.create_inbox_item_event(inbox_item=target, type="issue.user_assigned")
         other_event = self.create_inbox_item(subject_id="2")
         self.create_inbox_item_event(inbox_item=other_event, type="issue.user_mentioned")
         already_read = self.create_inbox_item(
             subject_id="3", last_activity_at=before_now(minutes=1), last_read_at=timezone.now()
         )
-        self.create_inbox_item_event(inbox_item=already_read, type="issue.assigned")
+        self.create_inbox_item_event(inbox_item=already_read, type="issue.user_assigned")
 
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
                 "id": [target.id, other_event.id, already_read.id],
                 "subject_type": ["issue"],
-                "event_type": ["issue.assigned"],
+                "event_type": ["issue.user_assigned"],
                 "is_read": "false",
             },
             isRead=True,
