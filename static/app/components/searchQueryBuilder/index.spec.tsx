@@ -795,6 +795,8 @@ describe('SearchQueryBuilder', () => {
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
       });
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
       expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
 
       expect(
@@ -802,6 +804,35 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it('searches once when clearing a filter that was never committed', async () => {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'browser.name:'
+      );
+      expect(await screen.findByRole('option', {name: 'Firefox'})).toBeInTheDocument();
+      await userEvent.keyboard('{Control>}{Backspace}{/Control}');
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: /browser\.name/})
+        ).not.toBeInTheDocument();
+      });
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -841,6 +872,8 @@ describe('SearchQueryBuilder', () => {
         await waitFor(() => {
           expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
         });
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
+        expect(mockOnSearch).toHaveBeenCalledTimes(1);
         expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       }
     );

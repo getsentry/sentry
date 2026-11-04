@@ -17,7 +17,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -745,7 +745,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       ) {
         return;
       }
-      if (typeof ModalStore.getState().renderer === 'function') {
+      if (isModalOpen(ModalStore.getState())) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;

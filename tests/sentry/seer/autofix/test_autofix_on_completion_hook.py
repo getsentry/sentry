@@ -477,7 +477,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             123,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
-            verify_content=False,
+            verify_content=True,
         )
 
     @patch("sentry.seer.autofix.pr_iteration.completion.consume_queued_feedback")

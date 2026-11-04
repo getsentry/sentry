@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -46,7 +46,6 @@ import {
   setApiQueryData,
   useApiQuery,
 } from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -192,8 +191,8 @@ export default function IntegrationDetailedView() {
     'tab',
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
+  const [referrer] = useQueryState('referrer', parseAsString);
   const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -421,9 +420,6 @@ export default function IntegrationDetailedView() {
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
-      const queryParams = new URLSearchParams(location.search);
-      const referrer = queryParams.get('referrer');
-
       const buttonProps = {
         size: 'sm',
         priority: 'primary',
@@ -477,7 +473,7 @@ export default function IntegrationDetailedView() {
       onInstall,
       organization,
       integrationSlug,
-      location.search,
+      referrer,
       configurations,
       isConfigurationsFetching,
     ]

@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -9,15 +10,14 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function CreateFromSeerPrompt() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setSeerRunId] = useQueryState(
+    'seerRunId',
+    parseAsInteger.withOptions({history: 'push'})
+  );
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -47,12 +47,7 @@ export function CreateFromSeerPrompt() {
         return;
       }
 
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
-          query: {...location.query, seerRunId: String(runId)},
-        })
-      );
+      setSeerRunId(Number(runId));
     } catch (error) {
       setIsGenerating(false);
       addErrorMessage(t('Failed to start dashboard generation'));
