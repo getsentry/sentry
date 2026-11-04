@@ -2,15 +2,29 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcValidationException
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProject,
+    validate_grantable_scopes,
+)
 from sentry.service_accounts.services.service_account.model import RpcServiceAccount
 from sentry.service_accounts.services.service_account.serial import serialize_service_account
 from sentry.service_accounts.services.service_account.service import ServiceAccountService
+
+
+def _invalid_scopes(error: ValidationError, method_name: str) -> RpcValidationException:
+    return RpcValidationException(
+        detail=error.messages[0],
+        code="invalid_scope",
+        service_name="service_account",
+        method_name=method_name,
+    )
 
 
 class DatabaseBackedServiceAccountService(ServiceAccountService):
@@ -69,6 +83,8 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 all_projects=all_projects,
                 created_by_id=created_by_id,
             )
+        except ValidationError as e:
+            raise _invalid_scopes(e, "create_service_account") from e
         except IntegrityError as e:
             if "service_accounts_serviceaccount_org_name_unique" in str(e):
                 raise RpcValidationException(
@@ -89,6 +105,10 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         project_ids: list[int],
         all_projects: bool,
     ) -> RpcServiceAccount | None:
+        try:
+            validate_grantable_scopes(scope_list)
+        except ValidationError as e:
+            raise _invalid_scopes(e, "update_service_account") from e
         with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
             service_account = (
                 ServiceAccount.objects.select_for_update()

@@ -117,9 +117,11 @@ class ServiceAccount(ReplicatedControlModel):
         is_active: bool = True,
     ) -> ServiceAccount:
         """
-        Raises `IntegrityError` when `name` is taken in the org. Callers must authorize the
-        grant and write the audit log.
+        Raises `ValidationError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
+        when `name` is taken in the org. Callers must authorize the grant and write the audit
+        log.
         """
+        validate_grantable_scopes(scope_list)
         with outbox_context(transaction.atomic(using=router.db_for_write(cls))):
             service_account = cls.objects.create(
                 organization_id=organization_id,

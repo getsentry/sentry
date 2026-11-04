@@ -87,6 +87,20 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
 
+    def test_create_ungrantable_scope_raises_validation_error(self) -> None:
+        with pytest.raises(RpcValidationException):
+            service_account_service.create_service_account(
+                organization_id=self.organization.id,
+                name="seer-agent",
+                scope_list=["event:read", "service_account:write"],
+                project_ids=[],
+                all_projects=False,
+                created_by_id=None,
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.filter(organization_id=self.organization.id).exists()
+
     def test_update_service_account_replaces_scopes_and_projects(self) -> None:
         account_id = self.create()
         other_project = self.create_project()
@@ -106,6 +120,21 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             replica = ServiceAccountReplica.objects.get(service_account_id=account_id)
             assert replica.scope_list == ["project:read"]
+
+    def test_update_ungrantable_scope_raises_validation_error(self) -> None:
+        account_id = self.create()
+
+        with pytest.raises(RpcValidationException):
+            service_account_service.update_service_account(
+                organization_id=self.organization.id,
+                service_account_id=account_id,
+                scope_list=["service_account:write"],
+                project_ids=[],
+                all_projects=False,
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
 
     def test_update_service_account_in_another_organization_returns_none(self) -> None:
         account_id = self.create()
