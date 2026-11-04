@@ -22,7 +22,7 @@ function setSubscriptionScopeTags() {
   Sentry.setTag('plan.total_members', `${totalMembers}`);
 }
 
-export function registerSubscriptionScopeTags(): () => void {
+export function registerSubscriptionScopeTags() {
   setSubscriptionScopeTags();
 
   const unsubscribeSubscription = SubscriptionStore.listen(

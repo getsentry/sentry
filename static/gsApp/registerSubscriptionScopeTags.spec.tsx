@@ -17,7 +17,6 @@ describe('registerSubscriptionScopeTags', () => {
   beforeEach(() => {
     OrganizationStore.reset();
     SubscriptionStore.init();
-    setTag.mockClear();
     unregister = undefined;
   });
 
@@ -27,17 +26,16 @@ describe('registerSubscriptionScopeTags', () => {
 
   it('tags the active organization subscription when registered', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
-    const subscription = SubscriptionFixture({organization, totalMembers: 3});
-    SubscriptionStore.set(organization.slug, subscription);
+    SubscriptionStore.set(
+      organization.slug,
+      SubscriptionFixture({organization, plan: 'am1_f', totalMembers: 3})
+    );
 
     unregister = registerSubscriptionScopeTags();
 
-    expect(setTag).toHaveBeenCalledWith('plan', subscription.plan);
-    expect(setTag).toHaveBeenCalledWith('plan.name', subscription.planDetails.name);
-    expect(setTag).toHaveBeenCalledWith(
-      'plan.max_members',
-      `${subscription.planDetails.maxMembers}`
-    );
+    expect(setTag).toHaveBeenCalledWith('plan', 'am1_f');
+    expect(setTag).toHaveBeenCalledWith('plan.name', 'Developer');
+    expect(setTag).toHaveBeenCalledWith('plan.max_members', '1');
     expect(setTag).toHaveBeenCalledWith('plan.total_members', '3');
   });
 
