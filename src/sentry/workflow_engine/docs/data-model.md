@@ -243,6 +243,13 @@ The association is normally created during Issue Platform ingestion. Compatibili
 paths can backfill missing associations. Callers resolving a detector from an issue must
 handle deleted or missing detector records.
 
+Open-period history serialization groups activities by `group_open_period_id`, without
+loading each activity's parent. Serializer attributes remain keyed by the original
+`GroupOpenPeriod` instances from the page. Activities are ordered by creation time and
+clipped to 100 per period after fetching and serialization. With a start bound, the
+current query includes one globally latest pre-window activity across the page, not
+one per period; ID grouping does not change this selection policy.
+
 ### `WorkflowActionGroupStatus`
 
 [`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) records when a

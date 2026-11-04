@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
@@ -37,6 +39,9 @@ from sentry.types.group import PriorityLevel
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.endpoints.organization_open_periods import (
     detector_opens_new_issue_per_activation,
+)
+from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
+    GroupOpenPeriodSerializer,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -759,6 +764,202 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(open_period_2.id)
+
+
+@freeze_time()
+class GroupOpenPeriodGroupingTest(APITestCase):
+    endpoint = "sentry-api-0-organization-open-periods"
+
+    def assert_activity_grouping(self, activity_count: int) -> None:
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.LOW,
+            first_seen=timezone.now() - timedelta(hours=1),
+        )
+        period = GroupOpenPeriod.objects.get(group=group)
+        activities = GroupOpenPeriodActivity.objects.bulk_create(
+            [
+                GroupOpenPeriodActivity(
+                    group_open_period_id=period.id,
+                    type=OpenPeriodActivityType.STATUS_CHANGE,
+                    value=PriorityLevel.LOW,
+                    event_id=f"{index:032x}",
+                )
+                for index in reversed(range(activity_count))
+            ]
+        )
+        # date_added is auto_now_add, so restore the deliberately reversed timestamps after insert.
+        for activity, index in zip(activities, reversed(range(activity_count))):
+            activity.date_added = group.first_seen + timedelta(seconds=index)
+        GroupOpenPeriodActivity.objects.bulk_update(activities, ["date_added"])
+        # The serializer queries fresh activities; factory-populated FK caches must not hide N+1s.
+        fresh_activities = GroupOpenPeriodActivity.objects.filter(group_open_period=period)
+        assert all(
+            "group_open_period" not in activity._state.fields_cache for activity in fresh_activities
+        )
+        serializer = GroupOpenPeriodSerializer()
+        connection = connections[router.db_for_read(GroupOpenPeriodActivity)]
+        with CaptureQueriesContext(connection) as queries:
+            attrs = serializer.get_attrs([period], self.user)
+
+        assert next(iter(attrs)) is period
+        assert len(queries) == 2
+        assert not [q for q in queries if 'FROM "sentry_groupopenperiod"' in q["sql"]]
+        activity_queries = [
+            q["sql"] for q in queries if 'FROM "sentry_groupopenperiodactivity"' in q["sql"]
+        ]
+        assert len(activity_queries) == 1
+        short_id_queries = [q["sql"] for q in queries if 'FROM "sentry_groupedmessage"' in q["sql"]]
+        assert len(short_id_queries) == 1
+        expected = [
+            {
+                "id": str(period.id),
+                "groupId": str(group.id),
+                "shortId": group.qualified_short_id,
+                "start": period.date_started - timedelta(minutes=5),
+                "end": None,
+                "isOpen": True,
+                "activities": [
+                    {
+                        "id": str(activity.id),
+                        "type": "status_change",
+                        "value": "low",
+                        "dateCreated": activity.date_added,
+                        "eventId": activity.event_id,
+                    }
+                    for activity in sorted(activities, key=lambda activity: activity.date_added)[
+                        :100
+                    ]
+                ],
+            }
+        ]
+        assert [serializer.serialize(period, attrs[period], self.user, time_window=300)] == expected
+
+        self.login_as(self.user)
+        with CaptureQueriesContext(connection) as endpoint_queries:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"groupId": group.id, "bucketSize": 300}
+            )
+
+        assert response.data == expected
+        # The parent page and hit count remain; activity grouping must not re-fetch parents.
+        parent_queries = [
+            q["sql"] for q in endpoint_queries if 'FROM "sentry_groupopenperiod"' in q["sql"]
+        ]
+        assert len(parent_queries) == 2
+        endpoint_activity_queries = [
+            q["sql"]
+            for q in endpoint_queries
+            if 'FROM "sentry_groupopenperiodactivity"' in q["sql"]
+        ]
+        assert len(endpoint_activity_queries) == 1
+
+    def test_one_activity(self) -> None:
+        self.assert_activity_grouping(1)
+
+    def test_one_hundred_activities(self) -> None:
+        self.assert_activity_grouping(100)
+
+    def test_one_thousand_activities(self) -> None:
+        self.assert_activity_grouping(1000)
+
+    def test_empty_period_list(self) -> None:
+        with CaptureQueriesContext(
+            connections[router.db_for_read(GroupOpenPeriodActivity)]
+        ) as queries:
+            attrs = GroupOpenPeriodSerializer().get_attrs([], self.user)
+
+        assert attrs == {}
+        assert len(queries) == 0
+
+    def test_multiple_periods_preserve_global_pre_window_activity(self) -> None:
+        base_time = timezone.now() - timedelta(hours=1)
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        groups = [
+            self.create_group(
+                project=self.project,
+                type=MetricIssue.type_id,
+                priority=PriorityLevel.LOW,
+                first_seen=base_time + timedelta(seconds=index),
+            )
+            for index in range(3)
+        ]
+        for group in groups:
+            self.create_detector_group(detector=detector, group=group)
+        periods = [GroupOpenPeriod.objects.get(group=group) for group in groups]
+        periods[0].update(date_ended=base_time + timedelta(seconds=30))
+        activity_specs = [(0, 21), (0, 20), (1, 12), (0, 10), (1, 9), (0, 5), (0, 1)]
+        activities = GroupOpenPeriodActivity.objects.bulk_create(
+            [
+                GroupOpenPeriodActivity(
+                    group_open_period_id=periods[period_index].id,
+                    type=OpenPeriodActivityType.STATUS_CHANGE,
+                    value=PriorityLevel.LOW,
+                    event_id=f"{seconds:032x}",
+                )
+                for period_index, seconds in activity_specs
+            ]
+        )
+        for activity, (_, seconds) in zip(activities, activity_specs):
+            activity.date_added = base_time + timedelta(seconds=seconds)
+        GroupOpenPeriodActivity.objects.bulk_update(activities, ["date_added"])
+        start = base_time + timedelta(seconds=10)
+        end = base_time + timedelta(seconds=20)
+        serializer = GroupOpenPeriodSerializer()
+        with CaptureQueriesContext(
+            connections[router.db_for_read(GroupOpenPeriodActivity)]
+        ) as queries:
+            attrs = serializer.get_attrs(periods, self.user, query_start=start, query_end=end)
+
+        assert all(key is period for key, period in zip(attrs, periods))
+        assert len(queries) == 3
+        assert not [q for q in queries if 'FROM "sentry_groupopenperiod"' in q["sql"]]
+        activity_queries = [
+            q["sql"] for q in queries if 'FROM "sentry_groupopenperiodactivity"' in q["sql"]
+        ]
+        assert len(activity_queries) == 2
+        assert len([q for q in queries if 'FROM "sentry_groupedmessage"' in q["sql"]]) == 1
+
+        # Only the globally latest pre-window row (period 1 at +9s) is carried forward.
+        selected_activities = [[activities[3], activities[1]], [activities[4], activities[2]], []]
+        expected = [
+            {
+                "id": str(period.id),
+                "groupId": str(group.id),
+                "shortId": group.qualified_short_id,
+                "start": period.date_started - timedelta(minutes=5),
+                "end": date_ended,
+                "isOpen": is_open,
+                "activities": [
+                    {
+                        "id": str(activity.id),
+                        "type": "status_change",
+                        "value": "low",
+                        "dateCreated": activity.date_added,
+                        "eventId": activity.event_id,
+                    }
+                    for activity in period_activities
+                ],
+            }
+            for period, group, period_activities, date_ended, is_open in zip(
+                periods,
+                groups,
+                selected_activities,
+                [base_time + timedelta(seconds=30) - timedelta(minutes=5), None, None],
+                [False, True, True],
+            )
+        ]
+        assert [
+            serializer.serialize(period, attrs[period], self.user, time_window=300)
+            for period in periods
+        ] == expected
+        self.login_as(self.user)
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"detectorId": detector.id, "start": start, "end": end, "bucketSize": 300},
+        )
+        assert response.data == list(reversed(expected))
 
 
 class DetectorOpensNewIssuePerActivationTest(TestCase):
