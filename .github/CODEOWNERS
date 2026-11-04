@@ -888,9 +888,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Issues
 
 ## Ingest services called from event processing
-# event_manager.py and grouping/ (Issues, above) call these during save_event. Sentry assigns
-# an issue to the LAST matching line, so these must come after Issues for ingest to get
-# failures raised inside them, such as Redis errors.
+# event_manager.py and grouping/ (Issues, above) call these during save_event. These must
+# come after Issues so ingest gets failures raised inside them, such as Redis errors.
 /src/sentry/quotas/                                      @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
 ## End of Ingest services called from event processing
