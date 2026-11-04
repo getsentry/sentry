@@ -52,6 +52,14 @@ class FileBlobTest(TestCase):
         assert blob.path
         assert not FileBlobPending.objects.exists()
 
+    def test_from_file_forgets_path_together_with_blob_insert(self) -> None:
+        with patch.object(FileBlob, "_forget_pending", side_effect=DatabaseError("boom")):
+            with pytest.raises(DatabaseError):
+                FileBlob.from_file(ContentFile(b"foo bar"))
+
+        pending = FileBlobPending.objects.get()
+        assert not FileBlob.objects.filter(path=pending.path).exists()
+
     def test_from_file_records_path_returned_by_storage(self) -> None:
         storage = Mock()
         storage.save.side_effect = lambda path, fileobj: f"{path}_renamed"

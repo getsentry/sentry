@@ -397,16 +397,6 @@ class PendingFileBlobCleanupTest(TestCase):
         storage.delete.assert_not_called()
         assert FileBlobPending.objects.filter(id=pending.id).exists()
 
-    def test_keeps_file_that_got_its_blob_row(self) -> None:
-        FileBlob.objects.create(path="ab/cdef/0123", checksum="a" * 40, size=1)
-        pending = FileBlobPending.objects.create(path="ab/cdef/0123", created=before_now(days=2))
-
-        storage = self._run()
-
-        storage.delete.assert_not_called()
-        assert not FileBlobPending.objects.filter(id=pending.id).exists()
-        assert FileBlob.objects.filter(path="ab/cdef/0123").exists()
-
 
 class SeerRunCleanupTest(TestCase):
     def _run_seer_run_cleanup(self, days: int) -> None:

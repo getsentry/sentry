@@ -1315,8 +1315,10 @@ def cleanup_pending_files(
     """
     Remove the storage paths of writes that never produced a blob row.
 
-    The cutoff matches `cleanup_unused_files`: a write younger than that may
-    still be in progress.
+    A pending row is deleted in the same transaction that inserts the blob
+    row, so every row still here points at a path without a blob. The cutoff
+    matches `cleanup_unused_files`: a write younger than that may still be
+    in progress.
     """
     from sentry.models.files.utils import get_storage
 
@@ -1330,8 +1332,7 @@ def cleanup_pending_files(
     queryset = pending_model.objects.filter(created__lte=cutoff)
 
     for pending in RangeQuerySetWrapper(queryset):
-        if not blob_model.objects.filter(path=pending.path).exists():
-            storage.delete(pending.path)
+        storage.delete(pending.path)
         pending.delete()
 
 

@@ -122,7 +122,9 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
             saved_path = cast(str, blob.path)
             try:
-                blob.save()
+                with transaction.atomic(using=router.db_for_write(cls)):
+                    blob.save()
+                    cls._forget_pending(saved_path)
             except IntegrityError:
                 # this means that there was a race inserting a blob
                 # with this checksum. we will fetch the other blob that was
@@ -134,8 +136,8 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 blob = cls.objects.get(checksum=blob.checksum)
                 storage = get_storage(cls._storage_config())
                 storage.delete(saved_path)
+                cls._forget_pending(saved_path)
 
-            cls._forget_pending(saved_path)
             blob._ensure_blob_owned(organization)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
@@ -223,15 +225,17 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         saved_path = cls._save_to_storage(cls.generate_unique_path(), fileobj)
         blob.path = saved_path
         try:
-            blob.save()
+            with transaction.atomic(using=router.db_for_write(cls)):
+                blob.save()
+                cls._forget_pending(saved_path)
         except IntegrityError:
             # see `_save_blob` above
             metrics.incr("filestore.upload_race", sample_rate=1.0)
             blob = cls.objects.get(checksum=checksum)
             storage = get_storage(cls._storage_config())
             storage.delete(saved_path)
+            cls._forget_pending(saved_path)
 
-        cls._forget_pending(saved_path)
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
@@ -243,8 +247,10 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
         The path is recorded in the database before the bytes exist, so a
         write that never reaches `blob.save()` is still visible to
-        `sentry cleanup`. Inside a caller's transaction the record is only as
-        durable as that transaction.
+        `sentry cleanup`. The record is removed in the same transaction that
+        inserts the blob row, so a record that outlives its write always
+        marks a path without a blob. Inside a caller's transaction the
+        record is only as durable as that transaction.
         """
         pending_model = cls._pending_model()
         pending = pending_model.objects.create(path=path)
