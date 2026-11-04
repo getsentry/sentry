@@ -32,7 +32,7 @@ interface ChartSelectionProviderProps {
   children: React.ReactNode;
 }
 
-const parseAsChartSelection = createParser<ChartSelectionState>({
+export const parseAsChartSelection = createParser<ChartSelectionState>({
   parse(value: string): ChartSelectionState | null {
     const parsed = parseAsChartSelectionQueryParam.parse(value);
     if (!parsed) {

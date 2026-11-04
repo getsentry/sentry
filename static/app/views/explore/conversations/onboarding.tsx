@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -47,11 +48,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {
@@ -535,8 +533,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState(
+    'guidedStep',
+    parseAsInteger.withOptions({history: 'push'})
+  );
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -678,16 +678,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
           // Remount when the integration or runtime changes so the stepper doesn't
           // carry over stale per-step state from the previous selection.
           key={`${selectedIntegration}-${deploymentTarget}`}
-          initialStep={decodeInteger(location.query.guidedStep)}
-          onStepChange={step => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
-            });
-          }}
+          initialStep={guidedStep ?? undefined}
+          onStepChange={step => void setGuidedStep(step)}
         >
           {steps.map((step, index) => (
             <ConversationStepRenderer

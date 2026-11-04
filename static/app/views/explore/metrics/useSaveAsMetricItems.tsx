@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
 import {
   addErrorMessage,
@@ -12,8 +13,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
@@ -25,6 +24,7 @@ import {
   useMetricsQueryParamsHasTransformations,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -46,13 +46,12 @@ interface UseSaveAsMetricItemsOptions {
 }
 
 export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
-  const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMetricsMultiQuery();
-  const id = decodeScalar(location.query.id);
-  const {data: savedQuery} = useGetSavedQuery(id);
+  const [id] = useQueryState('id', parseAsScalar);
+  const {data: savedQuery} = useGetSavedQuery(id ?? undefined);
 
   const metricQueries = useMultiMetricsQueryParams();
   const hasTransformations = useMetricsQueryParamsHasTransformations();
