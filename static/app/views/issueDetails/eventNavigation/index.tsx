@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
 import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -31,6 +32,7 @@ import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
@@ -76,6 +78,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
   const location = useLocation();
+  const [sort] = useQueryState('sort', parseAsRawList);
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
@@ -440,7 +443,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                         pathname: discoverUrl.pathname,
                         query: {
                           ...discoverUrl.query,
-                          sort: location.query.sort ?? '-timestamp',
+                          sort: sort.length ? sort : '-timestamp',
                         },
                       }}
                       aria-label={t('Open in Explore')}
