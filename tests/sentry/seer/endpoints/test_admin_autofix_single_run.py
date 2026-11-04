@@ -46,6 +46,20 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
             query=f"project={self.project.id}&explorerRunId=321",
         )
 
+    def test_automated_start_has_no_owner(self, mock_trigger: MagicMock) -> None:
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=321
+        )
+
+        self.get_success_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, automated=True
+        )
+
+        kwargs = mock_trigger.call_args.kwargs
+        assert kwargs["referrer"] == AutofixReferrer.ADMIN_AUTOMATED
+        assert kwargs["user"] is None
+        assert kwargs["actor_user_id"] is None
+
     def test_coding_agent_project_is_rejected(self, mock_trigger: MagicMock) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(

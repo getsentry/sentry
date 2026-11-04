@@ -878,7 +878,11 @@ def trigger_push_changes(
 
 # Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
-    {AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY, AutofixReferrer.AGENTIC_TRIAGE}
+    {
+        AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+        AutofixReferrer.AGENTIC_TRIAGE,
+        AutofixReferrer.ADMIN_AUTOMATED,
+    }
 )
 
 

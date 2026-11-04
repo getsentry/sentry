@@ -21,6 +21,7 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 class AdminAutofixSingleRunSerializer(serializers.Serializer):
     organization_slug = serializers.CharField()
     short_id = serializers.CharField()
+    automated = serializers.BooleanField(default=False)
 
 
 # TEMPORARY: lets staff test single-run Autofix in prod before orgs are flagged.
@@ -53,20 +54,20 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 status=400,
             )
 
-        user = require_user(request)
-        with viewer_context_scope(
-            ViewerContext(
-                actor=Actor(type=ActorType.USER, actor_id=user.id),
-                organization_id=organization.id,
-            )
-        ):
+        user = None if serializer.validated_data["automated"] else require_user(request)
+        actor = (
+            Actor(type=ActorType.SYSTEM)
+            if user is None
+            else Actor(type=ActorType.USER, actor_id=user.id)
+        )
+        with viewer_context_scope(ViewerContext(actor=actor, organization_id=organization.id)):
             try:
                 run = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
-                    referrer=AutofixReferrer.ADMIN,
+                    referrer=(AutofixReferrer.ADMIN if user else AutofixReferrer.ADMIN_AUTOMATED),
                     user=user,
-                    actor_user_id=user.id,
+                    actor_user_id=user.id if user else None,
                     single_run=True,
                 )
             except NoSeerQuotaException:
