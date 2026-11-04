@@ -829,16 +829,20 @@ class JiraIntegration(IssueSyncIntegration):
         output = []
         if group.issue_category == GroupCategory.FEEDBACK:
             output = [
-                "Sentry Feedback: [{}|{}]\n".format(
-                    group.qualified_short_id,
-                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                "Sentry Feedback: {}\n".format(
+                    self.format_link(
+                        group.qualified_short_id,
+                        group.get_absolute_url(params={"referrer": "jira_integration"}),
+                    )
                 )
             ]
         else:
             output = [
-                "Sentry Issue: [{}|{}]".format(
-                    group.qualified_short_id,
-                    group.get_absolute_url(params={"referrer": "jira_integration"}),
+                "Sentry Issue: {}".format(
+                    self.format_link(
+                        group.qualified_short_id,
+                        group.get_absolute_url(params={"referrer": "jira_integration"}),
+                    )
                 )
             ]
 
@@ -854,6 +858,10 @@ class JiraIntegration(IssueSyncIntegration):
             if body:
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
+
+    @staticmethod
+    def format_link(text: str, url: str) -> str:
+        return f"[{text}|{url}]"
 
     def get_client(self) -> JiraCloudClient:
         logging_context = {"org_id": self.organization_id}

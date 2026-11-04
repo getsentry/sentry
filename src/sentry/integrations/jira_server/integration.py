@@ -612,15 +612,21 @@ class JiraServerIntegration(IssueSyncIntegration):
         self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
         output = [
-            "Sentry Issue: [{}|{}]".format(
-                group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+            "Sentry Issue: {}".format(
+                self.format_link(
+                    group.qualified_short_id,
+                    absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+                )
             )
         ]
         body = self.get_group_body(group, event)
         if body:
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
+
+    @staticmethod
+    def format_link(text: str, url: str) -> str:
+        return f"[{text}|{url}]"
 
     def get_issue_link_data(self, url: str) -> dict[str, str]:
         base_url = self.model.metadata["base_url"]

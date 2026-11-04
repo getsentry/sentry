@@ -132,12 +132,16 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
 
         if group.issue_category == GroupCategory.FEEDBACK:
             return [
-                f"Sentry Feedback: [{group.qualified_short_id}]({absolute_uri(group.get_absolute_url(params=params))})\n"
+                f"Sentry Feedback: {self.format_link(group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params)))}\n"
             ]
 
         return [
-            f"Sentry Issue: [{group.qualified_short_id}]({absolute_uri(group.get_absolute_url(params=params))})"
+            f"Sentry Issue: {self.format_link(group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params)))}"
         ]
+
+    @staticmethod
+    def format_link(text: str, url: str) -> str:
+        return f"[{text}]({url})"
 
     def get_group_description(
         self, group: Group, event: GroupEvent | None, **kwargs: object
