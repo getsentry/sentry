@@ -171,7 +171,7 @@ def trigger_autofix_feature(
             reasoning_effort=args.step_args.reasoning_effort,
             repo_pins=args.step_args.repo_pins,
             user_context=args.user_context,
-            should_run_repo_checks=args.enable_bash_mode,
+            should_run_repo_checks=True,
         )
         enable_coding = stopping_point in (
             AutofixStoppingPoint.CODE_CHANGES,
