@@ -11,7 +11,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 
-jest.mock('sentry/actionCreators/modal');
+jest.mock('@sentry/scraps/modal');
 
 describe('navigation ActionCreator', () => {
   let navigate: jest.Mock;
@@ -153,8 +153,3 @@ describe('navigation ActionCreator', () => {
     });
   });
 });
-
-jest.mock('@sentry/scraps/modal', () => ({
-  ...jest.requireActual('@sentry/scraps/modal'),
-  openModal: jest.fn(),
-}));
