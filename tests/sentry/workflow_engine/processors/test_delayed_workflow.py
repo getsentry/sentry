@@ -1167,7 +1167,9 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         event, timestamp = result[self.group1]
         assert event.event_id == self.event1.event_id
         node_id = Event.generate_node_id(self.project.id, self.event1.event_id)
-        assert dict(event.data) == dict(EventDict(nodestore.backend.get_multi([node_id])[node_id]))
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        assert dict(event.data) == dict(EventDict(stored_payload))
         self.assert_occurrences_identical(event.occurrence, occurrence)
         assert timestamp == FROZEN_TIME
 
@@ -1207,7 +1209,9 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         event, timestamp = result[self.group1]
         assert event.event_id == later_event.event_id
         node_id = Event.generate_node_id(self.project.id, later_event.event_id)
-        expected_payload = dict(EventDict(nodestore.backend.get_multi([node_id])[node_id]))
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        expected_payload = dict(EventDict(stored_payload))
         assert dict(event.data) == expected_payload
         self.assert_occurrences_identical(event.occurrence, occurrence)
         assert timestamp == later_timestamp
