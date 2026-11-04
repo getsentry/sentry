@@ -33,6 +33,8 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
+AGENT = SeerAgentAccess(scopes=["event:read"])
+
 
 class SeerWorkflowEnsureDefaultsTest(TestCase):
     def test_seeds_defaults_once_per_organization(self) -> None:
@@ -98,6 +100,7 @@ class SeerWorkflowCreateTest(TestCase):
             project_ids=[second.id, first.id],
             environments=["production"],
             name="Daily triage",
+            agent=AGENT,
         )
 
         config = workflow.get_config()
@@ -117,6 +120,7 @@ class SeerWorkflowCreateTest(TestCase):
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
             schedule=SeerWorkflowSchedule.DAILY,
             project_ids=[-1],
+            agent=AGENT,
         )
 
         config = workflow.get_config()
@@ -133,6 +137,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
+                agent=AGENT,
             )
         assert not SeerWorkflowConfig.objects.exists()
 
@@ -143,6 +148,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
+                agent=AGENT,
             )
         assert not isinstance(excinfo.value, WorkflowUpdateError)
         assert not SeerWorkflowConfig.objects.exists()
@@ -156,6 +162,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id, foreign.id],
+                agent=AGENT,
             )
         assert not SeerWorkflowConfig.objects.exists()
 
@@ -172,6 +179,7 @@ class SeerWorkflowCreateTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[self.project.id],
+                agent=AGENT,
             )
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
         assert not SeerWorkflowConfigProject.objects.exists()

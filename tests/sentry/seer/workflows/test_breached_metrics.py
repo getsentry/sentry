@@ -39,7 +39,12 @@ from sentry.seer.workflows.breached_metrics import (
     MetricBreachTrigger,
     get_config_monitors_bulk,
 )
-from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
+from sentry.seer.workflows.workflow import (
+    AllProjects,
+    SeerAgentAccess,
+    SeerWorkflow,
+    SelectedProjects,
+)
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 from sentry.services.eventstore.models import GroupEvent
@@ -63,6 +68,8 @@ from sentry.workflow_engine.processors.evaluations import ProcessWorkflowsResult
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+AGENT = SeerAgentAccess(scopes=["event:read"])
 
 
 class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
@@ -117,7 +124,7 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
 class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
     def test_creates_config_without_projects_preserving_environment_filter(self) -> None:
         workflow = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, environments=["production"]
+            self.organization.id, environments=["production"], agent=AGENT
         )
 
         config = workflow.get_config()
@@ -731,9 +738,11 @@ class GetConfigMonitorsBulkTest(TestCase):
         ]
         hidden = self.create_detector(project=hidden_project, type=MetricIssue.slug)
         connected = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[*(m.id for m in monitors), hidden.id]
+            self.organization.id, monitor_ids=[*(m.id for m in monitors), hidden.id], agent=AGENT
         ).get_config()
-        unconnected = BreachedMetricWorkflow.create_with_monitors(self.organization.id).get_config()
+        unconnected = BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id, agent=AGENT
+        ).get_config()
         triage = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         )
@@ -855,6 +864,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             environments=["production"],
             monitor_ids=self.monitor_ids,
             name="Latency breaches",
+            agent=AGENT,
         )
 
         config = workflow.get_config()
@@ -877,7 +887,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         with pytest.raises(ValueError, match="active metric monitors in this organization"):
             BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=[self.monitor_ids[0], foreign.id]
+                self.organization.id, monitor_ids=[self.monitor_ids[0], foreign.id], agent=AGENT
             )
 
         assert list(SeerWorkflowConfig.objects.filter(organization=self.organization)) == [
@@ -894,7 +904,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         with pytest.raises(ValueError, match="at most 2 automations"):
             BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=self.monitor_ids
+                self.organization.id, monitor_ids=self.monitor_ids, agent=AGENT
             )
 
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
@@ -908,11 +918,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
                 schedule=SeerWorkflowSchedule.DAILY,
                 project_ids=[],
+                agent=AGENT,
             )
 
         def create_metric() -> BreachedMetricWorkflow:
             return BreachedMetricWorkflow.create_with_monitors(
-                self.organization.id, monitor_ids=self.monitor_ids
+                self.organization.id, monitor_ids=self.monitor_ids, agent=AGENT
             )
 
         # setUp already created one metric automation.

@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from functools import partial
 from typing import Any, NotRequired, TypedDict
@@ -146,7 +146,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
-    agent = AgentSerializer(required=False)
+    agent = AgentSerializer()
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -386,7 +386,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """Create a Seer automation workflow.
 
-        Only ``strategy`` is required. ``enabled`` defaults to false, ``schedule`` to
+        ``strategy`` and ``agent`` are required. ``enabled`` defaults to false, ``schedule`` to
         daily, and ``environments`` to all. ``name`` is optional. Omitting
         ``projectIds`` selects no projects. Use ``[-1]`` for all projects.
 
@@ -394,8 +394,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         instead of ``projectIds``; their projects come from the connected monitors, and
         the caller needs read access to each monitor's project.
 
-        ``agent`` sets the scopes and projects investigations run with. The automation
-        gets its own service account for them, created here.
+        ``agent`` sets the scopes and projects investigations run with, on a service
+        account created for the automation.
 
         The number of automations per organization is capped, and creation is rate
         limited. Failures past request validation, such as reaching the cap, return an
@@ -426,9 +426,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
-        agent: SeerAgentAccess | None = data.get("agent")
-        if agent is not None:
-            check_can_grant_agent(agent, request, organization, self)
+        agent: SeerAgentAccess = data["agent"]
+        check_can_grant_agent(agent, request, organization, self)
 
         try:
             workflow: SeerWorkflow
@@ -460,7 +459,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(status=400)
 
-        account = workflow.get_agent_service_account() if agent is not None else None
+        account = workflow.get_agent_service_account()
         if account is not None:
             audit_agent_service_account(self, request, organization, account, "SERVICE_ACCOUNT_ADD")
 
@@ -551,7 +550,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
         - ``agent`` replaces the scopes and projects of the automation's service account,
-          creating the account if the automation doesn't have one.
+          creating the account if the automation doesn't have one. Like ``projectIds``,
+          the account's projects the caller can't access are kept.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -674,6 +674,18 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         account: RpcServiceAccount | None = None
         if agent is not None:
+            current = workflow.get_agent_service_account() if not agent.all_projects else None
+            if current is not None:
+                agent = replace(
+                    agent,
+                    project_ids=_with_no_access_project_ids(
+                        agent.project_ids,
+                        current.project_ids,
+                        request=request,
+                        organization=organization,
+                        endpoint=self,
+                    ),
+                )
             update = workflow.set_agent_access(agent, created_by_id=acting_user_id(request.user))
             account = update.service_account
             event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
@@ -886,8 +898,8 @@ def check_can_grant_agent(
 ) -> None:
     if not features.has("organizations:service-accounts", organization, actor=request.user):
         raise NotFound
-    if not request.access.has_scope("service_account:write"):
-        raise PermissionDenied("You need permission to manage service accounts.")
+    # No service_account:write check: the automation owns the account, and requiring it
+    # would stop Members from creating automations.
     if set(agent.scopes) - request.access.scopes:
         raise PermissionDenied("You can't give an agent scopes you don't have.")
     if agent.all_projects:

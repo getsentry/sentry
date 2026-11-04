@@ -187,32 +187,27 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         name: str | None = None,
-        agent: SeerAgentAccess | None = None,
+        agent: SeerAgentAccess,
         created_by_id: int | None = None,
     ) -> BreachedMetricWorkflow:
         """
         Create an automation whose project coverage comes from connected monitors.
-        ``agent`` creates the automation's service account; its projects are independent
-        of the monitors. Callers must authorize the grant and audit it.
+        ``agent`` sets the access of the automation's service account; its projects are
+        independent of the monitors. Callers must authorize the grant and audit it.
         """
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
         database = router.db_for_write(SeerWorkflowConfig)
-        with (
-            cls._maybe_create_agent_service_account(
-                organization_id, agent, automation_name=name, created_by_id=created_by_id
-            ) as account,
-            transaction.atomic(database),
-        ):
-            config = cls._create_config(
-                database=database,
-                organization_id=organization_id,
-                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-                enabled=enabled,
-                filters=SeerWorkflowFilters(environments=list(environments)),
-                name=name,
-                service_account_id=account.id if account else None,
-            )
+        with cls._create_config(
+            database=database,
+            organization_id=organization_id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(environments=list(environments)),
+            name=name,
+            agent=agent,
+            created_by_id=created_by_id,
+        ) as config:
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = workflow._set_monitor_selection(config, monitor_ids) if monitor_ids else None
             if change is not None:

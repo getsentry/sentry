@@ -5,6 +5,7 @@ from django.db import connections, router
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.auth.access import from_request
@@ -29,6 +30,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
+from sentry.seer.workflows.workflow import SeerAgentAccess
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
@@ -41,6 +43,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.workflow_engine.models import Detector, Workflow
+
+AGENT = SeerAgentAccess(scopes=["event:read"])
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -275,7 +279,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         ]
         disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
         metric = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[*(m.id for m in monitors), disabled.id]
+            self.organization.id, monitor_ids=[*(m.id for m in monitors), disabled.id], agent=AGENT
         )
         disabled.update(status=ObjectStatus.DISABLED)
         triage = self.create_config()
@@ -303,7 +307,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             type=MetricIssue.slug,
         )
         BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=[accessible.id, hidden.id]
+            self.organization.id, monitor_ids=[accessible.id, hidden.id], agent=AGENT
         )
         self.login_as(member)
 
@@ -692,7 +696,14 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self.login_as(member)
 
         response = self.get_success_response(self.organization.slug, config.id)
+        assert response.data["agent"]["projectIds"] == [accessible.id]
 
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            agent={"scopes": ["event:read"], "projectIds": [accessible.id]},
+        )
         assert response.data["agent"]["projectIds"] == [accessible.id]
         assert agent_project_ids(get_agent_service_account(config.id)) == sorted(
             [accessible.id, hidden.id]
@@ -869,9 +880,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
     def test_agent_with_scopes_the_caller_lacks_changes_nothing(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
-        token = self.create_user_auth_token(
-            user=self.user, scope_list=["project:read", "service_account:write"]
-        )
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
             f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
@@ -882,31 +891,14 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.status_code == 403
         assert self.connected_monitor_ids(workflow) == {monitor.id}
-        assert workflow.get_config().service_account_id is None
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.exists()
-
-    @with_feature("organizations:service-accounts")
-    def test_configuring_an_agent_requires_service_account_permissions(self) -> None:
-        member, project = self.create_member_with_project(open_membership=False)
-        workflow = self.create_metric_workflow()
-        self.login_as(member)
-
-        self.get_error_response(
-            self.organization.slug,
-            workflow.config_id,
-            method="put",
-            agent={"scopes": ["event:read"], "projectIds": [project.id]},
-            status_code=403,
-        )
-        assert workflow.get_config().service_account_id is None
+        assert get_agent_service_account(workflow.config_id).scope_list == ["event:read"]
 
     @with_feature("organizations:service-accounts")
     def test_all_projects_agent_requires_a_global_role(self) -> None:
         workflow = self.create_metric_workflow()
         api_key = self.create_api_key(
             organization=self.organization,
-            scope_list=["project:read", "event:read", "service_account:write"],
+            scope_list=["project:read", "event:read"],
         )
 
         response = self.client.put(
@@ -917,7 +909,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
 
         assert response.status_code == 403
-        assert workflow.get_config().service_account_id is None
+        assert not get_agent_service_account(workflow.config_id).all_projects
 
     def test_agent_requires_service_accounts_feature(self) -> None:
         config = self.create_config()
@@ -987,7 +979,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self, monitor_ids: list[int] | None = None
     ) -> BreachedMetricWorkflow:
         return BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=monitor_ids or []
+            self.organization.id, monitor_ids=monitor_ids or [], agent=AGENT
         )
 
     def connected_monitor_ids(self, workflow: BreachedMetricWorkflow) -> set[int]:
@@ -1022,6 +1014,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-automations")
+@with_feature("organizations:service-accounts")
 class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-workflow-configs"
     method = "post"
@@ -1029,6 +1022,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+
+    def get_response(self, *args: Any, **params: Any) -> Response:
+        params.setdefault("agent", {"scopes": ["event:read"]})
+        return super().get_response(*args, **params)
 
     def test_feature_disabled_returns_404(self) -> None:
         with self.feature({"organizations:seer-automations": False}):
@@ -1051,7 +1048,12 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "version": 1,
             "projects": [],
             "monitorIds": [],
-            "agent": None,
+            "agent": {
+                "serviceAccountId": str(config.service_account_id),
+                "scopes": ["event:read"],
+                "projectIds": [],
+                "allProjects": False,
+            },
             "environments": [],
             "filters": {},
             "outputPolicy": {},

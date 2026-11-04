@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection, Iterator, Mapping, Sequence
-from contextlib import AbstractContextManager, contextmanager, nullcontext
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, assert_never
@@ -119,44 +119,6 @@ class SeerWorkflow:
             )
 
     @classmethod
-    def _create_config(
-        cls,
-        *,
-        database: str,
-        organization_id: int,
-        strategy: SeerWorkflowStrategy,
-        enabled: bool,
-        filters: SeerWorkflowFilters,
-        name: str | None = None,
-        service_account_id: int | None = None,
-    ) -> SeerWorkflowConfig:
-        """
-        Create a config within the org's automation limit. Call inside a transaction on
-        ``database`` so the limit check and any related writes are atomic.
-        """
-        existing = (
-            SeerWorkflowConfig.objects.using(database)
-            .filter(
-                organization_id=organization_id,
-                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-            )
-            .count()
-        )
-        if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-            raise WorkflowUpdateError(
-                f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-            )
-
-        return SeerWorkflowConfig.objects.using(database).create(
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            filters=filters.dict(),
-            extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
-            service_account_id=service_account_id,
-        )
-
-    @classmethod
     def _validate_agent_project_ids(cls, organization_id: int, agent: SeerAgentAccess) -> None:
         if not agent.all_projects:
             cls._validate_project_ids(organization_id, set(agent.project_ids))
@@ -194,19 +156,51 @@ class SeerWorkflow:
             raise
 
     @classmethod
-    def _maybe_create_agent_service_account(
+    @contextmanager
+    def _create_config(
         cls,
-        organization_id: int,
-        agent: SeerAgentAccess | None,
         *,
-        automation_name: str | None,
+        database: str,
+        organization_id: int,
+        strategy: SeerWorkflowStrategy,
+        enabled: bool,
+        filters: SeerWorkflowFilters,
+        name: str | None,
+        agent: SeerAgentAccess,
         created_by_id: int | None,
-    ) -> AbstractContextManager[RpcServiceAccount | None]:
-        if agent is None:
-            return nullcontext()
-        return cls._create_agent_service_account(
-            organization_id, agent, automation_name=automation_name, created_by_id=created_by_id
-        )
+    ) -> Iterator[SeerWorkflowConfig]:
+        """
+        Create a config and its agent's service account within the org's automation limit.
+        Writes in the block share the config's transaction, and the account is deleted if
+        the block raises.
+        """
+        with (
+            cls._create_agent_service_account(
+                organization_id, agent, automation_name=name, created_by_id=created_by_id
+            ) as account,
+            transaction.atomic(database),
+        ):
+            existing = (
+                SeerWorkflowConfig.objects.using(database)
+                .filter(
+                    organization_id=organization_id,
+                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+                )
+                .count()
+            )
+            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+                raise WorkflowUpdateError(
+                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+                )
+
+            yield SeerWorkflowConfig.objects.using(database).create(
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                filters=filters.dict(),
+                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+                service_account_id=account.id,
+            )
 
     @classmethod
     def create(
@@ -219,13 +213,13 @@ class SeerWorkflow:
         project_ids: Collection[int],
         environments: Sequence[str] = (),
         name: str | None = None,
-        agent: SeerAgentAccess | None = None,
+        agent: SeerAgentAccess,
         created_by_id: int | None = None,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
-        projects and ``environments=[]`` for all environments. ``agent`` creates the
-        automation's service account. Callers must authorize the grant and audit it.
+        projects and ``environments=[]`` for all environments. ``agent`` sets the access of
+        the automation's service account. Callers must authorize the grant and audit it.
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
@@ -240,24 +234,19 @@ class SeerWorkflow:
         cls._validate_project_ids(organization_id, project_set)
 
         database = router.db_for_write(SeerWorkflowConfig)
-        with (
-            cls._maybe_create_agent_service_account(
-                organization_id, agent, automation_name=name, created_by_id=created_by_id
-            ) as account,
-            transaction.atomic(database),
-        ):
-            config = cls._create_config(
-                database=database,
-                organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                filters=SeerWorkflowFilters(
-                    all_projects=all_projects,
-                    environments=list(environments),
-                ),
-                name=name,
-                service_account_id=account.id if account else None,
-            )
+        with cls._create_config(
+            database=database,
+            organization_id=organization_id,
+            strategy=strategy,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(
+                all_projects=all_projects,
+                environments=list(environments),
+            ),
+            name=name,
+            agent=agent,
+            created_by_id=created_by_id,
+        ) as config:
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
             if project_set:
