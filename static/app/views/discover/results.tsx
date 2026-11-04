@@ -68,7 +68,6 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {generateQueryWithTag, decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -127,7 +126,7 @@ const parseAsYAxis = createMultiParser<string[]>({
 const resultsQueryParsers = {
   cursor: parseAsString,
   display: parseAsString,
-  end: pageFilterParsers.end,
+  end: parseAsString,
   id: parseAsScalar,
   incompatible: parseAsString,
   interval: parseAsString,
@@ -139,10 +138,10 @@ const resultsQueryParsers = {
   query: parseAsString,
   queryDataset: parseAsScalar,
   showUnparameterizedBanner: parseAsString,
-  start: pageFilterParsers.start,
-  statsPeriod: pageFilterParsers.statsPeriod,
+  start: parseAsString,
+  statsPeriod: parseAsString,
   topEvents: parseAsString,
-  utc: pageFilterParsers.utc,
+  utc: parseAsString,
   yAxis: parseAsYAxis,
 };
 
@@ -544,7 +543,6 @@ class ResultsContent extends Component<Props, State> {
 
     setQueryParams({
       query,
-      // do not propagate pagination when making a new search
       cursor: null,
       end: end ?? null,
       pageEnd: null,
@@ -555,6 +553,8 @@ class ResultsContent extends Component<Props, State> {
       start: start ?? null,
       statsPeriod: statsPeriod ?? null,
       utc: utc ?? null,
+      // Searching has always reset a cleared y-axis to the default.
+      yAxis: queryParams.yAxis?.length === 0 ? null : undefined,
     });
   };
 

@@ -325,6 +325,227 @@ describe('Results', () => {
           })
         );
       });
+      expect(router.location.query.cursor).toBeUndefined();
+    });
+
+    it('replaces page and legacy date params with normalized ones when searching on an absolute range', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {
+              ...generateFields(),
+              cursor: '0:50:0',
+              start: '2024-01-01T00:00:00',
+              end: '2024-01-02T00:00:00',
+              pageStart: '2023-01-01T00:00:00',
+              pageEnd: '2023-01-02T00:00:00',
+              period: '',
+            },
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await screen.findByText(eventTitle);
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      await userEvent.paste('geo:canada');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(router.location.query.query).toBe('geo:canada');
+      });
+      expect(router.location.query).toEqual({
+        ...generateFields(),
+        query: 'geo:canada',
+        start: '2024-01-01T00:00:00.000',
+        end: '2024-01-02T00:00:00.000',
+      });
+    });
+
+    it('resets a cleared y-axis to the default when searching', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      const {eventsStatsMock} = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), yAxis: 'count()'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Y-Axis count()'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+      await screen.findByText('No Y-Axis selected.');
+      eventsStatsMock.mockClear();
+
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      );
+      await userEvent.paste('geo:canada');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(router.location.query.query).toBe('geo:canada');
+      });
+      expect(router.location.query.yAxis).toBeUndefined();
+      expect(screen.queryByText('No Y-Axis selected.')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(eventsStatsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-stats/',
+          expect.objectContaining({
+            query: expect.objectContaining({yAxis: ['count()']}),
+          })
+        );
+      });
+    });
+
+    it('writes the display to the URL when a display is selected', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), display: 'default', yAxis: 'count()'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('button', {name: /Display/}),
+        'Total Daily'
+      );
+
+      await waitFor(() => {
+        expect(router.location.query.display).toBe('daily');
+      });
+      expect(router.location.query.yAxis).toBe('count()');
+    });
+
+    it('writes the interval to the URL when an interval is selected', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), display: 'default', yAxis: 'count()'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('button', {name: /Interval/}),
+        '4h'
+      );
+
+      await waitFor(() => {
+        expect(router.location.query.interval).toBe('4h');
+      });
+      expect(router.location.query.display).toBe('default');
+    });
+
+    it('writes the top events limit to the URL when a limit is selected', async () => {
+      const organization = OrganizationFixture({
+        features: [...features, 'discover-query'],
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), display: 'top5', yAxis: 'count()'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await selectEvent.select(await screen.findByRole('button', {name: /Limit/}), '3');
+
+      await waitFor(() => {
+        expect(router.location.query.topEvents).toBe('3');
+      });
+      expect(router.location.query.display).toBe('top5');
+    });
+
+    it('writes the cursor to the URL when the next page is clicked', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      renderMockRequests();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        headers: {
+          Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/events/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
+        },
+        body: {
+          meta: {fields: {title: 'string'}},
+          data: [{id: 'deadbeef', title: eventTitle}],
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), yAxis: 'count()'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+      await waitFor(() => {
+        expect(router.location.query.cursor).toBe('0:50:0');
+      });
+      expect(router.location.query.yAxis).toBe('count()');
     });
 
     it('renders a y-axis selector', async () => {
