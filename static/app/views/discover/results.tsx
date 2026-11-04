@@ -7,6 +7,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import {createMultiParser, parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -65,8 +66,9 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {generateQueryWithTag, decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -108,12 +110,47 @@ import {
 } from 'sentry/views/discover/utils';
 import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+// Unlike parseAsStringArray, keeps a cleared y-axis (`?yAxis=`) distinct from an absent one.
+const parseAsYAxis = createMultiParser<string[]>({
+  parse: values => values.filter(Boolean),
+  serialize: values => (values.length > 0 ? values : ['']),
+});
+
+const resultsQueryParsers = {
+  cursor: parseAsString,
+  display: parseAsString,
+  end: pageFilterParsers.end,
+  id: parseAsScalar,
+  incompatible: parseAsString,
+  interval: parseAsString,
+  pageEnd: parseAsString,
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+  pageUtc: parseAsString,
+  period: parseAsString,
+  query: parseAsString,
+  queryDataset: parseAsScalar,
+  showUnparameterizedBanner: parseAsString,
+  start: pageFilterParsers.start,
+  statsPeriod: pageFilterParsers.statsPeriod,
+  topEvents: parseAsString,
+  utc: pageFilterParsers.utc,
+  yAxis: parseAsYAxis,
+};
+
+function useResultsQueryParams() {
+  return useQueryStates(resultsQueryParsers, {history: 'push'});
+}
+
+type ResultsQueryParams = ReturnType<typeof useResultsQueryParams>;
 
 type Props = {
   addAlert: AddAlert;
@@ -122,7 +159,9 @@ type Props = {
   location: Location;
   navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
+  queryParams: ResultsQueryParams[0];
   selection: PageFilters;
+  setQueryParams: ResultsQueryParams[1];
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   getAiQueryRunId?: () => number | string | null;
   isHomepage?: boolean;
@@ -147,26 +186,26 @@ type State = {
   splitDecision?: SavedQueryDatasets;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
-const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 function readShowTagsState() {
   const value = localStorageWrapper.getItem(SHOW_TAGS_STORAGE_KEY);
   return value === '1';
 }
 
-function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
-  if (location.query.yAxis) {
-    return decodeList(location.query.yAxis);
-  }
-  if (location.query.yAxis === null) {
-    return [];
+function getYAxis(
+  yAxisParam: string[] | null,
+  eventView: EventView,
+  savedQuery?: SavedQuery
+) {
+  if (yAxisParam !== null) {
+    return yAxisParam;
   }
   return savedQuery?.yAxis && savedQuery?.yAxis.length > 0
     ? decodeList(savedQuery?.yAxis)
     : [eventView.getYAxis()];
 }
 
-export class Results extends Component<Props, State> {
+class ResultsContent extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const savedQueryDataset = getSavedQueryDataset(
       nextProps.organization,
@@ -211,54 +250,44 @@ export class Results extends Component<Props, State> {
   };
 
   componentDidMount() {
-    const {organization, selection, location, isHomepage, navigate} = this.props;
-    if (location.query[SHOW_UNPARAM_BANNER]) {
+    const {organization, selection, isHomepage, queryParams, setQueryParams} = this.props;
+    if (queryParams.showUnparameterizedBanner) {
       // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
-      navigate(
-        {
-          ...location,
-          query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
-        },
-        {replace: true}
-      );
+      setQueryParams({showUnparameterizedBanner: null}, {history: 'replace'});
     }
     loadOrganizationTags(this.tagsApi, organization.slug, selection, this.props.addAlert);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
-    if (!isHomepage && defined(location.query.id)) {
-      updateSavedQueryVisit(organization.slug, location.query.id);
+    if (!isHomepage && queryParams.id !== null) {
+      updateSavedQueryVisit(organization.slug, queryParams.id);
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {location, organization, selection} = this.props;
+    const {location, organization, queryParams, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
-    if (location.query.incompatible) {
+    if (queryParams.incompatible) {
       // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
-      this.props.navigate(
-        {
-          ...location,
-          query: {...location.query, incompatible: undefined},
-        },
-        {replace: true}
-      );
+      this.props.setQueryParams({incompatible: null}, {history: 'replace'});
     }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-    const yAxisArray = getYAxis(location, eventView, savedQuery);
-    const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
+    const yAxisArray = getYAxis(queryParams.yAxis, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(
+      prevProps.queryParams.yAxis,
+      eventView,
+      prevState.savedQuery
+    );
 
-    const savedQueryDataset =
-      decodeScalar(location.query.queryDataset) ?? savedQuery?.queryDataset;
+    const savedQueryDataset = queryParams.queryDataset ?? savedQuery?.queryDataset;
     const prevSavedQueryDataset =
-      decodeScalar(prevProps.location.query.queryDataset) ??
-      prevState.savedQuery?.queryDataset;
+      prevProps.queryParams.queryDataset ?? prevState.savedQuery?.queryDataset;
 
     const datasetChanged = !isEqual(savedQueryDataset, prevSavedQueryDataset);
 
@@ -436,7 +465,8 @@ export class Results extends Component<Props, State> {
     }
 
     // If the view is not valid, redirect to a known valid state.
-    const {location, organization, selection, isHomepage, savedQuery} = this.props;
+    const {location, organization, queryParams, selection, isHomepage, savedQuery} =
+      this.props;
 
     const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector(organization)
@@ -458,8 +488,8 @@ export class Results extends Component<Props, State> {
       nextEventView.start = normalizeDateTimeString(start);
       nextEventView.end = normalizeDateTimeString(end);
     }
-    if (location.query?.query) {
-      nextEventView.query = decodeScalar(location.query.query, '');
+    if (queryParams.query) {
+      nextEventView.query = queryParams.query;
     }
 
     if (isHomepage && !this.state.savedQuery) {
@@ -477,11 +507,8 @@ export class Results extends Component<Props, State> {
     );
   }
 
-  handleCursor: CursorHandler = (cursor, path, query, _direction) => {
-    this.props.navigate({
-      pathname: path,
-      query: {...query, cursor},
-    });
+  handleCursor: CursorHandler = cursor => {
+    this.props.setQueryParams({cursor: cursor ?? null});
     // Treat pagination like the user already confirmed the query
     if (!this.state.needConfirmation) {
       this.handleConfirmed();
@@ -501,43 +528,51 @@ export class Results extends Component<Props, State> {
   };
 
   handleSearch = (query: string) => {
-    const {location, navigate} = this.props;
+    const {queryParams, setQueryParams} = this.props;
 
-    const queryParams = normalizeDateTimeParams({
-      ...location.query,
-      query,
+    const {statsPeriod, start, end, utc} = normalizeDateTimeParams({
+      end: queryParams.end,
+      pageEnd: queryParams.pageEnd,
+      pageStart: queryParams.pageStart,
+      pageStatsPeriod: queryParams.pageStatsPeriod,
+      pageUtc: queryParams.pageUtc,
+      period: queryParams.period,
+      start: queryParams.start,
+      statsPeriod: queryParams.statsPeriod,
+      utc: queryParams.utc,
     });
 
-    // do not propagate pagination when making a new search
-    const searchQueryParams = omit(queryParams, 'cursor');
-
-    navigate({
-      pathname: location.pathname,
-      query: searchQueryParams,
+    setQueryParams({
+      query,
+      // do not propagate pagination when making a new search
+      cursor: null,
+      end: end ?? null,
+      pageEnd: null,
+      pageStart: null,
+      pageStatsPeriod: null,
+      pageUtc: null,
+      period: null,
+      start: start ?? null,
+      statsPeriod: statsPeriod ?? null,
+      utc: utc ?? null,
     });
   };
 
   handleYAxisChange = (value: string[]) => {
-    const {navigate, location} = this.props;
-    const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
-      location.query.display as DisplayModes
+    const {queryParams, setQueryParams} = this.props;
+    const isDisplayMultiYAxisSupported = MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.some(
+      mode => mode === queryParams.display
     );
 
-    const newQuery = {
-      ...location.query,
-      yAxis: value.length > 0 ? value : [null],
+    setQueryParams({
+      yAxis: value,
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
         value.length > 1 && !isDisplayMultiYAxisSupported
-          ? location.query.display === DisplayModes.DAILYTOP5
+          ? queryParams.display === DisplayModes.DAILYTOP5
             ? DisplayModes.DAILY
             : DisplayModes.DEFAULT
-          : location.query.display,
-    };
-
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
+          : undefined,
     });
 
     // Treat axis changing like the user already confirmed the query
@@ -552,17 +587,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleDisplayChange = (value: string) => {
-    const {navigate, location} = this.props;
-
-    const newQuery = {
-      ...location.query,
-      display: value,
-    };
-
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    this.props.setQueryParams({display: value});
 
     // Treat display changing like the user already confirmed the query
     if (!this.state.needConfirmation) {
@@ -571,18 +596,10 @@ export class Results extends Component<Props, State> {
   };
 
   handleIntervalChange = (value: string | undefined) => {
-    const {navigate, location} = this.props;
+    const {queryParams, setQueryParams} = this.props;
 
-    const newQuery = {
-      ...location.query,
-      interval: value,
-    };
-
-    if (location.query.interval !== value) {
-      navigate({
-        pathname: location.pathname,
-        query: newQuery,
-      });
+    if ((queryParams.interval ?? undefined) !== value) {
+      setQueryParams({interval: value ?? null});
 
       // Treat display changing like the user already confirmed the query
       if (!this.state.needConfirmation) {
@@ -592,17 +609,7 @@ export class Results extends Component<Props, State> {
   };
 
   handleTopEventsChange = (value: string) => {
-    const {navigate, location} = this.props;
-
-    const newQuery = {
-      ...location.query,
-      topEvents: value,
-    };
-
-    navigate({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    this.props.setQueryParams({topEvents: value});
 
     // Treat display changing like the user already confirmed the query
     if (!this.state.needConfirmation) {
@@ -645,7 +652,8 @@ export class Results extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, selection, setSavedQuery, isHomepage} = this.props;
+    const {organization, location, queryParams, selection, setSavedQuery, isHomepage} =
+      this.props;
     const {
       eventView,
       error,
@@ -665,7 +673,7 @@ export class Results extends Component<Props, State> {
 
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const yAxisArray = getYAxis(queryParams.yAxis, eventView, savedQuery);
 
     if (!eventView.isValid()) {
       return <LoadingIndicator />;
@@ -827,6 +835,19 @@ export class Results extends Component<Props, State> {
       </SentryDocumentTitle>
     );
   }
+}
+
+type ResultsProps = Omit<Props, 'queryParams' | 'setQueryParams'>;
+
+export function Results(props: ResultsProps) {
+  const [queryParams, setQueryParams] = useResultsQueryParams();
+  return (
+    <ResultsContent
+      {...props}
+      queryParams={queryParams}
+      setQueryParams={setQueryParams}
+    />
+  );
 }
 
 function MetricsFallbackBanner() {
@@ -1489,26 +1510,29 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
+function SavedQueryAPI(
+  props: Omit<ResultsProps, 'savedQuery' | 'loading' | 'setSavedQuery'>
+) {
   const queryClient = useQueryClient();
-  const {organization, location} = props;
+  const {organization} = props;
   const {getRunIdForAnalytics} = useAiQueryContext();
+  const [id] = useQueryState('id', parseAsScalar);
 
   const queryKey = useMemo(
     (): ApiQueryKey => [
       getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
         path: {
           organizationIdOrSlug: organization.slug,
-          queryId: decodeScalar(location.query.id)!,
+          queryId: id!,
         },
       }),
     ],
-    [organization, location.query.id]
+    [organization, id]
   );
   const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
     queryKey,
     {
-      enabled: Boolean(location.query.id),
+      enabled: Boolean(id),
       staleTime: 0,
     }
   );
@@ -1549,6 +1573,7 @@ export default function ResultsContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
+  const [id] = useQueryState('id', parseAsScalar);
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.ERRORS],
   });
@@ -1566,9 +1591,7 @@ export default function ResultsContainer() {
 
   return (
     <PageFiltersContainer
-      disablePersistence={
-        organization.features.includes('discover-query') && !!location.query.id
-      }
+      disablePersistence={organization.features.includes('discover-query') && !!id}
       maxPickableDays={maxPickableDays.maxPickableDays}
       skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state

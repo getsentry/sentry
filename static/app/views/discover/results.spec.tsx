@@ -381,6 +381,80 @@ describe('Results', () => {
       );
     });
 
+    it('keeps other params in the URL when a second y-axis is selected', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {
+              ...generateFields(),
+              display: 'previous',
+              yAxis: 'count()',
+              interval: '1h',
+            },
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('button', {name: 'Y-Axis count()'}),
+        'count_unique(user)'
+      );
+
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({
+            display: 'previous',
+            interval: '1h',
+            yAxis: ['count()', 'count_unique(user)'],
+          })
+        );
+      });
+    });
+
+    it.each(['yAxis=', 'yAxis'])(
+      'shows no y-axis when the URL has a cleared %p',
+      async clearedYAxis => {
+        const organization = OrganizationFixture({
+          features,
+        });
+
+        renderMockRequests();
+
+        ProjectsStore.loadInitialData([ProjectFixture()]);
+
+        const {router} = render(<Results />, {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+              query: generateFields(),
+            },
+            route: '/organizations/:orgId/explore/errors/results/',
+          },
+          organization,
+        });
+
+        await screen.findByText(eventTitle);
+        const params = new URLSearchParams();
+        FIELDS.forEach(f => params.append('field', f.field));
+        router.navigate(
+          `${router.location.pathname}?${params.toString()}&${clearedYAxis}`
+        );
+
+        expect(await screen.findByText('No Y-Axis selected.')).toBeInTheDocument();
+      }
+    );
+
     it('excludes top5 options when plan does not include discover-query', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
@@ -906,6 +980,65 @@ describe('Results', () => {
       expect(
         await screen.findByText(/These are unparameterized transactions/)
       ).toBeInTheDocument();
+    });
+
+    it('removes the unparameterized banner param from the URL when it is shown', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic'],
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {showUnparameterizedBanner: 'true', id: '1'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      await screen.findByText(/These are unparameterized transactions/);
+
+      await waitFor(() => {
+        expect(router.location.query.showUnparameterizedBanner).toBeUndefined();
+      });
+      expect(router.location.query.id).toBe('1');
+    });
+
+    it('shows the incompatible query banner and removes its param when the URL has incompatible', async () => {
+      const organization = OrganizationFixture({
+        features,
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      renderMockRequests();
+
+      const {router} = render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), incompatible: '1'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      expect(
+        await screen.findByText(
+          'Your query was updated to make it compatible with this dataset.'
+        )
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(router.location.query.incompatible).toBeUndefined();
+      });
+      expect(router.location.query.field).toEqual(generateFields().field);
     });
 
     it('updates the homepage query with up to date eventView when Set as Default is clicked', async () => {
