@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -47,7 +48,7 @@ def organization_project_ids(organization: Organization) -> set[int]:
 
 
 def user_id(request: Request) -> int:
-    resolved = request.user.id
+    resolved = acting_user_id(request.user)
     if resolved is None:
         raise PermissionDenied
     return resolved

@@ -3,10 +3,11 @@ from __future__ import annotations
 import collections
 from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from sentry_sdk import traces
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 
 
@@ -61,40 +62,44 @@ class OTAUpdatesResponseType(TypedDict, total=False):
     }
 )
 class ReplayDetailsResponse(TypedDict, total=False):
-    id: str
-    project_id: str
-    trace_ids: list[str]
-    error_ids: list[str]
-    environment: str | None
-    tags: dict[str, list[str]] | list[str]
-    user: UserResponseType
-    sdk: SDKResponseType
-    os: OSResponseType
-    browser: BrowserResponseType
-    device: DeviceResponseType
-    ota_updates: OTAUpdatesResponseType
-    is_archived: bool | None
-    urls: list[str] | None
+    id: Annotated[str, ApiDescription("Replay ID")]
+    project_id: Annotated[str, ApiDescription("ID of the project the replay belongs to")]
+    trace_ids: Annotated[list[str], ApiDescription("IDs of traces linked to the replay")]
+    error_ids: Annotated[list[str], ApiDescription("IDs of errors linked to the replay")]
+    environment: Annotated[str | None, ApiDescription("Environment of the replay")]
+    tags: Annotated[dict[str, list[str]] | list[str], ApiDescription("Replay tags")]
+    user: Annotated[UserResponseType, ApiDescription("User metadata")]
+    sdk: Annotated[SDKResponseType, ApiDescription("SDK metadata")]
+    os: Annotated[OSResponseType, ApiDescription("Operating system metadata")]
+    browser: Annotated[BrowserResponseType, ApiDescription("Browser metadata")]
+    device: Annotated[DeviceResponseType, ApiDescription("Device metadata")]
+    ota_updates: Annotated[OTAUpdatesResponseType, ApiDescription("Over-the-air update metadata")]
+    is_archived: Annotated[bool | None, ApiDescription("Whether the replay is archived")]
+    urls: Annotated[list[str] | None, ApiDescription("URLs visited during the replay")]
     segment_names: list[str] | None
     clicks: list[dict[str, Any]]
-    count_dead_clicks: int | None
-    count_rage_clicks: int | None
-    count_errors: int | None
-    duration: int | None
-    finished_at: str | None
-    started_at: str | None
-    activity: int | None
-    count_urls: int | None
-    replay_type: str
-    count_segments: int | None
-    platform: str | None
-    releases: list[str]
-    dist: str | None
+    count_dead_clicks: Annotated[int | None, ApiDescription("Number of dead clicks")]
+    count_rage_clicks: Annotated[int | None, ApiDescription("Number of rage clicks")]
+    count_errors: Annotated[int | None, ApiDescription("Number of errors linked to the replay")]
+    duration: Annotated[int | None, ApiDescription("Replay duration in seconds")]
+    finished_at: Annotated[str | None, ApiDescription("When the replay finished (ISO 8601)")]
+    started_at: Annotated[str | None, ApiDescription("When the replay started (ISO 8601)")]
+    activity: Annotated[int | None, ApiDescription("Replay activity score")]
+    count_urls: Annotated[int | None, ApiDescription("Number of URLs visited during the replay")]
+    replay_type: Annotated[
+        str, ApiDescription("Recording mode of the replay, such as session or buffer")
+    ]
+    count_segments: Annotated[int | None, ApiDescription("Number of recording segments")]
+    platform: Annotated[str | None, ApiDescription("Platform of the replay")]
+    releases: Annotated[list[str], ApiDescription("Releases associated with the replay")]
+    dist: Annotated[str | None, ApiDescription("Distribution of the replay")]
     warning_ids: list[str] | None
     info_ids: list[str] | None
-    count_warnings: int | None
-    count_infos: int | None
-    has_viewed: bool
+    count_warnings: Annotated[
+        int | None, ApiDescription("Number of warning events linked to the replay")
+    ]
+    count_infos: Annotated[int | None, ApiDescription("Number of info events linked to the replay")]
+    has_viewed: Annotated[bool, ApiDescription("Whether the requesting user has viewed the replay")]
 
 
 @traces.trace

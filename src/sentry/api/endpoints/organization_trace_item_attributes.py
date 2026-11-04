@@ -64,6 +64,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.exceptions import InvalidSearchQuery
@@ -256,7 +257,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsEndpointBase
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         batch_features = features.batch_has(
-            self.feature_flags, organization=organization, actor=request.user
+            self.feature_flags, organization=organization, actor=acting_user(request.user)
         )
 
         if batch_features is None:

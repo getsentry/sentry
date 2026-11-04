@@ -347,12 +347,12 @@ export function useInfiniteLogsQuery({
   const nextPageHasData = nextPageLink?.results ?? false;
   const nextPageCursor = nextPageLink?.cursor;
 
+  const canFetchNextPage = hasNextPage && nextPageHasData;
+
   const _fetchNextPage = useCallback(
     () =>
-      hasNextPage && nextPageHasData
-        ? !isFetching && !isError && fetchNextPage()
-        : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
+      canFetchNextPage ? !isFetching && !isError && fetchNextPage() : Promise.resolve(),
+    [canFetchNextPage, fetchNextPage, isFetching, isError]
   );
 
   const dataScannedList = data?.pages?.map(page => page.json.meta?.dataScanned);
@@ -365,10 +365,7 @@ export function useInfiniteLogsQuery({
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
   const canAutoFetchNextPage =
-    !!highFidelity &&
-    hasNextPage &&
-    nextPageHasData &&
-    (lastPageLength === 0 || _data.length < limit);
+    !!highFidelity && canFetchNextPage && (lastPageLength === 0 || _data.length < limit);
 
   const {shouldAutoFetchNextPage, resumeAutoFetch} = useAutoFetchWindow({
     queryKey: queryKeyWithInfinite,
@@ -402,6 +399,7 @@ export function useInfiniteLogsQuery({
     fetchPreviousPage: _fetchPreviousPage,
     refetch,
     hasNextPage,
+    canFetchNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
     isFetchingNextPage: _data.length > 0 && isFetchingNextPage,

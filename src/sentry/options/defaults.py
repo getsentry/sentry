@@ -267,6 +267,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# OAuth client IDs that may redeem one-time setup codes with the setup_code
+# grant. Empty disables setup codes.
+register(
+    "oauth.setup-code.allowed-client-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Auth
 register(
     "auth.ip-rate-limit",
@@ -759,19 +768,26 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Bound GitLab project webhook reconciliation independently in each cell region. These
-# options intentionally describe repositories rather than HTTP requests: one repair can
-# make several requests, so production values should leave room below GitLab's API limit.
+# Bound GitLab project webhook reconciliation independently in each cell region. Each
+# repository consumes three capacity tokens to leave room for repairs that make multiple
+# GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=10,
+    default=3,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "gitlab.webhook-reconcile.rate-limit.per-second",
-    default=2,
+    default=1,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-delay-seconds",
+    default=73,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
