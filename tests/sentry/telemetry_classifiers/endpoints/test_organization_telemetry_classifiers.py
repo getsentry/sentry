@@ -231,8 +231,11 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         self.login_as(member)
 
         with self.feature(self.features):
-            self.get_error_response(self.organization.slug, **self.payload(), status_code=403)
+            response = self.get_error_response(
+                self.organization.slug, **self.payload(), status_code=400
+            )
 
+        assert response.data["project"] == ["Insufficient access to project"]
         assert not TelemetryClassifier.objects.exists()
 
     def test_team_admin_can_create(self) -> None:
