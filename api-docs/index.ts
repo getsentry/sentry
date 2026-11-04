@@ -12,8 +12,21 @@ function dictToString(dict) {
   return res.join('\n');
 }
 
+// Python sources of TypedDict fields, which only the response coverage check reads.
+const FIELD_SOURCE = 'x-sentry-source';
+
+function stripFieldSources(node: unknown) {
+  if (Array.isArray(node)) {
+    node.forEach(stripFieldSources);
+  } else if (node && typeof node === 'object') {
+    delete (node as Record<string, unknown>)[FIELD_SOURCE];
+    Object.values(node).forEach(stripFieldSources);
+  }
+}
+
 function bundle(originalFile) {
   const root = parse(fs.readFileSync(originalFile, 'utf8'));
+  stripFieldSources(root);
   const options = {
     filter: ['relative', 'remote', 'local'],
     resolveCirculars: true,
