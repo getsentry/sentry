@@ -1,4 +1,3 @@
-import {memo} from 'react';
 import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
@@ -13,8 +12,6 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 const renderDisabled = (p: any) => (
   <Hovercard
@@ -41,7 +38,6 @@ type Props = {
    * passed down only because it is needed for navigation.
    */
   location: Location;
-  navigate: ReactRouter3Navigate;
   organization: Organization;
   queryDataLoading: boolean;
   savedQuery: SavedQuery | undefined;
@@ -54,10 +50,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-const MemoizedSavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
-  disabled = false,
-  organization,
-}: Props) {
+export function SavedQueryButtonGroup({disabled = false, organization}: Props) {
   return (
     <Grid flow="column" align="center" gap="md">
       <Feature
@@ -83,9 +76,4 @@ const MemoizedSavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
       </Feature>
     </Grid>
   );
-});
-
-export function SavedQueryButtonGroup(props: Omit<Props, 'navigate'>) {
-  const navigate = useNavigate();
-  return <MemoizedSavedQueryButtonGroup {...props} navigate={navigate} />;
 }
