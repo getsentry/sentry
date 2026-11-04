@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -10,16 +11,18 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
-import {withApi} from 'sentry/utils/withApi';
 
+import {projectTransactionThresholdApiOptions} from './transactionThresholdApiOptions';
 import {useEventViewProject} from './useEventViewProject';
 import {transactionSummaryRouteWithQuery} from './utils';
 
@@ -29,7 +32,6 @@ export enum TransactionThresholdMetric {
 }
 
 type Props = {
-  api: Client;
   eventView: EventView;
   organization: Organization;
   transactionName: string;
@@ -39,8 +41,7 @@ type Props = {
   project?: string;
 } & ModalRenderProps;
 
-function TransactionThresholdModal({
-  api,
+export function TransactionThresholdModal({
   Body,
   eventView,
   Footer,
@@ -60,6 +61,70 @@ function TransactionThresholdModal({
   const {projects} = useProjects();
   const project = useEventViewProject(projects, eventView, projectId);
 
+  const queryClient = useQueryClient();
+  const overrideUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
+    {path: {organizationIdOrSlug: organization.slug}}
+  );
+
+  const {mutate: applyThreshold} = useMutation({
+    mutationFn: (variables: {
+      metric: TransactionThresholdMetric | undefined;
+      project: Project;
+      threshold: number | string | undefined;
+    }) =>
+      fetchMutation({
+        url: overrideUrl,
+        method: 'POST',
+        options: {query: {project: variables.project.id}},
+        data: {
+          transaction: transactionName,
+          threshold: variables.threshold,
+          metric: variables.metric,
+        },
+      }),
+    onSuccess: (_data, variables) => {
+      closeModal();
+      onApply?.(variables.threshold, variables.metric);
+    },
+    onError: err => {
+      let errorMessage =
+        err instanceof RequestError
+          ? (err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors)
+          : null;
+      if (Array.isArray(errorMessage)) {
+        errorMessage = errorMessage[0];
+      }
+      addErrorMessage(errorMessage as string);
+    },
+  });
+
+  const {mutate: resetThreshold} = useMutation({
+    mutationFn: async (resetProject: Project) => {
+      await fetchMutation({
+        url: overrideUrl,
+        method: 'DELETE',
+        options: {query: {project: resetProject.id}},
+        data: {transaction: transactionName},
+      });
+      const response = await queryClient.fetchQuery(
+        projectTransactionThresholdApiOptions({organization, project: resetProject})
+      );
+      return response.json;
+    },
+    onSuccess: data => {
+      setThreshold(data.threshold);
+      setMetric(data.metric);
+      closeModal();
+      onApply?.(data.threshold, data.metric);
+    },
+    onError: err => {
+      const errorMessage =
+        err instanceof RequestError ? err.responseJSON?.threshold : null;
+      addErrorMessage(errorMessage as string);
+    },
+  });
+
   const handleApply = (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -67,37 +132,7 @@ function TransactionThresholdModal({
       return;
     }
 
-    const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-
-    api
-      .requestPromise(transactionThresholdUrl, {
-        method: 'POST',
-        includeAllArgs: true,
-        query: {
-          project: project.id,
-        },
-        data: {
-          transaction: transactionName,
-          threshold,
-          metric,
-        },
-      })
-      .then(() => {
-        closeModal();
-        if (onApply) {
-          onApply(threshold, metric);
-        }
-      })
-      .catch(err => {
-        let errorMessage =
-          err instanceof RequestError
-            ? (err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors)
-            : null;
-        if (Array.isArray(errorMessage)) {
-          errorMessage = errorMessage[0];
-        }
-        addErrorMessage(errorMessage as string);
-      });
+    applyThreshold({project, threshold, metric});
   };
 
   const handleReset = (event: React.FormEvent) => {
@@ -107,43 +142,7 @@ function TransactionThresholdModal({
       return;
     }
 
-    const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-
-    api
-      .requestPromise(transactionThresholdUrl, {
-        method: 'DELETE',
-        includeAllArgs: true,
-        query: {
-          project: project.id,
-        },
-        data: {
-          transaction: transactionName,
-        },
-      })
-      .then(() => {
-        const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        return api
-          .requestPromise(projectThresholdUrl, {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              project: project.id,
-            },
-          })
-          .then(([data]) => {
-            setThreshold(data.threshold);
-            setMetric(data.metric);
-            closeModal();
-            if (onApply) {
-              onApply(data.threshold, data.metric);
-            }
-          });
-      })
-      .catch(err => {
-        const errorMessage =
-          err instanceof RequestError ? err.responseJSON?.threshold : null;
-        addErrorMessage(errorMessage as string);
-      });
+    resetThreshold(project);
   };
 
   const modalFields = (
@@ -262,5 +261,3 @@ export const modalCss = css`
   width: 100%;
   max-width: 650px;
 `;
-
-export default withApi(TransactionThresholdModal);

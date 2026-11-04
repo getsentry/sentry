@@ -34,7 +34,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import {DashboardTable} from 'sentry/views/dashboards/manage/dashboardTable';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
 import {
   CUSTOM_DASHBOARD_LABEL,
@@ -359,7 +359,6 @@ function ManageDashboards() {
 
   const dashboardsView = (
     <DashboardTable
-      api={api}
       dashboards={dashboards}
       organization={organization}
       location={location}

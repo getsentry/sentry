@@ -4,7 +4,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
@@ -29,7 +29,6 @@ describe('TeamAccessRequestModal', () => {
     teamId,
     memberId,
     CloseButton: makeCloseButton(() => {}),
-    api: new MockApiClient(),
   };
 
   beforeEach(() => {
@@ -53,6 +52,21 @@ describe('TeamAccessRequestModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
+  });
+
+  it('closes modal when the request fails', async () => {
+    MockApiClient.clearMockResponses();
+    const failingMock = MockApiClient.addMockResponse({
+      url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
+      method: 'POST',
+      statusCode: 400,
+    });
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(failingMock).toHaveBeenCalled();
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
   });
 
   it('closes modal on cancel', async () => {

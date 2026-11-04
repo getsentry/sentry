@@ -20,7 +20,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -34,9 +33,9 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -52,7 +51,6 @@ import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 type Props = {
-  api: Client;
   dashboards: DashboardListItem[] | undefined;
   isOnlyPrebuilt: boolean;
   location: Location;
@@ -214,8 +212,7 @@ function DashboardRowActions({
   );
 }
 
-function DashboardTable({
-  api,
+export function DashboardTable({
   organization,
   location,
   dashboards,
@@ -223,6 +220,7 @@ function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
+  const api = useApi();
   const handleDuplicateDashboard = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
   });
@@ -454,8 +452,6 @@ function DashboardTable({
     />
   );
 }
-
-export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.md};
