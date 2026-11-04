@@ -578,6 +578,7 @@ def update_project_webhook(
                 rate_limit_deferrals=rate_limit_deferrals,
                 countdown=countdown,
             )
+            outcome = "rate_limited"
             lifecycle.record_halt(GitLabWebhookUpdateHaltReason.RATE_LIMITED)
             return
 

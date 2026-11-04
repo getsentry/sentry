@@ -611,8 +611,9 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.randint", return_value=7)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.gitlab.tasks.metrics.incr")
     def test_task_defers_for_gitlab_retry_after(
-        self, record_event: MagicMock, randint: MagicMock
+        self, incr: MagicMock, record_event: MagicMock, randint: MagicMock
     ) -> None:
         responses.add(
             responses.PUT,
@@ -640,6 +641,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             countdown=127,
         )
         randint.assert_called_once_with(0, 73)
+        incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "rate_limited"})
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
 
     @responses.activate
