@@ -1,8 +1,5 @@
 src/sentry/api/bases/organizationmember.py
-src/sentry/api/endpoints/organization_events.py
-src/sentry/api/endpoints/organization_events_stats.py
 src/sentry/api/endpoints/organization_releases.py
-src/sentry/api/endpoints/organization_trace_item_attributes.py
 src/sentry/api/endpoints/prompts_activity.py
 src/sentry/core/endpoints/organization_member_details.py
 src/sentry/core/endpoints/organization_member_index.py
