@@ -209,7 +209,6 @@ export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
           // invariant: a different request was initiated after this request
           return;
         }
-        tableFetchIDRef.current = undefined;
 
         const tableData = afterFetch ? afterFetch(data, latestPropsRef.current) : data;
         didFetch?.(tableData);
@@ -220,7 +219,6 @@ export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
           tableData,
         }));
       } catch (err) {
-        tableFetchIDRef.current = undefined;
         const error = (latestPropsRef.current.parseError ?? parseError)(err);
         setState(prevState => ({...prevState, isLoading: false, error, tableData: null}));
         setError?.(error ?? undefined);
