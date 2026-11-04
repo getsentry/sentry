@@ -15,11 +15,13 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
+from sentry.locks import locks
 from sentry.options import OptionsManager
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.pytest import xdist
 from sentry.utils import imports
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
@@ -194,6 +196,26 @@ class TransactionCheckingRedisTest(SentryTestCase):
                 ("sentry.new_code.unexpected_redis_call",),
             )
         ]
+
+    def test_caught_lock_call_inside_transaction_is_recorded(self) -> None:
+        # Lock.acquire turns the check's AssertionError into UnableToAcquireLock, so only the
+        # record shows the violation.
+        lock = locks.get(
+            f"test:redis-transaction-guard:{uuid.uuid4().hex}", duration=5, name="test"
+        )
+
+        with transaction.atomic(using="default"):
+            with pytest.raises(UnableToAcquireLock):
+                lock.acquire()
+
+        violations = pop_redis_transaction_violations()
+        assert violations
+        for message, callers in violations:
+            assert message == "Redis commands must run outside database transactions"
+            assert callers[0] == "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire"
+            assert callers[-1] == (
+                f"{__name__}.TransactionCheckingRedisTest.test_caught_lock_call_inside_transaction_is_recorded"
+            )
 
     def test_transaction_ratchet_matches_only_existing_call_path(self) -> None:
         existing_callers = (
