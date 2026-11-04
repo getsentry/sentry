@@ -18,7 +18,7 @@ _CUSTOM_CLASSIFIER_FIELDS = {"natural_language_prompt", "output_type"}
 
 class TelemetryClassifierValidator(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
-        scope="project:write",
+        scope="project:read",
         id_allowed=True,
         help_text="The ID or slug of the project the classifier runs on.",
     )
