@@ -14,8 +14,6 @@
 /src/sentry/middleware/staff.py                          @getsentry/foundations
 /src/sentry/middleware/superuser.py                      @getsentry/foundations
 /src/sentry/middleware/viewer_context.py                 @getsentry/machine-learning-ai
-# ApiGatewayMiddleware runs on every request too. Its subpaths that aren't request
-# middleware keep their original position in the Hybrid Cloud block below.
 /src/sentry/hybridcloud/                                 @getsentry/hybrid-cloud
 
 ## Distributed Ownership
@@ -116,7 +114,6 @@
 
 
 ## Event Ingestion & Symbolication
-# quotas/ and reprocessing2.py are in "Ingest services called from event processing", after Issues.
 /src/sentry/api/endpoints/relay/                         @getsentry/ingest
 /src/sentry/api/endpoints/project_transaction_names.py   @getsentry/ingest
 /src/sentry/ingest/                                      @getsentry/ingest
@@ -267,17 +264,11 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
-# /src/sentry/hybridcloud/ itself is in the Request middleware block at the top, because
-# apigateway/ runs on every request. Everything else in it is listed here.
-/src/sentry/hybridcloud/mailbox.py                       @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/models/                          @getsentry/hybrid-cloud
-/src/sentry/hybridcloud/options.py                       @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/outbox/                          @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/rpc/                             @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/services/                        @getsentry/hybrid-cloud
 /src/sentry/hybridcloud/tasks/                           @getsentry/hybrid-cloud
-/src/sentry/hybridcloud/webhook_event_types.py           @getsentry/hybrid-cloud
-/src/sentry/hybridcloud/webhook_mailbox_sizing.py        @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/internal/rpc.py                @getsentry/hybrid-cloud
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
@@ -888,8 +879,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Issues
 
 ## Ingest services called from event processing
-# event_manager.py and grouping/ (Issues, above) call these during save_event. These must
-# come after Issues so ingest gets failures raised inside them, such as Redis errors.
+# event_manager.py and grouping/ call these, so they must come after Issues.
 /src/sentry/quotas/                                      @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
 ## End of Ingest services called from event processing
