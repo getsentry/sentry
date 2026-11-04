@@ -96,6 +96,56 @@ describe('WidgetLegend functions util', () => {
       );
     });
 
+    it('appends to a single unselectedSeries value from another widget', () => {
+      const legendState = new WidgetLegendSelectionState({
+        dashboard,
+        organization,
+        navigate: mockNavigate,
+        location: {
+          ...LocationFixture(),
+          query: {unselectedSeries: `23456${WIDGET_ID_DELIMITER}Releases`},
+        },
+      });
+
+      legendState.setWidgetSelectionState(
+        {[`Releases${SERIES_NAME_DELIMITER}12345`]: false},
+        widget
+      );
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            unselectedSeries: [
+              `23456${WIDGET_ID_DELIMITER}Releases`,
+              `12345${WIDGET_ID_DELIMITER}Releases`,
+            ],
+          },
+        }),
+        {preventScrollReset: true, replace: true}
+      );
+    });
+
+    it('replaces a single unselectedSeries value from the same widget', () => {
+      const legendState = new WidgetLegendSelectionState({
+        dashboard,
+        organization,
+        navigate: mockNavigate,
+        location: {
+          ...LocationFixture(),
+          query: {unselectedSeries: `12345${WIDGET_ID_DELIMITER}Releases`},
+        },
+      });
+
+      legendState.setWidgetSelectionState({'Releases:12345': true}, widget);
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}`]},
+        }),
+        {preventScrollReset: true, replace: true}
+      );
+    });
+
     it('gives updated query param when widget change submitted', () => {
       // New-path widgets (ERRORS + AREA) don't default-hide Releases,
       // so no default entries are generated.

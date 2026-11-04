@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import {createLoader} from 'nuqs';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -10,6 +10,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
+import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import type {Subscription} from 'getsentry/types';
 import {isTrial} from 'getsentry/utils/billing';
@@ -70,25 +71,18 @@ const getAnalyticsSessionId = () => sessionStorageWrapper.getItem(ANALYTICS_SESS
 const hasAnalyticsDebug = () => localStorageWrapper.getItem('DEBUG_ANALYTICS') === '1';
 
 const getCustomReferrer = () => {
-  try {
-    // pull the referrer from the query parameter of the page
-    const {referrer} = qs.parse(window.location.search) || {};
-    // pull the referrer from session storage.
-    const storedReferrer = readStorageValue(CUSTOM_REFERRER_KEY, null) as string | null;
-    // ?referrer takes precedence, but still unset session stored referrer.
-    if (storedReferrer) {
-      sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);
-    }
-    if (referrer && typeof referrer === 'string') {
-      return referrer;
-    }
-    return storedReferrer;
-  } catch {
-    // ignore if this fails to parse
-    // this can happen if we have an invalid query string
-    // e.g. unencoded "%"
+  const {referrer} = createLoader({referrer: parseAsSingleScalar})(
+    window.location.search
+  );
+  const storedReferrer = readStorageValue(CUSTOM_REFERRER_KEY, null) as string | null;
+  // ?referrer takes precedence, but still unset session stored referrer.
+  if (storedReferrer) {
+    sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);
   }
-  return;
+  if (referrer) {
+    return referrer;
+  }
+  return storedReferrer;
 };
 
 const getOrganizationId = (

@@ -1,6 +1,6 @@
 import {InsightResultsFixture} from 'sentry-fixture/preProdAppSize';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInsights} from 'sentry/views/preprod/utils/insightProcessing';
 
@@ -123,5 +123,21 @@ describe('AppSizeInsights', () => {
 
     // Sidebar should be closed
     expect(screen.queryByText('Insights')).not.toBeInTheDocument();
+  });
+
+  it('pushes history entries when the sidebar opens and closes', async () => {
+    const {router} = render(<AppSizeInsights {...getDefaultProps()} />, {
+      initialRouterConfig: {location: {pathname: '/build/', query: {tab: 'size'}}},
+    });
+
+    await userEvent.click(screen.getByText('View insight details'));
+    await waitFor(() => expect(router.location.query.insights).toBe('open'));
+    await userEvent.click(screen.getByLabelText('Close sidebar'));
+    await waitFor(() => expect(router.location.query.insights).toBeUndefined());
+    router.navigate(-1);
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'size', insights: 'open'})
+    );
   });
 });

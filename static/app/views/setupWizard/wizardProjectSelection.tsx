@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedValue} from '@tanstack/react-pacer';
+import {createLoader, parseAsString} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
@@ -32,9 +33,10 @@ import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWiza
 
 const CREATE_PROJECT_VALUE = 'create-new-project';
 
-const urlParams = new URLSearchParams(location.search);
-const platformParam = urlParams.get('project_platform');
-const orgSlugParam = urlParams.get('org_slug');
+const {project_platform: platformParam, org_slug: orgSlugParam} = createLoader({
+  project_platform: parseAsString,
+  org_slug: parseAsString,
+})(window.location.search);
 
 type WizardFormValues = {
   newProjectName: string;

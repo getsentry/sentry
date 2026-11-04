@@ -9,6 +9,7 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
@@ -213,9 +214,10 @@ function findLongestMatchingFrame(
 }
 
 function decodeConfigSpace(): [number, number] {
-  const qs = new URLSearchParams(window.location.search);
-  const startedAt = qs.get('start');
-  const endedAt = qs.get('end');
+  const {start: startedAt, end: endedAt} = createLoader({
+    start: parseAsString,
+    end: parseAsString,
+  })(window.location.search);
   if (!startedAt || !endedAt) {
     return [0, 0];
   }

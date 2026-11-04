@@ -19,11 +19,18 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 
 import {Repository} from './repository';
 import type {RepositoryConfig} from './updateCustomRepositoriesMutation';
 import {useUpdateCustomRepositoriesMutation} from './updateCustomRepositoriesMutation';
 import {dropDownItems} from './utils';
+
+const customRepositoryParsers = {customRepository: parseAsScalar};
 
 type Props = {
   customRepositories: CustomRepo[];
@@ -39,6 +46,10 @@ export function CustomRepositories({
   location,
 }: Props) {
   const navigate = useNavigate();
+  const {customRepository} = loadQueryParamsFromLocation(
+    customRepositoryParsers,
+    location
+  );
   const {mutateAsync: updateCustomRepositories} = useUpdateCustomRepositoriesMutation(
     project,
     repositories.length
@@ -67,18 +78,12 @@ export function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
-    });
+    navigate(
+      applyQueryParamsUpdates(customRepositoryParsers, location, {customRepository: null})
+    );
   }, [location, navigate]);
 
   const openDebugFileSourceDialog = useCallback(() => {
-    const {customRepository} = location.query;
-
     if (!customRepository) {
       return;
     }
@@ -100,7 +105,7 @@ export function CustomRepositories({
       onSave: updatedItem => persistData({updatedItem, index: itemIndex}),
       onClose: handleCloseModal,
     });
-  }, [handleCloseModal, location.query, organization, persistData, repositories]);
+  }, [customRepository, handleCloseModal, organization, persistData, repositories]);
 
   useEffect(() => {
     openDebugFileSourceDialog();
@@ -123,13 +128,11 @@ export function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
+    navigate(
+      applyQueryParamsUpdates(customRepositoryParsers, location, {
         customRepository: repoId,
-      },
-    });
+      })
+    );
   }
 
   return (
