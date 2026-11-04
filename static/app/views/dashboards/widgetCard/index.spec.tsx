@@ -552,6 +552,10 @@ describe('Dashboards > WidgetCard', () => {
         })
       );
     });
+    expect(eventsMock).not.toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({query: expect.objectContaining({project: '2'})})
+    );
     expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/errors/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
