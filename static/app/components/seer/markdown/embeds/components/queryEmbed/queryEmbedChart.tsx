@@ -90,12 +90,12 @@ export function seriesFromTimeSeries(
 ): ChartSeries {
   return timeSeries
     .map((series, index) => ({
-      label: formatTimeSeriesName({
-        ...series,
-        requestedTransformations:
-          transformations?.[index % (yAxes?.length || 1)] ??
-          series.requestedTransformations,
-      }),
+      label: [
+        formatTimeSeriesName({...series, requestedTransformations: undefined}),
+        ...(transformations?.[index % (yAxes?.length || 1)] ??
+          series.requestedTransformations ??
+          []),
+      ].join(' · '),
       data: series.values
         .filter(item => item.value !== null)
         .map(item => ({
@@ -138,6 +138,7 @@ interface QueryEmbedChartProps {
   series: ChartSeries;
   title: string;
   unit: ChartUnit;
+  unsupportedTransformations?: boolean;
 }
 
 /** The timeseries preview every charting query embed shares. */
@@ -149,7 +150,16 @@ export function QueryEmbedChart({
   series,
   title,
   unit,
+  unsupportedTransformations,
 }: QueryEmbedChartProps) {
+  if (unsupportedTransformations) {
+    return (
+      <Alert role="alert" variant="warning">
+        {t('Chart transformations are not available for this organization')}
+      </Alert>
+    );
+  }
+
   if (isPending) {
     return (
       <Flex align="center" height={CHART_HEIGHT} justify="center" width="100%">

@@ -5,6 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as charts from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {seriesFromTimeSeries} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedChart';
 
 import {getEmbedLinkHref} from './resourceEmbedTestUtils';
 
@@ -15,6 +16,61 @@ jest.mock('sentry/components/charts/baseChart', () => ({
 const baseChart = jest.spyOn(charts, 'BaseChart');
 
 describe('query embed transformation plumbing', () => {
+  it('uses readable pipeline labels for duplicate axes', () => {
+    const series = TimeSeriesFixture({
+      yAxis: 'count(span.duration)',
+      groupBy: [{key: 'span.op', value: 'http.client'}],
+    });
+    expect(
+      seriesFromTimeSeries([series, series], {
+        yAxes: ['count(span.duration)', 'count(span.duration)'],
+        transformations: [[], ['fill(locf)', 'smooth(sma,3)']],
+      }).map(item => ('label' in item ? item.label : item.name))
+    ).toEqual([
+      'count(span.duration) : span.op : http.client',
+      'count(span.duration) : span.op : http.client · fill(locf) · smooth(sma,3)',
+    ]);
+  });
+
+  it.each([
+    {name: 'spansQuery', axis: 'count(span.duration)', extra: {}},
+    {name: 'logsQuery', axis: 'count(message)', extra: {}},
+    {
+      name: 'metricsQuery',
+      axis: 'sum(value)',
+      extra: {name: 'request.count', type: 'counter'},
+    },
+  ])(
+    'warns without executing unsupported pipelines for $name',
+    async ({name, axis, extra}) => {
+      const timeseries = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      const legacy = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      const data = {
+        ...extra,
+        mode: 'aggregate',
+        yAxes: [axis],
+        transformations: [['smooth(sma,3)']],
+      };
+      render(
+        <SeerMarkdown raw={`{% ${name} %}${JSON.stringify(data)}{% /${name} %}`} />,
+        {
+          organization: OrganizationFixture({features: []}),
+        }
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Chart transformations are not available for this organization'
+      );
+      expect(timeseries).not.toHaveBeenCalled();
+      expect(legacy).not.toHaveBeenCalled();
+    }
+  );
+
   it('keeps untransformed axes grouped in the existing Explore link', () => {
     const href = getEmbedLinkHref('spansQuery', 'Aggregated span search', {
       mode: 'aggregate',
