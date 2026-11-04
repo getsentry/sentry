@@ -1,4 +1,4 @@
-import {ActionFixture} from 'sentry-fixture/automations';
+import {ActionFixture, DataConditionFixture} from 'sentry-fixture/automations';
 import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ActionHandlerFixture} from 'sentry-fixture/workflowEngine';
@@ -16,11 +16,36 @@ import {
 import {
   DataConditionGroupLogicType,
   DataConditionType,
+  type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 
 import {AutomationFormProvider} from './forms/context';
 import {ActionNodeList} from './actionNodeList';
 import {AutomationBuilderTestProvider} from './testUtils';
+
+const INCOMPATIBLE_MESSAGE =
+  'This action is incompatible with the current configuration.';
+const PARTIAL_SUPPORT_MESSAGE =
+  'This action will fire for your other triggers, but not when an issue is resolved.';
+const RESOLVED_WARNING = 'This action will not fire when an issue is resolved.';
+
+function triggerGroup(
+  types: DataConditionType[],
+  logicType = DataConditionGroupLogicType.ANY_SHORT_CIRCUIT
+): DataConditionGroup {
+  return {
+    id: 'triggers',
+    conditions: types.map((type, index) =>
+      DataConditionFixture({
+        id: `condition-${index}`,
+        type,
+        comparison: true,
+        conditionResult: true,
+      })
+    ),
+    logicType,
+  };
+}
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -263,29 +288,15 @@ describe('ActionNodeList', () => {
     ).toBeInTheDocument();
   });
 
-  it('warns when an action will not fire for resolved issues', async () => {
+  it('shows a note when another trigger can still fire the action', async () => {
     const jiraAction = ActionFixture({type: ActionType.JIRA});
     render(
       <AutomationBuilderTestProvider
         builderState={{
-          triggers: {
-            id: 'triggers',
-            conditions: [
-              {
-                id: 'condition-1',
-                type: DataConditionType.FIRST_SEEN_EVENT,
-                comparison: true,
-                conditionResult: true,
-              },
-              {
-                id: 'condition-2',
-                type: DataConditionType.ISSUE_RESOLVED_TRIGGER,
-                comparison: true,
-                conditionResult: true,
-              },
-            ],
-            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-          },
+          triggers: triggerGroup([
+            DataConditionType.FIRST_SEEN_EVENT,
+            DataConditionType.ISSUE_RESOLVED_TRIGGER,
+          ]),
         }}
       >
         <AutomationFormProvider>
@@ -297,34 +308,105 @@ describe('ActionNodeList', () => {
       {organization}
     );
 
-    expect(
-      await screen.findByText(
-        'This action is incompatible with the current configuration.'
-      )
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    expect(
-      screen.getByText('This action will not fire when an issue is resolved.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText(PARTIAL_SUPPORT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(INCOMPATIBLE_MESSAGE)).not.toBeInTheDocument();
   });
 
-  it('does not warn about supported actions when an issue is resolved', async () => {
+  it('warns when the resolved trigger is the only trigger', async () => {
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: triggerGroup([DataConditionType.ISSUE_RESOLVED_TRIGGER]),
+        }}
+      >
+        <AutomationFormProvider>
+          <Form model={new FormModel()}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </Form>
+        </AutomationFormProvider>
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText(INCOMPATIBLE_MESSAGE)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(screen.getByText(RESOLVED_WARNING)).toBeInTheDocument();
+    expect(screen.queryByText(PARTIAL_SUPPORT_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('warns when all logic requires the resolved trigger', async () => {
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: triggerGroup(
+            [DataConditionType.EVERY_EVENT, DataConditionType.ISSUE_RESOLVED_TRIGGER],
+            DataConditionGroupLogicType.ALL
+          ),
+        }}
+      >
+        <AutomationFormProvider>
+          <Form model={new FormModel()}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </Form>
+        </AutomationFormProvider>
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText(INCOMPATIBLE_MESSAGE)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(screen.getByText(RESOLVED_WARNING)).toBeInTheDocument();
+    expect(screen.queryByText(PARTIAL_SUPPORT_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('keeps the metric warning next to the note', async () => {
+    const model = new FormModel();
+    model.setInitialData({
+      detectorIds: ['123'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [MetricDetectorFixture({id: '123'})],
+    });
+    const jiraAction = ActionFixture({type: ActionType.JIRA});
+    render(
+      <AutomationBuilderTestProvider
+        builderState={{
+          triggers: triggerGroup([
+            DataConditionType.FIRST_SEEN_EVENT,
+            DataConditionType.ISSUE_RESOLVED_TRIGGER,
+          ]),
+        }}
+      >
+        <AutomationFormProvider>
+          <Form model={model}>
+            <ActionNodeList {...defaultProps} actions={[jiraAction]} />
+          </Form>
+        </AutomationFormProvider>
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText(INCOMPATIBLE_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByText(PARTIAL_SUPPORT_MESSAGE)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(
+      screen.getByText('This action will not fire for metric issues.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(RESOLVED_WARNING)).not.toBeInTheDocument();
+  });
+
+  it('does not flag actions that fire when an issue is resolved', async () => {
     const slackAction = ActionFixture();
     render(
       <AutomationBuilderTestProvider
         builderState={{
-          triggers: {
-            id: 'triggers',
-            conditions: [
-              {
-                id: 'condition-1',
-                type: DataConditionType.ISSUE_RESOLVED_TRIGGER,
-                comparison: true,
-                conditionResult: true,
-              },
-            ],
-            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-          },
+          triggers: triggerGroup([
+            DataConditionType.FIRST_SEEN_EVENT,
+            DataConditionType.ISSUE_RESOLVED_TRIGGER,
+          ]),
         }}
       >
         <ActionNodeList {...defaultProps} actions={[slackAction]} />
@@ -333,8 +415,7 @@ describe('ActionNodeList', () => {
     );
 
     await screen.findByText(textWithMarkupMatcher('Slack message'));
-    expect(
-      screen.queryByText('This action is incompatible with the current configuration.')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(INCOMPATIBLE_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.queryByText(PARTIAL_SUPPORT_MESSAGE)).not.toBeInTheDocument();
   });
 });
