@@ -11,6 +11,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -18,6 +19,8 @@ import {
   TransactionThresholdMetric,
   TransactionThresholdModal,
 } from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+
+jest.mock('sentry/actionCreators/indicator');
 
 function mountModal(
   eventView: EventView,
@@ -89,6 +92,25 @@ describe('TransactionThresholdModal', () => {
       );
     });
     await waitFor(() => expect(onApply).toHaveBeenCalledWith('1000', 'lcp'));
+  });
+
+  it('shows the API error when applying fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'POST',
+      statusCode: 400,
+      body: {threshold: ['Ensure this value is less than or equal to 60000.']},
+    });
+    mountModal(eventView, organization, onApply);
+
+    await userEvent.click(await screen.findByTestId('apply-threshold'));
+
+    await waitFor(() =>
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'Ensure this value is less than or equal to 60000.'
+      )
+    );
+    expect(onApply).not.toHaveBeenCalled();
   });
 
   it('can update metric', async () => {

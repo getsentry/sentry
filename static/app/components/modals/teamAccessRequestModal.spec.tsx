@@ -52,6 +52,7 @@ describe('TeamAccessRequestModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
   });
 
   it('closes modal when the request fails', async () => {

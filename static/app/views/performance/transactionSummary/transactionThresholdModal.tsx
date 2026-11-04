@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -15,6 +15,7 @@ import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -22,13 +23,36 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {projectTransactionThresholdApiOptions} from './transactionThresholdApiOptions';
 import {useEventViewProject} from './useEventViewProject';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum TransactionThresholdMetric {
   TRANSACTION_DURATION = 'duration',
   LARGEST_CONTENTFUL_PAINT = 'lcp',
+}
+
+export interface ThresholdResponse {
+  metric: TransactionThresholdMetric;
+  threshold: number;
+}
+
+export function projectTransactionThresholdApiOptions({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project | undefined;
+}) {
+  return apiOptions.as<ThresholdResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+    {
+      path: project
+        ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}
+        : skipToken,
+      query: project ? {project: project.id} : undefined,
+      staleTime: 0,
+    }
+  );
 }
 
 type Props = {
@@ -107,14 +131,13 @@ export function TransactionThresholdModal({
         options: {query: {project: resetProject.id}},
         data: {transaction: transactionName},
       });
-      const response = await queryClient.fetchQuery(
-        projectTransactionThresholdApiOptions({organization, project: resetProject})
-      );
+      const response = await queryClient.fetchQuery({
+        ...projectTransactionThresholdApiOptions({organization, project: resetProject}),
+        retry: false,
+      });
       return response.json;
     },
     onSuccess: data => {
-      setThreshold(data.threshold);
-      setMetric(data.metric);
       closeModal();
       onApply?.(data.threshold, data.metric);
     },

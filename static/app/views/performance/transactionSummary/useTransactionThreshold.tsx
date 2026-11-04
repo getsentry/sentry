@@ -1,22 +1,26 @@
 import {useCallback, useEffect} from 'react';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
 
+import type {
+  ThresholdResponse,
+  TransactionThresholdMetric,
+} from './transactionThresholdModal';
 import {
+  modalCss,
   projectTransactionThresholdApiOptions,
-  transactionThresholdOverrideApiOptions,
-} from './transactionThresholdApiOptions';
-import type {TransactionThresholdMetric} from './transactionThresholdModal';
-import {modalCss, TransactionThresholdModal} from './transactionThresholdModal';
+  TransactionThresholdModal,
+} from './transactionThresholdModal';
 import {useEventViewProject} from './useEventViewProject';
 
 interface UseTransactionThresholdProps {
@@ -60,11 +64,14 @@ export function useTransactionThreshold({
   // A transaction-level override wins when one exists. Most transactions do not
   // have one, so the 404 is the expected path rather than a failure — never
   // retry, just fall through to the project default.
-  const overrideOptions = transactionThresholdOverrideApiOptions({
-    organization,
-    project,
-    transactionName,
-  });
+  const overrideOptions = apiOptions.as<ThresholdResponse>()(
+    '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
+    {
+      path: project ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query: project ? {project: project.id, transaction: transactionName} : undefined,
+      staleTime: 0,
+    }
+  );
   const overrideQuery = useQuery({
     ...overrideOptions,
     enabled: overrideOptions.enabled && enabled,
