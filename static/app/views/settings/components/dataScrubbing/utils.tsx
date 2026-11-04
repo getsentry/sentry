@@ -300,8 +300,10 @@ export class TraceItemFieldSelector {
     AllowedDataScrubbingDatasets,
     string | null
   > = {
-    [AllowedDataScrubbingDatasets.LOGS]: '$log',
-    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric',
+    // Trailing dots ensure we only match the trace item namespaces and not
+    // other selectors sharing the prefix, e.g. the error event's `$logentry.*`.
+    [AllowedDataScrubbingDatasets.LOGS]: '$log.',
+    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric.',
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
   };
 
