@@ -3,7 +3,9 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from collections.abc import Sequence
 from contextlib import nullcontext
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
@@ -43,16 +45,32 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
-from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import (
+    CommitPatchFile,
+    IntegrationRepositoryProvider,
+)
 
 
 class _CommitDataKwargs(TypedDict, total=False):
     author: CommitAuthor
     message: str
-    date_added: str
+    date_added: datetime
 
 
-def set_commits(release, commit_list):
+class _CommitData(TypedDict, total=False):
+    id: str
+    repository: str
+    author_email: str | None
+    author_name: str
+    message: str
+    timestamp: datetime
+    patch_set: Sequence[CommitPatchFile]
+    _normalized_email: str
+    repo_model: Repository
+    author_model: CommitAuthor | None
+
+
+def set_commits(release: Release, commit_list: list[_CommitData]) -> None:
     commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
     commit_list = [
@@ -89,7 +107,7 @@ def set_commits(release, commit_list):
         update_group_resolutions(release, commit_author_by_commit)
 
 
-def _keep_newest_commits(release, commit_list):
+def _keep_newest_commits(release: Release, commit_list: list[_CommitData]) -> list[_CommitData]:
     """
     Each commit costs several queries, all issued while holding the release lock
     and usually inside a web request, so the list has to be bounded. Expects
@@ -113,7 +131,9 @@ def _keep_newest_commits(release, commit_list):
 
 
 @metrics.wraps("set_commits_on_release")
-def set_commits_on_release(release, commit_list):
+def set_commits_on_release(
+    release: Release, commit_list: list[_CommitData]
+) -> tuple[dict[int, int], dict[int, CommitAuthor | None]]:
     # TODO(dcramer): would be good to optimize the logic to avoid these
     # deletes but not overly important
     ReleaseCommit.objects.filter(release=release).delete()
@@ -145,7 +165,7 @@ def set_commits_on_release(release, commit_list):
     return head_commit_by_repo, commit_author_by_commit
 
 
-def set_commit(idx, data, release):
+def set_commit(idx: int, data: _CommitData, release: Release) -> Commit:
     repo = data["repo_model"]
     author = data["author_model"]
 
@@ -201,7 +221,9 @@ def set_commit(idx, data, release):
     return commit
 
 
-def fill_in_missing_release_head_commits(release, head_commit_by_repo):
+def fill_in_missing_release_head_commits(
+    release: Release, head_commit_by_repo: dict[int, int]
+) -> None:
     # fill any missing ReleaseHeadCommit entries
     for repo_id, commit_id in head_commit_by_repo.items():
         try:
@@ -216,7 +238,9 @@ def fill_in_missing_release_head_commits(release, head_commit_by_repo):
             pass
 
 
-def update_group_resolutions(release, commit_author_by_commit):
+def update_group_resolutions(
+    release: Release, commit_author_by_commit: dict[int, CommitAuthor | None]
+) -> None:
     release_commits = list(
         ReleaseCommit.objects.filter(release=release)
         .select_related("commit")
@@ -438,7 +462,7 @@ def normalize_provider_key(provider: str | None) -> str | None:
     return provider.removeprefix("integrations:") if provider else None
 
 
-def create_commit_authors(commit_list, release):
+def create_commit_authors(commit_list: list[_CommitData], release: Release) -> None:
     # Collect unique emails and their author data
     author_data_by_email = {}
     for data in commit_list:
@@ -515,7 +539,7 @@ def create_commit_authors(commit_list, release):
         data["author_model"] = existing_authors.get(author_email) if author_email else None
 
 
-def create_repositories(commit_list, release):
+def create_repositories(commit_list: list[_CommitData], release: Release) -> None:
     repos = {}
     for data in commit_list:
         repo_name = data.get("repository") or f"organization-{release.organization_id}"

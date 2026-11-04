@@ -147,7 +147,7 @@ def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
     if not isinstance(parsed, list):
         raise ValueError(f"'{value}' could not be parsed into an instance of list.")
 
-    return json.loads(value)
+    return parsed
 
 
 def get_task_kwargs_for_message_from_headers(

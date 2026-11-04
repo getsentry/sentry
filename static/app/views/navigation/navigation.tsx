@@ -1,17 +1,21 @@
-import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
+import {
+  Fragment,
+  type PropsWithChildren,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
-import {IconBuilding} from '@sentry/icons/building';
 import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconMail} from '@sentry/icons/mail';
-import {IconProject} from '@sentry/icons/project';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
-import {IconUser} from '@sentry/icons/user';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -22,6 +26,7 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
@@ -35,6 +40,7 @@ import {
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_SIDEBAR_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
+  getSettingsLastProjectKey,
   getSettingsReturnPathKey,
 } from 'sentry/views/navigation/constants';
 import {
@@ -63,12 +69,17 @@ import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+import {
+  getSettingsScopeIcon,
+  type SettingsScope,
+} from 'sentry/views/settings/settingsScope';
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
+  const settingsV3 = useSettingsV3();
   const collapsedNavigation = useCollapsedNavigation();
   const {view} = useSecondaryNavigation();
 
@@ -84,12 +95,16 @@ function NavigationImpl() {
   const isCollapsed = currentStepId === null ? view !== 'expanded' : false;
 
   useLLMContext({
-    contextHint:
-      "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
-      'Explore, Dashboards, Insights, Monitors, Settings, ...) plus a secondary ' +
-      'panel for whichever group is active. Child nodes carry each active ' +
-      "secondary panel's own detail (starred views/queries/dashboards, issue " +
-      'counts, settings categories, etc).',
+    contextHint: isSettingsNavigation
+      ? "The settings navigation sidebar — a primary icon rail with a 'Back to app' " +
+        'button and the Org, Project and Account settings scopes, plus a secondary ' +
+        'panel listing the settings pages of the active scope. Child nodes carry ' +
+        "the secondary panel's own detail."
+      : "The org's left-hand navigation sidebar — a primary icon rail (Issues, " +
+        `Explore, Dashboards, Insights, Monitors${settingsV3 ? '' : ', Settings'}, ...) ` +
+        'plus a secondary panel for whichever group is active. Child nodes carry ' +
+        "each active secondary panel's own detail (starred views/queries/dashboards, " +
+        'issue counts, settings categories, etc).',
     activeGroup,
     isCollapsed,
   });
@@ -205,25 +220,34 @@ export function SettingsPrimaryNavigationItems({
 }) {
   const {projects} = useProjects();
   const {scope: activeScope, projectSlug: activeProjectSlug} = useSettingsScope();
-  const projectSlug = activeProjectSlug ?? projects[0]?.slug;
+  // Stored by ID, not slug, so renaming the project does not lose it.
+  const [lastProjectId, setLastProjectId] = useLocalStorageState<string | null>(
+    getSettingsLastProjectKey(organizationSlug),
+    null
+  );
+  const activeProjectId = projects.find(({slug}) => slug === activeProjectSlug)?.id;
+
+  useEffect(() => {
+    if (activeProjectId && activeProjectId !== lastProjectId) {
+      setLastProjectId(activeProjectId);
+    }
+  }, [activeProjectId, lastProjectId, setLastProjectId]);
+
+  // The remembered project can be deleted or lose access since it was stored.
+  const rememberedProjectSlug = projects.find(({id}) => id === lastProjectId)?.slug;
+  const projectSlug = activeProjectSlug ?? rememberedProjectSlug ?? projects[0]?.slug;
   const projectSettingsPath = `/settings/${organizationSlug}/projects/`;
-  const items = [
-    {
-      key: 'org',
-      label: t('Org'),
-      to: `/settings/${organizationSlug}/`,
-      icon: <IconBuilding />,
-    },
+  const items: Array<{key: SettingsScope; label: string; to: string}> = [
+    {key: 'org', label: t('Org'), to: `/settings/${organizationSlug}/`},
     {
       key: 'project',
       label: t('Project'),
       to: projectSlug ? `${projectSettingsPath}${projectSlug}/` : projectSettingsPath,
-      icon: <IconProject />,
     },
-    {key: 'account', label: t('Account'), to: '/settings/account/', icon: <IconUser />},
+    {key: 'account', label: t('Account'), to: '/settings/account/'},
   ];
 
-  return items.map(({key, label, to, icon}) => (
+  return items.map(({key, label, to}) => (
     <PrimaryNavigation.ListItem key={to}>
       <PrimaryNavigation.Link
         to={to}
@@ -231,7 +255,7 @@ export function SettingsPrimaryNavigationItems({
         label={label}
         aria-current={key === activeScope ? 'location' : undefined}
       >
-        {icon}
+        {getSettingsScopeIcon(key)}
       </PrimaryNavigation.Link>
     </PrimaryNavigation.ListItem>
   ));

@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from time import time
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -771,6 +771,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_regression_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
 
+        assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
 
         group.update(status=GroupStatus.RESOLVED, substatus=None, active_at=before_now(days=1))
@@ -3009,8 +3010,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:
-        event = self.create_performance_issue(
-            event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+        event = cast(
+            "GroupEvent",
+            self.create_performance_issue(
+                event_data=make_event(**get_event("n-plus-one-db/n-plus-one-in-django-index-view"))
+            ),
         )
         data = event.data
         assert event.get_event_type() == "transaction"
@@ -3067,7 +3071,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.level == 40
         assert group.issue_category == GroupCategory.DB_QUERY
         assert group.issue_type == PerformanceNPlusOneGroupType
-        assert isinstance(event, GroupEvent)
         assert event.occurrence
         assert event.occurrence.evidence_display == [
             IssueEvidence(
@@ -3221,9 +3224,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> GroupEvent:
-            return self.create_performance_issue(
-                event_data=make_event(**get_event("slow-db/slow-db-spans")),
-                issue_type=PerformanceSlowDBQueryGroupType,
+            return cast(
+                "GroupEvent",
+                self.create_performance_issue(
+                    event_data=make_event(**get_event("slow-db/slow-db-spans")),
+                    issue_type=PerformanceSlowDBQueryGroupType,
+                ),
             )
 
         last_event = attempt_to_generate_slow_db_issue()

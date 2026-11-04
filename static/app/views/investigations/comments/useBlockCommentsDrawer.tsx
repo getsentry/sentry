@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef} from 'react';
-import {useQueryStates} from 'nuqs';
+import {createLoader, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
@@ -9,6 +9,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';
 import {COMMENTS_DRAWER_PARSERS} from 'sentry/views/investigations/comments/utils';
 import {getBlockElementId} from 'sentry/views/investigations/detail/block';
+
+const loadCommentsDrawerQuery = createLoader(COMMENTS_DRAWER_PARSERS);
 
 /**
  * A block's comments open in a drawer while `?comments=open&commentsBlock=<id>`
@@ -39,7 +41,8 @@ export function useBlockCommentsDrawer(investigationId: string) {
       mode: 'passive',
       onClose: closeBlockComments,
       shouldCloseOnLocationChange: location =>
-        location.pathname !== pathname || location.query.comments !== 'open',
+        location.pathname !== pathname ||
+        loadCommentsDrawerQuery(location.search ?? '').comments !== 'open',
     });
   }, [closeBlockComments, investigationId, openDrawer, pathname]);
 

@@ -31,10 +31,17 @@ from sentry.testutils.silo import control_silo_test
 class TestGrantExchanger(TestCase):
     def setUp(self) -> None:
         self.install = self.create_sentry_app_installation(prevent_token_exchange=True)
-        self.code = self.install.api_grant.code
-        assert self.install.sentry_app.application is not None
-        self.client_id = self.install.sentry_app.application.client_id
-        self.user = self.install.sentry_app.proxy_user
+        grant = self.install.api_grant
+        assert grant is not None
+        application = self.install.sentry_app.application
+        assert application is not None
+        user = self.install.sentry_app.proxy_user
+        assert user is not None
+        self.grant = grant
+        self.code = grant.code
+        self.application = application
+        self.client_id = application.client_id
+        self.user = user
 
         self.grant_exchanger = GrantExchanger(
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
@@ -74,7 +81,9 @@ class TestGrantExchanger(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_grant_must_belong_to_installations(self, mock_record: MagicMock) -> None:
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
-        self.grant_exchanger.code = other_install.api_grant.code
+        other_grant = other_install.api_grant
+        assert other_grant is not None
+        self.grant_exchanger.code = other_grant.code
 
         with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
@@ -123,7 +132,7 @@ class TestGrantExchanger(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_grant_must_be_active(self, mock_record: MagicMock) -> None:
-        self.install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
+        self.grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(SentryAppIntegratorError) as e:
             self.grant_exchanger.run()
@@ -188,7 +197,7 @@ class TestGrantExchanger(TestCase):
         assert e.value.message == "Could not find application from grant"
         assert e.value.webhook_context == {
             "code": self.code[:4],
-            "grant_id": self.install.api_grant.id,
+            "grant_id": self.grant.id,
         }
         assert e.value.public_context == {}
 
@@ -321,6 +330,7 @@ class TestGrantExchangerConcurrentExchange(TransactionTestCase):
         install = self.create_sentry_app_installation(prevent_token_exchange=True)
         assert install.api_grant is not None
         assert install.sentry_app.application is not None
+        assert install.sentry_app.proxy_user is not None
         grant_id = install.api_grant.id
         exchanger = GrantExchanger(
             install=install,

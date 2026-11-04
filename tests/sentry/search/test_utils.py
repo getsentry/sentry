@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from django.utils import timezone
@@ -171,16 +172,16 @@ def test_get_numeric_field_value_invalid() -> None:
 
 class ParseQueryTest(APITestCase, SnubaTestCase):
     @property
-    def rpc_user(self):
+    def rpc_user(self) -> RpcUser | None:
         return user_service.get_user(user_id=self.user.id)
 
     @property
-    def current_rpc_user(self):
+    def current_rpc_user(self) -> RpcUser:
         # This doesn't include useremails. Used in filters
         # where the current user is passed back
         return serialize_rpc_user(self.user)
 
-    def parse_query(self, query):
+    def parse_query(self, query: str) -> dict[str, Any]:
         return parse_query([self.project], query, self.user, [])
 
     def test_simple(self) -> None:

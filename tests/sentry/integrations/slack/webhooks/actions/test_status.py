@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -5,10 +6,11 @@ import pytest
 from django.db import router
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import (
@@ -39,6 +41,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils.samples import load_data
 
@@ -98,7 +101,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.group = Group.objects.get(id=event.group.id)
         self.tags = {"escape", "foo", "release"}
 
-    def get_original_message(self, group_id):
+    def get_original_message(self, group_id: int) -> dict[str, Any]:
         return {
             "blocks": [
                 {
@@ -117,7 +120,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             ],
         }
 
-    def get_unfurl_data(self, blocks):
+    def get_unfurl_data(self, blocks: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "container": {
                 "type": "message_attachment",
@@ -132,17 +135,17 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             },
         }
 
-    def get_archive_status_action(self):
+    def get_archive_status_action(self) -> dict[str, Any]:
         return {
             "action_id": "archive_dialog",
             "block_id": "bXwil",
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=7).timestamp(),
+            "action_ts": str(before_now(minutes=7).timestamp()),
         }
 
-    def get_assign_status_action(self, type, text, id):
+    def get_assign_status_action(self, type: str, text: str, id: int) -> dict[str, Any]:
         return {
             "type": "external_select",
             "action_id": "assign",
@@ -152,30 +155,35 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": before_now(minutes=5).timestamp(),
+            "action_ts": str(before_now(minutes=5).timestamp()),
         }
 
-    def get_resolve_status_action(self):
+    def get_resolve_status_action(self) -> dict[str, Any]:
         return {
             "action_id": "resolve_dialog",
             "block_id": "AeGRw",
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=3).timestamp(),
+            "action_ts": str(before_now(minutes=3).timestamp()),
         }
 
-    def get_mark_ongoing_action(self):
+    def get_mark_ongoing_action(self) -> dict[str, Any]:
         return {
             "action_id": "unresolved:ongoing",
             "block_id": "xPlAm",
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": before_now(minutes=1).timestamp(),
+            "action_ts": str(before_now(minutes=1).timestamp()),
         }
 
-    def archive_issue(self, original_message, selected_option, payload_data=None):
+    def archive_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: str,
+        payload_data: dict[str, Any] | None = None,
+    ) -> Any:
         assert selected_option in ARCHIVE_OPTIONS.values()
         status_action = self.get_archive_status_action()
 
@@ -206,7 +214,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         return resp
 
-    def assign_issue(self, original_message, selected_option, payload_data=None):
+    def assign_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: Team | User,
+        payload_data: dict[str, Any] | None = None,
+    ) -> Any:
         if isinstance(selected_option, Team):
             status_action = self.get_assign_status_action(
                 "team", selected_option.slug, selected_option.id
@@ -225,7 +238,13 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # resp so that the tests can assert the response blocks looked as expected
         return resp
 
-    def resolve_issue(self, original_message, selected_option, payload_data=None, mock_record=None):
+    def resolve_issue(
+        self,
+        original_message: dict[str, Any],
+        selected_option: str,
+        payload_data: dict[str, Any] | None = None,
+        mock_record: MagicMock | None = None,
+    ) -> None:
         status_action = self.get_resolve_status_action()
         resp = self.post_webhook_block_kit(
             action_data=[status_action], original_message=original_message, data=payload_data
@@ -264,7 +283,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_ask_linking(self) -> None:
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
         associate_url = build_linking_url(
-            self.integration, "invalid-id", "C065W1189", self.response_url
+            serialize_integration(self.integration), "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -587,7 +606,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             status_code=200,
         )
 
-        self.mock_post.side_effect = SlackApiError("error", mock_slack_response)
+        self.mock_post.side_effect = TypedSlackApiError("error", mock_slack_response)
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
@@ -826,8 +845,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         perf_issue = self.create_performance_issue(
             event_data=event_data_2, fingerprint=group_fingerprint
         )
+        assert perf_issue.group is not None
         self.group = perf_issue.group
-        assert self.group
 
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue(original_message, "resolved", mock_record)

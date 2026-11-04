@@ -87,5 +87,6 @@ describe('TraceTabsAndVitals', () => {
       expect.objectContaining({existing: 'preserved', tab: 'waterfall'})
     );
     expect(router.location.query.browser).toBeUndefined();
+    expect(router.historyAction).toBe('REPLACE');
   });
 });

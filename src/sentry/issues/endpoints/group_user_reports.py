@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import DateTimePaginator
@@ -10,11 +10,14 @@ from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.userreport import UserReport
 
 
 @cell_silo_endpoint
 class GroupUserReportsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -24,7 +27,7 @@ class GroupUserReportsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-user-reports",
         url_names=["sentry-api-0-group-user-reports"],
     )
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List User Reports
         `````````````````

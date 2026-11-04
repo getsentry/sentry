@@ -222,6 +222,7 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
 
         assert opened_activity_resp["id"] == str(opened_gopa.id)
         assert opened_activity_resp["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert group.priority is not None
         assert opened_activity_resp["value"] == PriorityLevel(group.priority).to_str()
         assert opened_activity_resp["dateCreated"] == opened_gopa.date_added
 
@@ -284,6 +285,7 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         activities = chart_data[0]["activities"]
         assert activities[0]["id"] == str(opened_gopa.id)
         assert activities[0]["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert group.priority is not None
         assert activities[0]["value"] == PriorityLevel(group.priority).to_str()
 
     @freeze_time(frozen_time)
@@ -321,4 +323,5 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         activities = chart_data[0]["activities"]
         assert activities[0]["id"] == str(opened_gopa.id)
         assert activities[0]["type"] == OpenPeriodActivityType(opened_gopa.type).to_str()
+        assert group.priority is not None
         assert activities[0]["value"] == PriorityLevel(group.priority).to_str()

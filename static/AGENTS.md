@@ -34,7 +34,7 @@
 - Routes defined in `static/app/router/routes.tsx`
 - Builds, tests, and typechecks use React Router V8.
 - Import router APIs and types from `react-router`, and `RouterProvider` from
-  `react-router/dom`. Use the Nuqs adapter from `nuqs/adapters/react-router/v8`.
+  `react-router/dom`. Use Sentry's Nuqs adapter from `sentry/router/nuqsAdapter`.
 - Keep using Sentry's routing helpers where required. Use Sentry's
   `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible

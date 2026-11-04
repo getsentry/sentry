@@ -28,7 +28,13 @@ class GitlabIssuesTest(GitLabTestCase):
             project_id=self.project.id,
             default_event_type=EventType.DEFAULT,
         )
+        assert event.group is not None
         self.group = event.group
+
+    def latest_event_title(self) -> str:
+        event = self.group.get_latest_event()
+        assert event is not None
+        return event.title
 
     def test_make_external_key(self) -> None:
         project_name = "getsentry/sentry"
@@ -142,7 +148,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -351,7 +357,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -434,7 +440,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -479,7 +485,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": self.group.get_latest_event().title,
+                "default": self.latest_event_title(),
                 "type": "string",
                 "required": True,
             },
@@ -498,7 +504,7 @@ class GitlabIssuesTest(GitLabTestCase):
         responses.add(
             responses.POST,
             "https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
-            json=[],
+            json={},
         )
         data = {"externalIssue": "2#321", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(

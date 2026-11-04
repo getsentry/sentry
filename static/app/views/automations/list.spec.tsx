@@ -13,6 +13,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -263,6 +264,33 @@ describe('AutomationsList', () => {
       );
     });
     expect(router.location.query.sort).toBe('-name');
+  });
+
+  it('clears the cursor in a new history entry when sorting', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [AutomationFixture({name: 'Automation 1'})],
+    });
+    const {router} = render(<AutomationsList />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/automations/', query: {cursor: '0:25:0'}},
+      },
+    });
+    await screen.findByText('Automation 1');
+
+    await userEvent.click(
+      within(
+        screen.getByRole('columnheader', {name: 'Select all on page Name'})
+      ).getByRole('button')
+    );
+    await waitFor(() => expect(router.location.query.sort).toBe('name'));
+    const sortedQuery = router.location.query;
+    act(() => router.navigate(-1));
+
+    expect(sortedQuery.cursor).toBeUndefined();
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:25:0'));
+    expect(router.location.query.sort).toBeUndefined();
   });
 
   describe('search', () => {

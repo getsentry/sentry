@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
+from typing import cast
 from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
@@ -283,7 +285,8 @@ class PerOrgSampleRateCacheTest(TestCase):
 
         set_project_sample_rates(self.organization.id, items)
 
-        assert self.redis.pttl(cache_key) > 1000
+        pttl = cast("Callable[[str], int]", self.redis.pttl)
+        assert pttl(cache_key) > 1000
 
     def test_transaction_sample_rates_round_trip(self) -> None:
         missing = self.create_project(organization=self.organization)

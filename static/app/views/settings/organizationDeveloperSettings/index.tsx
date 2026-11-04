@@ -28,7 +28,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 type Tab = 'public' | 'internal';
 
@@ -114,10 +113,7 @@ function OrganizationDeveloperSettings() {
   };
 
   const inlineActions = (
-    <Flex gap="md">
-      <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
-      <CreateIntegrationButton analyticsView={analyticsView} size="md" />
-    </Flex>
+    <CreateIntegrationButton analyticsView={analyticsView} size="md" />
   );
 
   const isInternalTab = tab === 'internal';
