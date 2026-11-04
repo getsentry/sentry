@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {

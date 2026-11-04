@@ -5,20 +5,16 @@ import type {Location} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import type {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withApi} from 'sentry/utils/withApi';
-import {withProjects} from 'sentry/utils/withProjects';
 
 const renderDisabled = (p: any) => (
   <Hovercard
@@ -36,8 +32,6 @@ const renderDisabled = (p: any) => (
 );
 
 type Props = {
-  api: Client;
-
   eventView: EventView;
   /**
    * DO NOT USE `Location` TO GENERATE `EventView` IN THIS COMPONENT.
@@ -49,7 +43,6 @@ type Props = {
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
-  projects: Project[];
   queryDataLoading: boolean;
   savedQuery: SavedQuery | undefined;
   setHomepageQuery: (homepageQuery?: SavedQuery) => void;
@@ -61,7 +54,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
+const MemoizedSavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   disabled = false,
   organization,
 }: Props) {
@@ -92,9 +85,7 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   );
 });
 
-function SavedQueryButtonGroupWithNavigate(props: Omit<Props, 'navigate'>) {
+export function SavedQueryButtonGroup(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();
-  return <SavedQueryButtonGroup {...props} navigate={navigate} />;
+  return <MemoizedSavedQueryButtonGroup {...props} navigate={navigate} />;
 }
-
-export default withProjects(withApi(SavedQueryButtonGroupWithNavigate));

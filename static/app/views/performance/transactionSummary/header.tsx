@@ -39,7 +39,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {Tab} from './tabs';
-import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
 import {TransactionThresholdButton} from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
