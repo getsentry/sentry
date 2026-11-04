@@ -167,6 +167,7 @@ describe('MigrateLegacySeerAction', () => {
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',
       body: {},
+      asyncDelay: 1,
     });
 
     openModal();
@@ -175,6 +176,7 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(successMessage).toHaveBeenCalledWith('Legacy Seer migration complete.');
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows error detail from API response on failure', async () => {

@@ -31,12 +31,13 @@ describe('SendWeeklyEmailAction', () => {
     jest.restoreAllMocks();
   });
 
-  it('shows a success message after confirming when the request succeeds', async () => {
+  it('shows a success message after the modal closes when the request succeeds', async () => {
     const successMessage = jest.spyOn(indicators, 'addSuccessMessage');
     const sendMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
       body: {},
+      asyncDelay: 1,
     });
 
     openModal();
@@ -46,6 +47,7 @@ describe('SendWeeklyEmailAction', () => {
     await waitFor(() => {
       expect(successMessage).toHaveBeenCalledWith('Email queued');
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(sendMock).toHaveBeenCalledWith(
       endpoint,
       expect.objectContaining({
@@ -53,6 +55,26 @@ describe('SendWeeklyEmailAction', () => {
         data: {targetEmail: '', deliveryEmail: '', dryRun: true},
       })
     );
+  });
+
+  it('shows a membership error when the request returns 404', async () => {
+    const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      statusCode: 404,
+      body: {},
+    });
+
+    openModal();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Dry Run'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => {
+      expect(errorMessage).toHaveBeenCalledWith(
+        'User is not a member of the organization!'
+      );
+    });
   });
 
   it('shows a validation error without sending when the delivery email is missing', async () => {
