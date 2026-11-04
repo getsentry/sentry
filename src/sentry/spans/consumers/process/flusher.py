@@ -6,7 +6,7 @@ import multiprocessing.context
 import multiprocessing.process
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import Future
 from functools import partial
 from multiprocessing.sharedctypes import Synchronized
@@ -65,6 +65,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.stopped = mp_context.Value("i", 0)
         self.redis_was_full = False
         self.current_drift = mp_context.Value("i", 0)
+        # Set to 1 by submit() once current_drift has been set from a consumed
+        # message. Until then, current_drift is 0 and does not reflect the
+        # consumer's position in the topic.
+        self.drift_initialized = mp_context.Value("i", 0)
         self.produce_to_pipe = produce_to_pipe
 
         # Determine which shards get their own processes vs shared processes
@@ -92,7 +96,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # all processes are healthy. This ensures we do not write into Redis if
         # the flusher deterministically crashes on start, because in
         # combination with the consumer crashlooping this will cause Redis to
-        # be filled up.
+        # be filled up. A process becomes healthy after its first
+        # flush_segments() call (see SpanFlusher.main).
         for process_index in self.process_to_shards_map.keys():
             self._wait_for_process_to_become_healthy(process_index)
 
@@ -156,6 +161,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 shards,
                 self.stopped,
                 self.current_drift,
+                self.drift_initialized,
                 self.process_backpressure_since[process_index],
                 self.process_healthy_since[process_index],
                 self.produce_to_pipe,
@@ -182,6 +188,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         shards: list[int],
         stopped: Synchronized[int],
         current_drift: Synchronized[int],
+        drift_initialized: Synchronized[int],
         backpressure_since: Synchronized[int],
         healthy_since: Synchronized[int],
         produce_to_pipe: ProduceToPipe | None,
@@ -197,123 +204,39 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         logger.info("Flusher process started for shards %s", shard_tag)
 
         try:
-            producer_futures: list[tuple[int, Any, int]] = []
+            wait_for_drift_seconds = options.get("spans.buffer.flusher.wait-for-drift-seconds")
+            if wait_for_drift_seconds > 0 and not drift_initialized.value:
+                # The wait below reports healthy without flushing, which would
+                # let the consumer's startup handshake pass even if flushing is
+                # broken. So call flush_segments() once first. Flush deadlines
+                # are Unix timestamps, so a cutoff of 0 selects no segment, but
+                # a flusher that cannot flush still crashes here before it
+                # reports healthy.
+                buffer.flush_segments(now=0)
+                SpanFlusher._wait_for_drift(
+                    shard_tag,
+                    wait_for_drift_seconds,
+                    stopped,
+                    current_drift,
+                    drift_initialized,
+                    healthy_since,
+                )
 
             first_iteration = True
             while not stopped.value:
-                system_now = int(time.time())
-                now = system_now + current_drift.value
-                flushed_segments = buffer.flush_segments(now=now)
+                flushed_any = SpanFlusher._flush_cycle(
+                    buffer,
+                    shard_tag,
+                    current_drift,
+                    backpressure_since,
+                    healthy_since,
+                    produce_to_pipe,
+                    first_iteration,
+                )
+                first_iteration = False
 
-                if first_iteration:
-                    logger.info("Flusher first flush_segments completed for shards %s", shard_tag)
-
-                # Check backpressure flag set by buffer
-                if buffer.any_shard_at_limit:
-                    if backpressure_since.value == 0:
-                        backpressure_since.value = system_now
-                else:
-                    backpressure_since.value = 0
-
-                # Update healthy_since for all shards handled by this process
-                healthy_since.value = system_now
-
-                if first_iteration:
-                    logger.info("Flusher process healthy for shards %s", shard_tag)
-                    first_iteration = False
-
-                if not flushed_segments:
+                if not flushed_any:
                     time.sleep(1)
-                    continue
-
-                with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
-                    log_flushed_segments = options.get("spans.buffer.flusher.log-flushed-segments")
-
-                    for segment_key, flushed_segment in flushed_segments.items():
-                        if not flushed_segment.spans:
-                            continue
-
-                        if log_flushed_segments:
-                            logger.info(
-                                "spans.buffer.flushed_segment",
-                                extra={
-                                    "segment_key": segment_key.decode("utf-8", errors="replace"),
-                                    "queue_key": flushed_segment.queue_key.decode(
-                                        "utf-8", errors="replace"
-                                    ),
-                                    "span_count": len(flushed_segment.spans),
-                                    "project_id": flushed_segment.project_id,
-                                },
-                            )
-
-                        for message in flushed_segment.to_messages():
-                            kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
-                            metrics.timing(
-                                "spans.buffer.segment_size_bytes",
-                                len(kafka_payload.value),
-                                tags={"shard": shard_tag},
-                            )
-
-                            if produce_to_pipe is not None:
-                                pipe_future: Future[None] = Future[None]()
-                                try:
-                                    produce_to_pipe(
-                                        flushed_segment.project_id,
-                                        kafka_payload,
-                                        len(message["spans"]),
-                                    )
-                                    pipe_future.set_result(None)
-                                except Exception as e:
-                                    pipe_future.set_exception(e)
-                                producer_futures.append(
-                                    (
-                                        flushed_segment.project_id,
-                                        pipe_future,
-                                        len(message["spans"]),
-                                    )
-                                )
-                                continue
-
-                            task_produce_future = process_segment_task.apply_async_with_future(
-                                args=[kafka_payload.value],
-                                headers={"sentry-propagate-traces": False},
-                            )
-                            if task_produce_future is not None:
-                                producer_futures.append(
-                                    (
-                                        flushed_segment.project_id,
-                                        task_produce_future,
-                                        len(message["spans"]),
-                                    )
-                                )
-
-                with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
-                    for project_id, future, dropped in producer_futures:
-                        try:
-                            future.result()
-                        except Exception:
-                            logger.exception("Error spawning process_segment task")
-                            try:
-                                project = Project.objects.get_from_cache(id=project_id)
-                            except Project.DoesNotExist:
-                                logger.warning(
-                                    "Project does not exist for segment with dropped spans",
-                                    extra={"project_id": project_id},
-                                )
-                            else:
-                                track_outcome(
-                                    org_id=project.organization_id,
-                                    project_id=project_id,
-                                    key_id=None,
-                                    outcome=Outcome.INVALID,
-                                    reason="failed_to_produce",
-                                    category=DataCategory.SPAN_INDEXED,
-                                    quantity=dropped,
-                                )
-
-                producer_futures.clear()
-
-                buffer.done_flush_segments(flushed_segments)
         except KeyboardInterrupt:
             pass
         except Exception:
@@ -323,6 +246,203 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             from django.db import connections
 
             connections.close_all()
+
+    @staticmethod
+    def _wait_for_drift(
+        shard_tag: str,
+        timeout_seconds: int,
+        stopped: Synchronized[int],
+        current_drift: Synchronized[int],
+        drift_initialized: Synchronized[int],
+        healthy_since: Synchronized[int],
+    ) -> None:
+        """
+        Delay a fresh flusher's first flush until the consumer has set the
+        drift from a consumed message, or until `timeout_seconds` have passed.
+
+        Without a drift, the flusher uses wall-clock time. After an outage or
+        rebalance, its first cycles then flush every segment that became due
+        during the gap, back to back at the max-flush-segments cap, before the
+        consumer has read the backlog that may still hold spans for them. Once
+        the drift is set, those segments are flushed progressively as the
+        consumer catches up.
+
+        healthy_since keeps being updated so that the consumer's startup
+        handshake and hang detection keep working while we wait. The caller
+        must have called flush_segments() once before, so that reporting
+        healthy still means that flushing works. After the timeout, flushing
+        starts with no drift so that idle topics still flush.
+        """
+        started = time.monotonic()
+        while not stopped.value and not drift_initialized.value:
+            if time.monotonic() - started >= timeout_seconds:
+                break
+            healthy_since.value = int(time.time())
+            time.sleep(0.1)
+
+        if stopped.value:
+            return
+
+        waited = time.monotonic() - started
+        timed_out = not drift_initialized.value
+        metrics.timing(
+            "spans.buffer.flusher.wait_for_drift",
+            waited,
+            tags={"timed_out": str(timed_out).lower()},
+        )
+        logger.info(
+            "spans.buffer.flusher.wait_for_drift.done",
+            extra={
+                "shards": shard_tag,
+                "waited_seconds": round(waited, 3),
+                "timed_out": timed_out,
+                "drift": current_drift.value,
+            },
+        )
+
+    @staticmethod
+    def _flush_cycle(
+        buffer: SpansBuffer,
+        shard_tag: str,
+        current_drift: Synchronized[int],
+        backpressure_since: Synchronized[int],
+        healthy_since: Synchronized[int],
+        produce_to_pipe: ProduceToPipe | None,
+        first_iteration: bool,
+    ) -> bool:
+        """
+        Flush and produce one batch of segments. Returns whether
+        flush_segments() returned any segments.
+
+        This is a separate function so that everything loaded in this cycle
+        (span payloads, messages, producer futures) is released when it
+        returns. Otherwise the main loop's variables keep the previous cycle
+        alive while the next flush_segments() loads a new batch, doubling peak
+        memory during back-to-back catch-up flushes.
+        """
+        system_now = int(time.time())
+        now = system_now + current_drift.value
+        flushed_segments = buffer.flush_segments(now=now)
+
+        if first_iteration:
+            logger.info("Flusher first flush_segments completed for shards %s", shard_tag)
+
+        # Check backpressure flag set by buffer
+        if buffer.any_shard_at_limit:
+            if backpressure_since.value == 0:
+                backpressure_since.value = system_now
+        else:
+            backpressure_since.value = 0
+
+        # Update healthy_since for all shards handled by this process
+        healthy_since.value = system_now
+
+        if first_iteration:
+            logger.info("Flusher process healthy for shards %s", shard_tag)
+
+        if not flushed_segments:
+            return False
+
+        producer_futures: list[tuple[int, Any, int]] = []
+
+        with metrics.timer("spans.buffer.flusher.produce", tags={"shard": shard_tag}):
+            log_flushed_segments = options.get("spans.buffer.flusher.log-flushed-segments")
+
+            for segment_key, flushed_segment in flushed_segments.items():
+                if not flushed_segment.spans:
+                    continue
+
+                if log_flushed_segments:
+                    logger.info(
+                        "spans.buffer.flushed_segment",
+                        extra={
+                            "segment_key": segment_key.decode("utf-8", errors="replace"),
+                            "queue_key": flushed_segment.queue_key.decode(
+                                "utf-8", errors="replace"
+                            ),
+                            "span_count": len(flushed_segment.spans),
+                            "project_id": flushed_segment.project_id,
+                        },
+                    )
+
+                for message in flushed_segment.to_messages():
+                    kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
+                    metrics.timing(
+                        "spans.buffer.segment_size_bytes",
+                        len(kafka_payload.value),
+                        tags={"shard": shard_tag},
+                    )
+
+                    if produce_to_pipe is not None:
+                        pipe_future: Future[None] = Future[None]()
+                        try:
+                            produce_to_pipe(
+                                flushed_segment.project_id,
+                                kafka_payload,
+                                len(message["spans"]),
+                            )
+                            pipe_future.set_result(None)
+                        except Exception as e:
+                            pipe_future.set_exception(e)
+                        producer_futures.append(
+                            (
+                                flushed_segment.project_id,
+                                pipe_future,
+                                len(message["spans"]),
+                            )
+                        )
+                        continue
+
+                    task_produce_future = process_segment_task.apply_async_with_future(
+                        args=[kafka_payload.value],
+                        headers={"sentry-propagate-traces": False},
+                    )
+                    if task_produce_future is not None:
+                        producer_futures.append(
+                            (
+                                flushed_segment.project_id,
+                                task_produce_future,
+                                len(message["spans"]),
+                            )
+                        )
+
+        SpanFlusher._wait_for_produce(producer_futures, shard_tag)
+
+        buffer.done_flush_segments(flushed_segments)
+        return True
+
+    @staticmethod
+    def _wait_for_produce(producer_futures: Sequence[tuple[int, Any, int]], shard_tag: str) -> None:
+        with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
+            for project_id, future, dropped in producer_futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.exception("Error spawning process_segment task")
+                    # Re-raising put this frame into the traceback of the
+                    # exception that the future holds. Through it, the
+                    # traceback also references _flush_cycle's frame, which
+                    # holds this cycle's segments. Drop it, otherwise only the
+                    # cyclic GC frees that cycle and it can stay alive while
+                    # the next flush_segments() loads a new batch.
+                    e.__traceback__ = None
+                    try:
+                        project = Project.objects.get_from_cache(id=project_id)
+                    except Project.DoesNotExist:
+                        logger.warning(
+                            "Project does not exist for segment with dropped spans",
+                            extra={"project_id": project_id},
+                        )
+                    else:
+                        track_outcome(
+                            org_id=project.organization_id,
+                            project_id=project_id,
+                            key_id=None,
+                            outcome=Outcome.INVALID,
+                            reason="failed_to_produce",
+                            category=DataCategory.SPAN_INDEXED,
+                            quantity=dropped,
+                        )
 
     def poll(self) -> None:
         self.next_step.poll()
@@ -405,6 +525,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # negative value, effectively pausing flushing as well.
         if isinstance(message.payload, int):
             self.current_drift.value = drift = message.payload - int(time.time())
+            # Set after current_drift, so that a flusher process that sees the
+            # flag also sees this drift.
+            if not self.drift_initialized.value:
+                self.drift_initialized.value = 1
             metrics.timing(
                 "spans.buffer.flusher.drift",
                 drift,
