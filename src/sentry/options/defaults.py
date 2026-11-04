@@ -979,11 +979,11 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Forge apps that replace the Connect app (they declare `app.connect.key`). Every site
-# installing one also has a Connect integration, which Forge installs are linked to.
-# Installs of any other trusted Forge app get a Forge-only integration.
+# Forge apps with no Connect predecessor, such as the staging app. Their installs get a
+# Forge-only integration. Installs of any other trusted Forge app are linked to the
+# site's Connect integration, so a missing entry fails safely instead of creating one.
 register(
-    "jira.forge.connect-app-ids",
+    "jira.forge.native-app-ids",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,

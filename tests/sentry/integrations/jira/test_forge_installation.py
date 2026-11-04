@@ -53,7 +53,6 @@ class JiraForgeInstallationWebhookTest(APITestCase):
         self.url = reverse("sentry-extensions-jira-forge-installation")
         self.headers = {"Authorization": "Bearer fit", "X-Forge-OAuth-System": SYSTEM_TOKEN}
 
-    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_queues_encrypted_installation(
         self, mock_verify: MagicMock, mock_task: MagicMock
     ) -> None:
@@ -166,7 +165,6 @@ class SyncForgeInstallationTest(TestCase):
         }
 
     @responses.activate
-    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_records_forge_installation_on_connect_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -189,6 +187,7 @@ class SyncForgeInstallationTest(TestCase):
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {SYSTEM_TOKEN}"
 
     @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
     def test_creates_forge_only_integration_keyed_by_cloud_id(self) -> None:
         responses.get(
             self.server_info_url,
@@ -210,6 +209,7 @@ class SyncForgeInstallationTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
     def test_keeps_the_newest_token(self) -> None:
         responses.get(
             self.server_info_url,
@@ -224,7 +224,6 @@ class SyncForgeInstallationTest(TestCase):
         assert integration.metadata["forge"] == self.forge_metadata()
 
     @responses.activate
-    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_does_not_record_unless_the_site_matches(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
