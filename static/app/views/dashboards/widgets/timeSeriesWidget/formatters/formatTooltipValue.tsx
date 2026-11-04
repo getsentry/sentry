@@ -9,7 +9,7 @@ import {
   SizeUnit,
   type RateUnit,
 } from 'sentry/utils/discover/fields';
-import {formatDollars, formatRate, MICROSECOND} from 'sentry/utils/formatters';
+import {formatDollars, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
@@ -66,7 +66,7 @@ export function formatTooltipValue(
       return getDuration(durationInSeconds, {
         precision: 2,
         style: 'short',
-        minimumUnit: MICROSECOND,
+        minimumUnit: 'microsecond',
       });
     }
     case 'size': {

@@ -1,10 +1,18 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {getDuration} from '@sentry/scraps/duration';
-import {getRelativeDate} from '@sentry/scraps/relativeTime';
+import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
 
-import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from './locale';
+import {
+  DEFAULT_LOCALE_DATA,
+  getLocaleSnapshot,
+  pgettext,
+  setLocale,
+  t,
+  tct,
+  tn,
+} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {
@@ -133,18 +141,60 @@ describe('shared formatter translations', () => {
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();
-      setLocale(DEFAULT_LOCALE_DATA);
+      act(() => setLocale(DEFAULT_LOCALE_DATA));
     }
+  });
+
+  it('keeps plural count formatting and catalog bindings consistent', () => {
+    const original = getLocaleSnapshot();
+    expect(original.messages.tn('%s item', '%s items', 2)).toBe(
+      tn('%s item', '%s items', 2)
+    );
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '%s item': ['%s article', '%s articles'],
+    });
+    const translated = getLocaleSnapshot();
+    expect(translated.messages.tn('%s item', '%s items', 9999)).toBe(
+      tn('%s item', '%s items', 9999)
+    );
+    expect(original.messages.tn('%s item', '%s items', 2)).toBe('2 items');
+    expect(translated.messages.tn('%s item', '%s items', 2)).toBe('2 articles');
   });
 
   it('uses the active locale for duration and relative-date formatting', () => {
     expect(getDuration(2)).toBe('2 seconds');
     setLocale({...DEFAULT_LOCALE_DATA, second: ['seconde', 'secondes']});
     expect(getDuration(2)).toBe('2 secondes');
-    expect(getRelativeDate('2026-01-01T00:00:00Z', undefined, undefined, 'regular')).toBe(
+    expect(getRelativeDate('2026-01-01T00:00:00Z', {rounding: 'unit', suffix: ''})).toBe(
       '2 secondes'
     );
     setLocale(DEFAULT_LOCALE_DATA);
     expect(getDuration(2)).toBe('2 seconds');
+  });
+
+  it('updates a mounted relative time with a complete phrase from the new catalog', () => {
+    const date = '2026-01-01T00:00:00Z';
+    function RelativeDate() {
+      const format = useRelativeTimeFormatter();
+      return <span>{format(date, {rounding: 'unit'})}</span>;
+    }
+    render(<RelativeDate />);
+    expect(screen.getByText('2 seconds ago')).toBeInTheDocument();
+
+    act(() => {
+      setLocale({
+        ...DEFAULT_LOCALE_DATA,
+        '': {...DEFAULT_LOCALE_DATA[''], lang: 'fr'},
+        second: ['seconde', 'secondes'],
+        '%s ago': ['il y a %s'],
+        'in %s': ['dans %s'],
+      });
+    });
+    expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
+    expect(getRelativeDate(date, {rounding: 'unit'})).toBe('il y a 2 secondes');
+    expect(getRelativeDate('2026-01-01T00:00:04Z', {rounding: 'unit'})).toBe(
+      'dans 2 secondes'
+    );
   });
 });

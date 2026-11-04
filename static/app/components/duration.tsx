@@ -16,7 +16,7 @@ export function Duration({seconds, fixedDigits, abbreviation, exact, ...props}: 
         ? getExactDuration(seconds, abbreviation)
         : getDuration(seconds, {
             precision: fixedDigits,
-            style: abbreviation ? 'short' : 'regular',
+            style: abbreviation ? 'short' : 'long',
           })}
     </span>
   );

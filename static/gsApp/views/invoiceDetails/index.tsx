@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import moment from 'moment-timezone';
 
 import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid} from '@sentry/scraps/layout';
@@ -249,7 +250,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
         <dd>{paymentStatus.toUpperCase()}</dd>
         <dt>{t('Date:')}</dt>
         <dd>
-          <DateTime date={invoice.dateCreated} dateOnly year />
+          <DateTime date={invoice.dateCreated} mode="date" year="always" />
         </dd>
       </Attributes>
     </Grid>
@@ -301,14 +302,33 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
         <tbody>
           {invoice.items.map((item, i) => {
             if (item.type === 'subscription') {
+              // Billing periods are calendar days; UTC projection keeps viewer preferences from shifting the day.
               return (
                 <tr key={i}>
                   <td>
                     {tct('[description] Plan', {description: item.description})}
                     <small>
                       {tct('[start] to [end]', {
-                        start: <DateTime date={item.periodStart} dateOnly year />,
-                        end: <DateTime date={item.periodEnd} dateOnly year />,
+                        start: (
+                          <DateTime
+                            date={moment
+                              .utc(item.periodStart, 'YYYY-MM-DD', true)
+                              .toDate()}
+                            timezone="UTC"
+                            showTimezone={false}
+                            mode="date"
+                            year="always"
+                          />
+                        ),
+                        end: (
+                          <DateTime
+                            date={moment.utc(item.periodEnd, 'YYYY-MM-DD', true).toDate()}
+                            timezone="UTC"
+                            showTimezone={false}
+                            mode="date"
+                            year="always"
+                          />
+                        ),
                       })}
                     </small>
                   </td>

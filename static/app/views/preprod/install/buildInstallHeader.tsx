@@ -83,6 +83,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   }
 
   const appInfo = buildDetailsData.app_info;
+  const buildDate = appInfo.date_built || appInfo.date_added;
   const labels = getLabels(appInfo.platform ?? undefined);
   const version = appInfo.version;
   const buildNumber = getBuildNumber(appInfo);
@@ -133,7 +134,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
             </Flex>
           </Tooltip>
         ) : null}
-        {(appInfo.date_built || appInfo.date_added) && (
+        {buildDate && (
           <Tooltip
             title={appInfo.date_built ? t('App build time') : t('App upload time')}
           >
@@ -142,11 +143,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
                 <IconClock />
               </Flex>
               <Text size="sm" variant="muted">
-                <DateTime
-                  date={appInfo.date_built || appInfo.date_added}
-                  seconds
-                  timeZone
-                />
+                <DateTime date={buildDate} precision="second" showTimezone />
               </Text>
             </Flex>
           </Tooltip>

@@ -165,6 +165,9 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     ? new Date(Number(String(preciseTimestamp).slice(0, -6))) // Truncate last 6 digits (nanoseconds)
     : props.item.value;
 
+  if (timestampToUse === null) {
+    return null;
+  }
   return (
     <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
@@ -173,7 +176,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
         isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
-        <DateTime seconds milliseconds date={timestampToUse} />
+        <DateTime date={timestampToUse} precision="millisecond" showTimezone={false} />
       </LogsTimestampTooltip>
     </LogTimestamp>
   );
@@ -182,7 +185,7 @@ function TimestampRenderer(props: LogFieldRendererProps) {
 function InternalIngestedAtRenderer(props: LogFieldRendererProps) {
   const ingestedAt =
     props.extra.attributes[OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT];
-  return <DateTime seconds milliseconds date={new Date(Number(ingestedAt))} />;
+  return <DateTime date={new Date(Number(ingestedAt))} precision="millisecond" />;
 }
 
 function RelativeTimestampRenderer(props: LogFieldRendererProps) {

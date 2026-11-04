@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -65,7 +64,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
         <IdentityIcon providerId={identity.provider.key} />
         <IdentityText isSingleLine={!identity.dateAdded}>
           <IdentityName>{identity.provider.name}</IdentityName>
-          {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
+          {identity.dateAdded && <IdentityDateTime date={identity.dateAdded} />}
         </IdentityText>
       </Flex>
       <Flex justify="center">

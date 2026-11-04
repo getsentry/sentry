@@ -16,7 +16,9 @@ export function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
     <Fragment>
       <TooltipTime>
         {tct('Date: [date]', {
-          date: <DateTime date={timestampMs} year seconds timeZone />,
+          date: (
+            <DateTime date={timestampMs} precision="second" year="always" showTimezone />
+          ),
         })}
       </TooltipTime>
       <TooltipTime>

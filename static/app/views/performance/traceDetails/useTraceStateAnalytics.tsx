@@ -68,7 +68,7 @@ export function useTraceStateAnalytics({
       const traceTimestamp =
         traceNode.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
       const traceAge = defined(traceTimestamp)
-        ? getRelativeDate(traceTimestamp, 'ago')
+        ? getRelativeDate(traceTimestamp, {suffix: 'ago', prefix: ''})
         : 'unknown';
       const issuesCount = traceNode.uniqueIssues.length;
 

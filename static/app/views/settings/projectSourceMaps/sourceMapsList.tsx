@@ -377,7 +377,7 @@ function SourceMapUploadsList({
               <ItemTitle to={sourceMapUploadDetailLink(sourceMapUpload)}>
                 <IconUpload />
                 {tct('[date] ([fileCount] files)', {
-                  date: <DateTime year date={sourceMapUpload.date} />,
+                  date: <DateTime date={sourceMapUpload.date} year="always" />,
                   fileCount: sourceMapUpload.fileCount,
                 })}
               </ItemTitle>

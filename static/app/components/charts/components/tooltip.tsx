@@ -6,13 +6,15 @@ import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
 
-import {formatDateTime, getFormat} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
+import {getUserTimezone} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -30,37 +32,36 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
-  const formatOptions = {local: !utc};
-
-  const timeFormat = showTimeInTooltip
-    ? getFormat({seconds: addSecondsToTimeFormat, timeOnly: true})
-    : '';
+  const timezone = utc
+    ? 'UTC'
+    : (getUserTimezone() ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const precision = addSecondsToTimeFormat ? 'second' : 'minute';
+  const formatDate = (timestamp: number, year: 'always' | 'never') =>
+    formatDateTime(timestamp, {mode: 'date', year, timezone, showTimezone: false});
+  const formatTime = (timestamp: number) =>
+    formatDateTime(timestamp, {mode: 'time', precision, timezone, showTimezone: false});
+  const zone = formatChartDateTime(value + (bucketSize ?? 0), 'timezone', {timezone});
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${timeFormat} z`.trim();
-    return formatDateTime(value, {format, utc: !formatOptions.local});
+    return `${formatDate(value, 'always')}${showTimeInTooltip ? ` ${formatTime(value)}` : ''} ${zone}`;
   }
 
-  const now = moment();
-  const bucketStart = moment(value);
-  const bucketEnd = moment(value + bucketSize);
-
-  const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
-  const showEndDate = bucketStart.date() !== bucketEnd.date();
-
-  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${timeFormat}`.trim();
-
-  const formatEndDate = showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : '';
-  const formatEnd = `${formatEndDate} ${timeFormat}`.trim();
-
-  const start = formatDateTime(bucketStart, {
-    format: formatStart,
-    utc: !formatOptions.local,
-  });
-  const end = formatDateTime(bucketEnd, {format: formatEnd, utc: !formatOptions.local});
-  const timezone = formatDateTime(bucketEnd, {format: 'z', utc: !formatOptions.local});
-
-  return `${start} — ${end} (${timezone})`;
+  const now = moment.tz(timezone);
+  const bucketStart = moment.tz(value, timezone);
+  const bucketEnd = moment.tz(value + bucketSize, timezone);
+  const year =
+    now.year() !== bucketStart.year() || now.year() !== bucketEnd.year()
+      ? 'always'
+      : 'never';
+  const showEndDate = !bucketStart.isSame(bucketEnd, 'day');
+  const start = `${formatDate(value, year)}${showTimeInTooltip ? ` ${formatTime(value)}` : ''}`;
+  const end = [
+    showEndDate ? formatDate(value + bucketSize, year) : '',
+    showTimeInTooltip ? formatTime(value + bucketSize) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return `${start} — ${end} (${zone})`;
 }
 
 function defaultValueFormatter(value: string | number) {

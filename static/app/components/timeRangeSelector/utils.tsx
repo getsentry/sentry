@@ -161,10 +161,25 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  if (!start || !end) {
+    return null;
+  }
   // XXX: These are NOT used for display purpose but only to determine if the
   // dates are at the start or end of the day
-  const startTimeFormatted = formatDateTime(start, {format: 'HH:mm:ss', utc: false});
-  const endTimeFormatted = formatDateTime(end, {format: 'HH:mm:ss', utc: false});
+  const startTimeFormatted = formatDateTime(start, {
+    mode: 'time',
+    precision: 'second',
+    clock: '24',
+    showTimezone: false,
+    timezone: undefined,
+  });
+  const endTimeFormatted = formatDateTime(end, {
+    mode: 'time',
+    precision: 'second',
+    clock: '24',
+    showTimezone: false,
+    timezone: undefined,
+  });
 
   const showDateOnly =
     startTimeFormatted === DEFAULT_DAY_START_TIME &&
@@ -172,9 +187,17 @@ export function getAbsoluteSummary(
 
   return (
     <Fragment>
-      <DateTime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={start}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={utc ? 'UTC' : undefined}
+      />
       {'–'}
-      <DateTime date={end} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={end}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={utc ? 'UTC' : undefined}
+      />
     </Fragment>
   );
 }

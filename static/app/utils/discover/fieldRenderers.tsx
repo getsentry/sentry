@@ -214,10 +214,14 @@ export const FIELD_FORMATTERS: FieldFormatters = {
               value: (
                 <FieldDateTime
                   date={data[field]}
-                  year
-                  seconds
-                  timeZone
-                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+                  year="always"
+                  precision="second"
+                  showTimezone
+                  timezone={
+                    decodeScalar(baggage?.location?.query?.utc) === 'true'
+                      ? 'UTC'
+                      : undefined
+                  }
                 />
               ),
               fixed: 'timestamp',
@@ -829,7 +833,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <Container>
           <Tooltip title={timestamp}>
-            <FieldDateTime date={date} seconds year timeZone />
+            <FieldDateTime date={date} year="always" precision="second" showTimezone />
           </Tooltip>
         </Container>
       );
@@ -839,7 +843,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
+          value: (
+            <FieldDateTime date={data['timestamp.to_hour']} year="always" showTimezone />
+          ),
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -849,7 +855,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
+          value: (
+            <FieldDateTime
+              date={data['timestamp.to_day']}
+              year="always"
+              mode="date"
+              timezone="UTC"
+            />
+          ),
           fixed: 'timestamp.to_day',
         })}
       </Container>

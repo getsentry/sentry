@@ -1,34 +1,66 @@
 import type * as React from 'react';
-import {createContext, useContext, useSyncExternalStore} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 
-import {getClockDisplay, getTimezone, subscribe} from './config';
+import {getSnapshot, subscribe, type DateTimePreferences} from './config';
+import {
+  formatDateTimeWithSnapshot,
+  type DateTimeInput,
+  type DateTimeOptions,
+} from './format';
 
-export interface DateTimeContextValue {
-  clockDisplay: '12' | '24';
-  timezone: string;
-}
+const DateTimeContext = createContext<Partial<DateTimePreferences>>({});
 
-const DateTimeContext = createContext<DateTimeContextValue | null>(null);
-
-/** Override the application's timezone and clock for a subtree. */
+/** Override only the specified preferences, inheriting the rest from the parent. */
 export function DateTimeProvider({
   value,
   children,
 }: {
   children: React.ReactNode;
-  value: DateTimeContextValue;
+  value: Partial<DateTimePreferences>;
 }) {
-  return <DateTimeContext value={value}>{children}</DateTimeContext>;
+  const parent = useContext(DateTimeContext);
+  const preferences = useMemo(
+    () => ({
+      timezone: value.timezone ?? parent.timezone,
+      clock: value.clock ?? parent.clock,
+    }),
+    [parent, value.timezone, value.clock]
+  );
+  return <DateTimeContext value={preferences}>{children}</DateTimeContext>;
+}
+
+export function useFormattingSnapshot() {
+  const overrides = useContext(DateTimeContext);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useMemo(
+    () => ({
+      ...snapshot,
+      timezone: overrides.timezone ?? snapshot.timezone,
+      clock: overrides.clock ?? snapshot.clock,
+    }),
+    [snapshot, overrides]
+  );
 }
 
 export function useTimezone(): string {
-  const value = useContext(DateTimeContext);
-  const timezone = useSyncExternalStore(subscribe, getTimezone, getTimezone);
-  return value?.timezone ?? timezone;
+  return useFormattingSnapshot().timezone;
 }
 
-export function useClockDisplay(): DateTimeContextValue['clockDisplay'] {
-  const value = useContext(DateTimeContext);
-  const clockDisplay = useSyncExternalStore(subscribe, getClockDisplay, getClockDisplay);
-  return value?.clockDisplay ?? clockDisplay;
+export function useClock(): DateTimePreferences['clock'] {
+  return useFormattingSnapshot().clock;
+}
+
+export function useDateTimeFormatter() {
+  const snapshot = useFormattingSnapshot();
+  return useCallback(
+    (date: DateTimeInput, options: DateTimeOptions = {}) =>
+      formatDateTimeWithSnapshot(date, options, snapshot),
+    [snapshot]
+  );
 }

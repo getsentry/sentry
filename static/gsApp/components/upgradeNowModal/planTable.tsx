@@ -128,7 +128,7 @@ export function PlanTable({
             <PlanValue isTotal>
               <EffectiveDate>
                 {tct('Effective on [date]', {
-                  date: <DateTime timeOnly date={effectiveAt} />,
+                  date: <DateTime date={effectiveAt} mode="time" />,
                 })}
               </EffectiveDate>
             </PlanValue>

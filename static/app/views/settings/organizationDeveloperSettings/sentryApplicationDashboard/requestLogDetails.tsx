@@ -16,7 +16,6 @@ import {
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 
 import {decodeWebhookBody} from './decodeWebhookBody';
@@ -56,14 +55,15 @@ interface RequestLogDetailsProps {
 
 function RequestLogDetails({request, isInternal, organization}: RequestLogDetailsProps) {
   const {request_body, request_headers, response_body} = request;
-  const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
 
   const summaryItems: KeyValueTableDataRowProps[] = [
     {
       item: {
         key: 'date',
         subject: t('Time'),
-        value: <DateTime date={request.date} format={timeFormat} />,
+        value: (
+          <DateTime date={request.date} year="always" precision="second" showTimezone />
+        ),
       },
     },
     {

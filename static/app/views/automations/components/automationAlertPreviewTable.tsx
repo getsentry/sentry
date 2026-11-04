@@ -138,7 +138,7 @@ export function AutomationAlertPreviewTable({
             return (
               <SimpleTable.Row key={row.groupId}>
                 <SimpleTable.RowCell>
-                  <DateTime date={row.lastTriggered} timeZone />
+                  <DateTime date={row.lastTriggered} showTimezone />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <Link

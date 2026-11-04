@@ -1,6 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {getFormatter} from './tooltip';
+import {defaultFormatAxisLabel, getFormatter} from './tooltip';
 
 const TIMESTAMP = 1_700_000_000_000;
 
@@ -84,4 +84,13 @@ describe('getFormatter', () => {
     expect(nameFormatter.mock.calls.map(([name]) => name)).toEqual(['high']);
     expect(valueFormatter).toHaveBeenCalledTimes(1);
   });
+});
+
+it('keeps the end date when a bucket spans matching days in different months', () => {
+  const year = new Date().getUTCFullYear();
+  const start = Date.UTC(year, 0, 1);
+  const end = Date.UTC(year, 1, 1);
+  expect(defaultFormatAxisLabel(start, true, true, true, false, end - start)).toBe(
+    'Jan 1 12:00 AM — Feb 1 12:00 AM (UTC)'
+  );
 });
