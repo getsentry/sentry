@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {IconCode} from '@sentry/icons/code';
 import {IconRefresh} from '@sentry/icons/refresh';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -10,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -21,6 +23,7 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
@@ -29,7 +32,9 @@ import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
+import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {ArtifactCard} from './artifactCard';
 import {ArtifactDetails} from './artifactDetails';
@@ -41,6 +46,7 @@ import {
   PR_ITERATION_PAUSED_TOOLTIP,
   PrIterationFeedbackForm,
 } from './prIterationFeedbackForm';
+import {usePullRequestPatches} from './usePullRequestPatches';
 import {useResetAutofixStep} from './useResetAutofixStep';
 import {useRethinkInChat} from './useRethinkInChat';
 import {useRerunSingleRun} from './useToggleSingleRunChat';
@@ -53,6 +59,17 @@ interface CodeChangesCardProps {
 }
 
 const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
+
+const NO_BLOCKS: Block[] = [];
+
+interface RepoFilePatch {
+  patch: FilePatch;
+  code_url?: string | null;
+}
+
+type RepoChanges =
+  | {status: 'pending' | 'pushing'}
+  | {patches: RepoFilePatch[]; pushFailed: boolean; status: 'ready'};
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -69,8 +86,12 @@ function getFinalExplanation(section: AutofixSection): string | null {
 }
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
 
   const isIterating =
     section.status === 'processing' && section.blocks.some(isPrIterationBlock);
@@ -181,11 +202,48 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact, partialArtifact]
   );
 
+  // A pinned iteration measures its edits from the PR's head, so the run's patches
+  // only hold what the iterations changed. Show each PR's diff on the provider instead.
+  const pullRequestPatches = usePullRequestPatches({
+    blocks: autofix.runState?.blocks ?? NO_BLOCKS,
+    enabled:
+      hasPinToPrHeadFeature &&
+      section.status === 'completed' &&
+      section.blocks.some(isPrIterationBlock),
+    organizationSlug: organization.slug,
+    repoPRStates: autofix.runState?.repo_pr_states,
+  });
+
+  const changesByRepo = useMemo(() => {
+    const changes = new Map<string, RepoChanges>(
+      Array.from(patchesByRepo, ([repo, patches]) => [
+        repo,
+        {status: 'ready', patches, pushFailed: false},
+      ])
+    );
+    for (const [repo, result] of pullRequestPatches) {
+      if (result.status === 'pending' || result.status === 'pushing') {
+        changes.set(repo, {status: result.status});
+      } else if (result.status === 'success') {
+        changes.set(repo, {
+          status: 'ready',
+          patches: result.patches.map(patch => ({patch})),
+          pushFailed: result.pushFailed,
+        });
+      }
+      // Otherwise keep the run's patches, which beat showing nothing.
+    }
+    return changes;
+  }, [patchesByRepo, pullRequestPatches]);
+
   const shouldExpandDiffs = useMemo(() => {
     let lineCount = 0;
 
-    for (const patches of patchesByRepo.values()) {
-      for (const patch of patches) {
+    for (const changes of changesByRepo.values()) {
+      if (changes.status !== 'ready') {
+        continue;
+      }
+      for (const patch of changes.patches) {
         for (const hunk of patch.patch.hunks) {
           lineCount += hunk.lines.length;
         }
@@ -193,17 +251,21 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
   const summary = useMemo(() => {
-    const reposChanged = patchesByRepo.size;
+    const reposChanged = changesByRepo.size;
 
     const filesChanged = new Set<string>();
 
-    for (const [repo, patchesForRepo] of patchesByRepo.entries()) {
-      for (const patch of patchesForRepo) {
+    for (const [repo, changes] of changesByRepo.entries()) {
+      // The counts would be wrong until every PR's diff has loaded.
+      if (changes.status !== 'ready') {
+        return null;
+      }
+      for (const patch of changes.patches) {
         filesChanged.add(`${repo}:${patch.patch.path}`);
       }
     }
@@ -217,7 +279,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     }
 
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
-  }, [patchesByRepo]);
+  }, [changesByRepo]);
 
   const showPrIterationForm = hasPRs;
   // The form starts another PR iteration, the same billable step as the one at
@@ -277,25 +339,44 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const diffDetails = (
     <Fragment>
-      <ArtifactDetails>
-        <Text>{summary}</Text>
-      </ArtifactDetails>
-      {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
+      {summary && (
+        <ArtifactDetails>
+          <Text>{summary}</Text>
+        </ArtifactDetails>
+      )}
+      {Array.from(changesByRepo.entries(), ([repo, changes]) => (
         <ArtifactDetails key={repo}>
           <Flex gap="lg">
             <Text bold>{t('Repository:')}</Text>
             <Text>{repo}</Text>
           </Flex>
-          {patches.map((patch, index) => (
-            <FileDiffViewer
-              key={index}
-              patch={patch.patch}
-              fileUrl={patch.code_url}
-              showBorder
-              collapsible
-              defaultExpanded={shouldExpandDiffs}
-            />
-          ))}
+          {changes.status === 'pushing' && (
+            <Stack gap="sm">
+              <Text variant="muted">
+                {t('Pushing the latest changes to the pull request…')}
+              </Text>
+              <Placeholder height="4rem" />
+            </Stack>
+          )}
+          {changes.status === 'pending' && <Placeholder height="4rem" />}
+          {changes.status === 'ready' && changes.pushFailed && (
+            <Alert variant="warning">
+              {t(
+                "We couldn't push the latest changes. This is the pull request's diff without them."
+              )}
+            </Alert>
+          )}
+          {changes.status === 'ready' &&
+            changes.patches.map((patch, index) => (
+              <FileDiffViewer
+                key={index}
+                patch={patch.patch}
+                fileUrl={patch.code_url}
+                showBorder
+                collapsible
+                defaultExpanded={shouldExpandDiffs}
+              />
+            ))}
         </ArtifactDetails>
       ))}
     </Fragment>
