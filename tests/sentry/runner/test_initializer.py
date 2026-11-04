@@ -1250,7 +1250,9 @@ def test_saas_single_org_direct_secret_selects_sso_including_empty(
     assert settings.GITHUB_API_SECRET == app_secret
 
 
-def test_single_org_original_secret_keeps_self_hosted_login_precedence(settings: types.SimpleNamespace) -> None:
+def test_single_org_original_secret_keeps_self_hosted_login_precedence(
+    settings: types.SimpleNamespace,
+) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "modern-secret"

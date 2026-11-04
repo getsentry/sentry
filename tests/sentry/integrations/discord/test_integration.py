@@ -251,7 +251,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider = self.provider()
         with mock.patch.object(provider, "application_id", None):
             provider.post_install(
-                integration=self.integration, organization=serialize_rpc_organization(self.organization), extra={}
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
             )
         assert mock_set_application_command.call_count == 0
 
