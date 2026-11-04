@@ -21,6 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -199,7 +200,7 @@ function IssueViewSection({
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={newCursor => {
           setCursor(newCursor ?? null);
         }}
