@@ -46,10 +46,14 @@ GRANTABLE_SCOPES = frozenset(
 )
 
 
+class InvalidScopeError(ValidationError):
+    pass
+
+
 def validate_grantable_scopes(value: Iterable[str]) -> None:
     for scope in value:
         if scope not in GRANTABLE_SCOPES:
-            raise ValidationError(f"{scope} is not a scope a service account can hold.")
+            raise InvalidScopeError(f"{scope} is not a scope a service account can hold.")
 
 
 def service_account_outboxes(
@@ -117,7 +121,7 @@ class ServiceAccount(ReplicatedControlModel):
         is_active: bool = True,
     ) -> ServiceAccount:
         """
-        Raises `ValidationError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
+        Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
         when `name` is taken in the org. Callers must authorize the grant and write the audit
         log.
         """

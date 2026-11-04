@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
+    InvalidScopeError,
     ServiceAccount,
     ServiceAccountProject,
     validate_grantable_scopes,
@@ -66,15 +66,6 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         created_by_id: int | None,
     ) -> RpcServiceAccount:
         try:
-            validate_grantable_scopes(scope_list)
-        except ValidationError as e:
-            raise RpcValidationException(
-                detail=" ".join(e.messages),
-                code="invalid_scope",
-                service_name="service_account",
-                method_name="create_service_account",
-            ) from e
-        try:
             service_account = ServiceAccount.create_with_projects(
                 organization_id=organization_id,
                 name=name,
@@ -83,6 +74,13 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 all_projects=all_projects,
                 created_by_id=created_by_id,
             )
+        except InvalidScopeError as e:
+            raise RpcValidationException(
+                detail=" ".join(e.messages),
+                code="invalid_scope",
+                service_name="service_account",
+                method_name="create_service_account",
+            ) from e
         except IntegrityError as e:
             # TODO: Only catch the name unique constraint.
             raise RpcValidationException(
@@ -104,7 +102,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     ) -> RpcServiceAccount | None:
         try:
             validate_grantable_scopes(scope_list)
-        except ValidationError as e:
+        except InvalidScopeError as e:
             raise RpcValidationException(
                 detail=" ".join(e.messages),
                 code="invalid_scope",
