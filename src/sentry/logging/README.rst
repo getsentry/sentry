@@ -157,7 +157,7 @@ Since the logging component is only ever used elsewhere, it is better to refer t
 developmental cycle of the relevant component.
 
 That being said, if you are having any trouble with believing something should appear,
-it is always recommended that you use ``sentry shell`` to manually instantiate a logger
+it is always recommended that you use ``sentry-server shell`` to manually instantiate a logger
 that matches the name of the one you're using and inspect it for the relevant handlers
 and set logging level.
 

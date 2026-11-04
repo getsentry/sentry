@@ -17,7 +17,7 @@ class BaseImportChunk(DefaultFieldsModelExisting):
 
     # Every import has a UUID assigned to it. If the import was triggered by a relocation, this UUID
     # simply inherits from the `Relocation` model, and can be used to connect back to it. If it is
-    # not done via the `Relocation` pathway (that is, someone triggered it using a `sentry import`
+    # not done via the `Relocation` pathway (that is, someone triggered it using a `sentry-server import`
     # command via the CLI), it is randomly generated, but shared between all chunks of the same
     # import.
     import_uuid = UUIDField(db_index=True)

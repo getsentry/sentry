@@ -51,7 +51,7 @@ releasefile.cache-path: '/data/releasefile-cache'
 
 # If this file ever becomes compromised, it's important to regenerate your a new key
 # Changing this value will result in all current sessions being invalidated.
-# A new key can be generated with `$ sentry config generate-secret-key`
+# A new key can be generated with `$ sentry-server config generate-secret-key`
 # system.secret-key: 'changeme'
 
 # The ``redis.clusters`` setting is used, unsurprisingly, to configure Redis

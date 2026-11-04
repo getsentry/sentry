@@ -158,7 +158,7 @@ runs:
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
       run: |
-        sentry init
+        sentry-server init
 
         if [ "$EARLY_DEVSERVICES" = true ]; then
           python3 "$ACTION_PATH/devservices-bg.py" wait

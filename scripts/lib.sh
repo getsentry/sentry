@@ -36,7 +36,7 @@ sudo-askpass() {
 }
 
 init-config() {
-    sentry init --dev --no-clobber
+    sentry-server init --dev --no-clobber
 }
 
 run-dependent-services() {
@@ -56,15 +56,15 @@ create-db() {
 apply-migrations() {
     create-db
     echo "--> Applying migrations"
-    sentry upgrade --noinput
+    sentry-server upgrade --noinput
 }
 
 create-superuser() {
     echo "--> Creating a superuser account"
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
-        sentry createuser --superuser --email foo@tbd.com --no-password --no-input
+        sentry-server createuser --superuser --email foo@tbd.com --no-password --no-input
     else
-        sentry createuser --superuser --email admin@sentry.io --password admin --no-input
+        sentry-server createuser --superuser --email admin@sentry.io --password admin --no-input
         echo "Password is admin."
     fi
 }

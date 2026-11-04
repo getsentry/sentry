@@ -330,7 +330,7 @@ def main(context: dict[str, str]) -> int:
     if not os.path.exists(f"{sentry_conf}/config.yml") or not os.path.exists(
         f"{sentry_conf}/sentry.conf.py"
     ):
-        proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
+        proc.run((f"{venv_dir}/bin/sentry-server", "init", "--dev"))
 
     if not run_procs(
         repo,
@@ -386,7 +386,7 @@ def main(context: dict[str, str]) -> int:
     if stdout != "t":
         proc.run(
             (
-                f"{venv_dir}/bin/sentry",
+                f"{venv_dir}/bin/sentry-server",
                 "createuser",
                 "--superuser",
                 "--email",

@@ -113,7 +113,7 @@ def mock_gcp_kms_asymmetric_decrypt(
 
 class GoodCompareCommandTests(TestCase):
     """
-    Test success cases of the `sentry backup compare` CLI command.
+    Test success cases of the `sentry-server backup compare` CLI command.
     """
 
     def test_compare_equal(self) -> None:
@@ -265,7 +265,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
 
 class GoodEncryptDecryptCommandTests(TransactionTestCase):
     """
-    Test the `sentry backup encrypt ...` and `sentry backup decrypt` commands
+    Test the `sentry-server backup encrypt ...` and `sentry-server backup decrypt` commands
     """
 
     def test_use_local(self) -> None:
@@ -376,7 +376,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
 
 class GoodSanitizeCommandTests(TestCase):
     """
-    Test success cases of the `sentry backup sanitize` CLI command.
+    Test success cases of the `sentry-server backup sanitize` CLI command.
     """
 
     def test_sanitize(self) -> None:
@@ -530,7 +530,7 @@ def cli_import_then_export(
 
 class GoodImportExportCommandTests(TransactionTestCase):
     """
-    Test success cases of the `sentry import` and `sentry export` CLI command. We're not asserting
+    Test success cases of the `sentry-server import` and `sentry-server export` CLI command. We're not asserting
     against the content of any of the imports/exports (we have other tests for that in
     `tests/sentry/backup`), we just want to make sure invoking all reasonable variants of the
     commands occurs without error.

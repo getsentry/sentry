@@ -13,7 +13,7 @@ from sentry.utils import json
 
 class WebhookPresenter(OptionsPresenter):
     """
-    Sends changes of runtime options made via sentry configoptions
+    Sends changes of runtime options made via sentry-server configoptions
     to a webhook url in json format. The webhook url can be configured
     to your liking.
 

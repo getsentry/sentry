@@ -647,18 +647,18 @@ def basic_consumer(
 
     Example:
 
-        sentry run consumer ingest-occurrences --consumer-group ingest-occurrences
+        sentry-server run consumer ingest-occurrences --consumer-group ingest-occurrences
 
     runs the ingest-occurrences consumer with the consumer group ingest-occurrences.
 
     Consumers are defined in 'sentry.consumers'. Each consumer can take
     additional CLI options. Those can be passed after '--':
 
-        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --processes 1
+        sentry-server run consumer ingest-occurrences --consumer-group occurrence-consumer -- --processes 1
 
     Consumer-specific arguments can be viewed with:
 
-        sentry run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
+        sentry-server run consumer ingest-occurrences --consumer-group occurrence-consumer -- --help
     """
     from sentry.consumers import get_stream_processor
     from sentry.metrics.middleware import add_global_tags
@@ -707,7 +707,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
     """
     Launch multiple "new-style" consumers in the same thread.
 
-    This does the same thing as 'sentry run consumer', but is not configurable,
+    This does the same thing as 'sentry-server run consumer', but is not configurable,
     hardcodes consumer groups and is highly imperformant.
     """
 

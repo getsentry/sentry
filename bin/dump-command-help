@@ -108,7 +108,7 @@ def dump_command(out, cmd, path):
 @click.command()
 @click.option("--output-path", "out", type=click.Path(), default="build/cli-help")
 def cli(out):
-    dump_command(out, root_command, ["sentry"])
+    dump_command(out, root_command, ["sentry-server"])
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-"""Print the top-level `sentry` CLI commands, one per line.
+"""Print the top-level `sentry-server` CLI commands, one per line.
 
 self-hosted/Dockerfile saves this list so docker_entrypoint.py can route
-e.g. `docker run <image> upgrade` to `sentry upgrade`.
+e.g. `docker run <image> upgrade` to `sentry-server upgrade`.
 """
 
 import click

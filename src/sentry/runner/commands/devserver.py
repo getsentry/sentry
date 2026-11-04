@@ -20,9 +20,9 @@ from sentry.runner.decorators import configuration, log_options
 # If you are looking to add a kafka consumer, please do not create a new click
 # subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
-    "server": ["sentry", "run", "web"],
-    "taskworker": ["sentry", "run", "taskworker"],
-    "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
+    "server": ["sentry-server", "run", "web"],
+    "taskworker": ["sentry-server", "run", "taskworker"],
+    "taskworker-scheduler": ["sentry-server", "run", "taskworker-scheduler"],
 }
 
 
@@ -75,7 +75,7 @@ def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
 @click.option(
     "--dev-consumer/--no-dev-consumer",
     default=False,
-    help="Fold multiple kafka consumers into one process using 'sentry run dev-consumer'.",
+    help="Fold multiple kafka consumers into one process using 'sentry-server run dev-consumer'.",
 )
 @click.option(
     "--pretty/--no-pretty",
@@ -393,7 +393,7 @@ def devserver(
                 daemons.append(
                     (
                         "dev-consumer",
-                        ["sentry", "run", "dev-consumer"] + list(kafka_consumers),
+                        ["sentry-server", "run", "dev-consumer"] + list(kafka_consumers),
                     )
                 )
             else:
@@ -402,7 +402,7 @@ def devserver(
                         (
                             name,
                             [
-                                "sentry",
+                                "sentry-server",
                                 "run",
                                 "consumer",
                                 name,

@@ -13,7 +13,7 @@ from sentry.runner.boot_gc import frozen_after_boot
 # Each granian worker imports this module after it starts. When granian is run
 # directly (`granian ... sentry.wsgi:application`), or its workers are spawned,
 # a worker starts without Sentry configured: configure() runs inside this block
-# and is frozen with the warmup. Under `sentry run web` with the "fork" start
+# and is frozen with the warmup. Under `sentry-server run web` with the "fork" start
 # method, workers are forked from a master that already ran configure() (and
 # froze it), so configure() is skipped here and this block freezes what the
 # warmup loads: about 40% more long-lived objects on top of configure(). See

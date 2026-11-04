@@ -458,7 +458,7 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# Notification Platform thread retention, run by `sentry-server cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
 register(
     "cleanup.notification-thread.dry-run",

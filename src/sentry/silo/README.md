@@ -39,8 +39,8 @@ $ bin/split-silo-database
 To spin up the silos, run:
 
 ```sh
-sentry devserver --silo=control --task-scheduler --workers
-sentry devserver --silo=region --task-scheduler --workers --ingest
+sentry-server devserver --silo=control --task-scheduler --workers
+sentry-server devserver --silo=region --task-scheduler --workers --ingest
 ```
 
 This will expose the following ports:
@@ -95,6 +95,6 @@ ngrok start --all
 Now start your siloed servers:
 
 ```sh
-sentry devserver --ngrok=acme.ngrok.dev --silo=control
-sentry devserver --ngrok=acme.ngrok.dev --silo=region
+sentry-server devserver --ngrok=acme.ngrok.dev --silo=control
+sentry-server devserver --ngrok=acme.ngrok.dev --silo=region
 ```

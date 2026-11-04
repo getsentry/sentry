@@ -38,7 +38,7 @@ build-js-po:
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
-	@OPENAPIGENERATE=1 sentry django spectacular --file tests/apidocs/openapi-spectacular.json --format openapi-json --validate --fail-on-warn
+	@OPENAPIGENERATE=1 sentry-server django spectacular --file tests/apidocs/openapi-spectacular.json --format openapi-json --validate --fail-on-warn
 
 build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
@@ -51,7 +51,7 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 # Opt-in private schema for local review; never included in the public docs build.
 build-investigation-api-docs: build-deprecated-docs
 	@mkdir -p .artifacts/investigation-api-docs
-	@OPENAPIGENERATE=1 sentry django spectacular --custom-settings sentry.investigations.apidocs.PRIVATE_SCHEMA_SETTINGS --file .artifacts/investigation-api-docs/openapi.json --format openapi-json --validate --fail-on-warn
+	@OPENAPIGENERATE=1 sentry-server django spectacular --custom-settings sentry.investigations.apidocs.PRIVATE_SCHEMA_SETTINGS --file .artifacts/investigation-api-docs/openapi.json --format openapi-json --validate --fail-on-warn
 	pnpm exec node api-docs/index.ts .artifacts/investigation-api-docs/openapi.json .artifacts/investigation-api-docs/openapi-derefed.json
 	pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../.artifacts/investigation-api-docs/openapi-derefed.json --no-additional-properties
 
@@ -71,13 +71,13 @@ build: locale
 
 merge-locale-catalogs: build-js-po
 	uv pip install Babel
-	cd src/sentry && sentry django makemessages -i static -l en
+	cd src/sentry && sentry-server django makemessages -i static -l en
 	./bin/merge-catalogs en
 
 compile-locale:
 	uv pip install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
-	cd src/sentry && sentry django compilemessages
+	cd src/sentry && sentry-server django compilemessages
 
 install-transifex:
 	uv pip install transifex-client
@@ -107,10 +107,10 @@ test-cli: create-db
 	@echo "--> Testing CLI"
 	rm -rf test_cli
 	mkdir test_cli
-	cd test_cli && sentry init test_conf
-	cd test_cli && sentry --config=test_conf help
-	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
-	cd test_cli && sentry --config=test_conf export --help
+	cd test_cli && sentry-server init test_conf
+	cd test_cli && sentry-server --config=test_conf help
+	cd test_cli && sentry-server --config=test_conf upgrade --traceback --noinput
+	cd test_cli && sentry-server --config=test_conf export --help
 	rm -r test_cli
 	@echo ""
 

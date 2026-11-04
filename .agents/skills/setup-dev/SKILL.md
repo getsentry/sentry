@@ -40,7 +40,7 @@ which colima 2>/dev/null && colima status 2>/dev/null
 which direnv 2>/dev/null
 
 # Check if repo is already set up
-ls .venv/bin/sentry 2>/dev/null && ls node_modules/.bin 2>/dev/null
+ls .venv/bin/sentry-server 2>/dev/null && ls node_modules/.bin 2>/dev/null
 ```
 
 Based on results, skip to the appropriate step. If everything is installed, jump to Step 6.
@@ -235,17 +235,17 @@ If only Colima is checked, patch it to support all runtimes. Read `references/or
 If this is a first-time setup, the database needs seeding:
 
 ```bash
-.venv/bin/sentry upgrade --noinput
+.venv/bin/sentry-server upgrade --noinput
 ```
 
 This runs all Django migrations AND creates default data (organizations, roles, projects). Without this, the dev server will 500 on every page.
 
-**Do NOT just run `sentry django migrate`** — that only runs migrations without seeding the required default data.
+**Do NOT just run `sentry-server django migrate`** — that only runs migrations without seeding the required default data.
 
 ### Create Superuser
 
 ```bash
-.venv/bin/sentry createuser --superuser --email admin@sentry.io --password admin --no-input
+.venv/bin/sentry-server createuser --superuser --email admin@sentry.io --password admin --no-input
 ```
 
 ## Step 7: Start the Dev Server
@@ -257,7 +257,7 @@ devservices serve
 Or directly:
 
 ```bash
-.venv/bin/sentry devserver
+.venv/bin/sentry-server devserver
 ```
 
 ### What to Expect on Startup
@@ -317,8 +317,8 @@ Each worktree has its own `.venv`. When you create a worktree with `git worktree
 | direnv hangs                                    | Docker runtime not running                | Start OrbStack / Colima                              |
 | `devenv sync` fails with version error          | Outdated devenv                           | `devenv update` or reinstall                         |
 | `devservices up` says "colima not running"      | Using OrbStack, script only checks Colima | Patch `devservices.py` — see Step 6                  |
-| Server 500s on every page                       | DB not seeded                             | `.venv/bin/sentry upgrade --noinput`                 |
-| `relation "sentry_organization" does not exist` | Migrations not run                        | `.venv/bin/sentry upgrade --noinput`                 |
+| Server 500s on every page                       | DB not seeded                             | `.venv/bin/sentry-server upgrade --noinput`          |
+| `relation "sentry_organization" does not exist` | Migrations not run                        | `.venv/bin/sentry-server upgrade --noinput`          |
 | White/blank screen in browser                   | Cookie Sync extension missing             | Install the Chrome extension                         |
 | Kafka topic warnings on startup                 | Normal first-boot behavior                | Wait 30-60 seconds                                   |
 | Port already in use                             | Stale containers                          | `docker rm -f $(docker ps -aq)` then retry           |
