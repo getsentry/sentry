@@ -60,7 +60,8 @@ def _action_schema_to_openapi(schema: dict[str, Any]) -> dict[str, Any]:
 def _map_camel_case_serializer(
     extension: OpenApiSerializerExtension, auto_schema: AutoSchema, direction: Direction
 ) -> dict[str, Any]:
-    schema = auto_schema._map_serializer(extension.target, direction, bypass_extensions=True)
+    map_serializer = cast("Callable[..., dict[str, Any]]", auto_schema._map_serializer)
+    schema = map_serializer(extension.target, direction, bypass_extensions=True)
     schema["properties"] = {
         snake_to_camel_case(name): value for name, value in schema.get("properties", {}).items()
     }
@@ -205,7 +206,7 @@ class SentryAppIssueActionSerializerExtension(_TypedExtension, OpenApiSerializer
         return schema
 
 
-class WorkflowActionSerializerExtension(OpenApiSerializerExtension):
+class WorkflowActionSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     target_class = "sentry.workflow_engine.endpoints.validators.base.action.BaseActionValidator"
 
     def get_name(self, auto_schema: AutoSchema, direction: Direction) -> str:
@@ -215,14 +216,14 @@ class WorkflowActionSerializerExtension(OpenApiSerializerExtension):
         return _workflow_action_schema()
 
 
-class WorkflowValidatorSerializerExtension(OpenApiSerializerExtension):
+class WorkflowValidatorSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     target_class = "sentry.workflow_engine.endpoints.validators.base.workflow.WorkflowValidator"
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
         return _map_camel_case_serializer(self, auto_schema, direction)
 
 
-class ActionFilterValidatorSerializerExtension(OpenApiSerializerExtension):
+class ActionFilterValidatorSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     target_class = "sentry.workflow_engine.endpoints.validators.base.workflow.ActionFilterValidator"
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
@@ -234,7 +235,7 @@ class ActionFilterValidatorSerializerExtension(OpenApiSerializerExtension):
         return schema
 
 
-class DataConditionGroupValidatorSerializerExtension(OpenApiSerializerExtension):
+class DataConditionGroupValidatorSerializerExtension(_TypedExtension, OpenApiSerializerExtension):
     target_class = "sentry.workflow_engine.endpoints.validators.base.data_condition_group.BaseDataConditionGroupValidator"
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
