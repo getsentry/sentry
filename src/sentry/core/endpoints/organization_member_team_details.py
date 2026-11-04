@@ -586,6 +586,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Unsubscribe user from issues the team is subscribed to
         """
+        # A pending invite has no subscriptions, and user_id=None would match the team's own.
+        if member.user_id is None:
+            return
         team_assigned_groups = GroupAssignee.objects.filter(team_id=team.id).values_list(
             "group_id", flat=True
         )

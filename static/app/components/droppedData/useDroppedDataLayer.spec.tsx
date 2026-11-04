@@ -89,7 +89,7 @@ describe('useDroppedDataLayer', () => {
     await waitFor(() => expect(result.current.band).toBeDefined());
     act(() => result.current.band!.onClick!());
 
-    await waitFor(() => expect(router.location.query.droppedData).toBe('true'));
+    await waitFor(() => expect(router.location.query.droppedData).toBe('spans'));
   });
 
   it('keeps the layer control but hides the band and filter note when hidden', async () => {
