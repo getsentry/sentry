@@ -5,7 +5,7 @@ from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, assert_never
+from typing import Any, Literal, assert_never
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -302,12 +302,13 @@ class SeerWorkflow:
             config.save(update_fields=["enabled", "version", "date_updated"])
 
     def set_updated_by(self, user_id: int | None) -> None:
-        """Record the most recent updater; ``None`` clears it for non-user callers."""
+        """Record the most recent updater; ``None`` records a non-user caller as "bot"."""
+        updated_by: int | Literal["bot"] = "bot" if user_id is None else user_id
         with self._lock_config() as config:
             extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-            if extras.updated_by == user_id:
+            if extras.updated_by == updated_by:
                 return
-            extras.updated_by = user_id
+            extras.updated_by = updated_by
             config.extras = extras.dict(exclude_none=True)
             config.save(update_fields=["extras", "date_updated"])
 

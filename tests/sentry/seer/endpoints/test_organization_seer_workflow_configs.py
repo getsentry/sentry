@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.db import connections, router
 from django.test import override_settings
@@ -425,6 +426,21 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["updatedBy"] == str(updater.id)
         config.refresh_from_db()
         assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
+        return_value=None,
+    )
+    def test_put_by_non_user_sets_updated_by_bot(self, _: MagicMock) -> None:
+        config = self.create_config()
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+
+        assert response.data["updatedBy"] == "bot"
+        config.refresh_from_db()
+        assert config.extras == {"updated_by": "bot"}
 
     def test_put_without_changes_keeps_version(self) -> None:
         config = self.create_config(version=3)
@@ -868,6 +884,18 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "createdBy": str(self.user.id),
         }
         assert config.extras == {"created_by": self.user.id}
+
+    @patch(
+        "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
+        return_value=None,
+    )
+    def test_create_by_non_user_omits_created_by(self, _: MagicMock) -> None:
+        response = self.get_success_response(
+            self.organization.slug, strategy="agentic_triage_v2", status_code=201
+        )
+
+        assert "createdBy" not in response.data
+        assert SeerWorkflowConfig.objects.get(id=response.data["id"]).extras == {}
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()

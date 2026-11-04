@@ -173,6 +173,36 @@ class SeerWorkflowCreateTest(TestCase):
         assert not SeerWorkflowConfigProject.objects.exists()
 
 
+class SeerWorkflowUpdatedByTest(TestCase):
+    def test_records_user_and_bot_updaters(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            extras={"name": "Triage"},
+        )
+        workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
+
+        workflow.set_updated_by(self.user.id)
+        assert workflow.get_config().extras == {"name": "Triage", "updated_by": self.user.id}
+
+        workflow.set_updated_by(None)
+        updated = workflow.get_config()
+        assert updated.extras == {"name": "Triage", "updated_by": "bot"}
+        assert updated.version == config.version
+
+    def test_same_updater_does_not_save(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            extras={"updated_by": self.user.id},
+        )
+        workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
+
+        workflow.set_updated_by(self.user.id)
+
+        assert workflow.get_config().date_updated == config.date_updated
+
+
 class SeerWorkflowScopeTest(TestCase):
     def test_scope_requires_active_project_in_organization(self) -> None:
         config = Factories.create_seer_workflow_config(
