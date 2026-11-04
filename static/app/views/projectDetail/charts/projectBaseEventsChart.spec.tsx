@@ -4,7 +4,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import ProjectBaseEventsChart from 'sentry/views/projectDetail/charts/projectBaseEventsChart';
+import {ProjectBaseEventsChart} from 'sentry/views/projectDetail/charts/projectBaseEventsChart';
 
 describe('ProjectBaseEventsChart', () => {
   let mockApi: jest.Mock;

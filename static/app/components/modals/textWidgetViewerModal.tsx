@@ -6,14 +6,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -37,7 +36,6 @@ interface TextWidgetViewerModalOptions {
 
 interface Props extends ModalRenderProps, TextWidgetViewerModalOptions {
   organization: Organization;
-  selection: PageFilters;
 }
 
 const HALF_CONTAINER_HEIGHT = 300;
@@ -46,7 +44,6 @@ function TextWidgetViewerModal(props: Props) {
   const {
     organization,
     widget,
-    selection,
     Footer,
     Body,
     Header,
@@ -57,6 +54,7 @@ function TextWidgetViewerModal(props: Props) {
     dashboardCreator,
     isPrebuiltDashboard,
   } = props;
+  const {selection} = usePageFilters();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const hasEditAccess =
@@ -121,4 +119,4 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
-export default withPageFilters(TextWidgetViewerModal);
+export default TextWidgetViewerModal;

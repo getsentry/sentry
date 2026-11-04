@@ -7,8 +7,6 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
-const api = new MockApiClient();
-
 function renderModal({
   initialData,
   widget,
@@ -25,7 +23,6 @@ function renderModal({
       closeModal={() => {}}
       organization={initialData.organization}
       widget={widget}
-      api={api}
       dashboardFilters={undefined}
     />
   );
