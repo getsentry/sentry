@@ -43,8 +43,8 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 
 import {useReplaysFromIssue} from './useReplaysFromIssue';
@@ -258,7 +258,7 @@ function GroupReplaysTable({
   );
   const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
-  const {groupId} = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['selected_replay_index'],
     shouldClean: newLocation => newLocation.pathname.includes(`/issues/${groupId}/`),

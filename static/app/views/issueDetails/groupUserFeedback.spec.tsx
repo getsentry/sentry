@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
 import GroupUserFeedback from './groupUserFeedback';
 
@@ -35,10 +36,12 @@ describe('GroupUserFeedback', () => {
       body: [],
     });
 
-    render(<GroupUserFeedback />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUserFeedback />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
     expect(
       await screen.findByRole('heading', {
         name: 'What do users think?',
@@ -73,11 +76,20 @@ describe('GroupUserFeedback', () => {
       ],
     });
 
-    render(<GroupUserFeedback />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUserFeedback />
+      </GroupIdProvider>,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View event'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${group.id}/events/abc/?referrer=user-feedback`
+    );
   });
 });

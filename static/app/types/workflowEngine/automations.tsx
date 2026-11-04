@@ -52,7 +52,6 @@ export interface AlertPreviewResponse {
 
 export interface AutomationFireHistory {
   count: number;
-  eventId: string;
   group: Group;
   lastTriggered: string;
   detector?: Detector;
