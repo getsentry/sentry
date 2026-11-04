@@ -9,7 +9,9 @@ import {lightTheme as theme} from '@sentry/scraps/theme';
 import type {BreakpointSize} from '@sentry/scraps/theme';
 
 import {
+  getBackground,
   getBorder,
+  getBorderWidth,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
@@ -187,6 +189,18 @@ describe('getBorder', () => {
     );
   });
 
+  it('uses the md border width token as the default width', () => {
+    expect(getBorder('primary', undefined, theme)).toBe(
+      `${theme.border.md} solid ${theme.tokens.border.primary}`
+    );
+  });
+
+  it('resolves translucent to the transparent neutral muted token', () => {
+    expect(getBorder('translucent', undefined, theme)).toBe(
+      `1px solid ${theme.tokens.border.transparent.neutral.muted}`
+    );
+  });
+
   it('returns "none" so a border can be turned off responsively', () => {
     expect(getBorder('none', undefined, theme)).toBe('none');
   });
@@ -203,6 +217,50 @@ describe('getBorder', () => {
     // …and explicitly removed at lg via `none`.
     expect(output).toContain(`@container (min-width: ${theme.container.lg})`);
     expect(output).toContain('border-bottom: none');
+  });
+});
+
+describe('getBorderWidth', () => {
+  it('resolves a width token', () => {
+    expect(getBorderWidth('xl', undefined, theme)).toBe('2px');
+  });
+
+  it('returns undefined when omitted, keeping the border default', () => {
+    expect(getBorderWidth(undefined, undefined, theme)).toBeUndefined();
+  });
+
+  it('overrides the border shorthand width when emitted after it', () => {
+    const output = [
+      rc('border', 'primary', theme, getBorder),
+      rc('border-width', 'xl', theme, getBorderWidth),
+    ].join('');
+    expect(output.indexOf('border-width: 2px')).toBeGreaterThan(
+      output.indexOf(`border: 1px solid`)
+    );
+  });
+});
+
+describe('getBackground', () => {
+  it('resolves surface levels', () => {
+    expect(getBackground('secondary', undefined, theme)).toBe(
+      theme.tokens.background.secondary
+    );
+  });
+
+  it('resolves semantic variants to their vibrant token', () => {
+    expect(getBackground('accent', undefined, theme)).toBe(
+      theme.tokens.background.accent.vibrant
+    );
+  });
+
+  it('resolves translucent to the transparent neutral muted token', () => {
+    expect(getBackground('translucent', undefined, theme)).toBe(
+      theme.tokens.background.transparent.neutral.muted
+    );
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBackground(undefined, undefined, theme)).toBeUndefined();
   });
 });
 

@@ -11,7 +11,9 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
+  BackgroundVariant,
   BorderVariant,
+  BorderWidth,
   BreakpointSize,
   ContainerBreakpointSize,
   RadiusSize,
@@ -228,6 +230,9 @@ function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string 
   if (key === 'muted' || key === 'secondary') {
     return theme.tokens.border.secondary;
   }
+  if (key === 'translucent') {
+    return theme.tokens.border.transparent.neutral.muted;
+  }
   return theme.tokens.border[key].vibrant;
 }
 
@@ -246,8 +251,46 @@ export function getBorder(
 
   return border
     .split(' ')
-    .map(b => `1px solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`)
+    .map(
+      b =>
+        `${theme.border.md} solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`
+    )
     .join(' ');
+}
+
+/**
+ * Resolves a border width token. Only meaningful alongside a `border*` prop,
+ * which sets the style and color (and defaults the width to `md`).
+ */
+export function getBorderWidth(
+  width: BorderWidth | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  if (width === undefined) {
+    return undefined;
+  }
+
+  return theme.border[width];
+}
+
+export function getBackground(
+  background: BackgroundVariant | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
+  theme: Theme
+): string | undefined {
+  switch (background) {
+    case undefined:
+      return undefined;
+    case 'primary':
+    case 'secondary':
+    case 'tertiary':
+      return theme.tokens.background[background];
+    case 'translucent':
+      return theme.tokens.background.transparent.neutral.muted;
+    default:
+      return theme.tokens.background[background].vibrant;
+  }
 }
 
 export function getRadius(

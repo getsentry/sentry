@@ -34,6 +34,12 @@ export type SpaceSize = SizeRange<'0', '3xl'>;
 export type RadiusSize = SizeRange<'0', '2xl'> | 'full';
 
 /**
+ * Border width constraint. Derived from the generated `size.border` token, so
+ * it can't drift from it. See `theme.border`.
+ */
+export type BorderWidth = keyof (typeof size)['border'];
+
+/**
  * Animation easing curve preset.
  */
 export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
@@ -49,6 +55,21 @@ export type MotionDuration = 'fast' | 'moderate' | 'slow';
  * Background surface level for layered UI elements.
  */
 export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
+
+/**
+ * Background color variant for layout primitives.
+ *
+ * - `primary` | `secondary` | `tertiary`: surface levels
+ * - semantic variants (`accent`, `danger`, …): `tokens.background.<variant>.vibrant`
+ * - `translucent`: `tokens.background.transparent.neutral.muted`
+ *
+ * `overlay` is intentionally excluded: it also needs a border, radius and
+ * shadow, so use `<Surface variant="overlay">` instead.
+ */
+export type BackgroundVariant =
+  | SurfaceVariant
+  | Exclude<SemanticVariant, 'neutral'>
+  | 'translucent';
 
 /**
  * Semantic color variant for conveying meaning through color.
@@ -82,6 +103,8 @@ export type BorderVariant =
   | 'primary'
   | 'secondary'
   | 'muted'
+  /** Translucent neutral border. Maps to `tokens.border.transparent.neutral.muted`. */
+  | 'translucent'
   | 'none';
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)

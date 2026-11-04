@@ -5,15 +5,18 @@ import {mergeRefs} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
+  BackgroundVariant,
   BorderVariant,
+  BorderWidth,
   RadiusSize,
   SpaceSize,
-  SurfaceVariant,
 } from '@sentry/scraps/theme';
 
 import {
   ContainerQueryProvider,
+  getBackground,
   getBorder,
+  getBorderWidth,
   getMargin,
   getRadius,
   getSpacing,
@@ -26,7 +29,7 @@ type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
-  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
+  background?: Responsive<BackgroundVariant>;
   display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
@@ -85,6 +88,11 @@ interface ContainerLayoutProps {
   borderBottom?: Responsive<BorderVariant>;
   borderLeft?: Responsive<BorderVariant>;
   borderRight?: Responsive<BorderVariant>;
+  /**
+   * Border width token. Defaults to `md` (1px) via the `border*` props, so this
+   * only needs to be set to override it, and has no effect without one.
+   */
+  borderWidth?: Responsive<BorderWidth>;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -211,6 +219,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderBottom',
   'borderLeft',
   'borderRight',
+  'borderWidth',
   'bottom',
   'column',
   'contain',
@@ -340,10 +349,7 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p =>
-    rc('background', p.background, p.theme, v =>
-      v ? p.theme.tokens.background[v] : undefined
-    )};
+  ${p => rc('background', p.background, p.theme, getBackground)};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
@@ -373,6 +379,7 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  ${p => rc('border-width', p.borderWidth, p.theme, getBorderWidth)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};
