@@ -379,8 +379,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
 
-        is_pr_created = False
-
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
             if artifact is not None:
@@ -406,16 +404,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = pull_requests
-                is_pr_created = True
-                record_autofix_event(
-                    AiAutofixPrCreatedCompletedEvent(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        referrer=None if current_referrer is None else current_referrer.value,
-                        run_id=run_id,
-                    )
-                )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
@@ -429,7 +417,37 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if seer_run is not None:
             reconcile_milestones(seer_run, state)
 
-        event_name = webhook_action_type.value
+        cls._announce(
+            organization=organization,
+            run_id=run_id,
+            state=state,
+            group=group,
+            seer_run=seer_run,
+            action_type=webhook_action_type,
+            payload=webhook_payload,
+            step=current_step,
+            referrer=current_referrer,
+            actor_user_id=actor_user_id,
+        )
+
+    @classmethod
+    def _announce(
+        cls,
+        *,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+        seer_run: SeerRun | None,
+        action_type: SeerActionType,
+        payload: dict[str, object],
+        step: AutofixStep | None,
+        referrer: AutofixReferrer | None,
+        actor_user_id: int | None,
+    ) -> None:
+        is_pr_created = action_type == SeerActionType.PR_CREATED
+        sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
+        event_name = action_type.value
 
         event_type = f"seer.{event_name}"
         try:
@@ -440,21 +458,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     tags={"event_type": str(event_type)},
                 )
                 activity_attribution: SeerActivityAttribution | None = None
-                if webhook_action_type == SeerActionType.PR_CREATED and actor_user_id is not None:
+                if action_type == SeerActionType.PR_CREATED and actor_user_id is not None:
                     activity_attribution = {
-                        "referrer": current_referrer or AutofixReferrer.UNKNOWN,
+                        "referrer": referrer or AutofixReferrer.UNKNOWN,
                         "actor_user_id": actor_user_id,
                     }
                 record_seer_activity(
                     group=group,
                     event_type=sentry_app_event_type,
-                    event_payload=webhook_payload,
+                    event_payload=payload,
                     activity_attribution=activity_attribution,
                 )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,
-                        "event_payload": webhook_payload,
+                        "event_payload": payload,
                         "organization_id": organization.id,
                         "activity_already_recorded": True,
                     }
@@ -470,7 +488,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 resource_name="seer",
                 event_name=event_name,
                 organization_id=organization.id,
-                payload=webhook_payload,
+                payload=payload,
             )
         except Exception:
             logger.exception(
@@ -492,25 +510,35 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 state=state,
             )
 
-        if current_step is not None and not is_pr_created:
-            referrer = current_referrer.value if current_referrer is not None else None
+        if is_pr_created:
+            record_autofix_event(
+                AiAutofixPrCreatedCompletedEvent(
+                    organization_id=organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    referrer=None if referrer is None else referrer.value,
+                    run_id=run_id,
+                )
+            )
+        if step is not None and not is_pr_created:
+            referrer_value = referrer.value if referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
             metrics.incr(
                 "autofix.explorer.complete",
                 tags={
-                    "step": current_step.value,
-                    "referrer": referrer,
+                    "step": step.value,
+                    "referrer": referrer_value,
                     "iteration_index": iteration_index,
                 },
             )
-            completed_event_cls = STEP_CONFIGS[current_step].completed_event
+            completed_event_cls = STEP_CONFIGS[step].completed_event
             if completed_event_cls is not None:
                 record_autofix_event(
                     completed_event_cls(
                         organization_id=organization.id,
                         project_id=group.project_id,
                         group_id=group.id,
-                        referrer=referrer,
+                        referrer=referrer_value,
                         run_id=run_id,
                         iteration_index=iteration_index,
                     )
