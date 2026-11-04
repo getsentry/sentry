@@ -132,7 +132,7 @@ type Props = {
   isReleasesDrawerOpen: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  openWidgetTemplatesParam: boolean | null;
+  openWidgetTemplatesParam: boolean;
   organization: Organization;
   params: RouteParams;
   projects: Project[];
@@ -221,7 +221,7 @@ class DashboardDetail extends Component<Props, State> {
       // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
-        openWidgetTemplates: this.props.openWidgetTemplatesParam ?? undefined,
+        openWidgetTemplates: this.props.openWidgetTemplatesParam,
       });
     }
     window.addEventListener('beforeunload', this.handleBeforeUnload);
@@ -234,7 +234,7 @@ class DashboardDetail extends Component<Props, State> {
       // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
-        openWidgetTemplates: this.props.openWidgetTemplatesParam ?? undefined,
+        openWidgetTemplates: this.props.openWidgetTemplatesParam,
       });
     }
 
@@ -1453,7 +1453,10 @@ export function DashboardDetailWithInjectedProps(
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const updateDashboard = useUpdateDashboard();
-  const [openWidgetTemplatesParam] = useQueryState('openWidgetTemplates', parseAsBoolean);
+  const [openWidgetTemplatesParam] = useQueryState(
+    'openWidgetTemplates',
+    parseAsBoolean.withDefault(false)
+  );
   const [seerRunIdParam] = useQueryState('seerRunId', parseAsInteger);
   const [releasesDrawer] = useQueryState(
     ReleasesDrawerFields.DRAWER,

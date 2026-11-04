@@ -1273,7 +1273,6 @@ describe('Dashboards > Detail', () => {
     });
 
     it('records the seer run id from the URL when a generated dashboard is saved', async () => {
-      const countSpy = jest.spyOn(Sentry.metrics, 'count');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
@@ -1291,19 +1290,22 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(await screen.findByText('Save and Finish'));
 
       await waitFor(() => {
-        expect(countSpy).toHaveBeenCalledWith('dashboards.seer.create.save', 1, {
-          attributes: {
-            organization_slug: 'org-slug',
-            dashboard_id: '5',
-            seer_run_id: 123,
-          },
-        });
+        expect(Sentry.metrics.count).toHaveBeenCalledWith(
+          'dashboards.seer.create.save',
+          1,
+          {
+            attributes: {
+              organization_slug: 'org-slug',
+              dashboard_id: '5',
+              seer_run_id: 123,
+            },
+          }
+        );
       });
     });
 
     it('tags the save failure with the seer run id from the URL when a generated dashboard fails to save', async () => {
       const setTagSpy = jest.spyOn(Sentry.Scope.prototype, 'setTag');
-      const captureMessageSpy = jest.spyOn(Sentry, 'captureMessage');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
@@ -1322,12 +1324,13 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(await screen.findByText('Save and Finish'));
 
       await waitFor(() => {
-        expect(captureMessageSpy).toHaveBeenCalledWith(
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
           'Generated dashboard failed to save',
           expect.anything()
         );
       });
       expect(setTagSpy).toHaveBeenCalledWith('seer.run_id', '123');
+      setTagSpy.mockRestore();
     });
 
     it('opens the widget viewer with saved dashboard filters', async () => {
