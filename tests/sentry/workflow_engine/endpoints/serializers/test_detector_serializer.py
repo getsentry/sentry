@@ -263,7 +263,7 @@ class TestDetectorSerializer(TestCase):
             config={"target_identifier": "123", "target_type": ActionTarget.USER.value},
         )
         detectors = []
-        expected = []
+        expected: list[dict[str, object]] = []
         for _ in range(detector_count):
             group = self.create_data_condition_group(organization=self.organization)
             self.create_data_condition_group_action(condition_group=group, action=action)
