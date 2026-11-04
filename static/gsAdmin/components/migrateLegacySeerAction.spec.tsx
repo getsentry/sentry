@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
+import {MigrateLegacySeerAction} from 'admin/components/migrateLegacySeerAction';
 
 describe('MigrateLegacySeerAction', () => {
   const organization = OrganizationFixture();

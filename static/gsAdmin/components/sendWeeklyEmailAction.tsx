@@ -1,24 +1,22 @@
-import {Component} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {TextField} from 'sentry/components/forms/fields/textField';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {withApi} from 'sentry/utils/withApi';
 
-import type {
-  AdminConfirmParams,
-  AdminConfirmRenderProps,
-} from 'admin/components/adminConfirmationModal';
+import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 
-type Props = {api: Client; orgId: string} & AdminConfirmRenderProps;
+type Props = {orgId: string} & AdminConfirmRenderProps;
 
-type State = {
+type WeeklyEmailData = {
   deliveryEmail: string;
   dryRun: boolean;
   targetEmail: string;
@@ -27,85 +25,95 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class SendWeeklyEmailAction extends Component<Props, State> {
-  state: State = {
-    dryRun: false,
+export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
+  const [data, setData] = useState<WeeklyEmailData>({
     targetEmail: '',
     deliveryEmail: '',
+    dryRun: false,
+  });
+  const dataRef = useRef(data);
+
+  const updateData = (update: Partial<WeeklyEmailData>) => {
+    dataRef.current = {...dataRef.current, ...update};
+    setData(dataRef.current);
   };
 
-  componentDidMount() {
-    this.props.setConfirmCallback(this.handleConfirm);
-  }
-
-  handleConfirm = (_params: AdminConfirmParams) => {
-    const {targetEmail, deliveryEmail, dryRun} = this.state;
-
-    if (!dryRun && !deliveryEmail) {
-      addErrorMessage('Delivery email address is required when dry run is disabled');
-      return;
-    }
-
-    addLoadingMessage('Sending Email');
-    this.props.api
-      .requestPromise(`/customers/${this.props.orgId}/send-weekly-email/`, {
+  // The modal unmounts before the request settles; only hook-level callbacks still run.
+  const {mutate} = useMutation({
+    mutationFn: (payload: WeeklyEmailData) =>
+      fetchMutation({
         method: 'POST',
-        data: {targetEmail, deliveryEmail, dryRun},
-      })
-      .then(() => {
-        addSuccessMessage('Email queued');
-      })
-      .catch(res => {
-        if (res instanceof RequestError) {
-          if (res.status === 404) {
-            addErrorMessage('User is not a member of the organization!');
-          } else {
-            addErrorMessage(res.responseText || res.name);
-          }
+        url: getApiUrl('/customers/$organizationIdOrSlug/send-weekly-email/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        data: payload,
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Email queued');
+    },
+    onError: error => {
+      if (error instanceof RequestError) {
+        if (error.status === 404) {
+          addErrorMessage('User is not a member of the organization!');
+        } else {
+          addErrorMessage(error.responseText || error.name);
         }
-      });
-  };
+      }
+    },
+  });
 
-  render() {
-    return (
-      <div>
-        <TextField
-          autoFocus
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          label="Target User Email"
-          help="The weekly email will be generated based on this user. If left empty the email will be generated for a user with access to all projects"
-          name="username"
-          inputMode="text"
-          value={this.state.targetEmail}
-          onChange={(targetEmail: any) => this.setState({targetEmail})}
-        />
-        <TextField
-          autoFocus
-          inline={false}
-          stacked
-          flexibleControlStateSize
-          label="Delivery email address"
-          help="The weekly email will be sent to this address."
-          required={!this.state.dryRun}
-          name="username"
-          inputMode="text"
-          value={this.state.deliveryEmail}
-          onChange={(deliveryEmail: any) => this.setState({deliveryEmail})}
-        />
-        <BooleanField
-          label="Dry Run"
-          help="When enabled, generates the report without sending an email for performance testing. Delivery email address is not required in dry run mode. When disabled, a delivery email address must be provided."
-          inline={false}
-          name="dryrun"
-          stacked
-          value={this.state.dryRun}
-          onChange={(dryRun: any) => this.setState({dryRun})}
-        />
-      </div>
-    );
-  }
+  useEffect(() => {
+    setConfirmCallback(() => {
+      const latest = dataRef.current;
+
+      if (!latest.dryRun && !latest.deliveryEmail) {
+        addErrorMessage('Delivery email address is required when dry run is disabled');
+        return;
+      }
+
+      addLoadingMessage('Sending Email');
+      mutate(latest);
+    });
+    // setConfirmCallback changes every parent render and sets parent state, so depending on it loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div>
+      <TextField
+        autoFocus
+        inline={false}
+        stacked
+        flexibleControlStateSize
+        label="Target User Email"
+        help="The weekly email will be generated based on this user. If left empty the email will be generated for a user with access to all projects"
+        name="username"
+        inputMode="text"
+        value={data.targetEmail}
+        onChange={(targetEmail: string) => updateData({targetEmail})}
+      />
+      <TextField
+        autoFocus
+        inline={false}
+        stacked
+        flexibleControlStateSize
+        label="Delivery email address"
+        help="The weekly email will be sent to this address."
+        required={!data.dryRun}
+        name="username"
+        inputMode="text"
+        value={data.deliveryEmail}
+        onChange={(deliveryEmail: string) => updateData({deliveryEmail})}
+      />
+      <BooleanField
+        label="Dry Run"
+        help="When enabled, generates the report without sending an email for performance testing. Delivery email address is not required in dry run mode. When disabled, a delivery email address must be provided."
+        inline={false}
+        name="dryrun"
+        stacked
+        value={data.dryRun}
+        onChange={(dryRun: boolean) => updateData({dryRun})}
+      />
+    </div>
+  );
 }
-
-export default withApi(SendWeeklyEmailAction);

@@ -51,6 +51,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/invoices/$invoiceId/retry-payment/'
   | '/customers/$organizationIdOrSlug/members/'
   | '/customers/$organizationIdOrSlug/migrate-google-domain/'
+  | '/customers/$organizationIdOrSlug/migrate-legacy-seer/'
   | '/customers/$organizationIdOrSlug/ondemand-budgets/'
   | '/customers/$organizationIdOrSlug/policies/'
   | '/customers/$organizationIdOrSlug/product-trial/'
