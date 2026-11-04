@@ -4,7 +4,7 @@ from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.db.models import OuterRef, Subquery
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -61,6 +61,8 @@ from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+type AgentAuditEvent = Literal["SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_REMOVE"]
 
 
 class SeerAgentResponse(TypedDict):
@@ -893,7 +895,7 @@ def audit_agent_service_account(
     request: Request,
     organization: Organization,
     account: RpcServiceAccount,
-    event: str,
+    event: AgentAuditEvent,
 ) -> None:
     endpoint.create_audit_entry(
         request,
