@@ -4,7 +4,6 @@ import queryString from 'query-string';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -42,7 +41,7 @@ export function useCopySessionDataToClipboard({
       toast.success('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
-      addErrorMessage('Failed to copy conversation to clipboard');
+      toast.error('Failed to copy conversation to clipboard');
     }
 
     trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});

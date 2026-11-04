@@ -12,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
@@ -55,7 +54,7 @@ export function LaunchpadAdminPage() {
       const succeeded = results.filter((r: any) => r.success);
       const failed = results.filter((r: any) => !r.success);
       if (failed.length > 0) {
-        addErrorMessage(
+        toast.error(
           `Failed to dispatch ${failed.length} artifact${failed.length > 1 ? 's' : ''}: ${failed.map((r: any) => r.artifact_id).join(', ')}`
         );
       }
@@ -67,7 +66,7 @@ export function LaunchpadAdminPage() {
       setRerunArtifactId('');
     },
     onError: () => {
-      addErrorMessage('Failed to rerun analysis');
+      toast.error('Failed to rerun analysis');
     },
   });
 
@@ -89,17 +88,17 @@ export function LaunchpadAdminPage() {
       setDeleteArtifactId('');
     },
     onError: () => {
-      addErrorMessage(`Failed to delete data for artifact: ${deleteArtifactId}`);
+      toast.error(`Failed to delete data for artifact: ${deleteArtifactId}`);
     },
   });
 
   const fetchArtifactInfo = async () => {
     if (!fetchInfoArtifactId) {
-      addErrorMessage('Artifact ID is required');
+      toast.error('Artifact ID is required');
       return;
     }
     if (!locality) {
-      addErrorMessage('Please select a region first');
+      toast.error('Please select a region first');
       return;
     }
 
@@ -115,7 +114,7 @@ export function LaunchpadAdminPage() {
       setFetchedArtifactInfo(data);
       setFetchInfoArtifactId('');
     } catch {
-      addErrorMessage(`Failed to fetch info for artifact: ${fetchInfoArtifactId}`);
+      toast.error(`Failed to fetch info for artifact: ${fetchInfoArtifactId}`);
     }
   };
 
@@ -143,17 +142,17 @@ export function LaunchpadAdminPage() {
       setBatchDeleteArtifactIds('');
     },
     onError: () => {
-      addErrorMessage('Failed to batch delete artifacts');
+      toast.error('Failed to batch delete artifacts');
     },
   });
 
   const handleDownloadArtifact = async () => {
     if (!downloadArtifactId) {
-      addErrorMessage('Artifact ID is required');
+      toast.error('Artifact ID is required');
       return;
     }
     if (!locality) {
-      addErrorMessage('Please select a region first');
+      toast.error('Please select a region first');
       return;
     }
 
@@ -171,7 +170,7 @@ export function LaunchpadAdminPage() {
       const artifactId = artifactInfo.artifact_info?.id;
 
       if (!orgSlug || !projectSlug || !artifactId) {
-        addErrorMessage('Could not retrieve artifact details');
+        toast.error('Could not retrieve artifact details');
         return;
       }
 
@@ -184,14 +183,14 @@ export function LaunchpadAdminPage() {
 
       setDownloadArtifactId('');
     } catch (error) {
-      addErrorMessage(`Failed to download artifact: ${downloadArtifactId}`);
+      toast.error(`Failed to download artifact: ${downloadArtifactId}`);
     }
   };
 
   const handleRerunSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!locality) {
-      addErrorMessage('Please select a region first');
+      toast.error('Please select a region first');
       return;
     }
 
@@ -228,7 +227,7 @@ export function LaunchpadAdminPage() {
   const handleDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!locality) {
-      addErrorMessage('Please select a region first');
+      toast.error('Please select a region first');
       return;
     }
 
@@ -267,7 +266,7 @@ export function LaunchpadAdminPage() {
   const handleBatchDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!locality) {
-      addErrorMessage('Please select a region first');
+      toast.error('Please select a region first');
       return;
     }
 

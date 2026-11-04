@@ -4,7 +4,6 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -326,7 +325,7 @@ export function useGroupMergedState({
       }
 
       dispatch({type: 'unmergePending', fingerprintIds});
-      addLoadingMessage(loadingMessage);
+      toast.loading(loadingMessage);
 
       unmergeFingerprints(
         {fingerprintIds},
@@ -336,7 +335,7 @@ export function useGroupMergedState({
             dispatch({type: 'unmergeSuccess', fingerprintIds});
           },
           onError: requestError => {
-            addErrorMessage(getErrorMessage(requestError, errorMessage));
+            toast.error(getErrorMessage(requestError, errorMessage));
             dispatch({type: 'unmergeError', fingerprintIds});
           },
         }

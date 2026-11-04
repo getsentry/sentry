@@ -7,7 +7,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {DataCategory} from 'sentry/types/core';
@@ -72,7 +71,7 @@ function AddGiftBudgetModal({
       closeModal();
       onSuccess();
     },
-    onError: () => addErrorMessage('Unable to add gifted budget amount for org.'),
+    onError: () => toast.error('Unable to add gifted budget amount for org.'),
   });
   const form = useScrapsForm({
     ...defaultFormOptions,

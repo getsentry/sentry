@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -82,7 +81,7 @@ function AddToStartupProgramModal({
       ) {
         return;
       }
-      addErrorMessage('Unable to add customer to startup program.');
+      toast.error('Unable to add customer to startup program.');
     },
   });
 

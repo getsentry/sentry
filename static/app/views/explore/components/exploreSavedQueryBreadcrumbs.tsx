@@ -11,7 +11,6 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {LinkProps} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -166,7 +165,7 @@ function useSavedQueryMenuItems({
     label: t('Duplicate'),
     leadingItems: <IconCopy size="md" />,
     onAction: async () => {
-      addLoadingMessage(t('Duplicating query...'));
+      toast.loading(t('Duplicating query...'));
       try {
         await saveQueryFromSavedQuery({
           ...savedQuery,
@@ -174,7 +173,7 @@ function useSavedQueryMenuItems({
         });
         toast.success(t('Query duplicated'));
       } catch (error) {
-        addErrorMessage(t('Unable to duplicate query'));
+        toast.error(t('Unable to duplicate query'));
       }
     },
   };
@@ -237,7 +236,7 @@ function useSavedQueryMenuItems({
     onAction: () => {
       confirmDeleteSavedQuery({
         handleDelete: async () => {
-          addLoadingMessage(t('Deleting query...'));
+          toast.loading(t('Deleting query...'));
           try {
             await deleteQuery({
               queryId: savedQuery.id,
@@ -245,7 +244,7 @@ function useSavedQueryMenuItems({
             });
             toast.success(t('Query deleted'));
           } catch (error) {
-            addErrorMessage(t('Unable to delete query'));
+            toast.error(t('Unable to delete query'));
             return;
           }
 

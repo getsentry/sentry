@@ -15,7 +15,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
@@ -201,7 +200,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
     } catch (error) {
       const message = 'Unable to invalidate project config';
       handleXhrErrorResponse(message, error as RequestError);
-      addErrorMessage(message);
+      toast.error(message);
     }
   }
 
@@ -232,7 +231,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
       } catch (error) {
         const message = 'Unable to fetch project config';
         handleXhrErrorResponse(message, error as RequestError);
-        addErrorMessage(message);
+        toast.error(message);
       }
     }
 

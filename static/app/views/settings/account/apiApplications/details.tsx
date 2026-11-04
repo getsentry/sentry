@@ -15,7 +15,6 @@ import {
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -99,7 +98,7 @@ function ApiApplicationsDetails() {
       ));
     },
     onError: () => {
-      addErrorMessage(t('Error rotating secret'));
+      toast.error(t('Error rotating secret'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: getAppQueryKey(appId)});
@@ -118,7 +117,7 @@ function ApiApplicationsDetails() {
     path: {appId},
   });
 
-  const onSaveError = () => addErrorMessage(t('Unable to save change'));
+  const onSaveError = () => toast.error(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
     toast.success(t('Changes applied.'));

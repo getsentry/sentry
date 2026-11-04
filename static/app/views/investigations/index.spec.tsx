@@ -13,7 +13,6 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
@@ -56,7 +55,7 @@ function renderView({
 describe('Explore Investigations', () => {
   beforeEach(() => {
     jest.spyOn(toast, 'success').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'error').mockImplementation();
     ConfigStore.set('customerDomain', null);
   });
 
@@ -498,9 +497,7 @@ describe('Explore Investigations', () => {
     );
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to update investigation favorite.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to update investigation favorite.')
     );
   });
 
@@ -522,9 +519,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to duplicate investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to duplicate investigation.')
     );
   });
 
@@ -548,9 +543,7 @@ describe('Explore Investigations', () => {
     await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to delete investigation.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to delete investigation.')
     );
   });
 });

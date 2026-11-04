@@ -10,7 +10,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -106,7 +105,7 @@ function MergeAccounts() {
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {
-        addErrorMessage(
+        toast.error(
           Object.values(err.responseJSON ?? {})
             .flat()
             .join(' ')

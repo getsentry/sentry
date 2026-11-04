@@ -1,6 +1,5 @@
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -107,7 +106,7 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
         return data;
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to remove [team] from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,

@@ -1,6 +1,5 @@
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
@@ -23,7 +22,7 @@ export async function disconnectIdentity(
       }
     );
   } catch {
-    addErrorMessage('Error disconnecting identity');
+    toast.error('Error disconnecting identity');
     return;
   }
 

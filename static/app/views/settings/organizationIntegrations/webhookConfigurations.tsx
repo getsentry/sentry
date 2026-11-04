@@ -8,7 +8,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -52,7 +51,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
 
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
-      addLoadingMessage(shouldEnable ? t('Enabling...') : t('Disabling...'));
+      toast.loading(shouldEnable ? t('Enabling...') : t('Disabling...'));
       return fetchMutation({
         method: 'POST',
         url: getApiUrl(
@@ -74,7 +73,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
       queryClient.invalidateQueries({queryKey});
     },
     onError: (_error, shouldEnable) => {
-      addErrorMessage(
+      toast.error(
         shouldEnable
           ? t('Unable to enable configuration.')
           : t('Unable to disable configuration.')
@@ -84,7 +83,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
 
   const uninstallMutation = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Removing...'));
+      toast.loading(t('Removing...'));
       return fetchMutation({
         method: 'DELETE',
         url: getApiUrl(
@@ -103,7 +102,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
       queryClient.invalidateQueries({queryKey});
     },
     onError: () => {
-      addErrorMessage(t('Unable to remove configuration'));
+      toast.error(t('Unable to remove configuration'));
     },
   });
 

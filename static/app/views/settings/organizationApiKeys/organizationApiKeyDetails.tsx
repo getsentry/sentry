@@ -6,7 +6,6 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -94,7 +93,7 @@ function OrganizationApiKeyForm({
       handleCancel();
     },
     onError: () => {
-      addErrorMessage('Unable to save changes. Please try again.');
+      toast.error('Unable to save changes. Please try again.');
     },
   });
   const defaultValues: ApiKeyFormValues = {

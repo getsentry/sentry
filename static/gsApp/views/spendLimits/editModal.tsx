@@ -8,7 +8,6 @@ import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -139,7 +138,7 @@ export function SpendLimitsEditModal({
           ? (error.responseJSON as Record<string, string[]>)
           : saveError
       );
-      addErrorMessage(saveError);
+      toast.error(saveError);
     },
   });
 
@@ -149,7 +148,7 @@ export function SpendLimitsEditModal({
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
       const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
       setUpdateError(message);
-      addErrorMessage(message);
+      toast.error(message);
       return;
     }
 

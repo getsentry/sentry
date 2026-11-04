@@ -6,7 +6,6 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -93,7 +92,7 @@ function CreateReleaseIntegrationModal({
                 )
               : false;
           if (!handled) {
-            addErrorMessage(t('Something went wrong!'));
+            toast.error(t('Something went wrong!'));
           }
         }),
   });

@@ -9,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -118,7 +117,7 @@ function AdminUserEditForm({
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(
+      toast.error(
         typeof detail === 'string' ? detail : t('Failed to update user account.')
       );
     },
@@ -136,7 +135,7 @@ function AdminUserEditForm({
       navigate('/manage/users/', {replace: true});
     },
     onError: () => {
-      addErrorMessage(t('Failed to delete user account.'));
+      toast.error(t('Failed to delete user account.'));
     },
   });
 
@@ -156,7 +155,7 @@ function AdminUserEditForm({
       toast.success(t("%s's account has been deactivated.", response.email));
     },
     onError: () => {
-      addErrorMessage(t('Failed to deactivate user account.'));
+      toast.error(t('Failed to deactivate user account.'));
     },
   });
 

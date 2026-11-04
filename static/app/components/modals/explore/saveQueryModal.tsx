@@ -8,7 +8,6 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -51,7 +50,7 @@ function SaveQueryModal({
   const onSave = async () => {
     try {
       setIsSaving(true);
-      addLoadingMessage(t('Saving query...'));
+      toast.loading(t('Saving query...'));
       const {id} = await saveQuery({
         name,
         starred: initialName === undefined ? starred : undefined,
@@ -96,7 +95,7 @@ function SaveQueryModal({
       closeModal();
     } catch (error) {
       if (showMessage) {
-        addErrorMessage(t('Failed to save query'));
+        toast.error(t('Failed to save query'));
       }
       Sentry.captureException(error);
       // oxlint-disable-next-line react/todo

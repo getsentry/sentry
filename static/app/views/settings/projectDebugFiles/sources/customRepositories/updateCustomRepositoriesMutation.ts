@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CustomRepo, CustomRepoFormData} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
@@ -34,7 +33,7 @@ export function useUpdateCustomRepositoriesMutation(
           return updatedProject;
         })
         .catch(error => {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
           throw error;
         });
     },

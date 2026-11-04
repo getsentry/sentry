@@ -7,7 +7,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -62,7 +61,7 @@ function AccountAuthorizations() {
       toast.success(t('Saved changes'));
     } catch (_err) {
       setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
-      addErrorMessage(t('Unable to save changes, please try again'));
+      toast.error(t('Unable to save changes, please try again'));
     }
   };
 

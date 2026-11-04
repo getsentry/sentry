@@ -21,7 +21,6 @@ import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   AutofixChatProvider,
   type SendMessageOptions,
@@ -477,7 +476,7 @@ export function SeerExplorerContent({
       toast.success('Copied link to current chat');
       trackAnalytics('seer.explorer.session_link_copied', {organization});
     } catch {
-      addErrorMessage('Failed to copy link to current chat');
+      toast.error('Failed to copy link to current chat');
     }
   }, [runId, organization]);
 

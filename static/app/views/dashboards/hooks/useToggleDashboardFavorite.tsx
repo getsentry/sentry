@@ -2,7 +2,6 @@ import {useMutation, useQueryClient, type Query} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -104,9 +103,9 @@ export function useToggleDashboardFavorite() {
       const errorResponse = error instanceof RequestError ? error.responseJSON : null;
       if (errorResponse) {
         const errors = flattenErrors(errorResponse, {});
-        addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+        toast.error(errors[Object.keys(errors)[0]!]! as string);
       } else {
-        addErrorMessage(
+        toast.error(
           shouldFavorite
             ? t('Unable to favorite dashboard')
             : t('Unable to unfavorite dashboard')

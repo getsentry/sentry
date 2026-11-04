@@ -17,15 +17,12 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
-
-jest.mock('sentry/actionCreators/indicator');
 
 function renderFrameworkModalMockRequests({
   organization,
@@ -91,6 +88,7 @@ describe('CreateProject', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     jest.spyOn(toast, 'success').mockClear();
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
@@ -649,7 +647,7 @@ describe('CreateProject', () => {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
+    expect(toast.error).toHaveBeenCalledWith('Failed to create project apple-ios');
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'project_creation.project_details_create_clicked',
       expect.objectContaining({variant: 'legacy'})
@@ -832,8 +830,8 @@ describe('CreateProject', () => {
     expect(
       await screen.findByText('Integration ID is required for action type discord')
     ).toBeInTheDocument();
-    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
-    expect(addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Failed to create project apple-ios');
+    expect(toast.error).toHaveBeenCalledTimes(1);
   });
 
   it('targets an MS Teams channel picked from the list by its name', async () => {

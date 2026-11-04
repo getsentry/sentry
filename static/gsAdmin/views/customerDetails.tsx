@@ -5,7 +5,6 @@ import some from 'lodash/some';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -142,7 +141,7 @@ export function CustomerDetails() {
         method: 'PUT',
         data: params,
       }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onMutate: () => toast.loading('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
       toast.success(
         data.message ??
@@ -162,9 +161,9 @@ export function CustomerDetails() {
               ? err[0]
               : DEFAULT_ERROR_MESSAGE;
 
-        addErrorMessage(message);
+        toast.error(message);
       } else {
-        addErrorMessage(DEFAULT_ERROR_MESSAGE);
+        toast.error(DEFAULT_ERROR_MESSAGE);
       }
     },
   });
@@ -182,7 +181,7 @@ export function CustomerDetails() {
       toast.success('Queued spike projection generation task.');
     },
     onError: (error: RequestError) => {
-      addErrorMessage(error.message);
+      toast.error(error.message);
     },
   });
 
@@ -206,7 +205,7 @@ export function CustomerDetails() {
       toast.success('Test organization flag updated.');
     },
     onError: () => {
-      addErrorMessage('Could not update the test organization flag. Try again.');
+      toast.error('Could not update the test organization flag. Try again.');
     },
   });
 
@@ -222,7 +221,7 @@ export function CustomerDetails() {
         method: 'POST',
         data: params,
       }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onMutate: () => toast.loading('Saving changes\u2026'),
     onSuccess: (_data, variables) => {
       toast.success(
         variables.migrated
@@ -233,7 +232,7 @@ export function CustomerDetails() {
     },
     onError: (error: RequestError) => {
       const detail = error.responseJSON?.detail;
-      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     },
   });
 
@@ -250,7 +249,7 @@ export function CustomerDetails() {
         method: 'POST',
         data: params,
       }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onMutate: () => toast.loading('Saving changes\u2026'),
     onSuccess: (_data, variables) => {
       toast.success(`Set the contract package to ${variables.packageUid}.`);
       reloadData();
@@ -261,7 +260,7 @@ export function CustomerDetails() {
       const detail =
         error.responseJSON?.detail ??
         (Array.isArray(packageUidErrors) ? packageUidErrors[0] : undefined);
-      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     },
   });
 
@@ -349,7 +348,7 @@ export function CustomerDetails() {
 
   const onForkCustomer = (params: Record<string, any>) => {
     if (params.error) {
-      addErrorMessage(params.error.responseJSON.detail);
+      toast.error(params.error.responseJSON.detail);
     } else {
       toast.success('The relocation job has started!');
     }
@@ -361,7 +360,7 @@ export function CustomerDetails() {
       toast.success(`Customer account has been updated with new domain: ${msg}.`);
     } else {
       const msg = JSON.stringify(params.error.responseText);
-      addErrorMessage(`Failed to update new domain due to ${msg}.`);
+      toast.error(`Failed to update new domain due to ${msg}.`);
     }
   };
 
@@ -374,7 +373,7 @@ export function CustomerDetails() {
   }) => {
     if (error) {
       const msg = JSON.stringify(error.responseText);
-      addErrorMessage(`Failed to toggle spend allocations due to ${msg}`);
+      toast.error(`Failed to toggle spend allocations due to ${msg}`);
     } else {
       const clone = cloneDeep(subscription);
       if (clone) {

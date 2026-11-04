@@ -15,7 +15,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
@@ -92,7 +91,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
       setMissingMembers(githubEntry.users ?? []);
     } catch (err: any) {
       if (err.status !== 403) {
-        addErrorMessage(t('Unable to fetching missing commit authors'));
+        toast.error(t('Unable to fetching missing commit authors'));
       }
     }
   }, [api, organization]);
@@ -166,7 +165,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
       );
       setMissingMembers(updatedMissingMembers);
     } catch {
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
     }
     setSendingInvite(false);
   };

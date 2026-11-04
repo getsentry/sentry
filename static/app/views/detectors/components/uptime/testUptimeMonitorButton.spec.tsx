@@ -4,7 +4,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/detectors/components/uptime/testUptimeMonitorButton';
 import {
   PreviewCheckStatus,
@@ -19,7 +18,7 @@ describe('TestUptimeMonitorButton', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.spyOn(toast, 'success');
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
   });
 
   it('shows error when URL is not provided', async () => {
@@ -40,9 +39,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Please enter a URL to test'
-      );
+      expect(toast.error).toHaveBeenCalledWith('Please enter a URL to test');
     });
   });
 
@@ -140,7 +137,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+      expect(toast.error).toHaveBeenCalledWith('Uptime check failed');
     });
   });
 
@@ -169,7 +166,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Uptime check failed (Assertion Serialization Error)'
       );
     });
@@ -199,7 +196,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+      expect(toast.error).toHaveBeenCalledWith('Uptime check failed');
     });
   });
 
@@ -277,7 +274,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+      expect(toast.error).toHaveBeenCalledWith('Uptime check failed');
     });
   });
 
@@ -305,7 +302,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
+      expect(toast.error).toHaveBeenCalledWith('Uptime check failed');
     });
   });
 

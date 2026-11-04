@@ -2,7 +2,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -71,7 +70,7 @@ export function useMutateDataForwarder({
     onError: error => {
       const displayError =
         JSON.stringify(error.responseJSON) ?? t('Failed to update data forwarder');
-      addErrorMessage(displayError);
+      toast.error(displayError);
     },
   });
 }
@@ -97,7 +96,7 @@ export function useDeleteDataForwarder({
       queryClient.invalidateQueries({queryKey: makeDataForwarderQueryKey(params)});
     },
     onError: _error => {
-      addErrorMessage(t('Failed to delete data forwarder'));
+      toast.error(t('Failed to delete data forwarder'));
     },
   });
 }
@@ -135,7 +134,7 @@ export function useMutateDataForwarderProject({
     onError: error => {
       const displayError =
         JSON.stringify(error.responseJSON) ?? t('Failed to update override');
-      addErrorMessage(displayError);
+      toast.error(displayError);
     },
   });
 }

@@ -10,7 +10,6 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -338,7 +337,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       toast.success(t('Updated notification setting'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to update notification setting'));
+      toast.error(t('Unable to update notification setting'));
     },
   });
 

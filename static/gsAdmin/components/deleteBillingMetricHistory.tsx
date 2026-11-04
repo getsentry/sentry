@@ -8,7 +8,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -91,7 +90,7 @@ function DeleteBillingMetricHistoryModal({
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : 'Unable to delete billing metric history.';
-      addErrorMessage(errorMsg);
+      toast.error(errorMsg);
     },
   });
 

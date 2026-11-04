@@ -3,7 +3,6 @@ import classNames from 'classnames';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
@@ -158,7 +157,7 @@ function ChangePlanAction({
     onSubmitSuccess: (data: Data) => void,
     onSubmitError: (error: any) => void
   ) => {
-    addLoadingMessage('Updating plan\u2026');
+    toast.loading('Updating plan\u2026');
 
     if (!data.plan || !planList.some(p => p.id === data.plan)) {
       onSubmitError('Plan not found');
@@ -227,7 +226,7 @@ function ChangePlanAction({
           onSuccess();
         }}
         onSubmitError={(error: any) => {
-          addErrorMessage(error?.responseJSON?.detail ?? error);
+          toast.error(error?.responseJSON?.detail ?? error);
         }}
         onPlanChange={handlePlanChange}
         tierPlans={getPlanList()}

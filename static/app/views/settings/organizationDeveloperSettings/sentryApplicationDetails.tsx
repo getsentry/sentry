@@ -16,7 +16,6 @@ import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
@@ -346,7 +345,7 @@ function useSaveSentryApp({
     formApi: Parameters<typeof setFieldErrors>[0]
   ) => {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unknown Error'));
+      toast.error(t('Unknown Error'));
       return;
     }
     const responseJSON = error.responseJSON ?? {};
@@ -368,7 +367,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.events) &&
       typeof responseJSON.events[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.events[0]);
+      toast.error(responseJSON.events[0]);
       return;
     }
 
@@ -378,7 +377,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.scopes) &&
       typeof responseJSON.scopes[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.scopes[0]);
+      toast.error(responseJSON.scopes[0]);
       return;
     }
 
@@ -388,7 +387,7 @@ function useSaveSentryApp({
 
     const detail =
       typeof responseJSON.detail === 'string' ? responseJSON.detail : t('Unknown Error');
-    addErrorMessage(detail);
+    toast.error(detail);
   };
 
   const saveSentryAppMutation = useMutation({
@@ -841,13 +840,13 @@ function SentryAppEditForm({
         method: 'POST',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Adding token...'));
+      toast.loading(t('Adding token...'));
     },
     onSuccess: () => {
       toast.success(t('Token successfully added.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to create token'));
+      toast.error(t('Unable to create token'));
     },
   });
 
@@ -860,13 +859,13 @@ function SentryAppEditForm({
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Removing token...'));
+      toast.loading(t('Removing token...'));
     },
     onSuccess: () => {
       toast.success(t('Token successfully deleted.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to delete token'));
+      toast.error(t('Unable to delete token'));
     },
   });
 
@@ -879,7 +878,7 @@ function SentryAppEditForm({
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Deleting %s...', app.slug));
+      toast.loading(t('Deleting %s...', app.slug));
     },
     onSuccess: () => {
       toast.success(t('%s successfully removed.', app.slug));
@@ -893,7 +892,7 @@ function SentryAppEditForm({
       );
     },
     onError: () => {
-      addErrorMessage(t('Unable to remove %s integration', app.slug));
+      toast.error(t('Unable to remove %s integration', app.slug));
     },
   });
 

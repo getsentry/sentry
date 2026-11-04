@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -61,12 +60,12 @@ export function RelocationUnpauseModal({
     onError: (error: unknown) => {
       const fallback = 'Failed to unpause relocation.';
       if (!(error instanceof RequestError)) {
-        addErrorMessage(fallback);
+        toast.error(fallback);
         return;
       }
       const detail = error.responseJSON?.detail;
       const message = typeof detail === 'string' ? detail : detail?.message;
-      addErrorMessage(message ?? fallback);
+      toast.error(message ?? fallback);
     },
   });
 

@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
@@ -137,12 +136,12 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
       confirmText: t('Delete Formula'),
       priority: 'danger',
       onConfirm: async () => {
-        addLoadingMessage(t('Deleting formula...'));
+        toast.loading(t('Deleting formula...'));
         try {
           await deleteFormula(formula.id);
           toast.success(t('Formula deleted'));
         } catch {
-          addErrorMessage(t('Unable to delete formula'));
+          toast.error(t('Unable to delete formula'));
         }
       },
     });

@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import {t, tct} from 'sentry/locale';
@@ -110,7 +109,7 @@ export function SentryAppPublishRequestModal({
       const rawDetail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
       const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail?.message;
-      addErrorMessage(
+      toast.error(
         detail
           ? tct('Request to publish [app] fails. [detail]', {app: app.slug, detail})
           : t('Request to publish %s fails.', app.slug)

@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
@@ -397,7 +396,7 @@ export function FlamegraphSpans({
     const value =
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_DESCRIPTION] ?? '';
     if (!value) {
-      addErrorMessage(t('Event description value is empty.'));
+      toast.error(t('Event description value is empty.'));
       return;
     }
 
@@ -407,7 +406,7 @@ export function FlamegraphSpans({
         toast.success(t('Description copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy description to clipboard'));
+        toast.error(t('Failed to copy description to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
@@ -415,7 +414,7 @@ export function FlamegraphSpans({
     const value =
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_OP] ?? '';
     if (!value) {
-      addErrorMessage(t('Event operation value is empty.'));
+      toast.error(t('Event operation value is empty.'));
       return;
     }
 
@@ -425,7 +424,7 @@ export function FlamegraphSpans({
         toast.success(t('Operation copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy operation to clipboard'));
+        toast.error(t('Failed to copy operation to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
@@ -435,7 +434,7 @@ export function FlamegraphSpans({
       hoveredNodeOnContextMenuOpen.current?.node.span[SpanFields.SPAN_ID] ??
       '';
     if (!value) {
-      addErrorMessage(t('Event ID value is empty.'));
+      toast.error(t('Event ID value is empty.'));
       return;
     }
 
@@ -445,14 +444,14 @@ export function FlamegraphSpans({
         toast.success(t('Event ID copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy event ID to clipboard'));
+        toast.error(t('Failed to copy event ID to clipboard'));
       });
   }, [hoveredNodeOnContextMenuOpen]);
 
   const onOpenInTraceView = useCallback(() => {
     const node = hoveredNodeOnContextMenuOpen.current?.node;
     if (!node) {
-      addErrorMessage(t('No event ID or span ID found'));
+      toast.error(t('No event ID or span ID found'));
       return;
     }
 

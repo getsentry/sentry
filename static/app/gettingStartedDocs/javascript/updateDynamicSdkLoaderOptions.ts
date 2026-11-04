@@ -1,6 +1,5 @@
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
@@ -62,7 +61,7 @@ function addProductMessage(
   const isEnabled = products.includes(toggledProduct);
 
   if (isError) {
-    addErrorMessage(isEnabled ? messages.enableError : messages.disableError);
+    toast.error(isEnabled ? messages.enableError : messages.disableError);
   } else {
     toast.success(isEnabled ? messages.enabled : messages.disabled);
   }

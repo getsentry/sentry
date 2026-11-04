@@ -20,7 +20,6 @@ import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
@@ -589,7 +588,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         origin: 'settings',
       });
     } catch (err) {
-      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      toast.error(tct('Error removing [project]', {project: project.slug}));
       throw err;
     }
 

@@ -35,7 +35,6 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -265,7 +264,7 @@ function ResolvedIdentifierCommandPaletteAction() {
 async function openCurrentReplay() {
   const replay = Sentry.getReplay();
   if (!replay) {
-    addErrorMessage(t('Session Replay is not enabled for this session'));
+    toast.error(t('Session Replay is not enabled for this session'));
     return;
   }
 
@@ -281,7 +280,7 @@ async function openCurrentReplay() {
     replayId = replay.getReplayId();
   }
   if (!replayId) {
-    addErrorMessage(t('No replay is currently recording'));
+    toast.error(t('No replay is currently recording'));
     return;
   }
 
@@ -1130,7 +1129,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('System')}}
             keywords={['default theme', 'system theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
               toast.success(t('Theme preference saved: System'));
             }}
@@ -1139,7 +1138,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('Light')}}
             keywords={['light mode', 'light theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
               toast.success(t('Theme preference saved: Light'));
             }}
@@ -1148,7 +1147,7 @@ export function GlobalCommandPaletteActions() {
             display={{label: t('Dark')}}
             keywords={['dark mode', 'dark theme']}
             onAction={async () => {
-              addLoadingMessage(t('Saving…'));
+              toast.loading(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});
               toast.success(t('Theme preference saved: Dark'));
             }}

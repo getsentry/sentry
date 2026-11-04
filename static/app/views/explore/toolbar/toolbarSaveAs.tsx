@@ -8,7 +8,6 @@ import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -130,7 +129,7 @@ export function ToolbarSaveAs() {
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
-          addLoadingMessage(t('Updating query...'));
+          toast.loading(t('Updating query...'));
           await updateQuery();
           toast.success(t('Query updated successfully'));
           trackAnalytics('trace_explorer.save_as', {
@@ -139,7 +138,7 @@ export function ToolbarSaveAs() {
             organization,
           });
         } catch (error) {
-          addErrorMessage(t('Failed to update query'));
+          toast.error(t('Failed to update query'));
           Sentry.captureException(error);
         }
       },

@@ -6,7 +6,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -53,7 +52,7 @@ function InvestigationDetailPageInner({
       toast.success(t('Investigation duplicated.'));
       navigate(getInvestigationPath(organization.slug, duplicate.id));
     },
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
+    onError: () => toast.error(t('Unable to duplicate investigation.')),
   });
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
     onMutate: () => title.cancelPendingRename(),
@@ -66,7 +65,7 @@ function InvestigationDetailPageInner({
       toast.success(t('Investigation deleted.'));
       navigate(getInvestigationsPath(organization.slug));
     },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
+    onError: () => toast.error(t('Unable to delete investigation.')),
   });
 
   return (

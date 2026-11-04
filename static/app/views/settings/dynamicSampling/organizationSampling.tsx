@@ -8,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
@@ -62,7 +61,7 @@ export function OrganizationSampling() {
         setSavedTargetSampleRate(value.targetSampleRate);
         formApi.reset(value);
       } catch {
-        addErrorMessage(t('Unable to save changes. Please try again.'));
+        toast.error(t('Unable to save changes. Please try again.'));
       }
     },
   });

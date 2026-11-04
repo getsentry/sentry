@@ -5,11 +5,6 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -50,7 +45,7 @@ export function PromoCodeDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving Changes...');
+      toast.loading('Saving Changes...');
     },
     onSuccess: data => {
       toast.success(`Promo code has been updated with ${JSON.stringify(data)}.`);
@@ -59,8 +54,8 @@ export function PromoCodeDetails() {
       });
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the promo code.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the promo code.');
+      toast.dismiss();
     },
   });
 

@@ -9,7 +9,6 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -135,7 +134,7 @@ export function useExportConversation(
           return;
         }
         Sentry.captureException(error);
-        addErrorMessage(t('Failed to export transcript'));
+        toast.error(t('Failed to export transcript'));
       }
     },
     [queryClient, organization, conversation, selection]

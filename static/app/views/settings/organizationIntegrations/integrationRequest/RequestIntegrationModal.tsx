@@ -6,7 +6,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
@@ -70,7 +69,7 @@ export function RequestIntegrationModal({
       closeModal();
     },
     onError: () => {
-      addErrorMessage(t('Error sending the request'));
+      toast.error(t('Error sending the request'));
     },
   });
 

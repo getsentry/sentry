@@ -17,7 +17,6 @@ import {
   deleteDashboard,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -360,7 +359,7 @@ class DashboardDetail extends Component<Props, State> {
           }),
           {replace: true}
         );
-        addErrorMessage(t('Widget not found'));
+        toast.error(t('Widget not found'));
       }
     }
   }
@@ -776,7 +775,7 @@ class DashboardDetail extends Component<Props, State> {
         this.handleUpdateEditStateWidgets(newWidgets);
       } else {
         // If we're not in edit mode, send a request to update the dashboard
-        addLoadingMessage(t('Saving widget'));
+        toast.loading(t('Saving widget'));
         this.handleUpdateWidgetList(newWidgets);
       }
       this.setState({
@@ -785,7 +784,7 @@ class DashboardDetail extends Component<Props, State> {
 
       this.handleCloseWidgetBuilder(newWidgets);
     } catch (error) {
-      addErrorMessage(t('Failed to save widget'));
+      toast.error(t('Failed to save widget'));
     }
   };
 
@@ -1245,7 +1244,7 @@ class DashboardDetail extends Component<Props, State> {
                         this.setState({
                           isSavingDashboardFilters: true,
                         });
-                        addLoadingMessage(t('Saving dashboard filters'));
+                        toast.loading(t('Saving dashboard filters'));
                         await updateDashboard({
                           dashboard: newModifiedDashboard,
                         }).then(

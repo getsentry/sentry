@@ -6,7 +6,6 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -769,7 +768,7 @@ function FlamegraphZoomView({
         toast.success(t('Function name copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy function name to clipboard'));
+        toast.error(t('Failed to copy function name to clipboard'));
       });
   }, []);
 
@@ -782,7 +781,7 @@ function FlamegraphZoomView({
     const link = makeSourceCodeLink(frame);
 
     if (!link) {
-      addErrorMessage(t('Failed to resolve path for this function frame.'));
+      toast.error(t('Failed to resolve path for this function frame.'));
       return;
     }
 
@@ -792,7 +791,7 @@ function FlamegraphZoomView({
         toast.success(t('Function source copied to clipboard'));
       })
       .catch(() => {
-        addErrorMessage(t('Failed to copy function source to clipboard'));
+        toast.error(t('Failed to copy function source to clipboard'));
       });
   }, []);
 

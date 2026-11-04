@@ -8,8 +8,8 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {
@@ -168,9 +168,7 @@ export function ReleasesAdoptionChart({
 
   useEffect(() => {
     if (isError) {
-      addErrorMessage(
-        (error as any)?.responseJSON?.detail ?? t('Error loading health data')
-      );
+      toast.error((error as any)?.responseJSON?.detail ?? t('Error loading health data'));
     }
   }, [isError, error]);
 

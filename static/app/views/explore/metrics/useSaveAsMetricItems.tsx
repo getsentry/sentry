@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -75,7 +74,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
-            addLoadingMessage(t('Updating query...'));
+            toast.loading(t('Updating query...'));
             await updateQuery();
             toast.success(t('Query updated successfully'));
             trackAnalytics('metrics.save_as', {
@@ -84,7 +83,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
               organization,
             });
           } catch (error) {
-            addErrorMessage(t('Failed to update query'));
+            toast.error(t('Failed to update query'));
             Sentry.captureException(error);
           }
         },

@@ -10,7 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -261,7 +260,7 @@ function RelayUsageList({
       onRelaysChange(response.trustedRelays ?? []);
     },
     onError: () => {
-      addErrorMessage(t('An unknown error occurred while deleting Relay public key'));
+      toast.error(t('An unknown error occurred while deleting Relay public key'));
     },
   });
 

@@ -7,7 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -121,7 +120,7 @@ export function DataScrubbing({
       try {
         setRules(convertRelayPiiConfig(relayPiiConfig));
       } catch {
-        addErrorMessage(t('Unable to load data scrubbing rules'));
+        toast.error(t('Unable to load data scrubbing rules'));
       }
     }
 
@@ -161,7 +160,7 @@ export function DataScrubbing({
         toast.success(t('Successfully deleted data scrubbing rule'));
       }
     } catch {
-      addErrorMessage(t('An unknown error occurred while deleting data scrubbing rule'));
+      toast.error(t('An unknown error occurred while deleting data scrubbing rule'));
     }
   }
 

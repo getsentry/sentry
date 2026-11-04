@@ -3,7 +3,6 @@ import {useMutation} from '@tanstack/react-query';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -73,7 +72,7 @@ export function TestUptimeMonitorButton({
         toast.success(t('Uptime check passed successfully'));
       } else {
         const trailingMessage = mapPreviewCheckResultToMessage(response);
-        addErrorMessage(
+        toast.error(
           t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
         );
       }
@@ -83,7 +82,7 @@ export function TestUptimeMonitorButton({
       previewCheckResult?.setPreviewCheckError(extractedError);
 
       const trailingMessage = mapPreviewCheckErrorToMessage(extractedError);
-      addErrorMessage(
+      toast.error(
         t('Uptime check failed%s', trailingMessage ? ` (${trailingMessage})` : '')
       );
     },
@@ -93,7 +92,7 @@ export function TestUptimeMonitorButton({
     const formData = getFormData();
 
     if (!formData.url) {
-      addErrorMessage(t('Please enter a URL to test'));
+      toast.error(t('Please enter a URL to test'));
       return;
     }
 

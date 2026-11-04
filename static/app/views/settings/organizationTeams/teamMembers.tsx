@@ -20,7 +20,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
@@ -245,9 +244,7 @@ export default function TeamMembers() {
       toast.success(t('Successfully removed member from team.'));
     },
     onError: () => {
-      addErrorMessage(
-        t('There was an error while trying to remove a member from the team.')
-      );
+      toast.error(t('There was an error while trying to remove a member from the team.'));
     },
   });
 
@@ -296,7 +293,7 @@ export default function TeamMembers() {
       );
     },
     onError: () => {
-      addErrorMessage(
+      toast.error(
         t('There was an error while trying to change the roles for a team member.')
       );
     },
@@ -326,7 +323,7 @@ export default function TeamMembers() {
       toast.success(t('Successfully added member to team.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to add team member.'));
+      toast.error(t('Unable to add team member.'));
     },
   });
 

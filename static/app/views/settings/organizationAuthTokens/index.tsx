@@ -8,7 +8,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -153,7 +152,7 @@ function OrganizationAuthTokensIndex() {
     onError: error => {
       const message = t('Failed to revoke the auth token for the organization.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

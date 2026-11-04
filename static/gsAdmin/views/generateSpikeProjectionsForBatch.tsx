@@ -9,7 +9,6 @@ import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
 import {getFormat} from 'sentry/utils/dates';
@@ -42,7 +41,7 @@ export function GenerateSpikeProjectionsForBatch() {
       setBatchId(null);
     },
     onError: () => {
-      addErrorMessage(
+      toast.error(
         `Failed to queue spike projection generation task for batch ${batchId}.`
       );
     },

@@ -4,7 +4,6 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -61,7 +60,7 @@ export function ProjectDetails() {
       });
       toast.success('User email has been removed.');
     } catch {
-      addErrorMessage('Failed to remove email.');
+      toast.error('Failed to remove email.');
     }
   };
 

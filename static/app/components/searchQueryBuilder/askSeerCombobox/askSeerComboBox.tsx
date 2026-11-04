@@ -3,8 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 import type {MutationOptions} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
@@ -44,7 +44,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     ...askSeerMutationOptions,
     onError: (error, variables, onMutateResult, context) => {
       askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      addErrorMessage(t('Seer failed to process your search. Please try again.'));
+      toast.error(t('Seer failed to process your search. Please try again.'));
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,

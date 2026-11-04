@@ -2,7 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
@@ -76,7 +75,7 @@ export function useSentryAppExternalIssues({
               toast.success(t('Successfully unlinked issue.'));
             })
             .catch(_error => {
-              addErrorMessage(t('Unable to unlink issue.'));
+              toast.error(t('Unable to unlink issue.'));
             });
         },
       });
@@ -134,7 +133,7 @@ export function useSentryAppExternalIssues({
             toast.success(t('Successfully unlinked issue.'));
           })
           .catch(_error => {
-            addErrorMessage(t('Unable to unlink issue.'));
+            toast.error(t('Unable to unlink issue.'));
           });
       },
     });

@@ -8,7 +8,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -75,7 +74,7 @@ function AuthTokenCreateForm({
             )
           : t('Failed to create a new organization token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -84,7 +83,7 @@ function AuthTokenCreateForm({
     defaultValues: {name: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });

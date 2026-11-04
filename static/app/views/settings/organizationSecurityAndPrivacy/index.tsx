@@ -13,7 +13,6 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -421,7 +420,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
           toast.success(t('Scrubbing configuration updated'));
         })
         .catch(() => {
-          addErrorMessage(t('Unable to save change'));
+          toast.error(t('Unable to save change'));
         }),
   });
 

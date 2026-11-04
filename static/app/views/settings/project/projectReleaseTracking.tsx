@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -89,7 +88,7 @@ export default function ProjectReleaseTracking() {
       );
     },
     onError: () => {
-      addErrorMessage(t('Unable to regenerate deploy token, please try again'));
+      toast.error(t('Unable to regenerate deploy token, please try again'));
     },
   });
 

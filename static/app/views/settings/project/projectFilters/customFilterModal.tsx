@@ -11,7 +11,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -860,7 +859,7 @@ function CustomFilterModal({
       queryClient.invalidateQueries({queryKey});
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         getErrorDetail(
           error,
           filter ? t('Unable to update filter') : t('Unable to create filter')

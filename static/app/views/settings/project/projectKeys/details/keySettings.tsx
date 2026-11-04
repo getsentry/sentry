@@ -8,7 +8,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -76,7 +75,7 @@ export function KeySettings({
   };
 
   const handleRemove = async () => {
-    addLoadingMessage(t('Revoking key\u2026'));
+    toast.loading(t('Revoking key\u2026'));
 
     try {
       await api.requestPromise(
@@ -95,7 +94,7 @@ export function KeySettings({
       onRemove();
       toast.success(t('Revoked key'));
     } catch (_err) {
-      addErrorMessage(t('Unable to revoke key'));
+      toast.error(t('Unable to revoke key'));
     }
   };
 

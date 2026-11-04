@@ -16,8 +16,6 @@ import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal'
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/indicator');
-
 const defaultIssueConfig = [
   {
     name: 'project',

@@ -11,7 +11,6 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {SmsAuthenticator} from 'sentry/types/auth';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
@@ -63,7 +62,7 @@ export function SmsEnrollForm({
         return;
       }
 
-      addLoadingMessage(
+      toast.loading(
         isCodeSent ? t('Verifying OTP...') : t('Sending code to %s...', value.phone)
       );
 
@@ -74,7 +73,7 @@ export function SmsEnrollForm({
           secret: authenticator.secret,
         });
       } catch (caughtError) {
-        addErrorMessage(
+        toast.error(
           getRequestErrorUserMessage(
             caughtError,
             isCodeSent

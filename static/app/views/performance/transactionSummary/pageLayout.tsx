@@ -9,8 +9,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -199,7 +199,7 @@ export function PageLayout(props: Props) {
       >
         {({isLoading, tableData, error: discoverQueryError}) => {
           if (discoverQueryError) {
-            addErrorMessage(t('Unable to get projects associated with transaction'));
+            toast.error(t('Unable to get projects associated with transaction'));
             redirectToPerformanceHomepage(organization, location, navigate);
             return null;
           }

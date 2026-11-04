@@ -6,7 +6,6 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -57,7 +56,7 @@ export function BroadcastDetails() {
       });
     },
     onError: () => {
-      addErrorMessage('There was an internal error updating this broadcast.');
+      toast.error('There was an internal error updating this broadcast.');
     },
   });
 

@@ -4,7 +4,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -66,7 +65,7 @@ export default function BuildComparison() {
     },
     onSuccess: response => {
       if (response?.status === 'exists') {
-        addErrorMessage(t('Comparison already exists'));
+        toast.error(t('Comparison already exists'));
       } else {
         toast.success(t('Comparison rerun triggered'));
       }
@@ -77,7 +76,7 @@ export default function BuildComparison() {
         handleStaffPermissionError(error.responseJSON?.detail);
         return;
       }
-      addErrorMessage(t('Failed to rerun comparison'));
+      toast.error(t('Failed to rerun comparison'));
     },
   });
 

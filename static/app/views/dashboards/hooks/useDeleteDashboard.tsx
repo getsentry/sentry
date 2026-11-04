@@ -4,7 +4,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {deleteDashboard as deleteDashboardAction} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
@@ -33,7 +32,7 @@ export function useDeleteDashboard({onSuccess}: UseDeleteDashboardProps) {
           toast.success(t('Dashboard deleted'));
         })
         .catch(() => {
-          addErrorMessage(t('Error deleting Dashboard'));
+          toast.error(t('Error deleting Dashboard'));
         });
     },
     [api, organization, queryClient, onSuccess]

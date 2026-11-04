@@ -4,7 +4,6 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -110,7 +109,7 @@ export function BuiltInRepositories({
             const {errorMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );
-            addErrorMessage(errorMessage);
+            toast.error(errorMessage);
           },
         }}
       >

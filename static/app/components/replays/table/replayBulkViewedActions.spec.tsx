@@ -24,13 +24,6 @@ jest.mock('sentry/utils/queryClient', () => ({
   },
 }));
 
-const mockAddErrorMessage = jest.fn();
-jest.mock('sentry/actionCreators/indicator', () => ({
-  get addErrorMessage() {
-    return mockAddErrorMessage;
-  },
-}));
-
 function createReplay(overrides?: Partial<ReplayListRecord>): ReplayListRecord {
   return {
     id: 'a1',
@@ -67,6 +60,7 @@ describe('ReplayBulkViewedActions', () => {
 
   beforeEach(() => {
     jest.spyOn(toast, 'success').mockClear();
+    jest.spyOn(toast, 'error').mockClear();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({slug: 'proj-a'})]);
   });
@@ -88,7 +82,7 @@ describe('ReplayBulkViewedActions', () => {
     await waitFor(() => {
       expect(deselectAll).toHaveBeenCalled();
     });
-    expect(mockAddErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
     expect(toast.success).toHaveBeenCalledWith('Marked 2 replays as viewed.');
     expect(mockTrackAnalytics).toHaveBeenCalledWith('replay.bulk_mark_viewed', {
       organization: expect.objectContaining({slug: 'acme-corp'}),
@@ -145,8 +139,8 @@ describe('ReplayBulkViewedActions', () => {
       expect(deselectAll).toHaveBeenCalled();
     });
     expect(toast.success).not.toHaveBeenCalled();
-    expect(mockAddErrorMessage.mock.calls[0]![0]).toMatch(/Updated/);
-    expect(mockAddErrorMessage.mock.calls[0]![0]).toMatch(/2/);
+    expect(jest.mocked(toast.error).mock.calls[0]![0]).toMatch(/Updated/);
+    expect(jest.mocked(toast.error).mock.calls[0]![0]).toMatch(/2/);
     expect(mockTrackAnalytics).toHaveBeenCalledWith('replay.bulk_mark_viewed', {
       organization: expect.anything(),
       failed: 1,
@@ -163,7 +157,7 @@ describe('ReplayBulkViewedActions', () => {
     await userEvent.click(screen.getByRole('button', {name: /mark as viewed/i}));
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Replays could not be updated. Try again or refresh the list.'
       );
     });

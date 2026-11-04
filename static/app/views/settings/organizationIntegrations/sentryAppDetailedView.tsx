@@ -10,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   installSentryApp,
   uninstallSentryApp,
@@ -265,7 +264,7 @@ export default function SentryAppDetailedView() {
             )
         );
       } catch (error) {
-        addErrorMessage(t('Unable to uninstall %s', sentryApp.name));
+        toast.error(t('Unable to uninstall %s', sentryApp.name));
       }
     },
     [

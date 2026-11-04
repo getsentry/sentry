@@ -2,9 +2,8 @@ import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {tct} from 'sentry/locale';
+import {tct, t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -78,14 +77,14 @@ export function transferProject(
         }
 
         if (message) {
-          addErrorMessage(
+          toast.error(
             tct('Error transferring [project]. [message]', {
               project: project.slug,
               message,
             })
           );
         } else {
-          addErrorMessage(
+          toast.error(
             tct('Error transferring [project]', {
               project: project.slug,
             })
@@ -117,7 +116,7 @@ export function addTeamToProject(
     }
   );
 
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   return api
     .requestPromise(endpoint, {
@@ -135,7 +134,7 @@ export function addTeamToProject(
         ProjectsStore.onUpdateSuccess(project);
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to add [team] to the [project] project', {
             team: `#${team.slug}`,
             project: projectSlug,
@@ -166,7 +165,7 @@ function removeTeamFromProject(
     }
   );
 
-  addLoadingMessage();
+  toast.loading(t('Saving changes...'));
 
   return api
     .requestPromise(endpoint, {
@@ -184,7 +183,7 @@ function removeTeamFromProject(
         ProjectsStore.onUpdateSuccess(project);
       },
       err => {
-        addErrorMessage(
+        toast.error(
           tct('Unable to remove [team] from the [project] project', {
             team: `#${teamSlug}`,
             project: projectSlug,

@@ -2,7 +2,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -44,7 +43,7 @@ export function useUpdateDetectorsMutation() {
       toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
     onError: (_, variables) => {
-      addErrorMessage(
+      toast.error(
         t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
       );
     },

@@ -13,7 +13,6 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
@@ -421,7 +420,7 @@ export function EditHighlightsModal({
                 {highlightContext, highlightTags},
                 {
                   onError: () => {
-                    addErrorMessage(
+                    toast.error(
                       tct("Failed to update '[projectName]' project", {
                         projectName: project.name,
                       })

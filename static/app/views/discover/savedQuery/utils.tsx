@@ -12,7 +12,6 @@ import {
   deleteSavedQuery,
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -57,7 +56,7 @@ export function handleCreateQuery(
       return savedQuery;
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not saved'));
+      toast.error(t('Query not saved'));
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
@@ -79,7 +78,7 @@ export function handleUpdateQuery(
   payload.yAxis = yAxis;
 
   if (!eventView.name) {
-    addErrorMessage(t('Please name your query'));
+    toast.error(t('Please name your query'));
     return Promise.reject(new Error('Query name is required'));
   }
 
@@ -105,7 +104,7 @@ export function handleUpdateQuery(
       return savedQuery;
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not updated'));
+      toast.error(t('Query not updated'));
 
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
@@ -144,7 +143,7 @@ export function handleUpdateQueryName(
       });
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query name not saved'));
+      toast.error(t('Query name not saved'));
 
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
@@ -177,7 +176,7 @@ export function handleDeleteQuery(
       });
     })
     .catch((err: Error) => {
-      addErrorMessage(t('Query not deleted'));
+      toast.error(t('Query not deleted'));
       trackAnalytics('discover_v2.delete_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
@@ -209,7 +208,7 @@ export function handleUpdateHomepageQuery(
           errorMessage = response.non_field_errors[0];
         }
       }
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     });
 }
 
@@ -221,7 +220,7 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
       toast.success(t('Successfully removed Errors default'));
     })
     .catch(() => {
-      addErrorMessage(t('Unable to remove Errors default'));
+      toast.error(t('Unable to remove Errors default'));
     });
 }
 

@@ -5,7 +5,6 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -77,7 +76,7 @@ export default function AddCredentialsModal({
               requestErrorToFieldErrors(error, formApi.state.values)
             );
           } else {
-            addErrorMessage(t('Unable to add credentials'));
+            toast.error(t('Unable to add credentials'));
           }
         }),
   });

@@ -3,7 +3,6 @@ import {useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
@@ -43,7 +42,7 @@ export function useBuildDetailsActions({
       navigate(makeReleasesUrl(organization.slug, projectId));
     },
     onError: () => {
-      addErrorMessage(t('Failed to delete build'));
+      toast.error(t('Failed to delete build'));
     },
   });
 
@@ -68,7 +67,7 @@ export function useBuildDetailsActions({
       if (error.status === 403) {
         handleStaffPermissionError(error.responseJSON?.detail);
       } else {
-        addErrorMessage(t('Failed to rerun analysis'));
+        toast.error(t('Failed to rerun analysis'));
       }
     },
   });
@@ -106,7 +105,7 @@ export function useBuildDetailsActions({
       toast.success(t('Status checks rerun initiated successfully'));
     },
     onError: () => {
-      addErrorMessage(t('Failed to rerun status checks'));
+      toast.error(t('Failed to rerun status checks'));
     },
   });
 

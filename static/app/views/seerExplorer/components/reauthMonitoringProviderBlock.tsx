@@ -5,7 +5,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
@@ -59,7 +58,7 @@ export function ReauthMonitoringProviderBlock({
       testableWindowLocation.assign(responseData.redirectUrl);
     },
     onError: () => {
-      addErrorMessage(t('Failed to start reconnection.'));
+      toast.error(t('Failed to start reconnection.'));
     },
   });
 

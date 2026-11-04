@@ -9,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -148,7 +147,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     onError: error => {
       const message = t('Failed to remove the provider or signing secret.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

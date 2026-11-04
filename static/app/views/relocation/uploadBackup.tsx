@@ -9,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getLocalities} from 'sentry/utils/cells';
@@ -73,12 +72,12 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const handleStartRelocation = async () => {
     const {orgSlugs, localityName, promoCode} = relocationState;
     if (!orgSlugs || !localityName || !file) {
-      addErrorMessage(DEFAULT_ERROR_MSG);
+      toast.error(DEFAULT_ERROR_MSG);
       return;
     }
     const locality = getLocalities().find(candidate => candidate.name === localityName);
     if (!locality) {
-      addErrorMessage(DEFAULT_ERROR_MSG);
+      toast.error(DEFAULT_ERROR_MSG);
       return;
     }
     const formData = new FormData();
@@ -103,13 +102,13 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
       onComplete(result.uuid);
     } catch (error: any) {
       if (error.status === 409) {
-        addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
+        toast.error(IN_PROGRESS_RELOCATION_ERROR_MSG);
       } else if (error.status === 429) {
-        addErrorMessage(THROTTLED_RELOCATION_ERROR_MSG);
+        toast.error(THROTTLED_RELOCATION_ERROR_MSG);
       } else if (error.status === 401) {
-        addErrorMessage(SESSION_EXPIRED_ERROR_MSG);
+        toast.error(SESSION_EXPIRED_ERROR_MSG);
       } else {
-        addErrorMessage(DEFAULT_ERROR_MSG);
+        toast.error(DEFAULT_ERROR_MSG);
       }
     }
   };

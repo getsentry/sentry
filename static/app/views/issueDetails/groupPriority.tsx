@@ -3,11 +3,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
@@ -51,7 +46,7 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
       to_priority: nextPriority,
     });
 
-    addLoadingMessage(t('Saving changes\u2026'));
+    toast.loading(t('Saving changes\u2026'));
     IssueListCacheStore.reset();
 
     try {
@@ -68,12 +63,12 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
           groupId: group.id,
         }),
       });
-      clearIndicators();
+      toast.dismiss();
       toast.success(getPriorityUpdateSuccessMessage(nextPriority));
       onChange?.(nextPriority);
     } catch {
-      clearIndicators();
-      addErrorMessage(t('Unable to update issue priority'));
+      toast.dismiss();
+      toast.error(t('Unable to update issue priority'));
     }
   };
 }

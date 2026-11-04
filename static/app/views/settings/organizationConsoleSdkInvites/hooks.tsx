@@ -2,7 +2,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -56,9 +55,7 @@ export function useRevokeConsoleSdkPlatformInvite() {
     },
     onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
       if (email && platform) {
-        addLoadingMessage(
-          tct('Removing [platform] access for [email]', {platform, email})
-        );
+        toast.loading(tct('Removing [platform] access for [email]', {platform, email}));
       }
     },
     onSuccess: (_data, {email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {
@@ -79,7 +76,7 @@ export function useRevokeConsoleSdkPlatformInvite() {
             ? rawDetail
             : (rawDetail?.message ??
               tct('Failed to remove [platform] access for [email]', {platform, email}));
-        addErrorMessage(detail);
+        toast.error(detail);
       }
     },
     onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {

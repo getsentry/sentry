@@ -8,7 +8,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -91,7 +90,7 @@ export default function ProjectProguard() {
         fetchData();
       } catch {
         setLoading(false);
-        addErrorMessage('An error occurred while deleting the mapping file');
+        toast.error('An error occurred while deleting the mapping file');
       }
     },
     [api, fetchData, organization.slug, project.slug]

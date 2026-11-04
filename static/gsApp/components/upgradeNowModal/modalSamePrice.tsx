@@ -7,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
@@ -83,7 +82,7 @@ function UpgradeNowModal({
         }),
         {replace: true}
       );
-      addErrorMessage(
+      toast.error(
         t(
           'Oops! Unable to update Subscription automatically. Click through to update manually.'
         )

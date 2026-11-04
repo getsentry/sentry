@@ -15,7 +15,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -216,9 +215,9 @@ export function AvatarChooser({
       const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
         []) as string[];
       if (avatarPhotoErrors.length) {
-        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
+        avatarPhotoErrors.forEach(msg => toast.error(msg));
       } else {
-        addErrorMessage(t('There was an error saving your preferences.'));
+        toast.error(t('There was an error saving your preferences.'));
       }
     }
   };

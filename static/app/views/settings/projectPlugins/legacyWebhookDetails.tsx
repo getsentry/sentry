@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -52,7 +51,7 @@ export default function LegacyWebhookDetails() {
 
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
-      addLoadingMessage(shouldEnable ? t('Enabling…') : t('Disabling…'));
+      toast.loading(shouldEnable ? t('Enabling…') : t('Disabling…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
         url: getApiUrl(
@@ -70,7 +69,7 @@ export default function LegacyWebhookDetails() {
       });
     },
     onError: (_error, shouldEnable) => {
-      addErrorMessage(
+      toast.error(
         shouldEnable ? t('Could not enable webhooks.') : t('Could not disable webhooks.')
       );
     },
@@ -78,7 +77,7 @@ export default function LegacyWebhookDetails() {
 
   const saveMutation = useMutation({
     mutationFn: (urls: string[]) => {
-      addLoadingMessage(t('Saving changes…'));
+      toast.loading(t('Saving changes…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
         url: getApiUrl(
@@ -97,13 +96,13 @@ export default function LegacyWebhookDetails() {
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to save webhook URLs.'));
+      toast.error(t('Unable to save webhook URLs.'));
     },
   });
 
   const testMutation = useMutation({
     mutationFn: () => {
-      addLoadingMessage(t('Sending test event…'));
+      toast.loading(t('Sending test event…'));
       return fetchMutation({
         method: 'POST',
         url: getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
@@ -125,7 +124,7 @@ export default function LegacyWebhookDetails() {
       toast.success(t('Test event sent successfully.'));
     },
     onError: () => {
-      addErrorMessage(t('Failed to send test event.'));
+      toast.error(t('Failed to send test event.'));
     },
   });
 

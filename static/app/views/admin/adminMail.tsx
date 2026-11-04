@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -67,7 +66,7 @@ function AdminMailContent() {
       await api.requestPromise('/internal/mail/', {method: 'POST'});
       toast.success(t('A test email has been sent to %s', testMailEmail));
     } catch (error: any) {
-      addErrorMessage(
+      toast.error(
         error.responseJSON
           ? error.responseJSON.error
           : t('Unable to send test email. Check your server logs')

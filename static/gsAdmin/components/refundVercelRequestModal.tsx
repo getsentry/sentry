@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -58,7 +57,7 @@ function RefundVercelRequestModal({
       onSuccess();
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         error instanceof RequestError ? error.responseText : 'Unable to request refund.'
       );
     },

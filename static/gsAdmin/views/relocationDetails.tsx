@@ -8,11 +8,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -230,8 +225,8 @@ export function RelocationDetails() {
         skipConfirmModal: true,
         onAction: () => {
           // artifact state is either disabled or error
-          clearIndicators();
-          addLoadingMessage('Loading artifacts list...');
+          toast.dismiss();
+          toast.loading('Loading artifacts list...');
           setArtifactsState(ArtifactsState.FETCHING);
         },
       });
@@ -516,11 +511,11 @@ export function RelocationDetails() {
           onError={res => {
             setArtifactsState(ArtifactsState.ERROR);
             if (res.status === 401 || res.status === 403) {
-              addErrorMessage(res.responseJSON.detail);
+              toast.error(res.responseJSON.detail);
             } else if (res.status === 404) {
-              addErrorMessage('Artifacts not found!');
+              toast.error('Artifacts not found!');
             } else {
-              addErrorMessage(
+              toast.error(
                 `Unexpected error condition: ${res.status}(${res.responseText}).`
               );
             }

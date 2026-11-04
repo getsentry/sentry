@@ -6,7 +6,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -53,7 +52,7 @@ function CreateTeamModal({
       onClose?.(team);
     },
     onError: (_err, variables) => {
-      addErrorMessage(
+      toast.error(
         tct('Unable to create [team] in the [organization] organization', {
           team: `#${variables.slug}`,
           organization: organization.slug,

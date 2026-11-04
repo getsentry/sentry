@@ -9,8 +9,6 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-
 import {DocIntegrationDetails} from 'admin/views/docIntegrationDetails';
 import {DocIntegrations} from 'admin/views/docIntegrations';
 
@@ -119,7 +117,7 @@ describe('Doc Integration Details', () => {
   });
 
   it('handles API errors when deleting', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -167,7 +165,7 @@ describe('Doc Integration Details', () => {
       })
     );
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'There was an internal error with deleting the resource.'
     );
 

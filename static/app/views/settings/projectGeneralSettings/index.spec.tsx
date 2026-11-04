@@ -14,13 +14,11 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/pageFilters/persistence');
 
 function getField(role: string, name: string) {
@@ -49,6 +47,7 @@ describe('projectGeneralSettings', () => {
   };
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -277,12 +276,12 @@ describe('projectGeneralSettings', () => {
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
     expect(toast.success).not.toHaveBeenCalled();
-    expect(addErrorMessage).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
 
     // Check the error message
-    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    const errorMessage = jest.mocked(toast.error).mock.calls[0]![0];
     if (!isValidElement(errorMessage)) {
-      throw new Error('Expected addErrorMessage to be called with a React element');
+      throw new Error('Expected toast.error to be called with a React element');
     }
     const {container} = render(errorMessage);
     expect(container).toHaveTextContent(

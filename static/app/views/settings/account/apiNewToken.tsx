@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -115,7 +114,7 @@ export default function ApiNewToken() {
     onError: (error: RequestError) => {
       const message = t('Failed to create a new personal token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -124,7 +123,7 @@ export default function ApiNewToken() {
     defaultValues: {name: ''},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });

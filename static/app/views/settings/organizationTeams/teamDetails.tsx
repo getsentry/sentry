@@ -8,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -56,7 +55,7 @@ export default function TeamDetails() {
         })
       );
     } catch {
-      addErrorMessage(
+      toast.error(
         tct('Unable to request access to [team]', {
           team: `#${teamSlug}`,
         })

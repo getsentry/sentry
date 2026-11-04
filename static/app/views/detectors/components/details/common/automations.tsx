@@ -12,7 +12,6 @@ import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -170,7 +169,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
 
   const setWorkflowIds = useCallback(
     (newWorkflowIds: string[]) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       updateDetector(
         {
           detectorId: detector.id,

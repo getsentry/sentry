@@ -12,7 +12,6 @@ import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -103,7 +102,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       });
     },
     onMutate: () => {
-      addLoadingMessage(t('Saving\u2026'));
+      toast.loading(t('Saving\u2026'));
     },
     onSuccess: data => {
       toast.success(t('Saved'));
@@ -114,7 +113,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       );
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         (error?.responseJSON?.detail as string) ?? t('Failed to update member')
       );
     },
@@ -139,7 +138,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         );
       },
       onError: () => {
-        addErrorMessage(t('Could not send invite'));
+        toast.error(t('Could not send invite'));
       },
     }
   );
@@ -157,7 +156,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       navigate(`/settings/${organization.slug}/members/`);
     },
     onError: error => {
-      addErrorMessage(t('Error removing authenticators'));
+      toast.error(t('Error removing authenticators'));
       Sentry.captureException(error);
     },
   });

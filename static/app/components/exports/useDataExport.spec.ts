@@ -4,7 +4,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   type DataExportPayload,
   ExportQueryType,
@@ -12,7 +11,6 @@ import {
 } from 'sentry/components/exports/useDataExport';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/downloadFromHref');
 
 const mockAuthorizedOrg = OrganizationFixture({
@@ -31,6 +29,7 @@ const requestBase = {
 
 describe('useDataExport', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     jest.spyOn(toast, 'success').mockClear();
     jest.clearAllMocks();
   });
@@ -48,7 +47,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
       );
     });
@@ -70,7 +69,7 @@ describe('useDataExport', () => {
     result.current.mutate({...mockPayload});
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith(detail);
+      expect(toast.error).toHaveBeenCalledWith(detail);
     });
   });
 

@@ -5,7 +5,6 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -67,10 +66,10 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
           error.responseJSON?.non_field_errors || error.responseJSON?.nonFieldErrors;
 
         if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-          addErrorMessage(nonFieldErrors[0], {duration: 10000});
+          toast.error(nonFieldErrors[0], {duration: 10000});
         }
       } else {
-        addErrorMessage(t('Unable to redeem promo code'));
+        toast.error(t('Unable to redeem promo code'));
       }
     },
   });

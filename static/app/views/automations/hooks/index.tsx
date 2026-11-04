@@ -8,7 +8,6 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -168,7 +167,7 @@ export function useCreateAutomation({
       if (suppressErrorMessage) {
         return;
       }
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to create alert')
       );
@@ -198,7 +197,7 @@ export function useDeleteAutomationMutation() {
       toast.success(t('Alert deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete alert: %s', error.message));
+      toast.error(t('Unable to delete alert: %s', error.message));
     },
   });
 }
@@ -236,7 +235,7 @@ export function useDeleteAutomationsMutation() {
       toast.success(t('Alerts deleted'));
     },
     onError: error => {
-      addErrorMessage(t('Unable to delete alerts: %s', error.message));
+      toast.error(t('Unable to delete alerts: %s', error.message));
     },
   });
 }
@@ -283,7 +282,7 @@ export function useUpdateAutomation({
       if (suppressErrorMessage) {
         return;
       }
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to update alert')
       );
@@ -325,7 +324,7 @@ export function useUpdateAutomationsMutation() {
       toast.success(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
-      addErrorMessage(
+      toast.error(
         t(
           'Unable to %s alerts: %2$s',
           variables.enabled ? t('enable') : t('disable'),
@@ -370,7 +369,7 @@ export function useSendTestNotification(
       options?.onSuccess?.(data, variables, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(
+      toast.error(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
           tn('Notification failed', 'Notifications failed', variables.actions.length)
       );

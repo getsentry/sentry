@@ -8,7 +8,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Region} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -118,7 +117,7 @@ function NightShiftForm() {
       toast.success(`Night shift run triggered for ${target}${mode}`);
     },
     onError: () => {
-      addErrorMessage('Failed to trigger night shift run');
+      toast.error('Failed to trigger night shift run');
     },
   });
 
@@ -242,7 +241,7 @@ function AutofixRetryForm() {
       toast.success(`Retried ${retried} of ${data.results.length} autofix runs`);
     },
     onError: () => {
-      addErrorMessage('Failed to retry autofix runs');
+      toast.error('Failed to retry autofix runs');
     },
   });
 
@@ -344,7 +343,7 @@ function SingleRunForm() {
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Failed to start single run');
+      toast.error(typeof detail === 'string' ? detail : 'Failed to start single run');
     },
   });
 

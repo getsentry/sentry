@@ -2,7 +2,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -43,7 +42,7 @@ export function useDeleteDetectorsMutation() {
       toast.success(t('Monitors deleted'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to delete monitors'));
+      toast.error(t('Unable to delete monitors'));
     },
   });
 }

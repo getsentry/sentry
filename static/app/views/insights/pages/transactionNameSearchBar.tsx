@@ -2,9 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedState} from '@tanstack/react-pacer';
 
+import {toast} from '@sentry/scraps/toast';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
@@ -95,7 +95,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       } catch {
         if (!ignore) {
           setTransactions([]);
-          addErrorMessage(t('Unable to fetch transaction suggestions'));
+          toast.error(t('Unable to fetch transaction suggestions'));
         }
       }
     }

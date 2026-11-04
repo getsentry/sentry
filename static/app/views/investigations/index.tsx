@@ -17,7 +17,6 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -179,12 +178,12 @@ export function InvestigationsPage() {
       );
       toast.success(t('Investigation favorite updated.'));
     },
-    onError: () => addErrorMessage(t('Unable to update investigation favorite.')),
+    onError: () => toast.error(t('Unable to update investigation favorite.')),
   });
 
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
     onSuccess: () => toast.success(t('Investigation duplicated.')),
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
+    onError: () => toast.error(t('Unable to duplicate investigation.')),
   });
 
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
@@ -196,7 +195,7 @@ export function InvestigationsPage() {
       });
       toast.success(t('Investigation deleted.'));
     },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
+    onError: () => toast.error(t('Unable to delete investigation.')),
   });
 
   function handleSearch(nextQuery: string) {

@@ -5,7 +5,8 @@ import type {QueryStatus} from '@tanstack/react-query';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
@@ -189,7 +190,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

@@ -3,7 +3,6 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -32,7 +31,7 @@ export function useDeleteDebugIdBundle(
       });
     },
     onMutate: (...args) => {
-      addLoadingMessage(t('Deleting bundle\u2026'));
+      toast.loading(t('Deleting bundle\u2026'));
       options.onMutate?.(...args);
     },
     onSuccess: (...args) => {
@@ -40,7 +39,7 @@ export function useDeleteDebugIdBundle(
       options.onSuccess?.(...args);
     },
     onError: (...args) => {
-      addErrorMessage(t('Unable to delete bundle. Please try again.'));
+      toast.error(t('Unable to delete bundle. Please try again.'));
       options.onError?.(...args);
     },
   });

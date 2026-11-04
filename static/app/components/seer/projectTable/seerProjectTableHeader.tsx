@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
@@ -179,7 +178,7 @@ export function ProjectTableHeader({
                   },
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update agent for %s project',
                           'Failed to update agent for %s projects',
@@ -210,7 +209,7 @@ export function ProjectTableHeader({
                   },
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update stopping point for %s project',
                           'Failed to update stopping point for %s projects',
@@ -241,7 +240,7 @@ export function ProjectTableHeader({
                   },
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update PR iteration for %s project',
                           'Failed to update PR iteration for %s projects',

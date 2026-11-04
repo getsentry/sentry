@@ -13,7 +13,6 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -65,7 +64,7 @@ export default function TeamSettings() {
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to save change'));
+      toast.error(t('Unable to save change'));
     },
   });
 

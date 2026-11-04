@@ -11,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -142,7 +141,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
       await saveFormula(toRequest(draft));
     } catch (error) {
       const detail = (error as RequestError).responseJSON?.detail;
-      addErrorMessage(typeof detail === 'string' ? detail : t('Unable to save formula'));
+      toast.error(typeof detail === 'string' ? detail : t('Unable to save formula'));
       return;
     }
     toast.success(t('Formula saved'));

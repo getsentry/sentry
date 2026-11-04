@@ -9,7 +9,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -132,7 +131,7 @@ function AccountSubscriptions() {
                       );
                     },
                     onError: () => {
-                      addErrorMessage(
+                      toast.error(
                         `Unable to ${subscription.subscribed ? 'un' : ''}subscribe to ${subscription.listName}`
                       );
                     },

@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
@@ -56,7 +55,7 @@ function ChangeDashboardsParallelLimitModal({
       closeModal();
     },
     onError: () => {
-      addErrorMessage('Failed to update dashboard parallel query limit.');
+      toast.error('Failed to update dashboard parallel query limit.');
     },
   });
 

@@ -12,7 +12,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,7 +60,7 @@ function handleRequestError(error: RequestError, message: string) {
   if (error.status === 403) {
     handleStaffPermissionError(error.responseJSON?.detail);
   } else {
-    addErrorMessage(message);
+    toast.error(message);
   }
 }
 
@@ -155,7 +154,7 @@ export function useSnapshotActions({
       queryClient.invalidateQueries({queryKey: [apiUrl]});
     },
     onError: () => {
-      addErrorMessage(t('Failed to rerun status checks'));
+      toast.error(t('Failed to rerun status checks'));
     },
   });
 

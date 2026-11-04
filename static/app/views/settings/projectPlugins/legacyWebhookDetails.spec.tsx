@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import LegacyWebhookDetails from 'sentry/views/settings/projectPlugins/legacyWebhookDetails';
 
 describe('LegacyWebhookDetails', () => {
@@ -204,7 +203,7 @@ describe('LegacyWebhookDetails', () => {
   });
 
   it('shows error on save failure', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
@@ -229,9 +228,7 @@ describe('LegacyWebhookDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'Unable to save webhook URLs.'
-      )
+      expect(toast.error).toHaveBeenCalledWith('Unable to save webhook URLs.')
     );
   });
 });

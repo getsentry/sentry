@@ -3,7 +3,6 @@ import omit from 'lodash/omit';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -48,9 +47,9 @@ export function fetchDashboards(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to fetch dashboards'));
+      toast.error(t('Unable to fetch dashboards'));
     }
   });
 
@@ -95,9 +94,9 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to create dashboard'));
+      toast.error(t('Unable to create dashboard'));
     }
   });
 
@@ -190,11 +189,11 @@ export async function updateDashboardFavorite(
       response instanceof RequestError ? response?.responseJSON : null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else if (isFavorited) {
-      addErrorMessage(t('Unable to favorite dashboard'));
+      toast.error(t('Unable to favorite dashboard'));
     } else {
-      addErrorMessage(t('Unable to unfavorite dashboard'));
+      toast.error(t('Unable to unfavorite dashboard'));
     }
     throw response;
   }
@@ -220,9 +219,9 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to load dashboard'));
+      toast.error(t('Unable to load dashboard'));
     }
   });
   return promise;
@@ -289,7 +288,7 @@ export function updateDashboard(
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
       const error = errors[Object.keys(errors)[0]!] as string;
-      addErrorMessage(
+      toast.error(
         STALE_DASHBOARD_ERRORS.includes(error)
           ? t(
               'This dashboard may have been updated somewhere else. Refresh the page and try again.'
@@ -297,7 +296,7 @@ export function updateDashboard(
           : error
       );
     } else {
-      addErrorMessage(t('Unable to update dashboard'));
+      toast.error(t('Unable to update dashboard'));
     }
   });
 
@@ -331,9 +330,9 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to delete dashboard'));
+      toast.error(t('Unable to delete dashboard'));
     }
   });
 
@@ -386,9 +385,9 @@ export function updateDashboardTitle(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else {
-      addErrorMessage(t('Unable to rename dashboard'));
+      toast.error(t('Unable to rename dashboard'));
     }
   });
 
@@ -420,9 +419,9 @@ export function updateDashboardPermissions(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else {
-      addErrorMessage(t('Unable to update dashboard permissions'));
+      toast.error(t('Unable to update dashboard permissions'));
     }
   });
 

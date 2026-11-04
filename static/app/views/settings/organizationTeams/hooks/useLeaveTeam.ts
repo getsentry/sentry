@@ -2,7 +2,6 @@ import {useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
@@ -34,7 +33,7 @@ export function useLeaveTeam({organization, team}: UseLeaveTeamOptions) {
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to leave %s', `#${team.slug}`));
+      toast.error(t('Unable to leave %s', `#${team.slug}`));
     },
   });
 }

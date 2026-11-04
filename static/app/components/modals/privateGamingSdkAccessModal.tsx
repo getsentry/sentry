@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Prose} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -99,7 +98,7 @@ export function PrivateGamingSdkAccessModal({
       );
 
       if (platformsWithErrors.length > 0) {
-        addErrorMessage(
+        toast.error(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
             {
@@ -133,7 +132,7 @@ export function PrivateGamingSdkAccessModal({
             ? errorResponse.responseJSON.detail
             : t('Unknown Error occurred'),
       });
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     },
   });
 

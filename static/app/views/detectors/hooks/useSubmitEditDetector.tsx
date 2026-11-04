@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {BaseDetectorUpdatePayload} from 'sentry/types/workflowEngine/detectors';
@@ -42,7 +41,7 @@ export function useSubmitEditDetector() {
 
         return resultDetector;
       } catch (error) {
-        addErrorMessage(
+        toast.error(
           (error instanceof RequestError
             ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
             : null) ?? t('Unable to update monitor')

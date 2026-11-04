@@ -3,11 +3,6 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -91,16 +86,16 @@ export function UserDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving changes...');
+      toast.loading('Saving changes...');
     },
     onSuccess: (data, params) => {
-      clearIndicators();
+      toast.dismiss();
       toast.success(`User account has been updated with ${JSON.stringify(params)}`);
       setApiQueryData(queryClient, makeFetchUserQueryKey(), data);
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the user account.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the user account.');
+      toast.dismiss();
     },
   });
 
@@ -117,7 +112,7 @@ export function UserDetails() {
       setApiQueryData(queryClient, makeFetchTokensQueryKey(), newTokens);
     },
     onError: () => {
-      addErrorMessage('Unable to revoke token.');
+      toast.error('Unable to revoke token.');
     },
   });
 
@@ -129,17 +124,17 @@ export function UserDetails() {
         data: params,
       }),
     onMutate: () => {
-      addLoadingMessage('Saving changes...');
+      toast.loading('Saving changes...');
     },
     onSuccess: (_data, params) => {
-      clearIndicators();
+      toast.dismiss();
       const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
       toast.success(`User account has been ${action}.`);
       queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
     },
     onError: () => {
-      clearIndicators();
-      addErrorMessage('Failed to update user suspension status.');
+      toast.dismiss();
+      toast.error('Failed to update user suspension status.');
     },
   });
 
@@ -153,7 +148,7 @@ export function UserDetails() {
 
   const onMergeAccounts = ({error = null}) =>
     error
-      ? addErrorMessage('An error occurred while merging users')
+      ? toast.error('An error occurred while merging users')
       : toast.success('Usernames have been merged');
 
   const onAuthenticatorRemove = (auth: NonNullable<User['authenticators']>[number]) => {
@@ -175,7 +170,7 @@ export function UserDetails() {
             authenticators,
           });
         } catch {
-          addErrorMessage('Unable to remove authenticator from account.');
+          toast.error('Unable to remove authenticator from account.');
         }
       },
     });
@@ -213,7 +208,7 @@ export function UserDetails() {
             ) ?? [];
           setApiQueryData(queryClient, makeFetchUserIdentitiesQueryKey(), newIdentities);
         } catch {
-          addErrorMessage('Unable to remove identity from account.');
+          toast.error('Unable to remove identity from account.');
         }
       },
     });

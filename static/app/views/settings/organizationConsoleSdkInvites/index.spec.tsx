@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 
@@ -206,7 +205,7 @@ describe('ConsoleSDKInvitesSettings', () => {
     });
 
     it('shows error message when revoke fails', async () => {
-      jest.spyOn(indicators, 'addErrorMessage');
+      jest.spyOn(toast, 'error');
 
       const invites = [
         {
@@ -235,7 +234,7 @@ describe('ConsoleSDKInvitesSettings', () => {
       await userEvent.click(dismissButton);
 
       await waitFor(() => {
-        expect(indicators.addErrorMessage).toHaveBeenCalled();
+        expect(toast.error).toHaveBeenCalled();
       });
     });
 

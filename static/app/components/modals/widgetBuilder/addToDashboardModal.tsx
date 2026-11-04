@@ -16,7 +16,6 @@ import {
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
@@ -278,7 +277,7 @@ function AddToDashboardModal({
       );
       closeModal();
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',
@@ -308,7 +307,7 @@ function AddToDashboardModal({
 
     // For existing dashboards, add widgets via API first, then navigate
     try {
-      addLoadingMessage(
+      toast.loading(
         tn(
           'Adding widget to dashboard...',
           'Adding widgets to dashboard...',
@@ -327,7 +326,7 @@ function AddToDashboardModal({
       // Navigate to dashboard (widgets already saved, no location state needed)
       goToDashboard('preview');
     } catch (error) {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to add widget to dashboard',
           'Failed to add widgets to dashboard',

@@ -2,7 +2,6 @@ import {useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
@@ -34,7 +33,7 @@ export function useJoinTeam({organization, team}: UseJoinTeamOptions) {
       });
     },
     onError: () => {
-      addErrorMessage(t('Unable to join %s', `#${team.slug}`));
+      toast.error(t('Unable to join %s', `#${team.slug}`));
     },
   });
 }

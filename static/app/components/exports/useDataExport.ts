@@ -3,7 +3,6 @@ import {useMutation} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
@@ -171,9 +170,9 @@ export function useDataExport() {
         error instanceof RequestError &&
         typeof error.responseJSON?.detail === 'string'
       ) {
-        addErrorMessage(error.responseJSON.detail);
+        toast.error(error.responseJSON.detail);
       } else {
-        addErrorMessage(
+        toast.error(
           t(
             "We tried our hardest, but we couldn't export your data. Try waiting a minute then giving it another go."
           )

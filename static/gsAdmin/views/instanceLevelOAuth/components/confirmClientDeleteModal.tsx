@@ -5,7 +5,6 @@ import {Button} from '@sentry/scraps/button';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -31,7 +30,7 @@ export function ConfirmClientDeleteModal({Body, Footer, Header, clientID, name}:
       toast.success(`Client "${name}" deleted successfully`);
       navigate('/_admin/instance-level-oauth/');
     },
-    onError: () => addErrorMessage('Unable to delete client'),
+    onError: () => toast.error('Unable to delete client'),
   });
 
   return (

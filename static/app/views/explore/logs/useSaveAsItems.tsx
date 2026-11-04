@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -90,7 +89,7 @@ export function useSaveAsItems({
         label: <span>{t('Existing Query')}</span>,
         onAction: async () => {
           try {
-            addLoadingMessage(t('Updating query...'));
+            toast.loading(t('Updating query...'));
             await updateQuery();
             toast.success(t('Query updated successfully'));
             trackAnalytics('logs.save_as', {
@@ -99,7 +98,7 @@ export function useSaveAsItems({
               organization,
             });
           } catch (error) {
-            addErrorMessage(t('Failed to update query'));
+            toast.error(t('Failed to update query'));
             Sentry.captureException(error);
           }
         },

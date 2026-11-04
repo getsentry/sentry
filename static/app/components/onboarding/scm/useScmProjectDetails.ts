@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
 import isEqual from 'lodash/isEqual';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
@@ -434,7 +435,7 @@ export function useScmProjectDetails({
             organization,
             variant: 'scm',
           });
-          addErrorMessage(t('Failed to create project'));
+          toast.error(t('Failed to create project'));
           captureProjectCreationFailure({
             error,
             organization,

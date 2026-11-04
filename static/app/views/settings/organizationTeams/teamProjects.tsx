@@ -12,7 +12,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -99,7 +98,7 @@ export default function TeamProjects() {
       );
     },
     onError: () => {
-      addErrorMessage(t("Wasn't able to change project association."));
+      toast.error(t("Wasn't able to change project association."));
     },
   });
 

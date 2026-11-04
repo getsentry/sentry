@@ -6,7 +6,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -104,7 +103,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
           ? error.responseJSON.detail
           : '';
 
-      addErrorMessage(
+      toast.error(
         errorMessage
           ? t('Unable to restore organization. %s', errorMessage)
           : t('Unable to restore organization.')

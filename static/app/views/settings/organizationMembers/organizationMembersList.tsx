@@ -9,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
@@ -171,7 +170,7 @@ function OrganizationMembersList() {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error removing [name] from [orgName]', {name, orgName}));
+      toast.error(tct('Error removing [name] from [orgName]', {name, orgName}));
       return;
     }
 
@@ -182,7 +181,7 @@ function OrganizationMembersList() {
     try {
       await removeMember(id);
     } catch {
-      addErrorMessage(tct('Error leaving [orgName]', {orgName: organization.slug}));
+      toast.error(tct('Error leaving [orgName]', {orgName: organization.slug}));
       return;
     }
 
@@ -205,7 +204,7 @@ function OrganizationMembersList() {
       });
     } catch {
       setInvited(state => ({...state, [id]: null}));
-      addErrorMessage(t('Error sending invite'));
+      toast.error(t('Error sending invite'));
       return;
     }
 
@@ -263,7 +262,7 @@ function OrganizationMembersList() {
         organization,
       });
     } catch {
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

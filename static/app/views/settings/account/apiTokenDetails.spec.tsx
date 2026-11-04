@@ -4,7 +4,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
 const ROUTER_CONFIG = {
@@ -129,7 +128,7 @@ describe('ApiTokenDetails', () => {
 
   it('does not accept long name', async () => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -166,6 +165,6 @@ describe('ApiTokenDetails', () => {
       )
     );
 
-    expect(indicators.addErrorMessage).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
   });
 });

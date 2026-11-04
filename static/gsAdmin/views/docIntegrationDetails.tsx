@@ -7,11 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
@@ -51,16 +46,16 @@ export function DocIntegrationDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Saving changes...');
+      toast.loading('Saving changes...');
     },
     onSuccess: updatedData => {
       toast.success(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
-      clearIndicators();
+      toast.dismiss();
       setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
     onError: () => {
-      addErrorMessage('There was an internal error with updating the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with updating the resource.');
+      toast.dismiss();
     },
   });
 
@@ -71,16 +66,16 @@ export function DocIntegrationDetails() {
       });
     },
     onMutate: () => {
-      addLoadingMessage('Deleting doc integration...');
+      toast.loading('Deleting doc integration...');
     },
     onSuccess: () => {
       toast.success('Resource has been deleted.');
       navigate('_admin/doc-integrations/');
-      clearIndicators();
+      toast.dismiss();
     },
     onError: () => {
-      addErrorMessage('There was an internal error with deleting the resource.');
-      clearIndicators();
+      toast.error('There was an internal error with deleting the resource.');
+      toast.dismiss();
     },
   });
 

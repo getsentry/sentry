@@ -12,7 +12,6 @@ import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -462,11 +461,11 @@ function AutoTriggerFixesButton({
 
   const handleEnableAutoTriggerFixes = async () => {
     if (projectsWithRepos.length === 0) {
-      addErrorMessage(t('No projects with repositories found to update'));
+      toast.error(t('No projects with repositories found to update'));
       return;
     }
 
-    addLoadingMessage(t('Enabling automation for projects with repositories...'), {
+    toast.loading(t('Enabling automation for projects with repositories...'), {
       duration: 60000,
     });
     setIsLoading(true);
@@ -517,7 +516,7 @@ function AutoTriggerFixesButton({
       const enableIssueScansStepNumber = getStepNumber('enable-issue-scans');
       setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
-      addErrorMessage(t('Failed to enable automation for some projects'));
+      toast.error(t('Failed to enable automation for some projects'));
       // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
@@ -551,13 +550,11 @@ function EnableIssueScansButton({
 
   const handleEnableIssueScans = async () => {
     if (projectsWithoutRepos.length === 0) {
-      addErrorMessage(t('No remaining projects found to update'));
+      toast.error(t('No remaining projects found to update'));
       return;
     }
 
-    addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 60000,
-    });
+    toast.loading(t('Enabling issue scans for remaining projects...'), {duration: 60000});
     setIsLoading(true);
 
     try {
@@ -600,7 +597,7 @@ function EnableIssueScansButton({
       const reviewCustomizeStepNumber = getStepNumber('review-customize');
       setCurrentStep(reviewCustomizeStepNumber);
     } catch (err) {
-      addErrorMessage(t('Failed to enable issue scans for some projects'));
+      toast.error(t('Failed to enable issue scans for some projects'));
       // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);

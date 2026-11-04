@@ -2,7 +2,6 @@ import {Fragment, useState} from 'react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
@@ -176,7 +175,7 @@ function UpdateRetentionSettingsModal({
           : typeof detail === 'object' && detail?.message
             ? detail.message
             : 'Failed to update retention settings.';
-      addErrorMessage(message);
+      toast.error(message);
     }
   };
 

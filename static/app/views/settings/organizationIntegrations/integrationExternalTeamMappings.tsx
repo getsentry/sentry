@@ -3,7 +3,6 @@ import {skipToken, useQuery, useMutation} from '@tanstack/react-query';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -90,7 +89,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
       fetchData();
     },
     onError: () => {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     },
   });
 

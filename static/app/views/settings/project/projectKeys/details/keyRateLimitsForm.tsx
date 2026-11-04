@@ -8,7 +8,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
@@ -103,7 +102,7 @@ export function KeyRateLimitsForm({
         const detail = error.responseJSON?.detail;
         message = typeof detail === 'string' ? detail : detail?.message;
       }
-      addErrorMessage(message ?? t('Unable to save rate limit.'));
+      toast.error(message ?? t('Unable to save rate limit.'));
     },
   });
 

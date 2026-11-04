@@ -13,7 +13,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t} from 'sentry/locale';
@@ -44,7 +43,7 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
       updateOrganization({id: organization.id, aggregatedDataConsent: true});
     },
     onError: () => {
-      addErrorMessage(t('Failed to update data consent settings.'));
+      toast.error(t('Failed to update data consent settings.'));
     },
   });
 

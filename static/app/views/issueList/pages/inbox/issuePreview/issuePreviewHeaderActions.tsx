@@ -7,7 +7,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
@@ -112,7 +111,7 @@ function IssuePreviewResolutionActions({
         itemIds: [group.id],
         data,
       });
-      clearIndicators();
+      toast.dismiss();
       toast.success(
         data.status === GroupStatus.UNRESOLVED
           ? t('Issue marked unresolved')

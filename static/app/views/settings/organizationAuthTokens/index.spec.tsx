@@ -12,7 +12,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import OrganizationAuthTokensIndex from 'sentry/views/settings/organizationAuthTokens';
@@ -234,7 +233,7 @@ describe('OrganizationAuthTokensIndex', () => {
     });
 
     it('handles API error when revoking token', async () => {
-      jest.spyOn(indicators, 'addErrorMessage');
+      jest.spyOn(toast, 'error');
 
       const tokens: OrgAuthToken[] = [
         {
@@ -271,7 +270,7 @@ describe('OrganizationAuthTokensIndex', () => {
 
       expect(screen.getByText('My Token 1')).toBeInTheDocument();
 
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Failed to revoke the auth token for the organization.'
       );
 

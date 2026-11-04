@@ -10,7 +10,6 @@ import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -155,7 +154,7 @@ export function WeeklyReportProjectExclusions({
       if (context?.previousExclusions) {
         queryClient.setQueryData(exclusionsOpts.queryKey, context.previousExclusions);
       }
-      addErrorMessage(t('Unable to update weekly report project exclusions'));
+      toast.error(t('Unable to update weekly report project exclusions'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: exclusionsOpts.queryKey});

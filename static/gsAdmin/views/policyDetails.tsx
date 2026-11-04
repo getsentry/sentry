@@ -4,8 +4,8 @@ import moment from 'moment-timezone';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -61,7 +61,7 @@ export function PolicyDetails() {
       });
       await invalidatePolicyQueries();
     } catch {
-      addErrorMessage('There was an error when updating the current policy version.');
+      toast.error('There was an error when updating the current policy version.');
     }
   };
 

@@ -11,7 +11,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -178,7 +177,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       await fetchAvailableNotificationActions();
     } catch (err) {
       Sentry.captureException(err);
-      addErrorMessage(t('Unable to fetch available notification actions'));
+      toast.error(t('Unable to fetch available notification actions'));
     }
     setIsLoading(false);
   }, [fetchAvailableNotificationActions]);
@@ -230,7 +229,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       );
     } catch (err) {
       Sentry.captureException(err);
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+      toast.error(SPIKE_PROTECTION_ERROR_MESSAGE);
     }
   };
 

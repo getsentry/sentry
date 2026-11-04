@@ -339,7 +339,7 @@ onSubmit: async ({value, formApi}) => {
     await mutation.mutateAsync(value);
   } catch (error) {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
       return;
     }
 
@@ -349,7 +349,7 @@ onSubmit: async ({value, formApi}) => {
     );
 
     if (!handled) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
     }
   }
 },

@@ -14,7 +14,6 @@ import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -59,7 +58,7 @@ function FingerprintRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 
@@ -163,7 +162,7 @@ function StackTraceRulesForm({
           ) {
             return;
           }
-          addErrorMessage(t('Unable to save changes.'));
+          toast.error(t('Unable to save changes.'));
         }),
   });
 

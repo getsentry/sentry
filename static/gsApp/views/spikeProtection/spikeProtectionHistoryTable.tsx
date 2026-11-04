@@ -10,7 +10,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -95,7 +94,7 @@ function EnableSpikeProtectionButton({
       });
       onEnableSpikeProtection();
     } catch {
-      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+      toast.error(SPIKE_PROTECTION_ERROR_MESSAGE);
     }
   }
 

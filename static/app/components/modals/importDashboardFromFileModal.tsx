@@ -8,7 +8,6 @@ import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {toast} from '@sentry/scraps/toast';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -44,7 +43,7 @@ function ImportDashboardFromFileModal({
 
   function validateFile(fileToUpload: File) {
     if (!fileToUpload || !(fileToUpload.type === 'application/json')) {
-      addErrorMessage('You must upload a JSON file');
+      toast.error('You must upload a JSON file');
       setValidated(false);
       setDashboardData('');
       return false;
@@ -87,7 +86,7 @@ function ImportDashboardFromFileModal({
       toast.success(`${dashboard.title} dashboard template successfully added`);
       loadDashboard(newDashboard.id);
     } catch (error) {
-      addErrorMessage('Could not upload dashboard, JSON may be invalid');
+      toast.error('Could not upload dashboard, JSON may be invalid');
     }
   };
 

@@ -14,8 +14,8 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -152,7 +152,7 @@ export function DataScrubFormModal({
             });
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },

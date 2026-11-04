@@ -7,7 +7,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -43,7 +42,7 @@ function EndPeriodEarlyModal({
       closeModal();
     },
     onError: () => {
-      addErrorMessage('Unable to end the current billing period. Please try again.');
+      toast.error('Unable to end the current billing period. Please try again.');
     },
   });
 

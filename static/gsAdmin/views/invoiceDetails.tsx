@@ -5,7 +5,6 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -80,7 +79,7 @@ export function InvoiceDetails() {
       updateCache(updatedInvoice);
       toast.success('Invoice has been closed');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 
@@ -105,7 +104,7 @@ export function InvoiceDetails() {
       updateCache(updatedInvoice);
       toast.success('Payment will be retried');
     } catch {
-      addErrorMessage(ERR_MESSAGE);
+      toast.error(ERR_MESSAGE);
     }
   };
 

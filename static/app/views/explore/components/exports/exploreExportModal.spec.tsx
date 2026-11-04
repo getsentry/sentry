@@ -15,8 +15,6 @@ import {ExploreExportModal} from 'sentry/views/explore/components/exports/explor
 import type {TraceItemExportConfig} from 'sentry/views/explore/components/exports/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-jest.mock('sentry/actionCreators/indicator', () => ({}));
-
 const organization = OrganizationFixture({features: ['discover-query']});
 const closeModal = jest.fn();
 

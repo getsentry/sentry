@@ -2,7 +2,6 @@ import {useIsMutating, useMutation} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,7 +36,7 @@ export function useStarredSegment({
   };
 
   const onError = (message: string) => {
-    addErrorMessage(message);
+    toast.error(message);
     errorCallback?.();
   };
 
@@ -64,7 +63,7 @@ export function useStarredSegment({
       return;
     }
 
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
 
     if (star) {
       starTransaction();

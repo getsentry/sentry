@@ -8,7 +8,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
@@ -40,7 +39,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
       });
       toast.success(t('Request to join team sent.'));
     } catch {
-      addErrorMessage(t('There was an error while trying to request access.'));
+      toast.error(t('There was an error while trying to request access.'));
       // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);

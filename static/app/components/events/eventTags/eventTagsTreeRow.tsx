@@ -5,7 +5,6 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
@@ -220,7 +219,7 @@ function EventTagsTreeRowDropdown({
           },
           {
             onError: () => {
-              addErrorMessage(
+              toast.error(
                 tct("Failed to update '[projectName]' project", {
                   projectName: project.name,
                 })

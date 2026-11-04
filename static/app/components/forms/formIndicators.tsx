@@ -4,7 +4,6 @@ import {IconRefresh} from '@sentry/icons/refresh';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import type {FieldValue, FormModel} from 'sentry/components/forms/model';
 import {t, tct} from 'sentry/locale';
 
@@ -76,7 +75,7 @@ export function addUndoableFormChangeMessage(
               newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
             };
 
-            addErrorMessage(
+            toast.error(
               showChangeText
                 ? tct(
                     'Unable to restore [fieldName] from [oldValue] to [newValue]',
@@ -95,14 +94,13 @@ export function addUndoableFormChangeMessage(
           };
 
           maybeSaveResultPromise.then(() => {
-            addMessage(
+            toast.success(
               showChangeText
                 ? tct(
                     'Restored [fieldName] from [oldValue] to [newValue]',
                     tctArgsRestored
                   )
-                : tct('Restored [fieldName]', tctArgsRestored),
-              'success'
+                : tct('Restored [fieldName]', tctArgsRestored)
             );
           });
         },

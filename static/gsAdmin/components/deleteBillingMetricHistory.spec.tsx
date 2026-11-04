@@ -211,10 +211,7 @@ describe('DeleteBillingMetricHistory', () => {
     });
 
     // Mock the error indicator
-    const errorIndicator = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addErrorMessage'
-    );
+    const errorIndicator = jest.spyOn(toast, 'error');
 
     // Mock the API endpoint to return an error
     const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({

@@ -7,7 +7,6 @@ import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -81,7 +80,7 @@ export function ActivitySection({
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : null;
-      addErrorMessage(
+      toast.error(
         detail ? tct('Error: [msg]', {msg: detail}) : t('Unable to post comment')
       );
       throw error;
@@ -114,7 +113,7 @@ export function ActivitySection({
         )
       );
     } catch (error) {
-      addErrorMessage(t('Unable to update comment'));
+      toast.error(t('Unable to update comment'));
       throw error;
     }
   }

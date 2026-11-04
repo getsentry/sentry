@@ -3,7 +3,6 @@ import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -21,7 +20,7 @@ export function PrCommentsToggle() {
   const enabled = (project[WRITE_KEY] ?? project.options?.[READ_KEY]) !== false;
 
   function handleToggle() {
-    addLoadingMessage(t('Saving...'));
+    toast.loading(t('Saving...'));
     updateProject(
       {[WRITE_KEY]: !enabled},
       {
@@ -29,7 +28,7 @@ export function PrCommentsToggle() {
           toast.success(t('PR comment settings updated'));
         },
         onError: () => {
-          addErrorMessage(t('Failed to save changes. Please try again.'));
+          toast.error(t('Failed to save changes. Please try again.'));
         },
       }
     );

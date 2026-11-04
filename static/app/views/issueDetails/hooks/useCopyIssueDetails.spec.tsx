@@ -7,7 +7,6 @@ import {renderHookWithProviders, userEvent} from 'sentry-test/reactTestingLibrar
 
 import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -1419,7 +1418,7 @@ LIMIT 21`;
       } as any);
 
       jest.spyOn(toast, 'success').mockImplementation(() => 'toast-id');
-      jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
+      jest.spyOn(toast, 'error').mockImplementation(() => 'toast-id');
     });
 
     it('calls useCopyToClipboard hook', () => {

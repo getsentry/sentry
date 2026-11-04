@@ -6,7 +6,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -94,7 +93,7 @@ export function OwnerInput({
           const inputError = caught.responseJSON as InputError;
           setError(inputError);
           if (caught.status === 403) {
-            addErrorMessage(
+            toast.error(
               t(
                 "You don't have permission to modify issue ownership rules for this project"
               )
@@ -103,11 +102,11 @@ export function OwnerInput({
             caught.status === 400 &&
             inputError.raw?.[0]?.startsWith('Invalid rule owners:')
           ) {
-            addErrorMessage(
+            toast.error(
               t('Unable to save issue ownership rule changes: %s', inputError.raw[0])
             );
           } else {
-            addErrorMessage(t('Unable to save issue ownership rule changes'));
+            toast.error(t('Unable to save issue ownership rule changes'));
           }
         }
       });

@@ -19,13 +19,6 @@ jest.mock('sentry/utils/queryClient', () => ({
   },
 }));
 
-const mockAddErrorMessage = jest.fn();
-jest.mock('sentry/actionCreators/indicator', () => ({
-  get addErrorMessage() {
-    return mockAddErrorMessage;
-  },
-}));
-
 function createReplay(overrides?: Partial<ReplayListRecord>): ReplayListRecord {
   return {
     id: 'a1',
@@ -54,6 +47,7 @@ describe('DeleteReplays', () => {
 
   beforeEach(() => {
     jest.spyOn(toast, 'success').mockClear();
+    jest.spyOn(toast, 'error').mockClear();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'proj-a'})]);
     mockFetchMutation.mockReset().mockResolvedValue({});
@@ -81,7 +75,7 @@ describe('DeleteReplays', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Failed to delete replay: you cannot delete more than 30 days of data at a time'
       );
     });
@@ -95,7 +89,7 @@ describe('DeleteReplays', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
     await waitFor(() => {
-      expect(mockAddErrorMessage).toHaveBeenCalledWith('Failed to delete replay');
+      expect(toast.error).toHaveBeenCalledWith('Failed to delete replay');
     });
   });
 });

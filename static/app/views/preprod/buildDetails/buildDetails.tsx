@@ -8,7 +8,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -121,7 +120,7 @@ export default function BuildDetails() {
       }, 1000);
     },
     onError: error => {
-      addErrorMessage(t('Error: %s', error.message));
+      toast.error(t('Error: %s', error.message));
     },
   });
 

@@ -4,7 +4,6 @@ import {useQueryClient} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -75,7 +74,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
         onSuccess?.(copiedDashboard);
         toast.success(t('Dashboard duplicated'));
       } catch (e) {
-        addErrorMessage(t('Error duplicating Dashboard'));
+        toast.error(t('Error duplicating Dashboard'));
       }
     },
     [api, queryClient, organization, onSuccess]

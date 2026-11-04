@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 
 import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
@@ -93,7 +92,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
 
   const setEnabled = useCallback(
     (value: boolean) => {
-      addLoadingMessage(t('Saving...'));
+      toast.loading(t('Saving...'));
       updateProject.mutate(
         {[config.enabledField]: value},
         {
@@ -101,7 +100,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
             toast.success(value ? config.toasts.enabled : config.toasts.disabled);
           },
           onError: () => {
-            addErrorMessage(t('Failed to save changes. Please try again.'));
+            toast.error(t('Failed to save changes. Please try again.'));
           },
         }
       );
@@ -111,7 +110,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
 
   const saveRules = useCallback(
     (newRules: StatusCheckRule[], successMessage?: string) => {
-      addLoadingMessage(t('Saving...'));
+      toast.loading(t('Saving...'));
       updateProject.mutate(
         {[config.rulesField]: newRules as unknown[]},
         {
@@ -121,7 +120,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
             }
           },
           onError: () => {
-            addErrorMessage(t('Failed to save changes. Please try again.'));
+            toast.error(t('Failed to save changes. Please try again.'));
           },
         }
       );
