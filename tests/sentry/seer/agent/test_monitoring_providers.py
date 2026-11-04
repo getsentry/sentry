@@ -676,3 +676,73 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
         self._create_org_grafana_integration()
         assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def _create_org_linear_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id=str(self.organization.id),
+            name="Linear (Example)",
+            metadata=metadata if metadata is not None else {"api_key": "lin_api_org_key"},
+            oi_params={"status": org_integration_status},
+            **kwargs,
+        )
+
+    def test_org_linear_connection(self) -> None:
+        self._create_org_linear_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "linear"
+        assert conn["url"] == "https://mcp.linear.app/mcp/readonly"
+        assert conn["identity_id"] is None
+        assert conn["auth_method"] == "api_key"
+        assert conn["refreshable"] is False
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer lin_api_org_key"
+
+    def test_org_linear_and_grafana_together(self) -> None:
+        self._create_org_linear_integration()
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert sorted(c["provider_key"] for c in result) == ["grafana", "linear"]
+
+    def test_org_linear_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_linear_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_ignores_uninstalled_org_integration(self) -> None:
+        # The API key stays in Integration.metadata after uninstall until async deletion runs.
+        self._create_org_linear_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_linear_connection_skips_missing_api_key(self) -> None:
+        self._create_org_linear_integration(metadata={})
+
+        with self.assertLogs("sentry.integrations.linear.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("linear_integration_invalid" in line for line in logs.output)
+
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_org_linear_connection_skipped_when_encryption_fails(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_linear_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_linear_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []
