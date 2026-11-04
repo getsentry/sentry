@@ -60,8 +60,10 @@ from sentry.seer.autofix.pr_iteration.pause import (
     get_pause_reason,
     is_pr_iteration_paused,
 )
+from sentry.seer.autofix.single_run import single_run_root_cause_payload
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
 from sentry.seer.models.seer_api_models import SeerApiError
@@ -89,6 +91,25 @@ def run_state(
         failure_reason=failure_reason,
         updated_at="2026-02-10T00:00:00Z",
         metadata=metadata,
+    )
+
+
+def single_run_memory_block(
+    root_cause: dict[str, Any] | None = None, block_id: str = "single-run"
+) -> MemoryBlock:
+    return MemoryBlock(
+        id=block_id,
+        message=Message(
+            role="assistant",
+            content="done",
+            metadata={"step": "single_run", "referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
+        ),
+        timestamp="2026-02-10T00:00:00Z",
+        artifacts=(
+            [Artifact(key="single_run_root_cause", data=root_cause, reason="explorer")]
+            if root_cause is not None
+            else []
+        ),
     )
 
 
@@ -2671,6 +2692,32 @@ class TestAutofixOnCompletionHookMilestones(TestCase):
         )
         self._run_hook(run_state(blocks=[block]))
         assert self._recorded_milestones() == set()
+
+
+class TestSingleRunRootCause(TestCase):
+    def test_single_run_root_cause_payload_maps_fields(self) -> None:
+        state = run_state(blocks=[single_run_memory_block({"headline": "H", "cause": "C"})])
+
+        assert single_run_root_cause_payload(state) == {
+            "headline": "H",
+            "one_line_description": "C",
+            "five_whys": [],
+            "reproduction_steps": [],
+        }
+        assert single_run_root_cause_payload(run_state(blocks=[single_run_memory_block()])) is None
+
+    def test_reconcile_milestones_reads_single_run_root_cause(self) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = run_state(blocks=[single_run_memory_block({"headline": "H", "cause": "C"})])
+
+        reconcile_milestones(seer_run, state)
+
+        milestone = SeerRunMilestone.objects.get(
+            seer_run=seer_run, milestone=SeerRunMilestoneType.ROOT_CAUSE
+        )
+        assert milestone.extras == {
+            "root_cause_artifact": {"one_line_description": "C", "headline": "H"}
+        }
 
 
 class TestCompletionMode(TestCase):
