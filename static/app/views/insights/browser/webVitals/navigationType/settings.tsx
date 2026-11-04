@@ -9,18 +9,6 @@ import {SpanFields, type BrowserNavigationType} from 'sentry/views/insights/type
 export const WEB_VITALS_NAVIGATION_TYPE_FEATURE =
   'insights-web-vitals-navigation-type-switcher';
 
-/** The datasets a web vitals dashboard's widgets can read from. */
-export type NavigationTypeDataset = WidgetType.SPANS | WidgetType.TRACEMETRICS;
-
-const NAVIGATION_TYPE_DATASETS: NavigationTypeDataset[] = [
-  WidgetType.SPANS,
-  WidgetType.TRACEMETRICS,
-];
-
-function isNavigationTypeDataset(dataset: WidgetType): dataset is NavigationTypeDataset {
-  return NAVIGATION_TYPE_DATASETS.includes(dataset as NavigationTypeDataset);
-}
-
 // A function rather than a constant: reading the enum at module load would hit
 // an import cycle with the dashboards configs.
 export function isWebVitalsPrebuiltDashboard(id: PrebuiltDashboardId): boolean {
@@ -151,7 +139,7 @@ export function bucketsKeepThresholds(buckets: NavigationTypeBucket[]): boolean 
   );
 }
 
-/** Query fragment appended to every web vitals widget for a selection. */
+/** Query fragment appended to every spans widget for a selection. */
 function navigationTypeQuery(buckets: NavigationTypeBucket[]): string {
   const selected = normalizeBuckets(buckets);
 
@@ -188,7 +176,7 @@ export function isSwitcherQuery(value: string): boolean {
 
 export function buildNavigationTypeGlobalFilter(
   buckets: NavigationTypeBucket[],
-  dataset: NavigationTypeDataset = WidgetType.SPANS
+  dataset: WidgetType = WidgetType.SPANS
 ): GlobalFilter {
   const filter: GlobalFilter = {
     dataset,
@@ -203,7 +191,7 @@ export function buildNavigationTypeGlobalFilter(
 
 export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {
   return (
-    isNavigationTypeDataset(filter.dataset) &&
+    (filter.dataset === WidgetType.SPANS || filter.dataset === WidgetType.TRACEMETRICS) &&
     filter.tag.key === SpanFields.BROWSER_NAVIGATION_TYPE
   );
 }
@@ -215,24 +203,13 @@ export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {
  * widgets still on spans. Spans when there is none, which is a dashboard from
  * before the filter existed.
  */
-export function getNavigationTypeDatasets(
-  filters: GlobalFilter[] | undefined
-): NavigationTypeDataset[] {
-  const datasets = NAVIGATION_TYPE_DATASETS.filter(dataset =>
-    filters?.some(
+export function getNavigationTypeDatasets(filters: GlobalFilter[]): WidgetType[] {
+  const datasets = [WidgetType.SPANS, WidgetType.TRACEMETRICS].filter(dataset =>
+    filters.some(
       filter => isNavigationTypeGlobalFilter(filter) && filter.dataset === dataset
     )
   );
   return datasets.length > 0 ? datasets : [WidgetType.SPANS];
-}
-
-/** Where the switcher's counts come from: the metrics on a metrics backed dashboard. */
-export function getNavigationTypeCountsDataset(
-  datasets: NavigationTypeDataset[]
-): NavigationTypeDataset {
-  return datasets.includes(WidgetType.TRACEMETRICS)
-    ? WidgetType.TRACEMETRICS
-    : WidgetType.SPANS;
 }
 
 export function getBucketsFromGlobalFilters(

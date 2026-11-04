@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {webVitalCountField} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {
   bucketAttributeValues,
+  getNavigationTypeDatasets,
+  isNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
-  type NavigationTypeDataset,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -25,10 +26,11 @@ const SPAN_COUNT_FIELD = 'count()';
 const METRIC_COUNT_FIELDS = ORDER.map(webVitalCountField);
 
 type Props = {
-  /** The other active global filters, so the counts match the widgets. */
-  additionalQuery?: string;
-  /** Spans, or the web vital metrics on a metrics backed dashboard. */
-  dataset?: NavigationTypeDataset;
+  /**
+   * The dashboard's active global filters. They say which dataset the widgets
+   * read from, and the other filters are applied so the counts match the widgets.
+   */
+  globalFilters: GlobalFilter[];
   enabled?: boolean;
 };
 
@@ -40,11 +42,23 @@ export type NavigationTypeCounts = {
 };
 
 export function useNavigationTypeCounts({
-  additionalQuery,
-  dataset = WidgetType.SPANS,
+  globalFilters,
   enabled = true,
-}: Props = {}): NavigationTypeCounts {
-  const isMetrics = dataset === WidgetType.TRACEMETRICS;
+}: Props): NavigationTypeCounts {
+  // Metrics whenever the dashboard is metrics backed, even while some of its
+  // widgets stay on spans.
+  const isMetrics = getNavigationTypeDatasets(globalFilters).includes(
+    WidgetType.TRACEMETRICS
+  );
+  const additionalQuery = globalFilters
+    .filter(
+      filter =>
+        !isNavigationTypeGlobalFilter(filter) &&
+        filter.dataset === (isMetrics ? WidgetType.TRACEMETRICS : WidgetType.SPANS) &&
+        filter.value
+    )
+    .map(filter => filter.value)
+    .join(' ');
 
   const spans = useSpans(
     {

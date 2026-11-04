@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {Badge} from '@sentry/scraps/badge';
 import {
   CompactSelect,
@@ -19,17 +17,14 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 import {
   buildNavigationTypeGlobalFilter,
   getBucketsFromGlobalFilters,
-  getNavigationTypeCountsDataset,
   getNavigationTypeDatasets,
   isAllBucketsSelected,
-  isNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NAVIGATION_TYPE_BUCKETS,
   normalizeBuckets,
   type NavigationTypeBucket,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {useNavigationTypeCounts} from 'sentry/views/insights/browser/webVitals/navigationType/useNavigationTypeCounts';
-import {filterQueryFromGlobalFilters} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 type Props = {
   globalFilters: GlobalFilter[];
@@ -41,26 +36,10 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
   const organization = useOrganization();
   const buckets = getBucketsFromGlobalFilters(globalFilters);
   const isAll = isAllBucketsSelected(buckets);
-
-  // The dashboard's filters say which datasets its widgets read from, so the
-  // selection is written for each of them and counted on the primary one.
+  // The selection is written for every dataset the dashboard's widgets read from.
   const datasets = getNavigationTypeDatasets(globalFilters);
-  const countsDataset = getNavigationTypeCountsDataset(datasets);
 
-  // So the counts match what the widgets render.
-  const additionalQuery = useMemo(
-    () =>
-      filterQueryFromGlobalFilters(
-        globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter)),
-        countsDataset
-      ),
-    [globalFilters, countsDataset]
-  );
-
-  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({
-    additionalQuery,
-    dataset: countsDataset,
-  });
+  const {counts, untaggedCount, isPending} = useNavigationTypeCounts({globalFilters});
 
   const options: Array<SelectOption<NavigationTypeBucket>> =
     NAVIGATION_TYPE_BUCKET_ORDER.map(candidate => {
