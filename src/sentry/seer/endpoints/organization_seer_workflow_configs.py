@@ -73,7 +73,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateLastRun: NotRequired[datetime]
     lastRunStatus: NotRequired[str | None]
     name: NotRequired[str]
-    createdById: NotRequired[str]
+    createdBy: NotRequired[str]
+    updatedBy: NotRequired[str]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
@@ -306,7 +307,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
         ``name`` is the user-supplied name, omitted if unset.
-        ``createdById`` is the ID of the user who created the config, omitted if unset.
+        ``createdBy`` is the ID of the user who created the config, omitted if unset.
+        ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -389,7 +391,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         extras = SeerWorkflowConfigExtras(
             name=data.get("name"),
-            created_by_id=acting_user_id(request.user),
+            created_by=acting_user_id(request.user),
         )
         try:
             workflow: SeerWorkflow
@@ -517,6 +519,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
         workflow = get_seer_workflow(config)
+        version = config.version
 
         enabled = serializer.validated_data.get("enabled")
         if enabled is not None:
@@ -616,7 +619,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         if enabled is not None:
             workflow.set_enabled(enabled)
 
-        return Response(self.serialize(request, organization, workflow.get_config()))
+        config = workflow.get_config()
+        if config.version != version:
+            workflow.set_updated_by(acting_user_id(request.user))
+            config = workflow.get_config()
+        return Response(self.serialize(request, organization, config))
 
     @extend_schema(
         operation_id="Delete a Seer automation workflow",
@@ -760,6 +767,8 @@ def serialize_workflow_config(
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     if extras.name is not None:
         result["name"] = extras.name
-    if extras.created_by_id is not None:
-        result["createdById"] = str(extras.created_by_id)
+    if extras.created_by is not None:
+        result["createdBy"] = str(extras.created_by)
+    if extras.updated_by is not None:
+        result["updatedBy"] = str(extras.updated_by)
     return result

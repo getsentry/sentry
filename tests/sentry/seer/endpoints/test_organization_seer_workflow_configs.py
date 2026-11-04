@@ -346,12 +346,12 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data == listed.data["configs"][0]
         assert response.data["projects"] == [self.project.id]
 
-    def test_get_includes_created_by_id(self) -> None:
-        config = self.create_config(extras={"created_by_id": self.user.id})
+    def test_get_includes_created_by(self) -> None:
+        config = self.create_config(extras={"created_by": self.user.id})
 
         response = self.get_success_response(self.organization.slug, config.id)
 
-        assert response.data["createdById"] == str(self.user.id)
+        assert response.data["createdBy"] == str(self.user.id)
 
     def test_unavailable_config_returns_404(self) -> None:
         legacy = Factories.create_seer_workflow_config(
@@ -411,6 +411,21 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == []
         assert self.selected_project_ids(config) == []
 
+    def test_put_sets_updated_by(self) -> None:
+        config = self.create_config(extras={"created_by": self.user.id})
+        updater = self.create_user()
+        self.create_member(organization=self.organization, user=updater, role="owner")
+        self.login_as(updater)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+
+        assert response.data["createdBy"] == str(self.user.id)
+        assert response.data["updatedBy"] == str(updater.id)
+        config.refresh_from_db()
+        assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+
     def test_put_without_changes_keeps_version(self) -> None:
         config = self.create_config(version=3)
         Factories.create_seer_workflow_config_project(config, self.project)
@@ -420,6 +435,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert response.data["version"] == 3
         assert self.selected_project_ids(config) == [self.project.id]
+        assert "updatedBy" not in response.data
 
     def test_put_nonexistent_projects_return_403(self) -> None:
         config = self.create_config()
@@ -849,9 +865,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "seededDefault": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
-            "createdById": str(self.user.id),
+            "createdBy": str(self.user.id),
         }
-        assert config.extras == {"created_by_id": self.user.id}
+        assert config.extras == {"created_by": self.user.id}
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()
@@ -868,7 +884,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage", "created_by_id": self.user.id}
+        assert config.extras == {"name": "Checkout triage", "created_by": self.user.id}
         assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
@@ -1014,7 +1030,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches", "created_by_id": self.user.id}
+        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
         assert config.version == 1
         assert config.backing_workflow is not None
         assert set(

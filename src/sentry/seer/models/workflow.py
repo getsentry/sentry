@@ -44,7 +44,9 @@ class SeerWorkflowConfigExtras(BaseModel):
     # Optional user-supplied name
     name: str | None = None
     # The user who created this config; unset for seeded defaults and non-user callers.
-    created_by_id: int | None = None
+    created_by: int | None = None
+    # The user who most recently updated this config through the API.
+    updated_by: int | None = None
 
 
 class SeerWorkflowFilters(BaseModel):

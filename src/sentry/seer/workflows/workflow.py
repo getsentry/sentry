@@ -301,6 +301,16 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["enabled", "version", "date_updated"])
 
+    def set_updated_by(self, user_id: int | None) -> None:
+        """Record the most recent updater; ``None`` clears it for non-user callers."""
+        with self._lock_config() as config:
+            extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+            if extras.updated_by == user_id:
+                return
+            extras.updated_by = user_id
+            config.extras = extras.dict(exclude_none=True)
+            config.save(update_fields=["extras", "date_updated"])
+
     def delete(self) -> None:
         """Delete the config along with its project links, runs, and trigger bindings."""
         with self._lock_config() as config:
