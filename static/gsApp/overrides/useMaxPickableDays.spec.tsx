@@ -11,6 +11,10 @@ import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
   describe('without subscription effective retentions', () => {
+    beforeEach(() => {
+      SubscriptionStore.set(OrganizationFixture().slug, {});
+    });
+
     afterEach(() => {
       jest.useRealTimers();
     });

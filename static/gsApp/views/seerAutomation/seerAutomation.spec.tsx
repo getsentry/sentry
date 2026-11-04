@@ -1,11 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
 describe('SeerAutomation', () => {
   beforeEach(() => {
+    const organization = OrganizationFixture();
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/onboarding-check/',
       method: 'GET',

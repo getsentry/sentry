@@ -1,12 +1,19 @@
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {AiSetupDataConsent} from './AiSetupDataConsent';
 
 describe('AiSetupDataConsent', () => {
   const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
+  });
 
   it('renders Try Seer button', async () => {
     MockApiClient.addMockResponse({
