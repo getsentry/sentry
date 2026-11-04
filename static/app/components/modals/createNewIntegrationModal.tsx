@@ -16,7 +16,6 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getSentryAppTemplates} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
-import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
 const analyticsView = 'new_integration_modal';
 
@@ -28,10 +27,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
   return (
     <Fragment>
       <Header>
-        <Flex justify="between" align="center" width="100%">
-          <h3>{t('Choose Integration Type')}</h3>
-          <ExampleIntegrationButton analyticsView={analyticsView} />
-        </Flex>
+        <h3>{t('Choose Integration Type')}</h3>
       </Header>
       <Body>
         <Alert.Container>

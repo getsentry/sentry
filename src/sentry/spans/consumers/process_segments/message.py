@@ -332,7 +332,7 @@ def _create_models(
 
     with metrics.timer("spans.consumers.process_segments.create_models.record_release"):
         # Record the release for dynamic sampling
-        record_latest_release(project, release, environment)
+        record_latest_release(project, release, environment_name)
 
         # Record onboarding signals
         record_release_received(project, release.version)

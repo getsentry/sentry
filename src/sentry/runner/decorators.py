@@ -1,6 +1,6 @@
 import os
 from collections.abc import Callable
-from typing import Concatenate, ParamSpec, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar, cast
 
 import click
 
@@ -23,7 +23,7 @@ def configuration(f: Callable[P, R]) -> Callable[P, R]:
     import click
 
     @click.pass_context
-    def inner(ctx: click.Context, *args: P.args, **kwargs: P.kwargs) -> R:
+    def inner(ctx: click.Context, /, *args: P.args, **kwargs: P.kwargs) -> R:
         # HACK: We can't call `configure()` from within tests
         # since we don't load config files from disk, so we
         # need a way to bypass this initialization step
@@ -70,6 +70,7 @@ def log_options(
         )
         def inner(
             ctx: click.Context,
+            /,
             loglevel: str | None = None,
             logformat: str | None = None,
             *args: P.args,
@@ -81,6 +82,6 @@ def log_options(
                 os.environ["SENTRY_LOG_FORMAT"] = logformat.lower()
             return ctx.invoke(f, *args, **kwargs)
 
-        return update_wrapper(inner, f)
+        return cast("Callable[Concatenate[str | None, str | None, P], R]", update_wrapper(inner, f))
 
     return decorator

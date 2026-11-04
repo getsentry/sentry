@@ -40,7 +40,7 @@ COUNT_BASED_ALERT_AGGREAGTES = [
 COUNT_AGGREGATE_PREFIX = "count("
 
 
-def snapshot_snuba_query(snuba_query: SnubaQuery):
+def snapshot_snuba_query(snuba_query: SnubaQuery) -> SnubaQuery:
     if (
         (snuba_query.query_snapshot and snuba_query.query_snapshot.get("metrics_to_transactions"))
         or not snuba_query.query_snapshot
@@ -61,7 +61,9 @@ def snapshot_snuba_query(snuba_query: SnubaQuery):
     return snuba_query
 
 
-def _get_old_query_info(snuba_query: SnubaQuery):
+def _get_old_query_info(
+    snuba_query: SnubaQuery,
+) -> tuple[SnubaQuery.Type, Dataset, str, str]:
     old_query_type = SnubaQuery.Type(snuba_query.type)
     old_dataset = Dataset(snuba_query.dataset)
     old_query = snuba_query.query
@@ -70,7 +72,7 @@ def _get_old_query_info(snuba_query: SnubaQuery):
     return old_query_type, old_dataset, old_query, old_aggregate
 
 
-def _verify_event_types(snuba_query: SnubaQuery):
+def _verify_event_types(snuba_query: SnubaQuery) -> bool:
     if (
         snuba_query.dataset == Dataset.PerformanceMetrics.value
         or snuba_query.dataset == Dataset.Transactions.value
@@ -86,7 +88,7 @@ def _verify_event_types(snuba_query: SnubaQuery):
 
 def translate_detector_and_update_subscription_in_snuba(
     snuba_query: SnubaQuery, bypass_flag_check: bool = False
-):
+) -> None:
     if not _verify_event_types(snuba_query):
         logger.info(
             "Skipping roll forward for query with invalid event types",
@@ -255,7 +257,7 @@ def translate_detector_and_update_subscription_in_snuba(
 
 def rollback_detector_query_and_update_subscription_in_snuba(
     snuba_query: SnubaQuery, bypass_flag_check: bool = False
-):
+) -> None:
     # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,

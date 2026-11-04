@@ -29,7 +29,7 @@ from sentry.notebooks.models import (
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import MissingViewerContextError
-from sentry.service_accounts.models import ServiceAccountProject
+from sentry.service_accounts.models import ServiceAccountProject, ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
@@ -543,7 +543,8 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         command.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
-        assert self.orchestration_run.error is None
+        assert not self.orchestration_run.error
+        assert self.orchestration_run.projection is not None
         assert self.orchestration_run.projection["errors"] == []
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
@@ -640,6 +641,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
 
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["code"] == "seer_command_dispatch_failed"
         assert command.error["retryable"] is True
 
@@ -730,6 +732,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             "retryable": False,
         }
         assert later_command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert later_command.error is not None
         assert later_command.error["code"] == "earlier_command_conflicted"
 
         with mock.patch(
@@ -874,6 +877,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert self.orchestration_run.status == "completed"
         assert self.orchestration_run.last_event_sequence == 1
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["reason"] == "workflow_version_conflict"
 
     @mock.patch("sentry.tasks.seer.investigation.current_task")
@@ -1019,6 +1023,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, creator.id)
         command.refresh_from_db()
+        assert command.error is not None
         assert command.error["reason"] == "workflow_version_conflict"
         connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
 
@@ -1040,8 +1045,10 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.status == "failed"
-        assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
-        assert self.orchestration_run.error["retryable"] is True
+        dispatch_error = self.orchestration_run.error
+        assert dispatch_error is not None
+        assert dispatch_error["dispatchReason"] == "actor_access_denied"
+        assert dispatch_error["retryable"] is True
         assert list(self.investigation.projects.values_list("id", flat=True)) == [self.project.id]
 
         with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
@@ -1105,6 +1112,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         get_run.assert_not_called()
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error is not None
         assert command.error["dispatchReason"] == "actor_access_denied"
         assert command.error["retryable"] is True
 
@@ -1118,9 +1126,14 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
         # Individual grants cover every current project, but not the empty selection's future ones.
         assert list(self.organization.project_set.values_list("id", flat=True)) == [self.project.id]
-        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        with mock.patch.object(
+            ServiceAccountReplica.objects, "filter", wraps=ServiceAccountReplica.objects.filter
+        ) as account_lookup:
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        assert account_lookup.call_count == 2
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error is not None
         assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
 
         with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):

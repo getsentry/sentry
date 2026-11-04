@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import jsonschema
 import sentry_sdk
@@ -58,6 +58,9 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.models import Detector
 
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 logger = logging.getLogger(__name__)
 
 MONITOR_STATUSES = {
@@ -90,8 +93,8 @@ NONSTANDARD_CRONTAB_SCHEDULES = {
 
 
 @extend_schema_field(OpenApiTypes.ANY)
-class ObjectField(serializers.Field):
-    def to_internal_value(self, data):
+class ObjectField(serializers.Field[Any, Any, Any, Any]):
+    def to_internal_value(self, data: Any) -> Any:
         return data
 
 
@@ -128,7 +131,7 @@ class ScheduleField(ObjectField):
 
 
 class MissedMarginField(EmptyIntegerField):
-    def to_internal_value(self, value):
+    def to_internal_value(self, value: Any) -> Any:
         value = super().to_internal_value(value)
 
         # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
@@ -215,19 +218,19 @@ class ConfigValidator(serializers.Serializer):
         max_value=MAX_THRESHOLD,
     )
 
-    def bind(self, *args, **kwargs):
+    def bind(self, *args: Any, **kwargs: Any) -> None:
         super().bind(*args, **kwargs)
         # Inherit instance data when used as a nested serializer
         if self.parent.instance:
             self.instance = self.parent.instance.config
         self.partial = self.parent.partial
 
-    def validate_schedule_type(self, value):
+    def validate_schedule_type(self, value: str | None) -> int | str | None:
         if value:
-            value = SCHEDULE_TYPES[value]
+            return SCHEDULE_TYPES[value]
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if "schedule_type" in attrs:
             schedule_type = attrs["schedule_type"]
         elif self.instance:
@@ -306,7 +309,7 @@ class ConfigValidator(serializers.Serializer):
         "alert_rule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
     }
 )
-class MonitorValidator(CamelSnakeSerializer):
+class MonitorValidator(CamelSnakeSerializer[Monitor]):
     project = ProjectField(
         scope="project:read",
         id_allowed=True,
@@ -342,7 +345,7 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Deprecated alert rule configuration.",
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # When creating a new monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
@@ -369,8 +372,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         return attrs
 
-    def validate_status(self, value):
-        status = MONITOR_STATUSES.get(value, value)
+    def validate_status(self, value: str | None) -> int | str | None:
+        status = MONITOR_STATUSES[value] if value in MONITOR_STATUSES else value
         monitor = self.context.get("monitor")
 
         # Activating a monitor may only be done if the monitor may be assigned
@@ -386,7 +389,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
         return status
 
-    def validate_slug(self, value):
+    def validate_slug(self, value: str | None) -> str | None:
         if not value:
             return value
 
@@ -401,25 +404,25 @@ class MonitorValidator(CamelSnakeSerializer):
             raise ValidationError(f'The slug "{value}" is already in use.')
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Monitor:
         project = validated_data.get("project", self.context.get("project"))
         organization = self.context["organization"]
 
         owner = validated_data.get("owner")
-        owner_user_id = None
-        owner_team_id = None
+        owner_user_id: int | None = None
+        owner_team_id: int | None = None
         if owner and owner.is_user:
-            owner_user_id = owner.id
+            owner_user_id = cast("int", owner.id)
         elif owner and owner.is_team:
-            owner_team_id = owner.id
+            owner_team_id = cast("int", owner.id)
 
         monitor = Monitor.objects.create(
             project_id=project.id if project else self.context["project"].id,
             organization_id=organization.id,
             owner_user_id=owner_user_id,
-            owner_team_id=owner_team_id,
+            owner_team_id=cast("int", owner_team_id),
             name=validated_data["name"],
-            slug=validated_data.get("slug"),
+            slug=cast("str", validated_data.get("slug")),
             status=validated_data["status"],
             config=validated_data["config"],
         )
@@ -439,10 +442,10 @@ class MonitorValidator(CamelSnakeSerializer):
                 monitor.update(status=ObjectStatus.DISABLED)
 
         request = self.context["request"]
-        signal_monitor_created(project, request.user, False, monitor, request)
+        signal_monitor_created(cast("Project", project), request.user, False, monitor, request)
         return monitor
 
-    def update(self, instance, validated_data):
+    def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         """
         Update an existing Monitor instance.
         """
@@ -604,7 +607,7 @@ class MonitorBulkEditValidator(MonitorValidator):
         required=True,
     )
 
-    def validate_ids(self, value):
+    def validate_ids(self, value: list[str]) -> list[str]:
         if Monitor.objects.filter(
             guid__in=value, organization_id=self.context["organization"].id
         ).count() != len(value):
@@ -636,12 +639,12 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         model = Monitor
         fields = ["name", "slug", "status", "owner", "is_muted", "config"]
 
-    def validate_status(self, value):
+    def validate_status(self, value: str | int | None) -> str | int | None:
         if isinstance(value, str) and value.isdigit():
             return MONITOR_STATUSES_REVERSE[int(value)]
         return value
 
-    def validate_config(self, value):
+    def validate_config(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value and "schedule_type" in value:
             schedule_type = value["schedule_type"]
             if isinstance(schedule_type, int):
@@ -707,7 +710,9 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
     def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return monitor_validator.update(instance, monitor_validator.validated_data)
+            return cast(
+                "Monitor", monitor_validator.update(instance, monitor_validator.validated_data)
+            )
 
 
 class MonitorDataSourceListField(serializers.ListField):
@@ -718,7 +723,7 @@ class MonitorDataSourceListField(serializers.ListField):
     knows about the existing Monitor so slug validation works correctly.
     """
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: list[Any]) -> list[Any]:
         # If we're updating (parent has instance), bind the Monitor instance to child validator
         if hasattr(self.parent, "instance") and self.parent.instance:
             detector = self.parent.instance
@@ -755,7 +760,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError(result.reason)
         return value
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict[str, Any]) -> Detector:
         detector = super().create(validated_data)
 
         with in_test_hide_transaction_boundary():

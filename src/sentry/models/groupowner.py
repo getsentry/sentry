@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from enum import Enum, StrEnum
-from typing import ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
 
 from django.conf import settings
 from django.db import models
@@ -21,13 +21,18 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.group import Group
 from sentry.utils.cache import cache
 
+if TYPE_CHECKING:
+    from sentry.types.actor import Actor
+
 READ_CACHE_DURATION = 3600
-ISSUE_OWNERS_DEBOUNCE_KEY = lambda group_id: f"owner_exists:1:{group_id}"
+ISSUE_OWNERS_DEBOUNCE_KEY: Callable[[int], str] = lambda group_id: f"owner_exists:1:{group_id}"
 ISSUE_OWNERS_DEBOUNCE_DURATION = 60 * 60 * 24
-ASSIGNEE_EXISTS_KEY = lambda group_id: f"assignee_exists:1:{group_id}"
+ASSIGNEE_EXISTS_KEY: Callable[[int], str] = lambda group_id: f"assignee_exists:1:{group_id}"
 ASSIGNEE_EXISTS_DURATION = 60 * 60 * 24
 ASSIGNEE_DOES_NOT_EXIST_DURATION = 60
-PROJECT_OWNERSHIP_VERSION_KEY = lambda project_id: f"ownership_version:1:{project_id}"
+PROJECT_OWNERSHIP_VERSION_KEY: Callable[[int], str] = (
+    lambda project_id: f"ownership_version:1:{project_id}"
+)
 PROJECT_OWNERSHIP_VERSION_DURATION = 60 * 60 * 24
 
 
@@ -64,7 +69,10 @@ class OwnersSerialized(TypedDict):
 
 class GroupOwnerManager(BaseManager["GroupOwner"]):
     def update_or_create_and_preserve_context(
-        self, lookup_kwargs: dict, defaults: dict, context_defaults: dict
+        self,
+        lookup_kwargs: dict[str, object],
+        defaults: dict[str, object],
+        context_defaults: dict[str, object],
     ) -> tuple[GroupOwner, bool]:
         """
         update_or_create doesn't have great support for json fields like context.
@@ -147,12 +155,16 @@ class GroupOwner(Model):
             ),
         ]
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        *args: object,
+        **kwargs: Any,
+    ) -> None:
         keys = [k for k in (self.user_id, self.team_id) if k is not None]
         assert len(keys) != 2, "Must have team or user or neither, not both"
         super().save(*args, **kwargs)
 
-    def owner_id(self):
+    def owner_id(self) -> str | None:
         if self.user_id:
             return f"user:{self.user_id}"
 
@@ -164,7 +176,7 @@ class GroupOwner(Model):
 
         raise NotImplementedError("Unknown Owner")
 
-    def owner(self):
+    def owner(self) -> Actor | None:
         from sentry.types.actor import Actor
 
         if not self.owner_id():
@@ -173,7 +185,9 @@ class GroupOwner(Model):
         return Actor.from_identifier(self.owner_id())
 
     @classmethod
-    def get_autoassigned_owner(cls, group_id, project_id, autoassignment_types):
+    def get_autoassigned_owner(
+        cls, group_id: int, project_id: int, autoassignment_types: Sequence[int]
+    ) -> GroupOwner | bool:
         """
         Non-cached read access to find the autoassigned GroupOwner.
         """
@@ -194,14 +208,14 @@ class GroupOwner(Model):
         return issue_owner
 
     @classmethod
-    def invalidate_debounce_issue_owners_evaluation_cache(cls, group_id):
+    def invalidate_debounce_issue_owners_evaluation_cache(cls, group_id: int) -> None:
         """
         Clear the debounce issue owners cache for a specific group.
         """
         cache.delete(ISSUE_OWNERS_DEBOUNCE_KEY(group_id))
 
     @classmethod
-    def invalidate_assignee_exists_cache(cls, group_id):
+    def invalidate_assignee_exists_cache(cls, group_id: int) -> None:
         """
         Clear the assignee exists cache for a specific group.
         """
@@ -246,7 +260,7 @@ def get_owner_details(group_list: Sequence[Group]) -> dict[int, list[OwnersSeria
         owner_details[go.group_id].append(
             OwnersSerialized(
                 type=GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
-                owner=go.owner().identifier,
+                owner=cast("Actor", go.owner()).identifier,
                 date_added=go.date_added,
             ),
         )

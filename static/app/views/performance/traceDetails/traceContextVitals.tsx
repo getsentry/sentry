@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
 
 import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,8 +11,6 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -39,9 +38,15 @@ type Props = {
   tree: TraceTree;
 };
 
+const zoomToVitalParsers = {
+  tab: parseAsString,
+  zoomToNode: parseAsString,
+  zoomToTimestamp: parseAsFloat,
+  zoomToVital: parseAsString,
+};
+
 export function TraceContextVitals({rootEventResults, tree}: Props) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setZoomToVitalParams] = useQueryStates(zoomToVitalParsers);
   const organization = useOrganization();
   const {hasVitals} = useTraceContextSections({
     tree,
@@ -117,19 +122,12 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
                     trackAnalytics('trace.trace_layout.zoom_to_fill', {
                       organization,
                     });
-                    navigate(
-                      {
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          tab: TraceLayoutTabKeys.WATERFALL,
-                          zoomToNode: vital.node.pathToNode()[0],
-                          zoomToTimestamp: vital.timestamp,
-                          zoomToVital: vital.key,
-                        },
-                      },
-                      {replace: true}
-                    );
+                    setZoomToVitalParams({
+                      tab: TraceLayoutTabKeys.WATERFALL,
+                      zoomToNode: vital.node.pathToNode()[0] ?? null,
+                      zoomToTimestamp: vital.timestamp ?? null,
+                      zoomToVital: vital.key,
+                    });
                   }
                 : undefined
             }

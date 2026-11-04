@@ -1,4 +1,6 @@
+from collections.abc import Mapping
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -63,7 +65,7 @@ ALL_KEYS = [
 ]
 
 
-def _keys(permissions, required=None):
+def _keys(permissions: Mapping[str, str], required: Mapping[str, str] | None = None) -> list[str]:
     tiers = get_permission_tiers(permissions, required or REQUIRED_PERMISSIONS)
     return [tier.key for tier in tiers]
 
@@ -79,7 +81,9 @@ def _keys(permissions, required=None):
         ({}, ALL_KEYS),
     ],
 )
-def test_tiers_for_production_permission_sets(permissions, expected) -> None:
+def test_tiers_for_production_permission_sets(
+    permissions: Mapping[str, str], expected: list[str]
+) -> None:
     assert _keys(permissions) == expected
 
 
@@ -106,7 +110,7 @@ def test_pull_requests_read_falls_short_of_the_pr_comments_watermark() -> None:
 
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
-def test_a_newer_tier_held_without_an_older_one_is_inconsistent(mock_warning) -> None:
+def test_a_newer_tier_held_without_an_older_one_is_inconsistent(mock_warning: MagicMock) -> None:
     assert _keys({**UP_TO_DATE, "contents": "read"}) == ALL_KEYS
 
     assert mock_warning.call_args[0][0] == "github_permission_tiers.inconsistent_permissions"
@@ -114,7 +118,7 @@ def test_a_newer_tier_held_without_an_older_one_is_inconsistent(mock_warning) ->
 
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
-def test_a_gap_in_the_middle_of_the_chain_is_inconsistent(mock_warning) -> None:
+def test_a_gap_in_the_middle_of_the_chain_is_inconsistent(mock_warning: MagicMock) -> None:
     assert _keys({**UP_TO_DATE, "actions": "read", "checks": "read"}) == ALL_KEYS
 
     assert mock_warning.call_args[1]["extra"]["behind_tiers"] == ["pr_iteration", "code_review"]
@@ -122,7 +126,7 @@ def test_a_gap_in_the_middle_of_the_chain_is_inconsistent(mock_warning) -> None:
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
 def test_a_requirement_no_tier_claims_falls_short_of_baseline(
-    mock_warning,
+    mock_warning: MagicMock,
 ) -> None:
     required = {**REQUIRED_PERMISSIONS, "packages": "write"}
     assert _keys(UP_TO_DATE, required) == ALL_KEYS
@@ -138,7 +142,7 @@ def test_a_requirement_no_tier_claims_falls_short_of_baseline(
 
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
-def test_a_consistent_run_is_not_warned_about(mock_warning) -> None:
+def test_a_consistent_run_is_not_warned_about(mock_warning: MagicMock) -> None:
     assert _keys(MISSING_AUTOFIX_PRS) == ALL_KEYS[:2]
 
     mock_warning.assert_not_called()

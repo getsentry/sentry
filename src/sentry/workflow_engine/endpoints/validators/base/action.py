@@ -41,18 +41,18 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
         except NoRegistrationExistsError:
             raise serializers.ValidationError(f"Invalid action type: {action_type}") from None
 
-    def validate_data(self, value: Any) -> ActionData:
+    def validate_data(self, value: ActionData) -> ActionData:
         data_schema = self._get_action_handler().data_schema
         return validate_json_schema(value, data_schema)
 
-    def validate_status(self, value: Any) -> int:
+    def validate_status(self, value: int | str | None) -> int:
         if value is None:
             return ObjectStatus.ACTIVE
         if isinstance(value, str):
             return ObjectStatus.from_str(value)
         return value
 
-    def validate_config(self, value: Any) -> ActionConfig:
+    def validate_config(self, value: ActionConfig) -> ActionConfig:
         action_handler = self._get_action_handler()
         config_transformer = action_handler.get_config_transformer()
 
@@ -63,7 +63,7 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
             # No transformer, validate directly against config schema
             return validate_json_schema(value, action_handler.config_schema)
 
-    def validate_type(self, value: Any) -> str:
+    def validate_type(self, value: str) -> str:
         try:
             action_type = Action.Type(value)
         except ValueError:

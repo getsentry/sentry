@@ -71,6 +71,10 @@
       "types": "./dist/input/index.d.ts",
       "import": "./dist/input/index.js"
     },
+    "./numberInput": {
+      "types": "./dist/numberInput/index.d.ts",
+      "import": "./dist/numberInput/index.js"
+    },
     "./textarea": {
       "types": "./dist/textarea/index.d.ts",
       "import": "./dist/textarea/index.js"
@@ -250,6 +254,46 @@
     "./toast": {
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
+    },
+    "./codeBlock": {
+      "types": "./dist/codeBlock/index.d.ts",
+      "import": "./dist/codeBlock/index.js"
+    },
+    "./code": {
+      "types": "./dist/code/index.d.ts",
+      "import": "./dist/code/index.js"
+    },
+    "./drawer": {
+      "types": "./dist/drawer/index.d.ts",
+      "import": "./dist/drawer/index.js"
+    },
+    "./slideOverPanel": {
+      "types": "./dist/slideOverPanel.d.ts",
+      "import": "./dist/slideOverPanel.js"
+    },
+    "./overlayContext": {
+      "types": "./dist/overlayContext.d.ts",
+      "import": "./dist/overlayContext.js"
+    },
+    "./select": {
+      "types": "./dist/select/index.d.ts",
+      "import": "./dist/select/index.js"
+    },
+    "./useVirtualRows": {
+      "types": "./dist/useVirtualRows.d.ts",
+      "import": "./dist/useVirtualRows.js"
+    },
+    "./clipboard": {
+      "types": "./dist/clipboard/index.d.ts",
+      "import": "./dist/clipboard/index.js"
+    },
+    "./compactSelect": {
+      "types": "./dist/compactSelect/index.d.ts",
+      "import": "./dist/compactSelect/index.js"
+    },
+    "./pictureInPicture": {
+      "types": "./dist/pictureInPicture/index.d.ts",
+      "import": "./dist/pictureInPicture/index.js"
     }
   },
   "publishConfig": {
@@ -265,17 +309,21 @@
     "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
+    "@react-aria/gridlist": "3.15.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
+    "@react-aria/listbox": "3.16.1",
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
+    "@react-aria/separator": "3.5.1",
     "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
     "@react-aria/visually-hidden": "3.9.1",
@@ -289,12 +337,16 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
-    "@tanstack/react-hotkeys": "0.17.0",
+    "@tanstack/react-hotkeys": "0.18.0",
+    "@tanstack/react-virtual": "3.14.6",
     "@types/react": "19.3.0",
+    "@types/react-select": "4.0.18",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
+    "prismjs": "^1.30.0",
     "query-string": "7.0.1",
+    "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "sonner": "2.0.8",
     "type-fest": "^5.10.0"
@@ -313,6 +365,7 @@
     "@testing-library/user-event": "14.6.7",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.4",
+    "@types/prismjs": "^1.26.0",
     "@types/react-dom": "19.3.0",
     "expect-type": "1.4.0",
     "jest": "30.5.1",

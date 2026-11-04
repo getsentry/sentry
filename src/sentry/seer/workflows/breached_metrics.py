@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from functools import partial
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, NamedTuple
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -19,6 +20,7 @@ from sentry.investigations.services import create_agentic_breached_metric_invest
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
@@ -33,7 +35,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow, WorkflowUpdateError
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -118,47 +120,116 @@ class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
 
 
+class ConnectedMonitor(NamedTuple):
+    monitor_id: int
+    project_id: int
+
+
+@dataclass(frozen=True)
+class MonitorSelectionChange:
+    workflow_id: int
+    workflow_created: bool
+    monitor_count: int
+    added_count: int
+    removed_count: int
+
+
+def get_config_monitors_bulk(
+    configs: Sequence[SeerWorkflowConfig], *, project_filter: Sequence[int] | None = None
+) -> dict[int, list[ConnectedMonitor]]:
+    """
+    Return the active metric monitors connected to each metric automation, sorted by
+    monitor ID. With ``project_filter``, only monitors in
+    those projects are included.
+    """
+    config_ids_by_workflow_id = {
+        config.backing_workflow_id: config.id
+        for config in configs
+        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        and config.backing_workflow_id is not None
+    }
+    connections = DetectorWorkflow.objects.filter(
+        workflow_id__in=config_ids_by_workflow_id,
+        workflow__status=ObjectStatus.ACTIVE,
+        detector__type=MetricIssue.slug,
+        detector__status=ObjectStatus.ACTIVE,
+        detector__project__status=ObjectStatus.ACTIVE,
+    )
+    if project_filter is not None:
+        connections = connections.filter(detector__project_id__in=project_filter)
+
+    monitors: defaultdict[int, list[ConnectedMonitor]] = defaultdict(list)
+    for workflow_id, detector_id, project_id in connections.order_by("detector_id").values_list(
+        "workflow_id", "detector_id", "detector__project_id"
+    ):
+        config_id = config_ids_by_workflow_id[workflow_id]
+        monitors[config_id].append(ConnectedMonitor(detector_id, project_id))
+
+    return dict(monitors)
+
+
+def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organization) -> list[int]:
+    return list(
+        Detector.objects.filter(id__in=monitor_ids, project__organization_id=organization.id)
+        .values_list("project_id", flat=True)
+        .distinct()
+    )
+
+
 class BreachedMetricWorkflow(SeerWorkflow):
     @classmethod
-    def create(
+    def create_with_monitors(
         cls,
         organization_id: int,
         *,
         enabled: bool = False,
         environments: Sequence[str] = (),
+        monitor_ids: Sequence[int] = (),
+        name: str | None = None,
     ) -> BreachedMetricWorkflow:
         """Create an automation whose project coverage comes from connected monitors."""
-        # TODO(telkins): Wire automation creation into the API/UI using this method.
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
-        config = SeerWorkflowConfig.objects.create(
-            organization_id=organization_id,
-            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            enabled=enabled,
-            filters=SeerWorkflowFilters(environments=list(environments)).dict(),
-        )
-        return cls(config_id=config.id, organization_id=organization_id)
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            config = cls._create_config(
+                database=database,
+                organization_id=organization_id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                enabled=enabled,
+                filters=SeerWorkflowFilters(environments=list(environments)),
+                name=name,
+            )
+            workflow = cls(config_id=config.id, organization_id=organization_id)
+            change = workflow._set_monitor_selection(config, monitor_ids) if monitor_ids else None
+            if change is not None:
+                config.save(using=database, update_fields=["backing_workflow"])
+            transaction.on_commit(
+                partial(
+                    logger.info,
+                    "seer.workflow.created",
+                    extra={
+                        **(asdict(change) if change is not None else {}),
+                        "organization_id": organization_id,
+                        "config_id": config.id,
+                        "config_version": config.version,
+                        "strategy": config.strategy,
+                    },
+                ),
+                using=database,
+            )
+        return workflow
+
+    def get_monitors(self) -> list[ConnectedMonitor]:
+        """Return the connected active metric monitors, sorted by monitor ID."""
+        return get_config_monitors_bulk([self.get_config()]).get(self.config_id, [])
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""
         with self._lock_config() as config:
-            if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise ValueError("Only metric automations support monitor selection.")
-            selected = set(monitor_ids)
-            self._validate_monitors(selected)
-
-            workflow, created = self._get_or_create_backing_workflow(config)
-            existing = set(
-                DetectorWorkflow.objects.filter(workflow=workflow).values_list(
-                    "detector_id", flat=True
-                )
-            )
-            if not created and existing == selected:
+            change = self._set_monitor_selection(config, monitor_ids)
+            if change is None:
                 return
-            if existing != selected:
-                self._replace_monitor_connections(workflow, existing, selected)
-            # TODO(telkins): Propagate the derived projects to the automation's dedicated
-            # service account in a separate step.
 
             config.version += 1
             config.save(update_fields=["backing_workflow", "version", "date_updated"])
@@ -167,18 +238,46 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     logger.info,
                     "seer.workflow.monitors_updated",
                     extra={
+                        **asdict(change),
                         "organization_id": self.organization_id,
-                        "workflow_config_id": config.id,
-                        "workflow_id": workflow.id,
+                        "config_id": config.id,
                         "config_version": config.version,
-                        "workflow_created": created,
-                        "monitor_count": len(selected),
-                        "added_count": len(selected - existing),
-                        "removed_count": len(existing - selected),
+                        "strategy": config.strategy,
                     },
                 ),
                 using=router.db_for_write(SeerWorkflowConfig),
             )
+
+    def _set_monitor_selection(
+        self, config: SeerWorkflowConfig, monitor_ids: Sequence[int]
+    ) -> MonitorSelectionChange | None:
+        """
+        Creates a backing workflow if one does not exist and sets/replaces its connected monitors.
+        Returns the change, or None when nothing changed. Callers must save ``backing_workflow``.
+        """
+        if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise WorkflowUpdateError("Only metric automations support monitor selection.")
+        selected = set(monitor_ids)
+        self._validate_monitors(selected)
+
+        workflow, created = self._get_or_create_backing_workflow(config)
+        existing = set(
+            DetectorWorkflow.objects.filter(workflow=workflow).values_list("detector_id", flat=True)
+        )
+        if not created and existing == selected:
+            return None
+
+        if existing != selected:
+            self._replace_monitor_connections(workflow, existing, selected)
+        # TODO(telkins): Propagate the derived projects to the automation's dedicated
+        # service account in a separate step.
+        return MonitorSelectionChange(
+            workflow_id=workflow.id,
+            workflow_created=created,
+            monitor_count=len(selected),
+            added_count=len(selected - existing),
+            removed_count=len(existing - selected),
+        )
 
     def accept(
         self,
@@ -369,7 +468,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             ).values_list("id", flat=True)
         )
         if monitor_ids != valid_monitor_ids:
-            raise ValueError(
+            raise WorkflowUpdateError(
                 "Selected monitors must be active metric monitors in this organization."
             )
 

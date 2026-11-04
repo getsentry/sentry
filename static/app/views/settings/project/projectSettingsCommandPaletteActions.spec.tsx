@@ -69,4 +69,34 @@ describe('ProjectSettingsCommandPaletteActions', () => {
       ])
     );
   });
+
+  it('titles the index item "General" with settings-v3', () => {
+    const organization = OrganizationFixture({slug: 'acme'});
+    const project = DetailedProjectFixture({slug: 'frontend'});
+
+    const sections = getProjectSettingsCommandPaletteSections({
+      organization,
+      project,
+      settingsV3: true,
+    });
+
+    expect(sections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'frontend',
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              label: 'General',
+              items: expect.arrayContaining([
+                expect.objectContaining({
+                  display: expect.objectContaining({label: 'General'}),
+                  to: '/settings/acme/projects/frontend/',
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      ])
+    );
+  });
 });

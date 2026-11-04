@@ -58,17 +58,19 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
     def get(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
+        **kwargs: object,
     ) -> Response:
         return Response(serialize(instance, request.user, token=None))
 
     def put(
         self,
         request: Request,
+        organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response:
         name = request.data.get("name")
 
         if not name:
@@ -88,8 +90,8 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         request: Request,
         organization: RpcOrganization,
         instance: OrgAuthToken,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> Response:
         instance.update(date_deactivated=timezone.now())
 
         self.create_audit_entry(

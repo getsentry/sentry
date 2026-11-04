@@ -1,11 +1,13 @@
 import contextlib
 import time
+from collections.abc import Iterator
 from threading import Thread
 from unittest.mock import patch
 
 import pytest
 
 from sentry.event_manager import GroupInfo, assign_event_to_group
+from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -15,7 +17,7 @@ CONCURRENCY = 2
 class FakeTransactionModule:
     @staticmethod
     @contextlib.contextmanager
-    def atomic(*args, **kwds):
+    def atomic(*args: object, **kwds: object) -> Iterator[None]:
         yield
 
 
@@ -55,7 +57,7 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
     ],
     ids=(" lock_disabled: True ", " lock_disabled: False "),
 )
-def test_group_creation_race(default_project, lock_disabled) -> None:
+def test_group_creation_race(default_project: Project, lock_disabled: bool) -> None:
     with contextlib.ExitStack() as ctx:
         if lock_disabled:
             # Disable transaction isolation just within event manager, but not in

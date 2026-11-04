@@ -1,7 +1,10 @@
-from unittest.mock import patch
+from collections.abc import Iterator
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
+from rest_framework.response import Response
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
@@ -24,7 +27,7 @@ class BaseEventTest(APITestCase):
         self.rule = self.create_project_rule(project=self.project)
 
     @pytest.fixture(autouse=True)
-    def mock_webhook_send(self):
+    def mock_webhook_send(self) -> Iterator[None]:
         with patch(
             "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
@@ -37,7 +40,7 @@ class BaseEventTest(APITestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_view_open(self):
+    def mock_view_open(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.views_open",
             return_value=SlackResponse(
@@ -53,7 +56,7 @@ class BaseEventTest(APITestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_view_update(self):
+    def mock_view_update(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.views_update",
             return_value=SlackResponse(
@@ -74,15 +77,15 @@ class BaseEventTest(APITestCase):
     )
     def post_webhook(
         self,
-        check_signing_secret_mock,
-        action_data=None,
-        type="event_callback",
-        data=None,
-        team_id="TXXXXXXX1",
-        callback_id=None,
-        slack_user=None,
-        original_message=None,
-    ):
+        check_signing_secret_mock: MagicMock,
+        action_data: list[dict[str, Any]] | None = None,
+        type: str = "event_callback",
+        data: dict[str, Any] | None = None,
+        team_id: str = "TXXXXXXX1",
+        callback_id: str | None = None,
+        slack_user: dict[str, Any] | None = None,
+        original_message: dict[str, Any] | None = None,
+    ) -> Response:
         if slack_user is None:
             slack_user = {"id": self.external_id, "domain": "example"}
 
@@ -111,7 +114,8 @@ class BaseEventTest(APITestCase):
 
         payload = {"payload": orjson.dumps(payload).decode()}
 
-        return self.client.post("/extensions/slack/action/", data=payload)
+        response: Response = self.client.post("/extensions/slack/action/", data=payload)
+        return response
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -119,18 +123,18 @@ class BaseEventTest(APITestCase):
     )
     def post_webhook_block_kit(
         self,
-        check_signing_secret_mock,
-        action_data=None,
-        type="block_actions",
-        data=None,
-        team_id="TXXXXXXX1",
-        slack_user=None,
-        original_message=None,
-        selected_option=None,
-        view=None,
-        private_metadata=None,
-        callback_id=None,
-    ):
+        check_signing_secret_mock: MagicMock,
+        action_data: list[dict[str, Any]] | None = None,
+        type: str = "block_actions",
+        data: dict[str, Any] | None = None,
+        team_id: str = "TXXXXXXX1",
+        slack_user: dict[str, Any] | None = None,
+        original_message: dict[str, Any] | None = None,
+        selected_option: str | None = None,
+        view: dict[str, Any] | None = None,
+        private_metadata: str | None = None,
+        callback_id: str | None = None,
+    ) -> Response:
         """Respond as if we were Slack"""
         if slack_user is None:
             slack_user = {
@@ -146,7 +150,7 @@ class BaseEventTest(APITestCase):
         if callback_id is None:
             callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
-        payload = {
+        payload: dict[str, Any] = {
             "type": type,
             "team": {
                 "id": team_id,
@@ -278,4 +282,5 @@ class BaseEventTest(APITestCase):
             payload.update(data)
 
         payload = {"payload": orjson.dumps(payload).decode()}
-        return self.client.post("/extensions/slack/action/", data=payload)
+        response: Response = self.client.post("/extensions/slack/action/", data=payload)
+        return response
