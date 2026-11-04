@@ -32,7 +32,7 @@ from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
 )
-from sentry.telemetry_classifiers.validators import TelemetryClassifierValidator
+from sentry.telemetry_classifiers.validators import TelemetryClassifierUpdateValidator
 
 CLASSIFIER_ID_PARAM = OpenApiParameter(
     name="classifier_id",
@@ -107,7 +107,7 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Update a Telemetry Classifier",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CLASSIFIER_ID_PARAM],
-        request=TelemetryClassifierValidator,
+        request=TelemetryClassifierUpdateValidator,
         responses={
             200: inline_sentry_response_serializer(
                 "UpdateTelemetryClassifierResponse", TelemetryClassifierResponse
@@ -122,18 +122,12 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, classifier: TelemetryClassifier
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Update a telemetry classifier on a project the caller can write to. Omitted fields keep
-        their current values.
+        Enable or disable a telemetry classifier on a project the caller can write to.
         """
         if not request.access.has_project_scope(classifier.project, "project:write"):
             raise PermissionDenied
 
-        validator = TelemetryClassifierValidator(
-            instance=classifier,
-            data=request.data,
-            partial=True,
-            context={"organization": organization, "access": request.access, "request": request},
-        )
+        validator = TelemetryClassifierUpdateValidator(instance=classifier, data=request.data)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
