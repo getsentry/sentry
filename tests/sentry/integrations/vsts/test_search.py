@@ -88,13 +88,9 @@ class VstsSearchTest(APITestCase):
         assert resp.data == [
             {"label": "(2) Title", "value": "2"},
         ]
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
