@@ -241,8 +241,7 @@ class RedisClusterManager:
 
 
 # INC-2410: Existing violations of Redis calls happening during DB transactions at the time the check was added.
-# Do not add entries for new code, and burn this down over time. The only new entries are old violations that
-# the check could not see before (for example because the caller caught the AssertionError, INFRENG-894).
+# New entries are not allowed and we should burn this down over time.
 _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
     {
         (
@@ -337,8 +336,7 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
         ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
         # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
-        # transaction of _apply_legacy_ondemand_max_spend. Lock.acquire catches the check's error,
-        # so this stayed hidden until INFRENG-894
+        # transaction of _apply_legacy_ondemand_max_spend
         (
             "tests.getsentry.utils.billing.test_billing.UpgradeOnDemandMaxSpendTest.test_reenable_runs_outside_subscription_lock.<locals>.record",
         ),
@@ -395,8 +393,6 @@ def _assert_redis_transaction_allowed(message: str) -> None:
         if _matches_redis_transaction_lock_ratchet(callers):
             return
 
-        # A caller can catch the AssertionError, so also record the violation. The pytest plugin
-        # fails the test at teardown when a record exists.
         _redis_transaction_violations.append((message, callers))
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 
@@ -413,7 +409,6 @@ def pop_redis_transaction_violations() -> list[tuple[str, tuple[str, ...]]]:
     The pytest plugin calls this at the teardown of each test and fails the test if a violation
     was recorded. A test that causes a violation on purpose calls this to clear it.
     """
-    # Remove only the items that were copied, so an append from another thread is not lost.
     count = len(_redis_transaction_violations)
     violations = _redis_transaction_violations[:count]
     del _redis_transaction_violations[:count]

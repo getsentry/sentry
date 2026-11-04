@@ -515,10 +515,10 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 def pytest_runtest_teardown_redis_transaction_violations(
     item: pytest.Item,
 ) -> Generator[None, object, object]:
-    # The transaction check in sentry.utils.redis raises at the Redis call, but the code under test
-    # can catch that error. The check also records each violation, and this fails the test when a
-    # record exists. It is a wrapper, so it runs after all fixture teardown and other teardown
-    # hooks, and it sees violations from setup, the test call and teardown.
+    # Our Redis test utils checks for Redis calls in DB transactions. When a call is found inside
+    # a transaction, we raise an error. Often, however, the code under test catches that error
+    # before it makes it to the top-level test. In this wrapper, we record each violation, which has
+    # the end result of failing the test when the problem scenario occurs.
     from sentry.utils.redis import pop_redis_transaction_violations
 
     try:
@@ -538,7 +538,6 @@ def pytest_runtest_teardown_redis_transaction_violations(
 def _format_redis_transaction_violations(violations: list[tuple[str, tuple[str, ...]]]) -> str:
     from sentry.utils.redis import _REDIS_LOCK_BACKEND_CALLERS
 
-    # A retry loop makes the same stack many times, so show each stack once.
     stacks: dict[tuple[str, ...], str] = {}
     for message, callers in violations:
         stacks.setdefault(callers, message)
