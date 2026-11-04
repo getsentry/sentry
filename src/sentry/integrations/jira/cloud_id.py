@@ -17,7 +17,6 @@ from __future__ import annotations
 import csv
 import logging
 from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import StrEnum
 from urllib.parse import urlparse
@@ -28,6 +27,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
@@ -173,7 +173,7 @@ def audit_cloud_ids(
         return CloudIdResult(integration_id, integration_status, base_url, fetch_cloud_id(base_url))
 
     results: list[CloudIdResult] = []
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
         for result in pool.map(check, integrations):
             results.append(result)
             if len(results) % 1000 == 0:
