@@ -1252,7 +1252,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
-            query_priority=validated_data["query_priority"],
+            query_priority=validated_data.get("query_priority"),
             **get_creator_reference(self.context["request"]),
         )
 
