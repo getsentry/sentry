@@ -88,6 +88,7 @@ describe('TransactionThresholdModal', () => {
         })
       );
     });
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith('1000', 'lcp'));
   });
 
   it('can update metric', async () => {
@@ -138,5 +139,6 @@ describe('TransactionThresholdModal', () => {
     await waitFor(() => {
       expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith('200', 'duration'));
   });
 });
