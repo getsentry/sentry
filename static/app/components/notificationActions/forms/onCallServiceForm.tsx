@@ -1,9 +1,10 @@
 import {useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import type {
@@ -95,15 +96,15 @@ export function OnCallServiceForm({
         <DropdownMenu
           items={accountOptions}
           trigger={(triggerProps, isOpen) => (
-            <DropdownButton
+            <OverlayTrigger.Button
               {...triggerProps}
               isOpen={isOpen}
               aria-label={t('Select Account')}
               size="xs"
               data-test-id="on-call-account-dropdown"
             >
-              {selectedAccount}
-            </DropdownButton>
+              {selectedAccount ?? ''}
+            </OverlayTrigger.Button>
           )}
         />
 
@@ -112,14 +113,14 @@ export function OnCallServiceForm({
         <DropdownMenu
           items={getServiceOptions()}
           trigger={triggerProps => (
-            <DropdownButton
+            <OverlayTrigger.Button
               {...triggerProps}
               aria-label={dropdownText}
               size="xs"
               data-test-id="target-display-dropdown"
             >
               {selectedDisplay}
-            </DropdownButton>
+            </OverlayTrigger.Button>
           )}
         />
       </Flex>

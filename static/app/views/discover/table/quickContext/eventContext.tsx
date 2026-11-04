@@ -14,9 +14,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {NoContext} from 'sentry/views/discover/table/quickContext/noContext';
 
 import {ActionDropDown, ContextValueType} from './actionDropdown';
-import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,

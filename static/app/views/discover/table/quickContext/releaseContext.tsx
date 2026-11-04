@@ -16,8 +16,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import {useUser} from 'sentry/utils/useUser';
+import {NoContext} from 'sentry/views/discover/table/quickContext/noContext';
 
-import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,

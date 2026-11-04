@@ -21,6 +21,7 @@ import {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
 } from 'getsentry/utils/billing';
@@ -31,7 +32,6 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {
   formatPaygPricePerUnit,

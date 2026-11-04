@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
     TraceItemDetailsResponse,
 )
 
+from sentry.api.conditional_get import MAX_AGE_OPTION_NAME, OPTION_NAME
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
     serialize_event,
@@ -15,6 +16,7 @@ from sentry.api.endpoints.project_trace_item_details import (
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba_rpc import SnubaRPCBadRequest
 
@@ -32,6 +34,14 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
         self.assert_routing_hint({"routing_hint": ""}, "")
 
     def assert_routing_hint(self, params: dict[str, str], expected_hint: str) -> None:
+        rpc, _ = self.get_item(params)
+
+        request = rpc.call_args.args[0]
+        assert request.routing_hint == expected_hint
+        assert request.meta.organization_id == self.organization.id
+        assert list(request.meta.project_ids) == [self.project.id]
+
+    def get_item(self, params: dict[str, str]) -> tuple[mock.MagicMock, Any]:
         self.login_as(user=self.user)
         organization, project = self.organization, self.project
         item_id = "0123456789abcdef"
@@ -46,7 +56,7 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
             "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
             return_value=response,
         ) as rpc:
-            self.get_success_response(
+            api_response = self.get_success_response(
                 organization.slug,
                 project.slug,
                 item_id,
@@ -55,11 +65,26 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
                 timestamp=timestamp.isoformat(),
                 **params,
             )
+        return rpc, api_response
 
-        request = rpc.call_args.args[0]
-        assert request.routing_hint == expected_hint
-        assert request.meta.organization_id == self.organization.id
-        assert list(request.meta.project_ids) == [self.project.id]
+    @override_options(
+        {
+            OPTION_NAME: True,
+            MAX_AGE_OPTION_NAME: ["ProjectTraceItemDetailsEndpoint"],
+        }
+    )
+    def test_listed_endpoint_is_browser_cacheable(self) -> None:
+        _, response = self.get_item({})
+
+        assert response["Cache-Control"] == "private, max-age=300"
+        assert "Origin" in response["Vary"]
+
+    @override_options({OPTION_NAME: True})
+    def test_unlisted_endpoint_sends_no_cache_headers(self) -> None:
+        _, response = self.get_item({})
+
+        assert "Cache-Control" not in response
+        assert "ETag" not in response
 
     def test_rpc_bad_request_is_returned_as_400(self) -> None:
         self.login_as(user=self.user)
@@ -269,18 +294,40 @@ class TestReplacementAttributeFiltering:
         assert len(result) == 1
         assert result[0]["name"] == attr_name
 
-    def test_replacement_attribute_hidden_when_deprecated_source_present(self) -> None:
+    def test_replacement_attribute_hidden_when_normalized_source_present(self) -> None:
         result = convert_rpc_attribute_to_json(
             [
-                {"name": "gen_ai.usage.prompt_tokens", "value": {"valInt": "42"}},
-                {"name": "gen_ai.usage.input_tokens", "value": {"valInt": "42"}},
+                {"name": "gen_ai.tool.output", "value": {"valStr": "result"}},
+                {"name": "gen_ai.tool.call.result", "value": {"valStr": "result"}},
             ],
             SupportedTraceItemType.SPANS,
         )
 
         names = [r["name"] for r in result]
-        assert "gen_ai.usage.prompt_tokens" in names
-        assert "gen_ai.usage.input_tokens" not in names
+        assert "gen_ai.tool.output" in names
+        assert "gen_ai.tool.call.result" not in names
+
+    @pytest.mark.parametrize(
+        "source,replacement,value",
+        [
+            ("gen_ai.usage.prompt_tokens", "gen_ai.usage.input_tokens", {"valInt": "42"}),
+            ("anthropic.tool_result.content", "gen_ai.tool.call.result", {"valStr": "result"}),
+        ],
+    )
+    def test_replacement_attribute_shown_when_backfilled_source_present(
+        self, source: str, replacement: str, value: dict[str, str]
+    ) -> None:
+        result = convert_rpc_attribute_to_json(
+            [
+                {"name": source, "value": value},
+                {"name": replacement, "value": value},
+            ],
+            SupportedTraceItemType.SPANS,
+        )
+
+        names = [r["name"] for r in result]
+        assert source in names
+        assert replacement in names
 
     def test_replacement_array_shown_when_no_deprecated_source(self) -> None:
         result = convert_rpc_attribute_to_json(

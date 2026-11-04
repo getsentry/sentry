@@ -276,7 +276,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         query_sub = QuerySubscription.objects.get(id=data_source.source_id)
         return query_sub.snuba_query
 
-    def assert_validated(self, detector):
+    def assert_validated(self, detector: Detector) -> None:
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
         assert detector.type == MetricIssue.slug
@@ -309,7 +309,9 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_valid_data(
-        self, mock_audit: mock.MagicMock, mock_schedule_update_project_config
+        self,
+        mock_audit: mock.MagicMock,
+        mock_schedule_update_project_config: mock.MagicMock,
     ) -> None:
         detector = self.create_static_detector()
 

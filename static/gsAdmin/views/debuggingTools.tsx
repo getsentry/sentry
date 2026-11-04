@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -278,14 +279,18 @@ export function DebuggingTools() {
   );
 }
 
-export const SearchContainer = styled('div')`
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: repeat(2, 1fr 2fr) 1fr 5fr 1fr;
-  gap: ${p => p.theme.space['2xl']};
-  padding: ${p => p.theme.space.lg};
-  align-items: center;
-`;
+export function SearchContainer(props: GridProps) {
+  return (
+    <Grid
+      align="center"
+      padding="lg"
+      gap="2xl"
+      columns="repeat(2, 1fr 2fr) 1fr 5fr 1fr"
+      rows="1fr"
+      {...props}
+    />
+  );
+}
 
 const StyledTag = styled(Tag)`
   padding: 0 ${p => p.theme.space['3xl']};

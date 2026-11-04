@@ -1,9 +1,8 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
@@ -66,7 +65,7 @@ function OnboardingItem({
   });
 
   return (
-    <GuideAnchor target="onboarding_sidebar" position="right">
+    <Fragment>
       <PrimaryNavigation.Button
         analyticsKey="onboarding"
         buttonProps={{
@@ -108,7 +107,7 @@ function OnboardingItem({
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
         </PrimaryNavigation.ButtonOverlay>
       )}
-    </GuideAnchor>
+    </Fragment>
   );
 }
 

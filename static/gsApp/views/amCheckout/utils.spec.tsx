@@ -13,53 +13,6 @@ describe('utils', () => {
     },
   };
 
-  describe('formatPrice', () => {
-    it('formats price correctly', () => {
-      expect(utils.formatPrice({cents: 0})).toBe('0');
-      expect(utils.formatPrice({cents: 1500})).toBe('15');
-      expect(utils.formatPrice({cents: 1510})).toBe('15.10');
-      expect(utils.formatPrice({cents: 92400})).toBe('924');
-      expect(utils.formatPrice({cents: 119400})).toBe('1,194');
-      expect(utils.formatPrice({cents: -1510})).toBe('-15.10');
-    });
-  });
-
-  describe('displayPrice', () => {
-    it('formats price correctly', () => {
-      expect(utils.displayPrice({cents: 0})).toBe('$0');
-      expect(utils.displayPrice({cents: 1500})).toBe('$15');
-      expect(utils.displayPrice({cents: 92430})).toBe('$924.30');
-      expect(utils.displayPrice({cents: 119499})).toBe('$1,194.99');
-      expect(utils.displayPrice({cents: -92430})).toBe('-$924.30');
-    });
-  });
-
-  describe('displayPriceWithCents', () => {
-    it('formats price correctly', () => {
-      expect(utils.displayPriceWithCents({cents: 0})).toBe('$0.00');
-      expect(utils.displayPriceWithCents({cents: 1500})).toBe('$15.00');
-      expect(utils.displayPriceWithCents({cents: 92430})).toBe('$924.30');
-      expect(utils.displayPriceWithCents({cents: 119499})).toBe('$1,194.99');
-      expect(utils.displayPriceWithCents({cents: -92430})).toBe('-$924.30');
-    });
-  });
-
-  describe('displayUnitPrice', () => {
-    it('formats unit price correctly', () => {
-      expect(utils.displayUnitPrice({cents: 24, minDigits: 2, maxDigits: 2})).toBe(
-        '$0.24'
-      );
-      expect(utils.displayUnitPrice({cents: 24.5, minDigits: 2, maxDigits: 2})).toBe(
-        '$0.25'
-      );
-      expect(utils.displayUnitPrice({cents: 245, minDigits: 2, maxDigits: 2})).toBe(
-        '$2.45'
-      );
-      expect(utils.displayUnitPrice({cents: 0.0167})).toBe('$0.000167');
-      expect(utils.displayUnitPrice({cents: 0.528})).toBe('$0.00528');
-    });
-  });
-
   describe('utils.getBucket', () => {
     it('can get exact bucket by events', () => {
       const events = 100_000;

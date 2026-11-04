@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -65,13 +66,28 @@ const spansBreakdownWidget = {
 
 const selection = PageFiltersFixture();
 
-// Series name format for a grouped SPANS query: "<groupValue> : <aggregate>"
+function makeResult(
+  yAxis: string,
+  groupBy: Array<{key: string; value: string}>,
+  value: number
+): WidgetTimeSeries {
+  const groupName = groupBy.map(group => group.value).join(',');
+  return {
+    queryIndex: 0,
+    widgetQuery: spansBreakdownWidget.queries[0]!,
+    // Series name format for a grouped query: "<groupValue> : <aggregate>"
+    seriesName: `${groupName} : ${yAxis}`,
+    timeSeries: {
+      yAxis,
+      groupBy,
+      values: [{timestamp: 1_000_000, value}],
+      meta: {interval: 300_000, valueType: 'integer', valueUnit: null},
+    },
+  };
+}
+
 const timeseriesResults = [
-  {
-    seriesName: 'my_transaction : count()',
-    data: [{name: 1_000_000, value: 10}],
-    color: '#000',
-  },
+  makeResult('count()', [{key: 'transaction', value: 'my_transaction'}], 10),
 ];
 
 // tableResults must be non-empty to trigger showBreakdownData
@@ -139,16 +155,22 @@ describe('VisualizationWidget breakdown series labels', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'gemini-3.7-flash,timed out : count()',
-            data: [{name: 1_000_000, value: 4}],
-            color: '#000',
-          },
-          {
-            seriesName: 'gemini-3.7-flash,connection refused : count()',
-            data: [{name: 1_000_000, value: 1}],
-            color: '#000',
-          },
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'timed out'},
+            ],
+            4
+          ),
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'connection refused'},
+            ],
+            1
+          ),
         ],
         tableResults: [
           {
@@ -277,11 +299,7 @@ describe('VisualizationWidget threshold time windows', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'v1 : sum(session)',
-            data: [{name: 1_000_000, value: 10}],
-            color: '#000',
-          },
+          makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
         ],
         timeseriesInterval: '1h',
         loading: false,

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -12,7 +13,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 ):
     dataset = "uptime_results"
 
-    def build_expected_result(self, **kwargs):
+    def build_expected_result(self, **kwargs: object) -> dict[str, Any]:
         return {"project.name": None, **kwargs}
 
     @pytest.mark.querybuilder

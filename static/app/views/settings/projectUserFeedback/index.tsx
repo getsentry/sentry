@@ -54,9 +54,12 @@ export default function ProjectUserFeedback() {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body: any) {
+        // oxlint-disable-next-line react/todo
         this._submitInProgress = true;
         window.setTimeout(() => {
+          // oxlint-disable-next-line react/todo
           this._submitInProgress = false;
+          // oxlint-disable-next-line react/todo
           this.onSuccess();
         }, 500);
       };

@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as analytics from 'sentry/utils/analytics';
-import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRule';
 

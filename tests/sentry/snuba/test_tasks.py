@@ -378,6 +378,34 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
                 == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPItems.value}/subscriptions/{subscription_id}"
             )
 
+    def test_performance_metrics_skips_snuba(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            dataset=Dataset.PerformanceMetrics,
+            query='http.url:"http://example.com/*"',
+            aggregate="p90(transaction.duration)",
+        )
+        with patch.object(_snuba_pool, "urlopen") as urlopen:
+            delete_subscription_from_snuba(sub.id)
+        urlopen.assert_not_called()
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_performance_metrics_disabled_clears_subscription_id(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.DISABLED,
+            subscription_id=f"1/{uuid4().hex}",
+            dataset=Dataset.PerformanceMetrics,
+            query='http.url:"http://example.com/*"',
+            aggregate="p90(transaction.duration)",
+        )
+        with patch.object(_snuba_pool, "urlopen") as urlopen:
+            delete_subscription_from_snuba(sub.id)
+        urlopen.assert_not_called()
+        sub.refresh_from_db()
+        assert sub.subscription_id is None
+
     def test_no_subscription_id(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.DELETING)
         assert sub.subscription_id is None

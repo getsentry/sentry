@@ -1,7 +1,9 @@
 from io import BytesIO
+from typing import Any
 
 from django.urls import reverse
 
+from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -34,19 +36,19 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
             build_number=42,
         )
 
-    def _get_url(self, artifact_id=None):
+    def _get_url(self, artifact_id: int | None = None) -> str:
         artifact_id = artifact_id or self.preprod_artifact.id
         return reverse(
             self.endpoint,
             args=[self.organization.slug, artifact_id],
         )
 
-    def _create_analysis_file(self, data):
+    def _create_analysis_file(self, data: dict[str, Any]) -> File:
         f = self.create_file(name="analysis.json", type="application/json")
         f.putfile(BytesIO(json.dumps(data).encode()))
         return f
 
-    def _make_analysis_data(self, **overrides):
+    def _make_analysis_data(self, **overrides: Any) -> dict[str, Any]:
         defaults = {
             "analysis_duration": 1.5,
             "download_size": 512000,

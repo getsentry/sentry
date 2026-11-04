@@ -15,9 +15,9 @@ import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {NoContext} from 'sentry/views/discover/table/quickContext/noContext';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
-import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,
   ContextContainer,

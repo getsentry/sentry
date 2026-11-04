@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {ExternalLink} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -19,16 +20,12 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -49,7 +46,6 @@ import {
   DoubleChartRow,
   TripleChartRow,
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {Table} from 'sentry/views/performance/table';
@@ -79,6 +75,12 @@ const FRONTEND_COLUMN_TITLES = [
   {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
+const searchParamsParsers = {
+  cursor: parseAsString,
+  query: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+};
+
 interface Am1FrontendOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -94,9 +96,8 @@ export function Am1FrontendOverviewPage({
   const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
+  const [, setSearchParams] = useQueryStates(searchParamsParsers);
   const {teams} = useUserTeams();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
@@ -156,19 +157,14 @@ export function Am1FrontendOverviewPage({
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
   ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-    ],
-    mepSetting
-  );
+  const tripleChartRowCharts = [
+    PerformanceWidgetSetting.TPM_AREA,
+    PerformanceWidgetSetting.P50_DURATION_AREA,
+    PerformanceWidgetSetting.P75_DURATION_AREA,
+    PerformanceWidgetSetting.P95_DURATION_AREA,
+    PerformanceWidgetSetting.P99_DURATION_AREA,
+    PerformanceWidgetSetting.FAILURE_RATE_AREA,
+  ];
 
   if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
@@ -193,15 +189,14 @@ export function Am1FrontendOverviewPage({
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.frontend.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
+    setSearchParams(
+      {
+        cursor: null,
+        query: String(searchQuery).trim() || null,
         isDefaultQuery: false,
       },
-    });
+      {history: 'push'}
+    );
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);

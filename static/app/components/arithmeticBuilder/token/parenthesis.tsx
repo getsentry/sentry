@@ -30,7 +30,7 @@ export function ArithmeticTokenParenthesis({
 
   return (
     <DeletableToken label={side} item={item} state={state} token={token}>
-      <IconParenthesis side={side} height={26} />
+      <IconParenthesis side={side} size="lg" />
     </DeletableToken>
   );
 }

@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';
@@ -371,7 +371,7 @@ export default Storybook.story('SimpleTable', story => {
           to change how much room each row takes. Compressed tables use small text, a
           shorter header, tight cell padding, and no lines between rows, which suits long,
           scannable lists such as a replay's network requests. Comfortable tables give
-          their cells more padding.
+          their cells more padding and also leave out the lines between rows.
         </p>
 
         {DENSITIES.map(density => (

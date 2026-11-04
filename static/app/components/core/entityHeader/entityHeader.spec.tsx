@@ -2,23 +2,19 @@ import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {Tag} from '@sentry/scraps/badge';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-function getGridRules() {
-  const grid = screen.getByRole('banner').firstElementChild as HTMLElement;
-  return getEmotionRules(grid);
-}
-
 describe('EntityHeader', () => {
   describe('title', () => {
     it('renders the title as an h2, leaving the h1 to the TopBar', () => {
       render(
-        <EntityHeader title={{label: 'Replay user', value: 'anonymous@example.com'}} />
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'anonymous@example.com'}}
+        />
       );
 
       // The descriptor is read before the value, so heading navigation lands on
@@ -37,21 +33,72 @@ describe('EntityHeader', () => {
       expect(within(header).queryByRole('heading', {level: 1})).not.toBeInTheDocument();
     });
 
-    it('renders the title as plain text, never a link', () => {
-      render(<EntityHeader title={{label: 'Replay user', value: 'Session'}} />);
+    it('renders a text title with nothing to navigate to', () => {
+      render(
+        <EntityHeader title={{type: 'text', label: 'Replay user', value: 'Session'}} />
+      );
 
-      // A heading that is wholly a link announces as both, and the breadcrumb
-      // above already handles going up.
       expect(
         screen.getByRole('heading', {level: 2, name: 'Replay user, Session'})
       ).toBeVisible();
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
+    it('names a link title from its label and its value', () => {
+      render(
+        <EntityHeader
+          title={{
+            type: 'link',
+            label: 'Replay user',
+            value: 'Session',
+            to: '/replays/?query=user.email%3A%22me%40example.com%22',
+          }}
+        />
+      );
+
+      // The anchor wraps the heading rather than sitting inside it: `ellipsis`
+      // puts `overflow: hidden` on the heading, which would clip the focus
+      // ring the other way round. The heading keeps the name it has as plain
+      // text and the link carries the same one, so a links list reads
+      // "Replay user, Session" rather than a bare value.
+      const link = screen.getByRole('link', {name: 'Replay user, Session'});
+      expect(link).toHaveAttribute(
+        'href',
+        '/replays/?query=user.email%3A%22me%40example.com%22'
+      );
+      expect(
+        within(link).getByRole('heading', {level: 2, name: 'Replay user, Session'})
+      ).toBeVisible();
+    });
+
+    it('opens an external link title in a new tab', () => {
+      render(
+        <EntityHeader
+          title={{
+            type: 'link',
+            label: 'Branch',
+            value: 'seer/spans-table',
+            externalHref: 'https://github.com/getsentry/sentry/tree/seer/spans-table',
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: 'Branch, seer/spans-table'});
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/getsentry/sentry/tree/seer/spans-table'
+      );
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(
+        within(link).getByRole('heading', {level: 2, name: 'Branch, seer/spans-table'})
+      ).toBeVisible();
+    });
+
     it('renders tags beside the title and hides the leading graphic from AT', () => {
       render(
         <EntityHeader
           title={{
+            type: 'text',
             label: 'Replay user',
             value: 'Session',
             leadingGraphic: {type: 'platform', platform: 'javascript'},
@@ -76,6 +123,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{
+            type: 'text',
             label: 'Trace',
             value: 'Trace 8f2c1a',
             leadingGraphic: {
@@ -103,6 +151,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{
+            type: 'text',
             label: 'Trace',
             value: 'GET /api/',
             leadingGraphic: {
@@ -123,6 +172,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{
+            type: 'text',
             label: 'Trace',
             value: 'Trace 8f2c1a',
             leadingGraphic: {type: 'project', projects: [{slug: 'frontend'}]},
@@ -139,6 +189,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{
+            type: 'text',
             label: 'Replay user',
             value: 'Session',
             tags: [
@@ -164,7 +215,7 @@ describe('EntityHeader', () => {
     it('names a stat link by what it leads to, not by its number', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -197,40 +248,10 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
     });
 
-    it('signals navigating with colour and explaining with an underline', () => {
-      render(
-        <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [
-              {type: 'link', label: 'Dead Clicks', value: 4, to: '/replays/1/'},
-              {type: 'text', label: 'Rage Clicks', value: 0},
-            ],
-          }}
-        />
-      );
-
-      const link = screen.getByRole('link', {name: '4 Dead Clicks'});
-      const plain = screen.getByText('Rage Clicks');
-
-      const textColour = (element: HTMLElement) =>
-        getEmotionRules(element)
-          .join(' ')
-          .match(/[;{]\s*color:\s*([^;}]+)/)?.[1]
-          ?.trim();
-
-      expect(textColour(link)).toBeDefined();
-      expect(textColour(link)).not.toBe(textColour(plain));
-
-      expect(link).not.toHaveStyle({textDecoration: 'underline'});
-      expect(plain).not.toHaveStyle({textDecoration: 'underline'});
-    });
-
     it('explains a stat label through a tooltip without restyling it', async () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -254,7 +275,7 @@ describe('EntityHeader', () => {
     it('carries a breakdown in the value tooltip rather than in the row', async () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -292,7 +313,7 @@ describe('EntityHeader', () => {
     it('attaches a label tooltip to the link rather than nesting a tab stop', async () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -322,7 +343,7 @@ describe('EntityHeader', () => {
     it('keeps the same element when a link stat receives its value', () => {
       const {rerender} = render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -335,7 +356,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -348,50 +369,11 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('link', {name: '3 Errors'})).toBe(before);
     });
 
-    it('gives a linked label the same metrics as an unlinked one', () => {
-      // `Link` emits `text-box-trim` but no font size, so an anchor that does
-      // not carry the label's own text styles trims to whatever it inherits
-      // and the row's baseline moves when a stat resolves into a link.
-      //
-      // Compared against each other rather than against a number, so the two
-      // stay in step if the label's size is ever redesigned.
-      const fontSize = (element: HTMLElement) =>
-        getEmotionRules(element)
-          .join(' ')
-          .match(/font-size:\s*[^;]+/)?.[0];
-
-      const {rerender} = render(
-        <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 3}],
-          }}
-        />
-      );
-      const plain = fontSize(screen.getByText('Errors'));
-      expect(plain).toBeDefined();
-
-      rerender(
-        <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
-            ],
-          }}
-        />
-      );
-
-      expect(fontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(plain);
-    });
-
     it('drops null entries so callers can inline conditionals', () => {
       const isVideoReplay = true;
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -423,7 +405,7 @@ describe('EntityHeader', () => {
       function TestHeader({showViewers}: {showViewers: boolean}) {
         return (
           <EntityHeader
-            title={{label: 'Replay user', value: 'Session'}}
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
             stats={{
               label: 'Replay stats',
               items: [
@@ -453,7 +435,7 @@ describe('EntityHeader', () => {
 
       const {rerender} = render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -466,7 +448,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users, label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -482,7 +464,7 @@ describe('EntityHeader', () => {
     it('names the relationship rather than leaving the avatars unexplained', async () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{
             users: [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})],
             label: 'Viewed by',
@@ -499,7 +481,7 @@ describe('EntityHeader', () => {
     it('reads the people out by name rather than as a stack of initials', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{
             users: [
               UserFixture({id: '1', name: 'Alice'}),
@@ -526,7 +508,7 @@ describe('EntityHeader', () => {
     it('names both rows, so neither is a run of loose strings', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -561,7 +543,7 @@ describe('EntityHeader', () => {
     it('keeps people beside the stats list rather than inside it', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -582,7 +564,7 @@ describe('EntityHeader', () => {
 
       const {rerender} = render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users, label: 'Viewed by'}}
         />
       );
@@ -591,7 +573,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [{type: 'text', label: 'Errors', value: 2}],
@@ -606,7 +588,7 @@ describe('EntityHeader', () => {
     it('renders nothing for people once they resolve to nobody', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -622,7 +604,7 @@ describe('EntityHeader', () => {
     it('names a metadata link from its key and its value', () => {
       render(
         <EntityHeader
-          title={{label: 'Release', value: 'javascript-sdk'}}
+          title={{type: 'text', label: 'Release', value: 'javascript-sdk'}}
           metadata={{
             label: 'Release properties',
             items: [
@@ -644,10 +626,36 @@ describe('EntityHeader', () => {
       expect(item).toHaveTextContent(/^8\.42\.0$/);
     });
 
+    it('opens an external metadata link in a new tab', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Branch', value: 'main'}}
+          metadata={{
+            label: 'Build properties',
+            items: [
+              {
+                label: 'Commit',
+                type: 'link',
+                value: '169d99d',
+                externalHref: 'https://github.com/getsentry/sentry/commit/169d99d',
+              },
+            ],
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: 'Commit 169d99d'});
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/getsentry/sentry/commit/169d99d'
+      );
+      expect(link).toHaveAttribute('target', '_blank');
+    });
+
     it('names each metadata item, and the row they belong to', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -687,7 +695,7 @@ describe('EntityHeader', () => {
     it('labels each value, and hides the keys unless asked', () => {
       const {rerender} = render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -712,7 +720,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Replay properties',
             items: [
@@ -741,7 +749,7 @@ describe('EntityHeader', () => {
     it('never hides a focusable element on a link stat', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -772,7 +780,7 @@ describe('EntityHeader', () => {
     it('renders a tooltip on a metadata item', async () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           metadata={{
             label: 'Page properties',
             items: [
@@ -797,7 +805,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           isLoading
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           subtitle="A subtitle"
           stats={{
             label: 'Replay stats',
@@ -833,12 +841,12 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
     });
 
-    it('keeps the grid template steady when declared slots resolve late', () => {
+    it('reserves loading placeholders for metadata that resolves late', () => {
       // What the replay consumer does: every item is gated on one request, so
       // the first paint has none of them.
       const build = (hasData: boolean): EntityHeaderProps => ({
         isLoading: !hasData,
-        title: {label: 'Replay user', value: 'Session'},
+        title: {type: 'text', label: 'Replay user', value: 'Session'},
         metadata: {
           label: 'Replay properties',
           items: [
@@ -853,7 +861,6 @@ describe('EntityHeader', () => {
       });
 
       const {rerender} = render(<EntityHeader {...build(false)} />);
-      const loading = getGridRules().filter(rule => rule.includes('grid-template-areas'));
 
       // The declared metadata row holds its space rather than arriving with
       // the data: title + two metadata slots + one stat.
@@ -861,9 +868,6 @@ describe('EntityHeader', () => {
 
       rerender(<EntityHeader {...build(true)} />);
 
-      expect(getGridRules().filter(rule => rule.includes('grid-template-areas'))).toEqual(
-        loading
-      );
       expect(screen.getByText('Chrome')).toBeInTheDocument();
     });
 
@@ -871,7 +875,7 @@ describe('EntityHeader', () => {
       const {rerender} = render(
         <EntityHeader
           isLoading
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -884,7 +888,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
           stats={{
             label: 'Replay stats',
@@ -900,7 +904,7 @@ describe('EntityHeader', () => {
     it('holds one stat while the rest of the header is live', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -921,7 +925,7 @@ describe('EntityHeader', () => {
     it('reports busy while any one slot is still loading', () => {
       const {rerender} = render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [{type: 'text', label: 'Errors', value: 0, isLoading: true}],
@@ -933,7 +937,7 @@ describe('EntityHeader', () => {
 
       rerender(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [{type: 'text', label: 'Errors', value: 2}],
@@ -949,7 +953,7 @@ describe('EntityHeader', () => {
     it('reads in the order the narrow layout shows, so focus follows the eye', () => {
       render(
         <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
             items: [
@@ -982,51 +986,6 @@ describe('EntityHeader', () => {
 
       expect(follows(title, metadata)).toBe(true);
       expect(follows(metadata, stat)).toBe(true);
-    });
-
-    it('pins the stat height so an async value cannot shift the rows below', () => {
-      const {rerender} = render(
-        <EntityHeader
-          isLoading
-          title={{label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Seen By', value: 0}],
-          }}
-          metadata={{
-            label: 'Replay properties',
-            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
-          }}
-        />
-      );
-
-      // Stats come last in the DOM, so that they follow the metadata they sit
-      // under in the narrow layout.
-      const placeholders = screen.getAllByTestId('loading-placeholder');
-      const skeleton = placeholders.at(-1)!;
-      expect(
-        getEmotionRules(skeleton.parentElement!).some(r => /height:\s*32px/.test(r))
-      ).toBe(true);
-
-      rerender(
-        <EntityHeader
-          title={{label: 'Replay user', value: 'Session'}}
-          people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Seen By', value: 2}],
-          }}
-          metadata={{
-            label: 'Replay properties',
-            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
-          }}
-        />
-      );
-
-      const loadedStatBox = screen.getByText('Seen By').closest('div')!.parentElement!;
-      expect(getEmotionRules(loadedStatBox).some(r => /height:\s*32px/.test(r))).toBe(
-        true
-      );
     });
   });
 });

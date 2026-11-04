@@ -6,9 +6,8 @@ from django.urls.resolvers import URLPattern
 from django.views.generic import View
 
 from sentry import analytics
-from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.integrations.base import IntegrationProvider
-from sentry.notifications.models.notificationaction import ActionService, ActionTarget
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 
@@ -52,15 +51,10 @@ class MessagingIntegrationSpec(ABC):
         which require additional boilerplate.
         """
 
-        AlertRuleTriggerAction.register_factory(self.get_incident_handler_factory())
-
         if self.notify_service_action:
             rules.add(self.notify_service_action)
         if self.notification_sent:
             analytics.register(self.notification_sent)
-
-    def get_incident_handler_factory(self) -> ActionHandlerFactory:
-        return _MessagingHandlerFactory(self)
 
     @property
     @abstractmethod
@@ -141,13 +135,3 @@ class MessagingIntegrationSpec(ABC):
         class-level properties.
         """
         raise NotImplementedError
-
-
-class _MessagingHandlerFactory(ActionHandlerFactory):
-    def __init__(self, spec: MessagingIntegrationSpec) -> None:
-        super().__init__(
-            slug=spec.provider_slug,
-            service_type=spec.action_service,
-            supported_target_types=[ActionTarget.SPECIFIC],
-            integration_provider=spec.provider_slug,
-        )

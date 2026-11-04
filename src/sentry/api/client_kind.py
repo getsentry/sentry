@@ -19,6 +19,7 @@ from enum import StrEnum
 import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_sdk import traces
 
 from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
 from sentry.auth.services.auth import AuthenticatedToken
@@ -28,7 +29,6 @@ from sentry.seer.agent_token import is_agent_auth
 from sentry.utils import metrics
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
-from sentry.utils.tracing import set_span_data, start_span
 
 ATTRIBUTION_SPAN_OP = "api.attribution"
 
@@ -219,17 +219,27 @@ def _record_attribution_span(
     route it served rather than its caller's.
     """
     route = get_transaction_name_from_request(request)
-    with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
-        set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
-        set_span_data(span, "client_kind", client_kind.value)
+    with traces.start_span(
+        name=route,
+        attributes=(
+            {
+                "sentry.op": ATTRIBUTION_SPAN_OP,
+                ATTRIBUTE_NAMES.HTTP_ROUTE: route,
+                "client_kind": client_kind.value,
+            }
+        ),
+    ) as span:
         if client_host is not None:
-            set_span_data(span, "client_host", client_host)
+            span.set_attribute("client_host", client_host)
         if user_agent is not None:
-            set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+            span.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
-    # A token's own scopes; otherwise the access resolved for the request. Not every
-    # `request.auth` is a token: HMAC signature authentication sets it to a string.
-    get_token_scopes = getattr(request.auth, "get_scopes", None)
+    # A token's stored (untranslated) scopes; otherwise the access resolved for the
+    # request. Not every `request.auth` is a token: HMAC signature authentication sets
+    # it to a string, and the internal API client can pass a raw token model.
+    get_token_scopes = getattr(request.auth, "get_stored_scopes", None) or getattr(
+        request.auth, "get_scopes", None
+    )
     scopes = get_token_scopes() if get_token_scopes else request.access.scopes
     tags = {ATTRIBUTE_NAMES.HTTP_ROUTE: route, "client_kind": client_kind.value}
     if has_deprecated_scopes(scopes):

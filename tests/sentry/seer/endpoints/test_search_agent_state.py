@@ -19,13 +19,21 @@ class SearchAgentStateEndpointTest(APITestCase):
         mock_request.return_value = Mock(
             status=200, json=Mock(return_value={"session": {"status": "completed"}})
         )
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=42, user_id=self.user.id
+        )
         response = self.get_success_response(self.organization.slug, "42")
         assert response.data["session"]["status"] == "completed"
-        assert response.data["sentry_run_id"] is None
+        assert response.data["sentry_run_id"] == str(run.uuid)
         assert mock_request.call_args[0][0]["run_id"] == 42
 
+    def test_unmirrored_numeric_run_id_is_forbidden(self) -> None:
+        response = self.get_response(self.organization.slug, "42")
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have access to this run."}
+
     def test_uuid_returns_processing_when_outbox_not_drained(self) -> None:
-        run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY)
+        run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, user_id=self.user.id)
         response = self.get_success_response(self.organization.slug, str(run.uuid))
         assert response.data == {"session": {"status": "processing"}}
 
@@ -34,7 +42,9 @@ class SearchAgentStateEndpointTest(APITestCase):
         mock_request.return_value = Mock(
             status=200, json=Mock(return_value={"session": {"status": "completed"}})
         )
-        run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99)
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99, user_id=self.user.id
+        )
         response = self.get_success_response(self.organization.slug, str(run.uuid))
         assert response.data["session"]["status"] == "completed"
         assert response.data["sentry_run_id"] == str(run.uuid)
@@ -47,13 +57,17 @@ class SearchAgentStateEndpointTest(APITestCase):
 
     def test_wrong_org_returns_404(self) -> None:
         other_org = self.create_organization()
-        run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99)
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99, user_id=self.user.id
+        )
         response = self.get_response(other_org.slug, str(run.uuid))
         assert response.status_code in (403, 404)
 
     def test_uuid_returns_error_when_flush_failed(self) -> None:
         run = self.create_seer_run(
-            type=SeerRunType.ASSISTED_QUERY, mirror_status=SeerRunMirrorStatus.FAILED
+            type=SeerRunType.ASSISTED_QUERY,
+            mirror_status=SeerRunMirrorStatus.FAILED,
+            user_id=self.user.id,
         )
         response = self.get_success_response(self.organization.slug, str(run.uuid))
         assert response.data == {"session": {"status": "error"}}
@@ -61,3 +75,44 @@ class SearchAgentStateEndpointTest(APITestCase):
     def test_garbage_string_returns_400(self) -> None:
         response = self.get_response(self.organization.slug, "not-valid")
         assert response.status_code == 400
+
+    @patch("sentry.seer.endpoints.search_agent_state.make_search_agent_state_request")
+    def test_other_org_member_cannot_read_uuid_run(self, mock_request: Mock) -> None:
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99, user_id=self.user.id
+        )
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        self.login_as(other_user)
+
+        response = self.get_response(self.organization.slug, str(run.uuid))
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have access to this run."}
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.search_agent_state.make_search_agent_state_request")
+    def test_other_org_member_cannot_read_numeric_run(self, mock_request: Mock) -> None:
+        run = self.create_seer_run(
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=99, user_id=self.user.id
+        )
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        self.login_as(other_user)
+
+        response = self.get_response(self.organization.slug, str(run.seer_run_state_id))
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have access to this run."}
+        mock_request.assert_not_called()
+
+    def test_other_org_member_cannot_observe_pending_run(self) -> None:
+        run = self.create_seer_run(type=SeerRunType.ASSISTED_QUERY, user_id=self.user.id)
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        self.login_as(other_user)
+
+        response = self.get_response(self.organization.slug, str(run.uuid))
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have access to this run."}

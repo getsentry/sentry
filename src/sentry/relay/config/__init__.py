@@ -17,6 +17,7 @@ from sentry.constants import (
 )
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
@@ -58,17 +59,19 @@ EXPOSABLE_FEATURES = [
     "organizations:indexed-spans-extraction",
     "organizations:ourlogs-ingestion",
     "organizations:tracemetrics-ingestion",
-    "organizations:relay-automatic-json-expansion",
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
+    "organizations:relay-heroku-log-drain-endpoint",
     "organizations:relay-playstation-ingestion",
     "organizations:gpu-crash-symbolication",
+    "organizations:browser-report-ingestion",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
     "projects:relay-nintendo-event-rewrite",
     "projects:relay-upload-multipart",
+    "projects:resumable-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -149,11 +152,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     )
 
     if filter_features.custom_inbound_filters:
-        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
+        invalid_releases = legacy_filter_lists.get_applied_lines(project, FilterTypes.RELEASES)
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
+        error_messages = legacy_filter_lists.get_applied_lines(project, FilterTypes.ERROR_MESSAGES)
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -181,7 +184,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
+def get_quotas(
+    project: Project, keys: Iterable[ProjectKey] | None = None
+) -> list[dict[str, object]]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -295,7 +300,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
-def _browser_name_one_of(*args):
+def _browser_name_one_of(*args: str) -> dict[str, object]:
     """Returns a condition that matches if an event
     or span's browser name is one of the options in `args`.
 
@@ -814,7 +819,7 @@ def _get_project_config(
 
     with traces.start_span(name="get_public_config", attributes={"sentry.op": "get_public_config"}):
         now = datetime.now(timezone.utc)
-        cfg = {
+        cfg: dict[str, Any] = {
             "disabled": False,
             "slug": project.slug,
             "lastFetch": now,
@@ -849,7 +854,11 @@ def _get_project_config(
     with traces.start_span(
         name="get_exposed_features", attributes={"sentry.op": "get_exposed_features"}
     ):
-        if exposed_features := get_exposed_features(project):
+        exposed_features = list(get_exposed_features(project))
+        if project.get_option("sentry:relay_automatic_json_expansion"):
+            # This is a project option encoded as a feature, not an actual project flag.
+            exposed_features.append("projects:relay-automatic-json-expansion")
+        if exposed_features:
             config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number

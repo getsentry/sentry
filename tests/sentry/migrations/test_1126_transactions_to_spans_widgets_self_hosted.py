@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
@@ -11,7 +12,7 @@ class MigrateTransactionsToSpansWidgetsSelfHostedTest(TestMigrations, SnubaTestC
     migrate_from = "1125_transactions_to_spans_alerts_self_hosted"
     migrate_to = "1126_transactions_to_spans_widgets_self_hosted"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         DashboardWidget = apps.get_model("sentry", "DashboardWidget")
         DashboardWidgetQuery = apps.get_model("sentry", "DashboardWidgetQuery")
         Dashboard = apps.get_model("sentry", "Dashboard")
@@ -95,7 +96,7 @@ class MigrateTransactionsToSpansWidgetsSelfHostedTest(TestMigrations, SnubaTestC
             field_aliases=[],
         )
 
-    def test(self):
+    def test(self) -> None:
         DashboardWidgetQuery = self.apps.get_model("sentry", "DashboardWidgetQuery")
 
         self.transaction_widget.refresh_from_db()

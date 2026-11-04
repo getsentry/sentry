@@ -14,9 +14,8 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {Subscription} from 'getsentry/types';
-import {displayBudgetName} from 'getsentry/utils/billing';
+import {displayBudgetName, displayPrice} from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {Card, HalvedGrid} from './components/styles';
 import type {SpendAllocation} from './components/types';

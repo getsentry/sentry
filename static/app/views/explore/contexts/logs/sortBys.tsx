@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 export const LOGS_SORT_BYS_KEY = 'logsSortBys';

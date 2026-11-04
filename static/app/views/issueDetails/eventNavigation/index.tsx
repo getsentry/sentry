@@ -6,8 +6,9 @@ import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -303,7 +304,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   </Text>
                 </Flex>
               ) : (
-                <DropdownButton
+                <OverlayTrigger.Button
                   {...triggerProps}
                   isOpen={isOpen}
                   variant="transparent"
@@ -317,7 +318,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   <Text size="lg" bold variant="inherit">
                     {TabName[currentTab] ?? TabName[Tab.DETAILS]}
                   </Text>
-                </DropdownButton>
+                </OverlayTrigger.Button>
               )
             }
           />

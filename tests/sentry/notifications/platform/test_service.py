@@ -27,7 +27,7 @@ from sentry.notifications.platform.target import (
     serialize_target,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
-from sentry.notifications.platform.tracking import NotificationTrackingContext
+from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationProviderKey,
@@ -123,11 +123,12 @@ class NotificationServiceTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
 
-        result = NotificationService.render_template(
+        result, links = NotificationService.render_template(
             data=data, template=template, provider=EmailNotificationProvider
         )
 
         assert isinstance(result, EmailMultiAlternatives)
+        assert links == set()
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_basic_notify_target_async(self, mock_record: mock.MagicMock) -> None:
@@ -206,7 +207,7 @@ class NotificationServiceTest(TestCase):
         assert_count_of_metric(mock_record, EventLifecycleOutcome.STARTED, 2)
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 2)
 
-    @mock.patch("sentry.notifications.platform.service.NotificationService.render_template")
+    @mock.patch.object(MockNotificationTemplate, "render")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_render_error_records_failure_and_raises(
         self, mock_record: mock.MagicMock, mock_render: mock.MagicMock
@@ -334,7 +335,7 @@ class NotificationServiceRecordSentTest(TestCase):
 
         NotificationService(data=self.data).notify_target(target=self.target)
 
-        mock_record_sent.assert_called_once_with(self.expected_context())
+        mock_record_sent.assert_called_once_with(self.expected_context(), links=set())
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_records_successful_async_send(
@@ -345,7 +346,27 @@ class NotificationServiceRecordSentTest(TestCase):
         with self.tasks():
             NotificationService(data=self.data).notify_async(targets=[self.target])
 
-        mock_record_sent.assert_called_once_with(self.expected_context())
+        mock_record_sent.assert_called_once_with(self.expected_context(), links=set())
+
+    @override_options(
+        {"notifications.tracking.sources": ["test"], "system.url-prefix": "https://sentry.io"}
+    )
+    @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
+    def test_tracked_send_decorates_and_records_links(
+        self, mock_send: mock.MagicMock, mock_record_sent: mock.MagicMock
+    ) -> None:
+        mock_send.return_value = SendSuccessResult()
+
+        NotificationService(data=self.data).notify_target(target=self.target)
+
+        email = mock_send.call_args.kwargs["renderable"]
+        assert (
+            "https://sentry.io/issue/1?referrer=test-email&amp;notification_uuid="
+            f"{self.data.notification_uuid}"
+        ) in email.alternatives[0][0]
+        mock_record_sent.assert_called_once_with(
+            self.expected_context(), links={NotificationLink.OTHER}
+        )
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_does_not_record_failed_send(

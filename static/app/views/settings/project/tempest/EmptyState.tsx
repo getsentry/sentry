@@ -58,16 +58,14 @@ export function EmptyState({
     <div>
       <HeaderWrapper>
         <Title>{t('Get Started with PlayStation Error Monitoring')}</Title>
-        <Description>
-          {t('Your code sleuth eagerly awaits its first mission.')}
-        </Description>
+        <Container>{t('Your code sleuth eagerly awaits its first mission.')}</Container>
         <Container display={{zero: 'none', '2xl': 'contents'}}>
           <Image src={waitingForEventImg} />
         </Container>
       </HeaderWrapper>
       <Divider />
-      <Body>
-        <Setup>
+      <Container>
+        <Container padding="3xl">
           <BodyTitle>{t('Install instructions')}</BodyTitle>
           <Alert.Container>
             <Alert variant="info">
@@ -91,11 +89,11 @@ export function EmptyState({
               stepKey="step-1"
               title={t('Retrieve Back Office Server Credential from Sony')}
             >
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {t(
                   'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest. To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
                 )}
-              </DescriptionWrapper>
+              </Container>
               <Stack align="end" gap="xl">
                 <StyledSimpleTable
                   columns={CREDENTIAL_COLUMNS}
@@ -137,12 +135,12 @@ export function EmptyState({
             </GuidedSteps.Step>
 
             <GuidedSteps.Step stepKey="step-2" title={t('Allow list our IP Addresses:')}>
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {ALLOWLIST_IP_ADDRESSES_DESCRIPTION}
                 <CodeSnippetWrapper>
                   <AllowListIPAddresses />
                 </CodeSnippetWrapper>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
@@ -151,7 +149,7 @@ export function EmptyState({
               title={t('Configure data collection')}
               optional
             >
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 <p>
                   {t(
                     'You can toggle "Attach Dumps" in which case Sentry will add the prosperodumps as an attachment to the issues.'
@@ -167,19 +165,19 @@ export function EmptyState({
                     'Both screenshots and crash dump files consume from your attachments quota.'
                   )}
                 </p>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
             <GuidedSteps.Step stepKey="step-4" title={t('Look at events')}>
-              <DescriptionWrapper>
+              <Container marginBottom="md">
                 {t(
                   'Once you provided credentials, Sentry will make an initial request to verify the credentials are correct and the IPs are allowlisted, if either of these are not the case an error will be displayed in the UI. After that new crashes are pulled once every minute. Events generated from crashes can be filtered using:'
                 )}{' '}
                 <OnboardingCodeSnippet language="javascript">
                   os.name:PlayStation
                 </OnboardingCodeSnippet>
-              </DescriptionWrapper>
+              </Container>
               <GuidedSteps.StepButtons>
                 <Button
                   size="sm"
@@ -198,8 +196,8 @@ export function EmptyState({
               </GuidedSteps.StepButtons>
             </GuidedSteps.Step>
           </GuidedSteps>
-        </Setup>
-      </Body>
+        </Container>
+      </Container>
     </div>
   );
 }
@@ -208,8 +206,6 @@ const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
-
-const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
@@ -226,12 +222,6 @@ const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
   margin-bottom: 0;
 `;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const Body = styled('div')``;
 
 const Image = styled('img')`
   position: absolute;
@@ -256,10 +246,6 @@ const Divider = styled('hr')`
 const CodeSnippetWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
   margin-top: ${p => p.theme.space.xl};
-`;
-
-const DescriptionWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const BoldText = styled('span')`

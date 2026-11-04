@@ -1,4 +1,4 @@
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -37,9 +37,16 @@ export function MetricInfoTabs({
       }}
       size="md"
     >
-      <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
+      <Stack
+        height="100%"
+        minHeight="0"
+        paddingRight="xl"
+        paddingLeft="xl"
+        paddingBottom="md"
+        paddingTop="md"
+      >
         {visualize.visible ? (
-          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center">
+          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center" flexShrink={0}>
             <TabList variant="floating">
               <TabList.Item
                 key={Mode.SAMPLES}
@@ -58,7 +65,7 @@ export function MetricInfoTabs({
           </Grid>
         ) : null}
         {visualize.visible ? (
-          <Container height="312px">
+          <Container flex="1" minHeight="0">
             <StyledTabPanels>
               <TabPanels.Item key={Mode.AGGREGATE}>
                 <AggregatesTab
@@ -75,7 +82,7 @@ export function MetricInfoTabs({
             </StyledTabPanels>
           </Container>
         ) : null}
-      </Container>
+      </Stack>
     </TabStateProvider>
   );
 }

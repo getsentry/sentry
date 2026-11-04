@@ -267,6 +267,14 @@ describe('ConnectedRepositoriesPanel', () => {
     let mappingCount = 1;
 
     MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
       body: () => [
@@ -375,6 +383,14 @@ describe('ConnectedRepositoriesPanel', () => {
     const integration = GitHubIntegrationFixture();
     let connectedRepos: Array<Record<string, unknown>> = [];
 
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
     MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',

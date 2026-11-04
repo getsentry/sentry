@@ -10,7 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {IntegrationChannel} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 const organization = OrganizationFixture();

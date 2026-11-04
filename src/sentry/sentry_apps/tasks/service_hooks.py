@@ -1,4 +1,5 @@
 from time import time
+from typing import Any, cast
 
 from taskbroker_client.retry import Retry
 
@@ -11,13 +12,14 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_tasks
-from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 from sentry.utils.cache import cache
 
 
-def get_payload_v0(event):
-    group = event.group
+def get_payload_v0(
+    event: Event | GroupEvent,
+) -> dict[str, Any]:
+    group = cast("Group", event.group)
     project = group.project
 
     group_context = serialize(group)
@@ -90,14 +92,12 @@ def process_service_hook(
     else:
         raise NotImplementedError
 
-    from sentry import tsdb
-
-    tsdb.backend.incr(TSDBModel.servicehook_fired, servicehook.id)
-
+    guid = servicehook.guid
+    assert guid is not None
     headers = {
         "Content-Type": "application/json",
         "X-ServiceHook-Timestamp": str(int(time())),
-        "X-ServiceHook-GUID": servicehook.guid,
+        "X-ServiceHook-GUID": guid,
         "X-ServiceHook-Signature": servicehook.build_signature(payload),
     }
 

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -25,6 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
+import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
 import {
   AggregateCompactSelect,
   getAggregateValueKey,
@@ -32,10 +32,10 @@ import {
   NONE,
   parseAggregateFromValueKey,
   PrimarySelectRow,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+  ColumnCompactSelect,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -47,10 +47,10 @@ import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTrace
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
   withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type AggregateFunction = [
@@ -877,15 +877,6 @@ export function SelectRow({
     </Stack>
   );
 }
-
-export const ColumnCompactSelect = styled(CompactSelect)`
-  flex: 1 1 auto;
-  min-width: 0;
-
-  > button {
-    width: 100%;
-  }
-`;
 
 const SelectWrapper = styled('div')`
   display: contents;

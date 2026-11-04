@@ -1,4 +1,4 @@
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';

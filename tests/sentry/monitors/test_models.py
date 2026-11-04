@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 from unittest import mock
 
+import jsonschema
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
@@ -283,6 +284,9 @@ class MonitorEnvironmentTestCase(TestCase):
 
         assert len(cm.records) == 1
         assert "invalid config" in cm.records[0].message
+        exc_info = cm.records[0].exc_info
+        assert exc_info is not None
+        assert isinstance(exc_info[1], jsonschema.ValidationError)
 
     def test_build_occurrence_fingerprint(self) -> None:
         """Test that build_occurrence_fingerprint returns the expected format"""
@@ -341,6 +345,15 @@ class MonitorEnvironmentTestCase(TestCase):
             self.project, unmuted_monitor, "staging"
         )
         assert unmuted_env.is_muted is False
+
+    def test_ensure_environment_existing_skips_muted_check(self) -> None:
+        monitor = self.create_monitor()
+        MonitorEnvironment.objects.ensure_environment(self.project, monitor, "production")
+
+        with mock.patch("sentry.monitors.models.is_monitor_muted") as mock_is_muted:
+            MonitorEnvironment.objects.ensure_environment(self.project, monitor, "production")
+
+        mock_is_muted.assert_not_called()
 
 
 class CronMonitorDataSourceHandlerTest(TestCase):

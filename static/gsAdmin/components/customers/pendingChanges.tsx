@@ -10,12 +10,15 @@ import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan, Subscription} from 'getsentry/types';
-import {displayBudgetName, formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  displayPriceWithCents,
+  formatReservedWithUnits,
+} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {
   formatOnDemandBudget,
   isOnDemandBudgetsEqual,

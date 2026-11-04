@@ -1,11 +1,9 @@
 from dataclasses import replace
-from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
 
 from sentry.eventstream.base import GroupState
-from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -13,7 +11,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestFirstSeenEventCondition(ConditionTestCase):
     condition = Condition.FIRST_SEEN_EVENT
-    payload: Mapping[str, Any] = {"id": FirstSeenEventCondition.id}
 
     def setUp(self) -> None:
         super().setUp()
@@ -35,15 +32,6 @@ class TestFirstSeenEventCondition(ConditionTestCase):
             comparison=True,
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison is True
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         dc = self.create_data_condition(

@@ -11,11 +11,11 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {useScmProjectDetails, getSubmitTooltipText} from './useScmProjectDetails';
 

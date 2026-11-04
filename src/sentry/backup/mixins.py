@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from sentry.backup.dependencies import ImportKind, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -49,4 +51,7 @@ class OverwritableConfigMixin:
                         return (self.pk, ImportKind.Overwrite)
 
         # Does not have a single colliding unique field - write as usual.
-        return super().write_relocation_import(scope, flags)  # type: ignore[misc]
+        return cast(
+            "tuple[int, ImportKind] | None",
+            super().write_relocation_import(scope, flags),  # type: ignore[misc]
+        )

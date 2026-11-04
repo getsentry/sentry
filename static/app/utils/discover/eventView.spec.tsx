@@ -1618,42 +1618,6 @@ describe('EventView.getEventsAPIPayload()', () => {
   });
 });
 
-describe('EventView.getFacetsAPIPayload()', () => {
-  it('only includes relevant query strings', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', AggregationKey.COUNT]),
-      query: 'event.type:csp',
-    });
-
-    const location = LocationFixture({
-      query: {
-        start: '',
-        end: '',
-        utc: 'true',
-        statsPeriod: '14d',
-
-        // irrelevant query strings
-        bestCountry: 'canada',
-        cursor: 'some cursor',
-        sort: 'the world',
-        project: '1234',
-        environment: ['staging'],
-        display: 'releases',
-      },
-    });
-
-    expect(eventView.getFacetsAPIPayload(location)).toEqual({
-      project: [],
-      environment: [],
-      statsPeriod: '14d',
-
-      query: 'event.type:csp',
-    });
-  });
-});
-
 describe('EventView.toNewQuery()', () => {
   const state: ConstructorParameters<typeof EventView>[0] = {
     ...REQUIRED_CONSTRUCTOR_PROPS,
@@ -3754,56 +3718,6 @@ describe('isAPIPayloadSimilar', () => {
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
 
       expect(results).toBe(false);
-    });
-  });
-
-  describe('getFacetsAPIPayload', () => {
-    it('only includes relevant parameters', () => {
-      const thisEventView = new EventView(state);
-      const location = LocationFixture();
-      const results = thisEventView.getFacetsAPIPayload(location);
-      const expected = {
-        query: state.query,
-        project: ['42'],
-        statsPeriod: state.statsPeriod,
-        environment: state.environment,
-      };
-
-      expect(results).toEqual(expected);
-    });
-
-    it('is similar on sort key sorted in opposite directions', () => {
-      const thisEventView = new EventView(state);
-      const location = LocationFixture();
-      const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
-
-      const newColumn: Column = {
-        kind: 'function',
-        function: [AggregationKey.COUNT, '', undefined, undefined],
-      };
-
-      const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture();
-      const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-      expect(results).toBe(true);
-    });
-
-    it('is similar when a columns are different', () => {
-      const thisEventView = new EventView(state);
-      const location = LocationFixture();
-      const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
-
-      const otherEventView = new EventView({
-        ...state,
-        fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
-      });
-      const otherLocation = LocationFixture();
-      const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
-
-      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-      expect(results).toBe(true);
     });
   });
 });

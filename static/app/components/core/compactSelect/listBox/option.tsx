@@ -1,5 +1,4 @@
-import {Fragment, useContext, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
+import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
@@ -8,17 +7,23 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ControlContext, HighlightText, LeadWrap} from '@sentry/scraps/compactSelect';
+import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
+import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+  ControlContext,
+  ListItem,
+  useReserveLeadingSlot,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
+
+export const ListBoxDetailsHoverContext = createContext<
+  ((isHovered: boolean, event: React.PointerEvent) => void) | undefined
+>(undefined);
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: MenuListItemProps['size'];
+  size: ListItemProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -56,6 +61,7 @@ export function ListBoxOption({
     useOption({key: item.key, 'aria-label': item['aria-label']}, listState, ref);
 
   const {search, highlightSearch} = useContext(ControlContext);
+  const onDetailsHoverChange = useContext(ListBoxDetailsHoverContext);
   const renderedLabel =
     highlightSearch && search && typeof label === 'string' ? (
       <HighlightText text={label} query={search} />
@@ -72,7 +78,8 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = item.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -96,16 +103,31 @@ export function ListBoxOption({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} />
+            isSelected && <IconCheckmark size={checkboxSize} variant="accent" />
           )}
         </LeadWrap>
-        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap aria-hidden="true" minWidth={reserveLeadingSlot ? '16px' : undefined}>
+            {leading}
+          </LeadWrap>
+        ) : null}
       </Fragment>
     );
-  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
+  }, [
+    size,
+    leadingItems,
+    isDisabled,
+    isFocused,
+    isSelected,
+    hideCheck,
+    multiple,
+    reserveLeadingSlot,
+  ]);
 
   return (
-    <StyledMenuListItem
+    <ListItem
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
@@ -116,20 +138,21 @@ export function ListBoxOption({
       isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
+      innerWrapProps={{
+        paddingLeft: getOptionPaddingLeft({
+          hasCheck: !hideCheck,
+          hasLeadingItems: Boolean(leadingItems) || reserveLeadingSlot,
+        }),
+      }}
       trailingItems={trailingItems}
       showDetailsInOverlay={showDetailsInOverlay}
+      onDetailsHoverChange={onDetailsHoverChange}
       tooltip={tooltip}
       tooltipOptions={tooltipOptions}
       data-test-id={item.key}
     />
   );
 }
-
-const StyledMenuListItem = styled(MenuListItem)`
-  > ${InnerWrap} {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;

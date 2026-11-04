@@ -1,11 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {IconMail} from '@sentry/icons/mail';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,14 +13,10 @@ import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -45,8 +41,22 @@ import {OrganizationMemberRow} from './organizationMemberRow';
 
 const MemberListHeader = OverrideOrDefault({
   overrideName: 'component:member-list-header',
-  defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
+  defaultComponent: () => null,
 });
+
+const MEMBER_COLUMNS: TableColumnConfig[] = [
+  {key: 'member', width: 'minmax(150px, 1fr)'},
+  {key: 'role', width: 'max-content'},
+  {key: 'status', width: 'max-content'},
+  {key: 'actions', width: 'max-content'},
+];
+
+const INVITE_REQUEST_COLUMNS: TableColumnConfig[] = [
+  {key: 'member', width: 'minmax(150px, 2fr)'},
+  {key: 'role', width: 'minmax(170px, 1fr)'},
+  {key: 'teams', width: 'minmax(170px, 1.5fr)'},
+  {key: 'actions', width: 'max-content'},
+];
 
 const InviteMembersButtonHook = OverrideOrDefault({
   overrideName: 'member-invite-button:customization',
@@ -355,16 +365,21 @@ function OrganizationMembersList() {
         }}
         allowedRoles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
       />
-      {!isDemoModeActive() && inviteRequests.length > 0 && (
-        <Panel>
-          <PanelHeader>
-            <StyledPanelItem>
-              <div>{t('Pending Members')}</div>
-              <div>{t('Role')}</div>
-              <div>{t('Teams')}</div>
-            </StyledPanelItem>
-          </PanelHeader>
-          <PanelBody>
+      <Stack gap="lg">
+        {!isDemoModeActive() && inviteRequests.length > 0 && (
+          <SimpleTable
+            aria-label={t('Pending Members')}
+            columns={INVITE_REQUEST_COLUMNS}
+            scrollable
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Pending Members')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Role')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Teams')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell aria-label={t('Actions')} />
+              </SimpleTable.HeaderRow>
+            }
+          >
             {inviteRequests.map(inviteRequest => (
               <InviteRequestRow
                 key={inviteRequest.id}
@@ -377,10 +392,8 @@ function OrganizationMembersList() {
                 onUpdate={data => updateInviteRequest(inviteRequest.id, data)}
               />
             ))}
-          </PanelBody>
-        </Panel>
-      )}
-      <SearchWrapperWithFilter>
+          </SimpleTable>
+        )}
         <Flex align="center" gap="lg">
           <MembersFilter
             roles={currentMember?.orgRoleList ?? currentMember?.roles ?? ORG_ROLES}
@@ -399,60 +412,56 @@ function OrganizationMembersList() {
           </Container>
           {action}
         </Flex>
-      </SearchWrapperWithFilter>
-      <Panel data-test-id="org-member-list">
-        <MemberListHeader members={membersToShow} organization={organization} />
-        <PanelBody>
+        <SimpleTable
+          aria-label={t('Members')}
+          columns={MEMBER_COLUMNS}
+          data-test-id="org-member-list"
+          scrollable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Members')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Role')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell aria-label={t('Actions')} />
+            </SimpleTable.HeaderRow>
+          }
+        >
+          <MemberListHeader members={membersToShow} organization={organization} />
           {isPendingMembers || isPendingOwners ? (
-            <LoadingIndicator />
+            <SimpleTable.Loading />
+          ) : membersToShow.length === 0 ? (
+            <SimpleTable.Empty>{t('No members found.')}</SimpleTable.Empty>
           ) : (
-            <Fragment>
-              {membersToShow.map(member => (
-                <OrganizationMemberRow
-                  key={member.id}
-                  organization={organization}
-                  member={member}
-                  status={invited[member.id]!}
-                  memberCanLeave={
-                    !(
-                      isOnlyOwner ||
-                      member.flags['idp:provisioned'] ||
-                      member.flags['partnership:restricted']
-                    )
-                  }
-                  currentUser={currentUser}
-                  canRemoveMembers={canRemove}
-                  canAddMembers={canAddMembers}
-                  requireLink={requireLink}
-                  onSendInvite={handleSendInvite}
-                  onRemove={handleRemove}
-                  onLeave={handleLeave}
-                />
-              ))}
-              {membersToShow.length === 0 && (
-                <EmptyMessage>{t('No members found.')}</EmptyMessage>
-              )}
-            </Fragment>
+            membersToShow.map(member => (
+              <OrganizationMemberRow
+                key={member.id}
+                organization={organization}
+                member={member}
+                status={invited[member.id]!}
+                memberCanLeave={
+                  !(
+                    isOnlyOwner ||
+                    member.flags['idp:provisioned'] ||
+                    member.flags['partnership:restricted']
+                  )
+                }
+                currentUser={currentUser}
+                canRemoveMembers={canRemove}
+                canAddMembers={canAddMembers}
+                requireLink={requireLink}
+                onSendInvite={handleSendInvite}
+                onRemove={handleRemove}
+                onLeave={handleLeave}
+              />
+            ))
           )}
-        </PanelBody>
-      </Panel>
+        </SimpleTable>
+      </Stack>
 
       <Pagination pageLinks={membersPageLinks} />
     </Fragment>
   );
 }
-
-const SearchWrapperWithFilter = styled('div')`
-  margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const StyledPanelItem = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(150px, auto) minmax(100px, 140px) 420px;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-  width: 100%;
-`;
 
 export default OrganizationMembersList;
 

@@ -1,14 +1,21 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework import status
 
-from sentry import options
+from sentry import audit_log, options
 from sentry.models.apitoken import ApiToken
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.orgauthtoken import (
+    ORG_AUTH_TOKEN_ALLOWED_SCOPES,
+    ORG_AUTH_TOKEN_FORBIDDEN_SCOPES,
+    OrgAuthToken,
+)
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.cell import get_cell_by_name
-from sentry.utils.security.orgauthtoken_token import parse_token
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token, parse_token
 
 
 @control_silo_test
@@ -250,3 +257,283 @@ class OrganizationAuthTokensImpersonationTest(APITestCase):
         with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+@control_silo_test(cells=create_test_cells("us"))
+class OrganizationAuthTokensOAuthTest(APITestCase):
+    endpoint = "sentry-api-0-org-auth-tokens"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = self.create_api_application(owner=self.user)
+
+    def oauth_headers(self, scope_list: list[str]) -> dict[str, str]:
+        self.oauth_token = ApiToken.objects.create(
+            user=self.user, application=self.application, scope_list=scope_list
+        )
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.oauth_token.token}"}
+
+    def test_create(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:ci", "org:tokens"]),
+        )
+        assert response.data["token"]
+        assert response.data["scopes"] == ["org:ci"]
+
+        token = OrgAuthToken.objects.get(id=response.data["id"])
+        assert token.organization_id == self.organization.id
+        assert token.created_by_id == self.user.id
+
+        entry = AuditLogEntry.objects.get(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
+        )
+        assert entry.target_object == token.id
+        assert entry.data["application_id"] == self.application.id
+        assert entry.data["api_token_id"] == self.oauth_token.id
+
+    def test_create_requires_issuing_token_to_hold_minted_scopes(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
+        )
+        assert response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:ci"'
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_rejects_scopes_outside_allowlist(self) -> None:
+        for scopes in (["org:ci", "project:releases"], ["org:tokens"], ["org:admin"]):
+            response = self.get_error_response(
+                self.organization.slug,
+                method="POST",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                name="cli token",
+                scopes=scopes,
+                extra_headers=self.oauth_headers(
+                    ["org:read", "org:admin", "org:ci", "org:tokens", "project:releases"]
+                ),
+            )
+            assert "cannot be granted" in response.data["detail"]
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_rejects_malformed_scopes(self) -> None:
+        for scopes in ([], "org:ci", [1]):
+            self.get_error_response(
+                self.organization.slug,
+                method="POST",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                name="cli token",
+                scopes=scopes,
+                extra_headers=self.oauth_headers(["org:read", "org:ci", "org:tokens"]),
+            )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    @patch(
+        "sentry.api.endpoints.organization_auth_tokens.ORG_AUTH_TOKEN_ALLOWED_SCOPES",
+        frozenset({"org:ci", "project:releases", "org:tokens"}),
+    )
+    def test_minted_scopes_are_subset_of_issuer_scopes(self) -> None:
+        issuer_scopes = ["org:read", "org:ci", "org:tokens"]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="too broad",
+            scopes=["org:ci", "project:releases"],
+            extra_headers=self.oauth_headers(issuer_scopes),
+        )
+        assert (
+            response["WWW-Authenticate"]
+            == 'Bearer error="insufficient_scope", scope="project:releases"'
+        )
+
+        # org:tokens is always stripped from what can be minted, even if the issuer holds it.
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            name="minting token",
+            scopes=["org:ci", "org:tokens"],
+            extra_headers=self.oauth_headers(issuer_scopes),
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="narrower",
+            scopes=["org:ci"],
+            extra_headers=self.oauth_headers(issuer_scopes + ["project:releases"]),
+        )
+        assert response.data["scopes"] == ["org:ci"]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="equal",
+            scopes=["org:ci", "project:releases"],
+            extra_headers=self.oauth_headers(issuer_scopes + ["project:releases"]),
+        )
+        assert response.data["scopes"] == ["org:ci", "project:releases"]
+
+    def test_minted_token_cannot_mint_tokens(self) -> None:
+        assert not ORG_AUTH_TOKEN_FORBIDDEN_SCOPES & ORG_AUTH_TOKEN_ALLOWED_SCOPES
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:ci", "org:tokens"]),
+        )
+        assert "org:tokens" not in response.data["scopes"]
+
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="nested token",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {response.data['token']}"},
+        )
+        assert OrgAuthToken.objects.filter(organization_id=self.organization.id).count() == 1
+
+    def test_create_from_session_has_no_issuing_token_audit_data(self) -> None:
+        self.login_as(self.user)
+        response = self.get_success_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_201_CREATED,
+            name="ui token",
+        )
+        entry = AuditLogEntry.objects.get(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
+        )
+        assert entry.target_object == int(response.data["id"])
+        assert "application_id" not in entry.data
+        assert "api_token_id" not in entry.data
+
+    def test_list(self) -> None:
+        token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, extra_headers=self.oauth_headers(["org:read", "org:tokens"])
+        )
+        assert [t["id"] for t in response.data] == [str(token.id)]
+
+    def test_create_requires_org_tokens_scope(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "project:write"]),
+        )
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_denies_existing_org_ci_grant(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:tokens"'
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_list_denies_existing_org_ci_grant(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:read", "org:ci"]),
+        )
+
+    def test_create_requires_org_read_scope(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:tokens"]),
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_requires_membership(self) -> None:
+        other_org = self.create_organization()
+        self.get_error_response(
+            other_org.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers=self.oauth_headers(["org:read", "org:ci", "org:tokens"]),
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=other_org.id).exists()
+
+    def test_create_denies_personal_token(self) -> None:
+        personal_token = ApiToken.objects.create(
+            user=self.user, scope_list=["org:read", "org:ci", "org:tokens"]
+        )
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {personal_token.token}"},
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_create_denies_org_auth_token(self) -> None:
+        token_str = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="ci",
+            organization_id=self.organization.id,
+            token_hashed=hash_token(token_str),
+            token_last_characters=token_str[-4:],
+            scope_list=["org:ci"],
+        )
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token_str}"},
+        )
+        assert OrgAuthToken.objects.filter(organization_id=self.organization.id).count() == 1
+
+    def test_create_denies_integration_token(self) -> None:
+        internal_app = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["org:read"]
+        )
+        integration_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_app
+        )
+        integration_token.update(scope_list=["org:read", "org:ci", "org:tokens"])
+        self.get_error_response(
+            self.organization.slug,
+            method="POST",
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="cli token",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {integration_token.token}"},
+        )
+        assert not OrgAuthToken.objects.filter(organization_id=self.organization.id).exists()

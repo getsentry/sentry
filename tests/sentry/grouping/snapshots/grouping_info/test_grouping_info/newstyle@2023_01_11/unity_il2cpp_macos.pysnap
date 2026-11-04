@@ -6,14 +6,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
   "variants": {
     "app_exception_stacktrace": {
       "component": {
-        "contributes": false,
-        "hint": "ignored because system exception takes precedence",
+        "contributes": true,
+        "hint": null,
         "id": "app",
         "name": "in-app",
         "values": [
           {
-            "contributes": false,
-            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "contributes": true,
+            "hint": null,
             "id": "exception",
             "name": "exception",
             "values": [
@@ -27,8 +27,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 ]
               },
               {
-                "contributes": true,
-                "hint": null,
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
                 "id": "value",
                 "name": null,
                 "values": [
@@ -36,14 +36,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 ]
               },
               {
-                "contributes": false,
-                "hint": "ignored because it contains no in-app frames",
+                "contributes": true,
+                "hint": null,
                 "id": "stacktrace",
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -73,8 +73,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -104,8 +104,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -135,8 +135,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -166,8 +166,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -199,8 +199,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -232,8 +232,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -265,8 +265,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -298,8 +298,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -331,8 +331,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -364,8 +364,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -431,23 +431,23 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           }
         ]
       },
-      "contributes": false,
+      "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": null,
-      "hint": "ignored because system exception takes precedence",
+      "hash": "0c557c696bf6942ff7b2fd5847a0418a",
+      "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
     },
     "system_exception_stacktrace": {
       "component": {
-        "contributes": true,
-        "hint": null,
+        "contributes": false,
+        "hint": "ignored because app exception takes precedence",
         "id": "system",
         "name": null,
         "values": [
           {
-            "contributes": true,
-            "hint": null,
+            "contributes": false,
+            "hint": "ignored because hash matches app variant",
             "id": "exception",
             "name": "exception",
             "values": [
@@ -865,10 +865,10 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           }
         ]
       },
-      "contributes": true,
+      "contributes": false,
       "description": "exception stacktrace — all frames",
-      "hash": "0c557c696bf6942ff7b2fd5847a0418a",
-      "hint": null,
+      "hash": null,
+      "hint": "ignored because app exception takes precedence",
       "key": "system_exception_stacktrace",
       "type": "component"
     }

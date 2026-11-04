@@ -10,16 +10,26 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
-interface BookmarkStarProps extends Omit<ButtonProps, 'as' | 'onToggle'> {
+interface BookmarkStarProps extends Omit<
+  ButtonProps,
+  'as' | 'onToggle' | 'tooltipProps'
+> {
   organization: Organization;
   project: Project;
   onToggle?: (isBookmarked: boolean) => void;
+  /**
+   * Called once the bookmark request finishes, whether it succeeded or failed. The
+   * projects store holds the final bookmark state by then.
+   */
+  onToggleSettled?: () => void;
+  tooltipProps?: Omit<NonNullable<ButtonProps['tooltipProps']>, 'title'>;
 }
 
 export function BookmarkStar({
   organization,
   project,
   onToggle,
+  onToggleSettled,
   tooltipProps,
   ...props
 }: BookmarkStarProps) {
@@ -42,6 +52,7 @@ export function BookmarkStar({
       addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
       setIsBookmarked(!variables.isBookmarked);
     },
+    onSettled: () => onToggleSettled?.(),
   });
 
   return (

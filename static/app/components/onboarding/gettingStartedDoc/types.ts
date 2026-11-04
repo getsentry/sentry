@@ -180,6 +180,11 @@ export interface OnboardingConfig<
    * (e.g. AI-assisted setup prompt).
    */
   hideInstructionsCopy?: boolean;
+  /**
+   * The module specifier code snippets outside the guide import the Sentry SDK
+   * from, matching the package the guide installs.
+   */
+  sdkImportSpecifier?: (params: DocsParams<PlatformOptions>) => string;
 }
 
 export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {

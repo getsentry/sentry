@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {StatusCodeOpTreeNode} from 'sentry/views/detectors/components/uptime/assertions/assertionFailure/models/statusCodeOpTreeNode';
-import {COMPARISON_OPTIONS} from 'sentry/views/detectors/components/uptime/assertions/opCommon';
+import {COMPARISON_OPTIONS} from 'sentry/views/detectors/components/uptime/assertions/comparisonOptions';
 
 export function StatusCodeOpRow({node}: {node: StatusCodeOpTreeNode}) {
   const comparisonOption = COMPARISON_OPTIONS.find(

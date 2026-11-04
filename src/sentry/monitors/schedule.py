@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 from cronsim import CronSim
 from dateutil import rrule
@@ -48,7 +49,7 @@ def get_next_schedule(
             dtstart=reference_ts,
             count=2,
         )
-        return rule.after(reference_ts).replace(second=0, microsecond=0)
+        return cast("datetime", rule.after(reference_ts)).replace(second=0, microsecond=0)
 
     raise NotImplementedError("unknown schedule_type")
 
@@ -87,6 +88,6 @@ def get_prev_schedule(
             dtstart=start_ts,
             until=reference_ts,
         )
-        return rule.before(reference_ts).replace(second=0, microsecond=0)
+        return cast("datetime", rule.before(reference_ts)).replace(second=0, microsecond=0)
 
     raise NotImplementedError("unknown schedule_type")

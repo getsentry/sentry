@@ -5,6 +5,7 @@ from typing import Any
 
 from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.db.models.functions import TruncDay
+from sentry_sdk import traces
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -44,7 +45,6 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
-from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 SIX_HOURS = int(timedelta(hours=6).total_seconds())
@@ -76,7 +76,7 @@ class OrganizationReportContext:
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """
         Returns True if every project context is empty.
         """
@@ -84,6 +84,17 @@ class OrganizationReportContext:
             project_ctx.check_if_project_is_empty()
             for project_ctx in self.projects_context_map.values()
         )
+
+
+KeyPerformanceIssue = tuple[Group, int] | tuple[Group, GroupHistory | None, int]
+
+
+def key_performance_issue_with_history(
+    issue: KeyPerformanceIssue,
+) -> tuple[Group, GroupHistory | None, int]:
+    if len(issue) == 3:
+        return issue
+    return issue[0], None, issue[1]
 
 
 class ProjectContext:
@@ -97,22 +108,22 @@ class ProjectContext:
     total_substatus_count = 0
     prev_week_total_substatus_count = 0
 
-    def __init__(self, project):
+    def __init__(self, project: Project) -> None:
         self.project = project
 
         self.key_error_issues_by_id: list[tuple[int, int]] = []
         self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
-        self.key_performance_issues = []
+        self.key_performance_issues: list[KeyPerformanceIssue] = []
         # Array of (Group, event_count, resolution_label, resolution_url)
         self.past_resolved_issues: list[tuple[Group, int, str, str | None]] = []
 
-        self.key_replay_events = []
+        self.key_replay_events: list[object] = []
 
         # Dictionary of { timestamp: count }
-        self.error_count_by_day = {}
+        self.error_count_by_day: dict[int, int] = {}
         # Dictionary of { timestamp: count }
-        self.issue_count_by_day = {}
+        self.issue_count_by_day: dict[int, int] = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -122,7 +133,7 @@ class ProjectContext:
             ]
         )
 
-    def check_if_project_is_empty(self):
+    def check_if_project_is_empty(self) -> bool:
         return (
             not self.key_error_issues
             and not self.key_performance_issues
@@ -220,7 +231,7 @@ def org_key_error_issues(
     per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_error_issues"
-    with start_span(op=op, name=op):
+    with traces.start_span(name=op, attributes=({"sentry.op": op})):
         if not project_ids:
             return {}
 
@@ -233,13 +244,15 @@ def org_key_error_issues(
         return results
 
 
-def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
+def project_key_performance_issues(
+    ctx: OrganizationReportContext, project: Project, referrer: str
+) -> list[KeyPerformanceIssue] | None:
     if not project.first_event:
-        return
+        return None
 
     op = "weekly_reports.project_key_performance_issues"
 
-    with start_span(op=op, name=op):
+    with traces.start_span(name=op, attributes=({"sentry.op": op})):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
@@ -257,7 +270,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         group_id_to_group = {group.id: group for group in groups}
 
         if len(group_id_to_group) == 0:
-            return
+            return None
 
         snuba_rows = _project_key_performance_issues_snuba(
             ctx=ctx,
@@ -294,7 +307,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
                 },
             )
 
-        key_performance_issues = []
+        key_performance_issues: list[KeyPerformanceIssue] = []
         for result in query_result:
             count = result["count()"]
             group_id = result["group_id"]
@@ -334,7 +347,8 @@ def _project_key_performance_issues_snuba(
         query=query,
         tenant_ids={"organization_id": ctx.organization.id},
     )
-    return raw_snql_query(request, referrer=referrer)["data"]
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return rows
 
 
 def _project_key_performance_issues_eap(
@@ -417,11 +431,11 @@ def fetch_key_error_issues(ctx: OrganizationReportContext) -> None:
         ]
 
 
-def fetch_key_performance_issues(ctx: OrganizationReportContext):
+def fetch_key_performance_issues(ctx: OrganizationReportContext) -> None:
     # Organization pass. Depends on project_key_performance_issue.
     all_groups = []
     for project_ctx in ctx.projects_context_map.values():
-        all_groups.extend([group for group, count in project_ctx.key_performance_issues])
+        all_groups.extend([issue[0] for issue in project_ctx.key_performance_issues])
 
     if len(all_groups) == 0:
         return
@@ -440,12 +454,14 @@ def fetch_key_performance_issues(ctx: OrganizationReportContext):
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.key_performance_issues = [
-            (group, group_id_to_group_history.get(group.id, None), count)
-            for group, count in project_ctx.key_performance_issues
+            (issue[0], group_id_to_group_history.get(issue[0].id, None), issue[-1])
+            for issue in project_ctx.key_performance_issues
         ]
 
 
-def project_event_counts_for_organization(start, end, ctx, referrer: str) -> list[dict[str, Any]]:
+def project_event_counts_for_organization(
+    start: datetime, end: datetime, ctx: OrganizationReportContext, referrer: str
+) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
@@ -519,9 +535,9 @@ def project_past_resolved_issues(
     if not project.first_event:
         return []
 
-    with start_span(
-        op="weekly_reports.project_past_resolved_issues",
+    with traces.start_span(
         name="weekly_reports.project_past_resolved_issues",
+        attributes={"sentry.op": "weekly_reports.project_past_resolved_issues"},
     ):
         candidates = list(
             Group.objects.filter(
@@ -900,7 +916,10 @@ def organization_top_spans(
     )
     config = SearchResolverConfig(auto_fields=True)
 
-    with start_span(op="weekly_reports.top_spans_table", name="weekly_reports.top_spans_table"):
+    with traces.start_span(
+        name="weekly_reports.top_spans_table",
+        attributes={"sentry.op": "weekly_reports.top_spans_table"},
+    ):
         result = Spans.run_table_query(
             params=snuba_params,
             query_string="is_transaction:1 has:span.name",
@@ -918,9 +937,9 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    with start_span(
-        op="weekly_reports.spans_count_by_project",
+    with traces.start_span(
         name="weekly_reports.spans_count_by_project",
+        attributes={"sentry.op": "weekly_reports.spans_count_by_project"},
     ):
         ctx.spans_count_by_project = spans_count_by_project(
             projects, ctx.organization, ctx.start, ctx.end, referrer
@@ -963,8 +982,9 @@ def organization_top_spans_timeseries(
     config = SearchResolverConfig(auto_fields=True)
 
     span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
-    with start_span(
-        op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
+    with traces.start_span(
+        name="weekly_reports.top_spans_timeseries",
+        attributes={"sentry.op": "weekly_reports.top_spans_timeseries"},
     ):
         ts_result = Spans.run_top_events_timeseries_query(
             params=snuba_params,

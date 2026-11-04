@@ -25,6 +25,6 @@ export function GithubNode() {
   return tct('Create a [logo] GitHub issue in [integration] with these [settings]', {
     logo: ActionMetadata[ActionType.GITHUB]?.icon,
     integration: <IntegrationField />,
-    settings: <TicketActionSettingsButton />,
+    settings: <TicketActionSettingsButton ticketType={t('a GitHub issue')} />,
   });
 }
