@@ -10,9 +10,10 @@ from sentry.auth.principal import acting_user_id
 from sentry.telemetry_classifiers.models import (
     TelemetryClassifier,
     TelemetryClassifierDataset,
-    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
+
+_CUSTOM_CLASSIFIER_FIELDS = {"natural_language_prompt", "output_type"}
 
 
 class TelemetryClassifierValidator(CamelSnakeSerializer[TelemetryClassifier]):
@@ -35,47 +36,17 @@ class TelemetryClassifierValidator(CamelSnakeSerializer[TelemetryClassifier]):
     )
     status = serializers.ChoiceField(
         choices=TelemetryClassifierStatus.choices,
-        required=False,
-        help_text="Defaults to enabled for prebuilt classifiers and disabled for custom ones.",
+        default=TelemetryClassifierStatus.ENABLED,
     )
     prebuilt_classifier_key = serializers.CharField(
         max_length=256,
-        required=False,
-        help_text="Key of a prebuilt classifier. Mutually exclusive with naturalLanguagePrompt and outputType.",
-    )
-    natural_language_prompt = serializers.CharField(
-        required=False,
-        help_text="What a custom classifier should detect. Requires outputType.",
-    )
-    output_type = serializers.ChoiceField(
-        choices=TelemetryClassifierOutputType.choices,
-        required=False,
-        help_text="The result shape of a custom classifier. Requires naturalLanguagePrompt.",
+        help_text="Key of the prebuilt classifier to run.",
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        is_prebuilt = "prebuilt_classifier_key" in attrs
-        custom_fields = {"natural_language_prompt", "output_type"} & attrs.keys()
-
-        if is_prebuilt and custom_fields:
-            raise serializers.ValidationError(
-                "Set either prebuiltClassifierKey or naturalLanguagePrompt and outputType, not both."
-            )
-        if not is_prebuilt and len(custom_fields) != 2:
-            raise serializers.ValidationError(
-                "Set prebuiltClassifierKey, or both naturalLanguagePrompt and outputType."
-            )
-
-        if is_prebuilt:
-            attrs.setdefault("status", TelemetryClassifierStatus.ENABLED)
-        else:
-            # A custom classifier only runs once its prompt is compiled, and nothing compiles
-            # prompts at creation time yet.
-            if attrs.get("status") == TelemetryClassifierStatus.ENABLED:
-                raise serializers.ValidationError(
-                    {"status": "A custom classifier can't be enabled until its prompt is compiled."}
-                )
-            attrs["status"] = TelemetryClassifierStatus.DISABLED
+        # TODO: Support custom classifiers once their prompts can be compiled.
+        if _CUSTOM_CLASSIFIER_FIELDS & self.initial_data.keys():
+            raise serializers.ValidationError("Custom classifiers aren't supported yet.")
 
         if TelemetryClassifier.objects.filter(
             project=attrs["project"], result_attribute=attrs["result_attribute"]
