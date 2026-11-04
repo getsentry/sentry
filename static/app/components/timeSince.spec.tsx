@@ -10,6 +10,15 @@ describe('TimeSince', () => {
   const pastTenMin = new Date(now.getTime() - 10 * 60 * 1000);
   const futureTenMin = new Date(now.getTime() + 10 * 60 * 1000);
 
+  it('does not throw when given an invalid date string', () => {
+    // new Date('not-a-date') produces an Invalid Date object (truthy, getTime() === NaN).
+    // The optional chain `?.toISOString()` does not guard against this; an explicit
+    // isNaN check is required to avoid a RangeError: Invalid time value.
+    expect(() => render(<TimeSince date="not-a-date" />)).not.toThrow();
+    // The <time> element should render without a dateTime attribute.
+    expect(screen.getByRole('time')).not.toHaveAttribute('dateTime');
+  });
+
   it('renders a human relative date', () => {
     const {rerender} = render(<TimeSince date={now} />);
     expect(screen.getByText('a few seconds ago')).toBeInTheDocument();
