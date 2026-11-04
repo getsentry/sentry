@@ -11,6 +11,7 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {
+  Block,
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
@@ -35,13 +36,16 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({
     defaultExpanded,
     fileUrl,
+    patch,
   }: {
+    patch: {path: string};
     defaultExpanded?: boolean;
     fileUrl?: string;
   }) => (
     <div
       data-expanded={defaultExpanded}
       data-file-url={fileUrl}
+      data-path={patch.path}
       data-test-id="file-diff-viewer"
     />
   ),
@@ -2228,6 +2232,119 @@ describe('ArtifactCard', () => {
       expect(
         screen.getByText('Anything else you want to see on your PR?')
       ).toBeInTheDocument();
+    });
+
+    describe('with PR iterations pinned to the PR head', () => {
+      const pinnedOrganization = OrganizationFixture({
+        features: ['autofix-pr-iteration', 'autofix-pr-iteration-pin-to-pr-head'],
+      });
+      const pullRequestFilesUrl = `/organizations/${pinnedOrganization.slug}/repos/pull-request-files/`;
+
+      // The run's patches after a pinned iteration only hold what it changed.
+      const iteratedSection = makeSection(
+        'code_changes',
+        'completed',
+        [[makePatch('org/repo', 'src/iterated.py')]],
+        [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+      );
+
+      function makeAutofix(pr: RepoPRState, blocks: Block[] = []) {
+        return {
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks,
+            status: 'completed' as const,
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {[pr.repo_name]: pr},
+          },
+        };
+      }
+
+      function mockPullRequestFiles() {
+        return MockApiClient.addMockResponse({
+          url: pullRequestFilesUrl,
+          match: [MockApiClient.matchQuery({repo: 'org/repo', number: 42})],
+          body: {
+            files: [
+              {
+                path: 'src/app.py',
+                patch: '@@ -1,2 +1,2 @@\n context\n-old\n+new',
+                status: 'modified',
+                previousPath: null,
+              },
+              {path: 'logo.png', patch: null, status: 'added', previousPath: null},
+            ],
+          },
+        });
+      }
+
+      function renderedPaths() {
+        return screen
+          .getAllByTestId('file-diff-viewer')
+          .map(viewer => viewer.getAttribute('data-path'));
+      }
+
+      it("shows the PR's diff after an iteration", async () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR())}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(await screen.findByText('1 file changed in 1 repo')).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py']);
+      });
+
+      it("shows that it's pushing, not a diff, while edits wait to be pushed", () => {
+        const filesRequest = mockPullRequestFiles();
+        const unpushedEdit: Block = {
+          id: 'edit',
+          message: {role: 'assistant', content: ''},
+          timestamp: '2026-01-01T00:00:01Z',
+          file_patches: [makePatch('org/repo', 'src/iterated.py')],
+        };
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR(), [unpushedEdit])}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(
+          screen.getByText('Pushing the latest changes to the pull request…')
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+        expect(filesRequest).not.toHaveBeenCalled();
+      });
+
+      it("says the push failed and shows the PR's diff", async () => {
+        mockPullRequestFiles();
+
+        render(
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix(makePR({pr_creation_status: 'error'}))}
+            section={iteratedSection}
+          />,
+          {organization: pinnedOrganization}
+        );
+
+        expect(
+          await screen.findByText(
+            "We couldn't push the latest changes. This is the pull request's diff without them."
+          )
+        ).toBeInTheDocument();
+        expect(renderedPaths()).toEqual(['src/app.py']);
+      });
     });
   });
 
