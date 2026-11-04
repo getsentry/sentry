@@ -9,6 +9,7 @@ import {
 import {DataCategory} from 'sentry/types/core';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 
 type SupportedProfilingPlatformSDK =
   | 'android'
@@ -154,8 +155,8 @@ export function getDocsPlatformSDKForPlatform(
     return 'ruby';
   }
 
-  // React native
-  if (platform === 'react-native') {
+  // React native (Expo projects use the React Native SDK)
+  if (isReactNativePlatform(platform)) {
     return 'react-native';
   }
 

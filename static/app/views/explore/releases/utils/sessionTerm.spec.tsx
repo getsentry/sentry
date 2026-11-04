@@ -306,6 +306,14 @@ describe('Release Health Session Term', () => {
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
+  it('expo terms match react-native terms', () => {
+    for (const term of Object.values(SessionTerm)) {
+      expect(getSessionTermDescription(term, 'expo')).toEqual(
+        getSessionTermDescription(term, 'react-native')
+      );
+    }
+  });
+
   it('react-native terms', () => {
     // Crashes
     const crashesSessionTerm = getSessionTermDescription(

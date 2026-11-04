@@ -62,6 +62,7 @@ const JAVASCRIPT_PROJECT_PLATFORMS = new Set<PlatformKey>([
   'ionic',
   'react',
   'react-native',
+  'expo',
 ]);
 
 export function getSpanLabel(evidenceData: LowValueSpanEvidenceData): string {
