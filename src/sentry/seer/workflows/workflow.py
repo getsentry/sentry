@@ -378,9 +378,17 @@ class SeerWorkflow:
             config.save(update_fields=["enabled", "version", "date_updated"])
 
     def delete(self) -> None:
-        """Delete the config along with its project links, runs, and trigger bindings."""
+        """Delete the config with its project links, runs, trigger bindings, and agent account."""
+        self._delete_agent_account()
         with self._lock_config() as config:
             config.delete()
+
+    def _delete_agent_account(self) -> None:
+        service_account_id = self.get_config().service_account_id
+        if service_account_id is not None:
+            service_account_service.delete_service_account(
+                organization_id=self.organization_id, service_account_id=service_account_id
+            )
 
     def set_agent(self, agent: SeerAgent, *, created_by_id: int | None) -> SeerAgentUpdate:
         """

@@ -238,7 +238,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         return get_config_monitors_bulk([self.get_config()]).get(self.config_id, [])
 
     def delete(self) -> None:
-        """Delete the config and schedule its backing workflow for deletion."""
+        """Delete the config and its agent account, and schedule its backing workflow for deletion."""
+        self._delete_agent_account()
         with self._lock_config() as config:
             if config.backing_workflow_id is not None:
                 workflow = Workflow.objects_for_deletion.filter(

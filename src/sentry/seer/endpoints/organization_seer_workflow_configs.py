@@ -692,7 +692,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     def delete(self, request: Request, organization: Organization, config_id: str) -> Response:
         """Delete a saved Seer automation workflow.
 
-        Requires global access. The config's runs are deleted too.
+        Requires global access. The config's runs and agent service account are deleted too.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -709,7 +709,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
 
-        get_seer_workflow(config).delete()
+        workflow = get_seer_workflow(config)
+        account = workflow.get_agent_account()
+        workflow.delete()
+        if account is not None:
+            audit_agent_account(self, request, organization, account, "SERVICE_ACCOUNT_REMOVE")
         return Response(status=204)
 
 

@@ -928,21 +928,34 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
 
     def test_delete(self) -> None:
-        config = self.create_config()
+        with outbox_runner():
+            account = Factories.create_service_account(self.organization)
+        config = self.create_config(service_account_id=account.id)
         Factories.create_seer_workflow_config_project(config, self.project)
         run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
 
-        self.get_success_response(
-            self.organization.slug, config.id, method="delete", status_code=204
-        )
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug, config.id, method="delete", status_code=204
+            )
 
         assert not SeerWorkflowConfig.objects.filter(id=config.id).exists()
         assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.filter(id=account.id).exists()
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"), target_object=account.id
+            ).exists()
 
     def test_delete_breached_metric(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        with outbox_runner():
+            account = Factories.create_service_account(self.organization)
+        SeerWorkflowConfig.objects.filter(id=workflow.config_id).update(
+            service_account_id=account.id
+        )
         backing_workflow = workflow.get_config().backing_workflow
         assert backing_workflow is not None
         run = Factories.create_seer_workflow_run(
@@ -962,6 +975,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.ACTIVE
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.filter(id=account.id).exists()
 
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
