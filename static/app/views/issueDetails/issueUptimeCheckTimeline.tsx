@@ -63,7 +63,6 @@ export function useUptimeIssueDetectorId({
     ? String(event?.occurrence?.evidenceData.detectorId)
     : undefined;
 
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasUptimeDetector ? detectorId : evidenceDetectorId;
 }
 

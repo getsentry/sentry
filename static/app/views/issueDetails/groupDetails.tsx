@@ -293,8 +293,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroup({groupId});
 
   /**
-   * Allows the GroupEventHeader to display the previous event while the new event is loading.
-   * This is not closer to the GroupEventHeader because it is unmounted
+   * Allows issue details to keep displaying the previous event while the new event is loading.
+   * This lives here because the event components are unmounted
    * between route changes like latest event => eventId
    */
   const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
@@ -541,26 +541,26 @@ function useTrackView({
   useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
-    // Will be updated by IssueQuickTrace if there is a trace
+    // Only updated by the replay trace view
     trace_status: 'none',
-    // Will be updated in GroupDetailsHeader if there are replays
+    // Will be updated in ReplayBadge if there are replays
     group_has_replay: false,
-    // Will be updated in ReplayPreview if there is a replay
+    // Will be updated by useLogEventReplayStatus if there is a replay
     event_replay_status: 'none',
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Will be updated in Autofix if enabled
+    // Not updated by any component
     autofix_status: 'none',
-    // Will be updated in GroupSummary if AI summary is available
+    // Not updated by any component
     has_summary: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
+    // Will be updated in AutofixPreviews if autofix root cause is available
     has_root_cause: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
+    // Will be updated in AutofixPreviews if autofix solution is available
     has_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
+    // Will be updated in AutofixPreviews if autofix code changes are available
     has_coded_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
+    // Will be updated in AutofixPreviews if autofix PR is available
     has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);

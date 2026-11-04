@@ -57,8 +57,8 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
   const isBottomSidebar =
     useResponsivePropValue({zero: 'bottom', '4xl': 'side'}) === 'bottom';
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
-  // Check if Seer (AI features) will be shown - must match SeerSection's logic
-  // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
+  // Check if Seer (AI features) will be shown - must match AutofixSection's logic
+  // AutofixSection renders when the issue type supports it AND AI features are allowed
   const hasSeerFeatures =
     areAiFeaturesAllowed(organization) &&
     (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
