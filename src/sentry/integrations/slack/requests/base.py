@@ -12,7 +12,6 @@ from rest_framework.request import Request
 from sentry_viewercontext import viewer_context_var
 from slack_sdk.signature import SignatureVerifier
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
@@ -243,11 +242,11 @@ class SlackRequest:
         # but self-hosted could still have an older slack bot
         # app that just has the verification token.
         if self._is_staging_request():
-            signing_secret = options.get("slack-staging.signing-secret")
+            signing_secret = settings.SENTRY_SLACK_STAGING_SIGNING_SECRET
             verification_token = None
         else:
-            signing_secret = options.get("slack.signing-secret")
-            verification_token = options.get("slack.verification-token")
+            signing_secret = settings.SENTRY_SLACK_SIGNING_SECRET
+            verification_token = settings.SENTRY_SLACK_VERIFICATION_TOKEN
 
         if signing_secret:
             if self._check_signing_secret(signing_secret):

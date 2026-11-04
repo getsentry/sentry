@@ -16,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
-from sentry import features, options
+from sentry import features
 from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
@@ -138,7 +138,7 @@ class Symbolicator:
         base_url = (
             URLS.get(pool.value)
             or URLS.get(SymbolicatorPools.default.value)
-            or options.get("symbolicator.options")["url"]
+            or settings.SENTRY_SYMBOLICATOR_OPTIONS["url"]
         )
         base_url = base_url.rstrip("/")
         assert base_url

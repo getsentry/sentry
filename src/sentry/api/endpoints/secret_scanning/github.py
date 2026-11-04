@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -154,7 +155,7 @@ class SecretScanningGitHubEndpoint(View):
 
                 subject = f"Action Required: {token_type_human_readable} Exposed"
                 msg = MessageBuilder(
-                    subject="{}{}".format(options.get("mail.subject-prefix"), subject),
+                    subject=f"{settings.EMAIL_SUBJECT_PREFIX}{subject}",
                     template="sentry/emails/secret-scanning/body.txt",
                     html_template="sentry/emails/secret-scanning/body.html",
                     type="user.secret-scanning-alert",

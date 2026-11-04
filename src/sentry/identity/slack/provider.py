@@ -1,7 +1,8 @@
 from collections.abc import Mapping, Sequence
 from typing import TypedDict, cast
 
-from sentry import options
+from django.conf import settings
+
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.types import IntegrationProviderSlug
@@ -48,11 +49,11 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self) -> str:
-        client_id = options.get("slack.client-id")
+        client_id = settings.SENTRY_SLACK_CLIENT_ID
         return client_id
 
     def get_oauth_client_secret(self) -> str:
-        client_secret = options.get("slack.client-secret")
+        client_secret = settings.SENTRY_SLACK_CLIENT_SECRET
         return client_secret
 
     def get_user_scopes(self) -> Sequence[str]:
@@ -98,11 +99,11 @@ class SlackStagingIdentityProvider(SlackIdentityProvider):
     name = "Slack (Staging)"
 
     def get_oauth_client_id(self) -> str:
-        client_id = options.get("slack-staging.client-id")
+        client_id = settings.SENTRY_SLACK_STAGING_CLIENT_ID
         return client_id
 
     def get_oauth_client_secret(self) -> str:
-        client_secret = options.get("slack-staging.client-secret")
+        client_secret = settings.SENTRY_SLACK_STAGING_CLIENT_SECRET
         return client_secret
 
     def build_identity(self, data: Mapping[str, object]) -> dict[str, object]:

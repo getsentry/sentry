@@ -1,7 +1,7 @@
 import pytest
+from django.conf import settings
 from django.core.signing import BadSignature
 
-from sentry import options
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.email.address import (
@@ -72,7 +72,7 @@ def test_parse_user_name_simple() -> None:
 
 @django_db_all
 def test_group_id_to_email_backwards_compat() -> None:
-    mailhost = options.get("mail.reply-hostname")
+    mailhost = settings.SENTRY_MAIL_REPLY_HOSTNAME
     group_id = 1234567
 
     signed = group_id_to_email(group_id)
@@ -86,7 +86,7 @@ def test_group_id_to_email_backwards_compat() -> None:
 
 @django_db_all
 def test_group_id_to_email_with_org_id() -> None:
-    mailhost = options.get("mail.reply-hostname")
+    mailhost = settings.SENTRY_MAIL_REPLY_HOSTNAME
     group_id = 1234567
     org_id = 9876543
 

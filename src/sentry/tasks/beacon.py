@@ -12,7 +12,7 @@ from django.conf import settings
 from django.utils import timezone
 
 import sentry
-from sentry import tsdb
+from sentry import options, tsdb
 from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
@@ -34,8 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_install_id() -> str:
-    from sentry import options
-
     install_id = options.get("sentry:install-id")
     if not install_id:
         install_id = sha1(uuid4().bytes).hexdigest()

@@ -56,7 +56,7 @@ def group_id_to_email(group_id: int, org_id: int | None = None) -> str:
     return "@".join(
         (
             signed_data.replace(":", "+"),
-            options.get("mail.reply-hostname") or get_from_email_domain(),
+            settings.SENTRY_MAIL_REPLY_HOSTNAME or get_from_email_domain(),
         )
     )
 
