@@ -540,10 +540,8 @@ function useTrackView({
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Will be updated in Autofix if enabled
+    // Will be updated in AutofixContent if there is an autofix run
     autofix_status: 'none',
-    // Will be updated in GroupSummary if AI summary is available
-    has_summary: null,
     // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
     has_root_cause: null,
     // Will be updated in GroupSummaryWithAutofix if autofix solution is available
