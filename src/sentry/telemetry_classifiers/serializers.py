@@ -89,7 +89,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
-        scope="project:read",
+        scope="project:write",
         id_allowed=True,
         help_text="The ID or slug of the project the classifier runs on.",
     )
