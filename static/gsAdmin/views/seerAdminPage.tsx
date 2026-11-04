@@ -369,7 +369,7 @@ function SingleRunForm() {
     <form.AppForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
-          <Heading as="h3">Start Single-Run Autofix</Heading>
+          <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
           <Text as="p" variant="muted">
             Start a single-run Autofix on one issue in the Sentry org, using the
             project&apos;s Autofix settings.
