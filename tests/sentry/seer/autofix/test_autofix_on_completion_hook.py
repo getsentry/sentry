@@ -21,6 +21,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
+    PR_CREATION_FAILED_REASON,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
     _stopping_point_from_run,
@@ -1838,10 +1839,11 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         }
         return state
 
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_failed_pr_creation_does_not_emit_pr_activities(
-        self, mock_broadcast: MagicMock, mock_emit: MagicMock
+    def test_failed_pr_creation_notifies_entrypoints_only(
+        self, mock_broadcast: MagicMock, mock_emit: MagicMock, mock_process: MagicMock
     ) -> None:
         state = run_state(blocks=[code_changes_memory_block()])
         state.repo_pr_states = {
@@ -1863,6 +1865,17 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             group=self.group,
             type=ActivityType.SEER_PR_CREATED.value,
         ).exists()
+        mock_process.assert_called_once_with(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {
+                    "run_id": 123,
+                    "group_id": self.group.id,
+                    "failure_reason": PR_CREATION_FAILED_REASON,
+                },
+                "organization_id": self.organization.id,
+            }
+        )
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")

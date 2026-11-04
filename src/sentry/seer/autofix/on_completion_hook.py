@@ -76,6 +76,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Sent as seer.errored's failure_reason when Seer finished but couldn't open any PR.
+PR_CREATION_FAILED_REASON = "pr_creation_failed"
+
 # Pipeline order: which step follows which
 PIPELINE_ORDER: list[AutofixStep] = [
     AutofixStep.ROOT_CAUSE,
@@ -180,7 +183,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._run_completed(organization, run_id, state):
             if state.status == "error":
-                cls._notify_entrypoints_of_failure(organization, run_id, group, state)
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, state.failure_reason
+                )
             return
 
         cls._record_triggered(organization, run_id, group)
@@ -279,7 +284,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
     @classmethod
     def _notify_entrypoints_of_failure(
-        cls, organization: Organization, run_id: int, group: Group, state: SeerRunState
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        failure_reason: str | None,
     ) -> None:
         """
         Tells entrypoints (e.g. a Slack thread waiting on the run) that the run failed.
@@ -297,7 +306,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "event_payload": {
                     "run_id": run_id,
                     "group_id": group.id,
-                    "failure_reason": state.failure_reason,
+                    "failure_reason": failure_reason,
                 },
                 "organization_id": organization.id,
             }
@@ -387,6 +396,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if state.repo_pr_states and not pull_requests:
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, PR_CREATION_FAILED_REASON
+                )
                 return
 
             if pull_requests:
