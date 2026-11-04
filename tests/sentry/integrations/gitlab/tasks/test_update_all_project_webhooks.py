@@ -220,6 +220,15 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(
+            override_options(
+                {
+                    "gitlab.webhook-reconcile.rate-limit.burst": 10,
+                    "gitlab.webhook-reconcile.rate-limit.per-second": 2,
+                }
+            )
+        )
+
         # Create repositories with webhook config
         with assume_test_silo_mode(SiloMode.CELL):
             self.repo1 = self.create_gitlab_repo(
@@ -491,8 +500,8 @@ class WebhookReconciliationCapacityTest(GitLabTestCase):
         )
 
         limiter.assert_called_once_with(
-            burst_limit=10,
-            drip_rate=2,
+            burst_limit=3,
+            drip_rate=1,
             key="gitlab:webhook-reconcile:example.gitlab.com:example.gitlab.com:123",
             fail_open=False,
         )

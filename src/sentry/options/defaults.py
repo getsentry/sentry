@@ -764,14 +764,14 @@ register(
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=10,
+    default=3,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
     "gitlab.webhook-reconcile.rate-limit.per-second",
-    default=2,
+    default=1,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
