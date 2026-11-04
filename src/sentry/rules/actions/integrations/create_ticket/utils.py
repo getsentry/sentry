@@ -15,24 +15,6 @@ from sentry.services.eventstore.models import GroupEvent
 logger = logging.getLogger("sentry.rules")
 
 
-def build_description(
-    event: GroupEvent,
-    workflow_id: int,
-    installation: IssueBasicIntegration,
-    generate_footer: Callable[[str], str],
-) -> str:
-    """
-    Format the description of the ticket/work item
-    """
-    project = event.group.project
-    workflow_url = create_link_to_workflow(project.organization.slug, str(workflow_id))
-
-    description: str = installation.get_group_description(event.group, event) + generate_footer(
-        workflow_url
-    )
-    return description
-
-
 def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     """Create an issue for a given event"""
     organization = event.group.project.organization
@@ -65,12 +47,14 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             "Installation must be an IssueBasicIntegration to create a ticket"
         )
         data["title"] = installation.get_group_title(event.group, event)
+        description = installation.get_group_description(event.group, event)
 
         workflow_id = origin.workflow_id
         if workflow_id is not None:
-            data["description"] = build_description(
-                event, workflow_id, installation, generate_footer
+            workflow_url = create_link_to_workflow(
+                event.group.project.organization.slug, str(workflow_id)
             )
+            data["description"] = description + generate_footer(workflow_url)
         else:
             # Without a workflow there's nothing to link the footer to, so the
             # description is created without one.
@@ -85,7 +69,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                         "organization_id": organization.id,
                     },
                 )
-            data["description"] = installation.get_group_description(event.group, event)
+            data["description"] = description
 
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
@@ -96,7 +80,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             group=event.group,
             data=data,
             external_issue_title=event.title,
-            external_issue_description=installation.get_group_description(event.group, event),
+            external_issue_description=description,
             metric_extras={
                 "rule_id": rule_id,
                 **({"action_id": action_id} if action_id else {}),
