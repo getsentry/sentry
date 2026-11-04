@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, assert_never
 
@@ -160,7 +160,7 @@ class SeerWorkflow:
         if all_projects:
             # [-1] is not stored as project links, only in config.filters
             project_set = set()
-        cls._validate_project_ids(organization_id, project_set)
+        _validate_project_ids(organization_id, project_set)
 
         database = router.db_for_write(SeerWorkflowConfig)
         with transaction.atomic(database):
@@ -293,39 +293,10 @@ class SeerWorkflow:
         )
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
-    def set_enabled(self, enabled: bool) -> None:
-        with self._lock_config() as config:
-            if config.enabled == enabled:
-                return
-            config.enabled = enabled
-            config.version += 1
-            config.save(update_fields=["enabled", "version", "date_updated"])
-
     def delete(self) -> None:
         """Delete the config along with its project links, runs, and trigger bindings."""
         with self._lock_config() as config:
             config.delete()
-
-    def set_service_account(self, service_account_id: int | None) -> None:
-        """Store the control account ID after validating its current cell replica."""
-        with self._lock_config() as config:
-            if service_account_id is not None:
-                try:
-                    replica = ServiceAccountReplica.objects.get(
-                        service_account_id=service_account_id,
-                        organization_id=config.organization_id,
-                    )
-                except ServiceAccountReplica.DoesNotExist as exc:
-                    raise ValueError(
-                        "Service account is unavailable in the workflow's organization"
-                    ) from exc
-                if not replica.is_active:
-                    raise ValueError("Service account is inactive")
-
-            if config.service_account_id != service_account_id:
-                config.service_account_id = service_account_id
-                config.version += 1
-                config.save(update_fields=["service_account_id", "version", "date_updated"])
 
     def resolve_service_account(self) -> ServiceAccountReplica:
         """Resolve authoritative identity against current cell state on every call."""
@@ -345,51 +316,26 @@ class SeerWorkflow:
             raise ValueError("Service account is inactive")
         return replica
 
-    def set_project_selection(self, selection: ProjectSelection) -> None:
-        """Replace the selected projects, bumping the version only when the selection changes.
+    @contextmanager
+    def update_config(self) -> Iterator[ConfigUpdate]:
+        """Lock the config row for a group of changes that commit or roll back together.
 
-        Callers must authorize the change; this only checks that the projects belong to the
-        workflow's organization.
+        On a normal exit, any marked changes are saved atomically with a single version bump.
+        Propagate exceptions so the transaction can roll back.
         """
-        match selection:
-            case AllProjects():
-                all_projects = True
-                project_ids: set[int] = set()
-            case SelectedProjects(project_ids=selected):
-                all_projects = False
-                project_ids = set(selected)
-            case _:
-                assert_never(selection)
-
-        with self._lock_config() as config:
-            if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise WorkflowUpdateError(
-                    "Breached metric projects are selected by connecting monitors"
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            update = self._new_config_update(self._config_queryset().select_for_update().get())
+            yield update
+            if update.changed:
+                update.config.version += 1
+                update.config.save(
+                    update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
                 )
-            self._validate_project_ids(config.organization_id, project_ids)
 
-            existing = set(
-                SeerWorkflowConfigProject.objects.filter(config=config).values_list(
-                    "project_id", flat=True
-                )
-            )
-            removed = existing - project_ids
-            added = project_ids - existing
-            filters = SeerWorkflowFilters.parse_obj(config.filters)
-            if not removed and not added and filters.all_projects == all_projects:
-                return
-
-            SeerWorkflowConfigProject.objects.filter(config=config, project_id__in=removed).delete()
-            SeerWorkflowConfigProject.objects.bulk_create(
-                [
-                    SeerWorkflowConfigProject(config=config, project_id=project_id)
-                    for project_id in sorted(added)
-                ]
-            )
-            filters.all_projects = all_projects
-            config.filters = config.filters | filters.dict()
-            config.version += 1
-            config.save(update_fields=["filters", "version", "date_updated"])
+    @classmethod
+    def _new_config_update(cls, config: SeerWorkflowConfig) -> ConfigUpdate:
+        """Strategies with their own setters override this to return a ConfigUpdate subclass."""
+        return ConfigUpdate(config)
 
     @contextmanager
     def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
@@ -415,16 +361,6 @@ class SeerWorkflow:
     def _get_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self._get_projects(config).order_by("id").values_list("id", flat=True))
 
-    @classmethod
-    def _validate_project_ids(cls, organization_id: int, project_ids: set[int]) -> None:
-        valid_project_ids = set(
-            Project.objects.filter(organization_id=organization_id, id__in=project_ids).values_list(
-                "id", flat=True
-            )
-        )
-        if project_ids != valid_project_ids:
-            raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
-
     def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         """Return active projects in the config's scope; strategies may derive it differently."""
         projects = Project.objects.filter(
@@ -441,3 +377,110 @@ class SeerWorkflow:
 class WorkflowRunCreationResult:
     lifecycle: SeerWorkflowRunLifecycle
     created: bool
+
+
+@dataclass
+class ConfigUpdate:
+    """Pending changes to a locked config row.
+
+    Only create one through ``SeerWorkflow.update_config``. Setters should mutate
+    ``config`` then mark what they changed after their last step that can fail.
+    """
+
+    config: SeerWorkflowConfig
+    dirty_fields: set[str] = field(default_factory=set)
+    related_changed: bool = False
+
+    @property
+    def changed(self) -> bool:
+        return bool(self.dirty_fields) or self.related_changed
+
+    def mark(self, *fields: str) -> None:
+        """Record changed columns on the config row."""
+        self.dirty_fields.update(fields)
+
+    def mark_related_changed(self) -> None:
+        """Record changes outside the row, like project links, that still bump the version."""
+        self.related_changed = True
+
+    def set_enabled(self, enabled: bool) -> None:
+        if self.config.enabled == enabled:
+            return
+        self.config.enabled = enabled
+        self.mark("enabled")
+
+    def set_service_account(self, service_account_id: int | None) -> None:
+        """Store the control account ID after validating its current cell replica."""
+        config = self.config
+        if service_account_id is not None:
+            try:
+                replica = ServiceAccountReplica.objects.get(
+                    service_account_id=service_account_id,
+                    organization_id=config.organization_id,
+                )
+            except ServiceAccountReplica.DoesNotExist as exc:
+                raise ValueError(
+                    "Service account is unavailable in the workflow's organization"
+                ) from exc
+            if not replica.is_active:
+                raise ValueError("Service account is inactive")
+
+        if config.service_account_id != service_account_id:
+            config.service_account_id = service_account_id
+            self.mark("service_account_id")
+
+    def set_project_selection(self, selection: ProjectSelection) -> None:
+        """Replace the selected projects, bumping the version only when the selection changes.
+
+        Callers must authorize the change; this only checks that the projects belong to the
+        workflow's organization.
+        """
+        match selection:
+            case AllProjects():
+                all_projects = True
+                project_ids: set[int] = set()
+            case SelectedProjects(project_ids=selected):
+                all_projects = False
+                project_ids = set(selected)
+            case _:
+                assert_never(selection)
+
+        config = self.config
+        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise WorkflowUpdateError(
+                "Breached metric projects are selected by connecting monitors"
+            )
+        _validate_project_ids(config.organization_id, project_ids)
+
+        existing = set(
+            SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                "project_id", flat=True
+            )
+        )
+        removed = existing - project_ids
+        added = project_ids - existing
+        if removed or added:
+            SeerWorkflowConfigProject.objects.filter(config=config, project_id__in=removed).delete()
+            SeerWorkflowConfigProject.objects.bulk_create(
+                [
+                    SeerWorkflowConfigProject(config=config, project_id=project_id)
+                    for project_id in sorted(added)
+                ]
+            )
+            self.mark_related_changed()
+
+        filters = SeerWorkflowFilters.parse_obj(config.filters)
+        if filters.all_projects != all_projects:
+            filters.all_projects = all_projects
+            config.filters = config.filters | filters.dict()
+            self.mark("filters")
+
+
+def _validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
+    valid_project_ids = set(
+        Project.objects.filter(organization_id=organization_id, id__in=project_ids).values_list(
+            "id", flat=True
+        )
+    )
+    if project_ids != valid_project_ids:
+        raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
