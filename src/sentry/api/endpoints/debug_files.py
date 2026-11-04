@@ -693,10 +693,16 @@ def batch_assemble(
         requested_debug_id = _get_requested_debug_id(file)
         cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
 
-        if state == ChunkFileState.OK and not _is_proguard_reupload_clone_request(
-            file=file,
-            requested_debug_id=requested_debug_id,
-            selected_debug_id=cached_debug_id,
+        # A request carrying a shader group goes through the database lookup
+        # below so the group can be stored on an already assembled file.
+        if (
+            state == ChunkFileState.OK
+            and not file.get("shader_group")
+            and not _is_proguard_reupload_clone_request(
+                file=file,
+                requested_debug_id=requested_debug_id,
+                selected_debug_id=cached_debug_id,
+            )
         ):
             file_response[checksum] = {
                 "state": state,

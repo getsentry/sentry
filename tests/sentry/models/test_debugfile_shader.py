@@ -22,7 +22,7 @@ from sentry.models.debugfile import (
     determine_dif_kind,
 )
 from sentry.models.project import Project
-from sentry.tasks.assemble import ChunkFileState
+from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.pytest.fixtures import django_db_all
 
 DXC_HASH = "731322bf682bdc554eefdd89098b7383"
@@ -154,6 +154,34 @@ def test_assemble_backfills_shader_group_for_known_checksum(
 ) -> None:
     first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
     assert first.checksum is not None
+
+    response = batch_assemble(
+        default_project,
+        {
+            first.checksum: {
+                "name": "a.dxil",
+                "debug_id": DEBUG_ID,
+                "chunks": [first.checksum],
+                "code_id": AFTERMATH_HASH,
+                "shader_group": "Group A",
+            }
+        },
+    )
+
+    assert response[first.checksum]["state"] == ChunkFileState.OK
+    first.refresh_from_db()
+    assert first.data["shader_group"] == "Group A"
+
+
+@django_db_all
+def test_assemble_backfills_shader_group_despite_cached_ok_status(
+    default_project: Project, tmp_path: Path
+) -> None:
+    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
+    assert first.checksum is not None
+    set_assemble_status(
+        AssembleTask.DIF, default_project.id, first.checksum, ChunkFileState.OK, detail=None
+    )
 
     response = batch_assemble(
         default_project,
