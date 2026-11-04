@@ -8,10 +8,15 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -20,6 +25,16 @@ from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
 )
+from sentry.telemetry_classifiers.validators import TelemetryClassifierValidator
+
+
+class TelemetryClassifierPermission(OrganizationPermission):
+    # The validator requires project:write on the target project, so members with team-level
+    # project:write can create classifiers without org:write.
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
 
 
 @cell_silo_endpoint
@@ -28,7 +43,9 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.AGENT_TRACING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (TelemetryClassifierPermission,)
 
     @extend_schema(
         operation_id="List an Organization's Telemetry Classifiers",
@@ -66,4 +83,40 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
             on_results=lambda results: serialize(
                 results, request.user, serializer=TelemetryClassifierSerializer()
             ),
+        )
+
+    @extend_schema(
+        operation_id="Create a Telemetry Classifier",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=TelemetryClassifierValidator,
+        responses={
+            201: inline_sentry_response_serializer(
+                "CreateTelemetryClassifierResponse", TelemetryClassifierResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[TelemetryClassifierResponse]:
+        """
+        Create a telemetry classifier on a project the caller can write to.
+        """
+        if not features.has("organizations:classifiers-ui", organization, actor=request.user):
+            return self.respond(status=404)
+
+        validator = TelemetryClassifierValidator(
+            data=request.data,
+            context={"organization": organization, "access": request.access, "request": request},
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        classifier = validator.save()
+        return self.respond(
+            serialize(classifier, request.user, serializer=TelemetryClassifierSerializer()),
+            status=201,
         )
