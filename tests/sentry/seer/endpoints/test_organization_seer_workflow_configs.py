@@ -742,11 +742,14 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
 
-    def test_delete_breached_metric_schedules_backing_workflow_deletion(self) -> None:
+    def test_delete_breached_metric(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
         backing_workflow = workflow.get_config().backing_workflow
         assert backing_workflow is not None
+        run = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=workflow.get_config()
+        )
 
         self.get_success_response(
             self.organization.slug, workflow.config_id, method="delete", status_code=204
@@ -758,6 +761,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert CellScheduledDeletion.objects.filter(
             model_name="Workflow", object_id=backing_workflow.id
         ).exists()
+        assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
+        monitor.refresh_from_db()
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
