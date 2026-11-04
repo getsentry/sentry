@@ -220,7 +220,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
               {attributeKey}
             </AttributeDetailsTooltip>
           ) : (
-            <Text>{attributeKey}</Text>
+            <Text monospace>{attributeKey}</Text>
           )}
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />
@@ -278,7 +278,11 @@ function getAttribute(
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
-    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+    attribute.type === 'bool'
+      ? String(attribute.value)
+      : attribute.type === 'array'
+        ? JSON.stringify(attribute.value)
+        : attribute.value;
 
   if (!defined(attributeValue)) {
     return undefined;

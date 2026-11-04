@@ -7,7 +7,13 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.onboarding.agentic_progress.model import ProgressUpdate, RunStatus, Stage, StageStatus
+from sentry.onboarding.agentic_progress.model import (
+    ProgressUpdate,
+    RunOrigin,
+    RunStatus,
+    Stage,
+    StageStatus,
+)
 from sentry.onboarding.agentic_progress.service import OnboardingProgressService
 from sentry.testutils.cases import APITestCase
 
@@ -18,6 +24,46 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(self.user)
         self.service = OnboardingProgressService()
+
+    def test_run_origin(self) -> None:
+        index_path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        payload = {
+            "clientRunId": str(uuid4()),
+            "onboardingCode": "a1B2c3D4e5",
+            "origin": "project_creation",
+        }
+
+        with patch(
+            "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service",
+            return_value=self.service,
+        ):
+            response = self.client.post(index_path, payload)
+            assert response.status_code == 201, response.content
+            resumed = self.client.post(index_path, {**payload, "origin": "onboarding"})
+
+        assert resumed.data["runId"] == response.data["runId"]
+        run = self.service.get(
+            run_id=response.data["runId"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        assert run is not None
+        assert run.origin == RunOrigin.PROJECT_CREATION
+
+    def test_rejects_unknown_origin(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        response = self.client.post(
+            path,
+            {"clientRunId": str(uuid4()), "onboardingCode": "a1B2c3D4e5", "origin": "unknown"},
+        )
+        assert response.status_code == 400
+        assert "origin" in response.data
 
     def test_create_and_update_run(self) -> None:
         index_path = reverse(
@@ -211,7 +257,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service",
             return_value=self.service,
         ):
-            return self.client.post(
+            response: Response = self.client.post(
                 path,
                 {
                     "schemaVersion": 1,
@@ -220,6 +266,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "status": "completed",
                 },
             )
+            return response
 
     def test_status_rejects_backend_derived_bypassed_status(self) -> None:
         _, token = self.service.create_or_resume(
@@ -278,6 +325,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
+            origin=RunOrigin.PROJECT_CREATION,
         )
         skipped_run, skipped_token = self.service.create_or_resume(
             user_id=self.user.id,
@@ -346,6 +394,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "user_id": self.user.id,
                 "organization_id": self.organization.id,
                 "run_id": run.run_id,
+                "origin": run.origin,
                 "stage": "create_project",
                 "status": status_value,
             }
@@ -355,6 +404,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "user_id": self.user.id,
                 "organization_id": self.organization.id,
                 "run_id": skipped_run.run_id,
+                "origin": skipped_run.origin,
                 "stage": "check_stack_trace_quality",
                 "status": "skipped",
             }
@@ -366,6 +416,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
+            origin=RunOrigin.ONBOARDING,
         )
         self.service.update(
             token=token,
@@ -408,5 +459,6 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "user_id": self.user.id,
             "organization_id": self.organization.id,
             "run_id": run.run_id,
+            "origin": run.origin,
             "status": "completed",
         }

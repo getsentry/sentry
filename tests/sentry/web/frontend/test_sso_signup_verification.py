@@ -85,7 +85,10 @@ class SSOSignupVerificationViewTest(TestCase):
         auth_key = "auth:pipeline:test-sso-verification"
         local_client = clusters.get(REDIS_CLUSTER).get_local_client_for_key(auth_key)
         raw = local_client.get(auth_key)
-        return json.loads(raw)
+        state = json.loads(raw)
+        if not isinstance(state, dict):
+            raise TypeError("Pipeline state is not a JSON object")
+        return state
 
     def test_stores_verified_email_and_redirects_to_pipeline(self) -> None:
         self._setup_pipeline()

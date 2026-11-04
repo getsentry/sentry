@@ -1,7 +1,7 @@
 import threading
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
@@ -636,7 +636,10 @@ class CarryoverTestBase(MetricCallsMixin, TestCase):
         return double
 
     def carryover(self) -> list[dict[str, Any]] | None:
-        return cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY)
+        return cast(
+            "list[dict[str, Any]] | None",
+            cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY),
+        )
 
     def dispatched_ids(self, mock_drain: MagicMock) -> list[int]:
         return [call.kwargs["payload_id"] for call in mock_drain.delay.call_args_list]
@@ -1008,6 +1011,20 @@ class DrainMailboxTest(MetricCallsMixin, TestCase):
                 webhook_one.id, claimed_count=1, valid_until=fresh_deadline(), mailbox="github:123"
             )
         assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_records_cell_5xx_failure(self, mock_metrics: MagicMock) -> None:
+        responses.add(responses.POST, "http://us.testserver/extensions/github/webhook/", status=500)
+        records = create_payloads(1, "github:123", provider="github")
+        drain_mailbox(
+            records[0].id, claimed_count=1, valid_until=fresh_deadline(), mailbox="github:123"
+        )
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.failure") == [
+            {"reason": "cell_5xx", "destination_region": "us", "provider": "github"}
+        ]
 
     @responses.activate
     @override_cells(cell_config)

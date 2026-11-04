@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 from unittest import TestCase, mock
 
 import pytest
@@ -15,6 +15,7 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
+from sentry.options import OptionsManager
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.pytest import xdist
@@ -38,14 +39,17 @@ from sentry.utils.versioning import Version
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def _options_manager():
-    return {
-        "redis.clusters": {
-            "foo": {"hosts": {0: {"db": 0}}},
-            "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
-            "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
-        }
-    }
+def _options_manager() -> OptionsManager:
+    return cast(
+        OptionsManager,
+        {
+            "redis.clusters": {
+                "foo": {"hosts": {0: {"db": 0}}},
+                "bar": {"hosts": {0: {"db": 0}, 1: {"db": 1}}},
+                "baz": {"is_redis_cluster": True, "hosts": {0: {}}},
+            }
+        },
+    )
 
 
 class ClusterManagerTestCase(TestCase):
@@ -160,7 +164,7 @@ class TransactionCheckingRedisTest(SentryTestCase):
         self, _redis_transaction_callers: mock.MagicMock
     ) -> None:
         client = redis_clusters.get("transaction-guard-cluster")
-        assert all(info["redis_mode"] == "cluster" for info in client.info("server").values())
+        assert all(info["server_mode"] == "cluster" for info in client.info("server").values())
 
         with transaction.atomic(using="default"):
             with pytest.raises(
@@ -232,14 +236,25 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.new_code.create_monitor",
         )
 
-        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save))
-        assert _matches_redis_transaction_lock_ratchet((*release, *project_save))
-        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata)
-        assert not _matches_redis_transaction_lock_ratchet(nested_lock)
-        assert not _matches_redis_transaction_lock_ratchet(not_a_lock)
-        assert not _matches_redis_transaction_lock_ratchet(locked_check)
-        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code)
-        assert not _matches_redis_transaction_lock_ratchet(acquire)
+        # Example entries so that the test does not depend on the real allowlist
+        allowlist = frozenset(
+            {
+                ("sentry.models.project.Project.save",),
+                (
+                    "sentry.monitors.models.Monitor.save",
+                    "sentry.utils.mockdata.core.create_monitor",
+                ),
+            }
+        )
+
+        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet((*release, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(nested_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(not_a_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(locked_check, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(acquire, allowlist)
 
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:

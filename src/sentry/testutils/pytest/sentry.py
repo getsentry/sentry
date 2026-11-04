@@ -159,7 +159,7 @@ def _forbid_single_host_flushall() -> None:
 
     flushall = Redis.flushall
 
-    def guarded_flushall(self: Redis, *args: Any, **kwargs: Any) -> Any:
+    def guarded_flushall(self: Redis[str], *args: Any, **kwargs: Any) -> Any:
         # Prefixed cluster clients only delete the keys of this worker.
         if isinstance(self, RedisCluster):
             return flushall(self, *args, **kwargs)
@@ -268,7 +268,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_TSDB = "sentry.tsdb.snuba.SnubaTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
@@ -319,7 +319,7 @@ def pytest_configure(config: pytest.Config) -> None:
                 "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
-                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7003)],
                     "key_prefix": xdist.get_redis_cluster_key_prefix(),
                 },
             },
@@ -356,6 +356,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.EMAIL_BACKEND = settings.SENTRY_OPTIONS["mail.backend"]
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -401,6 +402,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
+
+    # A GC metrics opt-in exported in the developer's shell would start a
+    # flusher thread in the test process and emit python.gc.* during tests.
+    os.environ.pop("SENTRY_GC_METRICS", None)
 
     SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
 
@@ -486,6 +491,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
         except (RedisError, RedisClusterException):
             pass
 
+    from sentry import options
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
     from sentry.users.models.user_option import UserOption
@@ -493,6 +499,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     OrganizationOption.objects.clear_local_cache()
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
+    # options.set() caches values in-process, which outlives the test's DB
+    # rollback and would leak them into later tests on the same worker.
+    options.default_store.flush_local_cache()
 
     from sentry.monitors.logic.checkin_config import clear_checkin_config_cache
 

@@ -14,8 +14,10 @@ import {
 /** Names are stored with this prefix so they can't collide with a built in function. */
 const NAME_PREFIX = 'formula.';
 
-/** The API resolves params positionally, and only has four positions. */
-export const MAX_PARAMS = 4;
+/** Mirrors the API limits, which keep formulas small enough for the UI to render. */
+export const MAX_PARAMS = 7;
+export const MAX_INPUT_PARAMS = 2;
+export const MAX_REFERENCES = 5;
 
 /** Rows are keyed separately because they have no name until one is typed in. */
 export type DraftParam = Omit<FormulaParam, 'order'> & {key: string};
@@ -46,6 +48,20 @@ export function variableNames(draft: FormulaDraft) {
   return [...draft.params, ...draft.references].map(({name}) => name);
 }
 
+export function isInvalidSuggestedNumber(param: DraftParam) {
+  const value = param.value.trim();
+  return param.type === 'number' && value !== '' && !Number.isFinite(Number(value));
+}
+
+export function exceedsApiLimits(draft: FormulaDraft) {
+  const inputParams = draft.params.filter(param => param.type !== 'calculation');
+  return (
+    draft.params.length > MAX_PARAMS ||
+    inputParams.length > MAX_INPUT_PARAMS ||
+    draft.references.length > MAX_REFERENCES
+  );
+}
+
 export function stripNamePrefix(name: string) {
   return name.startsWith(NAME_PREFIX) ? name.slice(NAME_PREFIX.length) : name;
 }
@@ -74,7 +90,8 @@ export function toDraft(formula: SavedFormula | undefined): FormulaDraft {
       key: uniqueId(),
       name: param.name,
       type: param.type,
-      value: stripVariableBraces(param.value),
+      value:
+        param.type === 'calculation' ? stripVariableBraces(param.value) : param.value,
     })),
     references: formula.references.map(reference => ({
       key: uniqueId(),
@@ -95,9 +112,11 @@ export function toRequest(draft: FormulaDraft): SavedFormulaRequest & {id?: stri
       name: param.name,
       type: param.type,
       order,
-      // Only calculations have a value, the rest are filled in at call time.
+      // Calculations hold an equation, the rest hold a suggested value for call time.
       value:
-        param.type === 'calculation' ? addVariableBraces(param.value, paramNames) : '',
+        param.type === 'calculation'
+          ? addVariableBraces(param.value, paramNames)
+          : param.value.trim(),
     })),
     references: draft.references.map(reference => ({
       name: reference.name,

@@ -94,6 +94,10 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -174,7 +178,7 @@ describe('IssuePreview', () => {
     });
   });
 
-  it('shows the recommended stack trace when AI features are hidden', async () => {
+  it('uses saved stack trace collapse preferences when AI features are hidden', async () => {
     const summaryRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
       method: 'POST',
@@ -196,10 +200,23 @@ describe('IssuePreview', () => {
     });
 
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).queryByText('doThing')).not.toBeInTheDocument();
+    expect(summaryRequest).not.toHaveBeenCalled();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
     expect(within(stackTrace).getByText('an error occurred')).toBeVisible();
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
-    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
-    expect(summaryRequest).not.toHaveBeenCalled();
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'false'
+    );
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Collapse Stack Trace Section'})
+    );
+    expect(within(stackTrace).queryByText('doThing')).not.toBeInTheDocument();
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'true'
+    );
   });
 
   describe('issue summary', () => {
@@ -326,13 +343,10 @@ describe('IssuePreview', () => {
     expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
   });
 
-  it('keeps stack trace frames visible with their details collapsed alongside Seer content', async () => {
-    const event = EventStacktraceExceptionFixture();
-    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION)!;
-    exception.data.values![0]!.stacktrace!.frames![1]!.context = [[2, 'doThing();']];
+  it('starts the stack trace collapsed with Seer analysis and allows manual expansion', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
-      body: event,
+      body: EventStacktraceExceptionFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
@@ -347,6 +361,7 @@ describe('IssuePreview', () => {
       body: [],
     });
 
+    localStorage.setItem('issue-details-fold-section-collapse:exception', 'false');
     render(<IssuePreview groupId={group.id} />, {organization});
 
     const rootCause = await screen.findByRole('region', {name: 'Root Cause'});
@@ -357,20 +372,56 @@ describe('IssuePreview', () => {
       rootCause
     );
     const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
-    expect(
-      within(stackTrace).queryByRole('button', {name: 'View Stack Trace Section'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(stackTrace).queryByTestId('core-stacktrace-frame-context')
-    ).not.toBeInTheDocument();
-    await userEvent.click(within(stackTrace).getByText('doThing'));
-    expect(within(stackTrace).getByTestId('core-stacktrace-frame-context')).toBeVisible();
     await userEvent.click(
       within(stackTrace).getByRole('button', {name: 'Display options'})
     );
     await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
     expect(within(stackTrace).getByText(/Error: an error occurred/)).toBeVisible();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Collapse Stack Trace Section'})
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:exception')).toBe(
+      'false'
+    );
+  });
+
+  it('collapses the stack trace when Seer analysis arrives after the preview', async () => {
+    const autofixResponse = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+      asyncDelay: autofixResponse.promise,
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByText('doThing')).toBeVisible();
+
+    autofixResponse.resolve();
+    expect(
+      await screen.findByText('The issue was caused by an unexpected value.')
+    ).toBeVisible();
+    const updatedStackTrace = screen.getByRole('region', {name: 'Stack Trace'});
+    expect(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    ).toBeVisible();
+    await userEvent.click(
+      within(updatedStackTrace).getByRole('button', {name: 'View Stack Trace Section'})
+    );
+    expect(within(updatedStackTrace).getByText('doThing')).toBeVisible();
   });
 
   it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {
@@ -463,6 +514,21 @@ describe('IssuePreview', () => {
             type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
             dateCreated: '2024-01-01T00:01:00Z',
             data: {pullRequest: seerPullRequest},
+          }),
+          ActivityFeedFixture({
+            id: 'seer-ready',
+            type: GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+            dateCreated: '2024-01-01T00:01:00Z',
+            data: {
+              run_id: 42,
+              pull_requests: [
+                {
+                  provider: 'github',
+                  repo_name: seerPullRequest.repository.name,
+                  pull_request: {pr_number: 10, pr_url: seerPullRequest.externalUrl},
+                },
+              ],
+            },
           }),
           ActivityFeedFixture({
             id: 'seer-created',

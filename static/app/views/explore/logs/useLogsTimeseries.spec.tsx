@@ -97,6 +97,7 @@ describe('useLogsTimeseries', () => {
             fetchPreviousPage: () => Promise.resolve({} as any),
             refetch: () => Promise.resolve({} as any),
             hasNextPage: false,
+            canFetchNextPage: false,
             queryKey: [] as any,
             hasPreviousPage: false,
             isFetchingNextPage: false,
@@ -106,6 +107,9 @@ describe('useLogsTimeseries', () => {
             dataScanned: undefined,
             canResumeAutoFetch: false,
             resumeAutoFetch: () => {},
+            anchor: undefined,
+            anchorToLog: () => {},
+            clearAnchor: () => {},
           },
         }),
       {additionalWrapper: Wrapper}

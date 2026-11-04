@@ -12,6 +12,10 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {
+  EventStackTrace,
+  hasEventStackTrace,
+} from 'sentry/components/events/eventStackTrace';
 import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -52,7 +56,6 @@ import {
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewStackTrace} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewStackTrace';
 import {
   IssuePreviewSummary,
   type IssueSummary,
@@ -171,6 +174,8 @@ function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
+  const hasSeerContent =
+    previewSeer.state !== 'unavailable' && !!previewSeer.autofix.runState;
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -313,13 +318,15 @@ function IssuePreviewContent() {
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
           {summary && <IssuePreviewSummary summary={summary} />}
-          {event && (
+          {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
-                <IssuePreviewStackTrace
+                <EventStackTrace
+                  key={hasSeerContent ? 'seer' : 'default'}
                   event={event}
                   group={group}
                   projectSlug={project.slug}
+                  initialCollapse={hasSeerContent || undefined}
                 />
               </ErrorBoundary>
             </Container>
@@ -328,7 +335,6 @@ function IssuePreviewContent() {
             <IssuePreviewTimeline
               key={group.id}
               group={group}
-              project={project}
               pullRequests={linkedPullRequests.data?.pullRequests ?? []}
             />
           </Container>

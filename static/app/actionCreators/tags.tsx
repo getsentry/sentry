@@ -9,6 +9,7 @@ import {TagStore} from 'sentry/stores/tagStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
@@ -67,26 +68,7 @@ export function loadOrganizationTags(
     });
 }
 
-/**
- * Fetch tag values for an organization.
- * The `projectIds` argument can be used to subset projects.
- */
-export function fetchTagValues({
-  api,
-  orgSlug,
-  tagKey,
-  endpointParams,
-  includeReplays,
-  includeSessions,
-  includeTransactions,
-  projectIds,
-  search,
-  sort,
-  dataset,
-}: {
-  api: Client;
-  orgSlug: string;
-  tagKey: string;
+type TagValuesQueryParameters = {
   dataset?: Dataset;
   endpointParams?: Query;
   includeReplays?: boolean;
@@ -95,9 +77,23 @@ export function fetchTagValues({
   projectIds?: string[];
   search?: string;
   sort?: '-last_seen' | '-count';
-}): Promise<TagValue[]> {
-  const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
+};
 
+export type OrganizationTagValuesParameters = TagValuesQueryParameters & {
+  orgSlug: string;
+  tagKey: string;
+};
+
+function getTagValuesQuery({
+  dataset,
+  endpointParams,
+  includeReplays,
+  includeSessions,
+  includeTransactions,
+  projectIds,
+  search,
+  sort,
+}: TagValuesQueryParameters): Query {
   const query: Query = {};
   if (search) {
     query.query = search;
@@ -137,10 +133,41 @@ export function fetchTagValues({
     query.dataset = dataset;
   }
 
-  return api.requestPromise(url, {
+  return query;
+}
+
+/**
+ * Fetch tag values for an organization.
+ * The `projectIds` argument can be used to subset projects.
+ */
+export function fetchTagValues({
+  api,
+  orgSlug,
+  tagKey,
+  ...params
+}: OrganizationTagValuesParameters & {api: Client}): Promise<TagValue[]> {
+  return api.requestPromise(`/organizations/${orgSlug}/tags/${tagKey}/values/`, {
     method: 'GET',
-    query,
+    query: getTagValuesQuery(params),
   });
+}
+
+/**
+ * The same request as `fetchTagValues`, cached by TanStack Query.
+ */
+export function organizationTagValuesApiOptions({
+  orgSlug,
+  tagKey,
+  ...params
+}: OrganizationTagValuesParameters) {
+  return apiOptions.as<TagValue[]>()(
+    '/organizations/$organizationIdOrSlug/tags/$key/values/',
+    {
+      path: {organizationIdOrSlug: orgSlug, key: tagKey},
+      query: getTagValuesQuery(params),
+      staleTime: 30_000,
+    }
+  );
 }
 
 /**

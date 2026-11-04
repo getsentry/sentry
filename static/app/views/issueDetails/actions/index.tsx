@@ -9,6 +9,7 @@ import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
 import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -48,7 +49,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
@@ -62,6 +62,10 @@ import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/group
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -97,13 +101,13 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
 };
 
 interface GroupActionsProps {
-  disabled: boolean;
   event: Event | null;
   group: Group;
   project: Project;
 }
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
+  disabled: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   variant?: 'primary' | 'secondary';
 }
@@ -187,7 +191,6 @@ export function GroupResolutionActions({
 export function GroupActions({
   group,
   project,
-  disabled,
   event,
   onUpdateSuccess,
   resolveVariant = 'primary',
@@ -195,13 +198,21 @@ export function GroupActions({
   onUpdateSuccess?: () => void;
   resolveVariant?: 'primary' | 'secondary';
 }) {
+  const disabled = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
   const {openModal} = useModal();
 
   const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [{alert_date, alert_rule_id, alert_type}] = useQueryStates({
+    alert_date: parseAsString,
+    alert_rule_id: parseAsString,
+    alert_type: parseAsString,
+  });
   const queryClient = useQueryClient();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
@@ -249,17 +260,15 @@ export function GroupActions({
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
       action_type: action,
       action_substatus: substatus ?? undefined,
       action_status_details: statusDetailsKey,
       // Alert properties track if the user came from email/slack alerts
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+      alert_rule_id: alert_rule_id ?? undefined,
+      alert_type: alert_type ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,

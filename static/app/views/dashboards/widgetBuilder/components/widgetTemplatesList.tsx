@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {useParams} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -10,9 +11,7 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -36,10 +35,9 @@ export function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const location = useLocation();
   const widgets = getDefaultWidgets(organization);
 
-  const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
+  const [widgetTemplateId] = useQueryState('widgetTemplateId');
   const initialSelectedIndex = widgetTemplateId
     ? Math.max(
         0,

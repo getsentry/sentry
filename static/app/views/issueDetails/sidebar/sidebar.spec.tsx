@@ -86,6 +86,14 @@ describe('IssueDetailsSidebar', () => {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });

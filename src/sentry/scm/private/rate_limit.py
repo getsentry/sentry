@@ -165,7 +165,7 @@ class DynamicRateLimiter:
 
 
 class RedisRateLimitProvider:
-    def __init__(self):
+    def __init__(self) -> None:
         self.cluster = redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER)
 
     def get_and_set_rate_limit(

@@ -35,6 +35,7 @@ import {
   anchoredStyles,
   anchorOverlay,
   arrowOverlay,
+  overlayPlatform,
   placementMiddleware,
   shiftOverlay,
 } from '@sentry/scraps/overlayPositioning';
@@ -152,6 +153,7 @@ interface UseOverlayResult {
   isOpen: boolean;
   overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
     ReturnType<typeof useOverlayAria>['overlayProps'] & {
+      'data-overlay-root': '';
       ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
       style: React.CSSProperties | undefined;
     };
@@ -248,6 +250,7 @@ export function useOverlay({
     elements: {reference: triggerElement, floating: overlayElement},
     middleware,
     placement: initialPlacement,
+    platform: overlayPlatform,
     strategy,
     // Using the `transform` attribute causes our borders to get blurry
     // in chrome. See [0]. This just causes it to use `top` / `left`
@@ -363,6 +366,7 @@ export function useOverlay({
     overlayProps: {
       ref: setOverlayElement,
       style: overlayStyle,
+      'data-overlay-root': '',
       ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
     arrowProps: {

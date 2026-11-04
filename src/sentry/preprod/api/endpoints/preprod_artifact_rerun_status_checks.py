@@ -9,6 +9,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiRerunStatusChecksEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -80,7 +81,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             PreprodArtifactApiRerunStatusChecksEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(head_artifact.id),
                 check_types=supported_types,
             )
@@ -105,7 +106,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
                     "preprod_artifact.rerun_status_checks.task_error",
                     extra={
                         "preprod_artifact_id": head_artifact.id,
-                        "user_id": request.user.id,
+                        "user_id": acting_user_id(request.user),
                         "organization_id": head_artifact.project.organization_id,
                         "project_id": head_artifact.project.id,
                         "check_type": check_type,
@@ -126,7 +127,7 @@ class PreprodArtifactRerunStatusChecksEndpoint(PreprodArtifactEndpoint):
             "preprod_artifact.rerun_status_checks",
             extra={
                 "preprod_artifact_id": head_artifact.id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": head_artifact.project.organization_id,
                 "project_id": head_artifact.project.id,
                 "check_types": supported_types,

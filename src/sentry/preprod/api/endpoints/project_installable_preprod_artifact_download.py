@@ -152,6 +152,6 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
                 fp,
                 content_type="application/octet-stream",
             )
-            response["Content-Length"] = file_obj.size
+            response["Content-Length"] = str(file_obj.size)
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response

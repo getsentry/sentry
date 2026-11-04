@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import uuid4
 
 from drf_spectacular.utils import extend_schema
@@ -19,9 +20,11 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
+_UserIssueData = dict[str, Any]
+
 
 class BaseUserIssueFormatter:
-    def __init__(self, data: dict):
+    def __init__(self, data: _UserIssueData):
         self.data = data
 
     def get_issue_type(self) -> type[GroupType]:
@@ -36,10 +39,10 @@ class BaseUserIssueFormatter:
     def create_fingerprint(self) -> list[str]:
         raise NotImplementedError
 
-    def get_tags(self) -> dict:
+    def get_tags(self) -> dict[str, str]:
         raise NotImplementedError
 
-    def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
+    def get_evidence(self) -> tuple[_UserIssueData, list[IssueEvidence]]:
         raise NotImplementedError
 
 
@@ -57,10 +60,10 @@ class DefaultUserIssueFormatter(BaseUserIssueFormatter):
         #  By default, return a random UUID for a unique group
         return [uuid4().hex]
 
-    def get_tags(self) -> dict:
-        return {"transaction": self.data.get("transaction")}
+    def get_tags(self) -> dict[str, str]:
+        return {"transaction": cast(str, self.data.get("transaction"))}
 
-    def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
+    def get_evidence(self) -> tuple[_UserIssueData, list[IssueEvidence]]:
         transaction = self.data.get("transaction", "")
 
         evidence_data = {
@@ -99,7 +102,7 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
         uuid = uuid4().hex
         return [f"insights-web-vitals-{vital}-{transaction}-{uuid}"]
 
-    def get_tags(self) -> dict:
+    def get_tags(self) -> dict[str, str]:
         vital = self.data.get("vital", "")
         transaction = self.data.get("transaction", "")
         return {
@@ -109,7 +112,7 @@ class WebVitalsUserIssueFormatter(BaseUserIssueFormatter):
             vital: str(self.data.get("value", "")),
         }
 
-    def get_evidence(self) -> tuple[dict, list[IssueEvidence]]:
+    def get_evidence(self) -> tuple[_UserIssueData, list[IssueEvidence]]:
         vital = self.data.get("vital", "")
         score = self.data.get("score")
         transaction = self.data.get("transaction", "")
@@ -198,12 +201,12 @@ class ProjectUserIssueEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def get_formatter(self, data: dict) -> BaseUserIssueFormatter:
+    def get_formatter(self, data: _UserIssueData) -> BaseUserIssueFormatter:
         if data.get("issueType") == WebVitalsGroup.slug:
             return WebVitalsUserIssueFormatter(data)
         return DefaultUserIssueFormatter(data)
 
-    def get_serializer(self, data: dict) -> serializers.Serializer:
+    def get_serializer(self, data: _UserIssueData) -> serializers.Serializer:
         if data.get("issueType") == WebVitalsGroup.slug:
             return WebVitalsIssueDataSerializer(data=data)
         return ProjectUserIssueRequestSerializer(data=data)

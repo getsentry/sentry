@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -19,7 +18,6 @@ from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installa
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
-from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -885,57 +883,3 @@ class TestSentryAppCellService(TestCase):
         with assume_test_silo_mode_of(ServiceHook):
             hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert not ServiceHookProject.objects.filter(service_hook_id=hook.id).exists()
-
-    def test_get_interaction_stats(self) -> None:
-        now = before_now(days=1)
-        since = (now - timedelta(minutes=5)).timestamp()
-        result = sentry_app_cell_service.get_interaction_stats(
-            sentry_app=self.rpc_installation.sentry_app,
-            component_types=["issue-link", "stacktrace-link"],
-            since=since,
-            until=now.timestamp(),
-        )
-
-        assert result.error is None
-        assert all(point.count == 0 for point in result.views)
-        assert set(result.component_interactions.keys()) == {"issue-link", "stacktrace-link"}
-
-    def test_record_interaction(self) -> None:
-        result = sentry_app_cell_service.record_interaction(
-            sentry_app=self.rpc_installation.sentry_app,
-            tsdb_field="sentry_app_viewed",
-        )
-
-        assert result.success is True
-        assert result.error is None
-
-        result = sentry_app_cell_service.record_interaction(
-            sentry_app=self.rpc_installation.sentry_app,
-            tsdb_field="sentry_app_component_interacted",
-            component_type="issue-link",
-        )
-
-        assert result.success is True
-        assert result.error is None
-
-    def test_record_interaction_error(self) -> None:
-        result = sentry_app_cell_service.record_interaction(
-            sentry_app=self.rpc_installation.sentry_app,
-            tsdb_field="invalid_field",
-        )
-
-        assert result.success is False
-        assert result.error is not None
-        assert result.error.status_code == 400
-        assert "tsdbField must be one of" in result.error.message
-
-        result = sentry_app_cell_service.record_interaction(
-            sentry_app=self.rpc_installation.sentry_app,
-            tsdb_field="sentry_app_component_interacted",
-        )
-
-        assert result.success is False
-        assert result.error is not None
-        assert result.error.status_code == 400
-        assert "componentType is required" in result.error.message
-        assert "componentType is required" in result.error.message

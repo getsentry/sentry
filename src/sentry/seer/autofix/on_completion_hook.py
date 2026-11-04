@@ -6,14 +6,9 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import ValidationError
 from sentry_sdk import traces
 
-from sentry import analytics, features
-from sentry.analytics.events.autofix_events import (
-    AiAutofixIntrospectionEvent,
-    AiAutofixPrCreatedCompletedEvent,
-)
+from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,7 +16,6 @@ from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.analytics import record_autofix_event
-from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     fetch_run_group,
@@ -74,7 +68,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
-from sentry.viewer_context import get_viewer_context
+from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -187,14 +181,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         cls._record_triggered(organization, run_id, group)
-        viewer_context = get_viewer_context()
         cls._send_step_webhook(
             organization,
             run_id,
             state,
             group,
             fallback_referrer=run_referrer,
-            actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+            actor_user_id=get_acting_user_id(get_viewer_context()),
         )
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
@@ -224,18 +217,28 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._record_triggered(organization, run_id, group)
         log_completion_received(organization, group, state)
 
+        # Push first: only the push knows whether another turn of the iteration runs, and that
+        # turn's completion emits the webhook instead.
+        _, referrer = get_current_step(state)
+        retrying = continue_pr_iteration(
+            organization,
+            group,
+            run_id,
+            state,
+            referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+        )
+
         iteration_fields = iteration_completed_webhook_fields(
-            organization, group, state, cls._format_code_changes_payload
+            organization, group, state, cls._format_code_changes_payload, retrying=retrying
         )
         if iteration_fields is not None:
-            viewer_context = get_viewer_context()
             cls._send_step_webhook(
                 organization,
                 run_id,
                 state,
                 group,
                 fallback_referrer=run_referrer,
-                actor_user_id=viewer_context.user_id if viewer_context is not None else None,
+                actor_user_id=get_acting_user_id(get_viewer_context()),
                 iteration_fields=iteration_fields,
             )
 
@@ -251,15 +254,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "outcomes": dict(reaction_outcomes),
                 },
             )
-
-        _, referrer = get_current_step(state)
-        continue_pr_iteration(
-            organization,
-            group,
-            run_id,
-            state,
-            referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
-        )
 
     @classmethod
     def _run_completed(cls, organization: Organization, run_id: int, state: SeerRunState) -> bool:
@@ -337,9 +331,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             seer_run_state_id=run_id,
         ).first()
 
-        webhook_payload = {
+        sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
+        webhook_payload: dict[str, object] = {
             "run_id": run_id,
-            "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
+            "sentry_run_id": sentry_run_id,
             "group_id": group.id,
         }
 
@@ -453,7 +448,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             emit_pr_ready_for_review(
                 organization=organization,
                 group=group,
-                sentry_run_id=webhook_payload["sentry_run_id"],
+                sentry_run_id=sentry_run_id,
                 state=state,
             )
 
@@ -482,7 +477,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
 
     @classmethod
-    def _format_code_changes_payload(cls, state: SeerRunState) -> dict:
+    def _format_code_changes_payload(cls, state: SeerRunState) -> dict[str, Any]:
         diffs_by_repo = state.get_diffs_by_repo()
         return {
             repo: [
@@ -540,26 +535,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # mirror for runs Seer started without it (the autofix feature).
         raw_stopping_point = get_run_stopping_point(organization, run_id, state)
         if raw_stopping_point is None:
-            stopping_point = None
-            reached_stopping_point = True
-        else:
-            # Check if we've reached the stopping point
-            stopping_point = AutofixStoppingPoint(raw_stopping_point)
-            stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-            reached_stopping_point = current_step == stopping_step
+            return
 
-        cls.determine_fixability(
-            organization=organization,
-            group=group,
-            run_id=run_id,
-            state=state,
-            step=current_step,
-            referrer=referrer,
-            reached_stopping_point=reached_stopping_point,
-        )
-
-        if stopping_point is None or reached_stopping_point:
-            # We've reached the stopping point
+        stopping_point = AutofixStoppingPoint(raw_stopping_point)
+        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
@@ -621,60 +600,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    def determine_fixability(
-        cls,
-        *,
-        organization: Organization,
-        group: Group,
-        run_id: int,
-        state: SeerRunState,
-        step: AutofixStep,
-        referrer: AutofixReferrer,
-        reached_stopping_point: bool,
-    ) -> FixabilityAssessment | None:
-        if step != AutofixStep.ROOT_CAUSE:
-            return None
-
-        try:
-            artifact = state.get_artifact("root_cause", RootCauseArtifact)
-        except ValidationError:
-            # The agent may produce artifacts that dont follow the schema
-            return None
-
-        if artifact is None:
-            return None
-
-        fixability = artifact.fixability
-
-        analytics.record(
-            AiAutofixIntrospectionEvent(
-                organization_id=organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                run_id=run_id,
-                referrer=referrer.value,
-                step=step.value,
-                action=fixability.assessment,
-                reached_stopping_point=reached_stopping_point,
-            )
-        )
-        logger.info(
-            "autofix.on_completion_hook.introspection",
-            extra={
-                "organization_id": organization.id,
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "referrer": referrer.value,
-                "step": step.value,
-                "action": fixability.assessment,
-                "reason": fixability.reason,
-                "reached_stopping_point": reached_stopping_point,
-            },
-        )
-
-        return fixability
-
-    @classmethod
     def _push_changes(
         cls,
         group: Group,
@@ -714,17 +639,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
-        should_verify_pr_content = features.has(
-            "organizations:autofix-verify-pr-content", organization=group.organization
-        )
-
         try:
             trigger_push_changes(
                 group,
                 run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
-                verify_content=should_verify_pr_content,
+                verify_content=True,
             )
         except Exception:
             logger.exception(

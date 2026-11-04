@@ -215,17 +215,12 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSortDefault = organization.features.includes(
-    'issue-stream-recommended-sort-default'
-  );
   const hasIssueInbox = organization.features.includes('issue-inbox');
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : hasRecommendedSortDefault
-      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-      : DEFAULT_ISSUE_STREAM_SORT;
+    : (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED);
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -495,7 +490,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
           organization,
           runId: aiQueryRunId,
@@ -528,7 +522,6 @@ function IssueListOverviewInner({
         trackAiQueryOutcome({
           dataset: 'issues',
           mode: 'samples',
-          referrer: 'issues',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -707,7 +700,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSortDefault && !urlParams.viewId) {
+    if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -1011,6 +1004,7 @@ function IssueListOverviewInner({
               />
               <IssueListTable
                 selection={selection}
+                sort={sort}
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={onSelectStatsPeriod}

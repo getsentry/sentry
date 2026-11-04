@@ -152,7 +152,7 @@ export function AddFilter({
         isSelectingFilterKey
           ? ({resetSearch}) => {
               return (
-                <Flex gap="md" justify="end" width="100%">
+                <Flex gap="md" justify="end">
                   <Button
                     size="xs"
                     variant="transparent"

@@ -34,6 +34,10 @@ import {
   getEvaluationPreview,
   getNodeEvaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {
+  getExtractionPreview,
+  getNodeExtraction,
+} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {
   getMemoryPreview,
@@ -342,6 +346,19 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         op,
       secondary: getEvaluationPreview(evaluation),
+    };
+  }
+
+  const extraction = getNodeExtraction(node);
+  if (extraction) {
+    return {
+      color,
+      isTool: false,
+      title:
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        op,
+      secondary: getExtractionPreview(extraction),
     };
   }
 

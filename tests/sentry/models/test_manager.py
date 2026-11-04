@@ -4,7 +4,6 @@ from sentry.db.models.manager.base import flush_manager_local_cache
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -58,7 +57,6 @@ class PostUpdateCacheInvalidationTest(TransactionTestCase):
 
         flush_manager_local_cache()
 
-    @override_options({"groups.post-update-invalidates-cache": True})
     def test_post_update_signal_invalidates_cached_instance(self) -> None:
         group = self.create_group()
 
@@ -70,7 +68,6 @@ class PostUpdateCacheInvalidationTest(TransactionTestCase):
 
         assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.RESOLVED
 
-    @override_options({"groups.post-update-invalidates-cache": True})
     def test_post_update_signal_invalidates_every_cached_instance_in_bulk_update(self) -> None:
         group_ids = [self.create_group().id for _ in range(3)]
 
@@ -90,19 +87,6 @@ class PostUpdateCacheInvalidationTest(TransactionTestCase):
 
         assert statuses_after_update == [GroupStatus.RESOLVED] * 3
 
-    @override_options({"groups.post-update-invalidates-cache": False})
-    def test_post_update_signal_keeps_cached_instance_when_option_disabled(self) -> None:
-        group = self.create_group()
-
-        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.UNRESOLVED
-
-        Group.objects.filter(id=group.id).with_post_update_signal(True).update(
-            status=GroupStatus.RESOLVED
-        )
-
-        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.UNRESOLVED
-
-    @override_options({"groups.post-update-invalidates-cache": True})
     def test_post_update_signal_invalidates_instance_cached_by_another_connection_before_commit(
         self,
     ) -> None:

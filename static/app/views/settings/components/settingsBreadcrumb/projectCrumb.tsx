@@ -7,13 +7,18 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {SettingsBreadcrumbSelectorProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
 
 import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
 
-export function ProjectCrumb({to, switchTo, children}: SettingsBreadcrumbSelectorProps) {
+export function ProjectCrumb({
+  to,
+  children,
+}: Omit<SettingsBreadcrumbSelectorProps, 'switchTo'>) {
   const navigate = useNavigate();
   const {projects, onSearch} = useProjects();
   const params = useParams();
+  const switchTo = useSettingsProjectSwitchTemplate();
   const activeProject = projects.find(project => project.slug === params.projectId);
 
   return (
@@ -27,7 +32,9 @@ export function ProjectCrumb({to, switchTo, children}: SettingsBreadcrumbSelecto
       value={activeProject?.slug ?? ''}
       onCrumbSelect={projectSlug =>
         navigate(
-          normalizeUrl(replaceRouterParams(switchTo, {...params, projectId: projectSlug}))
+          normalizeUrl(
+            replaceRouterParams(switchTo ?? to, {...params, projectId: projectSlug})
+          )
         )
       }
       onOpenChange={open => {

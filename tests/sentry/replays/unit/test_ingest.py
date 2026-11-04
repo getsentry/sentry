@@ -86,12 +86,13 @@ def test_process_recording_event_with_video() -> None:
     # Verify the filedata is packed replay video
     # We can verify by unpacking it
     unpacked_video, unpacked_rrweb = unpack(zlib.decompress(result.filedata))
-    assert unpacked_rrweb == payload
-    assert unpacked_video == video_data
+    assert bytes(unpacked_rrweb) == payload
+    assert unpacked_video is not None
+    assert bytes(unpacked_video) == video_data
 
 
 def test_parse_replay_events_empty() -> None:
-    (result, trace_items) = parse_replay_events(
+    parsed = parse_replay_events(
         {
             "context": {
                 "key_id": 1,
@@ -110,6 +111,8 @@ def test_parse_replay_events_empty() -> None:
         },
         True,
     )
+    assert parsed is not None
+    result, trace_items = parsed
     assert result == ParsedEventMeta([], [], [], [], [], [], [], [])
     assert trace_items == []
 
@@ -140,8 +143,9 @@ def test_parse_replay_events_invalid_json() -> None:
 def test_pack_replay_video() -> None:
     result = pack_replay_video(b"hello", b"world")
     video, rrweb = unpack(zlib.decompress(result))
-    assert rrweb == b"hello"
-    assert video == b"world"
+    assert bytes(rrweb) == b"hello"
+    assert video is not None
+    assert bytes(video) == b"world"
 
 
 @pytest.mark.parametrize(

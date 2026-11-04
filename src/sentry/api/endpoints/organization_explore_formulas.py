@@ -1,16 +1,18 @@
 from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
-from typing import Any, Mapping, TypedDict
+from typing import Any, Mapping, NotRequired, TypedDict
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
+from django.db.models.functions import Substr
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import (
+    BooleanField,
     CharField,
     ChoiceField,
     IntegerField,
@@ -25,10 +27,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.utils import to_valid_int_id
+from sentry.api.utils import SortBy, parse_sort_by, to_valid_int_id
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
     ArithmeticValidationError,
@@ -46,7 +50,7 @@ from sentry.explore.models import (
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import parse_formula
+from sentry.search.eap.utils import check_numeric, parse_formula
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -63,6 +67,10 @@ DATASETS = {
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
+MAX_INPUT_PARAMS = 2
+MAX_GENERIC_PARAMS = 7
+MAX_REFERENCES = 5
+FORMULA_PREFIX = "formula."
 
 
 class ExploreSavedReference(TypedDict):
@@ -89,7 +97,7 @@ class PrebuiltFormula(TypedDict):
 PREBUILT_FORMULAS: list[PrebuiltFormula] = [
     {
         "prebuilt_id": 1,
-        "name": "formula.apdex",
+        "name": f"{FORMULA_PREFIX}apdex",
         "description": "(Application Performance Index) Calculates apdex a weighted average of user experiences",
         "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
         "unit": None,
@@ -109,13 +117,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -127,7 +135,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
     },
     {
         "prebuilt_id": 2,
-        "name": "formula.user_misery",
+        "name": f"{FORMULA_PREFIX}user_misery",
         "description": "Calculates a user misery score that tries to not let low throughput transactions have a high score using weights, 5.8875 in the numerator and 111.8625 in the denominator",
         "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625 + 5.8875)",
         "unit": None,
@@ -147,13 +155,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -203,10 +211,14 @@ class ExploreSavedParamsSerializer(Serializer[ExploreSavedParam]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ExploreSavedParam:
+        assert obj.order is not None
+        assert obj.param_type is not None
+        param_type = ParamItemTypes.get_type_name(obj.param_type)
+        assert param_type is not None
         return {
             "name": obj.name,
             "order": obj.order,
-            "type": ParamItemTypes.get_type_name(obj.param_type),
+            "type": param_type,
             "value": obj.value,
         }
 
@@ -227,7 +239,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         if user_ids:
             service_serialized = user_service.serialize_many(
                 filter={"user_ids": list(user_ids)},
-                as_user=user if user.id else None,
+                as_user=user if has_user(user) else None,
             )
             serialized_users = {user["id"]: user for user in service_serialized}
         else:
@@ -251,7 +263,8 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         # Make sure that we use the prefetch
         variables = list(obj.variables.all())
         params = sorted(
-            (var for var in variables if var.kind == KindItemTypes.PARAM), key=lambda var: var.order
+            (var for var in variables if var.kind == KindItemTypes.PARAM),
+            key=lambda var: var.order if var.order is not None else 0,
         )
         # order by name so references return in a consistent order
         references = sorted(
@@ -259,11 +272,13 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             key=lambda var: var.name,
         )
 
+        dataset = ExploreSavedQueryDataset.get_type_name(obj.dataset)
+        assert dataset is not None
         data: ExploreSavedFormulaResponse = {
             "formula": obj.formula,
             "id": str(obj.id),
             "name": obj.name,
-            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "dataset": dataset,
             "description": obj.description,
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
@@ -316,10 +331,10 @@ class ReferenceSerializer(RequestSerializer):
 
 class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
-    order = IntegerField(min_value=0, max_value=3)
+    order = IntegerField(min_value=0, max_value=MAX_GENERIC_PARAMS)
 
     def validate_value(self, value: str) -> str:
-        return value
+        return value.lower()
 
     def validate_type(self, parameter_type: str) -> int:
         param_type = ParamItemTypes.get_id_for_type_name(parameter_type)
@@ -330,6 +345,15 @@ class ParamSerializer(ReferenceSerializer):
     def validate(self, data: FormulaParamData) -> FormulaParamData:
         if data["param_type"] == ParamItemTypes.CALCULATION and not data["value"]:
             raise ValidationError({"value": "Calculations must have a value"})
+        elif data["param_type"] == ParamItemTypes.NUMBER and data["value"]:
+            try:
+                check_numeric(data["value"], data["name"])
+            except ValueError:
+                raise ValidationError(
+                    {"value": f"'{data['value']}' is an invalid value for a numeric default"}
+                )
+            except InvalidSearchQuery as e:
+                raise ValidationError({"value": str(e)})
         return data
 
 
@@ -357,9 +381,32 @@ class FormulaSerializer(RequestSerializer):
     def validate_formula(self, formula: str) -> str:
         return formula.lower()
 
+    def validate_params(self, params: list[FormulaParamData]) -> list[FormulaParamData]:
+        non_calculation_params = [
+            param
+            for param in params
+            if param["param_type"] != ParamItemTypes.get_id_for_type_name("calculation")
+        ]
+        if len(non_calculation_params) > MAX_INPUT_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_INPUT_PARAMS} number or column parameters per formula"
+            )
+        if len(params) > MAX_GENERIC_PARAMS:
+            raise ValidationError(
+                f"Cannot have more than {MAX_GENERIC_PARAMS} parameters per formula"
+            )
+        return params
+
+    def validate_references(
+        self, references: list[FormulaReferenceData]
+    ) -> list[FormulaReferenceData]:
+        if len(references) > MAX_REFERENCES:
+            raise ValidationError(f"Cannot have more than {MAX_REFERENCES} references per formula")
+        return references
+
     def validate_name(self, name: str) -> str:
         name = name.lower()
-        if not name.startswith("formula."):
+        if not name.startswith(FORMULA_PREFIX):
             raise ValidationError("Formula names must begin with `formula`")
         return name
 
@@ -415,6 +462,34 @@ class FormulaSerializer(RequestSerializer):
             raise ValidationError(str(e))
 
         return data
+
+
+class FormulaListQuery(TypedDict):
+    name: NotRequired[str]
+    parameter: NotRequired[str]
+    reference: NotRequired[str]
+    sortBy: SortBy
+    prebuilt: NotRequired[bool]
+
+
+class FormulaListSerializer(RequestSerializer[None, FormulaListQuery]):
+    name = CharField(max_length=200, required=False)
+    parameter = CharField(max_length=200, required=False)
+    reference = CharField(max_length=200, required=False)
+    sortBy = CharField(max_length=200, required=False, default="name")
+    prebuilt = BooleanField(required=False)
+
+    def validate_sortBy(self, sortby: str) -> SortBy:
+        return parse_sort_by(sortby, allowed_fields=["name", "description"])
+
+    def validate_name(self, name: str) -> str:
+        return name.lower()
+
+    def validate_parameter(self, name: str) -> str:
+        return name.lower()
+
+    def validate_reference(self, name: str) -> str:
+        return name.lower()
 
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
@@ -528,7 +603,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
 
     def get(
         self, request: Request, organization: Organization
-    ) -> Response[list[ExploreSavedFormulaResponse]]:
+    ) -> Response[list[ExploreSavedFormulaResponse]] | Response[ValidationErrorResponse]:
         """Return a list of formulas
 
         Formulas have a name and a formula definition, the definition will have variables in it that are either
@@ -541,6 +616,12 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
+
+        serializer = FormulaListSerializer(
+            data=request.GET.dict(), context={"organization": organization, "user": request.user}
+        )
+        if not serializer.is_valid():
+            return Response(as_validation_errors(serializer), status=400)
 
         # Explore has prebuilt formulas that are created lazily on read.
         try:
@@ -559,14 +640,31 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
+        sort_by = serializer.validated_data["sortBy"]
         queryset = (
             ExploreSavedFormula.objects.filter(organization=organization, prebuilt_deleted=False)
-            .prefetch_related(
-                "variables"
-                # TODO: add an orderby parameter, sorting by name for now
-            )
-            .order_by("name")
+            .prefetch_related("variables")
+            # use id as a tiebreaker
+            .order_by(sort_by.order_by, "-id" if sort_by.descending else "id")
         )
+        if "name" in serializer.validated_data:
+            queryset = queryset.annotate(
+                name_suffix=Substr("name", len(FORMULA_PREFIX) + 1)
+            ).filter(name_suffix__icontains=serializer.validated_data["name"])
+        if "prebuilt" in serializer.validated_data:
+            queryset = queryset.filter(
+                prebuilt_id__isnull=not serializer.validated_data["prebuilt"]
+            )
+        if "parameter" in serializer.validated_data:
+            queryset = queryset.filter(
+                variables__kind=KindItemTypes.PARAM,
+                variables__name__icontains=serializer.validated_data["parameter"],
+            ).distinct()
+        if "reference" in serializer.validated_data:
+            queryset = queryset.filter(
+                variables__kind=KindItemTypes.REFERENCE,
+                variables__name__icontains=serializer.validated_data["reference"],
+            ).distinct()
 
         def data_fn(offset: int, limit: int) -> list[ExploreSavedFormula]:
             return list(queryset[offset : offset + limit])
@@ -577,7 +675,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
             on_results=lambda formula: serialize(
                 formula, request.user, serializer=ExploreSavedFormulaSerializer()
             ),
-            default_per_page=50,
+            default_per_page=100,
         )
 
     def post(
@@ -598,7 +696,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         with write_formula_to_db():
             formula = ExploreSavedFormula.objects.create(
                 organization=organization,
-                created_by_id=request.user.id,
+                **get_creator_reference(request),
                 formula=data["formula"],
                 description=data["description"],
                 name=data["name"],
@@ -713,7 +811,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
                 description=data["description"],
                 unit=data["unit"],
                 dataset=data["dataset"],
-                updated_by_id=request.user.id,
+                updated_by_id=acting_user_id(request.user),
             )
             ExploreSavedVariable.objects.filter(explore_saved_formula=formula).delete()
             for param in data["params"]:
