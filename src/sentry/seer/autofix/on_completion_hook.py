@@ -287,6 +287,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         """
         if not SeerAutofixOperator.has_access(organization=organization):
             return
+        metrics.incr(
+            "autofix.on_completion_hook.process_autofix_updates",
+            tags={"event_type": str(SentryAppEventType.SEER_ERRORED)},
+        )
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": SentryAppEventType.SEER_ERRORED,

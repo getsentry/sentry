@@ -473,6 +473,13 @@ class SlackAutofixEntrypoint(
                     ),
                 )
                 logger.info("seer.entrypoint.slack.autofix_error_scheduled", extra=logging_ctx)
+                metrics.incr(
+                    "seer.entrypoint.slack.autofix_update_scheduled",
+                    tags={
+                        "event_type": str(event_type),
+                        "thread_count": len(cache_payload["threads"]),
+                    },
+                )
                 return
             case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
                 root_cause = event_payload.get("root_cause", {})
