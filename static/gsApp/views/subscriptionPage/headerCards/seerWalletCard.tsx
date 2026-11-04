@@ -29,16 +29,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
 
   if (balanceQuery.isError || autoTopUpQuery.isError) {
-    return (
-      <SubscriptionHeaderCard
-        sections={[
-          <SeerTitle key="title" />,
-          <Text key="error" variant="muted">
-            {t('Unable to load your Seer credits.')}
-          </Text>,
-        ]}
-      />
-    );
+    return <SeerWalletError />;
   }
 
   if (!balanceQuery.data || !autoTopUpQuery.data) {
@@ -47,6 +38,12 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
 
   const wallet = balanceQuery.data;
   const autoTopUp = autoTopUpQuery.data;
+  const {creditPriceCents} = wallet;
+  // The wallet only includes pricing for billing roles, and this card is only
+  // rendered for them.
+  if (creditPriceCents === undefined) {
+    return <SeerWalletError />;
+  }
   const isPaused = wallet.balance <= 0;
   const totalCredits = wallet.included.total + wallet.purchased.total;
 
@@ -54,7 +51,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
     openSeerAutoTopUpModal({
       organization,
       autoTopUp,
-      creditPriceCents: wallet.creditPriceCents,
+      creditPriceCents,
     });
 
   return (
@@ -76,7 +73,13 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
             </Text>
             <Tooltip
               maxWidth={320}
-              title={<CreditBreakdown wallet={wallet} autoTopUp={autoTopUp} />}
+              title={
+                <CreditBreakdown
+                  wallet={wallet}
+                  autoTopUp={autoTopUp}
+                  creditPriceCents={creditPriceCents}
+                />
+              }
             >
               <Flex align="center" aria-label={t('Credit breakdown')}>
                 <IconInfo size="xs" variant="muted" />
@@ -98,6 +101,19 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
             {t('Turn on auto top-up')}
           </Button>
         ),
+      ]}
+    />
+  );
+}
+
+function SeerWalletError() {
+  return (
+    <SubscriptionHeaderCard
+      sections={[
+        <SeerTitle key="title" />,
+        <Text key="error" variant="muted">
+          {t('Unable to load your Seer credits.')}
+        </Text>,
       ]}
     />
   );
@@ -133,8 +149,10 @@ function AutoTopUpStatus({
 function CreditBreakdown({
   wallet,
   autoTopUp,
+  creditPriceCents,
 }: {
   autoTopUp: SeerWalletAutoTopUp;
+  creditPriceCents: number;
   wallet: SeerWalletBalance;
 }) {
   const {included, purchased} = wallet;
@@ -201,7 +219,7 @@ function CreditBreakdown({
               <Text align="right">
                 {tct('[credits] / day', {
                   credits: Math.floor(
-                    autoTopUp.dailySpendCapCents / wallet.creditPriceCents
+                    autoTopUp.dailySpendCapCents / creditPriceCents
                   ).toLocaleString(),
                 })}
               </Text>
