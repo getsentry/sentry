@@ -1,131 +1,71 @@
 import moment from 'moment-timezone';
 
-import {getClockDisplay, getTimezone} from './config';
+import {getSnapshot, type DateTimePreferences, type FormattingSnapshot} from './config';
+import {parseDate} from './parseDate';
 
-function getDateFormat({year}: {year?: boolean}) {
-  // "Jan 1, 2022" or "Jan 1"
-  return year ? 'MMM D, YYYY' : 'MMM D';
+/** Numbers are epoch milliseconds; strings must be ISO timestamps with an offset. */
+export type DateTimeInput = Date | number | string;
+export type TimePrecision = 'minute' | 'second' | 'millisecond';
+export type YearDisplay = 'auto' | 'always' | 'never';
+
+export type DateTimeOptions = Partial<DateTimePreferences> & {
+  showTimezone?: boolean;
+} & (
+    | {mode?: 'dateTime'; precision?: TimePrecision; year?: YearDisplay}
+    | {mode: 'date'; precision?: never; year?: YearDisplay}
+    | {mode: 'time'; precision?: TimePrecision; year?: never}
+  );
+
+export function formatDateTime(
+  date: DateTimeInput,
+  options: DateTimeOptions = {}
+): string {
+  return formatDateTimeWithSnapshot(date, options, getSnapshot());
 }
 
-/**
- * Get a common time format
- */
-function getTimeFormat({
-  clock24Hours = getClockDisplay() === '24',
-  seconds,
-  timeZone,
-  milliseconds,
-}: {
-  clock24Hours?: boolean;
-  milliseconds?: boolean;
-  seconds?: boolean;
-  timeZone?: boolean;
-} = {}) {
-  let format = '';
+export function formatDateTimeWithSnapshot(
+  date: DateTimeInput,
+  options: DateTimeOptions,
+  snapshot: Readonly<FormattingSnapshot>
+): string {
+  const {
+    mode = 'dateTime',
+    clock = snapshot.clock,
+    year = 'auto',
+    precision = 'minute',
+  } = options;
+  const timezone = options.timezone ?? snapshot.timezone;
+  // The suffix follows the caller pinning the render to UTC, not the viewer's own
+  // timezone preference happening to be UTC.
+  const showTimezone = options.showTimezone ?? options.timezone === 'UTC';
 
-  if (clock24Hours ?? false) {
-    if (milliseconds) {
-      format = 'HH:mm:ss.SSS';
-    } else {
-      format = seconds ? 'HH:mm:ss' : 'HH:mm';
-    }
-  } else {
-    if (milliseconds) {
-      format = 'h:mm:ss.SSS A';
-    } else {
-      format = seconds ? 'LTS' : 'LT';
-    }
+  const value = parseDate(date, timezone, snapshot.locale);
+  if (!value) {
+    return 'Invalid date';
   }
 
-  if (timeZone) {
+  const showYear =
+    year === 'always' || (year === 'auto' && value.year() !== moment.tz(timezone).year());
+  const dateFormat = showYear ? 'MMM D, YYYY' : 'MMM D';
+  let timeFormat = clock === '24' ? 'HH:mm' : 'h:mm';
+  if (precision !== 'minute') {
+    timeFormat += ':ss';
+  }
+  if (precision === 'millisecond') {
+    timeFormat += '.SSS';
+  }
+  if (clock === '12') {
+    timeFormat += ' A';
+  }
+
+  let format =
+    mode === 'date'
+      ? dateFormat
+      : mode === 'time'
+        ? timeFormat
+        : `${dateFormat}${showYear ? ' ' : ', '}${timeFormat}`;
+  if (showTimezone) {
     format += ' z';
   }
-
-  return format;
-}
-
-interface DateTimeFormatOptions {
-  /**
-   * Whether to use a 24 hour clock. Defaults to the configured clock.
-   */
-  clock24Hours?: boolean;
-  /**
-   * If true, will only return the date part, e.g. "Jan 1".
-   */
-  dateOnly?: boolean;
-  /**
-   * Whether to show the milliseconds.
-   */
-  milliseconds?: boolean;
-  /**
-   * Whether to show the seconds.
-   */
-  seconds?: boolean;
-  /**
-   * If true, will only return the time part, e.g. "2:50 PM"
-   */
-  timeOnly?: boolean;
-  /**
-   * Whether to show the time zone.
-   */
-  timeZone?: boolean;
-  /**
-   * Whether to show the year. If not specified, the returned date string will
-   * not contain the year _if_ the date is not in the current calendar year.
-   * For example: "Feb 1" (2022), "Jan 1" (2022), "Dec 31, 2021".
-   */
-  year?: boolean;
-}
-
-export function getFormat({
-  dateOnly,
-  timeOnly,
-  year,
-  seconds,
-  timeZone,
-  clock24Hours,
-  milliseconds,
-}: DateTimeFormatOptions = {}) {
-  if (dateOnly) {
-    return getDateFormat({year});
-  }
-
-  if (timeOnly) {
-    return getTimeFormat({clock24Hours, seconds, milliseconds, timeZone});
-  }
-
-  const dateFormat = getDateFormat({year});
-  const timeFormat = getTimeFormat({
-    clock24Hours,
-    seconds,
-    milliseconds,
-    timeZone,
-  });
-
-  // If the year is shown, then there's already a comma in dateFormat ("Jan 1, 2020"),
-  // so we don't need to add another comma between the date and time
-  return year ? `${dateFormat} ${timeFormat}` : `${dateFormat}, ${timeFormat}`;
-}
-
-export interface DateTimeOptions extends DateTimeFormatOptions {
-  format?: string;
-  timezone?: string;
-  utc?: boolean;
-}
-
-/** The canonical absolute-date formatter, shared by components and plain utility calls. */
-export function formatDateTime(
-  date: moment.MomentInput,
-  {format, timezone = getTimezone(), utc, ...options}: DateTimeOptions = {}
-): string {
-  const value = utc ? moment.utc(date) : moment.tz(date, timezone);
-  return value.format(
-    format ??
-      getFormat({
-        ...options,
-        year:
-          options.year ?? moment.tz(timezone).year() !== moment.tz(date, timezone).year(),
-        timeZone: options.timeZone ?? utc,
-      })
-  );
+  return value.format(format);
 }

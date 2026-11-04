@@ -7,5 +7,6 @@ export {
   getDateObj,
   getRelativeDate,
   type RelaxedDateType,
-  type UnitStyle,
+  type RelativeTimeOptions,
 } from './getRelativeDate';
+export {useRelativeTimeFormatter} from './useRelativeTimeFormatter';

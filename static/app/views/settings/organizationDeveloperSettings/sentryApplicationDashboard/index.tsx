@@ -135,7 +135,7 @@ function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) 
         {app.datePublished ? (
           <Container>
             <StatsHeader>{t('Date published')}</StatsHeader>
-            <DateTime dateOnly date={app.datePublished} />
+            <DateTime date={app.datePublished} mode="date" />
           </Container>
         ) : null}
         <Container data-test-id="installs">

@@ -98,10 +98,26 @@ export function CustomerStatsFilters({
   const {start, end, period, utc} = pageDateTime;
 
   // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
+  // Billing periods are calendar days; UTC projection keeps viewer preferences from shifting the day.
   const onDemandLabel = (
     <Fragment>
       On-Demand (
-      <DateTime date={onDemandPeriodStart} /> - <DateTime date={onDemandPeriodEnd} />)
+      {onDemandPeriodStart && (
+        <DateTime
+          date={moment.utc(onDemandPeriodStart, 'YYYY-MM-DD', true).toDate()}
+          timezone="UTC"
+          showTimezone={false}
+        />
+      )}{' '}
+      -{' '}
+      {onDemandPeriodEnd && (
+        <DateTime
+          date={moment.utc(onDemandPeriodEnd, 'YYYY-MM-DD', true).toDate()}
+          timezone="UTC"
+          showTimezone={false}
+        />
+      )}
+      )
     </Fragment>
   );
 

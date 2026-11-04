@@ -119,7 +119,9 @@ export function BuildEntityHeader({
             ? {
                 type: 'text',
                 label: appInfo?.date_built ? t('Built') : t('Uploaded'),
-                value: <DateTime date={dateBuiltOrAdded} seconds timeZone />,
+                value: (
+                  <DateTime date={dateBuiltOrAdded} precision="second" showTimezone />
+                ),
                 leadingGraphic: <IconClock size="md" />,
               }
             : null,

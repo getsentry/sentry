@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {IconCalendar} from '@sentry/icons/calendar';
 
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
@@ -11,12 +11,23 @@ import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
 export function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   const {start, end} = spike;
-  const format = getFormat({timeOnly: true});
+  const format = {
+    mode: 'time',
+    showTimezone: false,
+    timezone: 'UTC',
+  } satisfies DateTimeOptions;
   const formattedTime = end
-    ? `${formatDateTime(start, {format, utc: true})} - ${formatDateTime(end, {format, utc: true})}`
-    : `${formatDateTime(start, {format, utc: true})} - present`;
+    ? `${formatDateTime(start, format)} - ${formatDateTime(end, format)}`
+    : `${formatDateTime(start, format)} - present`;
   const [startDate, endDate] = [start, end].map(d =>
-    formatDateTime(d, {format: getFormat({dateOnly: true, year: true}), utc: true})
+    d
+      ? formatDateTime(d, {
+          mode: 'date',
+          year: 'always',
+          showTimezone: false,
+          timezone: 'UTC',
+        })
+      : undefined
   );
   const dateFormat =
     startDate === endDate

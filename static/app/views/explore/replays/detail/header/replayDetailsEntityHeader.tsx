@@ -172,7 +172,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 type: 'text',
                 value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime year timeZone date={replayRecord.started_at} />
+                    <DateTime date={replayRecord.started_at} year="always" showTimezone />
                   ) : (
                     <TimeSince date={replayRecord.started_at} />
                   ),

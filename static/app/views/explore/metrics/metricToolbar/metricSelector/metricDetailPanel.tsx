@@ -54,7 +54,7 @@ export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null
           <Text variant="muted" size="md">
             {t('Last seen')}
           </Text>
-          <DateTime date={metric.lastSeen} timeZone />
+          <DateTime date={metric.lastSeen} showTimezone />
         </Flex>
       ) : null}
       {metric.count === undefined ? null : (

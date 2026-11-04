@@ -99,7 +99,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
               <Text size="sm" variant="muted" wrap="nowrap">
                 <TimeSince
                   date={item.lastActivityAt}
-                  unitStyle="extraShort"
+                  unitStyle="narrow"
                   suffix=""
                   disabledAbsoluteTooltip
                 />

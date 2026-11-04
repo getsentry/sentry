@@ -426,11 +426,11 @@ function RunTiming({run}: {run: SeerAutomationRun}) {
               justifyItems="start"
             >
               <Text variant="muted">{t('Started')}</Text>
-              <DateTime date={run.dateAdded} seconds timeZone />
+              <DateTime date={run.dateAdded} precision="second" showTimezone />
               {run.dateCompleted && (
                 <Fragment>
                   <Text variant="muted">{t('Finished')}</Text>
-                  <DateTime date={run.dateCompleted} seconds timeZone />
+                  <DateTime date={run.dateCompleted} precision="second" showTimezone />
                   <Text variant="muted">{t('Duration')}</Text>
                   <Text>{duration}</Text>
                 </Fragment>

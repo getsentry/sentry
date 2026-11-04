@@ -1,16 +1,42 @@
-export interface DateTimeConfigSource {
-  getClockDisplay: () => '12' | '24';
-  getTimezone: () => string;
-  subscribe?: (onChange: () => void) => () => void;
+import type {Translation} from '../translation/translate';
+
+export interface DateTimePreferences {
+  clock: '12' | '24';
+  timezone: string;
 }
 
-let source: DateTimeConfigSource = {
-  getTimezone: () => 'UTC',
-  getClockDisplay: () => '12',
+export interface FormattingSnapshot extends DateTimePreferences {
+  locale: string;
+  messages: Translation;
+}
+
+export interface FormattingSource {
+  getSnapshot: () => Readonly<FormattingSnapshot>;
+  subscribe: (onChange: () => void) => () => void;
+}
+
+const defaults: FormattingSnapshot = {
+  timezone: 'UTC',
+  clock: '12',
+  locale: 'en',
+  messages: {
+    t: (message, ...args) =>
+      message.replace(/%s/g, () => {
+        const value = args.shift();
+        return typeof value === 'string' || typeof value === 'number' ? `${value}` : '%s';
+      }),
+    tn: (singular, plural, count) => (Math.abs(count) === 1 ? singular : plural),
+    pgettext: (_context, message) => message,
+  },
 };
 
-/** Configure application defaults before rendering. Providers can override them locally. */
-export function configureDateTime(next: DateTimeConfigSource): () => void {
+let source: FormattingSource = {
+  getSnapshot: () => defaults,
+  subscribe: () => () => {},
+};
+
+/** Configure one preference and locale source before rendering. */
+export function configureFormatting(next: FormattingSource): () => void {
   const previous = source;
   source = next;
   return () => {
@@ -18,7 +44,5 @@ export function configureDateTime(next: DateTimeConfigSource): () => void {
   };
 }
 
-export const getTimezone = () => source.getTimezone();
-export const getClockDisplay = () => source.getClockDisplay();
-export const subscribe = (onChange: () => void) =>
-  source.subscribe?.(onChange) ?? (() => {});
+export const getSnapshot = () => source.getSnapshot();
+export const subscribe = (onChange: () => void) => source.subscribe(onChange);

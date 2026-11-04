@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {getDuration} from '@sentry/scraps/duration';
 
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
@@ -118,7 +118,9 @@ function formatDurationChange(
 
 function formatBreakpoint(breakpoint: number) {
   return formatDateTime(breakpoint * 1000, {
-    format: getFormat({year: true, seconds: true, timeZone: true}),
-    utc: false,
+    year: 'always',
+    precision: 'second',
+    showTimezone: true,
+    timezone: undefined,
   });
 }

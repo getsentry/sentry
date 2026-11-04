@@ -1,5 +1,7 @@
 import type * as React from 'react';
 
+import {getSnapshot} from '../dateTime/config';
+
 export interface Translation {
   pgettext: (context: string, message: string) => string;
   t: (
@@ -9,23 +11,9 @@ export interface Translation {
   tn: (singular: string, plural: string, count: number) => string;
 }
 
-let translation: Translation = {
-  t: message => message,
-  tn: (singular, plural, count) => (Math.abs(count) === 1 ? singular : plural),
-  pgettext: (_context, message) => message,
-};
-
-/** Configure the same translations for plain formatters and React presentation. */
-export function configureTranslation(next: Translation): () => void {
-  const previous = translation;
-  translation = next;
-  return () => {
-    translation = previous;
-  };
-}
-
-export const t: Translation['t'] = (message, ...args) => translation.t(message, ...args);
+export const t: Translation['t'] = (message, ...args) =>
+  getSnapshot().messages.t(message, ...args);
 export const tn: Translation['tn'] = (singular, plural, count) =>
-  translation.tn(singular, plural, count);
+  getSnapshot().messages.tn(singular, plural, count);
 export const pgettext: Translation['pgettext'] = (context, message) =>
-  translation.pgettext(context, message);
+  getSnapshot().messages.pgettext(context, message);

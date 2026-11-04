@@ -166,7 +166,10 @@ export function EventDetailsHeader({
                                 ? {
                                     [defaultStatsPeriod.statsPeriod]: t(
                                       'Last %s (since first seen)',
-                                      getRelativeDate(group.firstSeen)
+                                      getRelativeDate(group.firstSeen, {
+                                        suffix: '',
+                                        prefix: '',
+                                      })
                                         .replace(/^a (?=\w+$)/, '1 ')
                                         .replace(/^an (?=\w+$)/, '1 ')
                                     ),
@@ -204,7 +207,10 @@ export function EventDetailsHeader({
                               !defaultStatsPeriod.isMaxRetention &&
                               shouldShowSinceFirstSeenOption
                                 ? tct('Since First Seen ([period])', {
-                                    period: getRelativeDate(group.firstSeen)
+                                    period: getRelativeDate(group.firstSeen, {
+                                      suffix: '',
+                                      prefix: '',
+                                    })
                                       .replace(/^a (?=\w+$)/, '1 ')
                                       .replace(/^an (?=\w+$)/, '1 '),
                                   })

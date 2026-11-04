@@ -28,7 +28,13 @@ function ReplayCurrentTimeNew() {
   switch (prefs.timestampType) {
     case 'absolute': {
       const startTimestamp = replay?.getStartTimestampMs() ?? 0;
-      return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
+      return (
+        <DateTime
+          date={currentTime.timeMs + startTimestamp}
+          mode="time"
+          precision="second"
+        />
+      );
     }
     case 'relative':
     default:
@@ -44,7 +50,7 @@ function OriginalReplayCurrentTime() {
   const startTimestamp = replay?.getStartTimestampMs() ?? 0;
 
   return timestampType === 'absolute' ? (
-    <DateTime timeOnly seconds date={startTimestamp + currentTime} />
+    <DateTime date={startTimestamp + currentTime} mode="time" precision="second" />
   ) : (
     <Duration duration={[currentTime, 'ms']} precision="sec" />
   );

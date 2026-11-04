@@ -47,7 +47,7 @@ export function DebugIdBundleDetails({
       {
         key: 'date',
         subject: t('Date Uploaded'),
-        value: <DateTime timeZone year date={debugIdBundle.date} />,
+        value: <DateTime date={debugIdBundle.date} year="always" showTimezone />,
       },
     ];
   }, [

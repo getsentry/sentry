@@ -1,50 +1,49 @@
-import {configureTranslation} from '@sentry/scraps/translation';
+import {configureFormatting} from '@sentry/scraps/dateTime';
 
 import {getDuration} from './index';
 
-it('formats duration boundaries and explicit minimum units', () => {
-  expect(getDuration(0.0001, {minimumUnit: 0.001})).toBe('100 microseconds');
-  expect(getDuration(0.1, {precision: 2})).toBe('100.00 milliseconds');
-  expect(getDuration(55, {minimumUnit: 60000})).toBe('1 minute');
-  expect(getDuration(604800 * 4)).toBe('4 weeks');
-  expect(getDuration(31536000)).toBe('1 year');
-  expect(getDuration(-65, {absolute: true, style: 'short'})).toBe('1min');
-  expect(getDuration(-65, {style: 'narrow'})).toBe('-1m');
-});
-
 it('injects translated labels, context and plural forms without application imports', () => {
-  const restore = configureTranslation({
-    t: label => `translated:${label}`,
-    pgettext: (context, label) => `${context}:${label}`,
-    tn: (singular, plural, count) => (count === 1 ? `one:${singular}` : `many:${plural}`),
+  const snapshot = {
+    timezone: 'UTC',
+    clock: '12' as const,
+    locale: 'en',
+    messages: {
+      t: (label: string) => `translated:${label}`,
+      pgettext: (context: string, label: string) => `${context}:${label}`,
+      tn: (singular: string, plural: string, count: number) =>
+        count === 1 ? `one:${singular}` : `many:${plural}`,
+    },
+  };
+  const restore = configureFormatting({
+    getSnapshot: () => snapshot,
+    subscribe: () => () => {},
   });
-  expect(getDuration(1)).toBe('1 one:second');
-  expect(getDuration(2)).toBe('2 many:seconds');
-  expect(getDuration(2, {style: 'short'})).toBe('2translated:s');
-  expect(getDuration(60, {style: 'narrow'})).toBe('1abbreviated minutes:m');
-  restore();
+  try {
+    expect(getDuration(1)).toBe('1 one:second');
+    expect(getDuration(2)).toBe('2 many:seconds');
+    expect(getDuration(2, {style: 'short'})).toBe('2translated:s');
+    expect(getDuration(60, {style: 'narrow'})).toBe('1abbreviated minutes:m');
+  } finally {
+    restore();
+  }
 });
-
-const MICROSECOND = 0.001;
-const MINUTE = 60000;
-const MONTH = 2629800000;
 
 describe('getDuration()', () => {
   it('should format durations', () => {
-    expect(getDuration(0.0001, {minimumUnit: MICROSECOND})).toBe('100 microseconds');
+    expect(getDuration(0.0001, {minimumUnit: 'microsecond'})).toBe('100 microseconds');
     expect(getDuration(0.1)).toBe('100 milliseconds');
     expect(getDuration(0.1, {precision: 2})).toBe('100.00 milliseconds');
     expect(getDuration(1)).toBe('1 second');
     expect(getDuration(2)).toBe('2 seconds');
     expect(getDuration(65)).toBe('1 minute');
     expect(getDuration(122)).toBe('2 minutes');
-    expect(getDuration(55, {minimumUnit: MINUTE})).toBe('1 minute');
+    expect(getDuration(55, {minimumUnit: 'minute'})).toBe('1 minute');
     expect(getDuration(3720)).toBe('1 hour');
     expect(getDuration(36000)).toBe('10 hours');
     expect(getDuration(86400)).toBe('1 day');
     expect(getDuration(86400 * 2)).toBe('2 days');
     expect(getDuration(604800)).toBe('1 week');
-    expect(getDuration(604800, {precision: 2, minimumUnit: MONTH})).toBe('0.23 months');
+    expect(getDuration(604800, {precision: 2, minimumUnit: 'month'})).toBe('0.23 months');
     expect(getDuration(604800 * 4)).toBe('4 weeks');
     expect(getDuration(2629800)).toBe('1 month');
     expect(getDuration(604800 * 12)).toBe('3 months');
@@ -54,7 +53,7 @@ describe('getDuration()', () => {
   });
 
   it('should format negative durations', () => {
-    expect(getDuration(-0.0001, {minimumUnit: MICROSECOND})).toBe('-100 microseconds');
+    expect(getDuration(-0.0001, {minimumUnit: 'microsecond'})).toBe('-100 microseconds');
     expect(getDuration(-0.1)).toBe('-100 milliseconds');
     expect(getDuration(-0.1, {precision: 2})).toBe('-100.00 milliseconds');
     expect(getDuration(-1)).toBe('-1 second');
@@ -66,7 +65,9 @@ describe('getDuration()', () => {
     expect(getDuration(-86400)).toBe('-1 day');
     expect(getDuration(-86400 * 2)).toBe('-2 days');
     expect(getDuration(-604800)).toBe('-1 week');
-    expect(getDuration(-604800, {precision: 2, minimumUnit: MONTH})).toBe('-0.23 months');
+    expect(getDuration(-604800, {precision: 2, minimumUnit: 'month'})).toBe(
+      '-0.23 months'
+    );
     expect(getDuration(-604800 * 4)).toBe('-4 weeks');
     expect(getDuration(-2629800)).toBe('-1 month');
     expect(getDuration(-604800 * 12)).toBe('-3 months');
@@ -76,9 +77,9 @@ describe('getDuration()', () => {
   });
 
   it('should format numbers and abbreviate units', () => {
-    expect(getDuration(0, {precision: 2, style: 'short', minimumUnit: MICROSECOND})).toBe(
-      '0.00μs'
-    );
+    expect(
+      getDuration(0, {precision: 2, style: 'short', minimumUnit: 'microsecond'})
+    ).toBe('0.00μs');
     expect(getDuration(0, {precision: 2, style: 'short'})).toBe('0.00ms');
     expect(getDuration(0, {style: 'short'})).toBe('0ms');
     expect(getDuration(0.1, {style: 'short'})).toBe('100ms');
@@ -99,7 +100,7 @@ describe('getDuration()', () => {
 
   it('should format numbers and abbreviate units with one letter', () => {
     expect(
-      getDuration(0, {precision: 2, style: 'narrow', minimumUnit: MICROSECOND})
+      getDuration(0, {precision: 2, style: 'narrow', minimumUnit: 'microsecond'})
     ).toBe('0.00μs');
     expect(getDuration(0, {precision: 2, style: 'narrow'})).toBe('0.00ms');
     expect(getDuration(0, {style: 'narrow'})).toBe('0ms');

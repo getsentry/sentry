@@ -3,13 +3,13 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {formatDateTime} from '@sentry/scraps/dateTime';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -255,7 +255,9 @@ export function InstanceLevelOAuthDetails() {
         name: data.name,
         id: data.id,
         clientID: data.clientID,
-        createdAt: formatDateTime(data.dateAdded, {format: 'MMM Do YYYY', utc: true}),
+        createdAt: formatChartDateTime(data.dateAdded, 'ordinalDateWithYear', {
+          timezone: 'UTC',
+        }),
         allowedOrigins: data.allowedOrigins.join(' '),
         homepageUrl: data.homepageUrl,
         redirectUris: data.redirectUris.join(' '),

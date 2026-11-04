@@ -51,7 +51,7 @@ export function CardHeader({
           {description && <InfoTip position="top" size="sm" title={description} />}
         </Flex>
         <DateCreated>
-          {tct('Created on [date]', {date: <DateTime date={created} />})}
+          {created && tct('Created on [date]', {date: <DateTime date={created} />})}
         </DateCreated>
       </Stack>
       <Flex align="center" gap="md" wrap="wrap" justify={{zero: 'start', md: 'end'}}>

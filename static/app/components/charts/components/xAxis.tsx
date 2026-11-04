@@ -2,9 +2,10 @@ import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import {formatDateTime, getFormat} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {computeShortInterval, truncationFormatter} from 'sentry/components/charts/utils';
 
 type HelperProps =
@@ -38,11 +39,21 @@ export function createXAxisOptions({
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
 
     if (isGroupedByDate) {
-      const dateFormat = useShortDate ? 'MMM Do' : 'MMM D';
-      const dateString = formatDateTime(value, {format: dateFormat, utc});
-
-      const timeFormat = getFormat({seconds: addSecondsToTimeFormat, timeOnly: true});
-      const timeString = formatDateTime(value, {format: timeFormat, utc});
+      const timezone = utc ? 'UTC' : undefined;
+      const dateString = useShortDate
+        ? formatChartDateTime(value, 'ordinalDate', {timezone})
+        : formatDateTime(value, {
+            mode: 'date',
+            year: 'never',
+            showTimezone: false,
+            timezone,
+          });
+      const timeString = formatDateTime(value, {
+        mode: 'time',
+        precision: addSecondsToTimeFormat ? 'second' : 'minute',
+        showTimezone: false,
+        timezone,
+      });
 
       const delimiter = useMultilineDate ? '\n' : ' ';
 

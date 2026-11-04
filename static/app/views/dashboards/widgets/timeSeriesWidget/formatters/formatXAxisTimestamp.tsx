@@ -1,6 +1,8 @@
 import moment from 'moment-timezone';
 
-import {getFormat} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
+
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -24,7 +26,7 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the
   // parser is not aware of the other ticks
-  let format = 'MMM Do';
+  let style: 'year' | 'ordinalDate' = 'ordinalDate';
 
   if (
     parsed.dayOfYear() === 1 &&
@@ -33,7 +35,7 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
     parsed.second() === 0
   ) {
     // Start of a year
-    format = 'YYYY';
+    style = 'year';
   } else if (
     parsed.date() === 1 &&
     parsed.hour() === 0 &&
@@ -41,17 +43,26 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
     parsed.second() === 0
   ) {
     // Start of a month
-    format = 'MMM Do';
+    style = 'ordinalDate';
   } else if (parsed.hour() === 0 && parsed.minute() === 0 && parsed.second() === 0) {
     // Start of a day
-    format = 'MMM Do';
+    style = 'ordinalDate';
   } else if (parsed.second() === 0) {
     // Hours, minutes
-    format = getFormat({timeOnly: true});
+    return formatDateTime(value, {
+      mode: 'time',
+      timezone: userTimezone,
+      showTimezone: false,
+    });
   } else {
     // Hours, minutes, seconds
-    format = getFormat({seconds: true, timeOnly: true});
+    return formatDateTime(value, {
+      mode: 'time',
+      precision: 'second',
+      timezone: userTimezone,
+      showTimezone: false,
+    });
   }
 
-  return parsed.format(format);
+  return formatChartDateTime(value, style, {timezone: userTimezone});
 }

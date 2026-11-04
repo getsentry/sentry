@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {getFormat} from '@sentry/scraps/dateTime';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
@@ -111,12 +111,7 @@ export function GenerateSpikeProjectionsForBatch() {
         <BatchRunTime>
           (Batch Run Time:{' '}
           {batchRunTime
-            ? batchRunTime.format(
-                getFormat({
-                  timeOnly: true,
-                  timeZone: true,
-                })
-              )
+            ? formatDateTime(batchRunTime.valueOf(), {mode: 'time', showTimezone: true})
             : 'N/A'}
           )
         </BatchRunTime>

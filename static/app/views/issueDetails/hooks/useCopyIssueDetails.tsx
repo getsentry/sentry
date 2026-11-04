@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import moment from 'moment-timezone';
 
-import {getFormat} from '@sentry/scraps/dateTime';
+import {
+  formatDateTime as defaultFormatDateTime,
+  useDateTimeFormatter,
+} from '@sentry/scraps/dateTime';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {
@@ -22,7 +24,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import {getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -263,6 +264,7 @@ interface IssueAndEventToMarkdownOptions {
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
   event?: Event | null;
+  formatDateTime?: typeof defaultFormatDateTime;
 }
 
 export const issueAndEventToMarkdown = ({
@@ -271,6 +273,7 @@ export const issueAndEventToMarkdown = ({
   autofixData,
   activeThreadId,
   autofixFormatted,
+  formatDateTime = defaultFormatDateTime,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
   if (formatted) {
@@ -307,11 +310,11 @@ export const issueAndEventToMarkdown = ({
   if (typeof eventDate === 'string') {
     // Render in the viewer's preferred timezone and 12h/24h clock, and include
     // the timezone abbreviation so the timestamp is unambiguous once copied.
-    const timezone =
-      getUserTimezone() ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const formattedDate = moment
-      .tz(eventDate, timezone)
-      .format(getFormat({year: true, seconds: true, timeZone: true}));
+    const formattedDate = formatDateTime(eventDate, {
+      year: 'always',
+      precision: 'second',
+      showTimezone: true,
+    });
     markdownText += `**Date:** ${formattedDate}\n`;
   }
 
@@ -359,6 +362,7 @@ export const issueAndEventToMarkdown = ({
 
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
+  const formatDateTime = useDateTimeFormatter();
 
   const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
     enabled: false,
@@ -373,8 +377,17 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       activeThreadId,
       organization,
       autofixFormatted,
+      formatDateTime,
     });
-  }, [group, event, autofixData, activeThreadId, organization, autofixFormatted]);
+  }, [
+    group,
+    event,
+    autofixData,
+    activeThreadId,
+    organization,
+    autofixFormatted,
+    formatDateTime,
+  ]);
 
   const {copy} = useCopyToClipboard();
 

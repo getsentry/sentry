@@ -133,7 +133,7 @@ export function Meta(props: MetaProps) {
       {ageStartTimestamp ? (
         <MetaSection headingText={t('Age')}>
           <TimeSince
-            unitStyle="extraShort"
+            unitStyle="narrow"
             date={new Date(ageStartTimestamp)}
             tooltipShowSeconds
             suffix=""

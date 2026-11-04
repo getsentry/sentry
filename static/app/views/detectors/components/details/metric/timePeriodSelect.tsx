@@ -68,8 +68,8 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
       const custom = {
         label: (
           <Fragment>
-            {t('Custom time')}: <DateTime date={moment.utc(start)} /> {' — '}
-            <DateTime date={moment.utc(end)} />
+            {t('Custom time')}: <DateTime date={moment.utc(start).toDate()} /> {' — '}
+            <DateTime date={moment.utc(end).toDate()} />
           </Fragment>
         ),
         value: CUSTOM_TIME_VALUE,
