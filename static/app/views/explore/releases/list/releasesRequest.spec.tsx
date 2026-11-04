@@ -9,7 +9,7 @@ import {
 } from 'sentry-fixture/sessions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
@@ -762,6 +762,46 @@ describe('ReleasesRequest', () => {
           groupBy: ['project', 'release', 'session.status'],
         },
       })
+    );
+  });
+
+  it('refetches sessions only when a page filter param changes in the URL', async () => {
+    const sessionsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sessions/',
+      body: SessionStatusCountByReleaseInPeriodFixture(),
+    });
+
+    const {router} = render(
+      <ReleasesRequest
+        releases={['7a82c130be9143361f20bc77252df783cf91e4fc']}
+        organization={organization}
+        display={[ReleasesDisplayOption.SESSIONS]}
+        selection={selection}
+      >
+        {() => null}
+      </ReleasesRequest>,
+      {initialRouterConfig}
+    );
+
+    await waitFor(() => expect(sessionsRequest).toHaveBeenCalledTimes(3));
+
+    act(() => {
+      router.navigate(
+        `/organizations/org-slug/releases/?project=${projectId}&cursor=0:100:0&query=foo`
+      );
+    });
+    expect(sessionsRequest).toHaveBeenCalledTimes(3);
+
+    act(() => {
+      router.navigate(
+        `/organizations/org-slug/releases/?project=${projectId}&cursor=0:100:0&query=foo&statsPeriod=7d`
+      );
+    });
+    await waitFor(() => expect(sessionsRequest).toHaveBeenCalledTimes(6));
+    expect(sessionsRequest).toHaveBeenNthCalledWith(
+      4,
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
   });
 });

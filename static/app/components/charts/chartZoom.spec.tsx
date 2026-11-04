@@ -92,4 +92,84 @@ describe('ChartZoom', () => {
       pageEnd: '2026-07-04T16:54:30',
     });
   });
+
+  it('restores the original page period when the zoom is reset', async () => {
+    let zoomProps!: ZoomRenderProps;
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(
+      <ChartZoom usePageDate period="14d">
+        {props => {
+          zoomProps = props;
+          return null;
+        }}
+      </ChartZoom>,
+      {
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/releases/1.0.0/',
+            query: {project: '1', pageStatsPeriod: '14d'},
+          },
+        },
+      }
+    );
+
+    act(() => {
+      zoomProps.onDataZoom?.(
+        {type: 'datazoom', start: 0, end: 100},
+        makeZoomChart(Date.UTC(2026, 6, 3, 11, 1, 30), Date.UTC(2026, 6, 3, 16, 54, 30))
+      );
+    });
+    await waitFor(() => expect(router.location.query.pageStart).toBeDefined());
+    act(() => {
+      zoomProps.onRestore?.({type: 'restore'}, makeZoomChart(0, 0));
+    });
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({project: '1', pageStatsPeriod: '14d'})
+    );
+    expect(onNuqsUrlUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips the URL update when the zoom is reset after navigating back to the original period', async () => {
+    let zoomProps!: ZoomRenderProps;
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(
+      <ChartZoom usePageDate period="14d">
+        {props => {
+          zoomProps = props;
+          return null;
+        }}
+      </ChartZoom>,
+      {
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/releases/1.0.0/',
+            query: {project: '1', pageStatsPeriod: '14d'},
+          },
+        },
+      }
+    );
+
+    act(() => {
+      zoomProps.onDataZoom?.(
+        {type: 'datazoom', start: 0, end: 100},
+        makeZoomChart(Date.UTC(2026, 6, 3, 11, 1, 30), Date.UTC(2026, 6, 3, 16, 54, 30))
+      );
+    });
+    await waitFor(() => expect(router.location.query.pageStart).toBeDefined());
+    act(() => {
+      router.navigate(-1);
+    });
+    act(() => {
+      zoomProps.onRestore?.({type: 'restore'}, makeZoomChart(0, 0));
+    });
+    await act(() => new Promise(resolve => setTimeout(resolve, 100)));
+
+    expect(router.location.query).toEqual({project: '1', pageStatsPeriod: '14d'});
+    expect(onNuqsUrlUpdate).toHaveBeenCalledTimes(1);
+  });
 });
