@@ -24,6 +24,7 @@ describe('FoldSection', () => {
     eventNavigationHeight: 0,
     isSidebarOpen: true,
     navScrollMargin: 64,
+    scrollContext: 'page' as const,
     dispatch: jest.fn(),
   };
 
