@@ -50,8 +50,6 @@ export const useSpans = <Fields extends SpanProperty[]>(
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
-// Trace metric rows are keyed by whatever fields were asked for, since the
-// aggregates carry the metric name.
 type TraceMetricsResponse = Record<string, string | number | null | undefined>;
 
 export const useTraceMetrics = <Fields extends string[]>(

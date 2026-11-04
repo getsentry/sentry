@@ -18,7 +18,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 describe('NavigationTypeSwitcher', () => {
   const organization = OrganizationFixture();
 
-  // In ORDER: lcp, fcp, inp, cls, ttfb. CLS has no unit.
   const METRIC_COUNT_FIELDS = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'].map(
     vital =>
       `count(value,browser.web_vital.${vital},distribution,${vital === 'cls' ? 'none' : 'millisecond'})`
@@ -211,7 +210,6 @@ describe('NavigationTypeSwitcher', () => {
   });
 
   it('counts and filters the web vital metrics on a metrics backed dashboard', async () => {
-    // Every vital counts, so a page load with an LCP and a CLS counts twice.
     const mock = mockCounts([
       {
         [SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate',

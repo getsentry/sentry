@@ -196,12 +196,6 @@ export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {
   );
 }
 
-/**
- * The dataset the dashboard's web vitals widgets read from, taken from the
- * navigation type filter it carries. The metrics backed dashboards carry a
- * trace metrics filter. Spans when there is none, which is a dashboard from
- * before the filter existed.
- */
 export function getNavigationTypeDataset(filters: GlobalFilter[]): WidgetType {
   return filters.find(isNavigationTypeGlobalFilter)?.dataset ?? WidgetType.SPANS;
 }

@@ -20,16 +20,10 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_COUNT_FIELD = 'count()';
 
-// Every vital is counted, like the spans count counts every vital span. Soft
-// navigations and bfcache restores never report a TTFB, so no single vital
-// covers all navigation types.
 const METRIC_COUNT_FIELDS = ORDER.map(webVitalCountField);
 
 type Props = {
-  /**
-   * The dashboard's active global filters. They say which dataset the widgets
-   * read from, and the other filters are applied so the counts match the widgets.
-   */
+  /** The other active global filters, so the counts match the widgets. */
   globalFilters: GlobalFilter[];
   enabled?: boolean;
 };
@@ -70,7 +64,6 @@ export function useNavigationTypeCounts({
     Referrer.WEB_VITAL_NAVIGATION_TYPE_COUNTS
   );
 
-  // The count fields name the metrics, so no span op filter is needed.
   const metrics = useTraceMetrics(
     {
       enabled: enabled && isMetrics,
