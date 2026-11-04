@@ -129,6 +129,8 @@ class SeerWorkflow:
     ) -> Iterator[RpcServiceAccount]:
         """Create the agent's service account, deleting it again if the block raises."""
         cls._validate_agent_project_ids(organization_id, agent)
+        # TODO(telkins): Suffix the name with the config ID instead. The account is created
+        # before the config exists, so this needs a rename after linking.
         suffix = uuid4().hex[:8]
         prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
         account = service_account_service.create_service_account(
