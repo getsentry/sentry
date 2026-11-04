@@ -24,10 +24,9 @@ import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -81,11 +80,11 @@ function membersApiOptions({
   });
 }
 
-const getInviteRequestsQueryKey = ({organization}: any): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
+const inviteRequestsOptions = ({organization}: any) =>
+  apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/invite-requests/', {
     path: {organizationIdOrSlug: organization.slug},
-  }),
-];
+    staleTime: 0,
+  });
 
 function OrganizationMembersList() {
   const queryClient = useQueryClient();
@@ -93,24 +92,20 @@ function OrganizationMembersList() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {data: inviteRequests = [], refetch: refetchInviteRequests} = useApiQuery<
-    Member[]
-  >(getInviteRequestsQueryKey({organization}), {staleTime: 0});
-  const {data: authProvider} = useApiQuery<OrganizationAuthProvider>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  const {data: inviteRequests = [], refetch: refetchInviteRequests} = useQuery(
+    inviteRequestsOptions({organization})
   );
-  const {data: currentMember} = useApiQuery<Member>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
-        path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
-      }),
-    ],
-    {staleTime: 30000}
+  const {data: authProvider} = useQuery(
+    apiOptions.as<OrganizationAuthProvider>()(
+      '/organizations/$organizationIdOrSlug/auth-provider/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
+  );
+  const {data: currentMember} = useQuery(
+    apiOptions.as<Member>()('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+      staleTime: 30000,
+    })
   );
   const membersQueryOptions = membersApiOptions({
     orgSlug: organization.slug,
@@ -214,7 +209,7 @@ function OrganizationMembersList() {
   const updateInviteRequest = (id: string, data: Partial<Member>) => {
     setApiQueryData<Member[]>(
       queryClient,
-      getInviteRequestsQueryKey({organization}),
+      inviteRequestsOptions({organization}).queryKey,
       currentInviteRequests => {
         return currentInviteRequests?.map(request => {
           if (request.id === id) {
@@ -230,7 +225,7 @@ function OrganizationMembersList() {
   const removeInviteRequest = (id: string) => {
     setApiQueryData<Member[]>(
       queryClient,
-      getInviteRequestsQueryKey({organization}),
+      inviteRequestsOptions({organization}).queryKey,
       curentInviteRequests => curentInviteRequests?.filter(request => request.id !== id)
     );
   };

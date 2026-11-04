@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -22,8 +22,9 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {TagWithTopValues} from 'sentry/types/group';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -47,13 +48,14 @@ export default function ProjectTags() {
     data: tags,
     isPending,
     isError,
-  } = useApiQuery<TagWithTopValues[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
+  } = useQuery(
+    apiOptions.as<TagWithTopValues[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/',
+      {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-      }),
-    ],
-    {staleTime: 0}
+        staleTime: 0,
+      }
+    )
   );
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({

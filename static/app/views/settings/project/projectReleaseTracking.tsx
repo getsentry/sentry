@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -17,9 +17,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -36,15 +37,14 @@ const placeholderData = {
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-function getReleaseTokenQueryKey(
-  organizationSlug: string,
-  projectSlug: string
-): ApiQueryKey {
-  return [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/', {
+function releaseTokenOptions(organizationSlug: string, projectSlug: string) {
+  return apiOptions.as<TokenResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/',
+    {
       path: {organizationIdOrSlug: organizationSlug, projectIdOrSlug: projectSlug},
-    }),
-  ];
+      staleTime: 0,
+    }
+  );
 }
 
 export default function ProjectReleaseTracking() {
@@ -57,13 +57,7 @@ export default function ProjectReleaseTracking() {
     isFetching,
     isError,
     error,
-  } = useApiQuery<TokenResponse>(
-    getReleaseTokenQueryKey(organization.slug, project.slug),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  } = useQuery({...releaseTokenOptions(organization.slug, project.slug), retry: false});
 
   const {mutate: regenerateToken, isPending: isRegenerating} = useMutation({
     mutationFn: () =>
@@ -78,7 +72,7 @@ export default function ProjectReleaseTracking() {
     onSuccess: data => {
       setApiQueryData(
         queryClient,
-        getReleaseTokenQueryKey(organization.slug, project.slug),
+        releaseTokenOptions(organization.slug, project.slug).queryKey,
         data
       );
       addSuccessMessage(
@@ -106,7 +100,7 @@ export default function ProjectReleaseTracking() {
     );
   }
 
-  if (isError && error?.status !== 403) {
+  if (isError && (!(error instanceof RequestError) || error.status !== 403)) {
     return <LoadingError />;
   }
 

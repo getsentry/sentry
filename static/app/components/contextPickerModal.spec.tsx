@@ -13,10 +13,10 @@ import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/componen
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 describe('ContextPickerModal', () => {
   let project!: Project;
@@ -248,17 +248,19 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+    const configQueryOptions = apiOptions.as<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
+        query: {provider_key: provider.slug, includeConfig: 0},
+        staleTime: Infinity,
+      }
+    );
     const integration = GitHubIntegrationFixture();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
+      url: configQueryOptions.queryKey[0],
       body: [integration],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
+      match: [MockApiClient.matchQuery({provider_key: provider.slug, includeConfig: 0})],
     });
 
     MockApiClient.addMockResponse({
@@ -271,7 +273,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
+        configQueryOptions,
       })
     );
 
@@ -295,17 +297,19 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+    const configQueryOptions = apiOptions.as<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
+        query: {provider_key: provider.slug, includeConfig: 0},
+        staleTime: Infinity,
+      }
+    );
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
+      url: configQueryOptions.queryKey[0],
       body: [GitHubIntegrationFixture()],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
+      match: [MockApiClient.matchQuery({provider_key: provider.slug, includeConfig: 0})],
     });
 
     MockApiClient.addMockResponse({
@@ -318,7 +322,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
+        configQueryOptions,
       })
     );
 
@@ -333,17 +337,19 @@ describe('ContextPickerModal', () => {
     ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
-    const configQueryKey = [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+    const configQueryOptions = apiOptions.as<Integration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: org.slug},
-      }),
-      {query: {provider_key: provider.slug, includeConfig: 0}},
-    ] satisfies ApiQueryKey;
+        query: {provider_key: provider.slug, includeConfig: 0},
+        staleTime: Infinity,
+      }
+    );
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
-      url: configQueryKey[0],
+      url: configQueryOptions.queryKey[0],
       body: [],
-      match: [MockApiClient.matchQuery(configQueryKey[1].query)],
+      match: [MockApiClient.matchQuery({provider_key: provider.slug, includeConfig: 0})],
     });
 
     MockApiClient.addMockResponse({
@@ -356,7 +362,7 @@ describe('ContextPickerModal', () => {
         needOrg: false,
         needProject: false,
         nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
-        configQueryKey,
+        configQueryOptions,
       })
     );
 

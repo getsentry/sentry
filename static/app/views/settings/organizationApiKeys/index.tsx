@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -8,8 +8,9 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,15 +31,11 @@ function OrganizationApiKeys() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<DeprecatedApiKey[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
+  } = useQuery(
+    apiOptions.as<DeprecatedApiKey[]>()(
+      '/organizations/$organizationIdOrSlug/api-keys/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
 
   const removeMutation = useMutation({

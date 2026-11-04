@@ -30,8 +30,6 @@ import type {Integration} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
@@ -75,7 +73,7 @@ type ContentProps = SharedProps & {
 };
 
 type ContainerProps = SharedProps & {
-  configQueryKey?: ApiQueryKey;
+  configQueryOptions?: ReturnType<ReturnType<typeof apiOptions.as<Integration[]>>>;
 
   /**
    * List of slugs we want to be able to choose from
@@ -472,23 +470,21 @@ function TeamSelector({
 
 function ConfigUrlContainer(
   props: SharedProps & {
-    configQueryKey: ApiQueryKey;
+    configQueryOptions: ReturnType<ReturnType<typeof apiOptions.as<Integration[]>>>;
     organizations: OrganizationSummary[];
     selectedOrgSlug: string | undefined;
     setSelectedOrgSlug: Dispatch<SetStateAction<string | undefined>>;
   }
 ) {
   const {
-    configQueryKey,
+    configQueryOptions,
     organizations,
     selectedOrgSlug,
     setSelectedOrgSlug,
     ...sharedProps
   } = props;
 
-  const {data, isError, isPending, refetch} = useApiQuery<Integration[]>(configQueryKey, {
-    staleTime: Infinity,
-  });
+  const {data, isError, isPending, refetch} = useQuery(configQueryOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -617,7 +613,7 @@ function ConfigPickerContent({
 }
 
 export function ContextPickerModalContainer({
-  configQueryKey,
+  configQueryOptions,
   projectSlugs,
   ...sharedProps
 }: ContainerProps) {
@@ -625,10 +621,10 @@ export function ContextPickerModalContainer({
   const {organization} = useLegacyStore(OrganizationStore);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
-  if (configQueryKey) {
+  if (configQueryOptions) {
     return (
       <ConfigUrlContainer
-        configQueryKey={configQueryKey}
+        configQueryOptions={configQueryOptions}
         organizations={organizations}
         selectedOrgSlug={selectedOrgSlug}
         setSelectedOrgSlug={setSelectedOrgSlug}

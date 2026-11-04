@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,21 +18,17 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
+import {orgAuthTokensOptions} from 'sentry/views/settings/organizationAuthTokens';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 type FetchOrgAuthTokenParameters = {
@@ -41,12 +37,11 @@ type FetchOrgAuthTokenParameters = {
 };
 type FetchOrgAuthTokenResponse = OrgAuthToken;
 
-const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
-      path: {organizationIdOrSlug: orgSlug, tokenId},
-    }),
-  ] as const;
+const orgAuthTokenOptions = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
+  apiOptions.as<FetchOrgAuthTokenResponse>()(
+    '/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/',
+    {path: {organizationIdOrSlug: orgSlug, tokenId}, staleTime: Infinity}
+  );
 
 const schema = z.object({
   name: z.string().min(1, t('Name is required')),
@@ -78,7 +73,7 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
       // Update get by id query
       setApiQueryData(
         queryClient,
-        makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId: token.id}),
+        orgAuthTokenOptions({orgSlug: organization.slug, tokenId: token.id}).queryKey,
         (oldData: OrgAuthToken | undefined) => {
           if (!oldData) {
             return oldData;
@@ -94,12 +89,12 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
       if (
         getApiQueryData(
           queryClient,
-          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug})
+          orgAuthTokensOptions({orgSlug: organization.slug}).queryKey
         )
       ) {
         setApiQueryData(
           queryClient,
-          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+          orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
           (oldData: OrgAuthToken[] | undefined) => {
             if (!Array.isArray(oldData)) {
               return oldData;
@@ -181,12 +176,7 @@ function OrganizationAuthTokensDetails() {
     isError,
     data: token,
     refetch: refetchToken,
-  } = useApiQuery<FetchOrgAuthTokenResponse>(
-    makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(orgAuthTokenOptions({orgSlug: organization.slug, tokenId}));
 
   return (
     <div>

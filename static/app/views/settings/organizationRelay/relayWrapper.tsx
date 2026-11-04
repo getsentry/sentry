@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
@@ -17,8 +17,9 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -223,18 +224,14 @@ function RelayUsageList({
 }) {
   const {openModal} = useModal();
 
-  const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/relay_usage/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: relays.length > 0,
-    }
-  );
+  const {isPending, isError, refetch, data} = useQuery({
+    ...apiOptions.as<RelayActivity[]>()(
+      '/organizations/$organizationIdOrSlug/relay_usage/',
+      {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
+    ),
+    retry: false,
+    enabled: relays.length > 0,
+  });
 
   const {mutate: deleteRelay} = useMutation({
     mutationFn: ({
