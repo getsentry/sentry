@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
+from sentry.constants import MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
 
 MATERIAL_GROUP = "M_GpuHang_992b2d801a2e9ddf/Default/FLocalVertexFactory/FLumenCardPS/0"
@@ -57,6 +58,20 @@ def test_material_group_fills_tags_culprit_and_context() -> None:
     assert gpu_crash["shader_group"] == MATERIAL_GROUP
     assert gpu_crash["material"] == "M_GpuHang_992b2d801a2e9ddf"
     assert gpu_crash["shader_class"] == "FLumenCardPS"
+
+
+def test_long_group_is_truncated_for_culprit_and_tag() -> None:
+    group = "M_" + "x" * 600 + "/Default/FLocalVertexFactory/FLumenCardPS/0"
+    data = _apply(
+        _frame(module=group, data={"shader_hash": "49478268ce7710e2", "shader_group": group})
+    )
+
+    assert len(data["culprit"]) <= MAX_CULPRIT_LENGTH
+    assert data["culprit"].startswith("M_xxx")
+    tags = dict(data["tags"])
+    assert len(tags["gpu.shader_group"]) <= MAX_TAG_VALUE_LENGTH
+    assert tags["gpu.shader_class"] == "FLumenCardPS"
+    assert data["contexts"]["gpu_crash"]["shader_group"] == group
 
 
 def test_global_group_has_no_material() -> None:

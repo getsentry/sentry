@@ -8,7 +8,9 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 from xml.sax.saxutils import unescape as _xml_unescape
 
+from sentry.constants import MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.utils import metrics
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger(__name__)
 
@@ -127,11 +129,11 @@ def apply_gpu_crash_symbolication(
     _tag("gpu.shader_hash", primary_shader.get("shader_hash"))
     shader_group = _shader_group(response)
     material, shader_class = _shader_group_parts(shader_group)
-    _tag("gpu.shader_group", shader_group)
+    _tag("gpu.shader_group", truncatechars(shader_group, MAX_TAG_VALUE_LENGTH))
     _tag("gpu.material", material)
     _tag("gpu.shader_class", shader_class)
     if shader_group:
-        data["culprit"] = shader_group
+        data["culprit"] = truncatechars(shader_group, MAX_CULPRIT_LENGTH)
     _tag("gpu.shader_type", primary_shader.get("shader_type"))
     _tag("gpu.device", gpu_state.get("device_name"))
     _tag("gpu.generation", _generation_name(gpu_state))
