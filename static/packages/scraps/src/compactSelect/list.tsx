@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
@@ -7,8 +8,6 @@ import {useListState} from '@react-stately/list';
 
 import {ControlContext} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
-
-import {defined} from 'sentry/utils/defined';
 
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
@@ -231,7 +230,7 @@ export function List<Value extends SelectKey>({
       // react-aria turns all keys into strings
       // we're setting selectedKeys to an empty array when value is undefined, because
       // undefined makes react-aria treat it as uncontrolled
-      selectedKeys: defined(value) ? [getEscapedKey(value)] : [],
+      selectedKeys: value == null ? [] : [getEscapedKey(value)],
       disallowEmptySelection: !clearable,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useContext, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
@@ -17,7 +18,7 @@ import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedIt
 import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ControlContext, ReserveLeadingSlot} from '@sentry/scraps/menu';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {GridListOption, type GridListOptionProps} from './option';
 import {GridListSection} from './section';

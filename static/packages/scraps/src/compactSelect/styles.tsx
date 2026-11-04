@@ -1,7 +1,7 @@
+import type * as React from 'react';
 //
 // Styled components used by both ListBox and GridList
 //
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
