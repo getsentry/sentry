@@ -60,7 +60,7 @@ export async function fetchTeamKeyTransactions(
         hasMore = false;
       }
     } catch (err: any) {
-      const detail = err.responseJSON?.detail;
+      const detail: unknown = err.responseJSON?.detail;
       toast.error(
         typeof detail === 'string' ? detail : t('Error fetching team key transactions')
       );

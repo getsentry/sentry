@@ -168,7 +168,7 @@ export function ReleasesAdoptionChart({
 
   useEffect(() => {
     if (isError) {
-      const detail = (error as any)?.responseJSON?.detail;
+      const detail: unknown = (error as any)?.responseJSON?.detail;
       toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
     }
   }, [isError, error]);

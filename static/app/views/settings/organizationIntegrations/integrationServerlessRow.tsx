@@ -71,7 +71,7 @@ export function IntegrationServerlessRow({
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      const detail = err.responseJSON?.detail;
+      const detail: unknown = err.responseJSON?.detail;
       toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
@@ -99,7 +99,7 @@ export function IntegrationServerlessRow({
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      const detail = err.responseJSON?.detail;
+      const detail: unknown = err.responseJSON?.detail;
       toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);

@@ -66,7 +66,7 @@ function AdminMailContent() {
       await api.requestPromise('/internal/mail/', {method: 'POST'});
       toast.success(t('A test email has been sent to %s', testMailEmail));
     } catch (error: any) {
-      const message = error.responseJSON?.error;
+      const message: unknown = error.responseJSON?.error;
       toast.error(
         typeof message === 'string'
           ? message

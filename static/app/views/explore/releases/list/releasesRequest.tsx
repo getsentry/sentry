@@ -199,7 +199,7 @@ class ReleasesRequest extends Component<Props, State> {
         totalCountByProjectInPeriod: totalCountByProjectInPeriod!,
       });
     } catch (error: any) {
-      const detail = error.responseJSON?.detail;
+      const detail: unknown = error.responseJSON?.detail;
       toast.error(typeof detail === 'string' ? detail : t('Error loading health data'));
       this.setState({
         loading: false,

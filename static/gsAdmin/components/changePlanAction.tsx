@@ -226,7 +226,7 @@ function ChangePlanAction({
           onSuccess();
         }}
         onSubmitError={(error: any) => {
-          const detail = error?.responseJSON?.detail;
+          const detail: unknown = error?.responseJSON?.detail;
           toast.error(typeof detail === 'string' ? detail : 'Unable to change plan');
         }}
         onPlanChange={handlePlanChange}
