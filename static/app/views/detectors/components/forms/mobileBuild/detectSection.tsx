@@ -85,11 +85,12 @@ export function MobileBuildDetectSection() {
               <IconInfo size="xs" />
               <Text variant="muted" size="sm">
                 {tct(
-                  "Compares against the previous build matching this monitor's filters, [platform], [packageName], and [buildConfiguration].",
+                  "Compares each build against the most recently uploaded build that matches this monitor's filters, [platform], [packageName], and [buildConfiguration]. This is not the pull request comparison against the base commit, so the previous build can come from another branch. Add a filter like [gitHeadRef] to keep comparisons within one branch.",
                   {
                     platform: <InlineCode>platform</InlineCode>,
                     packageName: <InlineCode>package_name</InlineCode>,
                     buildConfiguration: <InlineCode>build_configuration</InlineCode>,
+                    gitHeadRef: <InlineCode>git_head_ref</InlineCode>,
                   }
                 )}
               </Text>
