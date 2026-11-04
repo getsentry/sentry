@@ -102,6 +102,9 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
   );
 
   const scrollLock = useScrollLock(document.body);
+  // Portals retain the app's React context but leave its DOM query containers.
+  // Use the portal's breakpoint here so responsive props agree with its CSS
+  // container queries instead of inheriting the app's breakpoint.
   const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
 
@@ -160,6 +163,8 @@ function ModalHost({portal}: {portal: HTMLDivElement}) {
   }, [portal, handleEscapeClose, visible, scrollLock, triggerElement, getAppElement]);
 
   const pathname = location?.pathname;
+  // A modal can open before this host mounts. Keep it open on mount and close
+  // it only when the pathname changes later.
   const previousPathname = useRef(pathname);
   useEffect(() => {
     if (previousPathname.current !== pathname) {

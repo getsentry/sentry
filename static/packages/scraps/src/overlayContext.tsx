@@ -21,7 +21,6 @@ export interface OverlayContextValue {
   contentTop?: string;
   drawer?: {
     boundaryComponent?: React.ComponentType<React.PropsWithChildren>;
-    shouldCloseOnInteractOutside?: (element: Element) => boolean;
     widthStorage?: DrawerWidthStorage;
   };
   headerHeight?: string;

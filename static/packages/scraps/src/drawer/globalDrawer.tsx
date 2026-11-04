@@ -126,11 +126,7 @@ function DrawerBoundary({children}: React.PropsWithChildren) {
 
 export function GlobalDrawer({children}: GlobalDrawerProps) {
   const {drawer, location} = useOverlayContext();
-  const {
-    boundaryComponent: Boundary = DrawerBoundary,
-    shouldCloseOnInteractOutside:
-      defaultShouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault,
-  } = drawer ?? {};
+  const Boundary = drawer?.boundaryComponent ?? DrawerBoundary;
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();
@@ -196,18 +192,15 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
-  const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
+  const {shouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault} =
+    currentDrawerConfig?.options ?? {};
   useOnClickOutside(panelRef, e => {
     if (e.target === null) {
       handleClickOutside();
       return;
     }
 
-    const shouldClose = shouldCloseOnInteractOutside
-      ? shouldCloseOnInteractOutside(e.target as Element)
-      : defaultShouldCloseOnInteractOutside(e.target as Element);
-
-    if (!shouldClose) {
+    if (!shouldCloseOnInteractOutside(e.target as Element)) {
       return;
     }
     handleClickOutside();
