@@ -186,6 +186,7 @@ def validate_detectors_exist_and_have_permissions(
 def validate_workflows_exist(
     workflow_ids: list[int], organization: Organization
 ) -> QuerySet[Workflow]:
+    # Users should not be able to reference the ids of hidden workflows
     workflows = Workflow.objects.filter(
         organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
     )
@@ -381,8 +382,8 @@ def connect_detectors_to_workflows(
             return detector_workflows_to_add
 
         if update:
-            # Hidden workflow types never appear in workflow_ids, so their
-            # connections are left untouched rather than removed.
+            # Since users do not receive hidden workflow ids through the API,
+            # these connections need to be left untouched
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,

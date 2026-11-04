@@ -116,9 +116,12 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         }
 
         workflows_map = defaultdict(list)
+
+        # Ensure the workflow_ids belonging to hidden workflows are not included
         detector_workflows = DetectorWorkflow.objects.filter(
             detector__in=item_list, workflow__type__in=VISIBLE_WORKFLOW_TYPES
         ).values_list("detector_id", "workflow_id")
+
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
