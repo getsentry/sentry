@@ -68,7 +68,6 @@ export function useGroupDetailsRoute(): {
 } {
   const organization = useOrganization();
   const params = useParams<{
-    groupId: string;
     eventId?: string;
     tagKey?: string;
   }>();

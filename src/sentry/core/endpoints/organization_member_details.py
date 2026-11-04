@@ -33,6 +33,7 @@ from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
 )
+from sentry.auth.principal import has_user, require_user
 from sentry.auth.services.auth import auth_service
 from sentry.auth.superuser import is_active_superuser
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
@@ -48,6 +49,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
@@ -134,7 +136,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcUser,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -220,6 +222,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        request_user = require_user(request)
 
         allowed_roles = get_allowed_org_roles(request, organization)
         serializer = UpdateOrgMemberRolesSerializer(
@@ -253,7 +256,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         # Members can only resend invites
         is_reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
         # Members can only resend invites that they sent
-        is_invite_from_user = member.inviter_id == request.user.id
+        is_invite_from_user = member.inviter_id == request_user.id
 
         if is_member:
             if not (members_can_invite and member.is_pending and is_reinvite_request_only):
@@ -271,7 +274,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if ratelimits.for_organization_member_invite(
                     organization=organization,
                     email=member.email,
-                    user=request.user,
+                    user=request_user,
                     auth=request.auth,
                 ):
                     metrics.incr(
@@ -293,7 +296,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     return Response({"detail": ERR_EXPIRED}, status=400)
                 member.send_invite_email()
             elif auth_provider and not getattr(member.flags, "sso:linked"):
-                member.send_sso_link_email(request.user.email, auth_provider)
+                member.send_sso_link_email(request_user.email, auth_provider)
             else:
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
@@ -383,7 +386,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user_id == request.user.id and (assigned_org_role != member.role):
+            if member.user_id == request_user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -502,7 +505,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         """
         # with superuser read write separation, superuser read cannot hit this endpoint
         # so we can keep this as is_active_superuser
-        if request.user.is_authenticated and not is_active_superuser(request):
+        if has_user(request.user) and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
                     organization=organization, user_id=request.user.id

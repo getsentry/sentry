@@ -99,11 +99,13 @@ class WorkflowConfigListErrorResponse(TypedDict):
 
 
 class SeerWorkflowConfigPermission(OrganizationPermission):
-    # POST and PUT are further limited to the projects the caller can access.
+    # POST and PUT are further limited to the projects the caller can access; DELETE
+    # requires global access.
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "seer:read"],
+        "POST": ["org:write", "org:admin", "seer:write"],
+        "PUT": ["org:write", "org:admin", "seer:write"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -199,10 +201,10 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if "projectIds" in data and "monitorIds" in data:
-            raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
         if not data:
             raise serializers.ValidationError("Send projectIds, monitorIds, agent, or enabled.")
+        if "projectIds" in data and "monitorIds" in data:
+            raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
 
 
@@ -476,7 +478,11 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (SeerWorkflowConfigPermission,)
 
     def serialize(
@@ -570,7 +576,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled = serializer.validated_data.get("enabled")
         if enabled is not None:
             denied = _check_project_access(
-                workflow.get_project_ids(),
+                (
+                    [ALL_ACCESS_PROJECT_ID]
+                    if workflow.filters.all_projects
+                    else workflow.get_project_ids()
+                ),
                 request=request,
                 organization=organization,
                 endpoint=self,
@@ -627,7 +637,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         # Validate and update monitors
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
@@ -662,7 +671,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         account: RpcServiceAccount | None = None
         if agent is not None:
@@ -670,13 +678,39 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             account = update.account
             event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
             audit_agent_account(self, request, organization, account, event)
-            config = workflow.get_config()
 
         if enabled is not None:
             workflow.set_enabled(enabled)
-            config = workflow.get_config()
 
-        return Response(self.serialize(request, organization, config, account))
+        return Response(self.serialize(request, organization, workflow.get_config(), account))
+
+    @extend_schema(
+        operation_id="Delete a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={204: None},
+    )
+    def delete(self, request: Request, organization: Organization, config_id: str) -> Response:
+        """Delete a saved Seer automation workflow.
+
+        Requires global access. The config's runs are deleted too.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        if not request.access.has_global_access:
+            raise PermissionDenied(detail="Deleting an automation requires global access")
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=to_valid_int_id("config_id", config_id),
+                organization=organization,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            )
+        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
+            raise NotFound from e
+
+        get_seer_workflow(config).delete()
+        return Response(status=204)
 
 
 def serialize_workflow_configs(

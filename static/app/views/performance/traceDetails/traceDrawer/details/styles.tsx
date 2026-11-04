@@ -10,6 +10,7 @@ import {IconProfiling} from '@sentry/icons/profiling';
 import {IconTerminal} from '@sentry/icons/terminal';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -21,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';

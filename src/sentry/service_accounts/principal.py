@@ -15,9 +15,8 @@ class ServiceAccountId:
     lookup or write keyed on ``request.user.id`` fails instead of reaching the user with
     the same number.
 
-    Temporary runtime guard: about 490 ``request.user.id`` reads still assume a user. It
-    goes once mypy types ``request.user`` to include ``ServiceAccountPrincipal`` (plugin,
-    shrinking per-module allowlist) and those reads are migrated.
+    A runtime guard for code mypy's ``request.user`` typing doesn't cover, such as
+    getsentry.
     """
 
     service_account_id: int

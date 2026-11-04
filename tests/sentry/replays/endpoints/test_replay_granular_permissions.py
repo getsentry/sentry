@@ -1,3 +1,6 @@
+from rest_framework.response import Response
+
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -445,3 +448,37 @@ class TestReplayGranularPermissions(APITestCase):
             )
             # SentryApp with event:read bypasses member allowlist
             assert response.status_code == 200
+
+    def _api_key_get_replays(self) -> Response:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["org:read", "event:read"]
+            )
+        url = f"/api/0/organizations/{self.organization.slug}/replays/"
+        return self.client.get(url, HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key))
+
+    def test_api_key_does_not_get_a_pending_invites_access(self) -> None:
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+            # An org requiring 2FA turns non-compliant members back into pending invites,
+            # keeping their allowlist entry.
+            self.member_with_access.remove_user()
+            self.member_with_access.save()
+
+            response = self._api_key_get_replays()
+            assert response.status_code == 403
+
+    def test_api_key_with_several_pending_invites_denied(self) -> None:
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            OrganizationMemberReplayAccess.objects.create(
+                organizationmember=self.member_with_access
+            )
+            self.create_member(organization=self.organization, email="a@example.com")
+            self.create_member(organization=self.organization, email="b@example.com")
+
+            response = self._api_key_get_replays()
+            assert response.status_code == 403

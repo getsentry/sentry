@@ -5,7 +5,12 @@ import pytest
 
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
-from sentry.sentry_apps.utils.webhooks import SentryAppResourceType, is_subscribed, resource_of
+from sentry.sentry_apps.utils.webhooks import (
+    EVENT_EXPANSION,
+    SentryAppResourceType,
+    is_subscribed,
+    resource_of,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -30,6 +35,12 @@ def test_is_subscribed_matches_exact_event() -> None:
     assert not is_subscribed(["issue.archived"], "issue.resolved")
     # Events whose resource has no subscribable events never match.
     assert not is_subscribed(["metric_alert.open"], "metric_alert.critical")
+
+
+def test_seer_errored_is_never_delivered_to_sentry_apps() -> None:
+    # Internal only until its payload is settled; adding it to EVENT_EXPANSION would expose it.
+    every_seer_event = [*EVENT_EXPANSION[SentryAppResourceType.SEER], "seer.errored"]
+    assert not is_subscribed(every_seer_event, SentryAppEventType.SEER_ERRORED)
 
 
 @cell_silo_test

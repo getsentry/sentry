@@ -377,6 +377,11 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["enabled", "version", "date_updated"])
 
+    def delete(self) -> None:
+        """Delete the config along with its project links, runs, and trigger bindings."""
+        with self._lock_config() as config:
+            config.delete()
+
     def set_agent(self, agent: SeerAgent, *, created_by_id: int | None) -> SeerAgentUpdate:
         """
         Replace the scopes and projects of the automation's service account, creating the

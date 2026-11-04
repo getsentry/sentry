@@ -181,6 +181,7 @@ describe('IssueUptimeCheckTimeline', () => {
           detectorDetails: {},
           isSidebarOpen: true,
           navScrollMargin: 0,
+          scrollContext: 'page',
           eventCount: 0,
           eventNavigationHeight: 0,
           dispatch,

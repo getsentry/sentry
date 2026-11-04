@@ -28,6 +28,7 @@ from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
@@ -215,7 +216,16 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         group_ids = [group.id for group in instance_list]
         project_id = instance_list[0].project_id  # All groups should have same project_id
         # Remove child relations for all groups first.
-        child_relations: list[BaseRelation] = []
+        child_relations: list[BaseRelation] = [
+            ModelRelation(
+                InboxItem,
+                {
+                    "organization_id": instance_list[0].project.organization_id,
+                    "subject_type": "issue",
+                    "subject_id__in": [str(group_id) for group_id in group_ids],
+                },
+            )
+        ]
         for model in _GROUP_RELATED_MODELS:
             if model == models.GroupHash:
                 # Using the composite index on (project_id, group_id) is very efficient compared to
