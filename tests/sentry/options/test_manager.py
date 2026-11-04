@@ -34,6 +34,7 @@ from sentry.utils.types import Int, String, Type
 if TYPE_CHECKING:
     from sentry.options.manager import ReadHook
 
+
 class TestSaasAuthoritativeOptions:
     @pytest.fixture
     def store(self) -> Mock:

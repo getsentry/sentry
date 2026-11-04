@@ -316,7 +316,9 @@ class ApplicationStateTest(TestCase):
         for self_hosted in [True, False]:
             for name, value in string_states:
                 with self.subTest(name=name), self.settings(SENTRY_SELF_HOSTED=self_hosted):
-                    key = self.manager.make_key(name, lambda: "", AnyType, DEFAULT_FLAGS, 0, 0, None)
+                    key = self.manager.make_key(
+                        name, lambda: "", AnyType, DEFAULT_FLAGS, 0, 0, None
+                    )
                     self.store.set_store(key, value, UpdateChannel.UNKNOWN)
                     self.store.delete_cache(key)
                     assert options.get(name) == value
