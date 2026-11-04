@@ -21,7 +21,9 @@ export function useSingleOrganizationLogin({
       return;
     }
 
-    if (organizationSlug === singleOrganizationSlug) {
+    // Single-tenant installs also host staff organizations, so an explicit
+    // organization login route must not be rewritten to the default org.
+    if (organizationSlug) {
       return;
     }
 

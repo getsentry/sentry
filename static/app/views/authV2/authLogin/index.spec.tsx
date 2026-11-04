@@ -198,6 +198,35 @@ describe('AuthLogin', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps an explicit organization login route in single-org mode', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('acme');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: {key: 'google', name: 'Google'},
+        warnings: [],
+      },
+    });
+
+    const {router} = render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByText('Sentry')).toBeVisible();
+    expect(router.location.pathname).toBe('/auth/login/sentry/');
+  });
+
   it('shows both SSO and password auth when SSO is optional for a single org', async () => {
     ConfigStore.set('singleOrganization', true);
     mockAuthConfig('sentry');
