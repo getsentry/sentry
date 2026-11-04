@@ -26,7 +26,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, get_proxy_url
 from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
@@ -1236,3 +1236,43 @@ class IntegrationProxyRequestValidatorTest(TestCase):
         assert cm.value.integration_context["integration_id"] is None
         assert cm.value.integration_context["organization_id"] is None
         assert cm.value.integration_context["provider"] == UNKNOWN_PROVIDER
+
+
+class GetProxyUrlTest(TestCase):
+    @override_settings(
+        SENTRY_CONTROL_ADDRESS="http://control.internal",
+        SENTRY_INTEGRATION_PROXY_ADDRESS=None,
+    )
+    def test_uses_control_address_by_default(self) -> None:
+        assert get_proxy_url() == f"http://control.internal{PROXY_BASE_PATH}"
+
+    @override_settings(
+        SENTRY_CONTROL_ADDRESS="http://control.internal",
+        SENTRY_INTEGRATION_PROXY_ADDRESS="",
+    )
+    def test_empty_integration_proxy_address_falls_back(self) -> None:
+        assert get_proxy_url() == f"http://control.internal{PROXY_BASE_PATH}"
+
+    @override_settings(
+        SENTRY_CONTROL_ADDRESS="http://control.internal",
+        SENTRY_INTEGRATION_PROXY_ADDRESS="http://integration-proxy.internal",
+    )
+    def test_uses_integration_proxy_address_when_set(self) -> None:
+        assert get_proxy_url() == f"http://integration-proxy.internal{PROXY_BASE_PATH}"
+
+    @override_settings(
+        SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+        SENTRY_CONTROL_ADDRESS="http://control.internal",
+        SENTRY_INTEGRATION_PROXY_ADDRESS="http://integration-proxy.internal",
+        SILO_MODE=SiloMode.CELL,
+    )
+    def test_client_proxies_to_integration_proxy_address(self) -> None:
+        class TestClient(IntegrationProxyClient):
+            integration_type = "integration"
+            integration_name = "test"
+            base_url = "https://example.com"
+            _use_proxy_url_for_tests = True
+
+        client = TestClient(org_integration_id=123)
+        assert client._should_proxy_to_control is True
+        assert client.proxy_url == f"http://integration-proxy.internal{PROXY_BASE_PATH}"

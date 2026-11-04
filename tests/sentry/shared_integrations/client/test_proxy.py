@@ -13,6 +13,7 @@ from sentry.shared_integrations.client.proxy import (
     IntegrationProxyClient,
     get_control_silo_ip_address,
     infer_org_integration,
+    is_control_silo_ip_address,
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
@@ -335,5 +336,38 @@ def test_get_control_silo_ip_address() -> None:
 
             err = mock_capture_exception.call_args.args[0]
             assert err.args == (
-                f"Unable to parse hostname of control silo address: {control_address}",
+                f"Unable to parse hostname of integration proxy address: {control_address}",
             )
+
+
+@override_settings(
+    SENTRY_CONTROL_ADDRESS=control_address,
+    SENTRY_INTEGRATION_PROXY_ADDRESS="http://integration-proxy",
+)
+def test_get_control_silo_ip_address_uses_integration_proxy_address() -> None:
+    get_control_silo_ip_address.cache_clear()
+    with patch("socket.gethostbyname") as mock_gethostbyname:
+        mock_gethostbyname.return_value = "10.0.0.5"
+        assert get_control_silo_ip_address() == ipaddress.ip_address("10.0.0.5")
+        mock_gethostbyname.assert_called_once_with("integration-proxy")
+    get_control_silo_ip_address.cache_clear()
+
+
+@override_settings(
+    SENTRY_CONTROL_ADDRESS=control_address,
+    SENTRY_INTEGRATION_PROXY_ADDRESS="http://integration-proxy",
+)
+def test_is_control_silo_ip_address_with_integration_proxy_address() -> None:
+    get_control_silo_ip_address.cache_clear()
+    with (
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_gethostbyname.return_value = "10.0.0.5"
+        assert is_control_silo_ip_address("10.0.0.5") is True
+        assert mock_capture_exception.call_count == 0
+
+        # The control silo address is no longer permitted once a dedicated host is set.
+        assert is_control_silo_ip_address("172.31.255.255") is False
+        assert mock_capture_exception.call_count == 1
+    get_control_silo_ip_address.cache_clear()

@@ -43,8 +43,8 @@ logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def get_control_silo_ip_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
-    address: str | None = settings.SENTRY_CONTROL_ADDRESS
-    if address is None:
+    address = get_proxy_host()
+    if not address:
         return None
 
     url = urllib3.util.parse_url(address)
@@ -55,7 +55,7 @@ def get_control_silo_ip_address() -> ipaddress.IPv4Address | ipaddress.IPv6Addre
         return ipaddress.ip_address(force_str(ip, strings_only=True))
     else:
         sentry_sdk.capture_exception(
-            Exception(f"Unable to parse hostname of control silo address: {address}")
+            Exception(f"Unable to parse hostname of integration proxy address: {address}")
         )
     return None
 
@@ -103,9 +103,18 @@ def infer_org_integration(
     return org_integration_id
 
 
+def get_proxy_host() -> str | None:
+    """
+    The host that integration-proxy requests are sent to. Uses
+    SENTRY_INTEGRATION_PROXY_ADDRESS when set, otherwise SENTRY_CONTROL_ADDRESS.
+    """
+    return settings.SENTRY_INTEGRATION_PROXY_ADDRESS or settings.SENTRY_CONTROL_ADDRESS
+
+
 def get_proxy_url() -> str:
-    assert settings.SENTRY_CONTROL_ADDRESS is not None
-    return urljoin(settings.SENTRY_CONTROL_ADDRESS, PROXY_BASE_PATH)
+    host = get_proxy_host()
+    assert host is not None
+    return urljoin(host, PROXY_BASE_PATH)
 
 
 class IntegrationProxyClient(ApiClient):
