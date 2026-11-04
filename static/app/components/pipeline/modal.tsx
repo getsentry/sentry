@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useEffectEvent} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -29,13 +30,22 @@ interface PipelineModalProps<
   /** Overrides the step's default descriptive copy. */
   description?: React.ReactNode;
   initialData?: Record<string, string>;
+  /**
+   * Shows a back button in the header that leaves this flow for the one that opened it, for
+   * hosts that render the pipeline inside their own modal.
+   */
+  onBack?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
   /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
   title?: string;
 }
 
-function PipelineModal<
+/**
+ * The pipeline's header and body. `openPipelineModal` shows it as its own modal; a host that is
+ * already a modal can render it in place with its own modal props instead.
+ */
+export function PipelineModal<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 >({
@@ -45,6 +55,7 @@ function PipelineModal<
   type,
   provider,
   initialData,
+  onBack,
   onComplete,
   onError,
   title,
@@ -89,7 +100,21 @@ function PipelineModal<
   return (
     <Fragment>
       <Header closeButton>
-        <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>
+        <Flex align="center" gap="sm">
+          {onBack && (
+            <Button
+              size="zero"
+              variant="transparent"
+              icon={<IconArrow direction="left" />}
+              aria-label={t('Back')}
+              onClick={() => {
+                closeModal();
+                onBack();
+              }}
+            />
+          )}
+          <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>
+        </Flex>
       </Header>
       <Body>
         <Stack gap="2xl">
@@ -157,7 +182,7 @@ function PipelineModal<
   );
 }
 
-interface OpenPipelineModalOptions<
+export interface OpenPipelineModalOptions<
   T extends RegisteredPipelineType,
   P extends ProvidersByType[T] = ProvidersByType[T],
 > {

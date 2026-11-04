@@ -6,10 +6,12 @@ import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
+import {ConnectScmBlock} from 'sentry/views/seerExplorer/components/connectScmBlock';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import type {PendingUserInputState} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {
+  ConnectScmData,
   PendingUserInput,
   RespondToUserInputOptions,
   SeerExplorerRunId,
@@ -116,6 +118,16 @@ export function PendingUserInputPicker({
         onSelectOption={state.handleQuestionSelectOption}
         questionIndex={state.questionIndex}
         selectedOption={state.selectedOption}
+      />
+    );
+  }
+
+  if (pendingInput.input_type === 'connect_scm') {
+    return (
+      <ConnectScmBlock
+        key={pendingInput.id}
+        data={pendingInput.data as ConnectScmData}
+        onComplete={response => respondToUserInput(pendingInput.id, response)}
       />
     );
   }

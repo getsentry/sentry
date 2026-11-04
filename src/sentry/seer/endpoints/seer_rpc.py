@@ -811,6 +811,22 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
     return read_preference_from_sentry_db(project)
 
 
+def has_scm_integration(*, organization_id: int) -> dict[str, bool]:
+    """Whether the org has connected a source control provider Seer can read code from."""
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return {"has_integration": False}
+    integrations = integration_service.get_integrations(
+        organization_id=organization_id,
+        providers=get_supported_scm_providers(organization),
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        limit=1,
+    )
+    return {"has_integration": bool(integrations)}
+
+
 def deliver_feature_result(
     *,
     organization_id: int,
@@ -962,6 +978,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "send_seer_webhook": seer_rpc(send_seer_webhook),
     "get_attributes_for_span": seer_rpc(get_attributes_for_span),
     "get_project_preferences": seer_rpc(get_project_preferences),
+    "has_scm_integration": seer_rpc(has_scm_integration),
     #
     # Bug prediction
     "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),

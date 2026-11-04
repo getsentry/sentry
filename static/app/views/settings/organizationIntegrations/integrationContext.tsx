@@ -6,6 +6,7 @@ import type {
   IntegrationType,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
 
 type IntegrationContextProps = {
   analyticsParams: {
@@ -29,6 +30,8 @@ type IntegrationContextProps = {
   type: IntegrationType;
   /** Loaded workspaces for choosing a single upgrade on a deep link. */
   configurations?: OrganizationIntegration[];
+  /** Passed to the install modal, e.g. to give it a way back to the picker that opened it. */
+  modalParams?: AddIntegrationParams['modalParams'];
   onAddIntegration?: () => void;
   /**
    * When true, the "%s added" success toast is not shown on install.

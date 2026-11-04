@@ -662,6 +662,34 @@ class TestSeerRpcMethods(APITestCase):
             "project_slug_to_id": {project.slug: project.id},
         }
 
+    def test_has_scm_integration(self) -> None:
+        from sentry.seer.endpoints.seer_rpc import has_scm_integration
+
+        assert has_scm_integration(organization_id=self.organization.id) == {
+            "has_integration": False
+        }
+
+        # A provider Seer can't read code from doesn't count.
+        self.create_integration(
+            organization=self.organization, provider="bitbucket", external_id="bitbucket:1"
+        )
+        assert has_scm_integration(organization_id=self.organization.id) == {
+            "has_integration": False
+        }
+
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        assert has_scm_integration(organization_id=self.organization.id) == {
+            "has_integration": True
+        }
+
+        with assume_test_silo_mode_of(Integration):
+            integration.update(status=ObjectStatus.DISABLED)
+        assert has_scm_integration(organization_id=self.organization.id) == {
+            "has_integration": False
+        }
+
     def test_has_repo_code_mappings_uses_external_id_before_name(self) -> None:
         repo = self.create_repo(
             project=self.project,

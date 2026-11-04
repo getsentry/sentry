@@ -127,62 +127,7 @@ export function ScmConnect({
           </MotionFlex>
         </MotionStack>
 
-        <MotionGrid
-          {...ONBOARDING_ENTER}
-          columns={{zero: '1fr', md: '1fr 1fr'}}
-          gap="2xl"
-          width="100%"
-          background="secondary"
-          border="primary"
-          radius="xl"
-          padding="xl"
-        >
-          {SCM_INFO_SECTIONS.map(section => (
-            <Stack key={section.title} gap="lg">
-              <Flex align="center" gap="sm">
-                {section.tooltip ? (
-                  <InfoText
-                    title={section.tooltip}
-                    position="right"
-                    variant="primary"
-                    size="md"
-                    density="compressed"
-                  >
-                    {section.title}
-                  </InfoText>
-                ) : (
-                  <Text size="md" density="compressed" variant="primary">
-                    {section.title}
-                  </Text>
-                )}
-              </Flex>
-              <Stack as="ul" gap="md" margin="0" padding="0">
-                {section.items.map(item => (
-                  <Grid as="li" key={item.label} columns="max-content 1fr" gap="md">
-                    <Flex paddingTop="2xs">{section.icon}</Flex>
-                    <Flex>
-                      {item.tooltip ? (
-                        <InfoText
-                          title={item.tooltip}
-                          position="right"
-                          variant="primary"
-                          size="md"
-                          density="comfortable"
-                        >
-                          {item.label}
-                        </InfoText>
-                      ) : (
-                        <Text variant="primary" size="md" density="comfortable">
-                          {item.label}
-                        </Text>
-                      )}
-                    </Flex>
-                  </Grid>
-                ))}
-              </Stack>
-            </Stack>
-          ))}
-        </MotionGrid>
+        <ScmConnectInfo />
 
         <MotionFlex
           {...ONBOARDING_ENTER}
@@ -235,6 +180,71 @@ export function ScmConnect({
         </MotionFlex>
       </ScmStepLayout>
     </Stack>
+  );
+}
+
+/**
+ * What Sentry does and never does with repository access. Shared by the onboarding connect step
+ * and Seer's in-chat connect prompt so both make the same promises.
+ */
+export function ScmConnectInfo() {
+  return (
+    <MotionGrid
+      {...ONBOARDING_ENTER}
+      columns={{zero: '1fr', md: '1fr 1fr'}}
+      gap="2xl"
+      width="100%"
+      background="secondary"
+      border="primary"
+      radius="xl"
+      padding="xl"
+    >
+      {SCM_INFO_SECTIONS.map(section => (
+        <Stack key={section.title} gap="lg">
+          <Flex align="center" gap="sm">
+            {section.tooltip ? (
+              <InfoText
+                title={section.tooltip}
+                position="right"
+                variant="primary"
+                size="md"
+                density="compressed"
+              >
+                {section.title}
+              </InfoText>
+            ) : (
+              <Text size="md" density="compressed" variant="primary">
+                {section.title}
+              </Text>
+            )}
+          </Flex>
+          <Stack as="ul" gap="md" margin="0" padding="0">
+            {section.items.map(item => (
+              <Grid as="li" key={item.label} columns="max-content 1fr" gap="md">
+                <Flex paddingTop="2xs">{section.icon}</Flex>
+                <Flex>
+                  {item.tooltip ? (
+                    <InfoText
+                      title={item.tooltip}
+                      position="right"
+                      variant="primary"
+                      size="md"
+                      density="comfortable"
+                    >
+                      {item.label}
+                    </InfoText>
+                  ) : (
+                    <Text variant="primary" size="md" density="comfortable">
+                      {item.label}
+                    </Text>
+                  )}
+                </Flex>
+              </Grid>
+            ))}
+          </Stack>
+        </Stack>
+      ))}
+    </MotionGrid>
   );
 }
 

@@ -190,6 +190,22 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         # The client applies the investigations feature and open-membership gate.
         assert mock_client_class.call_args.kwargs["enable_investigation_tools"] is True
 
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_prompt_requires_integrations_scope(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+
+        response = self.client.post(self.url, {"query": "hi"}, format="json")
+
+        assert response.status_code == 200
+        assert mock_client_class.call_args.kwargs["enable_scm_connect_prompt"] is False
+
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock) -> None:
@@ -224,6 +240,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
             enable_investigation_tools=True,
+            enable_scm_connect_prompt=True,
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -393,6 +410,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
             enable_investigation_tools=True,
+            enable_scm_connect_prompt=True,
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(

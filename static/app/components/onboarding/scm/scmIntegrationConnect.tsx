@@ -40,6 +40,10 @@ interface ScmIntegrationConnectProps {
   // renders static "Connected to ..." text for the single active integration.
   allowIntegrationSwitching?: boolean;
   maxWidth?: StackProps['maxWidth'];
+  // Where the provider install pipeline shows; see ScmProviderPills.
+  openInstallPipeline?: React.ComponentProps<
+    typeof ScmProviderPills
+  >['openInstallPipeline'];
   // Horizontal alignment of the provider pills. Left by default.
   pillsJustify?: React.ComponentProps<typeof ScmProviderPills>['justify'];
 }
@@ -68,6 +72,7 @@ export function ScmIntegrationConnect({
   selectedRepository,
   allowIntegrationSwitching = false,
   maxWidth = SCM_STEP_CONTENT_WIDTH,
+  openInstallPipeline,
   pillsJustify,
 }: ScmIntegrationConnectProps) {
   const organization = useOrganization();
@@ -202,6 +207,7 @@ export function ScmIntegrationConnect({
           analyticsFlow={analyticsFlow}
           providers={scmProviders}
           onInstall={handleInstall}
+          openInstallPipeline={openInstallPipeline}
           justify={pillsJustify}
         />
       </Stack>

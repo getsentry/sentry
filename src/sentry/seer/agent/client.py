@@ -312,6 +312,7 @@ class SeerAgentClient:
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
             enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
+            enable_scm_connect_prompt: Let an interactive agent pause and ask the user to connect a source control provider when a sandbox tool cannot open a repository because none is connected. Pass True only when the user can install integrations (the org:integrations scope). Default is False.
     """
 
     def __init__(
@@ -338,6 +339,7 @@ class SeerAgentClient:
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
         enable_investigation_tools: bool = False,
+        enable_scm_connect_prompt: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -378,6 +380,8 @@ class SeerAgentClient:
         self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
             organization, actor=user
         )
+
+        self.enable_scm_connect_prompt = enable_scm_connect_prompt
 
         self.viewer_context = self._build_viewer_context()
 
@@ -451,6 +455,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -797,6 +802,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 

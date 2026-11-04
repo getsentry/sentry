@@ -4,6 +4,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import type {OpenPipelineModalOptions} from 'sentry/components/pipeline/modal';
 import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
@@ -33,6 +34,9 @@ interface ScmProviderPillsProps {
   // Horizontal alignment of the pill row. Left by default; hosts that center
   // their layout (the onboarding connect step) pass `center`.
   justify?: FlexProps['justify'];
+  // Shows the provider's install pipeline in place of its own modal. For hosts that are already
+  // a modal, which opening another modal would replace.
+  openInstallPipeline?: (options: OpenPipelineModalOptions<'integration'>) => void;
 }
 
 export function ScmProviderPills({justify = 'start', ...props}: ScmProviderPillsProps) {
@@ -50,6 +54,7 @@ function ScmProviderPillRow({
   providers,
   onInstall,
   justify,
+  openInstallPipeline,
 }: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
@@ -57,6 +62,9 @@ function ScmProviderPillRow({
   const view = INSTALL_VIEW[analyticsFlow];
   const buttonSize = 'md';
   const iconSize = 'sm';
+  const modalParams = openInstallPipeline
+    ? {openPipeline: openInstallPipeline}
+    : undefined;
 
   return (
     <MotionFlex wrap="wrap" justify={justify} gap="md" {...ONBOARDING_STAGGER_CHILDREN}>
@@ -73,6 +81,7 @@ function ScmProviderPillRow({
                 already_installed: false,
               },
               suppressSuccessMessage: true,
+              modalParams,
             }}
           >
             <IntegrationButton
@@ -116,6 +125,7 @@ function ScmProviderPillRow({
                     already_installed: false,
                   },
                   suppressSuccessMessage: true,
+                  modalParams,
                 }),
             }))}
           />

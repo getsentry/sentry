@@ -393,6 +393,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
                 enable_investigation_tools=True,
+                # Only users who can install integrations are asked to connect source control.
+                enable_scm_connect_prompt=request.access.has_scope("org:integrations"),
                 reasoning_effort="medium",
             )
             if resolved is not None:

@@ -2,7 +2,10 @@ import {useCallback, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {openPipelineModal} from 'sentry/components/pipeline/modal';
+import {
+  openPipelineModal,
+  type OpenPipelineModalOptions,
+} from 'sentry/components/pipeline/modal';
 import type {ProvidersByType} from 'sentry/components/pipeline/registry';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
@@ -35,6 +38,11 @@ export interface AddIntegrationParams {
    */
   modalParams?: {
     description?: React.ReactNode;
+    /**
+     * Shows the install pipeline somewhere other than its own modal, such as inside a modal
+     * that is already open. Defaults to `openPipelineModal`.
+     */
+    openPipeline?: (options: OpenPipelineModalOptions<'integration'>) => void;
     title?: string;
   };
   onCancel?: () => void;
@@ -76,7 +84,7 @@ export function useAddIntegration() {
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
-      modalParams,
+      modalParams: {openPipeline = openPipelineModal, ...modalParams} = {},
     } = params;
 
     const is_scm = isScmProvider(provider);
@@ -99,7 +107,7 @@ export function useAddIntegration() {
       ...analyticsParams,
     });
 
-    openPipelineModal({
+    openPipeline({
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
