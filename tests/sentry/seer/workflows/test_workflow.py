@@ -1,3 +1,6 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -536,6 +539,31 @@ class SeerWorkflowServiceAccountTest(TestCase):
             assert not ServiceAccountProject.objects.filter(
                 service_account_id=created.service_account.id
             ).exists()
+
+    def test_set_agent_access_updates_an_account_linked_by_a_concurrent_save(self) -> None:
+        create = SeerWorkflow._create_agent_service_account
+
+        @contextmanager
+        def create_then_link_concurrently(*args: Any, **kwargs: Any) -> Iterator[Any]:
+            with create(*args, **kwargs) as account:
+                self.link(self.account.id)
+                yield account
+
+        with patch.object(
+            SeerWorkflow,
+            "_create_agent_service_account",
+            side_effect=create_then_link_concurrently,
+        ):
+            update = self.workflow.set_agent_access(
+                SeerAgentAccess(scopes=["project:read"]), created_by_id=None
+            )
+
+        assert not update.created
+        assert update.service_account.id == self.account.id
+        assert self.workflow.get_config().service_account_id == self.account.id
+        assert self.control_service_account(self.account.id).scope_list == ["project:read"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert list(ServiceAccount.objects.values_list("id", flat=True)) == [self.account.id]
 
     def test_set_agent_access_replaces_an_account_deleted_elsewhere(self) -> None:
         account_id = self.account.id

@@ -68,6 +68,10 @@ class SeerAgentAccess:
     all_projects: bool = False
 
 
+class _AgentServiceAccountChanged(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class SeerAgentAccessUpdate:
     service_account: RpcServiceAccount
@@ -406,20 +410,23 @@ class SeerWorkflow:
             if account is not None:
                 return SeerAgentAccessUpdate(service_account=account, created=False)
 
-        # TODO(telkins): Concurrent first saves each create an account and the last link wins,
-        # orphaning the others with their grants. Recheck service_account_id under the lock.
-        with (
-            self._create_agent_service_account(
-                self.organization_id,
-                agent,
-                automation_name=self.extras.name,
-                created_by_id=created_by_id,
-            ) as account,
-            self._lock_config() as config,
-        ):
-            config.service_account_id = account.id
-            config.version += 1
-            config.save(update_fields=["service_account_id", "version", "date_updated"])
+        try:
+            with (
+                self._create_agent_service_account(
+                    self.organization_id,
+                    agent,
+                    automation_name=self.extras.name,
+                    created_by_id=created_by_id,
+                ) as account,
+                self._lock_config() as config,
+            ):
+                if config.service_account_id != service_account_id:
+                    raise _AgentServiceAccountChanged
+                config.service_account_id = account.id
+                config.version += 1
+                config.save(update_fields=["service_account_id", "version", "date_updated"])
+        except _AgentServiceAccountChanged:
+            return self.set_agent_access(agent, created_by_id=created_by_id)
         return SeerAgentAccessUpdate(service_account=account, created=True)
 
     def get_agent_service_account(self) -> RpcServiceAccount | None:
