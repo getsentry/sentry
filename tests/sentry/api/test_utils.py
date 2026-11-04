@@ -23,7 +23,12 @@ from sentry.api.utils import (
     to_valid_int_id_list,
 )
 from sentry.db.models.fields.bounded import BoundedBigAutoField
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidParams,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -212,6 +217,15 @@ class HandleQueryErrorsTest(APITestCase):
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+    def test_handle_search_query_parse_error(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise SearchQueryParseError("Empty string after 'user.email:'")
+        assert excinfo.value.detail == {
+            "detail": "Empty string after 'user.email:'",
+            "code": "invalid_search_query",
+        }
 
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
