@@ -4,7 +4,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   DisableDetectorAction,
@@ -14,7 +13,6 @@ import {
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
-import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {MetricDetectorRecentIssues} from 'sentry/views/detectors/components/details/metric/recentIssues';
 import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
@@ -33,10 +31,6 @@ type MetricDetectorDetailsProps = {
 };
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
-  const organization = useOrganization();
-  const detectorsOpenIssuePerActivation = organization.features.includes(
-    'workflow-engine-rotate-activation-id'
-  );
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
@@ -78,17 +72,10 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           </Flex>
           {snubaQuery && <MetricDetectorDetailsChart detector={detector} />}
           <ErrorBoundary mini>
-            {detectorsOpenIssuePerActivation ? (
-              <MetricDetectorRecentIssues
-                detector={detector}
-                intervalSeconds={intervalSeconds}
-              />
-            ) : (
-              <DetectorDetailsOpenPeriodIssues
-                detector={detector}
-                intervalSeconds={intervalSeconds}
-              />
-            )}
+            <MetricDetectorRecentIssues
+              detector={detector}
+              intervalSeconds={intervalSeconds}
+            />
           </ErrorBoundary>
           <DetectorDetailsAutomations detector={detector} />
         </DetailLayout.Main>

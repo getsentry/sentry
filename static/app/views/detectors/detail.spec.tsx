@@ -269,42 +269,13 @@ describe('DetectorDetails', () => {
       );
     });
 
-    it('displays ongoing issues for the detector', async () => {
-      const {router} = render(<DetectorDetails />, {
+    it('displays recent issues for the detector', async () => {
+      render(<DetectorDetails />, {
         organization,
         initialRouterConfig,
       });
 
-      // Verify ongoing issues section is displayed
-      expect(await screen.findByText('RequestError')).toBeInTheDocument();
-
-      // Verify the View All button links to the issues page with the correct query
-      const viewAllButton = screen.getByRole('button', {name: 'View All'});
-
-      await userEvent.click(viewAllButton);
-
-      // Check that navigation occurred to the issues page with the detector query
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/`
-      );
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          query: `is:unresolved detector:${snubaQueryDetector.id}`,
-        })
-      );
-    });
-
-    it('displays recent issues when each activation opens its own issue', async () => {
-      render(<DetectorDetails />, {
-        organization: OrganizationFixture({
-          features: ['workflow-engine-rotate-activation-id'],
-        }),
-        initialRouterConfig,
-      });
-
       expect(await screen.findByText('Recent Issues')).toBeInTheDocument();
-
-      expect(screen.queryByText('Ongoing Issue')).not.toBeInTheDocument();
     });
   });
 
