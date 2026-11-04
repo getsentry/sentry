@@ -172,6 +172,61 @@ class SeerWorkflowCreateTest(TestCase):
         assert not SeerWorkflowConfigProject.objects.exists()
 
 
+class SeerWorkflowUpdateConfigTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.selected = self.create_project()
+        self.config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        Factories.create_seer_workflow_config_project(self.config, self.selected)
+        self.workflow = SeerWorkflow(
+            config_id=self.config.id, organization_id=self.config.organization_id
+        )
+
+    def test_changes_in_one_update_bump_version_once(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(AllProjects())
+
+        config = self.workflow.get_config()
+        assert config.version == 2
+        assert config.enabled is True
+        assert self.workflow.filters.all_projects is True
+
+    def test_unchanged_update_does_not_save(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_enabled(False)
+            update.set_project_selection(SelectedProjects(project_ids=(self.selected.id,)))
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.date_updated == self.config.date_updated
+
+    def test_project_link_change_bumps_version(self) -> None:
+        other = self.create_project()
+
+        with self.workflow.update_config() as update:
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+
+        assert self.workflow.get_config().version == 2
+        assert self.workflow.filters.all_projects is False
+        assert self.workflow.get_project_ids() == [other.id]
+
+    def test_error_rolls_back_every_change(self) -> None:
+        other = self.create_project()
+
+        with pytest.raises(RuntimeError, match="failed"), self.workflow.update_config() as update:
+            update.set_enabled(True)
+            update.set_project_selection(SelectedProjects(project_ids=(other.id,)))
+            raise RuntimeError("failed")
+
+        config = self.workflow.get_config()
+        assert config.version == 1
+        assert config.enabled is False
+        assert self.workflow.get_project_ids() == [self.selected.id]
+
+
 class SeerWorkflowScopeTest(TestCase):
     def test_scope_requires_active_project_in_organization(self) -> None:
         config = Factories.create_seer_workflow_config(

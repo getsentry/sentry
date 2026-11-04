@@ -33,6 +33,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
+    BreachedMetricConfigUpdate,
     BreachedMetricWorkflow,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
@@ -764,6 +765,13 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             enabled=True,
             filters={"all_projects": False, "environments": ["production"]},
         )
+
+    def test_update_config_yields_metric_update(self) -> None:
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+        with workflow.update_config() as update:
+            assert isinstance(update, BreachedMetricConfigUpdate)
 
     def test_connects_selected_monitors(self) -> None:
         updated = self.select_monitors([*self.monitor_ids, self.monitor_ids[0]])
