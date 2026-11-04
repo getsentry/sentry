@@ -36,7 +36,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerAgent, SeerWorkflow, WorkflowUpdateError
+from sentry.seer.workflows.workflow import SeerAgentAccess, SeerWorkflow, WorkflowUpdateError
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -187,7 +187,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         name: str | None = None,
-        agent: SeerAgent | None = None,
+        agent: SeerAgentAccess | None = None,
         created_by_id: int | None = None,
     ) -> BreachedMetricWorkflow:
         """

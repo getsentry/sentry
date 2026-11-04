@@ -60,7 +60,7 @@ type ProjectSelection = AllProjects | SelectedProjects
 
 
 @dataclass(frozen=True)
-class SeerAgent:
+class SeerAgentAccess:
     """The scopes and projects an automation's investigations run with."""
 
     scopes: Sequence[str]
@@ -69,7 +69,7 @@ class SeerAgent:
 
 
 @dataclass(frozen=True)
-class SeerAgentUpdate:
+class SeerAgentAccessUpdate:
     account: RpcServiceAccount
     created: bool
 
@@ -160,7 +160,7 @@ class SeerWorkflow:
     @contextmanager
     def _create_agent_account(
         organization_id: int,
-        agent: SeerAgent,
+        agent: SeerAgentAccess,
         *,
         automation_name: str | None,
         created_by_id: int | None,
@@ -190,7 +190,7 @@ class SeerWorkflow:
     def _maybe_create_agent_account(
         cls,
         organization_id: int,
-        agent: SeerAgent | None,
+        agent: SeerAgentAccess | None,
         *,
         automation_name: str | None,
         created_by_id: int | None,
@@ -212,7 +212,7 @@ class SeerWorkflow:
         project_ids: Collection[int],
         environments: Sequence[str] = (),
         name: str | None = None,
-        agent: SeerAgent | None = None,
+        agent: SeerAgentAccess | None = None,
         created_by_id: int | None = None,
     ) -> SeerWorkflow:
         """
@@ -390,7 +390,9 @@ class SeerWorkflow:
                 organization_id=self.organization_id, service_account_id=service_account_id
             )
 
-    def set_agent(self, agent: SeerAgent, *, created_by_id: int | None) -> SeerAgentUpdate:
+    def set_agent_access(
+        self, agent: SeerAgentAccess, *, created_by_id: int | None
+    ) -> SeerAgentAccessUpdate:
         """
         Replace the scopes and projects of the automation's service account, creating the
         account if the automation has none. Callers must authorize the grant and audit it.
@@ -405,7 +407,7 @@ class SeerWorkflow:
                 all_projects=agent.all_projects,
             )
             if account is not None:
-                return SeerAgentUpdate(account=account, created=False)
+                return SeerAgentAccessUpdate(account=account, created=False)
 
         # TODO(telkins): Concurrent first saves each create an account and the last link wins,
         # orphaning the others with their grants. Recheck service_account_id under the lock.
@@ -421,7 +423,7 @@ class SeerWorkflow:
             config.service_account_id = account.id
             config.version += 1
             config.save(update_fields=["service_account_id", "version", "date_updated"])
-        return SeerAgentUpdate(account=account, created=True)
+        return SeerAgentAccessUpdate(account=account, created=True)
 
     def get_agent_account(self) -> RpcServiceAccount | None:
         """Read the automation's service account from control, which the replica may lag."""

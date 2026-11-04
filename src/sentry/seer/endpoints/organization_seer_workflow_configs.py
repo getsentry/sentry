@@ -47,7 +47,7 @@ from sentry.seer.workflows.breached_metrics import (
 from sentry.seer.workflows.registry import get_seer_workflow
 from sentry.seer.workflows.workflow import (
     AllProjects,
-    SeerAgent,
+    SeerAgentAccess,
     SeerWorkflow,
     SelectedProjects,
     WorkflowUpdateError,
@@ -118,12 +118,12 @@ class AgentSerializer(serializers.Serializer):
     )
     allProjects = serializers.BooleanField(default=False)
 
-    def validate(self, data: dict[str, Any]) -> SeerAgent:
+    def validate(self, data: dict[str, Any]) -> SeerAgentAccess:
         if data["allProjects"] and data["projectIds"]:
             raise serializers.ValidationError(
                 {"projectIds": "An agent with access to all projects can't also list projects."}
             )
-        return SeerAgent(
+        return SeerAgentAccess(
             scopes=sorted(set(data["scopes"])),
             project_ids=sorted(set(data["projectIds"])),
             all_projects=data["allProjects"],
@@ -426,7 +426,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
-        agent: SeerAgent | None = data.get("agent")
+        agent: SeerAgentAccess | None = data.get("agent")
         if agent is not None:
             check_can_grant_agent(agent, request, organization, self)
 
@@ -588,7 +588,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             if denied is not None:
                 raise PermissionDenied(denied)
 
-        agent: SeerAgent | None = serializer.validated_data.get("agent")
+        agent: SeerAgentAccess | None = serializer.validated_data.get("agent")
         if agent is not None:
             check_can_grant_agent(agent, request, organization, self)
 
@@ -674,7 +674,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         account: RpcServiceAccount | None = None
         if agent is not None:
-            update = workflow.set_agent(agent, created_by_id=acting_user_id(request.user))
+            update = workflow.set_agent_access(agent, created_by_id=acting_user_id(request.user))
             account = update.account
             event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
             audit_agent_account(self, request, organization, account, event)
@@ -877,7 +877,7 @@ def get_config_agents(
 
 
 def check_can_grant_agent(
-    agent: SeerAgent,
+    agent: SeerAgentAccess,
     request: Request,
     organization: Organization,
     endpoint: OrganizationEndpoint,
