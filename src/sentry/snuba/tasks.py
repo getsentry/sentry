@@ -59,6 +59,10 @@ def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> N
     if subscription.status != QuerySubscription.Status.CREATING.value:
         metrics.incr("snuba.subscriptions.create.incorrect_status")
         return
+    if subscription.snuba_query.dataset == Dataset.PerformanceMetrics.value:
+        metrics.incr("snuba.subscriptions.create.removed_dataset")
+        _disable_removed_dataset_subscription(subscription)
+        return
     if subscription.subscription_id is not None and subscription.snuba_query is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
         # This mostly shouldn't happen, but it's possible that a subscription can get
@@ -116,10 +120,11 @@ def update_subscription_in_snuba(
         metrics.incr("snuba.subscriptions.update.incorrect_status")
         return
 
-    if subscription.subscription_id is not None and subscription.snuba_query is not None:
-        dataset = Dataset(
-            old_dataset if old_dataset is not None else subscription.snuba_query.dataset
-        )
+    dataset = Dataset(old_dataset if old_dataset is not None else subscription.snuba_query.dataset)
+    if dataset == Dataset.PerformanceMetrics:
+        # Nothing to delete in Snuba, and the old query can no longer be resolved.
+        metrics.incr("snuba.subscriptions.update.removed_old_dataset")
+    elif subscription.subscription_id is not None:
         query_type = SnubaQuery.Type(
             old_query_type if old_query_type is not None else subscription.snuba_query.type
         )
@@ -157,6 +162,11 @@ def update_subscription_in_snuba(
             subscription.subscription_id,
             old_entity_key,
         )
+
+    if subscription.snuba_query.dataset == Dataset.PerformanceMetrics.value:
+        metrics.incr("snuba.subscriptions.update.removed_dataset")
+        _disable_removed_dataset_subscription(subscription)
+        return
 
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
@@ -226,6 +236,12 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
             snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
+
+
+def _disable_removed_dataset_subscription(subscription: QuerySubscription) -> None:
+    # Snuba no longer has this dataset, so the subscription can't be created. Disabling it stops
+    # subscription_checker from retrying it.
+    subscription.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
