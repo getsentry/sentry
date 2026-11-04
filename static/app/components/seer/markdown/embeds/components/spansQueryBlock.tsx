@@ -1,5 +1,11 @@
 import {IconSpan} from '@sentry/icons/span';
 
+import {t} from 'sentry/locale';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
@@ -10,21 +16,12 @@ import {
 } from './queryEmbed/queryEmbedChart';
 import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
 import {
+  useHasUnsupportedQueryTransformations,
   useQueryEmbedEventsStats,
   useQueryEmbedEventsTable,
 } from './queryEmbed/queryEmbedQueries';
-import {
-  eventColumns,
-  eventRowKey,
-  QueryEmbedTable,
-} from './queryEmbed/queryEmbedTable';
+import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
 import {toPageFilters} from './queryEmbedParams';
-import {t} from 'sentry/locale';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {useOrganization} from 'sentry/utils/useOrganization';
-
 import {getSpansQueryTitle} from './spansQueryLink';
 import {
   buildSpansChartQuery,
@@ -45,6 +42,9 @@ function SpansQueryChart({
   hasTable: boolean;
 }) {
   const yAxisFields = resolveChartYAxes(data);
+  const unsupportedTransformations = useHasUnsupportedQueryTransformations(
+    data.transformations
+  );
   const hasTransformations =
     data.transformations?.some(pipeline => pipeline.length) ?? false;
   const query = useQueryEmbedEventsStats(
@@ -55,7 +55,7 @@ function SpansQueryChart({
   const transformedQuery = useFetchEventsTimeSeries(
     DiscoverDatasets.SPANS,
     {
-      enabled: hasTransformations,
+      enabled: hasTransformations && !unsupportedTransformations,
       yAxis: yAxisFields,
       transformations: data.transformations,
       interval: data.interval,
@@ -91,6 +91,7 @@ function SpansQueryChart({
           ? chartUnitFromTimeSeries(timeSeries)
           : toChartUnit(aggregateOutputType(yAxisFields[0]))
       }
+      unsupportedTransformations={unsupportedTransformations}
     />
   );
 }
