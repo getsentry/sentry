@@ -19,7 +19,6 @@ import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 
 describe('IssueDetailsSidebar', () => {
   const user = UserFixture();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
   ConfigStore.set('user', user);
 
   const activityContent = 'test-note';

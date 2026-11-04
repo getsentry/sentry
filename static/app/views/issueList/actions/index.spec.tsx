@@ -623,7 +623,6 @@ describe('IssueListActions', () => {
 
     describe('bulk action performance issues', () => {
       const orgWithPerformanceIssues = OrganizationFixture({
-        features: ['performance-issues'],
         access: ['event:admin'],
       });
 

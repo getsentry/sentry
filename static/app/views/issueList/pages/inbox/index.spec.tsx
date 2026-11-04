@@ -1514,7 +1514,7 @@ describe('InboxPage', () => {
     );
   });
 
-  it('does not render without the progress UI feature', () => {
+  it('does not render without the issue-inbox feature', () => {
     render(<InboxPage />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig,

@@ -213,7 +213,6 @@ describe('GroupEventAttachments', () => {
   it('filters by date/query on issue details', () => {
     ConfigStore.init();
     const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = true;
     act(() => ConfigStore.set('user', user));
 
     render(<GroupEventAttachments project={project} group={group} />, {
