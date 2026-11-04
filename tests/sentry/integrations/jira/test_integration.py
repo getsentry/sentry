@@ -2574,3 +2574,18 @@ class JiraApiPipelineTest(APITestCase):
         assert OrganizationIntegration.objects.filter(
             integration=self.integration, organization_id=self.organization.id
         ).exists()
+
+    @responses.activate
+    def test_install_fails_when_site_was_uninstalled(self) -> None:
+        responses.add(responses.GET, "https://example.atlassian.net/rest/api/2/project", status=401)
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        pipeline_signature = resp.data["data"]["state"]
+
+        # The site uninstalls the app while the user is on the confirmation screen.
+        self.integration.update(status=ObjectStatus.DISABLED)
+
+        resp = self._advance_step({"state": pipeline_signature})
+        assert resp.status_code == 400
+        assert not OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).exists()
