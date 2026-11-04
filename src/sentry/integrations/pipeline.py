@@ -301,9 +301,18 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
 
     def _install_integration_transaction(self, data: IntegrationData) -> OrganizationIntegration:
         if "expect_exists" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, external_id=data["external_id"]
-            )
+            # Created by the provider's install webhook, and it may have been uninstalled
+            # since the link was opened.
+            integration = Integration.objects.filter(
+                provider=self.provider.integration_key,
+                external_id=data["external_id"],
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            if integration is None:
+                raise IntegrationError(
+                    "This installation no longer exists. Reinstall the app and try again."
+                )
+            self.integration = integration
         else:
             self.integration = ensure_integration(
                 self.provider.integration_key,
