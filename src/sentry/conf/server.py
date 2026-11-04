@@ -913,6 +913,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.inbox.event_retention",
+    "sentry.inbox.item_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -1129,6 +1130,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "cleanup-universal-inbox-events": {
         "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
+    "cleanup-universal-inbox-items": {
+        "task": "notifications:sentry.inbox.item_retention.schedule_inbox_item_cleanup",
+        "schedule": timedelta(minutes=1),
     },
     "schedule-deletions": {
         "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
