@@ -37,8 +37,6 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.metrics import (
-    SCMIntegrationInteractionEvent,
-    SCMIntegrationInteractionType,
     get_current_scm_interaction_type,
     normalize_scm_provider_key,
 )
@@ -112,6 +110,7 @@ query SearchLabels($owner: String!, $name: String!, $search: String!) {
 PAGINATION_MAX_WORKERS = 10
 GET_REPOSITORIES_METRIC = "integrations.source_code_management.get_repositories"
 GET_REPO_TREE_METRIC = "integrations.source_code_management.get_repo_tree"
+GET_RATE_LIMIT_METRIC = "integrations.source_code_management.get_rate_limit"
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -704,18 +703,24 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture():
+        parent_interaction_type = get_current_scm_interaction_type() or "unattributed"
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
             response = self.get_mapping(
                 "/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT
             )
             resources = response["resources"]
             resource = resources[specific_resource]
-            return GithubRateLimitInfo(_int_values(resource, context="rate limit"))
+            rate_limit = GithubRateLimitInfo(_int_values(resource, context="rate limit"))
+        except Exception:
+            metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "success"})
+        return rate_limit
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
