@@ -6,6 +6,7 @@ from uuid import UUID
 
 from django.utils import timezone
 
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.organizations.services.organization import organization_service
@@ -182,16 +183,17 @@ def _record_result(
     # back at this run. Creating it invokes the workflow activity handlers, which score
     # the prediction (completing the pair now if ground truth already landed) and
     # auto-assign as needed.
-    Activity.objects.create_group_activity(
-        group,
-        ActivityType.SMART_ASSIGNMENT_COMPLETED,
-        data={
-            "run_id": agent_run.run_id,
-            "run_uuid": str(run_uuid),
-            "predicted_assignee_user_ids": predicted_assignee_user_ids,
-        },
-        send_notification=False,
-    )
+    with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+        Activity.objects.create_group_activity(
+            group,
+            ActivityType.SMART_ASSIGNMENT_COMPLETED,
+            data={
+                "run_id": agent_run.run_id,
+                "run_uuid": str(run_uuid),
+                "predicted_assignee_user_ids": predicted_assignee_user_ids,
+            },
+            send_notification=False,
+        )
 
     if not predicted_assignee_user_ids:
         outcome = "abstain"
