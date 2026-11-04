@@ -95,6 +95,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
+/**
+ * This sentinel value means the pseudo row sits after every loaded row.
+ */
+const SECOND_TO_LAST_ROW_SENTINEL = -2;
+
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
   additionalData?: {
@@ -208,7 +213,7 @@ export function LogsInfiniteTable({
       row =>
         isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
     );
-    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+    return index === -1 ? SECOND_TO_LAST_ROW_SENTINEL : index; // If the event is older than all the data, add it to the end with a sentinel value of SECOND_TO_LAST_ROW_SENTINEL. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
@@ -224,7 +229,8 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+      const newSelectedIndex =
+        pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -371,11 +377,11 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
-  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
-  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // Reading the row count from an effect event keeps it out of the effect deps, so scrolling
   // does not repeat each time the infinite table loads another page.
   const scrollToPseudoRow = useEffectEvent(() => {
-    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+    const scrollToIndex =
+      pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
     virtualizer.scrollToIndex(scrollToIndex, {
       behavior: 'smooth',
       align: 'center',
@@ -383,7 +389,8 @@ export function LogsInfiniteTable({
   });
 
   // Scrolling to the end would load another page and move the event's row again.
-  const isPseudoRowPastLoadedPages = pseudoRowIndex === -2 && canFetchNextPage;
+  const isPseudoRowPastLoadedPages =
+    pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL && canFetchNextPage;
 
   useEffect(() => {
     if (
