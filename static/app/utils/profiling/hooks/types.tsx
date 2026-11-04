@@ -1,4 +1,4 @@
-import type {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import type {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import type {FieldValueType} from 'sentry/utils/fields';
 
 type Unit = keyof typeof DURATION_UNITS | keyof typeof SIZE_UNITS | null;

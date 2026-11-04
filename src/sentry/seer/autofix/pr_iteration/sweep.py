@@ -62,6 +62,15 @@ def sweep_stale_pr_iterations() -> SweepResult:
         try:
             analytics.record(event)
             emitted += 1
+            logger.info(
+                "autofix.pr_iteration.details.emitted",
+                extra={
+                    "event_type": "blocked",
+                    "outcome": event.outcome,
+                    "iteration_id": iteration.id,
+                    "source": "sweep",
+                },
+            )
         except Exception:
             logger.exception(
                 "autofix.pr_iteration.details.sweep_emit_failed",

@@ -1,11 +1,9 @@
 from dataclasses import replace
-from typing import Any, Mapping
 
 import pytest
 from jsonschema import ValidationError
 
 from sentry.eventstream.base import GroupState
-from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -14,7 +12,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestExistingHighPriorityIssueCondition(ConditionTestCase):
     condition = Condition.EXISTING_HIGH_PRIORITY_ISSUE
-    payload: Mapping[str, Any] = {"id": ExistingHighPriorityIssueCondition.id}
 
     def setUp(self) -> None:
         super().setUp()
@@ -37,15 +34,6 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
             condition_result=True,
         )
         self.group_event.group.priority = PriorityLevel.HIGH
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison is True
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         dc = self.create_data_condition(

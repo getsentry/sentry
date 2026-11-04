@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from cryptography.fernet import Fernet
 from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -422,6 +424,16 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_degrades_when_org_integration_rpc_errors(self, mock_ctx: MagicMock) -> None:
         assert get_monitoring_provider_connections(self.organization, None) == []
 
+    @patch(
+        "sentry.integrations.datadog.integration.integration_service.organization_context",
+        side_effect=RpcException("integration", "organization_context", "boom"),
+    )
+    def test_raises_rpc_errors_when_asked_to(self, mock_ctx: MagicMock) -> None:
+        self._create_org_datadog_integration()
+
+        with pytest.raises(RpcException):
+            get_monitoring_provider_connections(self.organization, None, skip_rpc_errors=False)
+
     def test_no_connections_for_no_user_run_without_org_integration(self) -> None:
         assert get_monitoring_provider_connections(self.organization, None) == []
 
@@ -441,23 +453,58 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert any("datadog_integration_invalid" in line for line in logs.output)
 
     def _create_org_gcp_integration(
-        self, projects: list[str] | None = None, **kwargs: object
+        self,
+        projects: list[str] | None = None,
+        connection_status: str | None = "connected",
+        organization: Organization | None = None,
+        **kwargs: object,
     ) -> None:
+        config: dict[str, object] = {
+            "sentry_sa_email": "sentry-org-1@sentry-connectors.iam.gserviceaccount.com",
+            "customer_sa_email": "gcp-sentry@my-project.iam.gserviceaccount.com",
+            "projects": projects if projects is not None else ["my-project-prod"],
+        }
+        if connection_status is not None:
+            config["connection_status"] = connection_status
+        organization = organization or self.organization
         self.create_integration(
-            organization=self.organization,
+            organization=organization,
             provider="gcp",
-            external_id=str(self.organization.id),
+            external_id=str(organization.id),
             name="Google Cloud Platform",
             metadata={},
-            oi_params={
-                "config": {
-                    "sentry_sa_email": "sentry-org-1@sentry-connectors.iam.gserviceaccount.com",
-                    "customer_sa_email": "gcp-sentry@my-project.iam.gserviceaccount.com",
-                    "projects": projects if projects is not None else ["my-project-prod"],
-                }
-            },
+            oi_params={"config": config},
             **kwargs,
         )
+
+    def test_org_gcp_connection_sent_whatever_its_verification_status(self) -> None:
+        for connection_status in ("connected", None, "unverified", "permission_denied", "error"):
+            with self.subTest(connection_status=connection_status):
+                organization = self.create_organization()
+                self._create_org_gcp_integration(
+                    connection_status=connection_status, organization=organization
+                )
+
+                result = get_monitoring_provider_connections(organization, None)
+
+                assert len(result) == 3
+                assert all(c["provider_key"] == "gcp" for c in result)
+
+    def test_personal_gcp_is_sent_without_a_verified_org_integration(self) -> None:
+        self._create_org_gcp_integration(connection_status="unverified")
+        idp = self.create_identity_provider(type="gcp", external_id="")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert result
+        assert {(c["provider_key"], c["identity_id"]) for c in result} == {("gcp", identity.id)}
 
     def test_org_gcp_connection_returns_three_mcp_endpoints(self) -> None:
         self._create_org_gcp_integration(projects=["my-project-prod", "my-project-staging"])
@@ -496,6 +543,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             oi_params={
                 "status": ObjectStatus.PENDING_DELETION,
                 "config": {
+                    "connection_status": "connected",
                     "sentry_sa_email": "sentry-org-1@sentry-connectors.iam.gserviceaccount.com",
                     "customer_sa_email": "gcp-sentry@my-project.iam.gserviceaccount.com",
                     "projects": ["my-project-prod"],
@@ -519,6 +567,7 @@ class TestGetMonitoringProviderConnections(TestCase):
             oi_params={
                 "config": {
                     "projects": ["my-project-prod"],
+                    "connection_status": "connected",
                 }
             },
         )
@@ -560,3 +609,70 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert len(result) == 1
         assert result[0]["identity_id"] is None
         assert result[0]["auth_method"] == "api_key"
+
+    def _create_org_grafana_integration(
+        self,
+        metadata: dict[str, str] | None = None,
+        url: str = "https://example-stack.grafana.net",
+        org_integration_status: int = ObjectStatus.ACTIVE,
+        **kwargs: object,
+    ) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="grafana",
+            external_id=str(self.organization.id),
+            name="Grafana (example-stack.grafana.net)",
+            metadata=metadata if metadata is not None else {"token": "glsa_org_token"},
+            oi_params={"status": org_integration_status, "config": {"url": url}},
+            **kwargs,
+        )
+
+    def test_org_grafana_connection(self) -> None:
+        self._create_org_grafana_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["type"] == "header_auth"
+        assert conn["provider_key"] == "grafana"
+        assert conn["url"] == "https://example-stack.grafana.net"
+        assert conn["identity_id"] is None
+        assert conn["auth_method"] == "service_account_token"
+        assert conn["refreshable"] is False
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        authorization = conn["encrypted_auth_headers"]["Authorization"]
+        assert fernet.decrypt(authorization.encode()).decode() == "Bearer glsa_org_token"
+
+    def test_org_grafana_connection_ignores_non_active_integration(self) -> None:
+        self._create_org_grafana_integration(status=ObjectStatus.DISABLED)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_ignores_uninstalled_org_integration(self) -> None:
+        # The token stays in Integration.metadata after uninstall until async deletion runs.
+        self._create_org_grafana_integration(org_integration_status=ObjectStatus.PENDING_DELETION)
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_grafana_connection_skips_missing_url(self) -> None:
+        self._create_org_grafana_integration(url="")
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    def test_org_grafana_connection_skips_missing_token(self) -> None:
+        self._create_org_grafana_integration(metadata={})
+
+        with self.assertLogs("sentry.integrations.grafana.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, None)
+
+        assert result == []
+        assert any("grafana_integration_invalid" in line for line in logs.output)
+
+    @with_feature({"organizations:seer-infra-telemetry": False})
+    def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
+        self._create_org_grafana_integration()
+        assert get_monitoring_provider_connections(self.organization, None) == []

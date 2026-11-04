@@ -50,7 +50,6 @@ export function ExpandedStateContextProvider({
     [collapse, expand]
   );
 
-  // oxlint-disable-next-line react/refs
   return <Context value={value}>{children}</Context>;
 }
 

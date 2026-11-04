@@ -298,6 +298,7 @@ export const withPerformanceOnboarding = new Set<PlatformKey>([
   'node-eve',
   'node-flue',
   'node-mastra',
+  'node-pi-durable',
 ]);
 
 // List of platforms that do not have performance support. We make use of this list in the product to not provide any Performance
@@ -377,6 +378,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -479,6 +481,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',
@@ -555,6 +558,7 @@ export const profiling: PlatformKey[] = [
   'node-koa',
   'node-mastra',
   'node-nestjs',
+  'node-pi-durable',
   'php',
   'php-laravel',
   'php-symfony',

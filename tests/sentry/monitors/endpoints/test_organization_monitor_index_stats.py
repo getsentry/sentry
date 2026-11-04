@@ -1,6 +1,15 @@
+import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.monitors.endpoints.base_monitor_stats import MAX_STATS_BUCKETS
+from sentry.monitors.endpoints.organization_monitor_index_stats import MAX_STATS_MONITORS
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+)
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -9,16 +18,20 @@ from sentry.testutils.helpers.datetime import freeze_time
 class OrganizationMonitorIndexStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index-stats"
 
-    def add_checkin(self, monitor, offset, env=None, status=None):
+    def add_checkin(
+        self,
+        monitor: Monitor,
+        offset: Mapping[str, int],
+        env: MonitorEnvironment | None = None,
+        status: int | None = None,
+    ) -> None:
         if status is None:
             status = CheckInStatus.OK
         if env is None:
             env = self.env_prod
 
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=env,
-            project_id=self.project.id,
             date_added=self.monitor1.date_added + timedelta(**offset),
             status=status,
         )
@@ -239,3 +252,45 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
         )
         assert resp.status_code == 200
         assert resp.data == {}
+
+    def test_negative_resolution(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            **{
+                "monitor": [str(self.monitor1.guid)],
+                "since": self.since.timestamp(),
+                "until": self.until.timestamp(),
+                "resolution": "-1s",
+            },
+            status_code=400,
+        )
+
+    def test_bucket_limit(self) -> None:
+        params = {
+            "monitor": [str(self.monitor1.guid)],
+            "until": self.until.timestamp(),
+            "resolution": "1m",
+        }
+        at_limit = self.until - timedelta(minutes=MAX_STATS_BUCKETS - 1)
+        resp = self.get_success_response(
+            self.organization.slug, **params, since=at_limit.timestamp()
+        )
+        assert len(resp.data[str(self.monitor1.guid)]) == MAX_STATS_BUCKETS
+
+        over_limit = self.until - timedelta(minutes=MAX_STATS_BUCKETS)
+        self.get_error_response(
+            self.organization.slug, **params, since=over_limit.timestamp(), status_code=400
+        )
+
+    def test_monitor_limit(self) -> None:
+        params = {
+            "since": self.since.timestamp(),
+            "until": self.until.timestamp(),
+            "resolution": "1h",
+        }
+        duplicated = [str(self.monitor1.guid)] * (MAX_STATS_MONITORS + 1)
+        resp = self.get_success_response(self.organization.slug, monitor=duplicated, **params)
+        assert list(resp.data.keys()) == [str(self.monitor1.guid)]
+
+        too_many = [str(uuid.uuid4()) for _ in range(MAX_STATS_MONITORS + 1)]
+        self.get_error_response(self.organization.slug, monitor=too_many, **params, status_code=400)

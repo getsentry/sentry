@@ -14,9 +14,9 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import type {
   HighlightContext,

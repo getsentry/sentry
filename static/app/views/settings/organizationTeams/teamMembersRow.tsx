@@ -1,13 +1,11 @@
-import type {Theme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 
 import {IdBadge} from 'sentry/components/idBadge';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {t} from 'sentry/locale';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
@@ -36,21 +34,27 @@ export function TeamMembersRow({
   const isSelf = user.email === member.email;
 
   return (
-    <TeamRolesPanelItem key={member.id}>
-      <Flex gap="md">
-        <IdBadge avatarSize={36} member={member} />
+    <SimpleTable.Row>
+      <SimpleTable.RowCell gap="md">
+        <Container minWidth={0}>
+          <IdBadge avatarSize={36} member={member} />
+        </Container>
         {member.pending ? <Tag variant="muted">{t('Pending')}</Tag> : null}
-      </Flex>
-      <RoleSelectWrapper>
-        <TeamRoleSelect
-          disabled={isSelf || !hasWriteAccess}
-          organization={organization}
-          team={team}
-          member={member}
-          onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
-        />
-      </RoleSelectWrapper>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Container flex="1" minWidth={0}>
+          <TeamRoleSelect
+            disabled={isSelf || !hasWriteAccess}
+            organization={organization}
+            team={team}
+            member={member}
+            onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
+            keepMenuInViewport
+            menuPortalTarget={document.body}
+          />
+        </Container>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
           isSelf={isSelf}
@@ -58,8 +62,8 @@ export function TeamMembersRow({
           team={team}
           member={member}
         />
-      </div>
-    </TeamRolesPanelItem>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -107,28 +111,3 @@ function RemoveButton(props: {
     </Button>
   );
 }
-
-const RoleSelectWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-
-  > div:first-child {
-    flex-grow: 1;
-  }
-`;
-
-export const GRID_TEMPLATE = (p: {theme: Theme}) => `
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr) 200px 150px;
-  gap: ${p.theme.space.md};
-`;
-
-const TeamRolesPanelItem = styled(PanelItem)`
-  ${GRID_TEMPLATE};
-  align-items: center;
-
-  > div:last-child {
-    margin-left: auto;
-  }
-`;

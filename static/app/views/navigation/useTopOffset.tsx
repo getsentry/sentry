@@ -1,21 +1,15 @@
-import {useTheme} from '@emotion/react';
-
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   SUPERUSER_MARQUEE_HEIGHT,
 } from 'sentry/views/navigation/constants';
 
 export function useTopOffset() {
-  const theme = useTheme();
   const organization = useOrganization({allowNull: true});
-  const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
@@ -27,9 +21,7 @@ export function useTopOffset() {
   // so in-page stickies have to clear the fixed marquee themselves.
   const isPaneScroller = useIsSeerExplorerSidebarEnabled();
   const pageTopOffset = isPaneScroller ? 0 : superuserOffset;
-  const headerHeight = isMobile
-    ? NAVIGATION_MOBILE_CONTENT_HEIGHT
-    : PRIMARY_HEADER_HEIGHT;
+  const headerHeight = PRIMARY_HEADER_HEIGHT;
 
   return {
     /** The `top` CSS value for the sticky nav sidebar itself (marquee only) */

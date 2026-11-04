@@ -114,6 +114,26 @@ describe('deriveUpdatedManagedFields', () => {
     expect(updatedManagedFields).toEqual(new Set(['baz']));
   });
 
+  it('should not manage numbers passed to a formula', () => {
+    const managedFields = new Set<string>();
+    const readableQueryParams = new ReadableQueryParams({
+      ...defaultReadableQueryParamsOptions,
+    });
+    const writableQueryParams: WritableQueryParams = {
+      aggregateFields: [
+        {groupBy: ''},
+        {yAxes: ['avg(foo)']},
+        {yAxes: ['formula.score(300,baz)']},
+      ],
+    };
+    const {updatedManagedFields} = deriveUpdatedManagedFields(
+      managedFields,
+      readableQueryParams,
+      writableQueryParams
+    );
+    expect(updatedManagedFields).toEqual(new Set());
+  });
+
   it('should keep managing unchanged visualized field', () => {
     const managedFields = new Set<string>(['baz']);
     const readableQueryParams = new ReadableQueryParams({

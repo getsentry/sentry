@@ -2,105 +2,13 @@ import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ContextDataSection} from 'sentry/components/events/contexts/contextDataSection';
-import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
-import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;
   disableCollapsePersistence?: boolean;
 };
-
-interface UnknownContextValue {
-  [key: string]: any;
-  type: 'default';
-}
-
-/**
- * Catch-all for context values, known and unknown
- */
-export type ContextValue =
-  | EventContextValues[keyof EventContextValues]
-  | UnknownContextValue;
-
-export interface ContextItem {
-  alias: string;
-  type: string;
-  value: ContextValue;
-}
-
-export function getOrderedContextItems(event: Event): ContextItem[] {
-  return getOrderedContextItemsFromContexts({
-    contexts: event.contexts,
-    user: event.user,
-    hasSyntheticTrace: eventHasSyntheticTrace(event),
-  });
-}
-
-/**
- * Prefer `getOrderedContextItems` when an `Event` is available.
- */
-export function getOrderedContextItemsFromContexts({
-  contexts,
-  user,
-  hasSyntheticTrace = false,
-}: {
-  contexts: Event['contexts'] | undefined;
-  hasSyntheticTrace?: boolean;
-  user?: Event['user'];
-}): ContextItem[] {
-  const {data: customUserData, ...userContext} = user ?? {};
-
-  // hide `flags` in the contexts section since we display this
-  // info in the feature flag section below
-  const {
-    feedback,
-    response,
-    browser,
-    runtime,
-    os,
-    flags: _,
-    ...otherContexts
-  } = contexts ?? {};
-  const orderedContext: Array<[ContextItem['alias'], ContextValue]> = [
-    ['response', response],
-    ['feedback', feedback],
-    ['user', {...userContext, ...(customUserData as any)}],
-    ['browser', browser],
-    ['runtime', runtime],
-    ['os', os],
-    ...Object.entries(otherContexts),
-  ];
-  // For these context aliases, use the alias as 'type' rather than 'value.type'
-  const overrideTypesWithAliases = new Set([
-    'response',
-    'feedback',
-    'user',
-    'profile',
-    'replay',
-  ]);
-
-  const items = orderedContext
-    .filter(([alias, ctxValue]) => {
-      if (alias === 'trace' && hasSyntheticTrace) {
-        return false;
-      }
-      const contextKeys = Object.keys(ctxValue ?? {});
-      const isInvalid =
-        // Empty context
-        contextKeys.length === 0 ||
-        // Empty aside from 'type' key
-        (contextKeys.length === 1 && contextKeys[0] === 'type');
-      return !isInvalid;
-    })
-    .map<ContextItem>(([alias, ctx]) => ({
-      alias,
-      type: overrideTypesWithAliases.has(alias) ? alias : ctx?.type,
-      value: ctx,
-    }));
-
-  return items;
-}
 
 export function EventContexts({event, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();

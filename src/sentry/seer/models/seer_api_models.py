@@ -17,9 +17,7 @@ class BranchOverride(BaseModel):
 class SummarizeIssueScores(BaseModel):
     possible_cause_confidence: float | None = None
     possible_cause_novelty: float | None = None
-    is_fixable: bool | None = None
     fixability_score: float | None = None
-    fixability_score_version: int | None = None
 
 
 class SummarizeIssueResponse(BaseModel):
@@ -120,7 +118,7 @@ class SeerApiError(Exception):
         self.message = message
         self.status = status
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API error: {self.message} (status: {self.status})"
 
 
@@ -132,7 +130,7 @@ class SeerApiResponseValidationError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer API response validation error: {self.message}"
 
 
@@ -140,7 +138,7 @@ class SeerPermissionError(Exception):
     def __init__(self, message: str):
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Seer permission error: {self.message}"
 
 

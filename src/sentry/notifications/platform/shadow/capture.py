@@ -15,6 +15,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.notifications.platform.shadow.compare import report
 from sentry.notifications.platform.types import (
+    SHADOW_PROVIDERS,
     NotificationData,
     NotificationProviderKey,
     NotificationSource,
@@ -24,17 +25,10 @@ from sentry.notifications.utils.issue_notification_context import IssueNotificat
 from sentry.ratelimits import backend as ratelimiter
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.models import Action, AlertRuleWorkflow
+from sentry.workflow_engine.models import AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
-
-SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
-    Action.Type.SLACK: NotificationProviderKey.SLACK,
-    Action.Type.SLACK_STAGING: NotificationProviderKey.SLACK_STAGING,
-    Action.Type.DISCORD: NotificationProviderKey.DISCORD,
-    Action.Type.MSTEAMS: NotificationProviderKey.MSTEAMS,
-}
 
 SHADOW_SOURCES = frozenset({NotificationSource.ISSUE, NotificationSource.METRIC_ALERT})
 

@@ -14,7 +14,6 @@ import {
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -23,7 +22,11 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  PREBUILT_DASHBOARD_LABEL,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
@@ -33,14 +36,12 @@ import {
   performanceScoreTooltip,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  widgetTypeSupportsExploreMultiQuery,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -174,11 +175,12 @@ export function getMenuOptions(
   widget: Widget,
   widgetLimitReached: boolean,
   hasEditAccess = true,
+  isPrebuiltDashboard = false,
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[],
+  timeseriesResults?: WidgetTimeSeries[],
   onAskSeer?: () => void
 ) {
   const menuOptions: MenuItemProps[] = [];
@@ -186,6 +188,20 @@ export function getMenuOptions(
   const disableTransactionEdit =
     organization.features.includes('discover-saved-queries-deprecation') &&
     widget.widgetType === WidgetType.TRANSACTIONS;
+
+  const prebuiltDashboardMessages = isPrebuiltDashboard
+    ? {
+        edit: tct('Widgets on [label] dashboards cannot be edited.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        duplicate: tct('Widgets on [label] dashboards cannot be duplicated.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+        delete: tct('Widgets on [label] dashboards cannot be deleted.', {
+          label: PREBUILT_DASHBOARD_LABEL,
+        }),
+      }
+    : undefined;
 
   if (
     organization.features.includes('discover-basic') &&
@@ -240,9 +256,7 @@ export function getMenuOptions(
     organization.features.includes('visibility-explore-view') &&
     (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
   ) {
-    const multiQueryUnsupported =
-      widget.queries.length > 1 &&
-      !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+    const multiQueryUnsupported = widget.queries.length > 1;
 
     menuOptions.push({
       key: 'open-in-explore',
@@ -274,25 +288,25 @@ export function getMenuOptions(
     const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
-      .map((series, index) => {
-        const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+      .map(({timeSeries, seriesName, queryIndex}, index) => {
+        const widgetQuery = widget.queries[queryIndex];
 
-        if (
-          !transformed ||
-          transformed.timeSeries.meta.isOther ||
-          isEquation(transformed.timeSeries.yAxis)
-        ) {
+        if (!widgetQuery || timeSeries.meta.isOther || isEquation(timeSeries.yAxis)) {
           return null;
         }
 
-        const {timeSeries, label, seriesName, widgetQuery} = transformed;
+        const label = formatTimeSeriesLabelForWidgetQuery(
+          timeSeries,
+          widget,
+          widgetQuery
+        );
 
         const baseQuery =
           applyDashboardFilters({
-            baseQuery: widgetQuery?.conditions,
+            baseQuery: widgetQuery.conditions,
             dashboardFilters: withGlobalFilterFallback(
               dashboardFilters,
-              widgetQuery?.globalFilterFallback
+              widgetQuery.globalFilterFallback
             ),
             widgetType: widget.widgetType,
           }) ?? '';
@@ -406,7 +420,7 @@ export function getMenuOptions(
         onAction: onDuplicate,
         tooltip: disableTransactionEdit
           ? t('This dataset is no longer supported. Please use the Spans dataset.')
-          : undefined,
+          : prebuiltDashboardMessages?.duplicate,
         disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
       });
     }
@@ -418,7 +432,7 @@ export function getMenuOptions(
         onAction: onEdit,
         disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
         tooltip: isWidgetEditable(widget.displayType)
-          ? undefined
+          ? prebuiltDashboardMessages?.edit
           : t('Static widgets from the widget library cannot be edited.'),
       });
     }
@@ -436,6 +450,7 @@ export function getMenuOptions(
           });
         },
         disabled: !hasEditAccess,
+        tooltip: prebuiltDashboardMessages?.delete,
       });
     }
   }

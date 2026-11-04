@@ -487,7 +487,7 @@ def _format_version_string(artifact: PreprodArtifact, default: str = "-") -> str
 
 
 def _get_size_metric_type_display_name(
-    metric_type: PreprodArtifactSizeMetrics.MetricsArtifactType | None,
+    metric_type: int | PreprodArtifactSizeMetrics.MetricsArtifactType | None,
 ) -> str | None:
     """Get display name for a metric type."""
     match metric_type:

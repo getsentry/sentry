@@ -13,6 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
+import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -37,6 +38,7 @@ export function ChartContextMenu({
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();
+  const hasTransformations = useQueryParamsHasTransformations();
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
@@ -54,6 +56,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           disabled:
+            hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
@@ -104,6 +107,7 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           alertsUrls,
+          disabled: hasTransformations,
           submenu: true,
           label: getCreateAlertForLabel(),
         })
@@ -133,7 +137,7 @@ export function ChartContextMenu({
           ui_source: 'chart',
           organization,
         });
-        return addToDashboard(visualizeIndex);
+        return addToDashboard(visualizeIndex, {includeChartGroup: true});
       },
     });
 
@@ -147,6 +151,7 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {

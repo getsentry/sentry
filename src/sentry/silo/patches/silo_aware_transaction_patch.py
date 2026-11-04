@@ -1,6 +1,7 @@
-import re
-import traceback
+import functools
+import sys
 from collections.abc import Callable
+from types import CodeType, FrameType
 from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
@@ -74,17 +75,30 @@ def is_in_test_case_body() -> bool:
     This should not be used as a general-purpose utility function. Avoid calling it
     in places other than `validate_transaction_using_for_silo_mode` if at all possible.
     """
-    frames = [str(frame) for (frame, _) in traceback.walk_stack(None)]
+    test_call, setup_teardown = _test_frame_codes()
+    in_test_call = False
+    frame: FrameType | None = sys._getframe(1)
+    while frame is not None:
+        if frame.f_code in setup_teardown:
+            return False
+        in_test_call = in_test_call or frame.f_code is test_call
+        frame = frame.f_back
+    return in_test_call
 
-    def seek(module_path: str, function_name: str) -> bool:
-        """Check whether the named function has been called in the current stack."""
-        pattern = re.compile(rf"/{re.escape(module_path)}\b.*\b{re.escape(function_name)}>$")
-        return any(pattern.search(frame) for frame in frames)
 
-    return seek("_pytest/runner.py", "pytest_runtest_call") and not (
-        seek("django/test/testcases.py", "_pre_setup")
-        or seek("django/test/testcases.py", "_post_teardown")
+@functools.cache
+def _test_frame_codes() -> tuple[CodeType, frozenset[CodeType]]:
+    # Imported lazily: this module also loads in production, where pytest isn't installed.
+    from _pytest.runner import pytest_runtest_call
+    from django.test import testcases
+
+    setup_teardown = frozenset(
+        getattr(method, "__func__", method).__code__
+        for cls in (testcases.SimpleTestCase, testcases.TransactionTestCase)
+        for name in ("_pre_setup", "_post_teardown")
+        if (method := vars(cls).get(name)) is not None
     )
+    return pytest_runtest_call.__code__, setup_teardown
 
 
 def validate_transaction_using_for_silo_mode(using: str | None) -> None:
@@ -94,29 +108,29 @@ def validate_transaction_using_for_silo_mode(using: str | None) -> None:
     if using is None:
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")
 
-    if in_test_environment() and not is_in_test_case_body():
-        # During setup and teardown of a test environment, allow treating it as one
-        # DB. But make sure we enforce as normal during the actual test case.
+    current_silo_mode = SiloMode.get_current_mode()
+    if current_silo_mode == SiloMode.MONOLITH:
         return
 
-    current_silo_mode = SiloMode.get_current_mode()
     control_db = _get_db_for_model_if_available(ControlOutbox)
     cell_db = _get_db_for_model_if_available(CellOutbox)
-
-    both_silos_route_to_same_db = control_db == cell_db
-
-    if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
+    if control_db == cell_db:
         return
 
-    elif using == control_db and current_silo_mode != SiloMode.CONTROL:
-        raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) except in Control Mode"
-        )
-
+    if using == control_db and current_silo_mode != SiloMode.CONTROL:
+        error = f"Cannot use transaction.atomic({using}) except in Control Mode"
     elif using == cell_db and current_silo_mode != SiloMode.CELL:
-        raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) except in Cell Mode"
-        )
+        error = f"Cannot use transaction.atomic({using}) except in Cell Mode"
+    else:
+        return
+
+    # During setup and teardown of a test environment, allow treating it as one
+    # DB. But make sure we enforce as normal during the actual test case. Checked
+    # last because walking the stack is expensive.
+    if in_test_environment() and not is_in_test_case_body():
+        return
+
+    raise MismatchedSiloTransactionError(error)
 
 
 def patch_silo_aware_atomic() -> None:

@@ -17,14 +17,13 @@ import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {displayUnitPrice, formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
   listDisplayNames,
 } from 'getsentry/utils/dataCategory';
-import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 // TODO(isabella): Clean up repetitive code in this component
 

@@ -14,11 +14,11 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, features
-from sentry.api import client
+from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.activity import ActivitySerializer
-from sentry.api.serializers.models.commit import CommitSerializer
+from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -73,6 +73,14 @@ from sentry.seer.agent.utils import (
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
 from sentry.seer.autofix.utils import get_repo_url_path
+from sentry.seer.public_caller import (
+    caller_can_access_project,
+    caller_can_access_project_id,
+    caller_can_access_team,
+    public_caller_restricted,
+    restrict_projects,
+    scope_projects,
+)
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -317,6 +325,11 @@ def execute_table_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     # Note if both project_ids and project_slugs are provided, the API request will 400.
@@ -436,6 +449,11 @@ def execute_timeseries_query(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteTimeseriesQuerySuccessResponse(__root__={})
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     group_by = group_by or []
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
@@ -551,6 +569,12 @@ def execute_trace_table_query(
             extra={"org_id": organization_id},
         )
         return None
+
+    scoped = scope_projects(organization.id, project_ids, project_slugs)
+    if scoped.blocked:
+        return ExecuteQuerySuccessResponse(data=[])
+    project_ids, project_slugs = scoped.project_ids, scoped.project_slugs
+
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
 
@@ -629,7 +653,11 @@ def get_trace_waterfall(
         )
         return None
 
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
+    if public_caller_restricted() and not projects:
+        return None
 
     if len(trace_id) < 32:
         full_trace_id = _get_full_trace_id(trace_id, organization, projects)
@@ -721,7 +749,9 @@ def rpc_get_profile_flamegraph(
         return ProfileFlamegraphErrorResponse(error="Organization not found")
 
     # Get all projects for the organization
-    projects = list(Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE))
+    projects = restrict_projects(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    )
 
     if not projects:
         logger.warning(
@@ -971,6 +1001,7 @@ def get_repository_definition(
     name = "/".join(repo_name_parts[1:])
 
     return RepositoryDefinitionResponse(
+        repository_id=repo.id,
         organization_id=organization_id,
         integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
         provider=repo.provider,
@@ -1404,11 +1435,11 @@ def get_issue_details(
             type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
             user_id__isnull=False,
         )
-        activities = (
+        activities: list[Activity] = list(
             Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
         )
-        serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
+        serialized_activities: list[ActivitySerializerResponse] = serialize(
+            activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
         logger.exception(
@@ -1574,27 +1605,27 @@ class _IssueCommitters:
             # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
             # repository and pull request queries per invocation, so serializing one
             # commit at a time would be an N+1.
-            commits_by_id = {
+            commits_by_id: dict[int, Commit] = {
                 commit.id: commit
                 for entry in author_commits
-                for commit, _ in entry.get("commits", [])
+                for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
-            serialized_by_id = {
+            commit_list: list[Commit] = list(commits_by_id.values())
+            serialized_commits: list[CommitSerializerResponse] = serialize(
+                commit_list,
+                serializer=CommitSerializer(exclude=["author"]),
+            )
+
+            serialized_by_id: dict[int, CommitSerializerResponse] = {
                 commit_id: serialized
-                for commit_id, serialized in zip(
-                    commits_by_id,
-                    serialize(
-                        list(commits_by_id.values()),
-                        serializer=CommitSerializer(exclude=["author"]),
-                    ),
-                )
+                for commit_id, serialized in zip(commits_by_id, serialized_commits)
             }
             stack_commits = [
                 {
                     "author": entry.get("author"),
                     "commits": [
                         {**serialized_by_id[commit.id], "score": score}
-                        for commit, score in entry.get("commits", [])
+                        for commit, score in entry.get("commits", list[tuple[Commit, int]]())
                     ],
                 }
                 for entry in author_commits
@@ -1830,6 +1861,8 @@ def get_team_members(
             status=TeamStatus.ACTIVE,
         )
     except Team.DoesNotExist:
+        return None
+    if not caller_can_access_team(team):
         return None
 
     # ``User`` lives in the control silo, so resolve the team's member ids (a region
@@ -2170,13 +2203,16 @@ def get_replay_metadata(
     if not features.has("organizations:session-replay", organization):
         return None
 
-    p_ids_and_slugs = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", "slug")
-    )
+    p_ids_and_slugs = [
+        (project.id, project.slug)
+        for project in restrict_projects(
+            Project.objects.filter(
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            )
+        )
+    ]
 
     if not p_ids_and_slugs:
         logger.warning(
@@ -2224,7 +2260,7 @@ def get_replay_metadata(
         request_user_id=None,
     )
     response = process_raw_response(
-        snuba_response,
+        cast("list[dict[str, Any]]", snuba_response),
         fields=[],
     )
     if not response:
@@ -2401,13 +2437,15 @@ def get_log_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if bool(project_slugs) else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2478,13 +2516,15 @@ def get_metric_attributes_for_trace(
         logger.warning("Organization not found", extra={"org_id": org_id})
         return None
 
-    projects = list(
+    projects = restrict_projects(
         Project.objects.filter(
             organization=organization,
             status=ObjectStatus.ACTIVE,
             **({"slug__in": project_slugs} if project_slugs else {}),
         )
     )
+    if public_caller_restricted() and not projects:
+        return TraceItemEventsResponse(data=[])
 
     snuba_params = SnubaParams(
         start=start_dt,
@@ -2551,6 +2591,9 @@ def get_baseline_tag_distribution(
         Dict with "baseline_tag_distribution" containing list of
         {"tag_key": str, "tag_value": str, "count": int} entries.
     """
+
+    if not caller_can_access_project_id(organization_id, project_id):
+        return BaselineTagDistributionResponse(baseline_tag_distribution=[])
 
     group = Group.objects.get(id=group_id, project_id=project_id)
     organization = group.organization
@@ -2660,7 +2703,7 @@ def get_dsn(
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
     ).first()
-    if project is None:
+    if project is None or not caller_can_access_project(project):
         return None
 
     # Mirror the filters applied by OrganizationProjectKeysEndpoint for non-superuser

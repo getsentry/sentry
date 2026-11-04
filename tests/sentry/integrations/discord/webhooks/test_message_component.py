@@ -64,7 +64,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         if member is None:
             member = {"user": {"id": self.discord_user_id}}
 
-        return self.client.post(
+        response: Response[Any] = self.client.post(
             path=WEBHOOK_URL,
             data={
                 "type": DiscordRequestTypes.MESSAGE_COMPONENT,
@@ -77,9 +77,13 @@ class DiscordMessageComponentInteractionTest(APITestCase):
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
+        return response
 
     def get_message_content(self, response: Any) -> str:
-        return response.json()["data"]["content"]
+        content = response.json()["data"]["content"]
+        if not isinstance(content, str):
+            raise TypeError("Discord message content is not a string")
+        return content
 
     def get_message_components(self, response: Any) -> Any:
         return response.json()["data"]["components"]

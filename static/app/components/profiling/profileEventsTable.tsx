@@ -22,7 +22,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';

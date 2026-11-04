@@ -6,11 +6,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {SectionSeparator as MenuSectionSeparator} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
   margin: 0;
   padding: ${p => p.theme.space.xs} 0;
+
+  > [data-section-separator]:first-of-type {
+    display: none;
+  }
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
@@ -44,9 +49,19 @@ export const ListWrap = styled('ul')`
   :focus-visible {
     outline: none;
   }
+
+  /* The first section follows a hidden separator in a headerless menu. */
+  [data-menu-has-header='false']
+    &:first-of-type
+    li[role='presentation']:nth-of-type(2)
+    > [data-section-header] {
+    padding-top: 0;
+  }
 `;
 
-export const ListLabel = styled('p')`
+// Not a `p`: menus render inline, so ancestor `p` rules such as PanelBody's legacy
+// textStyles would otherwise add a 20px bottom margin.
+export const ListLabel = styled('span')`
   display: inline-block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.xs};
@@ -68,40 +83,6 @@ export const ListSeparator = styled('div')`
   ul:empty + & {
     display: none;
   }
-`;
-
-export const SectionWrap = styled('li')`
-  list-style-type: none;
-`;
-
-export const SectionHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: content-box;
-  height: 1.5em;
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.lg};
-
-  /* Remove top padding if this is the first section in a headerless menu (selected
-  with li:nth-of-type(2) because the first list item is a hidden separator) */
-  [data-menu-has-header='false']
-    ul:first-of-type
-    li[role='presentation']:nth-of-type(2)
-    > & {
-    padding-top: 0;
-  }
-`;
-
-export const SectionTitle = styled('p')`
-  display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  margin: 0;
-  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
@@ -135,20 +116,41 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export const SectionSeparator = styled('li')`
-  list-style-type: none;
-  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+  return (
+    <Stack
+      as="li"
+      data-section-separator
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...props}
+      role="presentation"
+    >
+      <MenuSectionSeparator />
+    </Stack>
+  );
+}
 
-  &:first-of-type {
-    display: none;
+/**
+ * Left inset for CompactSelect options. CompactSelect puts its check column 4px
+ * closer to the menu edge than dropdown menus, in line with the title. The shared
+ * menu item centers leading content in a 24px slot, which already adds 4px
+ * before a 16px checkbox, so a single check-sized item needs a smaller inset.
+ */
+export function getOptionPaddingLeft({
+  hasCheck,
+  hasLeadingItems,
+}: {
+  hasCheck: boolean;
+  hasLeadingItems: boolean;
+}) {
+  // A check plus custom leading items overflows the slot, so nothing is centered.
+  if (hasCheck && hasLeadingItems) {
+    return 'md';
   }
-`;
-
-export const SectionGroup = styled('ul')`
-  margin: 0;
-  padding: 0;
-`;
+  return hasCheck || hasLeadingItems ? 'xs' : 'md';
+}
 
 export function LeadWrap(props: FlexProps) {
   return (
@@ -156,7 +158,7 @@ export function LeadWrap(props: FlexProps) {
       justify="center"
       align="center"
       minWidth="1em"
-      height="1.4em"
+      height="1rem"
       pointerEvents="none"
       {...props}
     />

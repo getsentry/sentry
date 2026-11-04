@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -8,6 +7,7 @@ import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -45,14 +45,6 @@ export interface Conversation {
   traceCount: number;
   traceIds: string[];
   user: ConversationUser | null;
-}
-
-interface ConversationApiResponse extends Omit<
-  Conversation,
-  'firstInput' | 'lastOutput'
-> {
-  firstInput?: Array<{text: string; type: string}> | string | null;
-  lastOutput?: Array<{text: string; type: string}> | string | null;
 }
 
 const CONVERSATION_LIST_PER_PAGE = 50;
@@ -134,19 +126,12 @@ const CONVERSATION_SORTS = CONVERSATION_SORT_FIELDS.flatMap(field => [
   `-${field}`,
 ]);
 
-function normalizeConversationPreview(
-  content: ConversationApiResponse['firstInput']
-): string | null {
-  return typeof content === 'string'
-    ? content
-    : (content?.find(part => part.type === 'text')?.text ?? null);
-}
-
 export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const combinedQuery = useCombinedQuery();
+  const {errorsOnlyQuery} = useErrorsOnlyFilter();
+  const combinedQuery = useCombinedQuery(errorsOnlyQuery);
   const [sort, setSort] = useQueryState(
     'sort',
     parseAsStringLiteral(CONVERSATION_SORTS).withDefault(
@@ -159,7 +144,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     isFetching,
     error,
   } = useQuery({
-    ...apiOptions.as<ConversationApiResponse[]>()(
+    ...apiOptions.as<Conversation[]>()(
       '/organizations/$organizationIdOrSlug/agents/conversations/',
       {
         path: {organizationIdOrSlug: organization.slug},
@@ -172,7 +157,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
           sort: [sort],
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
-        staleTime: 0,
+        staleTime: 60_000,
       }
     ),
     enabled,
@@ -182,15 +167,7 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const pageLinks = response?.headers.Link;
   const isDirectHit = response?.headers['X-Sentry-Direct-Hit'] === '1';
 
-  const data = useMemo(() => {
-    return (response?.json ?? []).map(
-      ({firstInput: rawFirstInput, lastOutput: rawLastOutput, ...rest}): Conversation => {
-        const firstInput = normalizeConversationPreview(rawFirstInput);
-        const lastOutput = normalizeConversationPreview(rawLastOutput);
-        return {...rest, firstInput, lastOutput};
-      }
-    );
-  }, [response?.json]);
+  const data = response?.json ?? [];
 
   return {
     data,

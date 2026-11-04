@@ -93,74 +93,81 @@ function AddGiftBudgetModal({
       <Body>
         <form.AppField name="selectedBudgetId">
           {budgetField => (
-            <Stack gap="md">
-              {reservedBudgetOptions.length > 1 && (
-                <Text as="p">Select a reserved budget to add gift amount.</Text>
+            <Stack gap="lg">
+              <budgetField.Radio.Group
+                value={budgetField.state.value}
+                onChange={budgetField.handleChange}
+              >
+                <budgetField.Layout.Stack label="Reserved Budget">
+                  {reservedBudgetOptions.length > 1 && (
+                    <Text as="p">Select a reserved budget to add gift amount.</Text>
+                  )}
+                  {reservedBudgetOptions.length === 0 && (
+                    <Text as="p">No reserved budgets available.</Text>
+                  )}
+                  {reservedBudgetOptions.map(budget => (
+                    <budgetField.Radio.Item key={budget.id} value={budget.id}>
+                      <Container
+                        as="span"
+                        display="block"
+                        data-test-id={`reserved-budget-${budget.id}`}
+                        padding="xl"
+                        border="primary"
+                        radius="md"
+                        cursor="pointer"
+                        background={
+                          budgetField.state.value === budget.id ? 'secondary' : undefined
+                        }
+                      >
+                        <Stack as="span" gap="md">
+                          <Flex as="span" justify="between">
+                            <Text>
+                              <Text bold>Reserved Budget:</Text> $
+                              {(budget.reservedBudget / 100).toLocaleString()}
+                            </Text>
+                            <Text>
+                              <Text bold>Existing Free Budget:</Text> $
+                              {(budget.freeBudget / 100).toLocaleString()}
+                            </Text>
+                          </Flex>
+                          <Text>
+                            <Text bold>Categories:</Text>{' '}
+                            {Object.keys(budget.categories)
+                              .map(category =>
+                                getPlanCategoryName({
+                                  plan: subscription.planDetails,
+                                  category: category as DataCategory,
+                                  capitalize: false,
+                                  hadCustomDynamicSampling: true,
+                                })
+                              )
+                              .join(', ') || 'None'}
+                          </Text>
+                        </Stack>
+                      </Container>
+                    </budgetField.Radio.Item>
+                  ))}
+                </budgetField.Layout.Stack>
+              </budgetField.Radio.Group>
+              {budgetField.state.value && (
+                <form.AppField name="giftAmount">
+                  {field => (
+                    <field.Layout.Stack
+                      label="Gift Amount ($)"
+                      hintText="Enter gift amount in dollars (max $10,000)."
+                      required
+                    >
+                      <field.Number
+                        min={0}
+                        max={10000}
+                        value={field.state.value}
+                        onChange={value => field.handleChange(value ?? 0)}
+                      />
+                      <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
               )}
-              {reservedBudgetOptions.length === 0 && (
-                <Text as="p">No reserved budgets available.</Text>
-              )}
-              {reservedBudgetOptions.map(budget => (
-                <Container
-                  key={budget.id}
-                  padding="xl"
-                  border="primary"
-                  radius="md"
-                  background={
-                    budgetField.state.value === budget.id ? 'secondary' : undefined
-                  }
-                  cursor="pointer"
-                  onClick={() => budgetField.handleChange(budget.id)}
-                >
-                  <Stack gap="md">
-                    <Flex justify="between">
-                      <Text>
-                        <Text bold>Reserved Budget:</Text> $
-                        {(budget.reservedBudget / 100).toLocaleString()}
-                      </Text>
-                      <Text>
-                        <Text bold>Existing Free Budget:</Text> $
-                        {(budget.freeBudget / 100).toLocaleString()}
-                      </Text>
-                    </Flex>
-                    <Text>
-                      <Text bold>Categories:</Text>{' '}
-                      {Object.keys(budget.categories)
-                        .map(category =>
-                          getPlanCategoryName({
-                            plan: subscription.planDetails,
-                            category: category as DataCategory,
-                            capitalize: false,
-                            hadCustomDynamicSampling: true,
-                          })
-                        )
-                        .join(', ') || 'None'}
-                    </Text>
-                    {budgetField.state.value === budget.id && (
-                      <form.AppField name="giftAmount">
-                        {field => (
-                          <field.Layout.Stack
-                            label="Gift Amount ($)"
-                            hintText="Enter gift amount in dollars (max $10,000)."
-                            required
-                          >
-                            <field.Number
-                              min={0}
-                              max={10000}
-                              value={field.state.value}
-                              onChange={value => field.handleChange(value ?? 0)}
-                              onClick={(event: React.MouseEvent) =>
-                                event.stopPropagation()
-                              }
-                            />
-                            <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
-                          </field.Layout.Stack>
-                        )}
-                      </form.AppField>
-                    )}
-                  </Stack>
-                </Container>
-              ))}
             </Stack>
           )}
         </form.AppField>

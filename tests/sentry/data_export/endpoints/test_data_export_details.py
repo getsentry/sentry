@@ -3,6 +3,7 @@ from hashlib import sha1
 from io import BytesIO
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -10,6 +11,8 @@ from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DataExportDetailsTest(APITestCase):
@@ -115,6 +118,30 @@ class DataExportDetailsTest(APITestCase):
             self.get_error_response(self.organization.slug, self.data_export.id, status_code=404)
         mock_incr.assert_any_call("dataexport.details.cross_user_access", sample_rate=1.0)
 
+    def test_api_key_cannot_access_export_without_user(self) -> None:
+        self.data_export.update(user_id=None)
+        api_key = self.create_api_key(organization=self.organization, scope_list=["event:read"])
+
+        url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
+        response = self.client.get(
+            url, HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 404
+
+    def test_api_key_cannot_download_export_without_user(self) -> None:
+        file = File.objects.create(
+            name="secret.csv", type="export.csv", headers={"Content-Type": "text/csv"}
+        )
+        file.putfile(BytesIO(b"secret"))
+        self.data_export.update(user_id=None, file_id=file.id)
+        api_key = self.create_api_key(organization=self.organization, scope_list=["event:read"])
+
+        url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
+        response = self.client.get(
+            f"{url}?download", HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 404
+
     def test_cannot_download_another_members_export(self) -> None:
         contents = b"secret"
         file = File.objects.create(
@@ -130,6 +157,24 @@ class DataExportDetailsTest(APITestCase):
         url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
         response = self.client.get(f"{url}?download")
         assert response.status_code == 404
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_access_members_export(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["event:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
+        response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 404, response.content
 
     def test_content_errors(self) -> None:
         self.data_export = ExportedData.objects.create(

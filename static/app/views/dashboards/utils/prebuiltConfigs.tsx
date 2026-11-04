@@ -1,3 +1,4 @@
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
   type DashboardDetails,
@@ -32,6 +33,8 @@ import {QUEUE_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebu
 import {QUEUES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queues';
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
+import {WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/pageDetails';
+import {WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/webVitals';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
@@ -151,3 +154,40 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.NODE_RUNTIME_METRICS]: NODE_RUNTIME_METRICS_PREBUILT_CONFIG,
 };
+
+type PrebuiltDashboardVariant = {
+  config: PrebuiltDashboard;
+  /** Organization feature that selects this config over the default one. */
+  feature: string;
+};
+
+/**
+ * Alternate configs served in place of the defaults above while flagged
+ */
+export const PREBUILT_DASHBOARD_VARIANTS: Partial<
+  Record<PrebuiltDashboardId, PrebuiltDashboardVariant>
+> = {
+  [PrebuiltDashboardId.WEB_VITALS]: {
+    feature: 'dashboards-web-vitals-trace-metrics',
+    config: WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+  [PrebuiltDashboardId.WEB_VITALS_SUMMARY]: {
+    feature: 'dashboards-web-vitals-trace-metrics',
+    config: WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG,
+  },
+};
+
+/**
+ * Resolves the config for a prebuilt dashboard.
+ */
+export function getPrebuiltDashboardConfig(
+  prebuiltId: PrebuiltDashboardId,
+  organization: Organization,
+  variants: typeof PREBUILT_DASHBOARD_VARIANTS = PREBUILT_DASHBOARD_VARIANTS
+): PrebuiltDashboard {
+  const variant = variants[prebuiltId];
+  if (variant && organization.features.includes(variant.feature)) {
+    return variant.config;
+  }
+  return PREBUILT_DASHBOARDS[prebuiltId];
+}

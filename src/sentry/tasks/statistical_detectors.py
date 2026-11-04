@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone as django_timezone
 from snuba_sdk import (
@@ -23,6 +23,8 @@ from snuba_sdk import (
 from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.producer import produce_occurrence_to_kafka
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
@@ -55,6 +57,7 @@ from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -71,7 +74,7 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_issue_settings(projects: list[Project]):
+def get_performance_issue_settings(projects: list[Project]) -> dict[Project, dict[str, object]]:
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -165,7 +168,8 @@ class FunctionRegressionDetector(RegressionDetector):
 
     @classmethod
     def min_throughput_threshold(cls) -> int:
-        return options.get("statistical_detectors.throughput.threshold.functions")
+        threshold = options.get("statistical_detectors.throughput.threshold.functions")
+        return threshold
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -179,7 +183,9 @@ class FunctionRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
+    def detector_store_factory(
+        cls,
+    ) -> DetectorStore[Mapping[str | bytes, bytes | float | int | str]]:
         return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
@@ -205,7 +211,9 @@ class FunctionRegressionDetector(RegressionDetector):
     namespace=profiling_tasks,
     processing_deadline_duration=30,
 )
-def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
+def detect_function_trends(
+    project_ids: list[int], start: str, *args: object, **kwargs: object
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -244,8 +252,8 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 def detect_function_change_points(
     functions_list: list[tuple[int, int]] | None = None,
     start: str | None = None,
-    *args,
-    **kwargs,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -292,7 +300,10 @@ def process_function_change_points(candidates: list[tuple[int, str, str]]) -> No
 
 
 def _detect_function_change_points(
-    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]],
+    start: datetime,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -325,8 +336,7 @@ def _detect_function_change_points(
             if get_viewer_context() is None:
                 viewer_context_manager = viewer_context_scope(
                     ViewerContext(
-                        organization_id=organization_id,
-                        actor_type=ActorType.SYSTEM,
+                        actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id
                     )
                 )
 
@@ -360,7 +370,7 @@ def _detect_function_change_points(
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
         amount=emitted_count,
-        tags={"source": "profile", "kind": "function"},
+        tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
 
@@ -424,7 +434,7 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads = []
+    payloads: list[dict[str, Any]] = []
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -460,15 +470,33 @@ def emit_function_regression_issue(
     if not payloads:
         return 0
 
-    response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
+    response = get_from_profiling_service(
+        method="POST", path="/regressed?produce=false", json_data=payloads
+    )
     if response.status != 200:
         return 0
 
     data = json.loads(response.data)
-    return data.get("occurrences")
+    for payload in data["occurrence_payloads"]:
+        event_data = payload["event"]
+        occurrence = IssueOccurrence.from_dict(
+            cast(
+                IssueOccurrenceData,
+                {
+                    **payload,
+                    "event_id": event_data["event_id"],
+                    "resource_id": payload.get("resource_id"),
+                },
+            )
+        )
+        produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
+
+    return len(data["occurrence_payloads"])
 
 
-def fetch_continuous_examples(raw_examples):
+def fetch_continuous_examples(
+    raw_examples: Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]],
+) -> Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]]:
     if not raw_examples:
         return raw_examples
 
@@ -628,18 +656,21 @@ def query_functions_timeseries(
         for project, fingerprint in functions_list
     ]
 
-    results = functions.top_events_timeseries(
-        timeseries_columns=[agg_function],
-        selected_columns=["project.id", "fingerprint"],
-        user_query="is_application:1",
-        snuba_params=params,
-        orderby=None,  # unused because top events is specified
-        rollup=interval,
-        limit=len(chunk),
-        organization=None,  # unused
-        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
-        top_events={"data": chunk},
-        result_key_order=["project.id", "fingerprint"],
+    results = cast(
+        dict[str, SnubaTSResult],
+        functions.top_events_timeseries(
+            timeseries_columns=[agg_function],
+            selected_columns=["project.id", "fingerprint"],
+            user_query="is_application:1",
+            snuba_params=params,
+            orderby=None,  # unused because top events is specified
+            rollup=interval,
+            limit=len(chunk),
+            organization=None,  # unused
+            referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
+            top_events={"data": chunk},
+            result_key_order=["project.id", "fingerprint"],
+        ),
     )
 
     for project, fingerprint in functions_list:

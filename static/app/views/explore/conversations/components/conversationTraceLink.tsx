@@ -2,13 +2,10 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSpan} from '@sentry/icons/span';
 
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -28,6 +25,7 @@ export interface ConversationTrace {
 interface ConversationTraceLinkProps {
   conversationId: string;
   traces: ConversationTrace[];
+  hasMoreSpans?: boolean;
 }
 
 /** Trace ids listed in the dropdown; the rest are reachable through "View all". */
@@ -40,12 +38,33 @@ const VISIBLE_TRACE_COUNT = 5;
 export function ConversationTraceLink({
   conversationId,
   traces,
+  hasMoreSpans,
 }: ConversationTraceLinkProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const trackClick = () =>
     trackAnalytics('conversations.detail.click-trace-link', {organization});
+
+  const viewAllUrl = getExploreUrl({
+    organization,
+    selection,
+    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
+    table: 'trace',
+  });
+
+  if (hasMoreSpans) {
+    return (
+      <Link to={viewAllUrl} onClick={trackClick}>
+        <Flex align="center" gap="xs">
+          <IconSpan size="xs" />
+          <Text size="sm" variant="inherit" wrap="nowrap">
+            {t('View all traces')}
+          </Text>
+        </Flex>
+      </Link>
+    );
+  }
 
   const [firstTrace] = traces;
 
@@ -68,13 +87,6 @@ export function ConversationTraceLink({
       </Link>
     );
   }
-
-  const viewAllUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
-    table: 'trace',
-  });
 
   const items: MenuItemProps[] = [
     ...traces.slice(0, VISIBLE_TRACE_COUNT).map(({traceId, spanId}) => ({
@@ -124,7 +136,7 @@ const MenuTraceIcon = styled(IconSpan)`
   align-self: center;
 `;
 
-const TraceTrigger = styled(DropdownButton)`
+const TraceTrigger = styled(OverlayTrigger.Button)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
   &:hover {

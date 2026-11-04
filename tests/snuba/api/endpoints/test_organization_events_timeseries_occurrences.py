@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.search.eap.occurrences.rollout_utils import (
     EAP_OCCURRENCES_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION,
@@ -41,7 +42,9 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -55,7 +58,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         *,
         extra_occurrence_kwargs_fn: Callable[[int, int], dict[str, Any]] | None = None,
         **occurrence_kwargs: Any,
-    ):
+    ) -> Response:
         """Create a group, build occurrences from event_counts (with group_id), store them, run timeseries request.
         extra_occurrence_kwargs_fn: when set, occurrence attributes are a function of (hour, minute).
         """

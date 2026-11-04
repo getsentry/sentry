@@ -130,4 +130,51 @@ describe('WebVitalsDetailPanel', () => {
       screen.getByText(/Largest Contentful Paint \(LCP\) measures the render/)
     ).toBeInTheDocument();
   });
+
+  it('sends browser and subregion filters as lists', async () => {
+    render(<WebVitalsDetailPanel webVital="lcp" />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/browser/pageloads/`,
+          query: {
+            'browser.name': ['Chrome', 'Chrome Mobile'],
+            'user.geo.subregion': ['21', '154'],
+          },
+        },
+        route: '/organizations/:orgId/insights/browser/pageloads/',
+      },
+    });
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    const listFilters =
+      'user.geo.subregion:[21,154] browser.name:[Chrome,"Chrome Mobile"]';
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] ${listFilters}`,
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+        }),
+      })
+    );
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: `span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0 count_scores(measurements.score.lcp):>0 browser.name:[Chrome,"Chrome Mobile"] user.geo.subregion:[21,154]`,
+        }),
+      })
+    );
+  });
 });

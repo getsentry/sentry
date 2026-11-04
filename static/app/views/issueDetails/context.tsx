@@ -65,6 +65,7 @@ export const enum SectionKey {
   EXTRA = 'extra',
   PACKAGES = 'packages',
   VIEW_HIERARCHY = 'view-hierarchy',
+  FLAMEGRAPH_ATTACHMENT = 'flamegraph-attachment',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
   GROUPING_INFO = 'grouping-info',
@@ -235,6 +236,7 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
         case 'REMOVE_EVENT_SECTION': {
+          // oxlint-disable-next-line react/todo
           const {[action.key]: _removed, ...remainingSections} = state.sectionData;
           return {...state, sectionData: remainingSections};
         }

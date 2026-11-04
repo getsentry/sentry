@@ -10,7 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
+import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/constants';
 
 type ToolbarProps = {
   disableDuplicate?: boolean;

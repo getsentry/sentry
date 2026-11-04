@@ -12,7 +12,7 @@ from django.db.models import Prefetch
 from django.http.request import QueryDict
 
 from sentry import analytics, features, options
-from sentry.api import client
+from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
@@ -145,10 +145,12 @@ def _unfurl_dashboards(
         if not org:
             continue
 
+        assert org.id is not None
         widget = _get_widget(org.id, args["dashboard_id"], args["widget_index"])
         if widget is None:
             continue
 
+        assert widget.widget_type is not None
         config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
         if config is None:
             continue
@@ -245,6 +247,7 @@ def build_widget_timeseries_params(
     widget: DashboardWidget, url_params: QueryDict
 ) -> list[dict[str, str | list[str]]]:
     """Build one timeseries param dict per widget query."""
+    assert widget.widget_type is not None
     config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
     if config is None:
         raise ValueError(f"Unsupported widget type: {widget.widget_type}")

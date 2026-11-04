@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
@@ -718,7 +718,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
   });
 
   story('Case sensitivity', () => {
-    const [caseInsensitive, setCaseInsensitive] = useState<true | null>(null);
+    const [caseInsensitive, setCaseInsensitive] = useState<boolean | null>(null);
 
     return (
       <Fragment>

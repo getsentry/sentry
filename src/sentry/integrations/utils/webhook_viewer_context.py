@@ -5,7 +5,7 @@ from collections.abc import Generator
 
 from django.conf import settings
 
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 @contextlib.contextmanager
@@ -20,9 +20,6 @@ def webhook_viewer_context(organization_id: int) -> Generator[None]:
         return
 
     with viewer_context_scope(
-        ViewerContext(
-            organization_id=organization_id,
-            actor_type=ActorType.INTEGRATION,
-        )
+        ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=organization_id)
     ):
         yield

@@ -72,6 +72,18 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   );
 }
 
+// Fill the column beside the sidebar so a short tab keeps the secondary
+// background and the scroll position stable. Below this width the sidebar
+// stacks under the content, and the floor would only push it a full viewport
+// down. That is the common case once the Seer panel narrows the app content.
+function EventDetailsContent({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
+      {children}
+    </Container>
+  );
+}
+
 const STICKY_BACKGROUND_FADE_DISTANCE = 40;
 
 function StickyIssueEventNavigation({
@@ -244,7 +256,7 @@ export function GroupDetailsLayout({
                         hasToggleSidebar={!hasFilterBar}
                       />
                     )}
-                  <ContentPadding>{children}</ContentPadding>
+                  <EventDetailsContent>{children}</EventDetailsContent>
                 </EventDetailsSection>
               ) : (
                 <SharedTourElement<IssueDetailsTour>
@@ -268,7 +280,7 @@ export function GroupDetailsLayout({
                               hasToggleSidebar={!hasFilterBar}
                             />
                           )}
-                        <ContentPadding>{children}</ContentPadding>
+                        <EventDetailsContent>{children}</EventDetailsContent>
                       </EventDetailsSection>
                     </div>
                   )}
@@ -329,18 +341,5 @@ const NavigationSidebarWrapper = styled(Sticky, {
 
   &[data-stuck] {
     z-index: ${p => p.theme.zIndex.stickyHeader + 1};
-  }
-`;
-
-const ContentPadding = styled('div')`
-  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
-    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
-
-  /* Fill the column beside the sidebar so a short tab keeps the secondary
-     background and the scroll position stable. Below this width the sidebar
-     stacks under the content, and the floor would only push it a full viewport
-     down. That is the common case once the Seer panel narrows the app content. */
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    min-height: 100vh;
   }
 `;

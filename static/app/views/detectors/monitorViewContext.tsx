@@ -22,6 +22,10 @@ export interface MonitorViewContextValue {
    * These appear to the right of the default columns and to the left of the visualization.
    */
   additionalColumns?: MonitorListAdditionalColumn[];
+  /**
+   * Largest bucket interval in seconds the timeline may pick
+   */
+  maxBucketInterval?: number;
   renderTimelineOverlay?: (props: {
     timeWindowConfig: TimeWindowConfig;
   }) => React.ReactNode;

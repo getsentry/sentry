@@ -1,10 +1,11 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
+from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.types.group import PriorityLevel
@@ -21,10 +22,22 @@ class GroupOpenPeriodActivityResponse(TypedDict):
 class GroupOpenPeriodResponse(TypedDict):
     id: str
     groupId: str
+    shortId: str | None
     start: datetime
     end: datetime | None
     isOpen: bool
     activities: list[GroupOpenPeriodActivityResponse] | None
+
+
+class GroupOpenPeriodAttrs(TypedDict):
+    activities: list[GroupOpenPeriodActivityResponse]
+    short_id: str | None
+
+
+def get_short_ids_by_group_id(group_ids: Iterable[int]) -> dict[int, str | None]:
+    groups = Group.objects.filter(id__in=set(group_ids)).select_related("project")
+
+    return {group.id: group.qualified_short_id for group in groups}
 
 
 @register(GroupOpenPeriodActivity)
@@ -43,12 +56,11 @@ class GroupOpenPeriodActivitySerializer(Serializer[GroupOpenPeriodActivityRespon
 
 @register(GroupOpenPeriod)
 class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
-    def get_attrs(self, item_list: Any, user: Any, **kwargs: Any) -> Any:
+    def get_attrs(
+        self, item_list: Any, user: Any, **kwargs: Any
+    ) -> dict[GroupOpenPeriod, GroupOpenPeriodAttrs]:
         query_start = kwargs.get("query_start")
         query_end = kwargs.get("query_end")
-        result: defaultdict[GroupOpenPeriod, dict[str, list[GroupOpenPeriodActivityResponse]]] = (
-            defaultdict(dict)
-        )
 
         activities = GroupOpenPeriodActivity.objects.filter(group_open_period__in=item_list)
 
@@ -74,10 +86,16 @@ class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
             activities, serialize(list(activities), user=user, **kwargs)
         ):
             gopas[activity.group_open_period].append(serialized_activity)
-        for item in item_list:
-            result[item]["activities"] = gopas[item][:100]
 
-        return result
+        short_ids_by_group_id = get_short_ids_by_group_id(item.group_id for item in item_list)
+
+        return {
+            item: GroupOpenPeriodAttrs(
+                activities=gopas[item][:100],
+                short_id=short_ids_by_group_id.get(item.group_id),
+            )
+            for item in item_list
+        }
 
     def serialize(
         self, obj: GroupOpenPeriod, attrs: Mapping[str, Any], user: Any, **kwargs: Any
@@ -86,6 +104,7 @@ class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
         return GroupOpenPeriodResponse(
             id=str(obj.id),
             groupId=str(obj.group_id),
+            shortId=attrs["short_id"],
             start=calculate_event_date_from_update_date(obj.date_started, time_window),
             end=(
                 calculate_event_date_from_update_date(obj.date_ended, time_window)

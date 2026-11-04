@@ -60,6 +60,7 @@ export default function TeamDetails() {
           team: `#${teamSlug}`,
         })
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);
     }

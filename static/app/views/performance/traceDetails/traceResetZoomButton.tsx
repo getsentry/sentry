@@ -23,7 +23,6 @@ export function TraceResetZoomButton(props: {
       hide={props.viewManager.reset_zoom_button?.disabled !== false}
       size="xs"
       onClick={onResetZoom}
-      // oxlint-disable-next-line react/refs
       ref={props.viewManager.registerResetZoomRef}
     >
       {t('Reset Zoom')}

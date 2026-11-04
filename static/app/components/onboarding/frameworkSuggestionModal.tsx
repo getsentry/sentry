@@ -408,22 +408,26 @@ export function FrameworkSuggestionModal({
                           {items.map((platform, index) => (
                             <PlatformListItem key={platform.id}>
                               <RadioLabel index={index}>
-                                <RadioBox
-                                  size="sm"
-                                  autoFocus={platform.id === selectedPlatform.key}
-                                  name={field.name}
-                                  value={platform.id}
-                                  checked={field.state.value === platform.id}
-                                  onChange={() => field.handleChange(platform.id)}
-                                  onBlur={field.handleBlur}
-                                  onKeyDown={event => {
-                                    // Radios do not consistently submit on Enter across browsers.
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault();
-                                      event.currentTarget.form?.requestSubmit();
-                                    }
-                                  }}
-                                />
+                                <field.Base<HTMLInputElement>>
+                                  {baseProps => (
+                                    <RadioBox
+                                      {...baseProps}
+                                      id={`${baseProps.id}-${platform.id}`}
+                                      size="sm"
+                                      autoFocus={platform.id === selectedPlatform.key}
+                                      value={platform.id}
+                                      checked={field.state.value === platform.id}
+                                      onChange={() => field.handleChange(platform.id)}
+                                      onKeyDown={event => {
+                                        // Radios do not consistently submit on Enter across browsers.
+                                        if (event.key === 'Enter') {
+                                          event.preventDefault();
+                                          event.currentTarget.form?.requestSubmit();
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                </field.Base>
                                 <PlatformListItemIcon
                                   size={24}
                                   platform={platform.id}

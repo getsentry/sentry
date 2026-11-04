@@ -126,7 +126,7 @@ const TitleBase = styled('div')<{noHover?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xs};
-  flex: 1;
+  flex: 0 1 auto;
   overflow: hidden;
   min-height: 20px;
 

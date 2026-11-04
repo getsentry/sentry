@@ -54,11 +54,10 @@ unquoted_no_comma = ~r"((?:\{\{\s*\S+\s*\}\})|(?:[^\s\{,]+))"
 
 follow   = "->"
 sep      = ":"
-space    = " "
 empty    = ""
 negation = "!"
 newline  = ~r"[\r\n]"
-_        = space*
+_        = ~r" *"
 
 """
 )

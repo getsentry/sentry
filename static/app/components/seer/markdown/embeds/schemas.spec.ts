@@ -186,7 +186,7 @@ describe('SEER_EMBED_SCHEMAS page filters', () => {
       properties: {
         projects: {
           items: {
-            anyOf: [{type: 'string'}, {type: 'number'}],
+            type: ['string', 'number'],
           },
         },
       },

@@ -1,9 +1,8 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
 import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
-import {wrapCreateBrowserRouterV6} from '@sentry/react';
+import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {setApiNavigate} from 'sentry/api';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
@@ -13,6 +12,7 @@ import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/docume
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
@@ -32,7 +32,7 @@ const SentryTanStackDevtools =
     : null;
 
 function buildRouter() {
-  const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
+  const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
   const router = sentryCreateBrowserRouter(routes());
   setApiNavigate(createReactRouter3Navigate(router));
 
@@ -57,7 +57,7 @@ export function Main() {
                 <NuqsAdapter defaultOptions={{shallow: false}}>
                   <CommandPaletteProvider>
                     <RouteConfigProvider value={router.routes}>
-                      <RouterProvider router={router} />
+                      <RouterProvider router={router} useTransitions={false} />
                     </RouteConfigProvider>
                   </CommandPaletteProvider>
                 </NuqsAdapter>

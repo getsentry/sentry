@@ -17,3 +17,7 @@ export const WIDGET_BUILDER_ATTRIBUTE_STALE_TIME = 5 * 60 * 1000;
 export const WIDGET_BUILDER_ATTRIBUTE_SEARCH_DEBOUNCE_MS = 200;
 
 export const WIDGET_BUILDER_ATTRIBUTE_LOADING_MESSAGE = t('Loading…');
+
+export const DRAG_HANDLE_CLASS = 'widget-drag';
+
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
@@ -21,7 +21,7 @@ export function ReplaySideBySideImageDiff() {
         <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </ContentSliderDiff.Header>
 
-      <ReplayGrid>
+      <Grid columns="1fr 1fr">
         <ReplayPlayerPluginsContextProvider>
           <ReplayReaderProvider replay={replay}>
             <Border>
@@ -40,15 +40,10 @@ export function ReplaySideBySideImageDiff() {
             </Border>
           </ReplayReaderProvider>
         </ReplayPlayerPluginsContextProvider>
-      </ReplayGrid>
+      </Grid>
     </Stack>
   );
 }
-
-const ReplayGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-`;
 
 const Border = styled('span')`
   border: 3px solid;

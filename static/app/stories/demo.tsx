@@ -10,9 +10,9 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
+import type {ContainerBreakpointSize} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
-import type {ContainerBreakpointSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';

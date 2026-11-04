@@ -114,6 +114,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         GroupRelease.objects.create(
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -717,6 +718,44 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
             environment__name="prod",
             adopted__isnull=False,
         ).exists()
+
+    @mock.patch("sentry.release_health.tasks.capture_exception")
+    def test_deleted_project_with_sessions_is_skipped(self, mock_capture: mock.MagicMock) -> None:
+        # Session data can outlive the project row it references.
+        deleted_project_id = self.project1.id + 1_000_000
+        sessions = [
+            self.build_session(
+                project_id=project_id, release=self.release2, environment="somenvname"
+            )
+            for project_id in (self.project1.id, deleted_project_id)
+            for _ in range(20)
+        ]
+        self.bulk_store_sessions(sessions)
+
+        process_projects_with_sessions(self.organization.id, [self.project1.id, deleted_project_id])
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release_id=self.release2.id,
+            environment__name="somenvname",
+            adopted__isnull=False,
+        ).exists()
+        assert not ReleaseProjectEnvironment.objects.filter(project_id=deleted_project_id).exists()
+        mock_capture.assert_not_called()
+
+    @mock.patch("sentry.release_health.tasks.capture_exception")
+    def test_adopt_releases_missing_project_is_not_reported(
+        self, mock_capture: mock.MagicMock
+    ) -> None:
+        missing_project_id = self.project1.id + 1_000_000
+
+        adopted_ids = adopt_releases(
+            self.organization.id,
+            {missing_project_id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
+
+        assert adopted_ids == []
+        mock_capture.assert_not_called()
 
 
 def test_valid_environment() -> None:

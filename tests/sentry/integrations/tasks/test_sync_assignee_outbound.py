@@ -16,7 +16,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user import RpcUser
 
 
-def raise_sync_assignee_exception(*args, **kwargs):
+def raise_sync_assignee_exception(*args: object, **kwargs: object) -> None:
     raise Exception("Something went wrong")
 
 
@@ -90,8 +90,11 @@ class TestSyncAssigneeOutbound(TestCase):
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     @mock.patch.object(ExampleIntegration, "should_sync")
     def test_skips_syncing_if_should_sync_false(
-        self, mock_should_sync, mock_sync_assignee, mock_record_event
-    ):
+        self,
+        mock_should_sync: mock.MagicMock,
+        mock_sync_assignee: mock.MagicMock,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
         mock_should_sync.return_value = False
 
         sync_assignee_outbound(self.external_issue.id, self.user.id, True, None)
@@ -166,8 +169,8 @@ class TestSyncAssigneeOutbound(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_integration_installation_configuration_error(
-        self, mock_sync_assignee, mock_record_event
-    ):
+        self, mock_sync_assignee: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
         mock_sync_assignee.side_effect = IntegrationConfigurationError(
             "Insufficient permissions to assign user"
         )
