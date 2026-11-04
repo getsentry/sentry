@@ -146,7 +146,7 @@ export function Feature({
   const allFeatures = useMemo<AllFeatures>(
     () => ({
       configFeatures: config.features ? Array.from(config.features) : [],
-      organization: organization.features ?? [],
+      organization: organization.features,
       project: project?.features ?? [],
     }),
     [config.features, organization.features, project?.features]
