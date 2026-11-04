@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFormattingSnapshot} from '../dateTime/context';
+import {formatTimezone} from '../dateTime/format';
 import {parseDate} from '../dateTime/parseDate';
 
 import {
@@ -17,12 +18,7 @@ import {
   type RelativeTimeOptions,
 } from './getRelativeDate';
 
-/**
- * Most timezone abbreviations are three or four characters. Zones without an
- * abbreviation format as a five character offset instead (`+0545`, `+1245`),
- * and the rows do not wrap, so the card is allowed to grow to this rather than
- * spill outside its own border.
- */
+/** Allow room for offset labels such as GMT+5:45 without wrapping timestamp rows. */
 export const RELATIVE_TIME_MAX_WIDTH = 280;
 
 /**
@@ -91,8 +87,10 @@ export function RelativeTime({
   showSeconds,
 }: RelativeTimeProps) {
   const snapshot = useFormattingSnapshot();
-  const abbreviation =
-    parseDate(date, snapshot.timezone, snapshot.locale)?.format('z') ?? 'Invalid date';
+  const value = parseDate(date, snapshot.timezone);
+  const abbreviation = value
+    ? formatTimezone(value.epochMilliseconds, snapshot.timezone, snapshot.locale)
+    : 'Invalid date';
   // Zones that resolve to UTC itself would render the second row identically to
   // the first. Zones that merely share its offset right now (GMT, and BST's
   // winter half) keep both rows, because the differing label is the useful part.

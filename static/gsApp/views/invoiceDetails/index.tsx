@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
 import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid} from '@sentry/scraps/layout';
@@ -24,6 +23,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
 import {displayPriceWithCents} from 'getsentry/utils/billing';
+import {billingCalendarDateToTimestamp} from 'getsentry/utils/billingCalendarDate';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
@@ -302,9 +302,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
                       {tct('[start] to [end]', {
                         start: (
                           <DateTime
-                            date={moment
-                              .utc(item.periodStart, 'YYYY-MM-DD', true)
-                              .toDate()}
+                            date={billingCalendarDateToTimestamp(item.periodStart)}
                             timezone="UTC"
                             showTimezone={false}
                             mode="date"
@@ -313,7 +311,7 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
                         ),
                         end: (
                           <DateTime
-                            date={moment.utc(item.periodEnd, 'YYYY-MM-DD', true).toDate()}
+                            date={billingCalendarDateToTimestamp(item.periodEnd)}
                             timezone="UTC"
                             showTimezone={false}
                             mode="date"
