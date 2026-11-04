@@ -154,7 +154,10 @@ const simulatedRun = (): SeerExplorerResponse => ({
   },
 });
 
-/** Answers the panel's run request with the simulated run, and every other request with an empty list. */
+/**
+ * Answers the panel's run request with the simulated run, each PR's files with none, and every
+ * other request with an empty list.
+ */
 class SimulatedRunQueryClient extends QueryClient {
   constructor() {
     super({defaultOptions: {queries: {retry: false}}});
@@ -163,11 +166,12 @@ class SimulatedRunQueryClient extends QueryClient {
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
     const url = String(defaulted.queryKey[0]);
-    const queryFn = () =>
-      Promise.resolve({
-        json: url.includes('/seer/explorer-chat/') ? simulatedRun() : [],
-        headers: {},
-      });
+    const json = url.includes('/seer/explorer-chat/')
+      ? simulatedRun()
+      : url.includes('/repos/pull-request-files/')
+        ? {files: []}
+        : [];
+    const queryFn = () => Promise.resolve({json, headers: {}});
     return {...defaulted, queryFn: queryFn as never};
   };
 }

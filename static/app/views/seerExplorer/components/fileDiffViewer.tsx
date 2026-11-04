@@ -32,6 +32,11 @@ interface FileDiffViewerProps {
    */
   defaultExpanded?: boolean;
   /**
+   * Whether the file diff is expanded, for consumers that control it, e.g. to expand or
+   * collapse every file at once. Overrides `defaultExpanded`.
+   */
+  expanded?: boolean;
+  /**
    * Web URL for the file in its source repository. When set, the header shows a
    * button that opens it.
    */
@@ -41,6 +46,8 @@ interface FileDiffViewerProps {
    * their own. Default: false
    */
   hideHeader?: boolean;
+  /** Called when the header is clicked to expand or collapse a collapsible diff. */
+  onExpandedChange?: (expanded: boolean) => void;
   /**
    * Optional repo name to display in the file header.
    * If provided, will show as "repoName:filePath", otherwise just "filePath"
@@ -125,8 +132,17 @@ export function FileDiffViewer({
   collapsible = false,
   defaultExpanded = false,
   hideHeader = false,
+  expanded,
+  onExpandedChange,
 }: FileDiffViewerProps) {
-  const [isExpanded, setIsExpanded] = useState(collapsible ? defaultExpanded : true);
+  const [uncontrolledExpanded, setIsExpanded] = useState(
+    collapsible ? defaultExpanded : true
+  );
+  const isExpanded = expanded ?? uncontrolledExpanded;
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+    onExpandedChange?.(!isExpanded);
+  };
   const isDelete = patch.type === DiffFileType.DELETED;
   const filePath = repoName ? `${repoName}:${patch.path}` : patch.path;
 
@@ -135,7 +151,7 @@ export function FileDiffViewer({
       {!hideHeader && (
         <FileHeader
           collapsible={collapsible}
-          onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
+          onClick={collapsible ? toggleExpanded : undefined}
         >
           {collapsible && <InteractionStateLayer />}
           <Flex align="center" gap="md">
