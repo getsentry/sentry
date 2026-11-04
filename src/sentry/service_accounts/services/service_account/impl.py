@@ -18,15 +18,6 @@ from sentry.service_accounts.services.service_account.serial import serialize_se
 from sentry.service_accounts.services.service_account.service import ServiceAccountService
 
 
-def _invalid_scopes(error: ValidationError, method_name: str) -> RpcValidationException:
-    return RpcValidationException(
-        detail=error.messages[0],
-        code="invalid_scope",
-        service_name="service_account",
-        method_name=method_name,
-    )
-
-
 class DatabaseBackedServiceAccountService(ServiceAccountService):
     def remove_project_links_after_transfer(
         self,
@@ -84,16 +75,20 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 created_by_id=created_by_id,
             )
         except ValidationError as e:
-            raise _invalid_scopes(e, "create_service_account") from e
+            raise RpcValidationException(
+                detail=" ".join(e.messages),
+                code="invalid_scope",
+                service_name="service_account",
+                method_name="create_service_account",
+            ) from e
         except IntegrityError as e:
-            if "service_accounts_serviceaccount_org_name_unique" in str(e):
-                raise RpcValidationException(
-                    detail=f"A service account named '{name}' already exists.",
-                    code="duplicate_name",
-                    service_name="service_account",
-                    method_name="create_service_account",
-                ) from e
-            raise
+            # TODO: Only catch the name unique constraint.
+            raise RpcValidationException(
+                detail=f"A service account named '{name}' already exists.",
+                code="duplicate_name",
+                service_name="service_account",
+                method_name="create_service_account",
+            ) from e
         return serialize_service_account(service_account, [] if all_projects else project_ids)
 
     def update_service_account(
@@ -108,7 +103,12 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         try:
             validate_grantable_scopes(scope_list)
         except ValidationError as e:
-            raise _invalid_scopes(e, "update_service_account") from e
+            raise RpcValidationException(
+                detail=" ".join(e.messages),
+                code="invalid_scope",
+                service_name="service_account",
+                method_name="update_service_account",
+            ) from e
         with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
             service_account = (
                 ServiceAccount.objects.select_for_update()
