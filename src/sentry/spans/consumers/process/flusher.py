@@ -23,6 +23,7 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.consumers.process.memory import ProcessMemoryReporter
 from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
@@ -85,6 +86,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         }
         self.process_restarts = {process_index: 0 for process_index in range(self.num_processes)}
         self.buffers: dict[int, SpansBuffer] = {}
+        self.memory_reporter = ProcessMemoryReporter("consumer", buffer.assigned_shards)
 
         self._create_processes()
 
@@ -195,12 +197,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         sentry_sdk.set_attribute("sentry_spans_buffer_shards", shard_tag)
 
         logger.info("Flusher process started for shards %s", shard_tag)
+        memory_reporter = ProcessMemoryReporter("flusher", shards)
 
         try:
             producer_futures: list[tuple[int, Any, int]] = []
 
             first_iteration = True
             while not stopped.value:
+                memory_reporter.maybe_report()
                 system_now = int(time.time())
                 now = system_now + current_drift.value
                 flushed_segments = buffer.flush_segments(now=now)
@@ -325,6 +329,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             connections.close_all()
 
     def poll(self) -> None:
+        self.memory_reporter.maybe_report()
         self.next_step.poll()
 
     def _ensure_processes_alive(self) -> None:

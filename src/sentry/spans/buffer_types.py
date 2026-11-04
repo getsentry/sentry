@@ -225,6 +225,17 @@ class LoadedSegment(NamedTuple):
         return self.flush_candidate.score
 
 
+class LoadedBytes(NamedTuple):
+    """
+    Span payload bytes loaded for the segments of one flush cycle.
+    """
+
+    # As read from Redis: zstd-compressed batches, unless compression is off.
+    compressed: int
+    # The span payloads after decompression.
+    decompressed: int
+
+
 class FlushedSegment(NamedTuple):
     """
     A buffered segment selected, loaded, and prepared for Kafka production.
