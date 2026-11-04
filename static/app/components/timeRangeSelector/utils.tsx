@@ -191,12 +191,14 @@ export function getAbsoluteSummary(
         date={start}
         mode={showDateOnly ? 'date' : 'dateTime'}
         timezone={utc ? 'UTC' : undefined}
+        showTimezone={!showDateOnly && Boolean(utc)}
       />
       {'–'}
       <DateTime
         date={end}
         mode={showDateOnly ? 'date' : 'dateTime'}
         timezone={utc ? 'UTC' : undefined}
+        showTimezone={!showDateOnly && Boolean(utc)}
       />
     </Fragment>
   );

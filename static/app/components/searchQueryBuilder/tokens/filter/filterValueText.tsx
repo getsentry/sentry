@@ -283,6 +283,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           date={isUtc ? moment.utc(token.value.value).toDate() : token.value.value}
           mode={token.value.time ? 'dateTime' : 'date'}
           timezone={isUtc ? 'UTC' : undefined}
+          showTimezone={isUtc && Boolean(token.value.time)}
         />
       );
     }
