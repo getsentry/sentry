@@ -76,7 +76,7 @@ export function Screenshot({
   return (
     <Container width="100%" maxWidth={{zero: '100%', xl: '175px'}} height="100%">
       <PanelProvider>
-        <Container height="100%" background="primary" radius="md">
+        <Container height="100%" backgroundColor="primary" radius="md">
           <Stack justify="center" align="center" height="100%">
             {totalScreenshots > 1 && (
               <Flex
@@ -84,10 +84,10 @@ export function Screenshot({
                 justify="between"
                 padding="md"
                 width="100%"
-                border="primary"
+                borderColor="primary"
                 borderBottom="none"
                 radius="md md 0 0"
-                background="primary"
+                backgroundColor="primary"
               >
                 <Button
                   disabled={screenshotInFocus === 0}
@@ -119,7 +119,7 @@ export function Screenshot({
               minHeight="48px"
               overflow="hidden"
               position="relative"
-              border="primary"
+              borderColor="primary"
               radius={totalScreenshots > 1 ? undefined : 'md md 0 0'}
             >
               {loadingImage && (
@@ -133,7 +133,7 @@ export function Screenshot({
                   openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
                 }
               >
-                <Container width="100%" border="none" padding="0">
+                <Container width="100%" borderColor="none" padding="0">
                   {containerProps => (
                     <AttachmentComponent
                       {...containerProps}
@@ -153,7 +153,7 @@ export function Screenshot({
             <Container
               padding="md"
               width="100%"
-              border="primary"
+              borderColor="primary"
               borderTop="none"
               radius="0 0 md md"
             >

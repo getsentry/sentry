@@ -9,9 +9,9 @@ export function Card({
   const theme = useTheme();
   return (
     <Container
-      border="primary"
+      borderColor="primary"
       radius="md"
-      background="primary"
+      backgroundColor="primary"
       style={{boxShadow: theme.shadow.medium}}
       margin="xl 0"
       padding="xl"

@@ -190,7 +190,7 @@ export function IssueDiff({
 
   if (hasError) {
     return (
-      <Stack background="secondary" overflow="auto" padding="md">
+      <Stack backgroundColor="secondary" overflow="auto" padding="md">
         <LoadingError message={t('Error loading events')} />
       </Stack>
     );
@@ -201,7 +201,7 @@ export function IssueDiff({
   }
 
   return (
-    <Stack background="secondary" overflow="auto" padding="md">
+    <Stack backgroundColor="secondary" overflow="auto" padding="md">
       <LazyLoad
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
@@ -215,7 +215,7 @@ export function IssueDiff({
 function IssueDiffLoadingState() {
   return (
     <Stack
-      background="primary"
+      backgroundColor="primary"
       overflow="auto"
       padding="md"
       data-test-id="issue-diff-loading-skeleton"

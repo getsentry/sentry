@@ -21,8 +21,8 @@ export function SnapshotCardFrame({
     <Stack
       gap="0"
       width="100%"
-      background="primary"
-      border="primary"
+      backgroundColor="primary"
+      borderColor="primary"
       radius="md"
       overflow="hidden"
       {...(fillHeight ? {flex: '1', minHeight: '0'} : {})}
@@ -49,7 +49,7 @@ export function SnapshotGroupHeader({
       gap="md"
       padding="lg xl"
       borderBottom={isViewed === true ? undefined : 'secondary'}
-      background="primary"
+      backgroundColor="primary"
     >
       <Heading as="h3" size="md" ellipsis>
         {name}
@@ -79,7 +79,7 @@ export function SnapshotVariantFrame({
   return (
     <SnapshotVariantContainer
       position="relative"
-      background="primary"
+      backgroundColor="primary"
       $fillHeight={fillHeight}
       {...props}
     >
@@ -100,7 +100,12 @@ export function SnapshotVariantFrame({
 
 export function SnapshotCanvasWrapper({children}: {children: React.ReactNode}) {
   return (
-    <Container background="secondary" border="primary" radius="sm" overflow="hidden">
+    <Container
+      backgroundColor="secondary"
+      borderColor="primary"
+      radius="sm"
+      overflow="hidden"
+    >
       {children}
     </Container>
   );

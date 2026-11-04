@@ -68,9 +68,9 @@ function DataRequestsResults({
                   key={`user-${user.id}`}
                   gap="2xs"
                   padding="md"
-                  border="primary"
+                  borderColor="primary"
                   radius="md"
-                  background="primary"
+                  backgroundColor="primary"
                 >
                   <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
                   <Text size="sm" variant="muted">
@@ -87,9 +87,9 @@ function DataRequestsResults({
                   key={`event-${event.id}`}
                   gap="2xs"
                   padding="md"
-                  border="primary"
+                  borderColor="primary"
                   radius="md"
-                  background="primary"
+                  backgroundColor="primary"
                 >
                   <ExternalLink
                     href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
@@ -167,7 +167,7 @@ export function DataRequests() {
             align="center"
             padding="xl"
             borderBottom="primary"
-            background="secondary"
+            backgroundColor="secondary"
             radius="md md 0 0"
           >
             <Text size="sm" bold uppercase density="compressed">

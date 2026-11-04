@@ -120,8 +120,8 @@ export function SourceMapIssueDetails({
     <Container
       role="main"
       position="relative"
-      border="primary"
-      background="primary"
+      borderColor="primary"
+      backgroundColor="primary"
       radius="md"
     >
       {event && (

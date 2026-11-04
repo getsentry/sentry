@@ -26,7 +26,7 @@ export default function OrganizationMcpCli() {
       />
 
       <Stack gap="xl">
-        <Container padding="xl" border="primary" radius="md">
+        <Container padding="xl" borderColor="primary" radius="md">
           <Stack gap="lg">
             <Heading as="h3">{t('MCP Server')}</Heading>
             <Text variant="muted" size="lg">
@@ -54,7 +54,7 @@ export default function OrganizationMcpCli() {
           </Stack>
         </Container>
 
-        <Container padding="xl" border="primary" radius="md">
+        <Container padding="xl" borderColor="primary" radius="md">
           <Stack gap="lg">
             <Heading as="h3">{t('Sentry CLI')}</Heading>
             <Text variant="muted" size="lg">

@@ -344,7 +344,7 @@ function Graph({
   const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
-    <Container minWidth="0" border="primary" radius="md" background="primary">
+    <Container minWidth="0" borderColor="primary" radius="md" backgroundColor="primary">
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}

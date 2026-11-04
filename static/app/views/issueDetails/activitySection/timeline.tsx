@@ -29,9 +29,9 @@ function Item({marker, headline, children, variant = 'default'}: TimelineItemPro
           width={`calc(100% + ${theme.space.lg})`}
           padding="lg"
           gap="lg"
-          border="primary"
+          borderColor="primary"
           radius="md"
-          background="primary"
+          backgroundColor="primary"
         >
           <Grid columns="24px minmax(0, 1fr)" align="center" gap="sm">
             {marker}

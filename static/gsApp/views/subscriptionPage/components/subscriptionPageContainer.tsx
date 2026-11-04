@@ -13,7 +13,7 @@ export function SubscriptionPageContainer({
   }, []);
 
   return (
-    <Container background="primary" flexGrow={1} padding="xl" {...rest}>
+    <Container backgroundColor="primary" flexGrow={1} padding="xl" {...rest}>
       {children}
     </Container>
   );

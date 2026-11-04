@@ -82,9 +82,9 @@ export default function SeerAutomationTrial() {
 
       <Container
         padding="2xl xl"
-        border="primary"
+        borderColor="primary"
         radius="lg"
-        background="secondary"
+        backgroundColor="secondary"
         maxWidth="600px"
         margin="auto"
         position="relative"
@@ -129,9 +129,9 @@ export default function SeerAutomationTrial() {
                   <Container
                     key={`seer-automation-trial-${label}`}
                     as="li"
-                    border="primary"
+                    borderColor="primary"
                     radius="md"
-                    background="tertiary"
+                    backgroundColor="tertiary"
                     padding="md"
                     position="relative"
                   >

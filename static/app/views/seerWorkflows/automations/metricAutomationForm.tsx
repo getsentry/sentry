@@ -433,7 +433,7 @@ function ConnectedMonitorList({
 
   if (monitorIds.length === 0) {
     return (
-      <Stack padding="xl" gap="sm" align="center" background="secondary" radius="md">
+      <Stack padding="xl" gap="sm" align="center" backgroundColor="secondary" radius="md">
         <Text bold>{t('No monitors connected')}</Text>
         <Text variant="muted" align="center">
           {t('Connect a metric monitor above, or save now and choose monitors later.')}
@@ -452,7 +452,7 @@ function ConnectedMonitorList({
         {' · '}
         {tn('%s project', '%s projects', projectCount)}
       </Text>
-      <Stack border="primary" radius="md">
+      <Stack borderColor="primary" radius="md">
         {selected.map((monitor, index) => (
           <Flex
             key={monitor.id}

@@ -311,8 +311,8 @@ export function ScmMessagingProviderRow({
 
   return (
     <MotionContainer
-      background="primary"
-      border={visualState === 'removing' ? 'danger' : 'primary'}
+      backgroundColor="primary"
+      borderColor={visualState === 'removing' ? 'danger' : 'primary'}
       radius="xl"
       {...ONBOARDING_ENTER}
     >

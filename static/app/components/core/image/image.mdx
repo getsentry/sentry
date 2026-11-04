@@ -70,13 +70,13 @@ The `aspectRatio` prop allows you to define the width-to-height ratio of the ima
 
 <Storybook.Demo>
   <Flex gap="lg">
-    <Container width="300px" border="primary">
+    <Container width="300px" borderColor="primary">
       <Image src={image} alt="16:9 aspect ratio" aspectRatio="16/9" />
     </Container>
-    <Container width="300px" border="primary">
+    <Container width="300px" borderColor="primary">
       <Image src={image} alt="4:3 aspect ratio" aspectRatio="4/3" />
     </Container>
-    <Container width="300px" border="primary">
+    <Container width="300px" borderColor="primary">
       <Image src={image} alt="1:1 aspect ratio" aspectRatio="1/1" />
     </Container>
   </Flex>
@@ -105,7 +105,7 @@ The `objectFit` prop controls how the image content is sized within its containe
 The image is scaled to maintain its aspect ratio while fitting within the element's content box. The entire image is made visible.
 
 <Storybook.Demo>
-  <Container width="400px" height="200px" border="primary">
+  <Container width="400px" height="200px" borderColor="primary">
     <Image
       src={image}
       alt="Sentry logo contained"
@@ -131,7 +131,7 @@ The image is scaled to maintain its aspect ratio while fitting within the elemen
 The image is sized to maintain its aspect ratio while filling the element's entire content box. The image may be clipped to fit.
 
 <Storybook.Demo>
-  <Container width="400px" height="200px" border="primary">
+  <Container width="400px" height="200px" borderColor="primary">
     <Image
       src={image}
       alt="Sentry logo covered"

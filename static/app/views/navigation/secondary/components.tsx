@@ -201,7 +201,7 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
 
   return (
     <Container
-      background="secondary"
+      backgroundColor="secondary"
       borderRight="primary"
       position="relative"
       height="100%"
@@ -634,7 +634,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" borderColor="muted" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -642,7 +642,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" borderColor="muted" />
     </Container>
   );
 }
@@ -789,7 +789,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         as="li"
         radius="md"
         position="relative"
-        background={isDragging ? 'secondary' : undefined}
+        backgroundColor={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         css={reorderableHandleCoordination}

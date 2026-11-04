@@ -16,8 +16,13 @@ export function DragHandleDemo({variant}: {variant?: DragHandleVariant}) {
   return (
     <Stack gap="sm" width="100%">
       <Text variant="muted">Sized pane width: {size}px</Text>
-      <Flex height="140px" border="primary" radius="md" overflow="hidden">
-        <Stack padding="md" background="secondary" flexShrink={0} flexBasis={`${size}px`}>
+      <Flex height="140px" borderColor="primary" radius="md" overflow="hidden">
+        <Stack
+          padding="md"
+          backgroundColor="secondary"
+          flexShrink={0}
+          flexBasis={`${size}px`}
+        >
           <Text bold>Sized</Text>
         </Stack>
         <DragHandle
@@ -31,7 +36,7 @@ export function DragHandleDemo({variant}: {variant?: DragHandleVariant}) {
           onDoubleClick={() => setSize(DEFAULT_SIZE)}
           onMove={delta => setSize(current => clamp(current + delta))}
         />
-        <Stack padding="md" background="primary" flexGrow={1}>
+        <Stack padding="md" backgroundColor="primary" flexGrow={1}>
           <Text bold>Fill</Text>
         </Stack>
       </Flex>

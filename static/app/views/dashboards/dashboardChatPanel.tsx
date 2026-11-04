@@ -103,11 +103,11 @@ export function DashboardChatPanel({
     <Container
       position="sticky"
       bottom={0}
-      border="primary"
+      borderColor="primary"
       radius="md"
       maxWidth="800px"
       width="100%"
-      background="primary"
+      backgroundColor="primary"
       margin="0 auto"
       // Sit above dashboard widgets/tiles, but below dropdown menus (e.g. Add Widget)
       // so they aren't hidden behind the chat panel when it overlaps them.

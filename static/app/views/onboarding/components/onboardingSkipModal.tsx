@@ -115,7 +115,7 @@ function OnboardingSkipModal({
           {t('Select an option to skip')}
         </Heading>
         <Stack
-          border="primary"
+          borderColor="primary"
           radius="md"
           overflow="hidden"
           role="group"

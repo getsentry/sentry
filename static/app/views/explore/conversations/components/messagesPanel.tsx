@@ -699,7 +699,7 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
+    <Stack padding="xl 0" backgroundColor="primary" minHeight="100%" width="100%">
       {children}
     </Stack>
   );

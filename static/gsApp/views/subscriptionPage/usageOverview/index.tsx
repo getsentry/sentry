@@ -115,7 +115,7 @@ export function UsageOverview({
       gap="lg"
       align="start"
     >
-      <Container radius="md" border="primary" background="primary" width="100%">
+      <Container radius="md" borderColor="primary" backgroundColor="primary" width="100%">
         <Flex
           justify="between"
           align="center"

@@ -47,7 +47,7 @@ describe('AiSpanTimeline', () => {
 
       return (
         <Text as="div">
-          <Container padding="md" background="primary">
+          <Container padding="md" backgroundColor="primary">
             <AiSpanTimeline
               nodes={[
                 lead,

@@ -33,7 +33,7 @@ title rather than claiming a column of its own. The status glyph stays on the
 title's first line either way.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Read trace waterfall"
       status="success"
@@ -63,7 +63,7 @@ Sentry search string (including boolean and parenthesized grouping) into query
 chips.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Query spans"
       status="success"
@@ -91,7 +91,7 @@ Pass `output` to render the call's result under an `Output:` label — a result
 value, or on failure the error itself. Like `input`, it is a slot.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Query spans"
       status="failure"
@@ -124,7 +124,7 @@ a one-line result. The clipped example below shows the gradient overlay and
 centered `Show More` button over a long tool call result.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Render chart"
       status="success"
@@ -185,7 +185,7 @@ status code, e.g. `502`), so the outcome reads on the right rather than only as 
 small glyph on the far left.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall title="Running query" status="loading" />
     <ToolCall title="Awaiting approval" status="pending" />
     <ToolCall title="Query succeeded" status="success" />
@@ -205,7 +205,7 @@ small glyph on the far left.
 Pass `notifications` to surface short status lines beneath a call.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Query spans"
       status="success"
@@ -228,7 +228,7 @@ Give a `reference` a `to` to render it as a real link (an anchor supporting
 middle/cmd-click and keyboard access) rather than an `onClick` button.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Read trace waterfall"
       status="success"
@@ -252,7 +252,7 @@ title, so a long title in a narrow panel wraps together with its link instead of
 being squeezed into a column beside it.
 
 <Storybook.Demo align="stretch">
-  <Container width="300px" background="secondary" radius="md" padding="lg">
+  <Container width="300px" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3"
       status="success"
@@ -281,7 +281,7 @@ From the `sm` container width up, a title that wraps keeps its status glyph and
 call the `failureLabel` chip stacks under the link.
 
 <Storybook.Demo align="stretch">
-  <Container width="640px" background="secondary" radius="md" padding="lg">
+  <Container width="640px" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Retrieving span 91225316d1e54127 in trace 2f41db5c12ee46ceb385a23e27bc06e3 with its child spans and attributes"
       status="success"
@@ -303,7 +303,7 @@ request body. It renders inline, indented under the title; a tool call has no
 disclosure of its own.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall title="Query spans" status="success">
       <Text size="xs" variant="muted" monospace>
         GET /api/0/organizations/sentry/traces/
@@ -326,7 +326,7 @@ disclosure of its own.
 — an issue, a trace, a replay — can use whichever glyph best identifies it.
 
 <Storybook.Demo align="stretch">
-  <Container width="100%" background="secondary" radius="md" padding="lg">
+  <Container width="100%" backgroundColor="secondary" radius="md" padding="lg">
     <ToolCall
       title="Retrieve an issue"
       status="success"

@@ -33,7 +33,7 @@ export function SpanTabContent({
 
 export function EmptySpanTab({message}: {message: string}) {
   return (
-    <Flex flex="1" background="secondary" radius="md" padding="xl">
+    <Flex flex="1" backgroundColor="secondary" radius="md" padding="xl">
       <Text variant="muted">{message}</Text>
     </Flex>
   );

@@ -36,8 +36,8 @@ export function ScmFeatureInfoCards({
     <Grid
       gap="2xl"
       columns={{zero: '1fr', xl: '1fr 1fr'}}
-      background="primary"
-      border="primary"
+      backgroundColor="primary"
+      borderColor="primary"
       radius="xl"
       padding="xl"
     >
@@ -76,7 +76,7 @@ export function ScmFeatureInfoCards({
 
               {isOnboarding ? (
                 <Stack gap="md" width="100%" paddingTop="md">
-                  <Separator orientation="horizontal" border="primary" />
+                  <Separator orientation="horizontal" borderColor="primary" />
                   <Flex align="center" justify="between" gap="md">
                     <Text variant="muted" size="sm">
                       {t('After 14 days')}

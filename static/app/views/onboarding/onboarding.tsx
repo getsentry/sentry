@@ -407,7 +407,7 @@ export function OnboardingWithoutContext() {
         flexGrow={1}
         position="relative"
         overflowX="hidden"
-        background="primary"
+        backgroundColor="primary"
         width="100%"
         margin="0 auto"
         paddingLeft="2xl"

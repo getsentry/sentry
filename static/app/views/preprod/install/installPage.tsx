@@ -50,8 +50,12 @@ export default function InstallPage() {
         <Layout.Body>
           <Layout.Main width="full-constrained">
             <Stack gap="xl">
-              <Container border="primary" radius="lg" overflow="hidden">
-                <Container background="secondary" borderBottom="primary" padding="xl">
+              <Container borderColor="primary" radius="lg" overflow="hidden">
+                <Container
+                  backgroundColor="secondary"
+                  borderBottom="primary"
+                  padding="xl"
+                >
                   <Flex justify="center" align="center" width="100%">
                     <Heading as="h2">{t('Download Build')}</Heading>
                   </Flex>

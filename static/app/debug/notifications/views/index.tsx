@@ -39,7 +39,7 @@ export default function DebugNotificationsIndex() {
             "header header"
             "sidebar body"
           `}
-          background="primary"
+          backgroundColor="primary"
           position="relative"
           containerType="inline-size"
         >

@@ -10,7 +10,7 @@ export function ProfilingDetailsFrameTabs({children}: {children: ReactNode}) {
       padding="0 md"
       margin="0"
       borderTop="primary"
-      background="secondary"
+      backgroundColor="secondary"
       area="tabs"
       style={{listStyleType: 'none', userSelect: 'none'}}
     >

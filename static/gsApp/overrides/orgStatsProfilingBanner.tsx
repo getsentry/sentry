@@ -11,14 +11,14 @@ export function OrgStatsProfilingBanner() {
   return (
     <Grid
       columns={{zero: '1fr', '3xl': 'repeat(2, 1fr)', '4xl': 'repeat(3, 1fr)'}}
-      border="primary"
+      borderColor="primary"
       radius="md"
       marginBottom="xl"
     >
       <Container
         column={{zero: 'span 1', '3xl': 'span 2', '4xl': 'span 1'}}
         padding="xl"
-        background="secondary"
+        backgroundColor="secondary"
         borderBottom={{zero: 'primary', '4xl': 'none'}}
       >
         <h6>{t('Profiling has a new billing model!')}</h6>

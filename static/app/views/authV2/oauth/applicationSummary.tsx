@@ -65,7 +65,7 @@ export function ApplicationSummary({
       : null;
 
   return (
-    <Stack border="secondary" radius="md" overflow="hidden">
+    <Stack borderColor="secondary" radius="md" overflow="hidden">
       <Flex align="center" gap="md" padding="lg">
         {sentryApplication ? (
           <Flex
@@ -129,7 +129,7 @@ function DeviceCodeBadge({userCode}: {userCode: string}) {
         tabIndex={0}
         align="center"
         gap="xs"
-        background="secondary"
+        backgroundColor="secondary"
         radius="md"
         padding="sm md"
       >

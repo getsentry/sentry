@@ -30,10 +30,6 @@ type Margin = SpaceSize | 'auto' | '0';
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
   backgroundColor?: Responsive<BackgroundVariant>;
-  /**
-   * @deprecated Use `backgroundColor` instead.
-   */
-  background?: Responsive<BackgroundVariant>;
   display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
@@ -92,10 +88,6 @@ interface ContainerLayoutProps {
    * unless `borderWidth` overrides it.
    */
   borderColor?: Responsive<BorderVariant>;
-  /**
-   * @deprecated Use `borderColor` instead.
-   */
-  border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;
   borderBottom?: Responsive<BorderVariant>;
   borderLeft?: Responsive<BorderVariant>;
@@ -225,9 +217,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
   'area',
   'as',
-  'background',
   'backgroundColor',
-  'border',
   'borderColor',
   'borderTop',
   'borderBottom',
@@ -363,7 +353,7 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.backgroundColor ?? p.background, p.theme, getBackground)};
+  ${p => rc('background', p.backgroundColor, p.theme, getBackground)};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
@@ -388,7 +378,7 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.borderColor ?? p.border, p.theme, getBorder)};
+  ${p => rc('border', p.borderColor, p.theme, getBorder)};
   ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};

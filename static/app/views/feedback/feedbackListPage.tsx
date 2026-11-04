@@ -65,7 +65,13 @@ function PageContent({
   return (
     <PageFiltersContainer>
       <ErrorBoundary>
-        <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
+        <Stack
+          flex={1}
+          align="stretch"
+          gap="xl"
+          backgroundColor="primary"
+          overflow="hidden"
+        >
           <Grid
             columns={{
               zero: '1fr',
@@ -279,7 +285,7 @@ export default function FeedbackListPage() {
 
 function FeedbackPanel({children}: {children: ReactNode}) {
   return (
-    <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
+    <Stack borderColor="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
       {children}
     </Stack>
   );

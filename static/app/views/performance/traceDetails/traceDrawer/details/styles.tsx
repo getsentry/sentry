@@ -263,7 +263,7 @@ function Highlights({
                     justify="between"
                     borderBottom="primary"
                     radius="md md 0 0"
-                    background="secondary"
+                    backgroundColor="secondary"
                     position="relative"
                     overflow="hidden"
                   >
@@ -277,7 +277,7 @@ function Highlights({
           </Stack>
         </Stack>
       </Flex>
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" borderColor="muted" />
     </Stack>
   );
 }

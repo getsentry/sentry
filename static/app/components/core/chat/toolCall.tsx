@@ -230,10 +230,10 @@ function FailureChip({label}: {label: ReactNode}) {
     // whose descender room (unused by digits) reads as extra bottom padding.
     <Flex
       align="center"
-      border="danger"
+      borderColor="danger"
       radius="sm"
       padding="2xs sm"
-      background="primary"
+      backgroundColor="primary"
     >
       <Text size="sm" variant="danger" bold>
         {label}
@@ -246,8 +246,8 @@ function InputBox({input}: {input: ReactNode}) {
   const {t} = useTranslation();
   return (
     <Container
-      background="secondary"
-      border="primary"
+      backgroundColor="secondary"
+      borderColor="primary"
       radius="md"
       padding="sm"
       width="100%"
@@ -265,7 +265,7 @@ function InputBox({input}: {input: ReactNode}) {
 function OutputBox({output}: {output: ReactNode}) {
   const {t} = useTranslation();
   return (
-    <Container background="secondary" radius="md" padding="sm" width="100%">
+    <Container backgroundColor="secondary" radius="md" padding="sm" width="100%">
       <Flex align="center" gap="sm" wrap="wrap">
         <Text size="sm" variant="secondary" monospace bold>
           {t('Output:')}

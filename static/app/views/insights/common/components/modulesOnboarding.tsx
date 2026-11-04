@@ -100,7 +100,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
   return (
-    <Container flex="2" padding="2xl" background="secondary" width="100%">
+    <Container flex="2" padding="2xl" backgroundColor="secondary" width="100%">
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>

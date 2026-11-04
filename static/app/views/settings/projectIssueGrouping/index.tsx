@@ -81,7 +81,7 @@ function FingerprintRulesForm({
                       }
                     )}
                   </Text>
-                  <Container background="secondary" padding="md lg" radius="md">
+                  <Container backgroundColor="secondary" padding="md lg" radius="md">
                     <Text as="div" monospace size="sm" wrap="pre-wrap">
                       {`# force all errors of the same type to have the same fingerprint
 error.type:DatabaseUnavailable -> system-down
@@ -185,7 +185,7 @@ function StackTraceRulesForm({
                       }
                     )}
                   </Text>
-                  <Container background="secondary" padding="md lg" radius="md">
+                  <Container backgroundColor="secondary" padding="md lg" radius="md">
                     <Text as="div" monospace size="sm" wrap="pre-wrap">
                       {`# remove all frames above a certain function from grouping
 stack.function:panic_handler ^-group

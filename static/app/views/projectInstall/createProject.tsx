@@ -573,7 +573,7 @@ export function CreateProject() {
             gap="xl"
             align="end"
             padding="2xl 0"
-            background="primary"
+            backgroundColor="primary"
           >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>

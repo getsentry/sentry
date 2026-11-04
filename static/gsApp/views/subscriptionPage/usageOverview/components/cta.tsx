@@ -52,7 +52,7 @@ function Cta({
 } & ({image: string; imageAlt: string} | {image?: never; imageAlt?: never})) {
   return (
     <Flex
-      background="secondary"
+      backgroundColor="secondary"
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
       gap={isBanner ? {zero: 'xl', '5xl': '3xl'} : 'xl'}
@@ -127,7 +127,7 @@ function SeerCta({action, footerText}: {action: React.ReactNode; footerText?: st
   // TODO(isabella): If we ever extend the full panel CTA to other products, we should
   // add copy to BILLED_DATA_CATEGORY_INFO or serialize them in some endpoint
   return (
-    <Container background="secondary" height="100%" radius="md" alignSelf="stretch">
+    <Container backgroundColor="secondary" height="100%" radius="md" alignSelf="stretch">
       <Stack gap="xl" align="center" justify="center" justifySelf="center" height="100%">
         <Container>
           <Image src={seerConfigMainImg} alt="" />

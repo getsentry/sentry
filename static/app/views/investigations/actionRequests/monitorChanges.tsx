@@ -118,7 +118,7 @@ export function MonitorChanges({
     typeof current?.aggregate === 'string' ? current.aggregate : currentAggregate;
 
   return (
-    <Container border="primary" radius="md" padding="lg">
+    <Container borderColor="primary" radius="md" padding="lg">
       <Stack gap="lg">
         <Flex justify="between" align="start" gap="md">
           <Stack gap="xs">

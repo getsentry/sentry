@@ -223,7 +223,7 @@ function MetricsTabBodySection({
             <Container paddingBottom="xl">
               <Separator
                 orientation="horizontal"
-                border="primary"
+                borderColor="primary"
                 data-test-id="metric-section-separator"
               />
             </Container>

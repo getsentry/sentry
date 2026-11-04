@@ -65,7 +65,7 @@ export function ToolbarContainer({
         justify="between"
         gap="md"
         padding={{zero: 'md xl', '3xl': 'md xl md 0'}}
-        background="primary"
+        backgroundColor="primary"
         onClick={e => e.stopPropagation()}
       >
         <Flex align="center" gap="md">

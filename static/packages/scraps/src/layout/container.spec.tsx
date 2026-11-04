@@ -24,7 +24,7 @@ describe('Container', () => {
   it('implements render prop', () => {
     render(
       <section>
-        <Container border="primary">{props => <p {...props}>Hello</p>}</Container>
+        <Container borderColor="primary">{props => <p {...props}>Hello</p>}</Container>
       </section>,
       {wrapper: ThemeWrapper}
     );
@@ -32,7 +32,7 @@ describe('Container', () => {
     expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
 
-    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('borderColor', 'primary');
   });
 
   it('does not forward color and width props to the DOM', () => {
@@ -52,7 +52,7 @@ describe('Container', () => {
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element
-      <Container border="primary" aria-activedescendant="what">
+      <Container borderColor="primary" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <p {...props}>Hello</p>}
       </Container>,
@@ -69,7 +69,7 @@ describe('Container', () => {
     }
 
     render(
-      <Container border="primary">
+      <Container borderColor="primary">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
       </Container>,

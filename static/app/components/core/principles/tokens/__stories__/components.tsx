@@ -83,7 +83,7 @@ export function Radius() {
             height: '48px',
             background: theme.tokens.background.transparent.accent.muted,
           }}
-          border="accent"
+          borderColor="accent"
           radius={token}
         />
       )}
@@ -224,7 +224,7 @@ export function ShadowOffset() {
             background: theme.tokens.background.primary,
             boxShadow: value,
           }}
-          border="accent"
+          borderColor="accent"
           radius="xs"
         />
       )}
@@ -274,7 +274,7 @@ export function BackgroundColors() {
             height: '48px',
             background: value,
           }}
-          border="muted"
+          borderColor="muted"
           radius="sm"
         />
       )}
@@ -353,7 +353,7 @@ export function BorderColors() {
       renderToken={({value}) => (
         <Container
           as="div"
-          background="primary"
+          backgroundColor="primary"
           style={{
             boxSizing: 'border-box',
             width: '24px',
@@ -427,7 +427,7 @@ export function ShadowColors() {
             background: theme.tokens.background.overlay,
             boxShadow: value,
           }}
-          border="primary"
+          borderColor="primary"
           radius="md"
         />
       )}

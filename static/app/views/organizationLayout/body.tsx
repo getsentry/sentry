@@ -42,7 +42,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
         gap="md"
         maxWidth="580px"
         padding="2xl"
-        background="primary"
+        backgroundColor="primary"
         radius="xl"
       >
         <LogoSentry height="24px" />
@@ -113,7 +113,7 @@ function DeletionPending({organization}: OrganizationProps) {
         gap="md"
         maxWidth="580px"
         padding="2xl"
-        background="primary"
+        backgroundColor="primary"
         radius="xl"
       >
         <LogoSentry height="24px" />

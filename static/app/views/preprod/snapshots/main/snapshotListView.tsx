@@ -914,7 +914,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       overflowY="auto"
       overflowX="hidden"
       padding={{zero: 'xl 0', xl: 'xl', '3xl': 'xl xl xl 0'}}
-      background="secondary"
+      backgroundColor="secondary"
       contain="layout"
       overscrollBehavior="contain"
     >

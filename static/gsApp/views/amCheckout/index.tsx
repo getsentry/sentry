@@ -630,7 +630,12 @@ function AMCheckout(props: Props) {
       : getPlan(formData.plan);
 
     return (
-      <Grid columns="1fr" rows="max-content 1fr" minHeight="100vh" background="primary">
+      <Grid
+        columns="1fr"
+        rows="max-content 1fr"
+        minHeight="100vh"
+        backgroundColor="primary"
+      >
         <SentryDocumentTitle
           title={t('Checkout Completed')}
           orgSlug={organization.slug}
@@ -689,7 +694,7 @@ function AMCheckout(props: Props) {
         top={{zero: 'auto', '2xl': '6.25rem'}}
         borderTop={{zero: 'primary', '2xl': 'none'}}
         padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
-        background={{zero: 'secondary', '2xl': 'primary'}}
+        backgroundColor={{zero: 'secondary', '2xl': 'primary'}}
       >
         <Stack gap="xl" padding={{zero: '2xl 0', '2xl': '0'}}>
           <Cart
@@ -764,7 +769,7 @@ function AMCheckout(props: Props) {
   );
 
   return (
-    <Stack width="100%" background="primary" justify="center" align="center">
+    <Stack width="100%" backgroundColor="primary" justify="center" align="center">
       <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
       {isOnSponsoredPartnerPlan && (
         <Alert.Container>

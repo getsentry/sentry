@@ -32,7 +32,7 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
   return (
     <Container
       data-test-id="group-event-details"
-      background="primary"
+      backgroundColor="primary"
       display={{zero: 'flex', '4xl': 'grid'}}
       flexGrow={{zero: 1, '4xl': 0}}
       style={{
@@ -57,7 +57,7 @@ function IssueDetailsColumn({children}: {children: React.ReactNode}) {
 
 function EventDetailsSection({children}: {children: React.ReactNode}) {
   return (
-    <EventSection as="section" background="secondary">
+    <EventSection as="section" backgroundColor="secondary">
       {children}
     </EventSection>
   );

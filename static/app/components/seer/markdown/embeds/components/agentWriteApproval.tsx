@@ -57,9 +57,9 @@ export function AgentWriteApprovalResult({
       width="fit-content"
       maxWidth="100%"
       padding="sm"
-      border="primary"
+      borderColor="primary"
       radius="md"
-      background="secondary"
+      backgroundColor="secondary"
       onClick={event => event.stopPropagation()}
     >
       <Flex gap="sm" align="center">

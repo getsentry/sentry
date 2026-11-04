@@ -15,7 +15,7 @@ function ExampleInbox({
 }) {
   return (
     <Text as="div">
-      <Stack height="400px" background="secondary">
+      <Stack height="400px" backgroundColor="secondary">
         <InboxLayout
           isDesktop={isDesktop}
           hasSelectedIssue={false}

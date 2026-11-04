@@ -109,7 +109,7 @@ export default function SeerAutomationSCMRequired() {
             }
           )}
         />
-        <Container display="flex" padding="2xl" border="primary" radius="md">
+        <Container display="flex" padding="2xl" borderColor="primary" radius="md">
           <Flex flexGrow={1} justify="center">
             <Flex align="center" justify="center" gap="2xl">
               <Flex>

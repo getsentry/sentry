@@ -35,8 +35,8 @@ export function MotionPlayground() {
       <Flex
         width="100%"
         wrap="wrap"
-        background="tertiary"
-        border="primary"
+        backgroundColor="tertiary"
+        borderColor="primary"
         padding="xl 2xl"
         radius="0 0 xl xl"
         gap="xl"

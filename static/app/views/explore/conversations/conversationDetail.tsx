@@ -90,9 +90,14 @@ function ConversationDetailPage() {
   }, [setQueryState]);
 
   return (
-    <ViewportConstrainedPage background="secondary">
+    <ViewportConstrainedPage backgroundColor="secondary">
       <ConversationsBreadcrumbs conversationId={conversationId} />
-      <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
+      <Container
+        flexShrink={0}
+        backgroundColor="primary"
+        borderBottom="primary"
+        padding="xl"
+      >
         <ConversationSummary
           stats={stats}
           nodes={nodes}
@@ -138,7 +143,7 @@ function ConversationViewContainer({children}: {children: ReactNode}) {
       flex={1}
       minHeight="0"
       overflow="hidden"
-      background="primary"
+      backgroundColor="primary"
       display="flex"
     >
       {/*

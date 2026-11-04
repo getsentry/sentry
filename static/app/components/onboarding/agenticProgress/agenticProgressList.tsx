@@ -144,7 +144,7 @@ function ExtraContent({children}: {children: React.ReactNode}) {
         columns="subgrid"
         marginTop="md"
         padding="md 0"
-        background="secondary"
+        backgroundColor="secondary"
       >
         <Grid column="2 / 4" align="center">
           {children}
@@ -287,8 +287,8 @@ export function AgenticProgressList({
   return (
     <MotionStack
       width="100%"
-      background="primary"
-      border="primary"
+      backgroundColor="primary"
+      borderColor="primary"
       radius="xl"
       overflow="hidden"
       gap="0"
@@ -370,8 +370,8 @@ function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   return (
     <Flex
       width="100%"
-      background="primary"
-      border="primary"
+      backgroundColor="primary"
+      borderColor="primary"
       radius="xl"
       padding="xl"
       gap="md"

@@ -163,9 +163,9 @@ function AutomationCard({config}: {config: AutomationConfig}) {
           gap="lg"
           height="100%"
           padding="xl"
-          border="primary"
+          borderColor="primary"
           radius="md"
-          background="primary"
+          backgroundColor="primary"
         >
           <Stack gap="lg" flex="1">
             <Flex align="center" gap="lg">

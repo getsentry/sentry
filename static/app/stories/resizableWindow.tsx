@@ -27,8 +27,8 @@ export function ResizableWindow({children, className, ref}: ResizableWindowProps
       ref={getMergedRef(ref)}
       className={className}
       data-dragging={dragging || undefined}
-      border="primary"
-      background="secondary"
+      borderColor="primary"
+      backgroundColor="secondary"
     >
       <Handle data-edge="right" onPointerDown={e => handlePointerDown(e, 'right')} />
       <Handle data-edge="bottom" onPointerDown={e => handlePointerDown(e, 'bottom')} />

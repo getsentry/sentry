@@ -578,7 +578,7 @@ export function TourGuide({
                       }}
                     >
                       <Stack
-                        background="primary"
+                        backgroundColor="primary"
                         radius="md"
                         width="395px"
                         maxWidth={TOUR_GUIDE_MAX_WIDTH}

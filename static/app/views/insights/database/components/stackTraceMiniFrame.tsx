@@ -31,7 +31,7 @@ export function StackTraceMiniFrame({frame, event, projectId}: Props) {
   return (
     <Flex
       align="center"
-      background="secondary"
+      backgroundColor="secondary"
       borderTop="secondary"
       gap="xs"
       justify="between"
@@ -90,7 +90,7 @@ export function MissingFrame({source = 'dateRange', system}: MissingFrameProps) 
           );
 
   return (
-    <Flex background="secondary" borderTop="secondary" padding="md lg">
+    <Flex backgroundColor="secondary" borderTop="secondary" padding="md lg">
       <Text variant="muted">{errorMessage}</Text>
     </Flex>
   );

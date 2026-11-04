@@ -74,7 +74,7 @@ export function AutofixStartCard({
 function AutofixStartCardContent() {
   return (
     <Flex
-      border="muted"
+      borderColor="muted"
       radius="md"
       padding="lg"
       gap="lg"

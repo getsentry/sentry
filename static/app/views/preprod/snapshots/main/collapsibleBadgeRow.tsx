@@ -99,7 +99,7 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
           right="0"
           bottom="0"
           height={`${ONE_ROW_HEIGHT}px`}
-          background="primary"
+          backgroundColor="primary"
           paddingLeft="sm"
         >
           <Button

@@ -36,10 +36,10 @@ export function SubscriptionHeader(props: Props) {
   const planIcon = getPlanIcon(subscription.planDetails);
 
   return (
-    <Stack gap="xl" background="secondary">
+    <Stack gap="xl" backgroundColor="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
-      <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
+      <Stack gap="md" backgroundColor="primary" borderBottom="primary" padding="2xl 3xl">
         <Flex
           justify="between"
           align={{zero: 'start', xl: 'center'}}

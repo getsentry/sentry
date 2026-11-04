@@ -152,8 +152,8 @@ function SkipLink() {
   return (
     <SkipLinkContainer
       padding="sm md"
-      border="primary"
-      background="primary"
+      borderColor="primary"
+      backgroundColor="primary"
       radius="md"
       position="absolute"
       left={theme.space.sm}

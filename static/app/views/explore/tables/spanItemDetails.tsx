@@ -164,7 +164,7 @@ export function SpanItemDetails({
 
 function SpanItemDetailsContainer({children}: {children: React.ReactNode}) {
   return (
-    <Container background="primary" border="primary" radius="md" padding="md">
+    <Container backgroundColor="primary" borderColor="primary" radius="md" padding="md">
       {children}
     </Container>
   );

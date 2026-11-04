@@ -251,9 +251,9 @@ export function SeerStatusBlock({
   return (
     <Container
       className={className}
-      border="primary"
+      borderColor="primary"
       radius="md"
-      background="primary"
+      backgroundColor="primary"
       padding="lg"
       data-test-id="seer-status-block"
       data-variant={variant}
@@ -309,7 +309,7 @@ export function SeerStatusBlock({
 
             {action ? (
               <Container
-                background="secondary"
+                backgroundColor="secondary"
                 radius="md"
                 padding="lg"
 

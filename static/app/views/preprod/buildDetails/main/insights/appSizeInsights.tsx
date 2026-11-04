@@ -55,7 +55,7 @@ export function AppSizeInsights({
   const topInsights = processedInsights.slice(0, 5);
 
   return (
-    <Container background="primary" radius="md" padding="lg" border="muted">
+    <Container backgroundColor="primary" radius="md" padding="lg" borderColor="muted">
       <Flex
         align="center"
         justify="between"
@@ -115,7 +115,7 @@ export function AppSizeInsights({
           <Flex
             padding="lg"
             radius="md"
-            background="primary"
+            backgroundColor="primary"
             align="center"
             justify="center"
           >

@@ -229,8 +229,8 @@ export function NewWelcomeUI(props: StepProps) {
                   gap="3xl"
                   width="100%"
                   {...ONBOARDING_ENTER}
-                  border="primary"
-                  background="primary"
+                  borderColor="primary"
+                  backgroundColor="primary"
                   radius="xl"
                   padding="xl"
                 >

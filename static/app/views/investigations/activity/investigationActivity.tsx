@@ -300,8 +300,8 @@ function CommentRow({
           />
         ) : (
           <Container
-            background="secondary"
-            border="primary"
+            backgroundColor="secondary"
+            borderColor="primary"
             radius="lg"
             padding="sm md"
             marginTop="xs"

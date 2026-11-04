@@ -57,7 +57,7 @@ export function InsightDiffRow({
         );
 
   return (
-    <Container background="primary" radius="lg" padding="0" border="primary">
+    <Container backgroundColor="primary" radius="lg" padding="0" borderColor="primary">
       <Stack gap="0">
         <Flex align="center" justify="between" padding="xl">
           <Stack gap="xs" flex={1}>

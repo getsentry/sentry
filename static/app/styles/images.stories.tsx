@@ -52,8 +52,8 @@ export default Storybook.story('sentry-image/*', story => {
             title={`import ${toCamelCase(nameOfFile(image.file))} from '${image.file}';`}
           >
             <Container
-              background="primary"
-              border="primary"
+              backgroundColor="primary"
+              borderColor="primary"
               radius="md"
               overflow="hidden"
               minWidth="0"

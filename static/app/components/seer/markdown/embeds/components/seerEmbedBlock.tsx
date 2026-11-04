@@ -154,8 +154,8 @@ export function SeerEmbedBlock({
 
   return (
     <Container
-      background="primary"
-      border="primary"
+      backgroundColor="primary"
+      borderColor="primary"
       containerType="inline-size"
       data-test-id={testId}
       overflow="hidden"
@@ -164,7 +164,7 @@ export function SeerEmbedBlock({
     >
       <HeaderRow
         align="center"
-        background="secondary"
+        backgroundColor="secondary"
         gap="md"
         justify="between"
         padding="sm md"

@@ -73,7 +73,7 @@ export function ActivitySourceLogo({
 }) {
   const logo = (
     // Background hides the timeline line behind the icon
-    <Flex as="span" aria-label={source.description} background="primary" role="img">
+    <Flex as="span" aria-label={source.description} backgroundColor="primary" role="img">
       {source.icon}
     </Flex>
   );

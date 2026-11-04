@@ -321,7 +321,7 @@ describe('Text', () => {
   it.snapshot(
     'paragraph-in-container',
     () => (
-      <Container padding="md" border="primary" width="300px">
+      <Container padding="md" borderColor="primary" width="300px">
         <Text as="p" density="comfortable">
           A paragraph of text inside a bordered container with comfortable line height for
           readable body copy.

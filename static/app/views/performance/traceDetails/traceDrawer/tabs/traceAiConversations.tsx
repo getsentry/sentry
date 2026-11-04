@@ -164,7 +164,7 @@ function TraceAiConversationsContent({
     : null;
 
   return (
-    <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
+    <Container flex="1" minHeight="0" borderColor="primary" radius="md" overflow="hidden">
       <Stack height="100%">
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
           <Flex

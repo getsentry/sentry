@@ -35,7 +35,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       position="relative"
       height="100%"
       overflowY="hidden"
-      background="secondary"
+      backgroundColor="secondary"
     >
       <SeerDrawerHeader
         autofixState={runState}

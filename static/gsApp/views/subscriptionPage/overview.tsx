@@ -143,7 +143,7 @@ function Footer({subscription}: {subscription: Subscription}) {
     return null;
   }
   return (
-    <Stack gap="sm" padding="xl 0" background="primary" borderTop="primary">
+    <Stack gap="sm" padding="xl 0" backgroundColor="primary" borderTop="primary">
       <Flex align="center" gap="sm">
         <Text bold>{t('Having trouble?')}</Text>
       </Flex>

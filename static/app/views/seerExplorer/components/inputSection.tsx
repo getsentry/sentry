@@ -148,7 +148,7 @@ export function InputSection({
   // Render disabled input element if not enabled
   if (!enabled) {
     return (
-      <Container background="primary" width="100%" position="sticky" bottom="0">
+      <Container backgroundColor="primary" width="100%" position="sticky" bottom="0">
         {prLinksBar}
         <Flex align="end" margin="lg xl" gap="sm">
           <StyledInputGroup>
@@ -180,7 +180,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTop="primary" padding="md" backgroundColor="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
@@ -225,7 +225,7 @@ export function InputSection({
         exit={{opacity: 0, y: 10}}
         transition={{duration: 0.12, delay: 0.1, ease: 'easeOut'}}
       >
-        <Container borderTop="primary" padding="md" background="secondary">
+        <Container borderTop="primary" padding="md" backgroundColor="secondary">
           <Flex justify="between" align="center">
             <Flex align="center" gap="md" paddingLeft="md">
               <Text size="md" bold>
@@ -259,7 +259,7 @@ export function InputSection({
   }
 
   return (
-    <Container background="primary" width="100%" position="sticky" bottom="0">
+    <Container backgroundColor="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
       <Flex align="end" margin="lg xl" gap="sm">
         <StyledComposer

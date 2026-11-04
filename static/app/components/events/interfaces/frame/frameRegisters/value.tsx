@@ -35,7 +35,7 @@ export function FrameRegisterValue({isHexadecimal, meta, value}: Props) {
       minWidth="0"
       padding="sm md sm lg"
       radius="sm"
-      background="secondary"
+      backgroundColor="secondary"
     >
       <Text
         align="left"

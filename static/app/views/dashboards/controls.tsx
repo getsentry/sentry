@@ -233,7 +233,7 @@ function DashboardControls({children}: {children: React.ReactNode}) {
       as="section"
       aria-label={t('Dashboard controls')}
       align="center"
-      background="primary"
+      backgroundColor="primary"
       borderTop="primary"
       gap="md"
       padding="lg xl xl"

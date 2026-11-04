@@ -198,7 +198,7 @@ function ThreadComment({
       gap="xs"
       padding="sm"
       radius="md"
-      background={highlighted ? 'secondary' : undefined}
+      backgroundColor={highlighted ? 'secondary' : undefined}
       aria-current={highlighted || undefined}
     >
       <Flex align="center" gap="sm">
