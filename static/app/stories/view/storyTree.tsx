@@ -257,10 +257,9 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 
       // Tree sections collect files so the folder hierarchy can be built below
       if (isTreeSection(loc.section)) {
-        if (!treeFilesBySection.has(loc.section)) {
-          treeFilesBySection.set(loc.section, []);
-        }
-        treeFilesBySection.get(loc.section)!.push(file);
+        const sectionFiles = treeFilesBySection.get(loc.section) ?? [];
+        sectionFiles.push(file);
+        treeFilesBySection.set(loc.section, sectionFiles);
         continue;
       }
 
