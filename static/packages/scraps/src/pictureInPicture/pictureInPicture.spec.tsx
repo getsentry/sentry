@@ -1,9 +1,16 @@
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+/* oxlint-disable testing-library/no-node-access -- Stylesheet-copy tests inspect style nodes, which have no accessible role. */
+import type * as React from 'react';
+import {useContext} from 'react';
+import {ThemeProvider, useTheme} from '@emotion/react';
+import {act, render, renderHook, waitFor, within} from '@testing-library/react';
 
 import {
+  PictureInPicturePortal,
   PictureInPictureProvider,
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
+import {TooltipContext} from '@sentry/scraps/tooltip';
 
 type FakePipWindow = Window & {
   __listeners: Record<string, Array<() => void>>;
@@ -11,6 +18,8 @@ type FakePipWindow = Window & {
 
 function createFakePipWindow(): FakePipWindow {
   const doc = document.implementation.createHTMLDocument('pip');
+  // Detached jsdom documents need a browsing context for accessibility queries.
+  Object.defineProperty(doc, 'defaultView', {value: window});
   const listeners: Record<string, Array<() => void>> = {};
 
   const win = {
@@ -63,8 +72,7 @@ function appendStyle(css: string, attributes: Record<string, string> = {}) {
 
 describe('usePictureInPicture', () => {
   afterEach(() => {
-    // @ts-expect-error - cleaning up the stub
-    delete window.documentPictureInPicture;
+    delete (window as {documentPictureInPicture?: unknown}).documentPictureInPicture;
   });
 
   it('throws when used outside of a provider', () => {
@@ -82,6 +90,7 @@ describe('usePictureInPicture', () => {
   });
 
   it('opens a window and copies stylesheets into it', async () => {
+    document.body.className = 'app-owned';
     const style = appendStyle('.pip-test{color:red;}');
 
     const pip = createFakePipWindow();
@@ -102,6 +111,8 @@ describe('usePictureInPicture', () => {
     await waitFor(() => expect(result.current.pipWindow).toBe(pip));
     const copiedStyles = Array.from(pip.document.head.querySelectorAll('style'));
     expect(copiedStyles.some(tag => tag.innerHTML.includes('.pip-test'))).toBe(true);
+    expect(pip.document.body.className).toBe('');
+    document.body.className = '';
 
     document.head.removeChild(style);
   });
@@ -134,7 +145,7 @@ describe('usePictureInPicture', () => {
     // jsdom leaves `sheet.href` null — point it at a known stylesheet location.
     if (style.sheet) {
       Object.defineProperty(style.sheet, 'href', {
-        value: 'http://localhost/_static/dist/sentry/entrypoints/app.css',
+        value: 'https://consumer.example.com/assets/app.css',
         configurable: true,
       });
     }
@@ -154,26 +165,25 @@ describe('usePictureInPicture', () => {
     const copied = Array.from(pip.document.head.querySelectorAll('style'))
       .map(tag => tag.innerHTML)
       .join('');
-    expect(copied).toContain(
-      'http://localhost/_static/dist/sentry/entrypoints/images/x.png'
-    );
+    expect(copied).toContain('https://consumer.example.com/assets/images/x.png');
 
     document.head.removeChild(style);
   });
 
   it('closes the window and stays untracked if setup fails', async () => {
     const pip = createFakePipWindow();
-    // Force setup to throw after the window has opened.
-    Object.defineProperty(pip.document.body, 'className', {
-      configurable: true,
-      set() {
-        throw new Error('setup failed');
-      },
-    });
     stubDocumentPictureInPicture(pip);
 
     const {result} = renderHook(() => usePictureInPicture(), {
-      wrapper: PictureInPictureProvider,
+      wrapper: ({children}: {children: React.ReactNode}) => (
+        <PictureInPictureProvider
+          onWindowOpen={() => {
+            throw new Error('setup failed');
+          }}
+        >
+          {children}
+        </PictureInPictureProvider>
+      ),
     });
 
     await act(async () => {
@@ -230,4 +240,87 @@ describe('usePictureInPicture', () => {
     });
     expect(pip.close).toHaveBeenCalledTimes(1);
   });
+});
+
+it('leaves body-class policy to the consumer and initializes a window before publishing it', async () => {
+  const pip = createFakePipWindow();
+  const requestWindow = stubDocumentPictureInPicture(pip);
+  const onWindowOpen = jest.fn(window => {
+    window.document.body.className = 'consumer-theme';
+  });
+  const {result, unmount} = renderHook(() => usePictureInPicture(), {
+    wrapper: ({children}: {children: React.ReactNode}) => (
+      <PictureInPictureProvider onWindowOpen={onWindowOpen}>
+        {children}
+      </PictureInPictureProvider>
+    ),
+  });
+  await act(async () => {
+    await result.current.requestPipWindow();
+  });
+  expect(onWindowOpen).toHaveBeenCalledWith(pip);
+  expect(pip.document.body).toHaveClass('consumer-theme');
+  await act(async () => {
+    await result.current.requestPipWindow();
+  });
+  expect(requestWindow).toHaveBeenCalledTimes(1);
+  unmount();
+  expect(pip.close).toHaveBeenCalledTimes(1);
+  expect(pip.removeEventListener).toHaveBeenCalledWith('pagehide', expect.any(Function));
+  delete (window as {documentPictureInPicture?: unknown}).documentPictureInPicture;
+});
+
+it('propagates a rejected window request without publishing a window', async () => {
+  const pip = createFakePipWindow();
+  const requestWindow = stubDocumentPictureInPicture(pip);
+  requestWindow.mockRejectedValueOnce(new Error('Not allowed'));
+  const {result} = renderHook(() => usePictureInPicture(), {
+    wrapper: PictureInPictureProvider,
+  });
+  await act(async () => {
+    await expect(result.current.requestPipWindow()).rejects.toThrow('Not allowed');
+  });
+  expect(result.current.pipWindow).toBeNull();
+  expect(pip.close).not.toHaveBeenCalled();
+  delete (window as {documentPictureInPicture?: unknown}).documentPictureInPicture;
+});
+
+function PortalContent({pipWindow}: {pipWindow: Window}) {
+  const theme = useTheme();
+  const {container} = useContext(TooltipContext);
+  return (
+    <button type="button">
+      {theme.type}{' '}
+      {container === pipWindow.document.body ? 'local overlays' : 'wrong overlays'}
+    </button>
+  );
+}
+
+it('keeps portal content, theme, styling cache, and overlays in the target document', () => {
+  const pip = createFakePipWindow();
+  const {rerender, unmount} = render(
+    <ThemeProvider theme={lightTheme}>
+      <PictureInPicturePortal pipWindow={pip}>
+        <PortalContent pipWindow={pip} />
+      </PictureInPicturePortal>
+    </ThemeProvider>
+  );
+  expect(
+    within(pip.document.body).getByRole('button', {name: 'light local overlays'})
+  ).toBeInTheDocument();
+  expect(pip.document.documentElement).toHaveStyle({height: '100%'});
+  expect(pip.document.body).toHaveStyle({height: '100%', margin: '0px'});
+  expect(pip.document.body.className).toBe('');
+  rerender(
+    <ThemeProvider theme={darkTheme}>
+      <PictureInPicturePortal pipWindow={pip}>
+        <PortalContent pipWindow={pip} />
+      </PictureInPicturePortal>
+    </ThemeProvider>
+  );
+  expect(
+    within(pip.document.body).getByRole('button', {name: 'dark local overlays'})
+  ).toBeInTheDocument();
+  unmount();
+  expect(within(pip.document.body).queryByRole('button')).not.toBeInTheDocument();
 });

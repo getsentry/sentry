@@ -1,13 +1,14 @@
-import {useEffect, useMemo} from 'react';
+import type * as React from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider, useTheme} from '@emotion/react';
 
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-import {GlobalStyles} from 'sentry/styles/global';
+import {PictureInPicturePortalContext} from './portalContext';
 
-interface PictureInPicturePortalProps {
+export interface PictureInPicturePortalProps {
   children: React.ReactNode;
   /**
    * The picture-in-picture window to render into. Obtain one via
@@ -18,8 +19,8 @@ interface PictureInPicturePortalProps {
 
 /**
  * Renders children into a Document Picture-in-Picture window with the full
- * styling context wired up: a PiP-scoped emotion cache, the theme + global
- * styles, and a tooltip container override so overlays render in the PiP window
+ * styling context wired up: a PiP-scoped emotion cache, the theme,
+ * and a tooltip container override so overlays render in the PiP window
  * rather than the main one.
  */
 export function PictureInPicturePortal({
@@ -27,13 +28,14 @@ export function PictureInPicturePortal({
   pipWindow,
 }: PictureInPicturePortalProps) {
   const theme = useTheme();
+  const renderPortalContent = useContext(PictureInPicturePortalContext);
 
   // Emotion injects dynamically-generated styles into the cache's container.
   // Bind a dedicated cache to the PiP document head so styles for the portaled
-  // subtree land in the right window. Mirrors `ThemeAndStyleProvider`.
+  // subtree land in the right window.
   const cache = useMemo(() => {
     const pipCache = createCache({
-      key: 'app',
+      key: 'scraps-pip',
       container: pipWindow.document.head,
       stylisPlugins: [],
     });
@@ -53,19 +55,11 @@ export function PictureInPicturePortal({
     body.style.margin = '0';
   }, [pipWindow]);
 
-  // Keep the PiP body's theme class in sync so global body selectors
-  // (e.g. `body.theme-dark`) apply after a theme toggle.
-  useEffect(() => {
-    // oxlint-disable-next-line react/immutability
-    pipWindow.document.body.className = document.body.className;
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [pipWindow, theme]);
-
   return createPortal(
     <CacheProvider value={cache}>
       <ThemeProvider theme={theme}>
-        <GlobalStyles theme={theme} />
         <TooltipContext value={{container: pipWindow.document.body}}>
+          {renderPortalContent?.(pipWindow)}
           {children}
         </TooltipContext>
       </ThemeProvider>
