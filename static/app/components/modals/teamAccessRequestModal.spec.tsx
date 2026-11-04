@@ -8,8 +8,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
+
+jest.mock('sentry/actionCreators/indicator');
 
 describe('TeamAccessRequestModal', () => {
   let createMock: any;
@@ -53,6 +56,7 @@ describe('TeamAccessRequestModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
     await waitFor(() => expect(closeModal).toHaveBeenCalled());
+    expect(addSuccessMessage).toHaveBeenCalledWith('Team request sent for approval');
   });
 
   it('closes modal when the request fails', async () => {
@@ -68,6 +72,7 @@ describe('TeamAccessRequestModal', () => {
 
     expect(failingMock).toHaveBeenCalled();
     await waitFor(() => expect(closeModal).toHaveBeenCalled());
+    expect(addErrorMessage).toHaveBeenCalledWith('Unable to send team request');
   });
 
   it('closes modal on cancel', async () => {
