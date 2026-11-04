@@ -15,7 +15,7 @@ from sentry.web.client_config import get_client_config
 
 @pytest.mark.parametrize("key", ["system.admin-email", "mail.host", "api.rate-limit.org-create"])
 @pytest.mark.parametrize("value", ["updated", "", None])
-def test_saas_rejects_mutations_before_transaction(key: str, value) -> None:
+def test_saas_rejects_mutations_before_transaction(key: str, value: object) -> None:
     request = MagicMock(spec=Request)
     request.data = {key: value}
     endpoint = SystemOptionsEndpoint()

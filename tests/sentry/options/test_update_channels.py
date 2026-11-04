@@ -47,7 +47,7 @@ def manager() -> Iterator[OptionsManager]:
         UpdateChannel.KILLSWITCH,
     ],
 )
-def test_writability_requires_no_store_read(manager, channel: UpdateChannel) -> None:
+def test_writability_requires_no_store_read(manager: OptionsManager, channel: UpdateChannel) -> None:
     manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
     with (
         override_settings(SENTRY_SELF_HOSTED=True),
@@ -72,7 +72,7 @@ def test_writability_requires_no_store_read(manager, channel: UpdateChannel) -> 
         UpdateChannel.KILLSWITCH,
     ],
 )
-def test_self_hosted_channels_can_overwrite_stored_values(manager, channel: UpdateChannel) -> None:
+def test_self_hosted_channels_can_overwrite_stored_values(manager: OptionsManager, channel: UpdateChannel) -> None:
     manager.register("option", flags=FLAG_ADMIN_MODIFIABLE)
     with override_settings(SENTRY_SELF_HOSTED=True):
         manager.set("option", "initial", channel=UpdateChannel.APPLICATION)
@@ -149,7 +149,7 @@ def test_non_writable_options(
             manager.set("option", "value", channel=channel)
 
 
-def test_unregistered_state_option(manager) -> None:
+def test_unregistered_state_option(manager: OptionsManager) -> None:
     with pytest.raises(UnknownOption):
         manager.set("sentry:something", "val")
     with pytest.raises(UnknownOption):

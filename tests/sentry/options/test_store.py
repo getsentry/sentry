@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import cached_property
 from typing import cast
 from unittest.mock import MagicMock, Mock, patch
@@ -14,7 +15,7 @@ from sentry.options.manager import DEFAULT_FLAGS, OptionsManager, UpdateChannel
 from sentry.options.store import Key, OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.utils.types import Any
+from sentry.utils.types import Any as AnyType
 
 
 @pytest.mark.parametrize("method", ["set", "set_store"])
@@ -127,7 +128,7 @@ class OptionsStoreTest(TestCase):
     def make_key(self, ttl: int = 10, grace: int = 10, key_name: str | None = None) -> Key:
         if key_name is None:
             key_name = uuid1().hex
-        return self.manager.make_key(key_name, "", cast(Any, object), 0, ttl, grace, None)
+        return self.manager.make_key(key_name, "", AnyType, 0, ttl, grace, None)
 
     def test_simple(self) -> None:
         store, key = self.store, self.key
@@ -290,17 +291,17 @@ class OptionsStoreTest(TestCase):
 @no_silo_test
 class ApplicationStateTest(TestCase):
     @cached_property
-    def store(self):
+    def store(self) -> OptionsStore:
         c = LocMemCache("application-state-test", {})
         c.clear()
         return OptionsStore(cache=c)
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OptionsManager:
         return OptionsManager(store=self.store)
 
     @pytest.fixture(autouse=True)
-    def state_store(self):
+    def state_store(self) -> Iterator[None]:
         with patch.object(options.default_manager, "store", self.store):
             yield
 
@@ -315,13 +316,14 @@ class ApplicationStateTest(TestCase):
         for self_hosted in [True, False]:
             for name, value in string_states:
                 with self.subTest(name=name), self.settings(SENTRY_SELF_HOSTED=self_hosted):
-                    key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+                    key = self.manager.make_key(name, lambda: "", AnyType, DEFAULT_FLAGS, 0, 0, None)
                     self.store.set_store(key, value, UpdateChannel.UNKNOWN)
                     self.store.delete_cache(key)
                     assert options.get(name) == value
                     assert options.set(name, value)
                     assert Option.objects.get(key=name).value == value
                     assert self.store.get(key) == value
+                    assert self.store.cache is not None
                     assert self.store.cache.get(key.cache_key) == value
                     assert options.delete(name)
                     assert not Option.objects.filter(key=name).exists()
@@ -330,12 +332,13 @@ class ApplicationStateTest(TestCase):
     def test_timestamp_state_round_trip_uses_existing_storage(self) -> None:
         name = "sentry:last_worker_ping"
         value = 1234.5
-        key = self.manager.make_key(name, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
+        key = self.manager.make_key(name, lambda: "", AnyType, DEFAULT_FLAGS, 0, 0, None)
         self.store.set_store(key, value, UpdateChannel.UNKNOWN)
         assert options.get("sentry:last_worker_ping") == value
         assert options.set("sentry:last_worker_ping", value)
         assert Option.objects.get(key=name).value == value
         assert self.store.get(key) == value
+        assert self.store.cache is not None
         assert self.store.cache.get(key.cache_key) == value
         assert options.delete("sentry:last_worker_ping")
         assert not Option.objects.filter(key=name).exists()

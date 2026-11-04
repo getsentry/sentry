@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Generator
 from functools import cached_property
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -30,6 +32,9 @@ from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String, Type
 
 
+if TYPE_CHECKING:
+    from sentry.options.manager import ReadHook
+
 class TestSaasAuthoritativeOptions:
     @pytest.fixture
     def store(self) -> Mock:
@@ -50,7 +55,7 @@ class TestSaasAuthoritativeOptions:
 
     @pytest.mark.parametrize("hook", [None, lambda key, opt: READ_HOOK_FALLBACK])
     @all_silo_test
-    def test_unset_without_hook_value(self, manager: OptionsManager, hook) -> None:
+    def test_unset_without_hook_value(self, manager: OptionsManager, hook: ReadHook | None) -> None:
         manager.set_read_hook(hook)
         assert manager.is_saas_runtime_option("runtime") is True
         assert manager.get("runtime") == "registered"
@@ -58,7 +63,7 @@ class TestSaasAuthoritativeOptions:
         assert manager.get_last_update_channel("runtime") is None
 
     @pytest.mark.parametrize("value", ["disk", "", None])
-    def test_disk_value_preserved(self, manager: OptionsManager, value) -> None:
+    def test_disk_value_preserved(self, manager: OptionsManager, value: object) -> None:
         with override_settings(SENTRY_OPTIONS={"runtime": value}):
             assert manager.get("runtime") == value
             assert manager.isset("runtime") is True
@@ -81,7 +86,7 @@ class TestSaasAuthoritativeOptions:
             assert manager.isset("runtime") is False
 
     @pytest.mark.parametrize("value", ["hook", "", False, 0, None])
-    def test_hook_value_preserved(self, manager: OptionsManager, value) -> None:
+    def test_hook_value_preserved(self, manager: OptionsManager, value: object) -> None:
         hook = Mock(return_value=value)
         manager.set_read_hook(hook)
         with override_settings(SENTRY_OPTIONS={"runtime": "disk"}):

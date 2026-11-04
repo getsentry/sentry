@@ -46,4 +46,5 @@ class SyncOptionsTest(TestCase):
 
         with patch.object(default_store, "get_store", side_effect=AssertionError):
             assert options.get("sentry:system-token") == "existing-system-token"
+        assert default_store.cache is not None
         assert default_store.cache.get(key.cache_key) == "existing-system-token"
