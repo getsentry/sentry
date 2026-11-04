@@ -4,11 +4,11 @@ import {IconUser} from '@sentry/icons/user';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import partition from 'lodash/partition';
 
-import {TeamAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {TeamAvatar} from 'sentry/components/avatar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';

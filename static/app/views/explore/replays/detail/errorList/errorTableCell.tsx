@@ -2,9 +2,9 @@ import type {CSSProperties} from 'react';
 import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Link} from '@sentry/scraps/link';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   AvatarWrapper,
   ButtonWrapper,

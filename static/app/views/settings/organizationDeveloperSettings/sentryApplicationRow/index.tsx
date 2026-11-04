@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {SentryAppAvatar} from 'sentry/components/avatar';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {SentryApp} from 'sentry/types/integrations';

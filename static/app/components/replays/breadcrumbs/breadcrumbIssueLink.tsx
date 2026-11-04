@@ -1,9 +1,9 @@
 import {type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Link} from '@sentry/scraps/link';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';

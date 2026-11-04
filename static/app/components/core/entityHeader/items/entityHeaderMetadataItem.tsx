@@ -3,7 +3,6 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 
-import type {UserAvatar} from '@sentry/scraps/avatar';
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,6 +11,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {UserAvatar} from 'sentry/components/avatar';
 import {Placeholder} from 'sentry/components/placeholder';
 
 const TEXT_STYLES = {

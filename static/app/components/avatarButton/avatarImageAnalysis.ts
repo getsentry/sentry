@@ -1,5 +1,5 @@
 import type {Theme} from '@emotion/react';
-import color from 'color';
+import color from 'color'; // eslint-disable-line no-restricted-imports -- Preserve the existing app-owned image analysis.
 
 export const SAMPLE_SIZE = 12;
 
@@ -9,7 +9,6 @@ export const MIN_EDGE_CONTRAST = 3;
 
 // TS can't prove typed-array index access is defined; this centralizes the
 // single suppression so callers stay clean.
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const px = (data: Uint8ClampedArray, i: number): number => data[i]!;
 
 // Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.

@@ -6,7 +6,6 @@ import {useInfiniteQuery, useQuery, type InfiniteData} from '@tanstack/react-que
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {
@@ -24,6 +23,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';

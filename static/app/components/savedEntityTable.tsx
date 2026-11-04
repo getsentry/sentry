@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStar} from '@sentry/icons/star';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
@@ -12,6 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {UserAvatar} from 'sentry/components/avatar';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';

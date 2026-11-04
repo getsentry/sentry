@@ -4,7 +4,6 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconEdit} from '@sentry/icons/edit';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -12,6 +11,7 @@ import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';

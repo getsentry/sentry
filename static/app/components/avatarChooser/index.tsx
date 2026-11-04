@@ -2,19 +2,19 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {IconUpload} from '@sentry/icons/upload';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   DocIntegrationAvatar,
   OrganizationAvatar,
   SentryAppAvatar,
   TeamAvatar,
   UserAvatar,
-} from '@sentry/scraps/avatar';
-import type {AvatarProps} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+} from 'sentry/components/avatar';
+import type {AvatarProps} from 'sentry/components/avatar';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';

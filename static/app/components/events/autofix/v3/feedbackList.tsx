@@ -8,7 +8,7 @@ import {IconGithub} from '@sentry/icons/github';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
 
-import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {LetterAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -17,6 +17,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {UserAvatar} from 'sentry/components/avatar';
 import {
   isPrIterationBlock,
   type AutofixSection,

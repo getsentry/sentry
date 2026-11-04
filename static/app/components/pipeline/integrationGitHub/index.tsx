@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 
-import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {Avatar} from 'sentry/components/avatar';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import type {OAuthCallbackData} from 'sentry/components/pipeline/shared/oauthLoginStep';
 import {OAuthLoginStep} from 'sentry/components/pipeline/shared/oauthLoginStep';

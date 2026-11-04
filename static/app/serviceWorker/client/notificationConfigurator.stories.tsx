@@ -5,7 +5,6 @@ import {z} from 'zod';
 import sentryLogo from 'sentry-images/logo.png';
 import sentryAvatar from 'sentry-images/sentry-avatar.png';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -13,6 +12,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage, AllNotificationOptions} from 'sentry/serviceWorker/types';

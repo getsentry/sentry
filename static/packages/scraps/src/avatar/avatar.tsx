@@ -20,30 +20,14 @@ export interface AvatarProps extends BaseAvatarStyleProps {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
 }
 
-export interface GravatarBaseAvatarProps extends AvatarProps {
-  gravatarId: string;
+/** Generic identity and an optional, already resolved image URL. */
+export interface BaseAvatarProps extends AvatarProps {
   identifier: string;
   name: string;
-  type: 'gravatar';
+  /** Optional fallback monogram, leaving the image accessible name unchanged. */
+  initials?: string;
+  src?: string;
 }
-
-export interface LetterBaseAvatarProps extends AvatarProps {
-  identifier: string;
-  name: string;
-  type: 'letter_avatar';
-}
-
-export interface UploadBaseAvatarProps extends AvatarProps {
-  identifier: string;
-  name: string;
-  type: 'upload';
-  uploadUrl: string;
-}
-
-export type BaseAvatarProps =
-  | GravatarBaseAvatarProps
-  | LetterBaseAvatarProps
-  | UploadBaseAvatarProps;
 
 export function Avatar({
   ref,
@@ -56,26 +40,15 @@ export function Avatar({
   'data-test-id': testId,
   ...avatarProps
 }: BaseAvatarProps) {
-  // Destructure avatar-specific props to prevent spreading onto DOM
-  const {type, identifier, name, title, round, suggested, ...restProps} = avatarProps;
-
-  const avatarDefinition = useAvatar({
-    identifier,
-    name,
-    imageDefinition:
-      type === 'upload'
-        ? // @TODO(Jonas): rename this from uploadUrl to url
-          {type: 'upload', uploadUrl: avatarProps.uploadUrl}
-        : type === 'gravatar'
-          ? {type: 'gravatar', gravatarId: avatarProps.gravatarId}
-          : undefined,
-  });
+  const {src, identifier, name, initials, title, round, suggested, ...restProps} =
+    avatarProps;
+  const avatarDefinition = useAvatar({identifier, name, initials, src});
 
   return (
     <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions} skipWrapper>
       <AvatarContainer
         ref={ref}
-        data-test-id={testId ?? `${type}-avatar`}
+        data-test-id={testId ?? (src ? 'image-avatar' : 'letter-avatar')}
         className={classNames('avatar', className)}
         round={round}
         suggested={!!suggested}

@@ -1,8 +1,19 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {AvatarButton} from 'sentry/components/avatarButton';
 
 describe('AvatarButton', () => {
+  it('uses a question mark for scrubbed avatar names', () => {
+    render(
+      <AvatarButton
+        aria-label="Open profile"
+        avatar={{type: 'letter_avatar', identifier: 'test-id', name: '[Filtered]'}}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Open profile'})).toHaveTextContent('?');
+  });
+
   it('renders letter avatar initials inside the button', () => {
     render(
       <AvatarButton

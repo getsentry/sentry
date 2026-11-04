@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {IconFlag} from '@sentry/icons/flag';
 import {useMutation} from '@tanstack/react-query';
 
-import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 
 import {Access} from 'sentry/components/acl/access';
+import {SentryAppAvatar} from 'sentry/components/avatar';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

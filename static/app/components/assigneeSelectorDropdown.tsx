@@ -5,13 +5,6 @@ import {IconUser} from '@sentry/icons/user';
 import uniqBy from 'lodash/uniqBy';
 
 import {
-  ActorAvatar,
-  type BaseAvatarProps,
-  getTeamAvatarProps,
-  getUserAvatarProps,
-} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {
   CompactSelect,
   MenuComponents,
   type SelectOption,
@@ -29,6 +22,13 @@ import {
   type AssignmentDetails,
   UnassignedTooltip,
 } from 'sentry/components/assigneeBadge';
+import {
+  ActorAvatar,
+  type BaseAvatarProps,
+  getTeamAvatarProps,
+  getUserAvatarProps,
+} from 'sentry/components/avatar';
+import {AvatarButton} from 'sentry/components/avatarButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

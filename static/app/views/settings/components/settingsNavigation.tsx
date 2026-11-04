@@ -3,12 +3,12 @@ import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';

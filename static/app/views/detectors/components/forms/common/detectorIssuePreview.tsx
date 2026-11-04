@@ -1,7 +1,7 @@
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';

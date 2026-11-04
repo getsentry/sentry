@@ -1,4 +1,3 @@
-import {TeamAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
   MenuComponents,
@@ -9,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {TeamAvatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

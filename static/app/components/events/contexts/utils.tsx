@@ -2,8 +2,7 @@ import type {Theme} from '@emotion/react';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 import type {Location} from 'history';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
-
+import {UserAvatar} from 'sentry/components/avatar';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
-
+import {ActorAvatar} from 'sentry/components/avatar';
 import type {Actor} from 'sentry/types/core';
 
 type DetectorAssigneeCellProps = {

@@ -2,7 +2,6 @@ import {useState} from 'react';
 import {skipToken} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -12,6 +11,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {UserAvatar} from 'sentry/components/avatar';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';

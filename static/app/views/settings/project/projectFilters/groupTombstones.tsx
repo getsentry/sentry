@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {IconDelete} from '@sentry/icons/delete';
 import {useQuery} from '@tanstack/react-query';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -10,6 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
+import {UserAvatar} from 'sentry/components/avatar';
 import {Confirm} from 'sentry/components/confirm';
 import {Count} from 'sentry/components/count';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';

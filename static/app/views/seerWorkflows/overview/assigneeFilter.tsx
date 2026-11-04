@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';

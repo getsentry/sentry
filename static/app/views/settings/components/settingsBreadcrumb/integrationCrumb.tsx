@@ -1,8 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {SentryAppAvatar} from '@sentry/scraps/avatar';
-
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {SentryAppAvatar} from 'sentry/components/avatar';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';

@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import {AvatarList} from '@sentry/scraps/avatar';
-
+import {AvatarList} from 'sentry/components/avatar';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import type {CommitAuthor} from 'sentry/types/integrations';

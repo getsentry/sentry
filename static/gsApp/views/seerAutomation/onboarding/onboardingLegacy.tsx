@@ -4,7 +4,6 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
@@ -17,6 +16,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';

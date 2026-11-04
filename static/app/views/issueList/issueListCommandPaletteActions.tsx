@@ -7,11 +7,11 @@ import {IconSort} from '@sentry/icons/sort';
 import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {useModal} from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchFeatureFlagValues} from 'sentry/actionCreators/tags';
+import {UserAvatar} from 'sentry/components/avatar';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {
   CMDKAction,

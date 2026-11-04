@@ -1,12 +1,12 @@
 import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   CrumbContainer,
   EventDrawerBody,

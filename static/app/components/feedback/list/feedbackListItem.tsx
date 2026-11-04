@@ -4,11 +4,11 @@ import {IconFatal} from '@sentry/icons/fatal';
 import {IconPlay} from '@sentry/icons/play';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';

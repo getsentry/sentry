@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 
-import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {DocIntegrationAvatar} from 'sentry/components/avatar';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

@@ -2,10 +2,10 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {CollapsedAvatars, UserAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CollapsedAvatars, UserAvatar} from 'sentry/components/avatar';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {userDisplayName} from 'sentry/utils/formatters';

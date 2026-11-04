@@ -3,11 +3,6 @@ import styled from '@emotion/styled';
 import {IconSync} from '@sentry/icons/sync';
 import moment from 'moment-timezone';
 
-import {
-  DocIntegrationAvatar,
-  OrganizationAvatar,
-  SentryAppAvatar,
-} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Container, Grid} from '@sentry/scraps/layout';
@@ -15,6 +10,11 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  DocIntegrationAvatar,
+  OrganizationAvatar,
+  SentryAppAvatar,
+} from 'sentry/components/avatar';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {DocIntegration} from 'sentry/types/integrations';

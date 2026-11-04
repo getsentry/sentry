@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import {IconNot} from '@sentry/icons/not';
 import {useQuery} from '@tanstack/react-query';
 
-import {AvatarList} from '@sentry/scraps/avatar';
-
+import {AvatarList} from 'sentry/components/avatar';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {Panel} from 'sentry/components/panels/panel';
 import {TimeSince} from 'sentry/components/timeSince';

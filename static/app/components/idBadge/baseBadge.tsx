@@ -1,16 +1,16 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import type {SpaceSize} from '@sentry/scraps/theme';
+
 import {
   ActorAvatar,
   OrganizationAvatar,
   ProjectAvatar,
   TeamAvatar,
   UserAvatar,
-} from '@sentry/scraps/avatar';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import type {SpaceSize} from '@sentry/scraps/theme';
-
+} from 'sentry/components/avatar';
 import type {Actor} from 'sentry/types/core';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';

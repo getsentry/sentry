@@ -1,10 +1,10 @@
 import {IconSeer} from '@sentry/icons/seer';
 
-import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SentryAppAvatar, UserAvatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';

@@ -1,10 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {TeamAvatar} from '@sentry/scraps/avatar';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
+import {TeamAvatar} from 'sentry/components/avatar';
 import type {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';

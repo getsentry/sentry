@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   CrumbContainer,
   EventDrawerBody,

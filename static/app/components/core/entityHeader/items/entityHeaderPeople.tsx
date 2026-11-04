@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {AvatarList} from '@sentry/scraps/avatar';
 import {ROW_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AvatarList} from 'sentry/components/avatar';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';

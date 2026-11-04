@@ -5,8 +5,7 @@ import {IconIssues} from '@sentry/icons/issues';
 import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
-
+import {ActorAvatar, TeamAvatar, UserAvatar} from 'sentry/components/avatar';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';

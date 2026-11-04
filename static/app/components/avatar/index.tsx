@@ -2,8 +2,6 @@ export {Avatar, type AvatarProps, type BaseAvatarProps} from './avatar';
 export {ActorAvatar, type ActorAvatarProps} from './actorAvatar';
 export {AvatarList, CollapsedAvatars} from './avatarList';
 export {DocIntegrationAvatar} from './docIntegrationAvatar';
-export {ImageAvatar} from './imageAvatar/imageAvatar';
-export {LetterAvatar} from './letterAvatar/letterAvatar';
 export {getOrganizationAvatarProps, OrganizationAvatar} from './organizationAvatar';
 export {ProjectAvatar} from './projectAvatar';
 export {SentryAppAvatar} from './sentryAppAvatar';

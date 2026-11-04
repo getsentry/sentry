@@ -15,7 +15,6 @@ import {IconThumb} from '@sentry/icons/thumb';
 import {IconUser} from '@sentry/icons/user';
 import {IconWarning} from '@sentry/icons/warning';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -26,6 +25,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';

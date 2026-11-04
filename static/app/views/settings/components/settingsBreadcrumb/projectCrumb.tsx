@@ -1,5 +1,4 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

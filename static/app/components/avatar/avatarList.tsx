@@ -1,7 +1,9 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Actor} from 'sentry/types/core';
@@ -59,10 +61,8 @@ export function AvatarList({
 
   if (numCollapsedAvatars === 1) {
     if (visibleTeamAvatars.length < teams.length) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       visibleTeamAvatars.unshift(teams[teams.length - 1]!);
     } else if (visibleUserAvatars.length < users.length) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       visibleUserAvatars.unshift(users[users.length - 1]!);
     }
     numCollapsedAvatars = 0;
@@ -71,7 +71,11 @@ export function AvatarList({
   const resolvedTooltipOptions = {position: 'top' as const, ...tooltipOptions};
 
   return (
-    <AvatarListWrapper className={className}>
+    <Flex
+      direction="row-reverse"
+      align="center"
+      className={classNames('avatar-list', className)}
+    >
       {!!numCollapsedAvatars && (
         <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
           <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
@@ -101,16 +105,9 @@ export function AvatarList({
           hasTooltip
         />
       ))}
-    </AvatarListWrapper>
+    </Flex>
   );
 }
-
-// used in releases list page to do some alignment
-const AvatarListWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-direction: row-reverse;
-`;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
   border: 2px solid ${p.theme.tokens.border.primary};
@@ -125,7 +122,7 @@ const AvatarStyle = (p: {theme: Theme}) => css`
     z-index: 1;
   }
 
-  ${AvatarListWrapper}:hover & {
+  .avatar-list:hover & {
     border-color: ${p.theme.tokens.border.transparent.neutral.muted};
     cursor: pointer;
   }

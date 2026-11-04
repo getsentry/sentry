@@ -2,17 +2,19 @@ import type React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Tagged} from 'type-fest';
 
 // eslint-disable-next-line @sentry/no-relative-import-paths
-import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
+import {
+  baseAvatarStyles,
+  type BaseAvatarStyleProps,
+} from '@sentry/scraps/avatar/avatarComponentStyles';
 
 export interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
   configuration: {
-    background: Tagged<string, '__avatar'>;
-    content: Tagged<string, '__avatar'>;
-    initials: Tagged<string, '__avatar'>;
+    background: string;
+    content: string;
+    initials: string;
   };
   ref?: React.Ref<SVGSVGElement>;
 }

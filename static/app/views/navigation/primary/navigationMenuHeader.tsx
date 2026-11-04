@@ -1,18 +1,18 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import {useInvertedTheme} from '@sentry/scraps/theme';
+
 import {
   getOrganizationAvatarProps,
   getUserAvatarProps,
   OrganizationAvatar,
   UserAvatar,
   type BaseAvatarProps,
-} from '@sentry/scraps/avatar';
-import {useAvatarColors} from '@sentry/scraps/avatarButton';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {useInvertedTheme} from '@sentry/scraps/theme';
-
+} from 'sentry/components/avatar';
+import {useAvatarColors} from 'sentry/components/avatarButton';
 import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';

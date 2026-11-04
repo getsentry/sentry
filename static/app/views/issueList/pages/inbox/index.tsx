@@ -15,7 +15,6 @@ import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -32,6 +31,7 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from 'sentry/components/avatar';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';

@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {
   defineSeerEmbed,
   type EmbedOutput,

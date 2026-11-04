@@ -1248,6 +1248,9 @@ importers:
       classnames:
         specifier: 2.3.1
         version: 2.3.1
+      color:
+        specifier: 5.0.2
+        version: 5.0.2
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

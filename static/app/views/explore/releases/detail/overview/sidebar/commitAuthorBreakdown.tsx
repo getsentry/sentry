@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 
+import {UserAvatar} from 'sentry/components/avatar';
 import {Collapsible} from 'sentry/components/collapsible';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

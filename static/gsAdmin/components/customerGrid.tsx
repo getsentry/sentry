@@ -1,11 +1,11 @@
 import moment from 'moment-timezone';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {OrganizationAvatar} from 'sentry/components/avatar';
 import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 

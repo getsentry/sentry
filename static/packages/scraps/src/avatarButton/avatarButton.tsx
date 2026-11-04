@@ -1,6 +1,8 @@
+import type * as React from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
+import color from 'color';
 import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -8,28 +10,29 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {useAvatarColors} from './useAvatarColors';
-
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
 type AvatarTriggerProps = Omit<
   React.ComponentProps<typeof OverlayTrigger.Button>,
   'onClick'
 >;
 
-interface AvatarButtonProps extends Omit<
+export interface AvatarButtonProps extends Omit<
   AvatarTriggerProps,
   'children' | 'icon' | 'variant' | 'showChevron'
 > {
   'aria-label': string;
   /** Omit to render an empty/unassigned placeholder. */
   avatar?: BaseAvatarProps;
-  /** Circular (e.g. users) vs squircle (e.g. teams) shape. Defaults to `avatar.round`. */
+  /** Optional image appearance computed by the application. */
+  imageAppearance?: {borderColor?: string; padded?: boolean};
+  /** Circular vs squircle shape. Defaults to `avatar.round`. */
   round?: boolean;
   size?: AvatarButtonSize;
 }
 
 export function AvatarButton({
   avatar,
+  imageAppearance,
   round: explicitRound,
   size: explicitSize,
   ...props
@@ -41,15 +44,9 @@ export function AvatarButton({
   const avatarDefinition = useAvatar({
     identifier: avatar?.identifier ?? '',
     name: avatar?.name ?? '',
-    imageDefinition:
-      avatar?.type === 'upload'
-        ? {type: 'upload', uploadUrl: avatar.uploadUrl}
-        : avatar?.type === 'gravatar'
-          ? {type: 'gravatar', gravatarId: avatar.gravatarId}
-          : undefined,
+    initials: avatar?.initials,
+    src: avatar?.src,
   });
-
-  const colors = useAvatarColors(isSuggested ? undefined : avatar);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -71,7 +68,9 @@ export function AvatarButton({
   }
 
   if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
+    const avatarChonk = isSuggested
+      ? undefined
+      : color(avatarDefinition.configuration.background).darken(0.65).hex();
 
     return (
       <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
@@ -94,14 +93,14 @@ export function AvatarButton({
     );
   }
 
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
+  const chonk = isSuggested ? undefined : imageAppearance?.borderColor;
 
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
       <AvatarContainer
         size={size}
         round={round}
-        padded={colors.type === 'image' && colors.style === 'padded'}
+        padded={!isSuggested && imageAppearance?.padded}
         borderColor={
           chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
         }

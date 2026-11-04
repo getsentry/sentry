@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -12,6 +11,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {UserAvatar} from 'sentry/components/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {getNextSort} from 'sentry/components/tables/getNextSort';

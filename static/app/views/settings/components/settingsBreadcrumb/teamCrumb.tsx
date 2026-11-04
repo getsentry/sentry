@@ -1,5 +1,4 @@
-import {TeamAvatar} from '@sentry/scraps/avatar';
-
+import {TeamAvatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';

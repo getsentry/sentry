@@ -2,13 +2,13 @@ import {useEffect, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   ConnectionModalFrame,
   LockedRepoField,

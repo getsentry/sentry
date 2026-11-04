@@ -5,13 +5,13 @@ import {IconSentry} from '@sentry/icons/sentry';
 import sentryCliIcon from 'sentry-images/oauth/sentry-cli.png';
 import sentryMcpIcon from 'sentry-images/oauth/sentry-mcp.png';
 
-import {Avatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Avatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 
 import {PermissionTable} from './permissionTable';

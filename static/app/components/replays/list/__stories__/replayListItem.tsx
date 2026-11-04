@@ -3,10 +3,10 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
-import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar, UserAvatar} from 'sentry/components/avatar';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';

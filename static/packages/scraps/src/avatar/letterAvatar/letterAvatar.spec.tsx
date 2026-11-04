@@ -1,6 +1,12 @@
-import type {Tagged} from 'type-fest';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render as rtlRender, screen} from '@testing-library/react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {lightTheme} from '@sentry/scraps/theme';
+
+function render(ui: React.ReactNode) {
+  return rtlRender(<ThemeProvider theme={lightTheme}>{ui}</ThemeProvider>);
+}
 
 import {LetterAvatar, type LetterAvatarProps} from './letterAvatar';
 
@@ -10,9 +16,9 @@ function makeConfiguration(
   content: string
 ): LetterAvatarProps['configuration'] {
   return {
-    initials: initials as Tagged<string, '__avatar'>,
-    background: background as Tagged<string, '__avatar'>,
-    content: content as Tagged<string, '__avatar'>,
+    initials,
+    background,
+    content,
   };
 }
 

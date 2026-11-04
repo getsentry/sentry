@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import moment from 'moment-timezone';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -14,6 +13,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {OrganizationAvatar} from 'sentry/components/avatar';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

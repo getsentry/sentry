@@ -1,7 +1,7 @@
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AssignedTooltip, UnassignedTooltip} from 'sentry/components/assigneeBadge';
+import {ActorAvatar} from 'sentry/components/avatar';
 import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
 

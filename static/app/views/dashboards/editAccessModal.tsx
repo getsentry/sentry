@@ -7,7 +7,6 @@ import sortBy from 'lodash/sortBy';
 import uniqBy from 'lodash/uniqBy';
 
 import {Alert} from '@sentry/scraps/alert';
-import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InputGroup} from '@sentry/scraps/input';
@@ -18,6 +17,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {TeamAvatar, UserAvatar} from 'sentry/components/avatar';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';

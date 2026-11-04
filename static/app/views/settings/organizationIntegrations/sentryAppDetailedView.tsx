@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconSubtract} from '@sentry/icons/subtract';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -15,6 +14,7 @@ import {
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {SentryAppAvatar} from 'sentry/components/avatar';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';

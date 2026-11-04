@@ -1,6 +1,12 @@
-import type {Tagged} from 'type-fest';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render as rtlRender, screen} from '@testing-library/react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {lightTheme} from '@sentry/scraps/theme';
+
+function render(ui: React.ReactNode) {
+  return rtlRender(<ThemeProvider theme={lightTheme}>{ui}</ThemeProvider>);
+}
 
 import {ImageAvatar} from './imageAvatar';
 
@@ -9,8 +15,8 @@ describe('ImageAvatar', () => {
     render(
       <ImageAvatar
         configuration={{
-          src: 'https://example.com/avatar.jpg' as Tagged<string, '__avatar'>,
-          alt: 'Jane Bloggs' as Tagged<string, '__avatar'>,
+          src: 'https://example.com/avatar.jpg',
+          alt: 'Jane Bloggs',
           ref: () => {},
         }}
       />

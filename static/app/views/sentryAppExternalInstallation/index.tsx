@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {installSentryApp} from 'sentry/actionCreators/sentryAppInstallations';
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {OrganizationAvatar} from 'sentry/components/avatar';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryAppDetailsModal} from 'sentry/components/modals/sentryAppDetailsModal';

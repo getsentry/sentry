@@ -8,7 +8,6 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {
   CompactSelect,
   MenuComponents,
@@ -26,6 +25,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {UserAvatar} from 'sentry/components/avatar';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';

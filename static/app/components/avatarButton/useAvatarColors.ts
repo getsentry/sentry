@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
-import color from 'color';
+import color from 'color'; // eslint-disable-line no-restricted-imports -- Preserve the existing app-owned image analysis.
 
-import type {BaseAvatarProps} from '@sentry/scraps/avatar';
-import {useAvatar} from '@sentry/scraps/avatar';
+import type {BaseAvatarProps} from 'sentry/components/avatar';
+import {useAvatar} from 'sentry/components/avatar';
 
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
@@ -47,7 +47,11 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   }
 
   if (imageResult?.chonk) {
-    return {type: 'image', chonk: imageResult.chonk, style: imageResult.style};
+    return {
+      type: 'image',
+      chonk: imageResult.chonk,
+      style: imageResult.style,
+    };
   }
 
   return {type: 'none'};

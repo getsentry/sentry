@@ -5,12 +5,12 @@ import {IconFlag} from '@sentry/icons/flag';
 import {IconMail} from '@sentry/icons/mail';
 import {IconSubtract} from '@sentry/icons/subtract';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {UserAvatar} from 'sentry/components/avatar';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';

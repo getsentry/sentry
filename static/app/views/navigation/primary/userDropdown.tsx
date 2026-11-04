@@ -4,14 +4,14 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
+import {UserAvatar} from 'sentry/components/avatar';
+import {AvatarButton} from 'sentry/components/avatarButton';
 import {t} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';

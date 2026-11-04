@@ -3,11 +3,11 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
-import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import type {AssignmentDetails} from 'sentry/components/assigneeBadge';
+import {ActorAvatar, TeamAvatar} from 'sentry/components/avatar';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   AssigneeSelector,

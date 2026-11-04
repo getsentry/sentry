@@ -11,12 +11,6 @@ import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
 import {
-  getOrganizationAvatarProps,
-  OrganizationAvatar,
-  ProjectAvatar,
-} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {
   DropdownMenu,
   type DropdownMenuProps,
   type MenuItemProps,
@@ -29,6 +23,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
+import {
+  getOrganizationAvatarProps,
+  OrganizationAvatar,
+  ProjectAvatar,
+} from 'sentry/components/avatar';
+import {AvatarButton} from 'sentry/components/avatarButton';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';

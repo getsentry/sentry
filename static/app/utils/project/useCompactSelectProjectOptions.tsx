@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 

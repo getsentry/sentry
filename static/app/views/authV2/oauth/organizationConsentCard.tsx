@@ -1,9 +1,9 @@
-import {Avatar} from '@sentry/scraps/avatar';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {Avatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 
 import type {OAuthOrganization} from './types';

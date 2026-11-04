@@ -134,3 +134,17 @@ describe('useAvatar', () => {
     });
   });
 });
+
+it('preserves a scrubbed image name while using neutral fallback initials', () => {
+  render(
+    <Avatar
+      type="upload"
+      uploadUrl="https://example.com/avatar.jpg"
+      identifier="user@example.com"
+      name="[Filtered]"
+    />
+  );
+  const image = screen.getByRole('img', {name: '[Filtered]'});
+  act(() => image.dispatchEvent(new Event('error')));
+  expect(screen.getByText('?')).toBeInTheDocument();
+});

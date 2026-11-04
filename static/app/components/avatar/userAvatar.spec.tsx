@@ -2,8 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
-
+import {UserAvatar} from 'sentry/components/avatar';
 import type {AvatarUser} from 'sentry/types/user';
 
 describe('UserAvatar', () => {

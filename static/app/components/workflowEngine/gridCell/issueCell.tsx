@@ -1,11 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {TimeSince} from 'sentry/components/timeSince';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tct} from 'sentry/locale';

@@ -4,9 +4,9 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
-import {TeamAvatar} from '@sentry/scraps/avatar';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
+import {TeamAvatar} from 'sentry/components/avatar';
 import {IdBadge} from 'sentry/components/idBadge';
 import {
   Provider as TeamKeyTransactionProvider,

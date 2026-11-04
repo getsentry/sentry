@@ -1,5 +1,4 @@
-import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
-
+import {TeamAvatar, UserAvatar} from 'sentry/components/avatar';
 import type {Team} from 'sentry/types/organization';
 
 import {InlineChip} from './inlineChip';

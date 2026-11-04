@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useProjects} from 'sentry/utils/useProjects';

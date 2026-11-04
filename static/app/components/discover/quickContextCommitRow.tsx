@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {UserAvatar} from 'sentry/components/avatar';
 import {CommitLink} from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';

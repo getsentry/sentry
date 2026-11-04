@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {AvatarList} from '@sentry/scraps/avatar';
 import {Flex} from '@sentry/scraps/layout';
 
+import {AvatarList} from 'sentry/components/avatar';
 import {t, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';

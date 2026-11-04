@@ -1,10 +1,10 @@
 import {useState} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   CrumbContainer,
   EventDrawerBody,

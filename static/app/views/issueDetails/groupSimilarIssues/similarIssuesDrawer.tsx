@@ -1,5 +1,4 @@
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {
   CrumbContainer,
   EventDrawerBody,

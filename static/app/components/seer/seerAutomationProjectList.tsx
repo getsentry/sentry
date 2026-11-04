@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -16,6 +15,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

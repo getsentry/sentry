@@ -2,19 +2,37 @@
 title: AvatarButton
 description: AvatarButton is a button variant that renders an avatar edge-to-edge. It accepts a typed avatar definition and resolves it to either a letter avatar or an image avatar using the useAvatar hook.
 category: buttons
-source: '@sentry/scraps/button'
+source: 'sentry/components/avatarButton'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/avatarButton/avatarButton.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/avatarButton/avatarButton.tsx
 ---
 
-import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {AvatarButton} from 'sentry/components/avatarButton';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation =
-  import('!!type-loader!@sentry/scraps/avatarButton/avatarButton');
+export const documentation = import('!!type-loader!sentry/components/avatarButton');
 
 Use `AvatarButton` when the avatar itself should be the clickable control.
+
+## Standalone Presentation
+
+`@sentry/scraps/avatarButton` accepts generic identity and image presentation. Resolve application data, image URLs, and image appearance before passing them to the component. It renders without a query client or application providers.
+
+```tsx
+import {AvatarButton} from '@sentry/scraps/avatarButton';
+
+<AvatarButton
+  aria-label="Open profile"
+  avatar={{
+    identifier: 'person',
+    name: 'Example Person',
+    src: 'https://example.com/avatar.png',
+  }}
+/>;
+```
+
+The remaining examples use the app adapter from `sentry/components/avatarButton`, which retains the upload and Gravatar definitions.
 
 ## Basic Usage
 

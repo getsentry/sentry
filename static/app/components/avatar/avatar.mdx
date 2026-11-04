@@ -2,9 +2,9 @@
 title: Avatar
 description: Avatars display an image of users, teams, organizations, and other Sentry-specific items.
 category: display
-source: '@sentry/scraps/avatar'
+source: 'sentry/components/avatar'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/alert/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/avatar/index.tsx
 ---
 
 import {Fragment} from 'react';
@@ -25,7 +25,7 @@ import {
   SentryAppAvatar,
   TeamAvatar,
   UserAvatar,
-} from '@sentry/scraps/avatar';
+} from 'sentry/components/avatar';
 
 import {
   DOC_INTEGRATION,
@@ -37,9 +37,17 @@ import {
   USER,
 } from './__stories__/fixtures';
 
-export const documentation = import('!!type-loader!@sentry/scraps/avatar');
+export const documentation = import('!!type-loader!sentry/components/avatar');
 
-There are multiple avatar components which represent users, teams, organizations, projects, and integrations.
+The app wrappers below represent users, teams, organizations, projects, and integrations. They resolve application data and image URLs before rendering the generic presentation.
+
+For standalone rendering, import `Avatar` from `@sentry/scraps/avatar` and supply a name, identifier, and optional resolved image URL:
+
+```tsx
+import {Avatar} from '@sentry/scraps/avatar';
+
+<Avatar name="Example Person" identifier="person" src="https://example.com/avatar.png" />;
+```
 
 <Storybook.Demo>
   <UserAvatar size={PREVIEW_SIZE} user={USER} />

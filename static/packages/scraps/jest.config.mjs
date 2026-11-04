@@ -21,8 +21,10 @@ const config = {
       },
     ],
   },
-  // TanStack Hotkeys publishes ESM only; compile it for the CommonJS test runtime.
-  transformIgnorePatterns: ['/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@)'],
+  // Compile ESM-only dependencies used by the package for the CommonJS test runtime.
+  transformIgnorePatterns: [
+    '/node_modules/.pnpm/(?!(?:@tanstack\\+(?:react-)?hotkeys|color|color-convert|color-string|color-name)@)',
+  ],
   clearMocks: true,
 };
 

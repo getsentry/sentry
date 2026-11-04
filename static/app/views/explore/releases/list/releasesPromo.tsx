@@ -6,7 +6,6 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
-import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
@@ -21,6 +20,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import {sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
+import {SentryAppAvatar} from 'sentry/components/avatar';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';

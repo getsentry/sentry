@@ -14,8 +14,7 @@ import {IconSiren} from '@sentry/icons/siren';
 import {IconStack} from '@sentry/icons/stack';
 import {IconTag} from '@sentry/icons/tag';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
-
+import {ProjectAvatar} from 'sentry/components/avatar';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {t} from 'sentry/locale';

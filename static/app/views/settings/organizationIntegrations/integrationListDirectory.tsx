@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
-import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
+import {DocIntegrationAvatar, SentryAppAvatar} from 'sentry/components/avatar';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';

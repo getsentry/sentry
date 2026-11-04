@@ -2,12 +2,12 @@ import {useEffect, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {useQueryStates} from 'nuqs';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
+import {UserAvatar} from 'sentry/components/avatar';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';

@@ -8,7 +8,6 @@ import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -22,6 +21,7 @@ import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {UserAvatar} from 'sentry/components/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {

@@ -3,10 +3,10 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {IconDelete} from '@sentry/icons/delete';
 import invariant from 'invariant';
 
-import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ProjectAvatar, UserAvatar} from 'sentry/components/avatar';
 import {DateTime} from 'sentry/components/dateTime';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';

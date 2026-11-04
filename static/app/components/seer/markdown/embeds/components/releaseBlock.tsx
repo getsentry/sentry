@@ -2,12 +2,12 @@ import {Fragment, useMemo} from 'react';
 import {IconReleases} from '@sentry/icons/releases';
 import {useQuery} from '@tanstack/react-query';
 
-import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AvatarList, UserAvatar} from 'sentry/components/avatar';
 import {CommitLink} from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

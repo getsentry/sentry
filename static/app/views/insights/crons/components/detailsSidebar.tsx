@@ -5,7 +5,6 @@ import {IconJson} from '@sentry/icons/json';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
@@ -13,6 +12,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';

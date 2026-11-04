@@ -6,9 +6,9 @@ import {IconNot} from '@sentry/icons/not';
 import {IconUser} from '@sentry/icons/user';
 import {useQuery} from '@tanstack/react-query';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ActorAvatar} from 'sentry/components/avatar';
 import {Count} from 'sentry/components/count';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
