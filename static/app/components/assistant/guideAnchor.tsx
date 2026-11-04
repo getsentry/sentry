@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
@@ -15,7 +17,6 @@ import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
 import {GuideStore} from 'sentry/stores/guideStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
   target: string;
@@ -64,7 +65,20 @@ function BaseGuideAnchor({
   onFinish,
   onStepComplete,
 }: Props) {
-  const {currentGuide, currentStep: step, orgId, forceHide} = useLegacyStore(GuideStore);
+  const {
+    currentGuide,
+    currentStep: step,
+    orgId,
+    forceHide,
+  } = useStore(
+    GuideStore,
+    useShallow(state => ({
+      currentGuide: state.currentGuide,
+      currentStep: state.currentStep,
+      orgId: state.orgId,
+      forceHide: state.forceHide,
+    }))
+  );
 
   useEffect(() => {
     registerAnchor(target);
