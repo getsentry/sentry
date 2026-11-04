@@ -2,7 +2,7 @@ import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -113,6 +113,10 @@ describe('Dashboards > Detail', () => {
 
   it('can sort', async () => {
     const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
     const {router} = render(<ManageDashboards />, {
       organization: org,
@@ -123,6 +127,12 @@ describe('Dashboards > Detail', () => {
       'Dashboard Name (A-Z)'
     );
 
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'title'})})
+      )
+    );
     expect(router.location.query).toEqual({sort: 'title'});
   });
 
@@ -203,6 +213,10 @@ describe('Dashboards > Detail', () => {
 
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
     const {router} = render(<ManageDashboards />, {
       organization: org,
@@ -212,7 +226,68 @@ describe('Dashboards > Detail', () => {
     await userEvent.keyboard('dash');
     await userEvent.keyboard('[Enter]');
 
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
     expect(router.location.query).toEqual({query: 'dash'});
+  });
+
+  it('pushes history and clears the cursor when searching', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const onNuqsUrlUpdate = jest.fn();
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {cursor: '0:9:0', sort: 'title'}},
+      },
+    });
+
+    await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
+    await userEvent.keyboard('dash');
+    await userEvent.keyboard('[Enter]');
+
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
+    expect(router.location.query).toEqual({query: 'dash', sort: 'title'});
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('writes the default sort when the URL sort is invalid', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {sort: 'not-a-sort'}},
+      },
+    });
+
+    await waitFor(() => expect(router.location.query).toEqual({sort: 'mydashboards'}));
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'mydashboards'})})
+      )
+    );
   });
 
   it('uses pagination correctly', async () => {
@@ -227,8 +302,18 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
     await userEvent.click(await screen.findByLabelText('Next'));
 
+    await waitFor(() =>
+      expect(nextPageRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({cursor: '0:9:0'})})
+      )
+    );
     expect(router.location.query).toEqual({cursor: '0:9:0'});
   });
 

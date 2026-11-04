@@ -13,9 +13,9 @@ from sentry.constants import ObjectStatus
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
+    InboxCountResponse,
     InboxItemEventResponse,
     InboxItemResponse,
-    InboxUnreadCountResponse,
 )
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
@@ -73,7 +73,7 @@ class MentionedData(InboxEventData):
 
 
 @pytest.mark.parametrize(
-    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxUnreadCountResponse]
+    "response_type", [InboxItemResponse, InboxItemEventResponse, InboxCountResponse]
 )
 def test_response_types_support_openapi(response_type: type) -> None:
     OAS30Validator.check_schema(resolve_type_hint(response_type))

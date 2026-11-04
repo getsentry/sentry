@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -647,6 +648,44 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/dashboard/42/widget/10/'
+    );
+  });
+
+  it('removes only widget viewer params when the viewer modal closes without a dashboard', async () => {
+    const openWidgetViewerModal = jest
+      .spyOn(modal, 'openWidgetViewerModal')
+      .mockResolvedValue();
+    const onNuqsUrlUpdate = jest.fn();
+    const {router} = render(
+      <WidgetCard
+        api={api}
+        widget={multipleQueryWidget}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        organization,
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboards/new/',
+            query: {project: '1', sort: '-count()', cursor: '0:10:0', viewerStart: 'x'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByLabelText('Open Full-Screen View'));
+    act(() => openWidgetViewerModal.mock.calls[0]![0].onClose!());
+
+    await waitFor(() => expect(router.location.query).toEqual({project: '1'}));
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
     );
   });
 

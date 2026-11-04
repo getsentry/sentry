@@ -53,6 +53,21 @@ describe('DroppedDataFilterNote', () => {
     ).toBeInTheDocument();
   });
 
+  it('notes the chart environments over the page filter environments', () => {
+    setEnvironments([]);
+    render(
+      <DroppedDataFilterNote
+        dataset={DiscoverDatasets.SPANS}
+        hasUserQuery={false}
+        environments={['production']}
+      />
+    );
+
+    expect(
+      screen.getByText('Dropped spans are not filtered by environment')
+    ).toBeInTheDocument();
+  });
+
   it.each([
     [DiscoverDatasets.OURLOGS, 'logs'],
     [DiscoverDatasets.TRACEMETRICS, 'metrics'],

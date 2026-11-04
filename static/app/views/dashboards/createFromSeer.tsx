@@ -1,10 +1,10 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
@@ -20,9 +20,7 @@ import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 export default function CreateFromSeer() {
   const organization = useOrganization();
-  const location = useLocation();
-
-  const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
+  const [seerRunId] = useQueryState('seerRunId', parseAsInteger);
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 

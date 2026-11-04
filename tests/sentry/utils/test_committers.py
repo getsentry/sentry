@@ -15,6 +15,7 @@ from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,
+    _get_commits,
     _get_serialized_committers_from_group_owners,
     _match_commits_paths,
     dedupe_commits,
@@ -236,6 +237,40 @@ class MatchCommitsPathTestCase(CommitTestCase):
                 ],
             )
         ) == {commit_1, commit_2}
+
+
+class GetCommitsTestCase(CommitTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit_1 = self.create_commit()
+        self.commit_2 = self.create_commit()
+        self.commit_3 = self.create_commit()
+        self.release_1 = self.create_release(project=self.project, version="1.0")
+        self.release_2 = self.create_release(project=self.project, version="2.0")
+        # commit_2 is in both releases
+        self.create_release_commit(self.release_1, self.commit_1, order=0)
+        self.create_release_commit(self.release_1, self.commit_2, order=1)
+        self.create_release_commit(self.release_2, self.commit_2, order=0)
+        self.create_release_commit(self.release_2, self.commit_3, order=1)
+
+    def test_dedupes_commits_shared_between_releases(self) -> None:
+        # First call reads from the database and fills the cache, second reads the cache
+        for _ in range(2):
+            assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+                self.commit_1.id,
+                self.commit_2.id,
+                self.commit_3.id,
+            ]
+
+    def test_dedupes_across_cached_and_uncached_releases(self) -> None:
+        # Only release_2 is cached, so its commits come first and release_1 is read from the database
+        _get_commits([self.release_2])
+
+        assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+            self.commit_2.id,
+            self.commit_3.id,
+            self.commit_1.id,
+        ]
 
 
 class GetPreviousReleasesTestCase(TestCase):

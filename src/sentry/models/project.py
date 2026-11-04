@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 from uuid import uuid1
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Q, QuerySet, Subquery
 from django.db.models.signals import pre_delete
@@ -54,6 +53,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
@@ -212,7 +212,7 @@ class ProjectManager(BaseManager["Project"]):
     def get_for_user(
         self,
         team: Team,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         scope: str | None = None,
         _skip_team_check: bool = False,
     ) -> list[Project]:

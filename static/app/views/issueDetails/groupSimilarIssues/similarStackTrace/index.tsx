@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -10,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {parseAsBooleanLiteral} from 'sentry/utils/url/parseAsBooleanLiteral';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,6 +38,10 @@ const EMPTY_SET: ReadonlySet<string> = new Set();
 export function SimilarStackTrace({project}: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
+  const [similarityEmbeddings] = useQueryState(
+    'similarityEmbeddings',
+    parseAsBooleanLiteral
+  );
   const organization = useOrganization();
   const params = useParams<{groupId: string; orgId: string}>();
   const navigate = useNavigate();
@@ -50,7 +56,7 @@ export function SimilarStackTrace({project}: Props) {
   // similarity-embeddings feature is only available on project details
   const hasEmbeddings =
     projectData?.features.includes('similarity-embeddings') ||
-    location.query.similarityEmbeddings === '1';
+    similarityEmbeddings === true;
 
   const canFetch = !isProjectPending && (hasSimilarityFeature || hasEmbeddings);
 
@@ -91,14 +97,13 @@ export function SimilarStackTrace({project}: Props) {
   } = useMutation<
     {merge?: {parent?: string}} | undefined,
     Error,
-    {ids: string[]; projectSlug: string; query?: string}
+    {ids: string[]; projectSlug: string}
   >({
-    mutationFn: ({ids, projectSlug, query}) =>
+    mutationFn: ({ids, projectSlug}) =>
       mergeGroups(api, {
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [...ids, params.groupId],
-        query,
       }),
     onSuccess: data => {
       if (data?.merge?.parent && data.merge.parent !== params.groupId) {
@@ -144,9 +149,8 @@ export function SimilarStackTrace({project}: Props) {
     mergeMutate({
       ids: Array.from(checkedIds),
       projectSlug: firstIssue.issue.project.slug,
-      query: location.query.query as string,
     });
-  }, [checkedIds, similar, filtered, location.query, mergeMutate]);
+  }, [checkedIds, similar, filtered, mergeMutate]);
 
   const {data: event, isPending: isEventPending} = useGroupEvent({
     groupId: params.groupId,

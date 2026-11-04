@@ -2,8 +2,7 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Query} from 'history';
-import pick from 'lodash/pick';
+import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -26,7 +25,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -104,8 +102,19 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const [
+    {cursor: urlCursor, filter: urlFilter, query: urlQuery, sort: urlSort},
+    setQueryParams,
+  ] = useQueryStates(
+    {
+      cursor: parseAsString,
+      filter: parseAsStringEnum(Object.values(DashboardFilter)),
+      query: parseAsString,
+      sort: parseAsString,
+    },
+    {history: 'push'}
+  );
+  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter ?? undefined);
   const isOnlyCustom =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const pageTitle = isOnlyPrebuilt
@@ -129,7 +138,8 @@ function ManageDashboards() {
   } = useQuery({
     ...dashboardsApiOptions(organization, {
       query: {
-        ...pick(location.query, ['cursor', 'query']),
+        cursor: urlCursor ?? undefined,
+        query: urlQuery ?? undefined,
         sort: getActiveSort()?.value,
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
@@ -173,21 +183,16 @@ function ManageDashboards() {
   const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';
 
   useEffect(() => {
-    const urlSort = decodeScalar(location.query.sort);
     const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, sort: defaultSort},
-      });
+      setQueryParams({sort: defaultSort});
     }
   }, [
     isOnlyPrebuilt,
-    location.pathname,
-    location.query,
-    navigate,
+    urlSort,
+    setQueryParams,
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization,
     sortOptions,
@@ -196,11 +201,11 @@ function ManageDashboards() {
 
   function getActiveSort() {
     const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
-    const urlSort = decodeScalar(location.query.sort, defaultSort);
+    const activeUrlSort = urlSort || defaultSort;
 
-    if (urlSort) {
+    if (activeUrlSort) {
       // Check if the URL sort is valid
-      const foundSort = sortOptions.find(item => item.value === urlSort);
+      const foundSort = sortOptions.find(item => item.value === activeUrlSort);
       if (foundSort) {
         return foundSort;
       }
@@ -215,10 +220,7 @@ function ManageDashboards() {
       organization,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, cursor: undefined, query},
-    });
+    setQueryParams({cursor: null, query});
   }
 
   const handleSortChange = (value: string) => {
@@ -226,21 +228,8 @@ function ManageDashboards() {
       organization,
       sort: value,
     });
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        sort: value,
-      },
-    });
+    setQueryParams({cursor: null, sort: value});
   };
-
-  function getQuery() {
-    const {query} = location.query;
-
-    return typeof query === 'string' ? query : undefined;
-  }
 
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
@@ -269,7 +258,7 @@ function ManageDashboards() {
       marginBottom="xl"
     >
       <SearchBar
-        query={getQuery()}
+        query={urlQuery ?? undefined}
         placeholder={t('Search Dashboards')}
         onSearch={query => handleSearch(query)}
       />
@@ -370,22 +359,13 @@ function ManageDashboards() {
   const pagination = (
     <PaginationRow
       pageLinks={dashboardsPageLinks}
-      onCursor={(cursor, path, query, direction) => {
+      onCursor={(cursor, _path, _query, direction) => {
         const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-        const newQuery: Query & {cursor?: string} = {...query, cursor};
         const isPrevious = direction === -1;
-
-        if (offset <= 0 && isPrevious) {
-          delete newQuery.cursor;
-        }
 
         trackAnalytics('dashboards_manage.paginate', {organization});
 
-        navigate({
-          pathname: path,
-          query: newQuery,
-        });
+        setQueryParams({cursor: offset <= 0 && isPrevious ? null : (cursor ?? null)});
       }}
     />
   );
