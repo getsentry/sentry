@@ -50,7 +50,7 @@ export function getLogPageParam(
       : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
-      const links = parseLinkHeader(result.headers.Link ?? null);
+      const links = parseLinkHeader(result.headers?.Link ?? null);
       const link = isGetPreviousPage ? links.previous : links.next;
 
       if (!link?.results) {

@@ -9,13 +9,13 @@ import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 export const QUERY_API_CLIENT = new Client();
 
 export type ApiResponse<TResponseData = unknown> = {
-  headers: {
+  json: TResponseData;
+  headers?: {
     Link?: string;
     'X-Hits'?: number;
     'X-Max-Hits'?: number;
     'X-Sentry-Direct-Hit'?: string;
   };
-  json: TResponseData;
   /**
    * The HTTP status code. Endpoints that return more than one success code
    * (201 created vs 200 already-exists) need it to tell the cases apart.

@@ -43,9 +43,10 @@ function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unkn
 
 export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
 
-export const selectJsonWithHeaders = <TData>(
-  data: ApiResponse<TData>
-): ApiResponse<TData> => data;
+export const selectJsonWithHeaders = <TData>(data: ApiResponse<TData>) => ({
+  ...data,
+  headers: data.headers ?? {},
+});
 
 function _apiOptions<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
@@ -76,7 +77,7 @@ function _apiOptions<
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
   // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return ({headers}: ApiResponse<TQueryFnData>) => {
-    const parsed = parseLinkHeader(headers.Link ?? null);
+    const parsed = parseLinkHeader(headers?.Link ?? null);
     return parsed[dir]?.results ? parsed[dir] : null;
   };
 }

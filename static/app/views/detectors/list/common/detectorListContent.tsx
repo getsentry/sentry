@@ -4,7 +4,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -23,7 +23,7 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 interface DetectorListContentProps {
-  data: ApiResponse<Detector[]> | undefined;
+  data: ReturnType<typeof selectJsonWithHeaders<Detector[]>> | undefined;
   isError: boolean;
   isLoading: boolean;
   isSuccess: boolean;

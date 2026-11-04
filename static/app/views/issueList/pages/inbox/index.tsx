@@ -494,8 +494,8 @@ function InboxSection({
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const hasIssues = groups.length > 0;
   const [expanded, setExpanded] = useState<boolean>();
-  const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
-  const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
+  const count = queryResult.data?.pages[0]?.headers?.['X-Hits'] ?? groups.length;
+  const maxCount = queryResult.data?.pages[0]?.headers?.['X-Max-Hits'];
   useRouteAnalyticsParams({[section.analyticsKey]: count});
   const memberIds = groups.flatMap(group =>
     group.assignedTo?.type === 'user' ? [group.assignedTo.id] : []

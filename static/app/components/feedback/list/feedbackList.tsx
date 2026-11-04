@@ -89,7 +89,7 @@ export function FeedbackList({onItemSelect}: Props) {
 
   return (
     <ListItemCheckboxProvider
-      hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
+      hits={Number(queryResult.data?.pages[0]?.headers?.['X-Hits'] ?? issues.length)}
       knownIds={issues.map(issue => issue.id)}
       endpointOptions={safeParseQueryKey(listApiOptions.queryKey)?.options}
     >

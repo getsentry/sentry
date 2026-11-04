@@ -83,7 +83,7 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
     ...replayListOptions,
     select: ({json, headers}) => ({
       json: json.data.map(mapResponseToReplayRecord),
-      headers,
+      headers: headers ?? {},
     }),
     enabled: Boolean(playlistStart && playlistEnd),
   });

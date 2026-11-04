@@ -989,7 +989,7 @@ export function useExplorerAutofix(
     setWaitingForCodingAgent(false);
     queryClient.setQueryData(
       explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-      prev => ({headers: prev?.headers ?? {}, json: makeInitialExplorerAutofixData()})
+      prev => ({headers: prev?.headers, json: makeInitialExplorerAutofixData()})
     );
   }, [queryClient, orgSlug, groupId]);
 

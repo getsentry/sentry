@@ -1,6 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -166,6 +167,58 @@ describe('apiOptions', () => {
       'X-Max-Hits'?: number;
       'X-Sentry-Direct-Hit'?: string;
     }>();
+  });
+
+  it('should supply headers for cached JSON without response metadata', () => {
+    const options = apiOptions.as<string[]>()('/projects/', {
+      staleTime: Infinity,
+    });
+    const queryClient = makeTestQueryClient();
+    queryClient.setQueryData(options.queryKey, {json: ['Project 1']});
+
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: selectJsonWithHeaders}, queryClient)
+    );
+
+    expect(result.current.data).toEqual({json: ['Project 1'], headers: {}});
+    expectTypeOf(result.current.data!.headers).toEqualTypeOf<
+      NonNullable<ApiResponse<string[]>['headers']>
+    >();
+    expectTypeOf(result.current.data!.json).toEqualTypeOf<string[]>();
+  });
+
+  it('should supply headers when cached headers are undefined', () => {
+    const options = apiOptions.as<string[]>()('/projects/', {
+      staleTime: Infinity,
+    });
+    const queryClient = makeTestQueryClient();
+    queryClient.setQueryData(options.queryKey, {
+      json: ['Project 1'],
+      headers: undefined,
+      status: 201,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: selectJsonWithHeaders}, queryClient)
+    );
+
+    expect(result.current.data).toEqual({
+      json: ['Project 1'],
+      headers: {},
+      status: 201,
+    });
+  });
+
+  it('should stop pagination when a page has no headers', () => {
+    const options = apiOptions.asInfinite<string[]>()('/projects/', {
+      staleTime: 0,
+    });
+    const page = {json: ['Project 1']};
+
+    expect(options.getNextPageParam(page, [page], undefined, [undefined])).toBeNull();
+    expect(
+      options.getPreviousPageParam!(page, [page], undefined, [undefined])
+    ).toBeNull();
   });
 
   it('should extract a non-200 success status', async () => {

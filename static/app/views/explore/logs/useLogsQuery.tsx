@@ -342,7 +342,7 @@ export function useInfiniteLogsQuery({
   }, [hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage, isError, autoRefresh]);
 
   const nextPageLink = parseLinkHeader(
-    data?.pages?.[data.pages.length - 1]?.headers.Link ?? null
+    data?.pages?.[data.pages.length - 1]?.headers?.Link ?? null
   )?.next;
   const nextPageHasData = nextPageLink?.results ?? false;
   const nextPageCursor = nextPageLink?.cursor;

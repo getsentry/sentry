@@ -254,7 +254,7 @@ export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
 export function parseLinkHeaderFromLogsPage(
   page: InfiniteQueryObserverResult<InfiniteData<ApiResponse<EventsLogsResult>>>
 ) {
-  const linkHeader = page.data?.pages?.[0]?.headers.Link;
+  const linkHeader = page.data?.pages?.[0]?.headers?.Link;
   return parseLinkHeader(linkHeader ?? null);
 }
 

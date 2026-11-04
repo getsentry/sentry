@@ -34,7 +34,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     }),
     enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA,
     staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
-    select: data => data.headers['X-Hits'],
+    select: data => data.headers?.['X-Hits'],
   });
 
   const isLoading = isDetectorsLoading;

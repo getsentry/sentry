@@ -371,7 +371,11 @@ export function useSpansTableQuery(
   // structurally shares `combine` output, so `data` keeps its reference while the
   // responses are unchanged, even when this callback is recreated.
   const combine = useCallback(
-    (results: Array<UseQueryResult<ApiResponse<SpansTableResponse>>>) => {
+    (
+      results: Array<
+        UseQueryResult<ReturnType<typeof selectJsonWithHeaders<SpansTableResponse>>>
+      >
+    ) => {
       const combined = combineWidgetJsonQueryResults(results);
       return {
         ...combined,

@@ -77,7 +77,7 @@ export function SimilarStackTrace({project}: Props) {
       return {
         similar: items.filter(item => !item.isBelowThreshold),
         filtered: items.filter(item => item.isBelowThreshold),
-        pageLinks: response.headers.Link ?? null,
+        pageLinks: response.headers?.Link ?? null,
       };
     },
   });
