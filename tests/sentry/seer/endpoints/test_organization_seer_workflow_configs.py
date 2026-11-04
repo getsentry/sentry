@@ -441,7 +441,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_member_cannot_narrow_all_projects_config(self) -> None:
+    def test_member_cannot_narrow_or_enable_all_projects_config(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
         config = self.create_config(filters={"all_projects": True})
         self.login_as(member)
@@ -457,8 +457,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == (
             "You do not have permission to narrow this config's project scope"
         )
+
+        response = self.get_error_response(
+            self.organization.slug, config.id, method="put", enabled=True, status_code=403
+        )
+
+        assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
+        assert config.enabled is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -567,6 +574,55 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["monitorIds"] == [other_accessible.id]
         assert response.data["projects"] == [accessible_project.id]
         assert self.connected_monitor_ids(workflow) == {other_accessible.id, hidden.id}
+
+    def test_put_enables_and_pauses_metric_investigations(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert response.data["enabled"] is True
+        assert workflow.matches_scope(self.project.id, None)
+        version = response.data["version"]
+
+        repeated = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert repeated.data["version"] == version
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=False
+        )
+        assert response.data["enabled"] is False
+        assert not workflow.matches_scope(self.project.id, None)
+        assert response.data["monitorIds"] == [monitor.id]
+
+    def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        member, _ = self.create_member_with_project(open_membership=False)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            enabled=True,
+            status_code=403,
+        )
+        assert workflow.get_config().enabled is False
+
+    def test_put_enables_all_projects_config(self) -> None:
+        config = self.create_config(filters={"all_projects": True})
+        self.get_error_response(self.organization.slug, config.id, method="put", status_code=400)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+        assert response.data["enabled"] is True
+        config.refresh_from_db()
+        assert config.enabled is True
 
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
