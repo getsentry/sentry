@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconTimer} from '@sentry/icons/timer';
@@ -37,7 +37,11 @@ import {
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
-import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
+import {
+  isSavedDashboardId,
+  useDashboardQueryPriority,
+  useSaveDashboardQueryPriority,
+} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -59,6 +63,7 @@ import type {
   DashboardDetails,
   DashboardFilters,
   DashboardPermissions,
+  DashboardQueryPriority,
   GlobalFilter,
 } from './types';
 import {DashboardFilterKeys} from './types';
@@ -75,6 +80,7 @@ export type FiltersBarProps = {
   dashboardPermissions?: DashboardPermissions;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onCancel?: () => void;
+  onDashboardQueryPrioritySaved?: (dashboard: DashboardDetails) => void;
   onSave?: () => Promise<void>;
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
@@ -93,6 +99,7 @@ export function FiltersBar({
   location,
   onCancel,
   onDashboardFilterChange,
+  onDashboardQueryPrioritySaved,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
@@ -226,7 +233,54 @@ export function FiltersBar({
     options: queryPriorityOptions,
     priority,
     setPriority,
-  } = useDashboardQueryPriority();
+  } = useDashboardQueryPriority(dashboard?.queryPriority);
+  const saveQueryPriority = useSaveDashboardQueryPriority();
+  // One save at a time. A second change waits, then writes after the in-flight
+  // request finishes, so an older response cannot replace the latest choice.
+  const queryPrioritySave = useRef<{
+    inFlight: DashboardQueryPriority | null;
+    pending: {previous: DashboardQueryPriority; value: DashboardQueryPriority} | null;
+  }>({inFlight: null, pending: null});
+  const flushQueryPrioritySave = (dashboardId: string) => {
+    const save = queryPrioritySave.current;
+    if (save.inFlight !== null || !save.pending) {
+      return;
+    }
+    const next = save.pending;
+    save.pending = null;
+    save.inFlight = next.value;
+    saveQueryPriority(dashboardId, next.value).then(
+      updated => {
+        save.inFlight = null;
+        onDashboardQueryPrioritySaved?.(updated);
+        flushQueryPrioritySave(dashboardId);
+      },
+      () => {
+        save.inFlight = null;
+        if (save.pending) {
+          flushQueryPrioritySave(dashboardId);
+          return;
+        }
+        setPriority(next.previous);
+      }
+    );
+  };
+  const handleQueryPriorityChange = (value: DashboardQueryPriority) => {
+    const save = queryPrioritySave.current;
+    const previous = save.pending?.value ?? save.inFlight ?? priority;
+    setPriority(value);
+    // Viewers can still change the selection for this visit. Only an editor
+    // of a saved dashboard writes it back.
+    if (!hasEditAccess || isPreview || !dashboard || !isSavedDashboardId(dashboard.id)) {
+      return;
+    }
+    const persisted = dashboard.queryPriority ?? 'normal';
+    if (persisted === value && save.inFlight === null && save.pending === null) {
+      return;
+    }
+    save.pending = {previous, value};
+    flushQueryPrioritySave(dashboard.id);
+  };
   const queryPriorityLabel =
     queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
   return (
@@ -390,7 +444,7 @@ export function FiltersBar({
         {showQueryPriority && (
           <CompactSelect
             value={priority}
-            onChange={option => setPriority(option.value)}
+            onChange={option => handleQueryPriorityChange(option.value)}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}

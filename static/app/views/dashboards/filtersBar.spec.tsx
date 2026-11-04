@@ -469,6 +469,119 @@ describe('FiltersBar', () => {
         screen.getByRole('button', {name: 'Query priority: Faster'})
       ).toBeInTheDocument();
     });
+
+    it('shows the priority saved on the dashboard', () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+
+      expect(
+        screen.getByRole('button', {name: 'Query priority: Faster'})
+      ).toBeInTheDocument();
+    });
+
+    it('saves the selection on the dashboard', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1'}),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {queryPriority: 'faster'},
+          })
+        );
+      });
+    });
+
+    it('does not save a prebuilt placeholder dashboard', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/prebuilt-dashboard-1/',
+        method: 'PUT',
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: 'prebuilt-dashboard-1'}),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+
+      expect(
+        screen.getByRole('button', {name: 'Query priority: Faster'})
+      ).toBeInTheDocument();
+      expect(updateMock).not.toHaveBeenCalled();
+    });
+
+    it('saves the latest selection when the priority changes during a save', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseFirstSave = () => {};
+      const firstSave = new Promise<void>(resolve => {
+        releaseFirstSave = resolve;
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'normal'}),
+        asyncDelay: firstSave,
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Faster'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Normal'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      releaseFirstSave();
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledTimes(2);
+      });
+      expect(updateMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {queryPriority: 'faster'},
+        })
+      );
+      expect(updateMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {queryPriority: 'normal'},
+        })
+      );
+      expect(
+        screen.getByRole('button', {name: 'Query priority: Normal'})
+      ).toBeInTheDocument();
+    });
   });
 });
 

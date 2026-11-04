@@ -50,6 +50,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
+  isDashboardQueryPriority,
+  SavedDashboardQueryPriorityProvider,
+} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
+import {
   useUpdateDashboard,
   type UpdateDashboardVariables,
 } from 'sentry/views/dashboards/useUpdateDashboard';
@@ -326,6 +330,7 @@ class DashboardDetail extends Component<Props, State> {
           dashboardPermissions: dashboard.permissions,
           dashboardCreator: dashboard.createdBy,
           isPrebuiltDashboard: defined(dashboard.prebuiltId),
+          queryPriority: (modifiedDashboard ?? dashboard).queryPriority,
           widgetInterval: this.props.widgetInterval,
           onClose: () => {
             this.closeFullScreenView();
@@ -792,6 +797,22 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
+  handleQueryPrioritySaved = (updated: DashboardDetails) => {
+    const {dashboard, onDashboardUpdate} = this.props;
+    const {modifiedDashboard} = this.state;
+    const {queryPriority} = updated;
+
+    // Patch only this field. Replacing the in-memory dashboard would drop
+    // widget edits that have not been saved yet.
+    if (modifiedDashboard) {
+      this.setState({modifiedDashboard: {...modifiedDashboard, queryPriority}});
+    }
+
+    if (dashboard.id) {
+      onDashboardUpdate?.({...dashboard, queryPriority});
+    }
+  };
+
   /**
    * A rename is its own transaction — the modal has already persisted it for a
    * saved dashboard. What is left is catching up the copies held in memory.
@@ -897,10 +918,14 @@ class DashboardDetail extends Component<Props, State> {
       case DashboardState.PREVIEW:
       case DashboardState.CREATE: {
         if (modifiedDashboard) {
+          const queryPriority = isDashboardQueryPriority(location.query.queryPriority)
+            ? location.query.queryPriority
+            : modifiedDashboard.queryPriority;
           const newModifiedDashboard = {
             ...cloneDashboard(modifiedDashboard),
             ...getCurrentPageFilters(location),
             filters: getMergedDashboardFilters(modifiedDashboard.filters, location),
+            ...(queryPriority ? {queryPriority} : {}),
           };
           createDashboard(api, organization.slug, newModifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
@@ -1125,6 +1150,7 @@ class DashboardDetail extends Component<Props, State> {
                 isEditingDashboard={false}
                 isPreview={false}
                 onDashboardFilterChange={this.handleChangeFilter}
+                onDashboardQueryPrioritySaved={this.handleQueryPrioritySaved}
               />
             </Stack>
             <PrebuiltDashboardOnboardingGate prebuiltId={dashboard.prebuiltId}>
@@ -1220,6 +1246,7 @@ class DashboardDetail extends Component<Props, State> {
                       prebuiltDashboardId={dashboard.prebuiltId}
                       storageNamespace={this.props.storageNamespace}
                       widgetLimitReached={widgetLimitReached}
+                      onDashboardQueryPrioritySaved={this.handleQueryPrioritySaved}
                       onCancel={() => {
                         resetPageFilters(dashboard, location, navigate);
                         trackAnalytics('dashboards2.filter.cancel', {
@@ -1455,18 +1482,20 @@ export function DashboardDetailWithInjectedProps(
   const widgetInterval = chartInterval;
 
   return (
-    <DashboardDetail
-      {...props}
-      theme={theme}
-      navigate={navigate}
-      api={api}
-      organization={organization}
-      projects={projects}
-      location={location}
-      params={params}
-      widgetInterval={widgetInterval}
-      queryClient={queryClient}
-      updateDashboard={updateDashboard.mutateAsync}
-    />
+    <SavedDashboardQueryPriorityProvider priority={props.dashboard.queryPriority}>
+      <DashboardDetail
+        {...props}
+        theme={theme}
+        navigate={navigate}
+        api={api}
+        organization={organization}
+        projects={projects}
+        location={location}
+        params={params}
+        widgetInterval={widgetInterval}
+        queryClient={queryClient}
+        updateDashboard={updateDashboard.mutateAsync}
+      />
+    </SavedDashboardQueryPriorityProvider>
   );
 }

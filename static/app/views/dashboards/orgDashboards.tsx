@@ -107,6 +107,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       start: selectedDashboard.start,
       end: selectedDashboard.end,
       utc: selectedDashboard.utc,
+      queryPriority: selectedDashboard.queryPriority,
     };
   }
 

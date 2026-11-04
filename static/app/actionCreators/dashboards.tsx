@@ -60,8 +60,18 @@ export function createDashboard(
   orgSlug: string,
   newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    queryPriority,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
@@ -79,6 +89,7 @@ export function createDashboard(
         end,
         filters,
         utc,
+        ...(queryPriority ? {queryPriority} : {}),
       },
       query: {
         project: projects,
@@ -387,6 +398,41 @@ export function updateDashboardTitle(
       addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
     } else {
       addErrorMessage(t('Unable to rename dashboard'));
+    }
+  });
+
+  return promise;
+}
+
+/**
+ * Saves the dashboard query priority without touching anything else on it.
+ *
+ * The endpoint rewrites widgets when the payload carries a `widgets` key, so
+ * this sends only `queryPriority`. A full dashboard save would race any
+ * concurrent edit and could clobber widgets with a stale copy.
+ */
+export function updateDashboardQueryPriority(
+  orgId: string,
+  dashboardId: string,
+  queryPriority: DashboardDetails['queryPriority']
+): Promise<DashboardDetails> {
+  const promise = fetchMutation<DashboardDetails>({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
+    method: 'PUT',
+    data: {queryPriority},
+  });
+
+  promise.catch(response => {
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+    } else {
+      addErrorMessage(t('Unable to update query priority'));
     }
   });
 

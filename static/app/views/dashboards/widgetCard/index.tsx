@@ -36,6 +36,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -144,6 +145,7 @@ function WidgetCard(props: Props) {
     history: 'replace',
   });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resolve TOP_N → AREA before capturing context (the render body mutates
@@ -317,6 +319,7 @@ function WidgetCard(props: Props) {
         widget,
         widgetLegendState,
         dashboardFilters,
+        queryPriority: dashboardQueryPriority,
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
