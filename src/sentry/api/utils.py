@@ -30,6 +30,7 @@ from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
     InvalidParams,
     InvalidSearchQuery,
     SearchQueryParseError,
@@ -410,6 +411,15 @@ def handle_query_errors() -> Iterator[None]:
         sentry_sdk.set_tag("query.error_reason", message)
         sentry_sdk.set_attribute("query.error_reason", message)
         logger.info("A query error was handled", extra={"query.error_reason": message})
+        if isinstance(error, InvalidFunctionArgumentQuery):
+            raise ParseError(
+                detail={
+                    "detail": original_error,
+                    "code": "invalid_function_argument",
+                    "function": error.function,
+                    "argument": error.argument,
+                }
+            )
         if isinstance(error, SearchQueryParseError):
             raise ParseError(detail={"detail": original_error, "code": "invalid_search_query"})
         raise ParseError(detail=original_error)

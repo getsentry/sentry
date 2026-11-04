@@ -25,6 +25,7 @@ from sentry.api.utils import (
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
     InvalidParams,
     InvalidSearchQuery,
     SearchQueryParseError,
@@ -217,6 +218,19 @@ class HandleQueryErrorsTest(APITestCase):
                     raise ex
             except Exception as e:
                 assert isinstance(e, (FooBarError, APIException))
+
+    def test_handle_invalid_function_argument(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+        }
 
     def test_handle_search_query_parse_error(self) -> None:
         with pytest.raises(ParseError) as excinfo:
