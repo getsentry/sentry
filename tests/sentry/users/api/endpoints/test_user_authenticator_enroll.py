@@ -365,7 +365,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     @assume_test_silo_mode(SiloMode.CELL)
     def require_2fa_for_organization(self) -> None:
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        self.assertTrue(self.organization.flags.require_2fa.is_set)
+        self.assertTrue(self.organization.flags.require_2fa)
 
     def _assert_pending_invite_details_in_session(self, om: OrganizationMember) -> None:
         assert self.client.session["invite_token"] == om.token

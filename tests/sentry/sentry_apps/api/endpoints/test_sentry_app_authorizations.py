@@ -44,15 +44,24 @@ class TestSentryAppAuthorizations(APITestCase):
             prevent_token_exchange=True,
         )
 
+        application = self.sentry_app.application
+        assert application is not None
+        assert application.client_secret is not None
+        grant = self.install.api_grant
+        assert grant is not None
+        self.application = application
+        self.client_secret = application.client_secret
+        self.api_grant = grant
+
     def get_response(self, *args: int | str, **params: int | str) -> Response:
         """Overriding `get_response` with some default data."""
         return super().get_response(
             self.install.uuid,
             **{
-                "client_id": self.sentry_app.application.client_id,
-                "client_secret": self.sentry_app.application.client_secret,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
                 "grant_type": GrantTypes.AUTHORIZATION,
-                "code": self.install.api_grant.code,
+                "code": self.api_grant.code,
                 **params,
             },
         )
@@ -106,7 +115,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_error_response(code="123", status_code=401)
 
     def test_expired_grant(self) -> None:
-        self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
+        self.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self.get_error_response(status_code=401)
         assert response.data["detail"] == "Grant has already expired"
 
@@ -189,9 +198,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Now use client_secret_jwt to refresh
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,
@@ -211,9 +218,7 @@ class TestSentryAppAuthorizations(APITestCase):
         old_token_id = initial_response.data["id"]
 
         # Now use client_secret_jwt to refresh
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,
@@ -246,8 +251,8 @@ class TestSentryAppAuthorizations(APITestCase):
         # Create an expired JWT
         expired_time = datetime.now(UTC) - timedelta(hours=1)
         jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id,
-            self.sentry_app.application.client_secret,
+            self.application.client_id,
+            self.client_secret,
             exp=expired_time,
         )
 
@@ -265,7 +270,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Create a JWT with wrong secret
-        jwt_token = self._create_jwt(self.sentry_app.application.client_id, "wrong-secret")
+        jwt_token = self._create_jwt(self.application.client_id, "wrong-secret")
 
         response = self.get_error_response(
             self.install.uuid,
@@ -280,7 +285,7 @@ class TestSentryAppAuthorizations(APITestCase):
         # First exchange the grant for a token
         self.get_success_response()
 
-        jwt_token = self._create_jwt("wrong-client-id", self.sentry_app.application.client_secret)
+        jwt_token = self._create_jwt("wrong-client-id", self.client_secret)
 
         response = self.get_error_response(
             self.install.uuid,
@@ -294,9 +299,7 @@ class TestSentryAppAuthorizations(APITestCase):
     def test_client_secret_jwt_requires_existing_token(self) -> None:
         # CLIENT_SECRET_JWT should only be used to refresh existing tokens
         # Attempting to use it without first exchanging the grant should fail
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_error_response(
             self.install.uuid,
@@ -313,9 +316,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.get_success_response()
 
         # Use client_secret_jwt to get a new token
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
 
         response = self.get_success_response(
             self.install.uuid,

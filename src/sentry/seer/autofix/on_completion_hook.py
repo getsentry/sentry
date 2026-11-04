@@ -8,7 +8,6 @@ from django.db import router, transaction
 from django.utils import timezone
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -332,9 +331,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             seer_run_state_id=run_id,
         ).first()
 
-        webhook_payload = {
+        sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
+        webhook_payload: dict[str, object] = {
             "run_id": run_id,
-            "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
+            "sentry_run_id": sentry_run_id,
             "group_id": group.id,
         }
 
@@ -448,7 +448,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             emit_pr_ready_for_review(
                 organization=organization,
                 group=group,
-                sentry_run_id=webhook_payload["sentry_run_id"],
+                sentry_run_id=sentry_run_id,
                 state=state,
             )
 
@@ -477,7 +477,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
 
     @classmethod
-    def _format_code_changes_payload(cls, state: SeerRunState) -> dict:
+    def _format_code_changes_payload(cls, state: SeerRunState) -> dict[str, Any]:
         diffs_by_repo = state.get_diffs_by_repo()
         return {
             repo: [
@@ -639,17 +639,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
-        should_verify_pr_content = features.has(
-            "organizations:autofix-verify-pr-content", organization=group.organization
-        )
-
         try:
             trigger_push_changes(
                 group,
                 run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
-                verify_content=should_verify_pr_content,
+                verify_content=True,
             )
         except Exception:
             logger.exception(

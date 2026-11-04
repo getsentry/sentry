@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -34,6 +35,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
@@ -61,7 +63,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, installation) -> Response[SentryAppInstallationResult]:
+    def get(
+        self, request: Request, installation: RpcSentryAppInstallation
+    ) -> Response[SentryAppInstallationResult]:
         """
         Return details about a single custom integration (Sentry App) installation.
         """
@@ -83,10 +87,11 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, installation) -> Response:
+    def delete(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
         """
         Uninstall a custom integration (Sentry App) from an organization.
         """
+        user = require_user(request)
         sentry_app_installation = SentryAppInstallation.objects.get(id=installation.id)
         db = router.db_for_write(SentryAppInstallation)
 
@@ -103,12 +108,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
             def notify_on_commit() -> None:
                 try:
-                    assert request.user.is_authenticated, (
-                        "User must be authenticated to delete installation"
-                    )
                     SentryAppInstallationNotifier(
                         sentry_app_installation=sentry_app_installation,
-                        user=request.user,
+                        user=user,
                         action="deleted",
                     ).run()
                 except RequestException as exc:
@@ -117,14 +119,13 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                     pass
 
             transaction.on_commit(notify_on_commit, using=db)
-        if request.user.is_authenticated:
-            analytics.record(
-                SentryAppUninstalledEvent(
-                    user_id=request.user.id,
-                    organization_id=sentry_app_installation.organization_id,
-                    sentry_app=sentry_app_installation.sentry_app.slug,
-                ),
-            )
+        analytics.record(
+            SentryAppUninstalledEvent(
+                user_id=user.id,
+                organization_id=sentry_app_installation.organization_id,
+                sentry_app=sentry_app_installation.sentry_app.slug,
+            ),
+        )
         return Response(status=204)
 
     @extend_schema(
@@ -142,7 +143,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         },
     )
     def put(
-        self, request: Request, installation
+        self, request: Request, installation: RpcSentryAppInstallation
     ) -> Response[SentryAppInstallationResult] | Response[ValidationErrorResponse]:
         """
         Update a custom integration (Sentry App) installation, for example to mark a

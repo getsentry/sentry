@@ -1,18 +1,21 @@
 import logging
 import re
+from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
-from typing import TypedDict
+from typing import Protocol, TypedDict, cast
 
 import zstandard
 from django.conf import settings
 from django.core.files import File
+from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -32,6 +35,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import absolute_uri
@@ -70,7 +77,11 @@ class ChunkTooLarge(OSError):
     """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
 
 
-def _read_bounded(reader, limit):
+class _ChunkReader(Protocol):
+    def read(self, size: int) -> bytes: ...
+
+
+def _read_bounded(reader: _ChunkReader, limit: int) -> bytes:
     """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
 
     Loops until the reader signals EOF or we exceed ``limit``. The loop matters
@@ -89,7 +100,9 @@ def _read_bounded(reader, limit):
             raise ChunkTooLarge("Chunk size too large")
 
 
-def _spool_bounded(reader, limit: int, name: str, max_memory_size: int) -> File:
+def _spool_bounded(
+    reader: _ChunkReader, limit: int, name: str | None, max_memory_size: int
+) -> "File[bytes]":
     """Decompress ``reader`` into a temporary file; raise :class:`ChunkTooLarge` past ``limit``.
 
     A request holds every chunk until all of them are stored, so decompressed
@@ -118,7 +131,9 @@ def _spool_bounded(reader, limit: int, name: str, max_memory_size: int) -> File:
     return chunk
 
 
-def _decompress_bounded(reader, name: str, spool_max_memory_size: int | None) -> File:
+def _decompress_bounded(
+    reader: _ChunkReader, name: str | None, spool_max_memory_size: int | None
+) -> "File[bytes]":
     limit = settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE
     if spool_max_memory_size is not None:
         return _spool_bounded(reader, limit, name, spool_max_memory_size)
@@ -128,12 +143,12 @@ def _decompress_bounded(reader, name: str, spool_max_memory_size: int | None) ->
     return chunk
 
 
-def gzip_chunk(file, spool_max_memory_size: int | None) -> File:
+def gzip_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
     reader = GzipFile(fileobj=file, mode="rb")
     return _decompress_bounded(reader, file.name, spool_max_memory_size)
 
 
-def zstd_chunk(file, spool_max_memory_size: int | None) -> File:
+def zstd_chunk(file: UploadedFile, spool_max_memory_size: int | None) -> "File[bytes]":
     # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
     # (which reads across concatenated gzip members) and matches the
     # convention in `src/sentry/models/eventattachment.py`. Without it a
@@ -154,7 +169,7 @@ class ChunkUploadPermission(OrganizationReleasePermission):
             getattr(request, "successful_authenticator", None), LaunchpadRpcSignatureAuthentication
         )
 
-    def has_permission(self, request: Request, view) -> bool:
+    def has_permission(self, request: Request, view: APIView) -> bool:
         # Allow access for Launchpad service authentication
         if self._is_launchpad_authenticated(request):
             return True
@@ -162,7 +177,12 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         # Fall back to standard organization permission check
         return super().has_permission(request, view)
 
-    def has_object_permission(self, request: Request, view, organization) -> bool:
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
         # Allow access for Launchpad service authentication
         if self._is_launchpad_authenticated(request):
             return True
@@ -316,7 +336,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         },
     )
     def post(
-        self, request: Request, organization
+        self, request: Request, organization: Organization
     ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
         """
         Upload file chunks so they can be assembled into debug information files or artifact
@@ -361,7 +381,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
-        files: list[File] = []
+        files: list[File[bytes]] = []
         try:
             return self._store_chunks(request, organization, encoding, files, logger)
         finally:
@@ -375,7 +395,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         encoding: str,
-        files: list[File],
+        files: "list[File[bytes]]",
         logger: logging.Logger,
     ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
         checksums = []
@@ -393,13 +413,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 files.append(chunk)
                 checksums.append(name)
 
-                if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
+                chunk_size = chunk.size
+                if chunk_size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
                     logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
                         {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
 
-                total_size += chunk.size
+                total_size += chunk_size
                 if total_size > MAX_REQUEST_SIZE:
                     logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
@@ -427,16 +448,18 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str, spool_max_memory_size: int | None):
+def get_files(
+    request: Request, encoding: str, spool_max_memory_size: int | None
+) -> "Iterator[tuple[File[bytes], str]]":
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
-            yield gzip_chunk(chunk, spool_max_memory_size), chunk.name
+            yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         elif encoding == "zstd":
-            yield zstd_chunk(chunk, spool_max_memory_size), chunk.name
+            yield zstd_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)
         else:
-            yield chunk, chunk.name
+            yield chunk, cast(str, chunk.name)
 
     # Legacy: older clients send gzipped chunks under `file_gzip` with no
     # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        yield gzip_chunk(chunk, spool_max_memory_size), chunk.name
+        yield gzip_chunk(chunk, spool_max_memory_size), cast(str, chunk.name)

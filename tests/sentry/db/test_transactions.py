@@ -82,7 +82,7 @@ class CaseMixin:
                 Factories.create_user()
 
     def test_in_test_assert_no_transaction(self) -> None:
-        def do_assertions():
+        def do_assertions() -> None:
             in_test_assert_no_transaction("Not, in transaction, should not fail")
 
             with pytest.raises(AssertionError):
@@ -98,7 +98,7 @@ class CaseMixin:
             do_assertions()
 
     def test_transaction_on_commit(self) -> None:
-        def do_assertions():
+        def do_assertions() -> None:
             calls = []
             transaction.on_commit(lambda: calls.append("a"), "default")
 

@@ -566,9 +566,7 @@ export function SeerExplorerContent({
       canInvestigate: startInvestigation !== undefined,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
-      onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
-        ? setOverrideBashModeEnabled
-        : undefined,
+      onBashMode: setOverrideBashModeEnabled,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,

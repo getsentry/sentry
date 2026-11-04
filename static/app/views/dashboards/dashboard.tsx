@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -158,7 +159,8 @@ function DashboardInner({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
-  const isGeneratedDashboard = location.query.seerRunId !== undefined;
+  const [seerRunId] = useQueryState('seerRunId');
+  const isGeneratedDashboard = seerRunId !== null;
 
   const debouncedHandleResize = useDebouncedCallback(
     () => {

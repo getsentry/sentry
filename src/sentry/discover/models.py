@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
 from typing import ClassVar
 
 from django.db import models, router, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
 from sentry import features
@@ -63,7 +64,7 @@ class DatasetSourcesTypes(Enum):
     FORCED = 3
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return tuple((source.value, source.name.lower()) for source in cls)
 
 
@@ -91,6 +92,14 @@ class DiscoverSavedQuery(Model):
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     version = models.IntegerField(null=True)
@@ -124,12 +133,21 @@ class DiscoverSavedQuery(Model):
                 fields=["organization", "created_by_id", "is_homepage"],
                 condition=Q(is_homepage=True),
                 name="unique_user_homepage_query",
-            )
+            ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_discoversavedquery_single_creator",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
-    def set_projects(self, project_ids):
+    def set_projects(self, project_ids: Sequence[int]) -> None:
         with transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)):
             DiscoverSavedQueryProject.objects.filter(discover_saved_query=self).exclude(
                 project__in=project_ids
@@ -151,7 +169,9 @@ class DiscoverSavedQuery(Model):
 
 class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
     @staticmethod
-    def __schedule_invalidate_project_config_transaction_commit(instance, trigger):
+    def __schedule_invalidate_project_config_transaction_commit(
+        instance: TeamKeyTransaction, trigger: str
+    ) -> None:
         try:
             project = getattr(instance.project_team, "project", None)
         except ProjectTeam.DoesNotExist:
@@ -184,7 +204,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
             instance, "teamkeytransaction.post_save"
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: TeamKeyTransaction, **kwargs: object) -> None:
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
         # been committed or rolled back to ensure we don't read stale data in the

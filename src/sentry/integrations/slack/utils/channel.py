@@ -363,7 +363,8 @@ def check_for_channel(
             sample_rate=1.0,
             tags={"type": "chat_deleteScheduledMessage"},
         )
-        return msg_response["channel"]
+        channel = msg_response["channel"]
+        return channel
     except SlackApiError as e:
         metrics.incr(
             SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC,

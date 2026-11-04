@@ -12,6 +12,10 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.models.apikey import ApiKey
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member:read"]
 
@@ -25,7 +29,12 @@ class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
     }
     permission_classes = (OrganizationAdminPermission,)
 
-    def get(self, request: Request, organization_context, organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         """
         List an Organization's API Keys
         ```````````````````````````````````
@@ -39,7 +48,12 @@ class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
 
         return Response(serialize(queryset, request.user))
 
-    def post(self, request: Request, organization_context, organization) -> Response:
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         """
         Create an Organization API Key
         ```````````````````````````````````

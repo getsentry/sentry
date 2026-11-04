@@ -11,6 +11,8 @@ from sentry.deletions.base import (
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
@@ -47,7 +49,15 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
-        relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
+        relations: list[BaseRelation] = [
+            ModelRelation(Team, {"organization_id": instance.id}),
+            ModelRelation(
+                InboxItemEvent,
+                {"inbox_item__organization_id": instance.id},
+                BulkModelDeletionTask,
+            ),
+            ModelRelation(InboxItem, {"organization_id": instance.id}, BulkModelDeletionTask),
+        ]
 
         pre_environment_models = (
             OrganizationMember,

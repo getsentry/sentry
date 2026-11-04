@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
@@ -8,6 +9,7 @@ from unittest import mock
 
 import orjson
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -31,16 +33,20 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
-def first_symbol_source_id(sources_json):
+def first_symbol_source_id(sources_json: bytes | str) -> Any:
     sources = orjson.loads(sources_json)
     return sources[0]["id"]
 
@@ -87,6 +93,26 @@ class ProjectDetailsTest(APITestCase):
             self.project.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
+
+    @freeze_time()
+    def test_with_stats_includes_recently_reopened_issues(self) -> None:
+        self.project.update_option("sentry:resolve_age", 1)
+        now = datetime.now(timezone.utc)
+        old = now - timedelta(days=1)
+        self.create_group(project=self.project, last_seen=now)
+        self.create_group(project=self.project, last_seen=old)
+        reopened = self.create_group(project=self.project, last_seen=old)
+        self.create_group_activity(reopened, type=ActivityType.SET_UNRESOLVED.value)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+        )
+        assert response.data["stats"]["unresolved"] == 2
+
+        with freeze_time(now + timedelta(hours=1)):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, qs_params={"include": "stats"}
+            )
+        assert response.data["stats"]["unresolved"] == 0
 
     def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -312,6 +338,34 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_update_skips_bookmark(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            self.url,
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+            data={"platform": "rust", "isBookmarked": True},
+        )
+
+        assert response.status_code == 200, response.content
+        self.project.refresh_from_db()
+        assert self.project.platform == "rust"
+        assert not ProjectBookmark.objects.filter(project_id=self.project.id).exists()
 
     def test_admin_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
@@ -1398,7 +1452,7 @@ class ProjectUpdateTest(APITestCase):
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
-    def symbol_sources(self):
+    def symbol_sources(self) -> list[dict[str, Any]]:
         project = Project.objects.get(id=self.project.id)
         source1 = {
             "id": "honk",
@@ -1544,11 +1598,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.create_project_rule(project=self.other_project, name="rule3")
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1568,7 +1622,7 @@ class CopyProjectSettingsTest(APITestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=()):
+    def assert_settings_not_copied(self, project: Project, teams: Sequence[Team] = ()) -> None:
         for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
@@ -1712,7 +1766,7 @@ class ProjectDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
     @mock.patch("sentry.db.pending_deletion.uuid4")
-    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin):
+    def _delete_project_and_assert_deleted(self, mock_uuid4_mixin: mock.MagicMock) -> None:
         mock_uuid4_mixin.return_value = self.get_mock_uuid()
 
         with self.settings(SENTRY_PROJECT=0):
@@ -1764,8 +1818,8 @@ class ProjectDeleteTest(APITestCase):
         "sentry.tasks.seer.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
-        self, mock_call_seer_delete_project_grouping_records
-    ):
+        self, mock_call_seer_delete_project_grouping_records: mock.MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
@@ -1818,7 +1872,7 @@ class TestProjectDetailsBase(APITestCase, ABC):
         self.login_as(user=self.user)
         self._apply_old_date_to_project_and_org()
 
-    def _apply_old_date_to_project_and_org(self):
+    def _apply_old_date_to_project_and_org(self) -> None:
         # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
         # automatically.
         old_date = datetime.now(tz=timezone.utc) - timedelta(
@@ -2006,7 +2060,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsBase):
 
     def test_put_dynamic_sampling_after_migrating_to_new_plan_default_biases_with_missing_flags(
         self,
-    ):
+    ) -> None:
         """
         Test for case when a user is an old plan but tries to update dynamic sampling biases that is a
         feature of new plans
