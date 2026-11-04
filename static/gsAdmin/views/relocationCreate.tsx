@@ -70,7 +70,7 @@ function RelocationForm() {
       toast.success('The relocation job has started!');
       navigate(`/_admin/relocations/${cell.name}/${response.uuid}/`);
     } catch (error: any) {
-      if (error.responseJSON) {
+      if (typeof error.responseJSON?.detail === 'string') {
         toast.error(error.responseJSON.detail);
       }
     }

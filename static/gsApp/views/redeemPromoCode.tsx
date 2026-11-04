@@ -65,7 +65,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         const nonFieldErrors =
           error.responseJSON?.non_field_errors || error.responseJSON?.nonFieldErrors;
 
-        if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
+        if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
           toast.error(nonFieldErrors[0], {duration: 10000});
         }
       } else {

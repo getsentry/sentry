@@ -511,7 +511,11 @@ export function RelocationDetails() {
           onError={res => {
             setArtifactsState(ArtifactsState.ERROR);
             if (res.status === 401 || res.status === 403) {
-              toast.error(res.responseJSON.detail);
+              toast.error(
+                typeof res.responseJSON?.detail === 'string'
+                  ? res.responseJSON.detail
+                  : 'Unable to load artifacts.'
+              );
             } else if (res.status === 404) {
               toast.error('Artifacts not found!');
             } else {

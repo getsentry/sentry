@@ -348,7 +348,8 @@ export function CustomerDetails() {
 
   const onForkCustomer = (params: Record<string, any>) => {
     if (params.error) {
-      toast.error(params.error.responseJSON.detail);
+      const detail = params.error.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     } else {
       toast.success('The relocation job has started!');
     }

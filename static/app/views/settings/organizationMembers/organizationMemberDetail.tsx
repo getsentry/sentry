@@ -113,9 +113,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       );
     },
     onError: error => {
-      toast.error(
-        (error?.responseJSON?.detail as string) ?? t('Failed to update member')
-      );
+      const detail = error?.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Failed to update member'));
     },
   });
 

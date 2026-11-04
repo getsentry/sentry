@@ -60,7 +60,10 @@ export async function fetchTeamKeyTransactions(
         hasMore = false;
       }
     } catch (err: any) {
-      toast.error(err.responseJSON?.detail ?? t('Error fetching team key transactions'));
+      const detail = err.responseJSON?.detail;
+      toast.error(
+        typeof detail === 'string' ? detail : t('Error fetching team key transactions')
+      );
       throw err;
     }
   }
@@ -101,7 +104,7 @@ export function toggleKeyTransaction(
       const responseJSON = response?.responseJSON;
       const errorDetails = responseJSON?.detail ?? responseJSON?.non_field_errors;
 
-      if (Array.isArray(errorDetails) && errorDetails.length && errorDetails[0]) {
+      if (Array.isArray(errorDetails) && typeof errorDetails[0] === 'string') {
         toast.error(errorDetails[0]);
       } else if (typeof errorDetails === 'string') {
         toast.error(errorDetails);

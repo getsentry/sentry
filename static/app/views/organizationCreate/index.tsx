@@ -133,9 +133,9 @@ function OrganizationCreate() {
         }
         const detail =
           error instanceof RequestError ? error.responseJSON?.detail : undefined;
+        const message = typeof detail === 'string' ? detail : detail?.message;
         toast.error(
-          (typeof detail === 'string' ? detail : detail?.message) ??
-            t('Unable to create organization.')
+          typeof message === 'string' ? message : t('Unable to create organization.')
         );
       });
     },

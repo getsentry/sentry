@@ -98,7 +98,11 @@ function TransactionThresholdModal({
         if (Array.isArray(errorMessage)) {
           errorMessage = errorMessage[0];
         }
-        toast.error(errorMessage as string);
+        toast.error(
+          typeof errorMessage === 'string'
+            ? errorMessage
+            : t('Unable to update threshold')
+        );
       });
   };
 
@@ -144,7 +148,9 @@ function TransactionThresholdModal({
       .catch(err => {
         const errorMessage =
           err instanceof RequestError ? err.responseJSON?.threshold : null;
-        toast.error(errorMessage as string);
+        toast.error(
+          typeof errorMessage === 'string' ? errorMessage : t('Unable to reset threshold')
+        );
       });
   };
 

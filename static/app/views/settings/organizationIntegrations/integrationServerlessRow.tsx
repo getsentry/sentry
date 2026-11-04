@@ -71,7 +71,8 @@ export function IntegrationServerlessRow({
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      toast.error(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
   }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
@@ -98,7 +99,8 @@ export function IntegrationServerlessRow({
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      toast.error(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
   };

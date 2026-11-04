@@ -76,9 +76,10 @@ export function useDeleteGroupEventAttachment() {
       toast.success(t('Attachment deleted'));
     },
     onError: (error, variables, context) => {
+      const detail = error?.responseJSON?.detail;
       toast.error(
-        error?.responseJSON?.detail
-          ? (error.responseJSON.detail as string)
+        typeof detail === 'string'
+          ? detail
           : t('An error occurred while deleting the attachment')
       );
 
