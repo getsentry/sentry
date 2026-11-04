@@ -166,54 +166,6 @@ def _metric_config_schema(schema: dict[str, Any]) -> dict[str, Any]:
     return {"oneOf": variants, "discriminator": {"propertyName": "detectionType"}}
 
 
-def _snuba_query_schema(auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
-    from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
-    from sentry.snuba.snuba_query_validator import (
-        QUERY_TYPE_VALID_DATASETS,
-        QUERY_TYPE_VALID_EVENT_TYPES,
-        SnubaQueryValidator,
-    )
-
-    schema = _map_camel_case_serializer(SnubaQueryValidator(), auto_schema, direction)
-    properties = schema["properties"]
-    properties.pop("groupBy", None)
-    properties["queryType"]["enum"] = [query_type.value for query_type in SnubaQuery.Type]
-    properties["timeWindow"]["description"] = "Aggregation window in seconds."
-    properties["eventTypes"]["items"]["enum"] = [
-        event_type.name.lower() for event_type in SnubaQueryEventType.EventType
-    ]
-    properties["extrapolationMode"]["enum"] = [
-        ExtrapolationMode.UNKNOWN.name.lower(),
-        ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED.name.lower(),
-    ]
-    variants = []
-    for query_type, datasets in QUERY_TYPE_VALID_DATASETS.items():
-        variant_properties: dict[str, Any] = {
-            "queryType": {"type": "integer", "enum": [query_type.value]},
-            "dataset": {"type": "string", "enum": sorted(dataset.value for dataset in datasets)},
-        }
-        event_types = QUERY_TYPE_VALID_EVENT_TYPES.get(query_type)
-        if event_types is not None:
-            variant_properties["eventTypes"] = {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                    "enum": sorted(event_type.name.lower() for event_type in event_types),
-                },
-            }
-        else:
-            variant_properties["eventTypes"] = {"type": "array", "maxItems": 0}
-        variants.append(
-            {
-                "title": f"{query_type.name.title()} Query",
-                "type": "object",
-                "properties": variant_properties,
-            }
-        )
-    schema["oneOf"] = variants
-    return schema
-
-
 def _detector_schema(auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
     from sentry.incidents.grouptype import MetricIssue
     from sentry.incidents.metric_issue_detector import MetricIssueConditionGroupValidator
@@ -249,9 +201,6 @@ def _detector_schema(auto_schema: AutoSchema, direction: Direction) -> dict[str,
             )
             condition_group["properties"]["conditions"]["items"] = _metric_condition_schema()
             schema["properties"]["conditionGroup"] = condition_group
-            schema["properties"]["dataSources"]["items"] = _snuba_query_schema(
-                auto_schema, direction
-            )
             if not is_update:
                 schema["required"] = sorted(
                     set(schema.get("required", []))

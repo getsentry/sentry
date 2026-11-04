@@ -1,13 +1,13 @@
 from drf_spectacular.utils import OpenApiExample
 
 _METRIC_DATA_SOURCE = {
-    "queryType": 0,
+    "query_type": 0,
     "dataset": "events",
     "query": "is:unresolved",
     "aggregate": "count()",
-    "timeWindow": 3600,
-    "environment": None,
-    "eventTypes": ["error", "default"],
+    "time_window": 3600,
+    "environment": "production",
+    "event_types": ["error", "default"],
 }
 
 _THRESHOLD_CONDITIONS = [
