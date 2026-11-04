@@ -26,6 +26,7 @@ from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.sdk import protect_sensitive_request
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -70,6 +71,7 @@ class OAuthTokenView(View):
     @csrf_exempt
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
+        protect_sensitive_request()
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
