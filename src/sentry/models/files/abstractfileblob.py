@@ -16,6 +16,7 @@ from taskbroker_client.task import Task
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, WrappingU32IntegerField
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
+from sentry.models.files.abstractfileblobpending import AbstractFileBlobPending
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
     get_size_and_checksum,
@@ -66,6 +67,10 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @abstractmethod
+    def _pending_model(cls) -> type[AbstractFileBlobPending]: ...
+
+    @classmethod
+    @abstractmethod
     def _storage_config(cls) -> dict[str, Any] | None:
         raise NotImplementedError(cls)
 
@@ -103,9 +108,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 extra={"checksum": checksum, "size": size},
             )
             blob = cls(size=size, checksum=checksum)
-            blob.path = cls.generate_unique_path()
-            storage = get_storage(cls._storage_config())
-            storage.save(blob.path, fileobj)
+            blob.path = cls._save_to_storage(cls.generate_unique_path(), fileobj)
             blobs_to_save.append(blob)
             metrics.distribution(
                 "filestore.blob-size", size, tags={"function": "from_files"}, unit="byte"
@@ -117,6 +120,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
         def _save_blob(blob: Self) -> None:
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
+            saved_path = cast(str, blob.path)
             try:
                 blob.save()
             except IntegrityError:
@@ -127,11 +131,11 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 # we also won't have to worry about concurrent deletes, as deletions
                 # are only happening for blobs older than 24h.
                 metrics.incr("filestore.upload_race", sample_rate=1.0)
-                saved_path = blob.path
                 blob = cls.objects.get(checksum=blob.checksum)
                 storage = get_storage(cls._storage_config())
-                storage.delete(cast(str, saved_path))
+                storage.delete(saved_path)
 
+            cls._forget_pending(saved_path)
             blob._ensure_blob_owned(organization)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
@@ -216,21 +220,43 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             return existing
 
         blob = cls(size=size, checksum=checksum)
-        blob.path = cls.generate_unique_path()
-        storage = get_storage(cls._storage_config())
-        storage.save(blob.path, fileobj)
+        saved_path = cls._save_to_storage(cls.generate_unique_path(), fileobj)
+        blob.path = saved_path
         try:
             blob.save()
         except IntegrityError:
             # see `_save_blob` above
             metrics.incr("filestore.upload_race", sample_rate=1.0)
-            saved_path = blob.path
             blob = cls.objects.get(checksum=checksum)
+            storage = get_storage(cls._storage_config())
             storage.delete(saved_path)
 
+        cls._forget_pending(saved_path)
         metrics.distribution("filestore.blob-size", size, unit="byte")
         logger.debug("FileBlob.from_file.end")
         return blob
+
+    @classmethod
+    def _save_to_storage(cls, path: str, fileobj: IO[bytes]) -> str:
+        """
+        Write `fileobj` to `path` and return the path the storage used.
+
+        The path is recorded in the database before the bytes exist, so a
+        write that never reaches `blob.save()` is still visible to
+        `sentry cleanup`. Inside a caller's transaction the record is only as
+        durable as that transaction.
+        """
+        pending_model = cls._pending_model()
+        pending = pending_model.objects.create(path=path)
+        storage = get_storage(cls._storage_config())
+        saved_path = storage.save(path, fileobj)
+        if saved_path != path:
+            pending_model.objects.filter(id=pending.id).update(path=saved_path)
+        return saved_path
+
+    @classmethod
+    def _forget_pending(cls, path: str) -> None:
+        cls._pending_model().objects.filter(path=path).delete()
 
     @classmethod
     def generate_unique_path(cls) -> str:

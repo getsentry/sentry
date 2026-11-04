@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 from io import BytesIO
+from typing import IO
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from django.utils import timezone
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
+from sentry.models.files.fileblobpending import FileBlobPending
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -31,6 +33,55 @@ class FileBlobTest(TestCase):
         assert my_file1.id == my_file2.id
         assert my_file1.checksum == my_file2.checksum
         assert my_file1.path == my_file2.path
+
+    def test_from_file_records_path_before_writing(self) -> None:
+        storage = Mock()
+        storage.save.side_effect = OSError("disk full")
+
+        with patch("sentry.models.files.abstractfileblob.get_storage", return_value=storage):
+            with pytest.raises(OSError):
+                FileBlob.from_file(ContentFile(b"foo bar"))
+
+        pending = FileBlobPending.objects.get()
+        assert pending.path == storage.save.call_args.args[0]
+        assert not FileBlob.objects.filter(path=pending.path).exists()
+
+    def test_from_file_forgets_path_once_blob_exists(self) -> None:
+        blob = FileBlob.from_file(ContentFile(b"foo bar"))
+
+        assert blob.path
+        assert not FileBlobPending.objects.exists()
+
+    def test_from_file_records_path_returned_by_storage(self) -> None:
+        storage = Mock()
+        storage.save.side_effect = lambda path, fileobj: f"{path}_renamed"
+
+        with patch("sentry.models.files.abstractfileblob.get_storage", return_value=storage):
+            blob = FileBlob.from_file(ContentFile(b"foo bar"))
+
+        assert blob.path == f"{storage.save.call_args.args[0]}_renamed"
+        assert not FileBlobPending.objects.exists()
+
+    def test_from_files_records_only_the_unfinished_write(self) -> None:
+        first = ContentFile(b"first chunk")
+        second = ContentFile(b"second chunk")
+        storage = Mock()
+
+        def save(path: str, fileobj: IO[bytes]) -> str:
+            if storage.save.call_count == 2:
+                raise OSError("disk full")
+            return path
+
+        storage.save.side_effect = save
+
+        with patch("sentry.models.files.abstractfileblob.get_storage", return_value=storage):
+            with pytest.raises(OSError):
+                FileBlob.from_files([first, second])
+
+        first_path, second_path = (call.args[0] for call in storage.save.call_args_list)
+        assert FileBlob.objects.filter(path=first_path).exists()
+        assert not FileBlob.objects.filter(path=second_path).exists()
+        assert list(FileBlobPending.objects.values_list("path", flat=True)) == [second_path]
 
     def test_generate_unique_path(self) -> None:
         path = FileBlob.generate_unique_path()
