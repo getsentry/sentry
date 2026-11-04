@@ -1,5 +1,6 @@
 import datetime
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,6 +17,7 @@ from sentry.api.utils import (
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
+    is_member_disabled_from_limit,
     print_and_capture_handler_exception,
     to_valid_int_id,
     to_valid_int_id_list,
@@ -27,6 +29,7 @@ from sentry.exceptions import (
     InvalidParams,
     InvalidSearchQuery,
 )
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import (
@@ -352,6 +355,17 @@ class HandleQueryErrorsTest(APITestCase):
 
         assert raised.value.status_code == 500
         mock_capture_exception.assert_called_once_with(error)
+
+
+class IsMemberDisabledFromLimitTest(APITestCase):
+    def test_service_account_is_not_a_limited_member(self) -> None:
+        request = self.make_request()
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.organization.id, name="sa"
+        )
+        request.user = principal
+
+        assert is_member_disabled_from_limit(request, self.organization) is False
 
 
 class ClampDateRangeTest(unittest.TestCase):

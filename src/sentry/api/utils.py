@@ -23,6 +23,7 @@ from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
 from sentry import options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.principal import has_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.bounded import BoundedBigAutoField
@@ -312,7 +313,9 @@ def is_member_disabled_from_limit(
     if is_active_superuser(request) or is_active_staff(request):
         return False
 
-    # must be a simple user at this point
+    # Only a member can be limited; with no user, a membership lookup would match pending invites.
+    if not has_user(user):
+        return False
 
     member: RpcOrganizationMember | None
     if isinstance(organization, RpcUserOrganizationContext):

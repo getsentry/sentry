@@ -6,7 +6,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 import {GroupReplays} from './groupReplays';
@@ -24,8 +24,8 @@ function renderNoAccess() {
 }
 
 function GroupReplaysWithGroup() {
-  const params = useParams<{groupId: string}>();
-  const {data: group, isPending, isError, refetch} = useGroup({groupId: params.groupId});
+  const groupId = useGroupId();
+  const {data: group, isPending, isError, refetch} = useGroup({groupId});
 
   if (isPending) {
     return <LoadingIndicator />;

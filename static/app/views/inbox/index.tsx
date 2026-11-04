@@ -126,7 +126,8 @@ function InboxContent() {
             )}
           </Container>
         </Stack>
-        <Container overflowY="auto" minHeight={0}>
+        {/* Keyed so that selecting another item starts the preview scrolled to the top */}
+        <Container key={selectedItem?.id} overflowY="auto" minHeight={0}>
           <InboxItemPreview subject={selectedSubject} />
         </Container>
       </Grid>
@@ -144,7 +145,7 @@ export default function Inbox() {
   return (
     <SentryDocumentTitle title={t('Inbox')} orgSlug={organization.slug}>
       <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Inbox')}} />
-      <Stack flex={1} minHeight={0} background="primary" overflow="hidden">
+      <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">
         <InboxContent />
       </Stack>
     </SentryDocumentTitle>
