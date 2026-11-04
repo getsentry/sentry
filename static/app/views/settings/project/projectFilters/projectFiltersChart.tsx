@@ -25,7 +25,7 @@ type Props = {
 // The stats endpoint returns its groups in no fixed order, so the series are sorted
 // before the palette is applied. That keeps each filter's color stable across loads
 // and puts the biggest contributor at the bottom of the stack.
-export function formatData(rawData: UsageSeries | undefined, theme: Theme) {
+function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
     return [];
   }
