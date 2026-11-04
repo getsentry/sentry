@@ -167,7 +167,7 @@ class DiscordRequestTest(TestCase):
             ),
         ):
             discord_request.validate()
-            headers = {}
+            headers: dict[str, str] = {}
             ViewerContextHook().on_dispatch(headers)
             ctx = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
             assert ctx.actor.type == (ActorType.USER if linked else ActorType.UNKNOWN)
