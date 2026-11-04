@@ -1,9 +1,11 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
@@ -77,15 +79,105 @@ function mockExtractionAttributes() {
   ]);
 }
 
-describe('ConversationSpanDetail tabs', () => {
+describe('ConversationSpanDetail', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [
+        DashboardFixture([], {
+          id: '100',
+          prebuiltId: PrebuiltDashboardId.AI_AGENTS_MODELS,
+        }),
+        DashboardFixture([], {
+          id: '200',
+          prebuiltId: PrebuiltDashboardId.AI_AGENTS_TOOLS,
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: []},
     });
+  });
+
+  it.each([
+    ['gen_ai.response.model', 'gpt-4o', 'chat', 'View model dashboard', '100'],
+    ['gen_ai.request.model', 'gpt-4', 'chat', 'View model dashboard', '100'],
+    ['gen_ai.tool.name', 'lookup', 'execute_tool', 'View tool dashboard', '200'],
+  ] as const)(
+    'shows a dashboard icon beside %s',
+    async (field, value, operation, label, id) => {
+      mockAttributes('ai-span', [
+        {
+          name: 'gen_ai.operation.type',
+          type: 'str',
+          value: operation === 'chat' ? 'ai_client' : 'tool',
+        },
+        {name: field, type: 'str', value},
+      ]);
+      render(
+        <ConversationSpanDetail
+          node={makeNode('ai-span', operation)}
+          traceId="trace-id"
+          activeTab="input"
+          onTabChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByRole('button', {name: label})).toHaveAttribute(
+        'href',
+        expect.stringContaining(`/dashboard/${id}/`)
+      );
+      expect(screen.getByText(value)).toBeInTheDocument();
+    }
+  );
+
+  it('uses the response model rather than the request alias when both are present', async () => {
+    mockAttributes('chat-span', [
+      {name: 'gen_ai.operation.type', type: 'str', value: 'ai_client'},
+      {name: 'gen_ai.request.model', type: 'str', value: 'gpt-4o'},
+      {name: 'gen_ai.response.model', type: 'str', value: 'gpt-4o-2024-08-06'},
+    ]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('chat-span', 'chat')}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    const link = await screen.findByRole('button', {name: 'View model dashboard'});
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+    expect(JSON.parse(url.searchParams.get('globalFilter')!).value).toBe(
+      'gen_ai.response.model:[gpt-4o-2024-08-06]'
+    );
+    expect(screen.getByText('gpt-4o-2024-08-06')).toBeInTheDocument();
+  });
+
+  it('does not show dashboard links without a model or tool name', async () => {
+    mockAttributes('chat-span', [
+      {name: 'gen_ai.operation.type', type: 'str', value: 'ai_client'},
+    ]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('chat-span', 'chat')}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('tab', {name: 'Input'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: /View .* dashboard/})
+    ).not.toBeInTheDocument();
   });
 
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
