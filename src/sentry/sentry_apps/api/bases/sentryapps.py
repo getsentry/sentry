@@ -21,6 +21,7 @@ from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.integrations.api.bases.integration import PARANOID_GET
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -369,6 +370,22 @@ class SentryAppInstallationsPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
+        if request.user.is_authenticated and request.user.is_sentry_app:
+            # Integration tokens act as the app's proxy user, which has no org membership.
+            # Limit them to the org of the installation that issued the token, so a published
+            # app's token for one org cannot read another org that also installed the app.
+            if not (
+                is_api_token_auth(request.auth) and request.auth.organization_id == organization.id
+            ):
+                raise SentryAppError(
+                    message="Could not find requested organization", status_code=404
+                )
+            # Installing an app is an action a member takes, not something an integration
+            # can do with its own token.
+            if request.method != "GET":
+                return False
+            return ensure_scoped_permission(request, self.scope_map.get(request.method))
+
         user_id = acting_user_id(request.user)
         organizations = (
             user_service.get_organizations(user_id=user_id) if user_id is not None else ()
@@ -407,10 +424,15 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
             )
 
         # Preserve the summary lookup's visibility rules before checking permissions.
+        # Sentry App proxy users are never members; has_object_permission scopes them by token.
+        is_member_required = not (request.user.is_authenticated and request.user.is_sentry_app)
         if context is None or (
             not is_active_superuser(request)
             and user_id is not None
-            and (context.member is None or context.organization.status != OrganizationStatus.ACTIVE)
+            and (
+                (is_member_required and context.member is None)
+                or context.organization.status != OrganizationStatus.ACTIVE
+            )
         ):
             raise SentryAppError(message="Could not find requested organization", status_code=404)
         self.check_object_permissions(request, context)

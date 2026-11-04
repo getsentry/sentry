@@ -165,6 +165,70 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             self.org.update(status=OrganizationStatus.PENDING_DELETION)
         self.get_error_response(getattr(self.org, identifier), status_code=404)
 
+    def _integration_token_headers(self, scopes: tuple[str, ...]) -> dict[str, str]:
+        self.internal_app = self.create_internal_integration(
+            name="Internal", organization=self.org, scopes=scopes
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_app
+        )
+        return {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+
+    def test_internal_integration_token_lists_installs(self) -> None:
+        headers = self._integration_token_headers(scopes=("org:read",))
+
+        by_slug = self.get_success_response(self.org.slug, extra_headers=headers)
+        by_id = self.get_success_response(self.org.id, extra_headers=headers)
+
+        assert by_slug.data == by_id.data
+        assert {install["app"]["slug"] for install in by_slug.data} == {
+            self.unpublished_app.slug,
+            self.internal_app.slug,
+        }
+
+    def test_integration_token_does_not_see_grant_codes(self) -> None:
+        headers = self._integration_token_headers(scopes=("org:integrations",))
+
+        response = self.get_success_response(self.org.slug, extra_headers=headers)
+
+        assert len(response.data) == 2
+        assert all("code" not in install for install in response.data)
+
+    def test_integration_token_requires_org_scope(self) -> None:
+        headers = self._integration_token_headers(scopes=("project:read",))
+
+        self.get_error_response(self.org.slug, extra_headers=headers, status_code=403)
+
+    def test_internal_integration_token_cannot_read_other_org(self) -> None:
+        headers = self._integration_token_headers(scopes=("org:read",))
+
+        self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
+        self.get_error_response(self.super_org.id, extra_headers=headers, status_code=404)
+
+    def test_published_app_token_is_limited_to_its_installation(self) -> None:
+        # The app's proxy user is installed on both orgs, but its token belongs to one.
+        app = self.create_sentry_app(
+            name="Published", organization=self.super_org, published=True, scopes=("org:read",)
+        )
+        install = self.create_sentry_app_installation(
+            slug=app.slug, organization=self.org, user=self.user
+        )
+        self.create_sentry_app_installation(
+            slug=app.slug, organization=self.super_org, user=self.superuser
+        )
+        assert install.api_token is not None
+        headers = {"HTTP_AUTHORIZATION": f"Bearer {install.api_token.token}"}
+
+        self.get_success_response(self.org.slug, extra_headers=headers)
+        self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
+
+    def test_integration_token_cannot_read_inactive_org(self) -> None:
+        headers = self._integration_token_headers(scopes=("org:read",))
+        with assume_test_silo_mode_of(Organization):
+            self.org.update(status=OrganizationStatus.PENDING_DELETION)
+
+        self.get_error_response(self.org.slug, extra_headers=headers, status_code=404)
+
 
 @control_silo_test
 class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
@@ -247,6 +311,24 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user)
         app = self.create_sentry_app(name="Sample", organization=self.org, published=True)
         self.get_error_response(self.org.slug, slug=app.slug, status_code=403)
+
+    def test_integration_token_cannot_install_apps(self) -> None:
+        internal_app = self.create_internal_integration(
+            name="Internal", organization=self.org, scopes=("org:integrations", "org:write")
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_app
+        )
+
+        self.get_error_response(
+            self.org.slug,
+            slug=self.published_app.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+        assert not SentryAppInstallation.objects.filter(
+            sentry_app=self.published_app, organization_id=self.org.id
+        ).exists()
 
     def test_install_twice(self) -> None:
         self.login_as(user=self.user)
