@@ -24,6 +24,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
@@ -104,6 +105,12 @@ class AgentTokenAuthAndGateTest(TestCase):
         unsupported = agent_token.resolve_minting_principal(AnonymousUser(), None)
         assert unsupported is agent_token.MintingPrincipalRejection.UNSUPPORTED
         assert not agent_token.is_mintable_agent_principal(unsupported)
+
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.org.id, name="seer-autofix"
+        )
+        rejected = agent_token.resolve_minting_principal(service_account, None)
+        assert rejected is agent_token.MintingPrincipalRejection.UNSUPPORTED
 
     def test_minting_principal_rejects_integrations_and_agents(self) -> None:
         integration_user = self.create_user(is_sentry_app=True)
