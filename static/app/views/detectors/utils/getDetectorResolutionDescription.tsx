@@ -1,7 +1,8 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 interface BaseDetectionParams {
   detectionType: MetricDetectorConfig['detectionType'];

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {
   getStacktrace,
   StackTracePreviewContent,
@@ -13,7 +15,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 import {ActionDropDown, ContextValueType} from './actionDropdown';
 import {NoContext} from './noContext';
@@ -66,11 +67,10 @@ export function EventContext(props: EventContextProps) {
   }
 
   if (data.type === 'transaction') {
-    const transactionDuration = getDuration(
-      data.endTimestamp - data.startTimestamp,
-      2,
-      true
-    );
+    const transactionDuration = getDuration(data.endTimestamp - data.startTimestamp, {
+      precision: 2,
+      style: 'short',
+    });
     const status = getStatusBodyText(data);
     return (
       <Wrapper data-test-id="quick-context-hover-body">

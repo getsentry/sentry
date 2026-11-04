@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';

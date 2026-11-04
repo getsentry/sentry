@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {DateTime} from '@sentry/scraps/dateTime';
-import {useDurationFormatter, useTimezone} from '@sentry/scraps/datetime';
+import {DateTime, useTimezone} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -91,7 +90,6 @@ export function RelativeTime({
   showSeconds,
 }: RelativeTimeProps) {
   const timezone = useTimezone();
-  const formatDuration = useDurationFormatter();
   const {t} = useTranslation();
 
   // Defaulted to match <TimeSince>, so a card that omits them reads the same as
@@ -110,13 +108,7 @@ export function RelativeTime({
     <Fragment>
       {label != null && (
         <Tooltip.Header
-          trailingItems={getRelativeDate(
-            date,
-            resolvedSuffix,
-            resolvedPrefix,
-            unitStyle,
-            formatDuration
-          )}
+          trailingItems={getRelativeDate(date, resolvedSuffix, resolvedPrefix, unitStyle)}
         >
           {label}
         </Tooltip.Header>

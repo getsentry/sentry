@@ -1,6 +1,7 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';

@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
+import {getDuration} from '@sentry/scraps/duration';
 import {Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -19,7 +20,6 @@ import {
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -221,9 +221,9 @@ export function PageOverviewWebVitalsDetailPanel({
       return null;
     }
     if (value < 1000) {
-      return getDuration(value / 1000, 0, true);
+      return getDuration(value / 1000, {style: 'short'});
     }
-    return getDuration(value / 1000, 2, true);
+    return getDuration(value / 1000, {precision: 2, style: 'short'});
   };
 
   const renderSpansBodyCell = (col: Column, row: SpanSampleRowWithScore) => {
@@ -359,7 +359,7 @@ export function PageOverviewWebVitalsDetailPanel({
                   ? undefined
                   : webVital === 'cls'
                     ? webVitalValue?.toFixed(2)
-                    : getDuration(webVitalValue / 1000, 2, true)
+                    : getDuration(webVitalValue / 1000, {precision: 2, style: 'short'})
               }
               webVital={webVital}
               score={webVitalScore}

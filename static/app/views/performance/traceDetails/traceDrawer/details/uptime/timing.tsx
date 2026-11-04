@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,7 +55,7 @@ export function UptimeTimingDetails(
     {
       name: 'duration',
       type: 'str',
-      value: getDuration(duration, 2, true),
+      value: getDuration(duration, {precision: 2, style: 'short'}),
     },
     {
       name: 'start_timestamp',

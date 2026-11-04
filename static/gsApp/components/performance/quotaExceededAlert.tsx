@@ -2,13 +2,13 @@ import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
+import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -26,11 +26,11 @@ function getFormattedDateTime(dateTime: PageFilterDatetime): string | null {
   if (period) {
     const periodToHours = parsePeriodToHours(period);
     const periodStartDate = new Date(Date.now() - periodToHours * 60 * 60 * 1000);
-    return getFormattedDate(periodStartDate, format);
+    return formatDateTime(periodStartDate, {format, utc: true});
   }
 
   if (start && end) {
-    return `${getFormattedDate(new Date(start), format)} - ${getFormattedDate(new Date(end), format)}`;
+    return `${formatDateTime(new Date(start), {format, utc: true})} - ${formatDateTime(new Date(end), {format, utc: true})}`;
   }
 
   return null;

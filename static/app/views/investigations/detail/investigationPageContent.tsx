@@ -13,7 +13,6 @@ import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
