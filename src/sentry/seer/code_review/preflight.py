@@ -28,6 +28,7 @@ class PreflightDenialReason(StrEnum):
 
     ORG_LEGAL_AI_CONSENT_NOT_GRANTED = "org_legal_ai_consent_not_granted"
     ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW = "org_not_eligible_for_code_review"
+    ORG_ON_TOKEN_BILLED_SEER = "org_on_token_billed_seer"
     REPO_CODE_REVIEW_DISABLED = "repo_code_review_disabled"
     BILLING_MISSING_CONTRIBUTOR_INFO = "billing_missing_contributor_info"
     BILLING_QUOTA_EXCEEDED = "billing_quota_exceeded"
@@ -83,6 +84,12 @@ class CodeReviewPreflightService:
         return None
 
     def _check_org_feature_enablement(self) -> PreflightDenialReason | None:
+        # Token-billed Seer doesn't include code review. seat-based-seer-enabled is
+        # also true for these orgs, and code-review-beta or repo settings may linger
+        # from a previous plan, so this has to win over both.
+        if self._is_token_billed_seer_org:
+            return PreflightDenialReason.ORG_ON_TOKEN_BILLED_SEER
+
         if self._is_seat_based_seer_plan_org or self._is_code_review_beta_org:
             return None
 
@@ -147,6 +154,10 @@ class CodeReviewPreflightService:
     @cached_property
     def _is_seat_based_seer_plan_org(self) -> bool:
         return features.has("organizations:seat-based-seer-enabled", self.organization)
+
+    @cached_property
+    def _is_token_billed_seer_org(self) -> bool:
+        return features.has("organizations:token-billed-seer-enabled", self.organization)
 
     @cached_property
     def _is_code_review_beta_org(self) -> bool:

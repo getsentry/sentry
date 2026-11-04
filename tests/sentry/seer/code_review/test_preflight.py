@@ -103,6 +103,38 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     # -------------------------------------------------------------------------
+    # Token-billed Seer org tests - code review is not part of the plan
+    # -------------------------------------------------------------------------
+
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @with_feature(
+        [
+            "organizations:token-billed-seer-enabled",
+            "organizations:seat-based-seer-enabled",
+            "organizations:code-review-beta",
+        ]
+    )
+    def test_denied_when_org_is_on_token_billed_seer(self, mock_check_quota: MagicMock) -> None:
+        mock_check_quota.return_value = True
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.rpc_integration,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_ON_TOKEN_BILLED_SEER
+        assert result.settings is None
+        mock_check_quota.assert_not_called()
+
+    # -------------------------------------------------------------------------
     # Seer-added (legacy usage-based) org tests - not eligible for code review
     # -------------------------------------------------------------------------
 
