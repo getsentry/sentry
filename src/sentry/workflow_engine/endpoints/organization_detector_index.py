@@ -40,6 +40,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
@@ -86,7 +87,9 @@ detector_search_config = SearchConfig.create_from(
 parse_detector_query = partial(base_parse_search_query, config=detector_search_config)
 
 
-def convert_assignee_values(value: Iterable[str], projects: Sequence[Project], user: User) -> Q:
+def convert_assignee_values(
+    value: Iterable[str], projects: Sequence[Project], user: RequestPrincipal
+) -> Q:
     """
     Convert an assignee search value to a Django Q object for filtering detectors.
     """
