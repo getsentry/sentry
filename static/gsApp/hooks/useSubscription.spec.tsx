@@ -15,6 +15,10 @@ describe('useSubscription', () => {
     SubscriptionStore.init();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns the cached subscription without fetching when it is in the store', () => {
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -55,6 +59,7 @@ describe('useSubscription', () => {
 
     await waitFor(() => expect(result.current[1]).not.toBeNull());
     expect(customerRequest).toHaveBeenCalledTimes(1);
+    expect(result.current[0]).toBe(result.current[1]);
   });
 
   it('returns the subscription for the given organization when it differs from context', async () => {
@@ -73,10 +78,13 @@ describe('useSubscription', () => {
   });
 
   it('returns null without fetching when there is no organization', () => {
+    const loadData = jest.spyOn(SubscriptionStore, 'loadData');
+
     const {result} = renderHookWithProviders(() => useSubscription(), {
       organization: null,
     });
 
     expect(result.current).toBeNull();
+    expect(loadData).not.toHaveBeenCalled();
   });
 });
