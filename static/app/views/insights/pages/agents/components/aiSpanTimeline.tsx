@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -10,7 +11,6 @@ import {Text} from '@sentry/scraps/text';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   type ColorByOpType,
   getToolInputPreview,
@@ -267,7 +267,7 @@ const TimelineRow = memo(function TimelineRowImpl({
                   align="right"
                   tabular
                 >
-                  {getDuration(duration, 2, true, true)}
+                  {getDuration(duration, {precision: 2, style: 'narrow'})}
                 </Text>
               </Flex>
             </Flex>

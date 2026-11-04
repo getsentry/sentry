@@ -5,6 +5,7 @@ import type {Location} from 'history';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -15,7 +16,6 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
@@ -213,11 +213,11 @@ function getReadOutcome(
 
 /** `cache.item_age` and `cache.ttl` are whole seconds, so 0 means under a second. */
 function formatAge(seconds: number): string {
-  return seconds < 1 ? t('<1s') : getDuration(seconds, 0, true);
+  return seconds < 1 ? t('<1s') : getDuration(seconds, {style: 'short'});
 }
 
 function formatMs(ms: number): string {
-  return getDuration(ms / 1000, 2, true);
+  return getDuration(ms / 1000, {precision: 2, style: 'short'});
 }
 
 export function CacheLifecycleSection(props: CacheLifecycleSectionProps) {

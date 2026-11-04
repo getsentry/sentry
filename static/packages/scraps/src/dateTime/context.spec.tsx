@@ -1,6 +1,6 @@
 import {render, screen} from '@testing-library/react';
 
-import {DateTimeProvider, useClockDisplay, useTimezone} from './datetime';
+import {DateTimeProvider, useClockDisplay, useTimezone} from './index';
 
 describe('datetime', () => {
   function ShowDateTime() {

@@ -1,9 +1,8 @@
 import type * as React from 'react';
-import moment from 'moment-timezone';
+import type moment from 'moment-timezone';
 
-import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
-
-import {getFormat} from './dateTimeFormatting';
+import {useClockDisplay, useTimezone} from './context';
+import {formatDateTime} from './format';
 
 export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
@@ -69,29 +68,20 @@ export function DateTime({
   const clockDisplay = useClockDisplay();
   const currentTimezone = useTimezone();
 
-  const tz = forcedTimezone ?? currentTimezone;
-
-  const formatString =
-    format ??
-    getFormat({
-      dateOnly,
-      timeOnly,
-      // If the year prop is defined, then use it. Otherwise only show the year if `date`
-      // is in the current year.
-      year: year ?? moment.tz(tz).year() !== moment.tz(date, tz).year(),
-      // If timeZone is defined, use it. Otherwise only show the time zone if we're using
-      // UTC time.
-      timeZone: timeZone ?? utc,
-      seconds,
-      milliseconds,
-      clock24Hours: clockDisplay === '24',
-    });
-
   return (
     <time {...props}>
-      {utc
-        ? moment.utc(date).format(formatString)
-        : moment.tz(date, tz).format(formatString)}
+      {formatDateTime(date, {
+        format,
+        utc,
+        dateOnly,
+        timeOnly,
+        year,
+        timeZone,
+        seconds,
+        milliseconds,
+        timezone: forcedTimezone ?? currentTimezone,
+        clock24Hours: clockDisplay === '24',
+      })}
     </time>
   );
 }

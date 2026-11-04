@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
 import moment from 'moment-timezone';
 
+import {getFormat} from '@sentry/scraps/dateTime';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {
@@ -21,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import {getFormat, getUserTimezone} from 'sentry/utils/dates';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

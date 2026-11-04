@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {getDuration, type DurationFormatter} from '@sentry/scraps/duration';
+import {getDuration} from '@sentry/scraps/duration';
 
 export type RelaxedDateType = string | number | Date;
 
@@ -38,8 +38,7 @@ export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   prefix?: string,
-  unitStyle: UnitStyle = 'human',
-  formatDuration: DurationFormatter = getDuration
+  unitStyle: UnitStyle = 'human'
 ): string {
   const momentDate = moment(getDateObj(currentDateTime));
   const isFuture = momentDate.isAfter(moment());
@@ -50,7 +49,7 @@ export function getRelativeDate(
     // Moment provides a nice human relative date that uses "a few" for various units
     deltaText = momentDate.fromNow(true);
   } else {
-    deltaText = formatDuration(moment().diff(momentDate, 'seconds'), {
+    deltaText = getDuration(moment().diff(momentDate, 'seconds'), {
       style:
         unitStyle === 'short'
           ? 'short'

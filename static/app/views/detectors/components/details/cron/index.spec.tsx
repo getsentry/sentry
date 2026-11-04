@@ -19,7 +19,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {SentryDateTimeProvider} from 'sentry/scrapsProviders/datetime';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -319,11 +318,7 @@ describe('CronDetectorDetails - check-ins', () => {
       user.options.timezone = 'America/New_York';
       ConfigStore.set('user', user);
 
-      render(
-        <SentryDateTimeProvider>
-          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </SentryDateTimeProvider>
-      );
+      render(<CronDetectorDetails detector={detectorWithCheckIn} project={project} />);
 
       // Wait for check-ins to load and find the table within the section
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
@@ -397,11 +392,7 @@ describe('CronDetectorDetails - check-ins', () => {
       user.options.clock24Hours = true;
       ConfigStore.set('user', user);
 
-      render(
-        <SentryDateTimeProvider>
-          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </SentryDateTimeProvider>
-      );
+      render(<CronDetectorDetails detector={detectorWithCheckIn} project={project} />);
 
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
       const container = recentCheckInsHeading.closest('section')!;

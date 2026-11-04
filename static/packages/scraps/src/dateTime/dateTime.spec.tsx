@@ -1,8 +1,11 @@
 import type * as React from 'react';
 import {render, screen} from '@testing-library/react';
 
-import {DateTime} from '@sentry/scraps/dateTime';
-import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
+import {
+  DateTime,
+  type DateTimeContextValue,
+  DateTimeProvider,
+} from '@sentry/scraps/dateTime';
 
 beforeEach(() => {
   jest.useFakeTimers().setSystemTime(new Date('2017-10-17T02:41:20.000Z'));
@@ -26,6 +29,19 @@ describe('DateTime', () => {
       </DateTimeProvider>
     );
   }
+
+  it.each([
+    ['12', '7:41:20.123 PM'],
+    ['24', '19:41:20.123'],
+  ] as const)(
+    'renders milliseconds with a %s-hour time-only display',
+    (clockDisplay, expected) => {
+      renderPDT(<DateTime date="2017-10-17T02:41:20.123Z" timeOnly milliseconds />, {
+        clockDisplay,
+      });
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    }
+  );
 
   it('renders a date', () => {
     renderPDT(<DateTime date={new Date()} />);

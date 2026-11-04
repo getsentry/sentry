@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 
+import {getDuration} from '@sentry/scraps/duration';
 import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 /** Hide comparisons below this delta so tiny, noisy differences aren't shown. */
 export const MIN_PCT_DURATION_DIFFERENCE = 10;
@@ -54,7 +54,7 @@ export const getDurationComparison = (
 
   const formattedBaseDuration = (
     <Tooltip title={baseDescription} showUnderline underlineColor={variant}>
-      {getDuration(baseline, 2, true)}
+      {getDuration(baseline, {precision: 2, style: 'short'})}
     </Tooltip>
   );
 

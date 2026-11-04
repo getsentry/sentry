@@ -95,10 +95,6 @@
       "types": "./dist/boundaryContext.d.ts",
       "import": "./dist/boundaryContext.js"
     },
-    "./datetime": {
-      "types": "./dist/datetime.d.ts",
-      "import": "./dist/datetime.js"
-    },
     "./sizeContext": {
       "types": "./dist/sizeContext.d.ts",
       "import": "./dist/sizeContext.js"

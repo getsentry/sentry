@@ -4,6 +4,8 @@ import Jed from 'jed';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
+import {configureTranslation} from '@sentry/scraps/translation';
+
 import {toArray} from './utils/array/toArray';
 import {localStorageWrapper} from './utils/localStorage';
 
@@ -435,3 +437,5 @@ export {
   gettextDescription as td,
   pgettext,
 };
+
+configureTranslation({t: gettext, tn: ngettext, pgettext});

@@ -2,9 +2,10 @@ import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
+import {formatDateTime, getFormat} from '@sentry/scraps/dateTime';
+
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {computeShortInterval, truncationFormatter} from 'sentry/components/charts/utils';
-import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 
 type HelperProps =
   | 'isGroupedByDate'
@@ -38,10 +39,10 @@ export function createXAxisOptions({
 
     if (isGroupedByDate) {
       const dateFormat = useShortDate ? 'MMM Do' : 'MMM D';
-      const dateString = getFormattedDate(value, dateFormat, {local: !utc});
+      const dateString = formatDateTime(value, {format: dateFormat, utc});
 
-      const timeFormat = getTimeFormat({seconds: addSecondsToTimeFormat});
-      const timeString = getFormattedDate(value, timeFormat, {local: !utc});
+      const timeFormat = getFormat({seconds: addSecondsToTimeFormat, timeOnly: true});
+      const timeString = formatDateTime(value, {format: timeFormat, utc});
 
       const delimiter = useMultilineDate ? '\n' : ' ';
 

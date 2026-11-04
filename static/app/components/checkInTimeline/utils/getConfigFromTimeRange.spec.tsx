@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {getFormat} from 'sentry/utils/dates';
+import {getFormat} from '@sentry/scraps/dateTime';
 
 import {getConfigFromTimeRange} from './getConfigFromTimeRange';
 

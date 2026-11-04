@@ -1,3 +1,7 @@
+import moment from 'moment-timezone';
+
+import {getClockDisplay, getTimezone} from './config';
+
 function getDateFormat({year}: {year?: boolean}) {
   // "Jan 1, 2022" or "Jan 1"
   return year ? 'MMM D, YYYY' : 'MMM D';
@@ -6,8 +10,8 @@ function getDateFormat({year}: {year?: boolean}) {
 /**
  * Get a common time format
  */
-export function getTimeFormat({
-  clock24Hours,
+function getTimeFormat({
+  clock24Hours = getClockDisplay() === '24',
   seconds,
   timeZone,
   milliseconds,
@@ -40,9 +44,9 @@ export function getTimeFormat({
   return format;
 }
 
-export interface DateTimeFormatOptions {
+interface DateTimeFormatOptions {
   /**
-   * Whether to use a 24 hour clock. Defaults to a 12 hour clock.
+   * Whether to use a 24 hour clock. Defaults to the configured clock.
    */
   clock24Hours?: boolean;
   /**
@@ -87,7 +91,7 @@ export function getFormat({
   }
 
   if (timeOnly) {
-    return getTimeFormat({clock24Hours, seconds, timeZone});
+    return getTimeFormat({clock24Hours, seconds, milliseconds, timeZone});
   }
 
   const dateFormat = getDateFormat({year});
@@ -101,4 +105,27 @@ export function getFormat({
   // If the year is shown, then there's already a comma in dateFormat ("Jan 1, 2020"),
   // so we don't need to add another comma between the date and time
   return year ? `${dateFormat} ${timeFormat}` : `${dateFormat}, ${timeFormat}`;
+}
+
+export interface DateTimeOptions extends DateTimeFormatOptions {
+  format?: string;
+  timezone?: string;
+  utc?: boolean;
+}
+
+/** The canonical absolute-date formatter, shared by components and plain utility calls. */
+export function formatDateTime(
+  date: moment.MomentInput,
+  {format, timezone = getTimezone(), utc, ...options}: DateTimeOptions = {}
+): string {
+  const value = utc ? moment.utc(date) : moment.tz(date, timezone);
+  return value.format(
+    format ??
+      getFormat({
+        ...options,
+        year:
+          options.year ?? moment.tz(timezone).year() !== moment.tz(date, timezone).year(),
+        timeZone: options.timeZone ?? utc,
+      })
+  );
 }

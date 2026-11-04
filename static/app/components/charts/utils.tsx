@@ -2,6 +2,8 @@ import * as Sentry from '@sentry/react';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
+import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {ECharts, ReactEchartsRef} from 'sentry/types/echarts';
@@ -11,7 +13,6 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
@@ -355,9 +356,7 @@ export function computeEchartsAriaLabels(
   const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
 
   function formatDate(date: any) {
-    return getFormattedDate(date, dateFormat, {
-      local: !useUTC,
-    });
+    return formatDateTime(date, {format: dateFormat, utc: useUTC});
   }
 
   // Generate title (first sentence)
