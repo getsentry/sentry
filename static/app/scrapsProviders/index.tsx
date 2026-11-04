@@ -2,6 +2,7 @@ import {ToastProvider} from '@sentry/scraps/toast';
 import {TranslationContextProvider} from '@sentry/scraps/translation';
 
 import {t, tct} from 'sentry/locale';
+import {SentryPaginationProvider} from 'sentry/scrapsProviders/pagination';
 
 import {SentryDateTimeProvider} from './datetime';
 import {SentryFormErrorProvider} from './formError';
@@ -15,11 +16,13 @@ export function ScrapsProviders({children}: {children: React.ReactNode}) {
     <SentryFormErrorProvider>
       <TranslationContextProvider value={sentryTranslation}>
         <SentryDateTimeProvider>
-          <SentryLinkBehaviorProvider>
-            <SentryOverlayProvider>
-              <ToastProvider>{children}</ToastProvider>
-            </SentryOverlayProvider>
-          </SentryLinkBehaviorProvider>
+          <SentryPaginationProvider>
+            <SentryLinkBehaviorProvider>
+              <SentryOverlayProvider>
+                <ToastProvider>{children}</ToastProvider>
+              </SentryOverlayProvider>
+            </SentryLinkBehaviorProvider>
+          </SentryPaginationProvider>
         </SentryDateTimeProvider>
       </TranslationContextProvider>
     </SentryFormErrorProvider>

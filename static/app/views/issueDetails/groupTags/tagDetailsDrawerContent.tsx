@@ -29,6 +29,7 @@ import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -124,17 +125,17 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
       {isPending || isError ? null : (
         <Pagination
           caption={paginationCaption}
-          onCursor={(cursor, path, query) =>
+          onCursor={cursor =>
             navigate({
-              pathname: path,
+              pathname: location.pathname,
               query: {
-                ...query,
+                ...location.query,
                 tagDrawerCursor: cursor,
               },
             })
           }
           size="xs"
-          pageLinks={tagValuesResponse?.headers.Link}
+          {...getPaginationProps(tagValuesResponse?.headers.Link)}
         />
       )}
     </Fragment>

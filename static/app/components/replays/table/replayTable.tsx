@@ -11,7 +11,9 @@ import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHead
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -56,6 +58,7 @@ export function ReplayTable({
   const hasInteractiveColumn = columns.some(col => col.interactive);
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (isPending) {
     return (
@@ -153,8 +156,9 @@ export function ReplayTable({
       {pageLinks ? (
         <SimpleTable.FullWidthRow>
           <StyledPagination
-            pageLinks={pageLinks}
-            onCursor={(cursor, path, searchQuery) => {
+            {...getPaginationProps(pageLinks)}
+            onCursor={cursor => {
+              const {pathname: path, query: searchQuery} = location;
               navigate({
                 pathname: path,
                 query: {...searchQuery, cursor},

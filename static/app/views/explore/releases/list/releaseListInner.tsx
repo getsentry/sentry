@@ -16,6 +16,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ReleaseCard} from 'sentry/views/explore/releases/list/releaseCard';
@@ -127,7 +128,7 @@ export function ReleaseListInner({
                 showReleaseAdoptionStages={showReleaseAdoptionStages}
               />
             ))}
-            <Pagination pageLinks={releasesPageLinks} />
+            <Pagination {...getPaginationProps(releasesPageLinks)} />
           </Fragment>
         );
       }}

@@ -13,6 +13,8 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
@@ -32,6 +34,7 @@ interface FilesChangedProps {
 
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const [rdActiveRepo] = useQueryState(
     ReleasesDrawerFields.ACTIVE_REPO,
@@ -105,8 +108,9 @@ export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
               );
             })}
             <Pagination
-              pageLinks={fileListPageLinks}
-              onCursor={(cursor, path, searchQuery) => {
+              {...getPaginationProps(fileListPageLinks)}
+              onCursor={cursor => {
+                const {pathname: path, query: searchQuery} = location;
                 navigate({
                   pathname: path,
                   query: {...searchQuery, [ReleasesDrawerFields.FILES_CURSOR]: cursor},

@@ -11,6 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
@@ -65,7 +66,7 @@ export function RunsTable({configId}: {configId?: string}) {
           runs.map(run => <RunRow key={run.id} run={run} />)
         )}
       </SimpleTable>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

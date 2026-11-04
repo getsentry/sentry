@@ -21,6 +21,7 @@ import {parseCursor} from 'sentry/utils/cursor';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -232,7 +233,7 @@ function ProjectAttributesSettings() {
           />
         ))}
       </SimpleTable>
-      <Pagination pageLinks={data?.headers.Link} caption={caption} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} caption={caption} />
     </SentryDocumentTitle>
   );
 }

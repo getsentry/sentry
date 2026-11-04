@@ -6,6 +6,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {ReplayBulkDeleteAuditLogTable} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogTable';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
@@ -28,7 +29,7 @@ export function ReplayBulkDeleteAuditLog({projectSlug}: Props) {
   return (
     <Fragment>
       <ReplayBulkDeleteAuditLogTable rows={rows} error={error} isPending={isPending} />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

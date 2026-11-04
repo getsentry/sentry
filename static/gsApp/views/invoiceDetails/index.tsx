@@ -15,6 +15,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -125,7 +126,7 @@ function InvoiceDetails() {
         title={t('Receipt Details')}
         action={
           <InvoicePagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
           />
         }

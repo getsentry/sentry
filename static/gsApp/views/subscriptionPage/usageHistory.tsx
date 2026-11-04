@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -117,7 +118,9 @@ function UsageHistory({subscription}: Props) {
               <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
             ))}
           </Container>
-          {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
+          {usageListPageLinks && (
+            <Pagination {...getPaginationProps(usageListPageLinks)} />
+          )}
         </Fragment>
       ) : (
         <ContactBillingMembers />

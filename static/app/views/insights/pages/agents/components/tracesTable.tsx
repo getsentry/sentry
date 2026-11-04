@@ -38,6 +38,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -356,7 +357,7 @@ export function TracesTable({
         {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
       </Container>
-      <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
+      <StyledPagination {...getPaginationProps(pageLinks)} onCursor={setCursor} />
     </Container>
   );
 }

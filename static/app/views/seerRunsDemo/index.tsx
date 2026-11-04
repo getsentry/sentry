@@ -16,6 +16,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -183,7 +184,7 @@ export default function SeerRunsDemo() {
               grid={{renderBodyCell}}
               emptyMessage={t('No Seer runs found for this organization.')}
             />
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Container>
         )}
       </Stack>

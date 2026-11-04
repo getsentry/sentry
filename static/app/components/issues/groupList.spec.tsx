@@ -1,3 +1,4 @@
+import {Fragment, useState} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,6 +7,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -13,10 +15,28 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {CursorHandler} from '@sentry/scraps/pagination';
+
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
 import {GroupList} from './groupList';
+
+function GroupListWithExternalPagination() {
+  const [onCursor, setOnCursor] = useState<CursorHandler>();
+  return (
+    <Fragment>
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={{query: '', sort: 'new', limit: '50'}}
+        onFetchSuccess={(_state, handler) => setOnCursor(() => handler)}
+      />
+      <button disabled={!onCursor} onClick={() => onCursor?.('next-cursor', 1)}>
+        Next external page
+      </button>
+    </Fragment>
+  );
+}
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -252,7 +272,13 @@ describe('GroupList', () => {
       <GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />,
       {
         organization,
-        initialRouterConfig,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...defaultQueryParams, project: ['1', '2']},
+          },
+        },
       }
     );
 
@@ -269,6 +295,32 @@ describe('GroupList', () => {
     });
 
     expect(router.location.query.page).toBe('1');
+    expect(router.location.query.project).toEqual(['1', '2']);
+    expect(router.location.pathname).toBe(initialRouterConfig.location.pathname);
+  });
+
+  it('keeps external pagination handlers synchronized with URL filters', async () => {
+    const {router} = render(<GroupListWithExternalPagination />, {
+      organization,
+      initialRouterConfig,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Next external page'})).toBeEnabled()
+    );
+    act(() => {
+      router.navigate(
+        `${initialRouterConfig.location.pathname}?query=&sort=new&limit=50&environment=production&environment=staging`
+      );
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Next external page'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        ...defaultQueryParams,
+        environment: ['production', 'staging'],
+        cursor: 'next-cursor',
+        page: '1',
+      });
+    });
   });
 
   it('updates the assignee when changed', async () => {

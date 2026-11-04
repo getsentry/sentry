@@ -8,10 +8,12 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
@@ -35,6 +37,7 @@ export function ReplayIndexContainer({
 }: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {sortQuery} = useReplayTableSort();
   const [query] = useQueryStates(replayListParsers);
@@ -70,8 +73,9 @@ export function ReplayIndexContainer({
         widgetIsOpen={widgetIsOpen}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
+        {...getPaginationProps(pageLinks)}
+        onCursor={cursor => {
+          const {pathname: path, query: searchQuery} = location;
           trackAnalytics('replay.list-paginated', {
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
