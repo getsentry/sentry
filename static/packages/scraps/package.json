@@ -282,6 +282,10 @@
     "./useVirtualRows": {
       "types": "./dist/useVirtualRows.d.ts",
       "import": "./dist/useVirtualRows.js"
+    },
+    "./clipboard": {
+      "types": "./dist/clipboard/index.d.ts",
+      "import": "./dist/clipboard/index.js"
     }
   },
   "publishConfig": {
