@@ -89,7 +89,7 @@ export function useStartInvestigation():
       toast.dismiss();
       queryClient.setQueryData(
         getInvestigationDetailQueryOptions(organizationSlug, investigation.id).queryKey,
-        {json: investigation, headers: {}}
+        {json: investigation}
       );
       navigate(getInvestigationPath(organizationSlug, investigation.id));
     },

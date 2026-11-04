@@ -372,8 +372,8 @@ describe('useLiveRefresh', () => {
       replayId: replay.id,
     });
 
-    queryClient.setQueryData(replayOptions.queryKey, {json: {data: replay}, headers: {}});
-    queryClient.setQueryData(segmentsOptions.queryKey, {json: [], headers: {}});
+    queryClient.setQueryData(replayOptions.queryKey, {json: {data: replay}});
+    queryClient.setQueryData(segmentsOptions.queryKey, {json: []});
 
     const {result} = renderHook(() => useLiveRefresh({replay}), {wrapper: Wrapper});
 

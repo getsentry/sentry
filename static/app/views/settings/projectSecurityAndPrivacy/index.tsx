@@ -321,9 +321,7 @@ export default function ProjectSecurityAndPrivacy() {
               projectSlug: project.slug,
             }),
             prev =>
-              prev
-                ? {...prev, json: {...prev.json, ...data}}
-                : {headers: {}, json: updatedProject}
+              prev ? {...prev, json: {...prev.json, ...data}} : {json: updatedProject}
           );
         }}
       />

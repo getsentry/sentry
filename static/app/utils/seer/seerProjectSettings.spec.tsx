@@ -56,7 +56,6 @@ describe('getMutateSeerProjectSettingsOptions', () => {
     }).queryKey;
 
     queryClient.setQueryData(queryKey, {
-      headers: {},
       json: makeResponseFixture(),
     });
 
@@ -336,7 +335,6 @@ describe('getMutateSeerProjectSettingsOptions', () => {
       }).queryKey;
 
       queryClient.setQueryData(queryKey, {
-        headers: {},
         json: makeResponseFixture({
           agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
           integrationId: '123',
@@ -730,7 +728,6 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         project: {slug: 'project-a'},
       }).queryKey;
       queryClient.setQueryData(singleQueryKey, {
-        headers: {},
         json: makeResponseFixture({projectId: '1', projectSlug: 'project-a'}),
       });
 

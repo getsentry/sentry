@@ -1,7 +1,7 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import type {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiResponseWithHeaders} from 'sentry/utils/api/apiFetch';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,7 +23,7 @@ interface UseExploreTracesTableOptions {
 
 export type TracesTableResult = {
   error: QueryError | null;
-  result: UseQueryResult<ReturnType<typeof selectJsonWithHeaders<TraceResults>>>;
+  result: UseQueryResult<ApiResponseWithHeaders<TraceResults>>;
 };
 
 export function useExploreTracesTableApiOptions({

@@ -699,12 +699,11 @@ function SeerInvestigationSection({
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
         json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
-        headers: {},
       });
       queryClient.setQueryData(
         getInvestigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
           .queryKey,
-        {json: launchedInvestigation, headers: {}}
+        {json: launchedInvestigation}
       );
       navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },

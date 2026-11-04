@@ -1,6 +1,6 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 
-import type {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiResponseWithHeaders} from 'sentry/utils/api/apiFetch';
 
 export type WidgetQueryResult<TData> = Pick<
   UseQueryResult<TData>,
@@ -34,10 +34,10 @@ export function combineWidgetQueryResults<TData>(results: Array<UseQueryResult<T
  * unwrapped to each response's JSON.
  */
 export function combineWidgetJsonQueryResults<TJson>(
-  results: Array<UseQueryResult<ReturnType<typeof selectJsonWithHeaders<TJson>>>>
+  results: Array<UseQueryResult<ApiResponseWithHeaders<TJson>>>
 ): {
   data: Array<TJson | undefined>;
-  results: Array<WidgetQueryResult<ReturnType<typeof selectJsonWithHeaders<TJson>>>>;
+  results: Array<WidgetQueryResult<ApiResponseWithHeaders<TJson>>>;
 } {
   return {
     results: combineWidgetQueryResults(results).results,

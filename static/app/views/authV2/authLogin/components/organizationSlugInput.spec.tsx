@@ -118,7 +118,6 @@ describe('OrganizationSlugInput', () => {
       {path: {organizationIdOrSlug: 'acme'}, staleTime: 0}
     );
     queryClient.setQueryData(queryOptions.queryKey, {
-      headers: {},
       json: {
         authenticated: false,
         memberAuthenticated: false,

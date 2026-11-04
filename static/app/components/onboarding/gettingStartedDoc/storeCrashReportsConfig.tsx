@@ -81,7 +81,7 @@ export function StoreCrashReportsConfig({
           ProjectsStore.onUpdateSuccess(data);
           queryClient.setQueryData(
             makeDetailedProjectQueryKey({orgSlug: organization.slug, projectSlug}),
-            prev => ({headers: prev?.headers ?? {}, json: data})
+            {json: data}
           );
         },
         onError: () => addErrorMessage(t('Unable to save change')),

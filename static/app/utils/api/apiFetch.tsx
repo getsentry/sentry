@@ -28,7 +28,14 @@ export type ApiResponse<TResponseData = unknown> = {
   status?: number;
 };
 
-function extractHeaders(response: ResponseMeta | undefined): ApiResponse['headers'] {
+export type ApiResponseWithHeaders<TResponseData = unknown> =
+  ApiResponse<TResponseData> & {
+    headers: NonNullable<ApiResponse<TResponseData>['headers']>;
+  };
+
+function extractHeaders(
+  response: ResponseMeta | undefined
+): ApiResponseWithHeaders['headers'] {
   const hits = response?.getResponseHeader('X-Hits');
   const maxHits = response?.getResponseHeader('X-Max-Hits');
   return {

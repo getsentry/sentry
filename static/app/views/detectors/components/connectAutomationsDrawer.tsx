@@ -97,7 +97,7 @@ export function ConnectAutomationsDrawer({
 
     queryClient.setQueryData(
       automationsApiOptions(organization, {ids: newWorkflowIds}).queryKey,
-      old => ({headers: old?.headers ?? {}, json: newAutomations})
+      {json: newAutomations}
     );
 
     setLocalWorkflowIds(newWorkflowIds);

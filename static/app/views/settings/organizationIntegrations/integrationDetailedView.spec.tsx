@@ -624,7 +624,7 @@ describe('IntegrationDetailedView', () => {
             }),
             {query: {provider_key: 'slack', includeConfig: 0}},
           ]),
-          {json: cached, headers: {}}
+          {json: cached}
         );
         MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/integrations/`,

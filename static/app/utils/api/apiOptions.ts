@@ -2,7 +2,7 @@ import type {SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse, ApiResponseWithHeaders} from 'sentry/utils/api/apiFetch';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
@@ -43,7 +43,9 @@ function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unkn
 
 export const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
 
-export const selectJsonWithHeaders = <TData>(data: ApiResponse<TData>) => ({
+export const selectJsonWithHeaders = <TData>(
+  data: ApiResponse<TData>
+): ApiResponseWithHeaders<TData> => ({
   ...data,
   headers: data.headers ?? {},
 });

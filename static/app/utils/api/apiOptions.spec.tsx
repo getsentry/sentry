@@ -4,7 +4,7 @@ import {expectTypeOf} from 'expect-type';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiResponse, ApiResponseWithHeaders} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
@@ -181,6 +181,7 @@ describe('apiOptions', () => {
     );
 
     expect(result.current.data).toEqual({json: ['Project 1'], headers: {}});
+    expectTypeOf(result.current.data!).toMatchTypeOf<ApiResponseWithHeaders<string[]>>();
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<
       NonNullable<ApiResponse<string[]>['headers']>
     >();

@@ -127,7 +127,7 @@ export default function ProjectCspReports() {
               options: {...previous.options, ...updatedProject.options},
             }
           : updatedProject;
-        return {headers: prev?.headers ?? {}, json: merged};
+        return {json: merged};
       });
     },
   });

@@ -41,7 +41,7 @@ describe('useReplayCount', () => {
             staleTime: 0,
           }
         ).queryKey,
-        {json: {'1111': ['replay-a', 'replay-b']}, headers: {}}
+        {json: {'1111': ['replay-a', 'replay-b']}}
       );
     });
 

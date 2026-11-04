@@ -2,7 +2,11 @@ import {useCallback, useMemo} from 'react';
 import {queryOptions, useQueries, type UseQueryResult} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
-import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {
+  apiFetch,
+  type ApiResponse,
+  type ApiResponseWithHeaders,
+} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
@@ -371,11 +375,7 @@ export function useSpansTableQuery(
   // structurally shares `combine` output, so `data` keeps its reference while the
   // responses are unchanged, even when this callback is recreated.
   const combine = useCallback(
-    (
-      results: Array<
-        UseQueryResult<ReturnType<typeof selectJsonWithHeaders<SpansTableResponse>>>
-      >
-    ) => {
+    (results: Array<UseQueryResult<ApiResponseWithHeaders<SpansTableResponse>>>) => {
       const combined = combineWidgetJsonQueryResults(results);
       return {
         ...combined,

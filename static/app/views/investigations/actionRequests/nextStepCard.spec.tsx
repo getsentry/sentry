@@ -869,7 +869,6 @@ describe('NextStepCard', () => {
       'investigation-1'
     ).queryKey;
     queryClient.setQueryData(detailKey, {
-      headers: {},
       json: InvestigationDetailFixture({
         id: 'investigation-1',
         version: 4,
@@ -956,7 +955,6 @@ describe('NextStepCard', () => {
       'investigation-1'
     ).queryKey;
     queryClient.setQueryData(detailKey, {
-      headers: {},
       json: InvestigationDetailFixture({id: 'investigation-1'}),
     });
     render(

@@ -94,10 +94,9 @@ export function BuiltInRepositories({
             }),
           onSuccess: (response, variables) => {
             ProjectsStore.onUpdateSuccess(response);
-            queryClient.setQueryData(projectQueryKey, prev => ({
-              headers: prev?.headers ?? {},
+            queryClient.setQueryData(projectQueryKey, {
               json: response,
-            }));
+            });
             const {successMessage} = getRequestMessages(
               variables.builtinSymbolSources.length
             );

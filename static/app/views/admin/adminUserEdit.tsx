@@ -107,10 +107,9 @@ function AdminUserEditForm({
     mutationFn: (data: UserUpdatePayload) =>
       fetchMutation<User>({url: userEndpoint, method: 'PUT', data}),
     onSuccess: response => {
-      queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
+      queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, {
         json: response,
-        headers: prev?.headers ?? {},
-      }));
+      });
       form.reset(toFormValues(response));
       addSuccessMessage(t('User account updated.'));
     },
@@ -147,10 +146,9 @@ function AdminUserEditForm({
         data: {isActive: false},
       }),
     onSuccess: response => {
-      queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
+      queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, {
         json: response,
-        headers: prev?.headers ?? {},
-      }));
+      });
       form.reset(toFormValues(response));
       addSuccessMessage(t("%s's account has been deactivated.", response.email));
     },

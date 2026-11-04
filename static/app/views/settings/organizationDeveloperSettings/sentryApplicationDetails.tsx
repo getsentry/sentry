@@ -938,7 +938,6 @@ function SentryAppEditForm({
     const updatedTokens = tokens.concat(newToken);
     queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
       json: updatedTokens,
-      headers: {},
     });
     setNewTokens(updatedNewTokens);
   };
@@ -948,7 +947,6 @@ function SentryAppEditForm({
     await removeTokenMutation.mutateAsync({sentryAppSlug: app.slug, tokenId: token.id});
     queryClient.setQueryData(sentryAppTokensQueryOptions.queryKey, {
       json: updatedTokens,
-      headers: {},
     });
   };
 
@@ -1009,7 +1007,6 @@ function SentryAppEditForm({
       avatars.push(avatar as SentryAppAvatar);
       queryClient.setQueryData(sentryAppQueryOptions.queryKey, {
         json: {...app, avatars},
-        headers: {},
       });
     }
   };

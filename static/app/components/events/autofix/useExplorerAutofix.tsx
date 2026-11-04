@@ -930,10 +930,9 @@ export function useExplorerAutofix(
         if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
           addErrorMessage(errorMessage);
         } else {
-          queryClient.setQueryData(queryKey, prev => ({
-            headers: prev?.headers ?? {},
+          queryClient.setQueryData(queryKey, {
             json: makeErrorExplorerAutofixData(errorMessage),
-          }));
+          });
         }
         throw e;
       }
@@ -987,10 +986,9 @@ export function useExplorerAutofix(
   const reset = useCallback(() => {
     setWaitingForResponse(false);
     setWaitingForCodingAgent(false);
-    queryClient.setQueryData(
-      explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-      prev => ({headers: prev?.headers, json: makeInitialExplorerAutofixData()})
-    );
+    queryClient.setQueryData(explorerAutofixApiOptions(orgSlug, groupId).queryKey, {
+      json: makeInitialExplorerAutofixData(),
+    });
   }, [queryClient, orgSlug, groupId]);
 
   /**

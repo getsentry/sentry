@@ -90,8 +90,7 @@ export function getApiQueryData<TResponseData>(
 /**
  * Wraps React Query's queryClient.setQueryData to allow setting of API
  * response data without needing to provide a request object. The underlying cache
- * stores `ApiResponse<T> = {json, headers}`; this helper writes `{json: newData,
- * headers: prev?.headers ?? {}}`.
+ * stores `ApiResponse<T>`; this helper writes `{json: newData}`.
  * @deprecated Use queryClient.setQueryData directly with apiOptions or queryOptions — they infer the correct type from the query key
  */
 export function setApiQueryData<TResponseData>(
@@ -112,7 +111,7 @@ export function setApiQueryData<TResponseData>(
       if (newData === undefined) {
         return previous;
       }
-      return {json: newData, headers: previous?.headers ?? {}};
+      return {json: newData};
     }
   );
 
