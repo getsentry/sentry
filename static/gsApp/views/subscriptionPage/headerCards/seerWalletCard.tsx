@@ -38,14 +38,14 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
 
   const wallet = balanceQuery.data;
   const autoTopUp = autoTopUpQuery.data;
+  const isPaused = wallet.balance <= 0;
+  const totalCredits = wallet.included.total + wallet.purchased.total;
   const {creditPriceCents} = wallet;
   // The wallet only includes credit pricing for billing roles, and this card is only
   // rendered for them.
   if (creditPriceCents === undefined) {
     return <SeerWalletError />;
   }
-  const isPaused = wallet.balance <= 0;
-  const totalCredits = wallet.included.total + wallet.purchased.total;
 
   const openModal = () =>
     openSeerAutoTopUpModal({
