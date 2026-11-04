@@ -31,8 +31,8 @@ from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
+    TelemetryClassifierUpdateRequestSerializer,
 )
-from sentry.telemetry_classifiers.validators import TelemetryClassifierUpdateValidator
 
 CLASSIFIER_ID_PARAM = OpenApiParameter(
     name="classifier_id",
@@ -107,7 +107,7 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Update a Telemetry Classifier",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, CLASSIFIER_ID_PARAM],
-        request=TelemetryClassifierUpdateValidator,
+        request=TelemetryClassifierUpdateRequestSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "UpdateTelemetryClassifierResponse", TelemetryClassifierResponse
@@ -127,11 +127,12 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         if not request.access.has_project_scope(classifier.project, "project:write"):
             raise PermissionDenied
 
-        validator = TelemetryClassifierUpdateValidator(instance=classifier, data=request.data)
-        if not validator.is_valid():
-            return self.respond(validator.errors, status=400)
+        serializer = TelemetryClassifierUpdateRequestSerializer(
+            instance=classifier, data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
 
-        classifier = validator.save()
+        classifier = serializer.save()
         return self.respond(
             serialize(classifier, request.user, serializer=TelemetryClassifierSerializer())
         )

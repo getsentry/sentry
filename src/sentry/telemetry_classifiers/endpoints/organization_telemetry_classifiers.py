@@ -23,10 +23,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.serializers import (
+    TelemetryClassifierRequestSerializer,
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
 )
-from sentry.telemetry_classifiers.validators import TelemetryClassifierValidator
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
@@ -90,7 +90,7 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a Telemetry Classifier",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=TelemetryClassifierValidator,
+        request=TelemetryClassifierRequestSerializer,
         responses={
             201: inline_sentry_response_serializer(
                 "CreateTelemetryClassifierResponse", TelemetryClassifierResponse
@@ -110,19 +110,18 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)
 
-        validator = TelemetryClassifierValidator(
+        serializer = TelemetryClassifierRequestSerializer(
             data=request.data,
             context={"organization": organization, "access": request.access, "request": request},
         )
-        if not validator.is_valid():
-            return self.respond(validator.errors, status=400)
+        serializer.is_valid(raise_exception=True)
 
         if not request.access.has_project_scope(
-            validator.validated_data["project"], "project:write"
+            serializer.validated_data["project"], "project:write"
         ):
             raise PermissionDenied
 
-        classifier = validator.save()
+        classifier = serializer.save()
         return self.respond(
             serialize(classifier, request.user, serializer=TelemetryClassifierSerializer()),
             status=201,

@@ -5,10 +5,17 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
+from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, register
-from sentry.auth.principal import has_user
-from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.auth.principal import acting_user_id, has_user
+from sentry.telemetry_classifiers.models import (
+    TelemetryClassifier,
+    TelemetryClassifierDataset,
+    TelemetryClassifierStatus,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -78,3 +85,69 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
+
+
+class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
+    project = ProjectField(
+        scope="project:read",
+        id_allowed=True,
+        help_text="The ID or slug of the project the classifier runs on.",
+    )
+    name = serializers.CharField(max_length=256)
+    result_attribute = serializers.CharField(
+        max_length=256,
+        help_text="The attribute the classifier writes its result to. Must be unique per project.",
+    )
+    dataset = serializers.ChoiceField(choices=TelemetryClassifierDataset.choices)
+    filter_query = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text="Search query selecting the telemetry to classify.",
+    )
+    status = serializers.ChoiceField(
+        choices=TelemetryClassifierStatus.choices,
+        default=TelemetryClassifierStatus.ENABLED,
+    )
+    prebuilt_classifier_key = serializers.CharField(
+        max_length=256,
+        help_text="Key of the prebuilt classifier to run.",
+    )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # TODO: Support custom classifiers once their prompts can be compiled.
+        if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
+            raise serializers.ValidationError("Custom classifiers aren't supported yet.")
+
+        if TelemetryClassifier.objects.filter(
+            project=attrs["project"], result_attribute=attrs["result_attribute"]
+        ).exists():
+            raise serializers.ValidationError(
+                {"result_attribute": "Another classifier in this project uses this attribute."}
+            )
+
+        return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> TelemetryClassifier:
+        return TelemetryClassifier.objects.create(
+            **validated_data,
+            created_by_id=acting_user_id(self.context["request"].user),
+        )
+
+
+class TelemetryClassifierUpdateRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
+    status = serializers.ChoiceField(choices=TelemetryClassifierStatus.choices)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # TODO: Allow editing the classifier definition, not just enabling or disabling it.
+        if self.initial_data.keys() - {"status"}:
+            raise serializers.ValidationError("Only status can be updated.")
+
+        return attrs
+
+    def update(
+        self, instance: TelemetryClassifier, validated_data: dict[str, Any]
+    ) -> TelemetryClassifier:
+        instance.status = validated_data["status"]
+        instance.save()
+        return instance
