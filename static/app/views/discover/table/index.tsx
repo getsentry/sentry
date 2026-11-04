@@ -57,7 +57,7 @@ type TableState = {
  * It will pass the data it fetched to `TableView`, where the state of the
  * Table is maintained and controlled
  */
-class Table extends PureComponent<TableProps, TableState> {
+export class Table extends PureComponent<TableProps, TableState> {
   static getDerivedStateFromProps(
     nextProps: Readonly<TableProps>,
     prevState: TableState
@@ -315,9 +315,6 @@ class Table extends PureComponent<TableProps, TableState> {
     );
   }
 }
-
-// oxlint-disable-next-line @sentry/no-default-exports
-export default Table;
 
 const Container = styled('div')`
   min-width: 0;

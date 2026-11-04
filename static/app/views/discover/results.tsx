@@ -98,7 +98,7 @@ import {
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
 } from 'sentry/views/discover/savedQuery/utils';
-import Table from 'sentry/views/discover/table';
+import {Table} from 'sentry/views/discover/table';
 import {
   canCreateAlerts,
   generateTitle,
