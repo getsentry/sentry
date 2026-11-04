@@ -7,6 +7,7 @@ import shutil
 import string
 import sys
 import time
+from collections.abc import Generator
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
@@ -508,6 +509,58 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     clear_checkin_config_cache()
 
     sentry_sdk.get_global_scope().set_client(None)
+
+
+@pytest.hookimpl(wrapper=True, specname="pytest_runtest_teardown")
+def pytest_runtest_teardown_redis_transaction_violations(
+    item: pytest.Item,
+) -> Generator[None, object, object]:
+    # The transaction check in sentry.utils.redis raises at the Redis call, but the code under test
+    # can catch that error. The check also records each violation, and this fails the test when a
+    # record exists. It is a wrapper, so it runs after all fixture teardown and other teardown
+    # hooks, and it sees violations from setup, the test call and teardown.
+    from sentry.utils.redis import pop_redis_transaction_violations
+
+    try:
+        result = yield
+    except BaseException as error:
+        violations = pop_redis_transaction_violations()
+        if violations:
+            error.add_note(_format_redis_transaction_violations(violations))
+        raise
+
+    violations = pop_redis_transaction_violations()
+    if violations:
+        pytest.fail(_format_redis_transaction_violations(violations), pytrace=False)
+    return result
+
+
+def _format_redis_transaction_violations(violations: list[tuple[str, tuple[str, ...]]]) -> str:
+    from sentry.utils.redis import _REDIS_LOCK_BACKEND_CALLERS
+
+    # A retry loop makes the same stack many times, so show each stack once.
+    stacks: dict[tuple[str, ...], str] = {}
+    for message, callers in violations:
+        stacks.setdefault(callers, message)
+
+    lines = [
+        "Redis calls ran inside a database transaction. The check raises an AssertionError at "
+        "the call, but the code under test can catch it, so the check also fails the test here.",
+    ]
+    for callers, message in stacks.items():
+        if callers and callers[0] in _REDIS_LOCK_BACKEND_CALLERS:
+            kind = "lock call (_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET)"
+        else:
+            kind = "plain call (_REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET)"
+        lines.append("")
+        lines.append(f"{kind}: {message}")
+        lines.extend(f"    {caller}" for caller in callers or ("unknown",))
+    lines.append("")
+    lines.append(
+        "Move the Redis call out of the transaction. If the test causes the violation on "
+        "purpose, call sentry.utils.redis.pop_redis_transaction_violations() in the test."
+    )
+    return "\n".join(lines)
 
 
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:

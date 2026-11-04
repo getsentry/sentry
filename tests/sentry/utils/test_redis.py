@@ -31,6 +31,7 @@ from sentry.utils.redis import (
     _to_str,
     check_cluster_versions,
     get_cluster_from_options,
+    pop_redis_transaction_violations,
     pop_used_key_prefix_clients,
     redis_clusters,
 )
@@ -138,6 +139,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
             ):
                 client.get("test:redis-transaction-guard")
 
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
+
     @mock.patch(
         "sentry.utils.redis._redis_transaction_callers",
         return_value=("sentry.new_code.unexpected_redis_call",),
@@ -154,6 +162,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
                 match="Redis pipeline commands must run outside database transactions",
             ):
                 pipeline.execute()
+
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis pipeline commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
 
     @use_redis_cluster("transaction-guard-cluster")
     @mock.patch(
@@ -172,6 +187,13 @@ class TransactionCheckingRedisTest(SentryTestCase):
                 match="Redis commands must run outside database transactions",
             ):
                 client.get("test:redis-transaction-guard")
+
+        assert pop_redis_transaction_violations() == [
+            (
+                "Redis commands must run outside database transactions",
+                ("sentry.new_code.unexpected_redis_call",),
+            )
+        ]
 
     def test_transaction_ratchet_matches_only_existing_call_path(self) -> None:
         existing_callers = (
