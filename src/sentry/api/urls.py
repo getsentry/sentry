@@ -581,6 +581,7 @@ from sentry.scm.endpoints.scm_git import ScmGitEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
+from sentry.seer.endpoints.admin_autofix_single_run import SeerAdminAutofixSingleRunEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -3773,6 +3774,11 @@ INTERNAL_URLS = [
         r"^seer/autofix/retry/$",
         SeerAdminAutofixRetryEndpoint.as_view(),
         name="sentry-admin-seer-autofix-retry",
+    ),
+    re_path(
+        r"^seer/autofix/single-run/$",
+        SeerAdminAutofixSingleRunEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-single-run",
     ),
 ]
 

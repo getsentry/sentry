@@ -388,7 +388,6 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 organization,
                 request.user,
                 is_interactive=True,
-                # The client still requires seer-explorer-allow-bash-mode.
                 enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
                 enable_write_pull_request=has_create_pr,

@@ -72,13 +72,18 @@ function mockMultiOutcomeDroppedData() {
 function DroppedDataTrigger({
   dataset,
   enabled,
-  interval,
+  interval = '1h',
+  projects,
 }: {
   dataset: DiscoverDatasets;
   enabled?: boolean;
   interval?: string;
+  projects?: number[];
 }) {
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset, interval}, {enabled});
+  const openDroppedDataDrawer = useDroppedDataDrawer(
+    {dataset, interval, projects},
+    {enabled}
+  );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
 
@@ -405,6 +410,33 @@ describe('useDroppedDataDrawer', () => {
       expect(droppedDataRequest).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
+      )
+    );
+    expect(
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).toBeInTheDocument();
+  });
+
+  it('refetches in place when the chart projects change', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    const {rerender} = render(
+      <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[2]} />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
+
+    rerender(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[3]} />);
+
+    await waitFor(() =>
+      expect(droppedDataRequest).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({query: expect.objectContaining({project: [3]})})
       )
     );
     expect(

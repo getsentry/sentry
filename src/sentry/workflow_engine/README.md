@@ -83,10 +83,11 @@ optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `ty
 schema, API validator, and visibility rules for that implementation.
 
 An Issue Platform [`GroupType`](../issues/grouptype.py) describes the resulting issue.
-Settings, API validation, and handler lookup use the detector type directly. Existing
-stored values remain unchanged, but new detector identities do not need to match an
-issue-type slug. Type discovery is controlled by settings, separately from issue-type
-release controls. See [Data model](docs/data-model.md#detector).
+Settings, API validation, and handler lookup use the detector type directly. A detector
+type identifies an implementation; an issue type classifies a finding. Their string
+values do not need to match, and one implementation can emit several issue types.
+Settings control detector type discovery, while issue types have their own release
+controls. See [Data model](docs/data-model.md#detector).
 
 Detector implementations usually live in the product module that owns the issue type,
 not in this package. For example, uptime and metric issue handlers live in

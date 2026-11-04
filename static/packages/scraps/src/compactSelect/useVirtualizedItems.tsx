@@ -1,0 +1,92 @@
+import {useRef} from 'react';
+import type {Node} from '@react-types/shared';
+
+import type {FormSize} from '@sentry/scraps/theme';
+import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
+
+const heightEstimations = {
+  sm: {regular: 32, large: 49},
+  md: {regular: 36, large: 53},
+  xs: {regular: 25, large: 42},
+} as const satisfies Record<FormSize, {large: number; regular: number}>;
+
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Added to the virtualizer's wrapper height so the ListWrap's top/bottom
+ * padding remains visible when the list shrinks to a small number of items.
+ */
+const listPaddingVertical = 4;
+
+// explicitly using object here because Record<PropertyKey, unknown> requires an index signature
+// eslint-disable-next-line @typescript-eslint/no-restricted-types
+type ObjectLike = object;
+
+export function useVirtualizedItems<T extends ObjectLike>({
+  listItems,
+  listPadding = listPaddingVertical,
+  virtualized = false,
+  size,
+}: {
+  listItems: Array<Node<T>>;
+  size: FormSize;
+  virtualized: boolean | undefined;
+  listPadding?: number;
+}) {
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+  const heightEstimation = heightEstimations[size];
+
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
+    count: listItems.length,
+    getScrollElement: () => scrollElementRef?.current,
+    estimateSize: index => {
+      const item = listItems[index];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (item?.props?.details) {
+        return heightEstimation.large;
+      }
+      return heightEstimation.regular;
+    },
+    enabled: virtualized,
+    overscan: 1,
+  });
+
+  if (virtualized) {
+    return {
+      items: virtualItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
+      scrollElementRef,
+      itemProps: (index: number) => ({
+        ref: virtualizer.measureElement,
+        'data-index': index,
+      }),
+      wrapperProps: {
+        'data-is-virtualized': true,
+        style: {
+          height: totalSize + listPadding * 2,
+          width: '100%',
+          position: 'relative',
+        },
+      },
+      listWrapStyle: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
+      },
+    } as const;
+  }
+
+  return {
+    items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
+    scrollElementRef: undefined,
+    itemProps: () => {},
+    wrapperProps: {
+      'data-is-virtualized': false,
+    },
+    listWrapStyle: {},
+  } as const;
+}

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useOutletContext} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -13,6 +14,8 @@ import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 type SpendPeriod = '7d' | '30d' | '90d' | '6m';
@@ -86,6 +89,16 @@ function ConfigRow({
 }
 
 export default function AutomationConfiguration() {
+  const config = useOutletContext<SeerWorkflowConfigResponse | undefined>();
+
+  if (config?.strategy === 'breached_metric_investigation') {
+    return <MetricAutomationForm mode="edit" config={config} />;
+  }
+
+  return <ScheduledAutomationConfiguration />;
+}
+
+function ScheduledAutomationConfiguration() {
   const automationsEnabled = useAutomationsEnabled();
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(3);

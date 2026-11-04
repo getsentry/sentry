@@ -2797,6 +2797,10 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'automations/new/',
+      component: make(() => import('sentry/views/seerWorkflows/automations/new')),
+    },
+    {
       path: 'automations/:automationId/',
       component: make(() => import('sentry/views/seerWorkflows/automations/detail')),
       children: [
@@ -3447,7 +3451,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: ':projectId/group/:groupId/',
-        redirectTo: 'issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
       },
       {
         path: ':projectId/issues/:groupId/',

@@ -1,5 +1,6 @@
 import React from 'react';
 import qs from 'query-string';
+import {EventFixture} from 'sentry-fixture/event';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -871,6 +872,56 @@ describe('LogsInfiniteTable', () => {
         {log_id: '99', organization: expect.anything()}
       );
       expect(await screen.findByText('test log body 1')).toBeInTheDocument();
+    });
+  });
+
+  describe('scroll to event', () => {
+    beforeEach(() => {
+      mockScrollToIndex.mockClear();
+    });
+
+    function mockEvents({hasMoreResults}: {hasMoreResults: boolean}) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: mockLogsData, meta: {fields: {}, units: {}}},
+        headers: {
+          Link: `<https://sentry.io/api/0/organizations/${organization.slug}/events/>; rel="next"; results="${hasMoreResults}"; cursor="0:1000:0"`,
+        },
+      });
+    }
+
+    function renderWithEvent() {
+      renderWithProviders(
+        <LogsInfiniteTable
+          embedded
+          additionalData={{event: EventFixture({dateCreated: '2025-04-01T00:00:00Z'})}}
+          analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+        />
+      );
+    }
+
+    it('scrolls to the event after the loaded logs when no more pages exist', async () => {
+      mockEvents({hasMoreResults: false});
+
+      renderWithEvent();
+
+      await waitFor(() =>
+        expect(mockScrollToIndex).toHaveBeenCalledWith(3, {
+          behavior: 'smooth',
+          align: 'center',
+        })
+      );
+    });
+
+    it('does not scroll to the event when it is after the loaded logs and more pages exist', async () => {
+      mockEvents({hasMoreResults: true});
+
+      renderWithEvent();
+      await screen.findByText('test log body 3');
+      await act(() => new Promise(resolve => setTimeout(resolve, 200)));
+
+      expect(mockScrollToIndex).not.toHaveBeenCalled();
     });
   });
 
