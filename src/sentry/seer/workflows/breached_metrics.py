@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
@@ -223,6 +224,18 @@ class BreachedMetricWorkflow(SeerWorkflow):
     def get_monitors(self) -> list[ConnectedMonitor]:
         """Return the connected active metric monitors, sorted by monitor ID."""
         return get_config_monitors_bulk([self.get_config()]).get(self.config_id, [])
+
+    def delete(self) -> None:
+        """Delete the config and schedule its backing workflow for deletion."""
+        with self._lock_config() as config:
+            if config.backing_workflow_id is not None:
+                workflow = Workflow.objects_for_deletion.filter(
+                    id=config.backing_workflow_id, organization_id=self.organization_id
+                ).first()
+                if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
+                    CellScheduledDeletion.schedule(workflow, days=0)
+                    workflow.update(status=ObjectStatus.PENDING_DELETION)
+            config.delete()
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""

@@ -9,16 +9,16 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {MonitorCheckInsGrid} from 'sentry/views/insights/crons/components/monitorCheckInsGrid';
 import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monitorCheckInsApiOptions';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useCronIssueAlertId} from 'sentry/views/issueDetails/issueCronCheckTimeline';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 export default function GroupCheckIns() {
   const organization = useOrganization();
-  const {groupId} = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   const location = useLocation();
   const cronAlertId = useCronIssueAlertId({groupId});
 

@@ -4,12 +4,12 @@ import {IconGraph} from '@sentry/icons/graph';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {LinkHint} from 'sentry/components/structuredEventData/linkHint';

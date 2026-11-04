@@ -6,6 +6,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
@@ -119,6 +120,41 @@ describe('AccountSecurityEnroll', () => {
       await waitFor(() => {
         expect(mockAddErrorMessage).toHaveBeenCalledWith('Invalid OTP');
       });
+    });
+
+    it('asks the user to verify their primary email when enrollment requires it', async () => {
+      const openModalSpy = jest.spyOn(ModalStore, 'openModal');
+      MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.id}/enroll/`,
+        method: 'POST',
+        statusCode: 401,
+        body: {
+          detail: {
+            code: 'primary-email-verification-required',
+            message: 'Primary email verification required.',
+            extra: {username: 'foo@example.com'},
+          },
+        },
+      });
+
+      render(<AccountSecurityEnroll />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.id}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
+      });
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'OTP Code'}),
+        '123456{enter}'
+      );
+
+      await waitFor(() => expect(openModalSpy).toHaveBeenCalled());
+      expect(mockAddErrorMessage).toHaveBeenCalledWith(
+        'Primary email verification required.'
+      );
     });
 
     it('shows a fallback when enrollment fails without API details', async () => {
