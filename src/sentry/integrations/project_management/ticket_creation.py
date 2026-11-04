@@ -115,10 +115,13 @@ def create_ticket(
         action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
         integration=integration,
     ).capture() as lifecycle:
-        lifecycle.add_extra("provider", integration.provider)
-        lifecycle.add_extra("integration_id", integration.id)
-        for key, value in (metric_extras or {}).items():
-            lifecycle.add_extra(key, value)
+        lifecycle.add_extras(
+            {
+                "provider": integration.provider,
+                "integration_id": integration.id,
+                **(metric_extras or {}),
+            }
+        )
 
         try:
             response = installation.create_issue(data)

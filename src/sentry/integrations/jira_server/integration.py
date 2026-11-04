@@ -611,14 +611,11 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_group_description(
         self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
-        output = [
-            "Sentry Issue: {}".format(
-                self.format_link(
-                    group.qualified_short_id,
-                    absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
-                )
-            )
-        ]
+        issue_link = self.format_link(
+            group.qualified_short_id,
+            absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
+        )
+        output = [f"Sentry Issue: {issue_link}"]
         body = self.get_group_body(group, event)
         if body:
             output.extend(["", "{code}", body, "{code}"])
