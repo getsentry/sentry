@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {useQueryState} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,6 +15,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 export function ReleaseDropdownFilter({version}: {version: string}) {
   const location = useLocation();
+  const [projectIds] = useQueryState('project', parseAsStringArray);
   const navigate = useNavigate();
   const organization = useOrganization();
 
@@ -42,7 +45,7 @@ export function ReleaseDropdownFilter({version}: {version: string}) {
               makeReleaseDrawerPathname({
                 location,
                 release: version,
-                projectId: location?.query.project,
+                projectId: projectIds,
                 source: 'replay-tags',
               })
             ),

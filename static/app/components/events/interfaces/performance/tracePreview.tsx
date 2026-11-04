@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -176,6 +177,7 @@ export function TracePreviewFullTraceButton({
   source,
 }: TracePreviewProps) {
   const location = useLocation();
+  const [referrer] = useQueryState('referrer');
   const traceTarget = getTraceTargetFromEvent(
     event,
     organization,
@@ -183,7 +185,7 @@ export function TracePreviewFullTraceButton({
       ...location,
       query: {
         groupId: event.groupID,
-        referrer: location.query.referrer,
+        referrer: referrer ?? undefined,
       },
     },
     source === 'feedback'

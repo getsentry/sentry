@@ -73,6 +73,24 @@ describe('UpdatedEmptyState', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('starts at the step from the URL and pushes the next step', async () => {
+    setupMockRequests();
+
+    const {router} = render(
+      <UpdatedEmptyState project={ProjectFixture({platform: 'python-django'})} />,
+      {initialRouterConfig: {location: {pathname: '/issues/', query: {guidedStep: '2'}}}}
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    expect(
+      await screen.findByText(
+        'You can easily verify your Sentry installation by creating a route that triggers an error:'
+      )
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual({guidedStep: '3'});
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('Empty state with first error event', async () => {
     const firstIssue = new Date().toISOString();
 

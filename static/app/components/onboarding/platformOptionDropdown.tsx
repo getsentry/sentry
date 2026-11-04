@@ -6,10 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {
+  usePlatformOptionsQueryStates,
+  useUrlPlatformOptions,
+} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;
@@ -77,22 +78,12 @@ export function PlatformOptionDropdown({
   lockedValues,
   onChange,
 }: PlatformOptionsControlProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setPlatformOptionsQuery] = usePlatformOptionsQueryStates(platformOptions);
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
     onChange?.(key, value);
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
-      {replace: true}
-    );
+    setPlatformOptionsQuery({[key]: value});
   };
 
   if (Object.keys(platformOptions).length === 0) {

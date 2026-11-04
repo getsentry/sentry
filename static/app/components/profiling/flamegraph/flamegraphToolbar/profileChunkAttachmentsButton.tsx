@@ -1,5 +1,6 @@
 import {IconDownload} from '@sentry/icons/download';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -10,14 +11,18 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Content type Relay tags Perfetto system traces with when forwarding them as
 // profile-chunk attachments. Used to give the download a more specific label.
 // https://github.com/getsentry/relay/blob/d4526eabd7f5579ecfc6aa53ce5227d6fd493136/relay-server/src/envelope/content_type.rs#L65
 const PERFETTO_TRACE_CONTENT_TYPE = 'application/x-perfetto-trace';
+
+const profileChunkWindowParsers = {
+  end: parseAsString.withDefault(''),
+  profilerId: parseAsString.withDefault(''),
+  start: parseAsString.withDefault(''),
+};
 
 interface ProfileChunkAttachment {
   chunkId: string;
@@ -46,14 +51,11 @@ function getDownloadUrl(
  * tooltip when the viewer lacks it.
  */
 export function ProfileChunkAttachmentsButton() {
-  const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
   const {hasRole: hasAttachmentRole} = useRole({role: 'attachmentsRole'});
 
-  const profilerId = decodeScalar(location.query.profilerId);
-  const start = decodeScalar(location.query.start);
-  const end = decodeScalar(location.query.end);
+  const [{profilerId, start, end}] = useQueryStates(profileChunkWindowParsers);
 
   const enabled = Boolean(project && profilerId && start && end);
 
