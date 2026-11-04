@@ -362,6 +362,11 @@ class RpcOrganizationAccessContext(RpcUserOrganizationContext):
     resource_ids: RpcOrganizationResourceIds | None = None
 
 
+class RpcAgentOnboardingRun(RpcModel):
+    run_id: str
+    onboarding_run_code: str = Field(repr=False)
+
+
 class RpcOrganizationProjectSummary(RpcModel):
     platforms: list[str | None] = Field(default_factory=list)
     flags: RpcProjectFlags

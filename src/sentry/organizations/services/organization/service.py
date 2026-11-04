@@ -20,6 +20,7 @@ from sentry.hybridcloud.rpc.resolvers import (
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
+    RpcAgentOnboardingRun,
     RpcAuditLogEntryActor,
     RpcCellUser,
     RpcOrganization,
@@ -52,6 +53,23 @@ class OrganizationService(RpcService):
         )
 
         return DatabaseBackedOrganizationService()
+
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def create_agent_onboarding_run(
+        self,
+        *,
+        user_id: int,
+        organization_id: int,
+        client_run_id: str,
+        onboarding_code: str,
+    ) -> RpcAgentOnboardingRun | None:
+        """Create or resume cell-owned progress for an authorized agent handoff.
+
+        Callers generate the client ID and correlation code once per handoff so
+        transport retries resume the same run.
+        """
+        pass
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod

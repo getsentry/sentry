@@ -47,6 +47,7 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
+from sentry.onboarding.agentic_progress.service import get_onboarding_progress_service
 from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -64,6 +65,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
+    RpcAgentOnboardingRun,
     RpcAuditLogEntryActor,
     RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
@@ -94,6 +96,35 @@ from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def create_agent_onboarding_run(
+        self,
+        *,
+        user_id: int,
+        organization_id: int,
+        client_run_id: str,
+        onboarding_code: str,
+    ) -> RpcAgentOnboardingRun | None:
+        authorized = Organization.objects.filter(
+            id=organization_id,
+            status=OrganizationStatus.ACTIVE,
+            member_set__user_id=user_id,
+            member_set__user_is_active=True,
+            member_set__invite_status=InviteStatus.APPROVED.value,
+        ).exists()
+        if not authorized:
+            return None
+
+        registered = get_onboarding_progress_service().create_or_resume(
+            user_id=user_id,
+            organization_id=organization_id,
+            client_run_id=client_run_id,
+            onboarding_code=onboarding_code,
+        )
+        return RpcAgentOnboardingRun(
+            run_id=registered.run.run_id,
+            onboarding_run_code=registered.onboarding_code,
+        )
+
     def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
         return list(
             Project.objects.filter(
