@@ -1,9 +1,12 @@
+import hashlib
 import logging
 from smtplib import SMTPDataError
 from typing import Any
 
+from django.core.cache import cache
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.auth import access
 from sentry.issues.action_log import ActionSource
 from sentry.issues.comments import create_comment
@@ -13,6 +16,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.email import send_messages
 from sentry.utils.email.message_builder import message_from_dict
 
@@ -64,6 +68,97 @@ class TemporaryEmailError(Exception):
         self.args = (code, msg)
 
 
+class EmailSendInProgress(Exception):
+    """
+    Another delivery of the same message holds the send claim. Retrying later,
+    instead of skipping, keeps the email from being lost if that send fails.
+    """
+
+
+# Matches send_email's processing deadline: a worker that dies mid-send cannot
+# hold the claim past the point where the broker would redeliver its task.
+SEND_CLAIM_TIMEOUT = 90
+SENT_MARKER_TIMEOUT = 60 * 60 * 24
+_SENDING = "sending"
+_SENT = "sent"
+
+
+def _dedupe_key(message: dict[str, Any]) -> str | None:
+    message_id = (message.get("headers") or {}).get("Message-Id")
+    if not message_id:
+        return None
+    # make_msgid() only combines second, pid and a 5-digit random number, so
+    # unrelated emails can share a Message-Id. Including the recipients keeps
+    # such a collision from suppressing a different email.
+    recipients = sorted(
+        {*(message.get("to") or ()), *(message.get("cc") or ()), *(message.get("bcc") or ())}
+    )
+    digest = hashlib.sha256("\n".join([message_id, *recipients]).encode()).hexdigest()
+    return f"mail:send-dedupe:{digest}"
+
+
+def _record_dedupe(result: str) -> None:
+    metrics.incr("email.send_dedupe", skip_internal=False, tags={"result": result})
+
+
+def _claim_send(key: str) -> bool:
+    """
+    Returns True when this delivery should send. Cache failures fail open:
+    a possible duplicate is better than a dropped email.
+    """
+    try:
+        if cache.add(key, _SENDING, SEND_CLAIM_TIMEOUT):
+            return True
+        state = cache.get(key)
+    except Exception:
+        logger.warning("mail.send_dedupe.cache_error", exc_info=True)
+        _record_dedupe("cache_error")
+        return True
+
+    if state == _SENT:
+        return False
+    # Either a concurrent delivery is mid-send, or its claim expired between
+    # our add() and get(). Both resolve on retry.
+    _record_dedupe("in_progress")
+    raise EmailSendInProgress()
+
+
+def _set_dedupe_state(key: str, sent: bool) -> None:
+    try:
+        if sent:
+            cache.set(key, _SENT, SENT_MARKER_TIMEOUT)
+        else:
+            cache.delete(key)
+    except Exception:
+        logger.warning("mail.send_dedupe.cache_error", exc_info=True)
+        _record_dedupe("cache_error")
+
+
+def _send_email_once(message: dict[str, Any]) -> None:
+    key = _dedupe_key(message)
+    if key is None or not options.get("mail.send-dedupe.enabled"):
+        _send_email(message)
+        return
+
+    if not _claim_send(key):
+        _record_dedupe("duplicate")
+        logger.info(
+            "mail.send_dedupe.duplicate_skipped",
+            extra={"message_id": message["headers"]["Message-Id"]},
+        )
+        return
+
+    try:
+        _send_email(message)
+    except BaseException:
+        # Release the claim so the retry of this delivery can send. This catches
+        # BaseException because the taskworker's ProcessingDeadlineExceeded is one.
+        _set_dedupe_state(key, sent=False)
+        raise
+    _set_dedupe_state(key, sent=True)
+    _record_dedupe("sent")
+
+
 def _send_email(message: dict[str, Any]) -> None:
     try:
         send_messages([message_from_dict(message)])
@@ -78,11 +173,11 @@ def _send_email(message: dict[str, Any]) -> None:
     name="sentry.tasks.email.send_email",
     namespace=notifications_tasks,
     processing_deadline_duration=90,
-    retry=Retry(times=2, delay=60 * 5, on=(TemporaryEmailError,)),
+    retry=Retry(times=2, delay=60 * 5, on=(TemporaryEmailError, EmailSendInProgress)),
     silo_mode=SiloMode.CELL,
 )
 def send_email(message: dict[str, Any]) -> None:
-    _send_email(message)
+    _send_email_once(message)
 
 
 @instrumented_task(
