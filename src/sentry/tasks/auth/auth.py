@@ -184,7 +184,10 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember) -> None:
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
-        subject = f"{settings.EMAIL_SUBJECT_PREFIX} {org.name.capitalize()} Mandatory: Enable Two-Factor Authentication"
+        subject = (
+            f"{settings.EMAIL_SUBJECT_PREFIX} {org.name.capitalize()} "
+            "Mandatory: Enable Two-Factor Authentication"
+        )
         message = MessageBuilder(
             subject=subject,
             template="sentry/emails/setup_2fa.txt",

@@ -954,7 +954,9 @@ def test_self_hosted_legacy_filestore_alias_promotes_none(settings: types.Simple
     assert settings.SENTRY_FILE_STORAGE_BACKEND is None
 
 
-def test_self_hosted_migrated_secret_alias_does_not_promote_none(settings: types.SimpleNamespace) -> None:
+def test_self_hosted_migrated_secret_alias_does_not_promote_none(
+    settings: types.SimpleNamespace,
+) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
     settings.GOOGLE_CLIENT_SECRET = None
@@ -1275,7 +1277,9 @@ def test_single_org_original_secret_keeps_self_hosted_login_precedence(
         ("", ""),
     ],
 )
-def test_saas_single_org_direct_pair_is_authoritative(settings: types.SimpleNamespace, app_id: str, app_secret: str) -> None:
+def test_saas_single_org_direct_pair_is_authoritative(
+    settings: types.SimpleNamespace, app_id: str, app_secret: str
+) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.SENTRY_GITHUB_APP_CLIENT_ID = app_id
@@ -1306,7 +1310,9 @@ def test_saas_single_org_direct_pair_is_authoritative(settings: types.SimpleName
     assert (settings.GITHUB_APP_ID, settings.GITHUB_API_SECRET) == (app_id, app_secret)
 
 
-def test_saas_single_org_does_not_reverse_map_empty_app_credentials(settings: types.SimpleNamespace) -> None:
+def test_saas_single_org_does_not_reverse_map_empty_app_credentials(
+    settings: types.SimpleNamespace,
+) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.GITHUB_APP_ID = "legacy-login-id"
