@@ -3451,7 +3451,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: ':projectId/group/:groupId/',
-        redirectTo: 'issues/:groupId/',
+        redirectTo: '/organizations/:orgId/issues/:groupId/',
       },
       {
         path: ':projectId/issues/:groupId/',
