@@ -170,7 +170,7 @@ describe('TransactionsList', () => {
       expect(
         screen.getByRole('button', {name: 'Filter Transactions'})
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');

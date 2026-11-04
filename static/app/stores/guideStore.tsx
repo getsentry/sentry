@@ -256,8 +256,6 @@ export const GuideStore = {
   },
 };
 
-window.addEventListener('load', GuideStore.onURLChange, false);
-
 // Guides will show above modals, but are not interactable because
 // of the focus trap, so we force them to be hidden while a modal is open.
 ModalStore.subscribe((modalState, prevModalState) => {

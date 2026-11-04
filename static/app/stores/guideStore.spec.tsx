@@ -60,7 +60,7 @@ describe('GuideStore', () => {
 
     GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
-    window.dispatchEvent(new Event('load'));
+    GuideStore.onURLChange();
     expect(GuideStore.getState().currentGuide?.guide).toBe('issue_stream');
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide?.guide).toBe('trace_view');
@@ -87,7 +87,7 @@ describe('GuideStore', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
 
-    window.dispatchEvent(new Event('load'));
+    GuideStore.onURLChange();
     expect(spy).toHaveBeenCalledTimes(1);
 
     GuideStore.nextStep();
