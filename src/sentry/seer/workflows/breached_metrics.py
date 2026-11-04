@@ -199,7 +199,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         # default automation, and connect new projects' default monitors as they are created.
         database = router.db_for_write(SeerWorkflowConfig)
         with (
-            cls._maybe_create_agent_account(
+            cls._maybe_create_agent_service_account(
                 organization_id, agent, automation_name=name, created_by_id=created_by_id
             ) as account,
             transaction.atomic(database),
@@ -239,7 +239,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
     def delete(self) -> None:
         """Delete the config and its agent account, and schedule its backing workflow for deletion."""
-        self._delete_agent_account()
+        self._delete_agent_service_account()
         with self._lock_config() as config:
             if config.backing_workflow_id is not None:
                 workflow = Workflow.objects_for_deletion.filter(

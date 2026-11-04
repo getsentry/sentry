@@ -22,7 +22,11 @@ from sentry.seer.workflows.workflow import (
     SelectedProjects,
     WorkflowUpdateError,
 )
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountReplica
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProject,
+    ServiceAccountReplica,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -461,7 +465,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
             service_account_id=service_account_id
         )
 
-    def control_account(self, service_account_id: int) -> ServiceAccount:
+    def control_service_account(self, service_account_id: int) -> ServiceAccount:
         with assume_test_silo_mode(SiloMode.CONTROL):
             return ServiceAccount.objects.get(id=service_account_id)
 
@@ -474,9 +478,9 @@ class SeerWorkflowServiceAccountTest(TestCase):
         )
 
         assert update.created
-        assert update.account.scope_list == ["event:read"]
-        assert update.account.project_ids == [self.project.id]
-        account = self.control_account(update.account.id)
+        assert update.service_account.scope_list == ["event:read"]
+        assert update.service_account.project_ids == [self.project.id]
+        account = self.control_service_account(update.service_account.id)
         assert account.name.startswith("Seer automation ")
         assert account.created_by_id == self.user.id
         self.config.refresh_from_db()
@@ -496,11 +500,34 @@ class SeerWorkflowServiceAccountTest(TestCase):
         )
 
         assert not update.created
-        assert update.account.id == created.account.id
-        account = self.control_account(created.account.id)
+        assert update.service_account.id == created.service_account.id
+        account = self.control_service_account(created.service_account.id)
         assert account.scope_list == ["project:read"]
         assert account.all_projects
         assert self.workflow.get_config().version == 2
+
+    def test_set_agent_access_rejects_projects_outside_the_org(self) -> None:
+        foreign = SeerAgentAccess(
+            scopes=["event:read"],
+            project_ids=[self.create_project(organization=self.create_organization()).id],
+        )
+        with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
+            self.workflow.set_agent_access(foreign, created_by_id=None)
+        assert self.workflow.get_config().service_account_id is None
+
+        created = self.workflow.set_agent_access(
+            SeerAgentAccess(scopes=["event:read"]), created_by_id=None
+        )
+        with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
+            self.workflow.set_agent_access(foreign, created_by_id=None)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert set(ServiceAccount.objects.values_list("id", flat=True)) == {
+                self.account.id,
+                created.service_account.id,
+            }
+            assert not ServiceAccountProject.objects.filter(
+                service_account_id=created.service_account.id
+            ).exists()
 
     def test_set_agent_access_replaces_an_account_deleted_elsewhere(self) -> None:
         account_id = self.account.id
@@ -513,8 +540,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         )
 
         assert update.created
-        assert update.account.id != account_id
-        assert self.workflow.get_config().service_account_id == update.account.id
+        assert update.service_account.id != account_id
+        assert self.workflow.get_config().service_account_id == update.service_account.id
 
     def test_failed_link_deletes_the_new_account(self) -> None:
         with (
@@ -531,17 +558,17 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert list(ServiceAccount.objects.values_list("id", flat=True)) == [self.account.id]
 
-    def test_get_agent_account_reads_control(self) -> None:
-        assert self.workflow.get_agent_account() is None
+    def test_get_agent_service_account_reads_control(self) -> None:
+        assert self.workflow.get_agent_service_account() is None
         with outbox_context(flush=False):
             update = self.workflow.set_agent_access(
                 SeerAgentAccess(scopes=["event:read"]), created_by_id=None
             )
 
-        account = self.workflow.get_agent_account()
+        account = self.workflow.get_agent_service_account()
 
         assert account is not None
-        assert account.id == update.account.id
+        assert account.id == update.service_account.id
         assert account.scope_list == ["event:read"]
 
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:

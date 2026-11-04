@@ -70,7 +70,7 @@ class SeerAgentAccess:
 
 @dataclass(frozen=True)
 class SeerAgentAccessUpdate:
-    account: RpcServiceAccount
+    service_account: RpcServiceAccount
     created: bool
 
 
@@ -156,9 +156,15 @@ class SeerWorkflow:
             service_account_id=service_account_id,
         )
 
-    @staticmethod
+    @classmethod
+    def _validate_agent_project_ids(cls, organization_id: int, agent: SeerAgentAccess) -> None:
+        if not agent.all_projects:
+            cls._validate_project_ids(organization_id, set(agent.project_ids))
+
+    @classmethod
     @contextmanager
-    def _create_agent_account(
+    def _create_agent_service_account(
+        cls,
         organization_id: int,
         agent: SeerAgentAccess,
         *,
@@ -166,6 +172,7 @@ class SeerWorkflow:
         created_by_id: int | None,
     ) -> Iterator[RpcServiceAccount]:
         """Create the agent's service account, deleting it again if the block raises."""
+        cls._validate_agent_project_ids(organization_id, agent)
         suffix = uuid4().hex[:8]
         prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
         account = service_account_service.create_service_account(
@@ -187,7 +194,7 @@ class SeerWorkflow:
             raise
 
     @classmethod
-    def _maybe_create_agent_account(
+    def _maybe_create_agent_service_account(
         cls,
         organization_id: int,
         agent: SeerAgentAccess | None,
@@ -197,7 +204,7 @@ class SeerWorkflow:
     ) -> AbstractContextManager[RpcServiceAccount | None]:
         if agent is None:
             return nullcontext()
-        return cls._create_agent_account(
+        return cls._create_agent_service_account(
             organization_id, agent, automation_name=automation_name, created_by_id=created_by_id
         )
 
@@ -234,7 +241,7 @@ class SeerWorkflow:
 
         database = router.db_for_write(SeerWorkflowConfig)
         with (
-            cls._maybe_create_agent_account(
+            cls._maybe_create_agent_service_account(
                 organization_id, agent, automation_name=name, created_by_id=created_by_id
             ) as account,
             transaction.atomic(database),
@@ -379,11 +386,11 @@ class SeerWorkflow:
 
     def delete(self) -> None:
         """Delete the config with its project links, runs, trigger bindings, and agent account."""
-        self._delete_agent_account()
+        self._delete_agent_service_account()
         with self._lock_config() as config:
             config.delete()
 
-    def _delete_agent_account(self) -> None:
+    def _delete_agent_service_account(self) -> None:
         service_account_id = self.get_config().service_account_id
         if service_account_id is not None:
             service_account_service.delete_service_account(
@@ -399,6 +406,7 @@ class SeerWorkflow:
         """
         service_account_id = self.get_config().service_account_id
         if service_account_id is not None:
+            self._validate_agent_project_ids(self.organization_id, agent)
             account = service_account_service.update_service_account(
                 organization_id=self.organization_id,
                 service_account_id=service_account_id,
@@ -407,12 +415,12 @@ class SeerWorkflow:
                 all_projects=agent.all_projects,
             )
             if account is not None:
-                return SeerAgentAccessUpdate(account=account, created=False)
+                return SeerAgentAccessUpdate(service_account=account, created=False)
 
         # TODO(telkins): Concurrent first saves each create an account and the last link wins,
         # orphaning the others with their grants. Recheck service_account_id under the lock.
         with (
-            self._create_agent_account(
+            self._create_agent_service_account(
                 self.organization_id,
                 agent,
                 automation_name=self.extras.name,
@@ -423,9 +431,9 @@ class SeerWorkflow:
             config.service_account_id = account.id
             config.version += 1
             config.save(update_fields=["service_account_id", "version", "date_updated"])
-        return SeerAgentAccessUpdate(account=account, created=True)
+        return SeerAgentAccessUpdate(service_account=account, created=True)
 
-    def get_agent_account(self) -> RpcServiceAccount | None:
+    def get_agent_service_account(self) -> RpcServiceAccount | None:
         """Read the automation's service account from control, which the replica may lag."""
         config = self.get_config()
         if config.service_account_id is None:

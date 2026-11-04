@@ -643,7 +643,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 self.organization.slug, config.id, method="put", agent=agent
             )
 
-        account = get_agent_account(config.id)
+        account = get_agent_service_account(config.id)
         assert response.data["agent"] == {
             "serviceAccountId": str(account.id),
             **agent,
@@ -671,7 +671,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             },
         )
 
-        account = get_agent_account(config.id)
+        account = get_agent_service_account(config.id)
         assert account.scope_list == ["event:read", "project:read"]
         assert agent_project_ids(account) == [self.project.id]
         assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
@@ -694,7 +694,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config.id)
 
         assert response.data["agent"]["projectIds"] == [accessible.id]
-        assert agent_project_ids(get_agent_account(config.id)) == sorted([accessible.id, hidden.id])
+        assert agent_project_ids(get_agent_service_account(config.id)) == sorted(
+            [accessible.id, hidden.id]
+        )
 
     @with_feature("organizations:service-accounts")
     def test_put_updates_the_existing_agent(self) -> None:
@@ -706,7 +708,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 method="put",
                 agent={"scopes": ["event:read"], "projectIds": [self.project.id]},
             )
-        account = get_agent_account(config.id)
+        account = get_agent_service_account(config.id)
 
         with outbox_runner():
             response = self.get_success_response(
@@ -722,7 +724,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             "projectIds": [],
             "allProjects": True,
         }
-        account = get_agent_account(config.id)
+        account = get_agent_service_account(config.id)
         assert account.scope_list == ["project:read"]
         assert account.all_projects
         assert agent_project_ids(account) == []
@@ -852,7 +854,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug, workflow.config_id, method="put", agent=agent
             )
-        account = get_agent_account(workflow.config_id)
+        account = get_agent_service_account(workflow.config_id)
         assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
         assert response.data["projects"] == [self.project.id]
         assert response.data["monitorIds"] == [monitor.id]
@@ -1078,7 +1080,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             status_code=201,
         )
 
-        account = get_agent_account(int(response.data["id"]))
+        account = get_agent_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer: Checkout errors ")
         assert agent_project_ids(account) == [self.project.id, additional_project.id]
         assert SeerWorkflowConfig.objects.get(id=response.data["id"]).version == 1
@@ -1096,7 +1098,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             status_code=201,
         )
 
-        account = get_agent_account(int(response.data["id"]))
+        account = get_agent_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer automation ")
         assert account.all_projects
         assert response.data["agent"] == {
@@ -1107,7 +1109,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         }
 
     @with_feature("organizations:service-accounts")
-    def test_failed_create_removes_the_agent_account(self) -> None:
+    def test_failed_create_removes_the_agent_service_account(self) -> None:
         for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -1488,7 +1490,7 @@ class WithNoAccessIdsTest(TestCase):
             assert {monitor_id for monitor_id, _ in curr} & no_access_ids <= set(result)
 
 
-def get_agent_account(config_id: int) -> ServiceAccount:
+def get_agent_service_account(config_id: int) -> ServiceAccount:
     service_account_id = SeerWorkflowConfig.objects.get(id=config_id).service_account_id
     assert service_account_id is not None
     with assume_test_silo_mode(SiloMode.CONTROL):

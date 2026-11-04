@@ -460,9 +460,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(status=400)
 
-        account = workflow.get_agent_account() if agent is not None else None
+        account = workflow.get_agent_service_account() if agent is not None else None
         if account is not None:
-            audit_agent_account(self, request, organization, account, "SERVICE_ACCOUNT_ADD")
+            audit_agent_service_account(self, request, organization, account, "SERVICE_ACCOUNT_ADD")
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         result = serialize_workflow_configs(
@@ -675,9 +675,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         account: RpcServiceAccount | None = None
         if agent is not None:
             update = workflow.set_agent_access(agent, created_by_id=acting_user_id(request.user))
-            account = update.account
+            account = update.service_account
             event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
-            audit_agent_account(self, request, organization, account, event)
+            audit_agent_service_account(self, request, organization, account, event)
 
         if enabled is not None:
             workflow.set_enabled(enabled)
@@ -710,10 +710,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
 
         workflow = get_seer_workflow(config)
-        account = workflow.get_agent_account()
+        account = workflow.get_agent_service_account()
         workflow.delete()
         if account is not None:
-            audit_agent_account(self, request, organization, account, "SERVICE_ACCOUNT_REMOVE")
+            audit_agent_service_account(
+                self, request, organization, account, "SERVICE_ACCOUNT_REMOVE"
+            )
         return Response(status=204)
 
 
@@ -902,7 +904,7 @@ def check_can_grant_agent(
             raise PermissionDenied(denied)
 
 
-def audit_agent_account(
+def audit_agent_service_account(
     endpoint: OrganizationEndpoint,
     request: Request,
     organization: Organization,
