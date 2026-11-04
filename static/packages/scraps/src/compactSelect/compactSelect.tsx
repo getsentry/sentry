@@ -1,12 +1,10 @@
+import type * as React from 'react';
 import {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {Item, Section} from '@react-stately/collections';
 import * as Sentry from '@sentry/react';
-import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {Control, type ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
@@ -144,18 +142,22 @@ export function CompactSelect<Value extends SelectKey>({
 
   const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
-      const longestOption = maxBy(options, option => {
-        if ('options' in option) {
-          return 0;
+      let longestOption: (typeof options)[number] | undefined;
+      let longestLength = -1;
+      for (const option of options) {
+        const length =
+          'options' in option
+            ? 0
+            : option.textValue
+              ? option.textValue.length
+              : typeof option.label === 'string'
+                ? option.label.length
+                : 0;
+        if (length > longestLength) {
+          longestOption = option;
+          longestLength = length;
         }
-        if (option.textValue) {
-          return option.textValue.length;
-        }
-        if (typeof option.label === 'string') {
-          return option.label.length;
-        }
-        return 0;
-      });
+      }
       return longestOption ? getItemsWithKeys([longestOption]) : [];
     }
     return [];
@@ -210,7 +212,7 @@ export function CompactSelect<Value extends SelectKey>({
       onOpenChange={newOpenState => {
         controlProps.onOpenChange?.(newOpenState);
         if (newOpenState) {
-          scheduleMicroTask(() => {
+          queueMicrotask(() => {
             trackVirtualizationMetrics(
               allItemsWithKey,
               virtualizeThreshold,

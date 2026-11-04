@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';

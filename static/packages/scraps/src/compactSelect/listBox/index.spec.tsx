@@ -1,6 +1,10 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {lightTheme} from '@sentry/scraps/theme';
 
 describe('ListBox', () => {
   it('does not reserve scrollbar gutter if the list never overflowed', async () => {
@@ -14,12 +18,14 @@ describe('ListBox', () => {
           {value: 'opt_two', label: 'Option Two'},
           {value: 'opt_three', label: 'Option Three'},
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
 
     const listBox = screen.getByRole('listbox');
+    // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
     const scrollContainer = listBox.parentElement?.parentElement;
     expect(scrollContainer).toBeInTheDocument();
 
@@ -48,12 +54,14 @@ describe('ListBox', () => {
           {value: 'opt_two', label: 'Option Two'},
           {value: 'opt_three', label: 'Option Three'},
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
 
     const listBox = screen.getByRole('listbox');
+    // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
     const scrollContainer = listBox.parentElement?.parentElement;
     expect(scrollContainer).toBeInTheDocument();
 
@@ -102,7 +110,8 @@ describe('ListBox', () => {
             showDetailsInOverlay: true,
           },
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
@@ -140,7 +149,8 @@ describe('ListBox', () => {
             showDetailsInOverlay: true,
           },
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
@@ -175,7 +185,8 @@ describe('ListBox', () => {
             showDetailsInOverlay: false,
           },
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
@@ -207,7 +218,8 @@ describe('ListBox', () => {
             showDetailsInOverlay: true,
           },
         ]}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button'));
@@ -235,3 +247,7 @@ describe('ListBox', () => {
     });
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

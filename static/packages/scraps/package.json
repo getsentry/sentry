@@ -286,6 +286,10 @@
     "./clipboard": {
       "types": "./dist/clipboard/index.d.ts",
       "import": "./dist/clipboard/index.js"
+    },
+    "./compactSelect": {
+      "types": "./dist/compactSelect/index.d.ts",
+      "import": "./dist/compactSelect/index.js"
     }
   },
   "publishConfig": {
@@ -307,11 +311,14 @@
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
+    "@react-aria/gridlist": "3.15.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
+    "@react-aria/listbox": "3.16.1",
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
+    "@react-aria/separator": "3.5.1",
     "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
     "@react-aria/visually-hidden": "3.9.1",

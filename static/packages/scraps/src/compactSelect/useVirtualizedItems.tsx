@@ -2,8 +2,7 @@ import {useRef} from 'react';
 import type {Node} from '@react-types/shared';
 
 import type {FormSize} from '@sentry/scraps/theme';
-
-import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
+import {useVirtualRows} from '@sentry/scraps/useVirtualRows';
 
 const heightEstimations = {
   sm: {regular: 32, large: 49},

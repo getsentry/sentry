@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -18,7 +19,7 @@ import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
 import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {ListBoxDetailsHoverContext, ListBoxOption} from './option';
 import {ListBoxSection} from './section';

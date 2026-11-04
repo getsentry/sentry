@@ -1,9 +1,12 @@
+import type * as React from 'react';
 import {useState} from 'react';
-
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {lightTheme} from '@sentry/scraps/theme';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {
@@ -33,7 +36,8 @@ describe('CompositeSelect', () => {
             {value: 'choice_four', label: 'Choice Four'},
           ]}
         />
-      </CompositeSelect>
+      </CompositeSelect>,
+      {wrapper: ThemeWrapper}
     );
 
     // Trigger button
@@ -89,7 +93,8 @@ describe('CompositeSelect', () => {
             {value: 'choice_two', label: 'Choice Two'},
           ]}
         />
-      </CompositeSelect>
+      </CompositeSelect>,
+      {wrapper: ThemeWrapper}
     );
     expect(await screen.findByRole('button')).toBeDisabled();
   });
@@ -122,7 +127,8 @@ describe('CompositeSelect', () => {
             {value: 'choice_four', label: 'Choice Four'},
           ]}
         />
-      </CompositeSelect>
+      </CompositeSelect>,
+      {wrapper: ThemeWrapper}
     );
 
     // click on the trigger button
@@ -197,7 +203,7 @@ describe('CompositeSelect', () => {
       );
     }
 
-    render(<Component />);
+    render(<Component />, {wrapper: ThemeWrapper});
 
     // click on the trigger button
     await userEvent.click(screen.getByRole('button'));
@@ -271,7 +277,8 @@ describe('CompositeSelect', () => {
             {value: 'choice_four', label: 'Choice Four'},
           ]}
         />
-      </CompositeSelect>
+      </CompositeSelect>,
+      {wrapper: ThemeWrapper}
     );
 
     // click on the trigger button
@@ -329,7 +336,7 @@ describe('CompositeSelect', () => {
       );
     }
 
-    render(<Component />);
+    render(<Component />, {wrapper: ThemeWrapper});
 
     // click on the trigger button
     await userEvent.click(screen.getByRole('button'));
@@ -388,7 +395,8 @@ describe('CompositeSelect', () => {
             {value: 2, label: 'Two'},
           ]}
         />
-      </CompositeSelect>
+      </CompositeSelect>,
+      {wrapper: ThemeWrapper}
     );
 
     // Open the menu
@@ -400,3 +408,7 @@ describe('CompositeSelect', () => {
     expect(onChange).toHaveBeenCalledWith({value: 2, label: 'Two'});
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment, useMemo} from 'react';
 import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
