@@ -399,6 +399,8 @@ class SeerWorkflow:
             if account is not None:
                 return SeerAgentUpdate(account=account, created=False)
 
+        # TODO(telkins): Concurrent first saves each create an account and the last link wins,
+        # orphaning the others with their grants. Recheck service_account_id under the lock.
         with (
             self._create_agent_account(
                 self.organization_id,
