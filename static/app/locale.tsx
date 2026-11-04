@@ -418,19 +418,6 @@ function translatePlural(
 }
 
 /**
- * Translates a string that is disambiguated by a context, using `msgctxt` in
- * the PO catalog. Reach for this only when the same source string needs more
- * than one translation — for example the extra-short duration labels, where
- * "m" means both minutes and months, and would otherwise share a single msgid
- * with every other "m" in the codebase.
- */
-function pgettext(context: string, string: string): string {
-  const val: string = i18n.pgettext(context, string);
-  staticTranslations.add(val);
-  return mark(val);
-}
-
-/**
  * special form of gettext where you can render nested react components in
  * template strings.
  *
@@ -477,5 +464,4 @@ export {
   gettextComponentTemplate as tct,
   ngettext as tn,
   gettextDescription as td,
-  pgettext,
 };

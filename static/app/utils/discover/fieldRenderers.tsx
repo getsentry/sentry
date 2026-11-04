@@ -858,6 +858,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           value: (
             <FieldDateTime
               date={data['timestamp.to_day']}
+              showTimezone={false}
               year="always"
               mode="date"
               timezone="UTC"
