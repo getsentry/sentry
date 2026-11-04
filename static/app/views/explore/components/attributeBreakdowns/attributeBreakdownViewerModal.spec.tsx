@@ -11,8 +11,6 @@ import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
 
-jest.mock('sentry/actionCreators/modal');
-
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
