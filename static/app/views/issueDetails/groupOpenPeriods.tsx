@@ -17,7 +17,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
@@ -27,6 +26,7 @@ import {
 } from 'sentry/views/investigations/utils';
 
 import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -55,7 +55,7 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);
-  const params = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   const {
     data: response,
     isPending,
@@ -63,7 +63,7 @@ function IssueOpenPeriodsList() {
   } = useQuery({
     ...openPeriodsApiOptions({
       organization,
-      groupId: params.groupId,
+      groupId,
       cursor: cursor ?? undefined,
       limit: 10,
     }),
@@ -74,7 +74,7 @@ function IssueOpenPeriodsList() {
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
     period => ({
       type: 'metric_open_period',
-      ref: {groupId: params.groupId, openPeriodId: period.id},
+      ref: {groupId, openPeriodId: period.id},
     })
   );
   const {data: candidates} = useQuery({
@@ -102,7 +102,7 @@ function IssueOpenPeriodsList() {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
           <EventIdLink
-            to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
+            to={`/organizations/${organization.slug}/issues/${groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
           </EventIdLink>

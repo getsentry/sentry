@@ -20,6 +20,7 @@ describe('DetectorSection', () => {
     detectorDetails: {},
     isSidebarOpen: true,
     navScrollMargin: 0,
+    scrollContext: 'page' as const,
     eventCount: 0,
     eventNavigationHeight: 0,
     dispatch: jest.fn(),

@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
-import * as qs from 'query-string';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {clamp} from 'sentry/utils/number/clamp';
@@ -45,6 +45,8 @@ import {
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
 const VITAL_ZOOM_PADDING_RATIO = 0.05;
+
+const serializeFovQueryParam = createSerializer({fov: parseAsString});
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -950,13 +952,9 @@ export class VirtualizedViewManager {
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
       this.navigate?.(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            fov: `${view.trace_view.x},${view.trace_view.width}`,
-          },
-        },
+        serializeFovQueryParam(location.pathname + location.search, {
+          fov: `${view.trace_view.x},${view.trace_view.width}`,
+        }),
         {replace: true}
       );
       this.timers.onFovChange = null;

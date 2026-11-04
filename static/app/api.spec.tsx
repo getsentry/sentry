@@ -226,6 +226,28 @@ describe('api', () => {
     expect(errorHandler).toHaveBeenCalledTimes(1);
   });
 
+  it('does not expire the session for primary-email-verification-required', async () => {
+    const unregister = initApiClientErrorHandling();
+    const client = new Client();
+
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        detail: {
+          code: 'primary-email-verification-required',
+          message: 'Primary email verification required.',
+          extra: {username: 'foo@example.com'},
+        },
+      }),
+      {status: 401}
+    );
+
+    await expect(
+      client.requestPromise('/users/me/authenticators/totp/enroll/', {method: 'POST'})
+    ).rejects.toBeInstanceOf(RequestError);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    unregister();
+  });
+
   describe('sso-required', () => {
     it('redirects to the SSO login with the current page as next', async () => {
       setWindowLocation(

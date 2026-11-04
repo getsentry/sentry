@@ -5,6 +5,7 @@ import * as qs from 'query-string';
 import {redirectToProject} from './actionCreators/redirectToProject';
 import {openSudo} from './actionCreators/sudoModal';
 import {
+  PRIMARY_EMAIL_VERIFICATION_REQUIRED,
   PROJECT_MOVED,
   STAFF_REQUIRED,
   SUDO_REQUIRED,
@@ -130,6 +131,7 @@ export const initApiClientErrorHandling = () =>
     if (
       [
         'sudo-required',
+        PRIMARY_EMAIL_VERIFICATION_REQUIRED,
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',
