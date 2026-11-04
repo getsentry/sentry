@@ -596,7 +596,10 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             wait_time=0.5,
         )
 
-        with patch.object(update_project_webhook, "apply_async") as apply_async:
+        with (
+            patch.object(update_project_webhook, "apply_async") as apply_async,
+            patch("sentry.integrations.gitlab.tasks.logger.info") as mock_logger_info,
+        ):
             update_project_webhook(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
@@ -615,6 +618,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
         randint.assert_called_once_with(0, 5)
         self.consume_capacity.assert_called_once_with("https://example.gitlab.com", "gitlab123")
+        mock_logger_info.assert_not_called()
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
 
     @responses.activate
@@ -632,7 +636,10 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             headers={"Retry-After": "120"},
         )
 
-        with patch.object(update_project_webhook, "apply_async") as apply_async:
+        with (
+            patch.object(update_project_webhook, "apply_async") as apply_async,
+            patch("sentry.integrations.gitlab.tasks.logger.info") as mock_logger_info,
+        ):
             update_project_webhook(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
@@ -651,6 +658,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         )
         randint.assert_called_once_with(0, 73)
         incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "rate_limited"})
+        mock_logger_info.assert_not_called()
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
 
     @responses.activate
@@ -709,16 +717,28 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             status=200,
         )
 
-        update_project_webhook(
-            integration_id=self.integration.id,
-            organization_id=self.organization.id,
-            repository_id=self.repo.id,
-        )
+        with patch("sentry.integrations.gitlab.tasks.logger.info") as mock_logger_info:
+            update_project_webhook(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+            )
 
         # Verify webhook was updated
         assert len(responses.calls) == 1
         assert "101" in responses.calls[0].request.url
         assert "webhook-1" in responses.calls[0].request.url
+
+        mock_logger_info.assert_called_once_with(
+            "update-project-webhook.success",
+            extra={
+                "integration_id": self.integration.id,
+                "interaction_type": "update_project_webhook",
+                "organization_id": self.organization.id,
+                "outcome": "updated",
+                "repository_id": self.repo.id,
+            },
+        )
 
         # Verify SLO metrics were recorded
         assert_slo_metric(mock_record_event)

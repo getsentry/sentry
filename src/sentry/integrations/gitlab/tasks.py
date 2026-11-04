@@ -53,6 +53,7 @@ WEBHOOK_RECONCILIATION_MAX_RETRY_DELAY_SECONDS = 3600
 WEBHOOK_RECONCILIATION_REPOSITORY_COST = 3
 WEBHOOK_RECONCILIATION_FANOUT_JITTER_SECONDS = 5
 WEBHOOK_RECONCILIATION_RETRY_AFTER_JITTER_SECONDS = 73
+WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES = frozenset({"adopted", "created", "recreated", "updated"})
 
 GITLAB_RETRY_CODES = (
     status.HTTP_429_TOO_MANY_REQUESTS,
@@ -595,6 +596,19 @@ def update_project_webhook(
         finally:
             if outcome is not None:
                 metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
+                if outcome in WEBHOOK_RECONCILIATION_SUCCESS_OUTCOMES:
+                    logger.info(
+                        "update-project-webhook.success",
+                        extra={
+                            "integration_id": integration_id,
+                            "interaction_type": str(
+                                GitLabTaskInteractionType.UPDATE_PROJECT_WEBHOOK
+                            ),
+                            "organization_id": organization_id,
+                            "outcome": outcome,
+                            "repository_id": repository_id,
+                        },
+                    )
 
 
 @instrumented_task(
