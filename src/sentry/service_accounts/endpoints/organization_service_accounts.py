@@ -56,6 +56,7 @@ FEATURE_FLAG = "organizations:service-accounts"
 MAX_PROJECT_IDS_PER_REQUEST = 1000
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
+DISABLE_ERROR = "Service accounts can't be disabled. Delete the account instead."
 ALL_PROJECTS_WITH_PROJECTS_ERROR = (
     "A service account with access to all projects can't also list projects."
     " Set allProjects to false to choose projects."
@@ -170,9 +171,16 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
             " such as Manager or Owner."
         ),
     )
+    # Kept so a request to disable an account fails instead of being silently ignored.
     isActive = serializers.BooleanField(
-        required=False, help_text="Whether the service account can be used. Defaults to true."
+        required=False,
+        help_text="Only `true` is accepted. To turn a service account off, delete it.",
     )
+
+    def validate_isActive(self, is_active: bool) -> bool:
+        if not is_active:
+            raise serializers.ValidationError(DISABLE_ERROR)
+        return is_active
 
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
         if not project_ids:
@@ -277,7 +285,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
     ) -> Response:
         return self.paginate(
             request=request,
-            queryset=ServiceAccount.objects.filter(organization_id=organization.id),
+            queryset=ServiceAccount.objects.filter(organization_id=organization.id, is_active=True),
             order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
@@ -323,7 +331,6 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                 project_ids=data.get("projectIds") or (),
                 all_projects=all_projects,
                 created_by_id=acting_user_id(request.user),
-                is_active=data.get("isActive", True),
             )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
@@ -356,6 +363,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             kwargs["service_account"] = ServiceAccount.objects.get(
                 organization_id=kwargs["organization"].id,
                 id=kwargs.pop("service_account_id"),
+                is_active=True,
             )
         except ServiceAccount.DoesNotExist:
             raise ResourceDoesNotExist
@@ -421,14 +429,12 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
                 service_account = ServiceAccount.objects.select_for_update().get(
-                    id=service_account.id
+                    id=service_account.id, is_active=True
                 )
                 if "name" in data:
                     service_account.name = data["name"]
                 if "scopes" in data:
                     service_account.scope_list = data["scopes"]
-                if "isActive" in data:
-                    service_account.is_active = data["isActive"]
                 # Checked against the locked row, so keeping all projects on an account
                 # also needs the role, even when the request doesn't mention it.
                 service_account.all_projects = data.get("allProjects", service_account.all_projects)
@@ -476,8 +482,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        # The tombstone cascade removes the cell replica. The project rows go with the account.
-        service_account.delete()
+        if not service_account.deactivate():
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
         self.create_audit_entry(
             request,
             organization=organization,
