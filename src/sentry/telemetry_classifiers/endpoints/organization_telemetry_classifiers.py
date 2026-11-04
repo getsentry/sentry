@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -29,8 +30,8 @@ from sentry.telemetry_classifiers.validators import TelemetryClassifierValidator
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # Creating and updating require project:write on the classifier's project, so members with
-    # team-level project:write can manage classifiers without org:write.
+    # Team admins have project:write on their projects but only org:read on the org, so writes
+    # are checked against the target project in the handler.
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -115,6 +116,11 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
+
+        if not request.access.has_project_scope(
+            validator.validated_data["project"], "project:write"
+        ):
+            raise PermissionDenied
 
         classifier = validator.save()
         return self.respond(
