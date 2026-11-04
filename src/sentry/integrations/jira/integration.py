@@ -829,7 +829,7 @@ class JiraIntegration(IssueSyncIntegration):
         is_feedback = group.issue_category == GroupCategory.FEEDBACK
         label = "Sentry Feedback" if is_feedback else "Sentry Issue"
         issue_link = self.format_link(
-            group.qualified_short_id,
+            group.qualified_short_id or "an issue",
             group.get_absolute_url(params={"referrer": "jira_integration"}),
         )
         trailing_newline = "\n" if is_feedback else ""

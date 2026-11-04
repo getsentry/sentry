@@ -612,7 +612,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
         issue_link = self.format_link(
-            group.qualified_short_id,
+            group.qualified_short_id or "an issue",
             absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
         )
         output = [f"Sentry Issue: {issue_link}"]

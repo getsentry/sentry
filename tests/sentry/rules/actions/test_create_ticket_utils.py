@@ -37,7 +37,7 @@ class CreateIssueDescriptionTest(TestCase):
                 "sentry.integrations.services.integration.model.RpcIntegration.get_installation",
                 return_value=self.installation,
             ),
-            patch("sentry.rules.actions.integrations.create_ticket.utils.create_link"),
+            patch("sentry.rules.actions.integrations.create_ticket.utils.create_ticket"),
         ):
             assert self.event.group is not None
             create_issue(self.event.for_group(self.event.group), [future])
