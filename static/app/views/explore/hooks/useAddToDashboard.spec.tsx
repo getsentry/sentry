@@ -12,6 +12,7 @@ import {
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function Wrapper({children}: {children: ReactNode}) {
@@ -45,6 +46,53 @@ describe('AddToDashboardButton', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('saves the chosen toolbar series after an equation and repeated aggregates', async () => {
+    render(
+      <Wrapper>
+        <ToolbarSaveAs />
+      </Wrapper>,
+      {
+        organization: OrganizationFixture({features: ['dashboards-edit']}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              aggregateField: [
+                {yAxes: ['equation|count(span.duration) * 2']},
+                {yAxes: ['avg(span.duration)'], transformations: ['fill(zero)']},
+                {
+                  yAxes: ['avg(span.duration)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                },
+              ].map(field => JSON.stringify(field)),
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Dashboard widget'}));
+    await userEvent.click(
+      (await screen.findAllByRole('menuitemradio', {name: 'avg(span.duration)'}))[1]!
+    );
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                aggregates: ['avg(span.duration)'],
+                transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+              }),
+            ],
+          }),
+        ],
+      })
+    );
   });
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
@@ -287,7 +335,7 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('adds every aggregate plotted on the same chart', async () => {
+  it('adds every aggregate and its pipeline plotted on the same chart', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
@@ -301,6 +349,7 @@ describe('AddToDashboardButton', () => {
         {
           yAxes: ['p50(span.duration)', 'p99(span.duration)'],
           chartType: ChartType.LINE,
+          transformations: ['fill(locf)', 'smooth(sma,5)'],
         },
         {
           yAxes: ['count(span.duration)'],
@@ -319,6 +368,10 @@ describe('AddToDashboardButton', () => {
             queries: [
               expect.objectContaining({
                 aggregates: ['p50(span.duration)', 'p99(span.duration)'],
+                transformations: {
+                  0: ['fill(locf)', 'smooth(sma,5)'],
+                  1: ['fill(locf)', 'smooth(sma,5)'],
+                },
               }),
             ],
           }),

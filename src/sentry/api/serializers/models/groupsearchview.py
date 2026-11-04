@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
-from sentry.auth.principal import acting_user, owned_by_acting_user
+from sentry.auth.principal import acting_user, is_owned_by_acting_user
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -57,13 +57,13 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         attrs: dict[GroupSearchView, dict[str, object]] = {}
 
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            owned_by_acting_user(user),
+            is_owned_by_acting_user(user),
             organization=self.organization,
             group_search_view_id__in=[item.id for item in item_list],
         )
         user_starred_view_ids = set(
             GroupSearchViewStarred.objects.filter(
-                owned_by_acting_user(user), organization=self.organization
+                is_owned_by_acting_user(user), organization=self.organization
             ).values_list("group_search_view_id", flat=True)
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}

@@ -8,13 +8,10 @@ from rest_framework import status
 
 from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
-from sentry.issues import grouptype
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -42,14 +39,17 @@ from sentry.workflow_engine.types import (
     ERROR_DETECTOR_NAME,
     ISSUE_STREAM_DETECTOR_NAME,
     DetectorPriorityLevel,
+    DetectorType,
 )
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
-VALID_DEFAULT_DETECTOR_TYPES = [
-    ErrorGroupType.slug,
-    IssueStreamGroupType.slug,
-    *[m.wfe_detector_type for m in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()],
-]
+# Preserve existing provisioning labels independently of output issue descriptions.
+DEFAULT_DETECTOR_NAMES = {
+    DetectorType.ERROR: ERROR_DETECTOR_NAME,
+    DetectorType.ISSUE_STREAM: ISSUE_STREAM_DETECTOR_NAME,
+    DetectorType.PERFORMANCE_SLOW_DB_QUERY: "Slow DB Query",
+    DetectorType.PERFORMANCE_LARGE_HTTP_PAYLOAD: "Large HTTP payload",
+    DetectorType.QUERY_INJECTION_VULNERABILITY: "Potential Query Injection Vulnerability",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -92,16 +92,13 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
     Ensure that a detector of a given type exists for a project.
     If the Detector doesn't already exist, we lock the project row to avoid double-creating.
     """
-    group_type = grouptype.registry.get_by_slug(type)
-    if not group_type:
-        raise ValueError(f"Group type {type} not registered")
-    slug = group_type.slug
-    if slug not in VALID_DEFAULT_DETECTOR_TYPES:
-        raise ValueError(f"Invalid default detector type: {slug}")
+    detector_type = DetectorType(type)
+    if detector_type not in DEFAULT_DETECTOR_NAMES:
+        raise ValueError(f"Invalid default detector type: {detector_type}")
 
     # If it already exists, life is simple and we can return immediately.
     # If there happen to be duplicates, we prefer the oldest.
-    existing = Detector.objects.filter(type=slug, project=project).order_by("id").first()
+    existing = Detector.objects.filter(type=detector_type, project=project).order_by("id").first()
     if existing:
         return existing
 
@@ -114,17 +111,11 @@ def _ensure_detector(project: Project, type: str, default_enabled: bool = True) 
     with transaction.atomic(router.db_for_write(Detector)):
         Project.objects.select_for_update(no_key=True).get(id=project.id)
         detector, _ = Detector.objects.get_or_create(
-            type=slug,
+            type=detector_type,
             project=project,
             defaults={
                 "config": {},
-                "name": (
-                    ERROR_DETECTOR_NAME
-                    if slug == ErrorGroupType.slug
-                    else ISSUE_STREAM_DETECTOR_NAME
-                    if slug == IssueStreamGroupType.slug
-                    else group_type.description
-                ),
+                "name": DEFAULT_DETECTOR_NAMES[detector_type],
                 "enabled": default_enabled,
             },
         )
@@ -140,7 +131,9 @@ def ensure_default_anomaly_detector(
     """
     # If it already exists, return immediately. Prefer the oldest if duplicates exist.
     existing = (
-        Detector.objects.filter(type=MetricIssue.slug, project=project).order_by("id").first()
+        Detector.objects.filter(type=DetectorType.METRIC_ISSUE, project=project)
+        .order_by("id")
+        .first()
     )
     if existing:
         logger.info(
@@ -150,9 +143,9 @@ def ensure_default_anomaly_detector(
         return existing
 
     lock = locks.get(
-        f"workflow-engine-project-{MetricIssue.slug}-detector:{project.id}",
+        f"workflow-engine-project-{DetectorType.METRIC_ISSUE}-detector:{project.id}",
         duration=2,
-        name=f"workflow_engine_default_{MetricIssue.slug}_detector",
+        name=f"workflow_engine_default_{DetectorType.METRIC_ISSUE}_detector",
     )
     try:
         with (
@@ -161,7 +154,7 @@ def ensure_default_anomaly_detector(
         ):
             # Double-check after acquiring lock in case another process created it
             existing = (
-                Detector.objects.filter(type=MetricIssue.slug, project=project)
+                Detector.objects.filter(type=DetectorType.METRIC_ISSUE, project=project)
                 .order_by("id")
                 .first()
             )
@@ -190,7 +183,7 @@ def ensure_default_anomaly_detector(
                     name="High Error Count (Default)",
                     description="Automatically monitors for anomalous spikes in error count",
                     workflow_condition_group=condition_group,
-                    type=MetricIssue.slug,
+                    type=DetectorType.METRIC_ISSUE,
                     config={
                         "detection_type": AlertRuleDetectionType.DYNAMIC.value,
                         "comparison_delta": None,
@@ -283,9 +276,9 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
         return existing
 
     lock = locks.get(
-        f"workflow-engine-org-{IssueStreamGroupType.slug}-detector:{organization_id}",
+        f"workflow-engine-org-{DetectorType.ISSUE_STREAM}-detector:{organization_id}",
         duration=2,
-        name=f"workflow_engine_all_project_{IssueStreamGroupType.slug}_detector",
+        name=f"workflow_engine_all_project_{DetectorType.ISSUE_STREAM}_detector",
     )
     try:
         with (
@@ -297,7 +290,7 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
                 return existing
 
             return Detector.objects.create(
-                type=IssueStreamGroupType.slug,
+                type=DetectorType.ISSUE_STREAM,
                 project=None,
                 config={"organization_id": organization_id},
                 name=ALL_PROJECTS_DETECTOR_NAME,
@@ -313,7 +306,7 @@ def ensure_default_organization_detectors(organization: Organization) -> dict[st
     """
     detectors: dict[str, Detector] = {}
     if options.get("workflow_engine.auto_creation.all_projects_detector"):
-        detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
+        detectors[DetectorType.ISSUE_STREAM] = ensure_default_all_projects_detector(
             organization_id=organization.id
         )
     return detectors
@@ -321,7 +314,7 @@ def ensure_default_organization_detectors(organization: Organization) -> dict[st
 
 def ensure_default_detectors(project: Project) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
-    detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
-    detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
+    detectors[DetectorType.ERROR] = _ensure_detector(project, DetectorType.ERROR)
+    detectors[DetectorType.ISSUE_STREAM] = _ensure_detector(project, DetectorType.ISSUE_STREAM)
     detectors.update(ensure_performance_detectors(project))
     return detectors

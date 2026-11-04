@@ -8,7 +8,9 @@ from django.db import models, router, transaction
 from django.db.models import CheckConstraint, Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
@@ -87,6 +89,14 @@ class ExploreSavedQuery(DefaultFieldsModel):
     projects = models.ManyToManyField("sentry.Project", through=ExploreSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -109,8 +119,27 @@ class ExploreSavedQuery(DefaultFieldsModel):
         app_label = "explore"
         db_table = "explore_exploresavedquery"
         unique_together = (("organization", "prebuilt_id"),)
+        constraints = [
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedquery_single_creator",
+            ),
+        ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole row.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
 
     def set_projects(self, project_ids: Iterable[int]) -> None:
         with transaction.atomic(router.db_for_write(ExploreSavedQueryProject)):
@@ -496,6 +525,14 @@ class ExploreSavedFormula(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     # Matching 280 from attribute.brief
@@ -530,7 +567,24 @@ class ExploreSavedFormula(DefaultFieldsModel):
                 condition=Q(prebuilt_id__isnull=False) | Q(prebuilt_deleted=False),
                 name="explore_exploresavedformula_prebuilt_deleted_requires_prebuilt",
             ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedformula_single_creator",
+            ),
         ]
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Org auth tokens are imported after every other model, so their new pks can't be mapped
+        # here. Drop the reference rather than dropping the whole row.
+        self.created_by_org_auth_token_id = None
+        return super().normalize_before_relocation_import(pk_map, scope, flags)
 
     @property
     def formula_type(self) -> Literal["duration", "size", "number"]:

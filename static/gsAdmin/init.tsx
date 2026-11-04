@@ -4,13 +4,13 @@ import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {setApiNavigate} from 'sentry/api';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {registerOverride} from 'sentry/overrideRegistry';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import type {Config} from 'sentry/types/system';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';

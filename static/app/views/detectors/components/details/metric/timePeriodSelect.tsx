@@ -1,12 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import moment from 'moment-timezone';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   useDetectorResolvedStatsPeriod,
   useDetectorTimePeriodOptions,
@@ -27,12 +26,12 @@ interface TimePeriodSelectProps {
 }
 
 export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const start = location.query?.start as string | undefined;
-  const end = location.query?.end as string | undefined;
-  const urlStatsPeriod = location.query?.statsPeriod as string | undefined;
+  const [{start, end, statsPeriod}, setTimeParams] = useQueryStates({
+    start: parseAsString,
+    end: parseAsString,
+    statsPeriod: parseAsString,
+  });
+  const urlStatsPeriod = statsPeriod ?? undefined;
 
   const hasCustomRange = Boolean(start && end);
 
@@ -58,22 +57,10 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
   // into the query params so that the rest of the page (chart, links, etc.)
   // has a consistent source of truth.
   useEffect(() => {
-    const hasStatsPeriod = Boolean(location.query?.statsPeriod);
-    if (!hasCustomRange && !hasStatsPeriod && selected) {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            statsPeriod: selected,
-            start: undefined,
-            end: undefined,
-          },
-        },
-        {replace: true}
-      );
+    if (!hasCustomRange && !urlStatsPeriod && selected) {
+      setTimeParams({statsPeriod: selected, start: null, end: null});
     }
-  }, [hasCustomRange, selected, navigate, location.pathname, location.query]);
+  }, [hasCustomRange, selected, setTimeParams, urlStatsPeriod]);
 
   const selectOptions = useMemo(() => {
     if (hasCustomRange) {
@@ -123,15 +110,10 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
         if (opt.value === CUSTOM_TIME_VALUE) {
           return;
         }
-        navigate({
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            statsPeriod: opt.value,
-            start: undefined,
-            end: undefined,
-          },
-        });
+        setTimeParams(
+          {statsPeriod: opt.value, start: null, end: null},
+          {history: 'push'}
+        );
       }}
     />
   );

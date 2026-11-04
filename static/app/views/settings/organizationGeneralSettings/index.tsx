@@ -26,6 +26,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {OrganizationSettingsForm} from './organizationSettingsForm';
@@ -97,7 +98,10 @@ export default function OrganizationGeneralSettings() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
+      <SentryDocumentTitle
+        title={settingsV3 ? getSettingsScopeTitle('org') : t('General Settings')}
+        orgSlug={organization.slug}
+      />
       <div>
         <SettingsPageHeader
           title={settingsV3 ? t('General') : t('Organization Settings')}

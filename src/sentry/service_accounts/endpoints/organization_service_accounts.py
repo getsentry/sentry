@@ -38,6 +38,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -138,21 +139,6 @@ def _check_can_grant_all_projects(request: Request) -> None:
     role = request.access.role
     if role is None or not roles.get(role).is_global:
         raise PermissionDenied(ALL_PROJECTS_ROLE_ERROR)
-
-
-def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
-    existing = set()
-    # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
-    for link in ServiceAccountProject.objects.filter(service_account=service_account):
-        if link.project_id in project_ids:
-            existing.add(link.project_id)
-        else:
-            link.delete()
-    ServiceAccountProject.objects.bulk_create(
-        ServiceAccountProject(service_account=service_account, project_id=project_id)
-        for project_id in project_ids
-        if project_id not in existing
-    )
 
 
 class ServiceAccountCreateSerializer(serializers.Serializer):
@@ -317,19 +303,15 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             _check_can_grant_all_projects(request)
 
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
-                service_account = ServiceAccount.objects.create(
-                    organization_id=organization.id,
-                    name=data["name"],
-                    scope_list=data["scopes"],
-                    is_active=data.get("isActive", True),
-                    all_projects=all_projects,
-                    created_by_id=request.user.id,
-                )
-                ServiceAccountProject.objects.bulk_create(
-                    ServiceAccountProject(service_account=service_account, project_id=project_id)
-                    for project_id in data.get("projectIds") or ()
-                )
+            service_account = ServiceAccount.create_with_projects(
+                organization_id=organization.id,
+                name=data["name"],
+                scope_list=data["scopes"],
+                project_ids=data.get("projectIds") or (),
+                all_projects=all_projects,
+                created_by_id=acting_user_id(request.user),
+                is_active=data.get("isActive", True),
+            )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
@@ -439,9 +421,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
                 service_account.all_projects = data.get("allProjects", service_account.all_projects)
                 if service_account.all_projects:
                     _check_can_grant_all_projects(request)
-                    _replace_projects(service_account, [])
+                    service_account.replace_projects([])
                 elif "projectIds" in data:
-                    _replace_projects(service_account, data["projectIds"] or [])
+                    service_account.replace_projects(data["projectIds"] or [])
                 service_account.save()
         except ServiceAccount.DoesNotExist:
             # Deleted by another request after convert_args loaded it.

@@ -41,6 +41,7 @@ from sentry.seer.autofix.feature.dispatch import (
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
     CodeChangesStepArgs,
     PrIterationStepArgs,
     RCAStepArgs,
@@ -445,6 +446,7 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
+    single_run: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -522,6 +524,7 @@ def trigger_autofix_agent(
             allow_free_cohort=allow_free_cohort,
             user=user,
             enable_bash_mode=enable_bash_mode,
+            single_run=single_run,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -540,15 +543,18 @@ def trigger_autofix_agent(
             },
         )
 
-        _handle_step_started_events(
-            group,
-            step,
-            feature_run_id,
-            str(feature_run.uuid),
-            referrer,
-            iteration_index,
-            actor_user_id=actor_user_id,
-        )
+        # TEMPORARY: single runs skip "started" notices until they send completion notices too;
+        # otherwise the issue would look stuck in progress. Remove with AIML-3809.
+        if not SeerAgentRun.objects.filter(run=feature_run, source=SINGLE_RUN_FEATURE_ID).exists():
+            _handle_step_started_events(
+                group,
+                step,
+                feature_run_id,
+                str(feature_run.uuid),
+                referrer,
+                iteration_index,
+                actor_user_id=actor_user_id,
+            )
         return feature_run
     except (NoSeerQuotaException, SeerPermissionError, PrIterationNoPullRequestException):
         outcome = "declined"

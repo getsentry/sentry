@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import merge from 'lodash/merge';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
