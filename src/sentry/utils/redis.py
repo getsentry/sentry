@@ -336,9 +336,9 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         ),
         # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
         ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
-        # INFRENG-804: the test takes the subscription lock to see if it is held, inside the
+        # INFRENG-925: the test takes the subscription lock to see if it is held, inside the
         # transaction of _apply_legacy_ondemand_max_spend. Lock.acquire catches the check's error,
-        # so this stayed hidden until INFRENG-894 (needs its own ticket)
+        # so this stayed hidden until INFRENG-894
         (
             "tests.getsentry.utils.billing.test_billing.UpgradeOnDemandMaxSpendTest.test_reenable_runs_outside_subscription_lock.<locals>.record",
         ),
