@@ -1575,7 +1575,7 @@ describe('SeerExplorerContent', () => {
       );
     });
 
-    it('shows the debug menu to employees without any debug feature flag', async () => {
+    it('shows the debug menu to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>

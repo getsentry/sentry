@@ -72,7 +72,7 @@ describe('SeerExplorerHeader', () => {
       );
     });
 
-    it('renders the force bash mode toggle without any debug flags', async () => {
+    it('renders the force bash mode toggle', async () => {
       await renderHeader();
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
