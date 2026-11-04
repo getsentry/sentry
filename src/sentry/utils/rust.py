@@ -1,8 +1,11 @@
 import re
+from collections.abc import MutableMapping, Sequence
+from typing import cast
 
 import sentry_sdk
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
+from sentry_sdk.types import Event, Hint
 
 from sentry.utils.safe import get_path
 
@@ -96,12 +99,12 @@ RUST_ESCAPES = {
 }
 
 
-def get_filename(abs_path):
+def get_filename(abs_path: str) -> str:
     """Returns the basename of the given absolute path."""
     return abs_path.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
 
 
-def strip_symbol(symbol):
+def strip_symbol(symbol: str | None) -> str | None:
     """Strips rust function hashes of the given symbol."""
     if symbol:
         match = HASH_FUNC_RE.match(symbol)
@@ -111,12 +114,12 @@ def strip_symbol(symbol):
     return symbol
 
 
-def demangle_rust(symbol):
+def demangle_rust(symbol: str) -> str:
     """Demangles common escapes in the given rust symbol."""
     return RUST_ESCAPES_RE.sub(lambda m: RUST_ESCAPES.get(m.group(1), ""), symbol)
 
 
-def starts_with(function, pattern):
+def starts_with(function: str, pattern: str) -> bool:
     """
     Returns whether the given function name matches the pattern.
     This takes trait implementation and name mangling into account.
@@ -124,17 +127,17 @@ def starts_with(function, pattern):
     return PATTERN_MATCH_RE.sub("", function).replace(".", ":").startswith(pattern)
 
 
-def matches_frame(function, patterns):
+def matches_frame(function: str, patterns: Sequence[str]) -> bool:
     """Returns whether the given function name matches any of the patterns."""
     return any(starts_with(function, p) for p in patterns)
 
 
-def frame_from_match(match, last_addr):
+def frame_from_match(match: re.Match[str], last_addr: str | None) -> dict[str, object]:
     """Creates a sentry stack frame from a backtrace entry."""
-    symbol = strip_symbol(match.group("symbol"))
+    symbol = cast("str", strip_symbol(match.group("symbol")))
     function = demangle_rust(symbol)
 
-    frame = {
+    frame: dict[str, object] = {
         "function": function,
         "in_app": not matches_frame(function, SYSTEM_FRAMES),
         "instruction_addr": match.group("addr") or match.group("addr_linux") or last_addr,
@@ -161,22 +164,26 @@ def frame_from_match(match, last_addr):
     return frame
 
 
-def frames_from_rust_info(rust_info):
+def frames_from_rust_info(rust_info: str) -> list[dict[str, object]]:
     """
     Extracts a list of frames from the given rust_info string.
 
     Border frames from the python interpreter, FFI calls, panic unwinding and
     backtrace generation are trimmed off.
     """
-    frames = []
-    last_addr = None
+    frames: list[dict[str, object]] = []
+    last_addr: str | None = None
     for m in FRAME_RE.finditer(rust_info):
         frame = frame_from_match(m, last_addr)
-        last_addr = frame["instruction_addr"]
+        last_addr = cast("str | None", frame["instruction_addr"])
         frames.append(frame)
 
     end = next(
-        (i for i, f in enumerate(frames) if matches_frame(f["function"], OUTER_BORDER_FRAMES)),
+        (
+            i
+            for i, f in enumerate(frames)
+            if matches_frame(cast("str", f["function"]), OUTER_BORDER_FRAMES)
+        ),
         len(frames),
     )
 
@@ -184,7 +191,7 @@ def frames_from_rust_info(rust_info):
         (
             i
             for i, f in enumerate(reversed(frames))
-            if matches_frame(f["function"], INNER_BORDER_FRAMES)
+            if matches_frame(cast("str", f["function"]), INNER_BORDER_FRAMES)
         ),
         0,
     )
@@ -192,15 +199,15 @@ def frames_from_rust_info(rust_info):
     return frames[start:end]
 
 
-def strip_backtrace_message(target, field):
+def strip_backtrace_message(target: MutableMapping[str, object] | None, field: str) -> None:
     """
     Strips the backtrace off a message, if it contains one.
     """
-    if target and isinstance(target.get(field), str):
-        target[field] = target[field].split("\n\nstacktrace:", 1)[0].strip()
+    if target is not None and isinstance(value := target.get(field), str):
+        target[field] = value.split("\n\nstacktrace:", 1)[0].strip()
 
 
-def merge_rust_info_frames(event, hint):
+def merge_rust_info_frames(event: Event, hint: Hint) -> Event:
     """
     Adds rust exception backtraces to the python traceback.
 
@@ -215,8 +222,9 @@ def merge_rust_info_frames(event, hint):
     if "exc_info" not in hint:
         return event
 
-    exc_type, exc_value, tb = hint["exc_info"]
-    if not hasattr(exc_value, "rust_info") or not exc_value.rust_info:
+    _exc_type, exc_value, _tb = hint["exc_info"]
+    rust_info = cast("str | None", getattr(exc_value, "rust_info", None))
+    if not rust_info:
         return event
 
     exception = get_path(event, "exception", "values", 0)
@@ -225,17 +233,18 @@ def merge_rust_info_frames(event, hint):
         return event
 
     # Update the platform
-    event["platform"] = "native"
+    cast("dict[str, object]", event)["platform"] = "native"
     for frame in stacktrace:
         frame["platform"] = "python"
 
     # Remove rust_info from messages
     strip_backtrace_message(exception, "value")
-    strip_backtrace_message(event.get("logentry"), "message")
-    strip_backtrace_message(event.get("logentry"), "formatted")
+    logentry = cast("MutableMapping[str, object] | None", event.get("logentry"))
+    strip_backtrace_message(logentry, "message")
+    strip_backtrace_message(logentry, "formatted")
 
     # Extend the stacktrace
-    frames = frames_from_rust_info(exc_value.rust_info)
+    frames = frames_from_rust_info(rust_info)
     if frames:
         stacktrace.extend(reversed(frames))
 
@@ -246,9 +255,9 @@ class RustInfoIntegration(Integration):
     identifier = "rust_info"
 
     @staticmethod
-    def setup_once():
+    def setup_once() -> None:
         @add_global_event_processor
-        def processor(event, hint):
+        def processor(event: Event, hint: Hint) -> Event:
             if sentry_sdk.get_client().get_integration(RustInfoIntegration) is None:
                 return event
 

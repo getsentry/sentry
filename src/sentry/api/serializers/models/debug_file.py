@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -22,7 +23,13 @@ class DebugFileSerializerResponse(TypedDict):
 
 @register(ProjectDebugFile)
 class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> DebugFileSerializerResponse:
+    def serialize(
+        self,
+        obj: ProjectDebugFile,
+        attrs: Mapping[object, object],
+        user: object,
+        **kwargs: object,
+    ) -> DebugFileSerializerResponse:
         headers = {"Content-Type": obj.get_content_type()}
 
         return {

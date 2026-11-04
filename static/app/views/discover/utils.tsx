@@ -48,6 +48,10 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
+import {
+  supportsWidgetTransformations,
+  type QueryTransformations,
+} from 'sentry/views/dashboards/utils/transformations';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
@@ -564,6 +568,7 @@ export function handleAddQueryToDashboard({
   yAxis,
   widgetType,
   source,
+  transformations,
 }: {
   eventView: EventView;
   location: Location;
@@ -571,6 +576,7 @@ export function handleAddQueryToDashboard({
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
   query?: NewQuery;
+  transformations?: QueryTransformations;
   yAxis?: string | string[];
 }) {
   const displayType = resolveDisplayType(widgetType, eventView.display);
@@ -613,6 +619,10 @@ export function handleAddQueryToDashboard({
         queries: [
           {
             ...defaultWidgetQuery,
+            ...(transformations &&
+              supportsWidgetTransformations(widgetType, displayType) && {
+                transformations,
+              }),
             ...widgetQueryFieldsForDisplayType(
               displayType,
               typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']),
@@ -632,25 +642,25 @@ export function handleAddQueryToDashboard({
 }
 
 export function handleAddMultipleQueriesToDashboard({
-  eventViews,
+  queries,
   location,
   organization,
   widgetType,
   source,
   selection,
 }: {
-  eventViews: EventView[];
   location: Location;
   organization: Organization;
+  queries: Array<{eventView: EventView; transformations?: QueryTransformations}>;
   selection: PageFilters;
   source: DashboardWidgetSource;
   widgetType: WidgetType | undefined;
 }) {
-  if (eventViews.length === 0) {
+  if (queries.length === 0) {
     return;
   }
 
-  const widgets = eventViews.map(eventView => {
+  const widgets = queries.map(({eventView, transformations}) => {
     const displayType = resolveDisplayType(widgetType, eventView.display);
 
     const defaultWidgetQuery = eventViewToWidgetQuery({
@@ -677,6 +687,10 @@ export function handleAddMultipleQueriesToDashboard({
       queries: [
         {
           ...defaultWidgetQuery,
+          ...(transformations &&
+            supportsWidgetTransformations(widgetType, displayType) && {
+              transformations,
+            }),
           ...widgetQueryFieldsForDisplayType(
             displayType,
             toArray(yAxis ?? 'count()'),

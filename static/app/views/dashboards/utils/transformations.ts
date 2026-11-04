@@ -1,3 +1,4 @@
+import {parseAsJson} from 'nuqs';
 import {z} from 'zod';
 
 import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
@@ -38,15 +39,6 @@ export function remapTransformations(
   );
 }
 
-const transformationsSchema = z.array(
-  z.record(z.number().int().nonnegative(), z.array(z.string()))
+export const parseAsTransformations = parseAsJson(
+  z.array(z.record(z.number().int().nonnegative(), z.array(z.string())))
 );
-
-export function deserializeTransformations(value: string): QueryTransformations[] | null {
-  try {
-    const result = transformationsSchema.safeParse(JSON.parse(value));
-    return result.success ? result.data : null;
-  } catch {
-    return null;
-  }
-}

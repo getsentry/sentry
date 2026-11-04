@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import connection
@@ -176,10 +176,13 @@ class InvestigationDetailsSerializerTest(TestCase):
         self.block = self.create_notebook_block(notebook=self.investigation, position=0)
 
     def serialize_detail(self) -> InvestigationDetailsSerializerResponse:
-        return serialize(
-            self.investigation,
-            self.user,
-            InvestigationDetailsSerializer(),
+        return cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                self.user,
+                InvestigationDetailsSerializer(),
+            ),
         )
 
     def test_extends_the_list_representation(self) -> None:
@@ -323,9 +326,15 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def serialize_requests(self) -> list[dict[str, Any]]:
         access = from_user(self.user, self.organization)
-        return serialize(
-            self.investigation, self.user, InvestigationDetailsSerializer(access=access)
-        )["actionRequests"]
+        detail = cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                self.user,
+                InvestigationDetailsSerializer(access=access),
+            ),
+        )
+        return cast("list[dict[str, Any]]", detail["actionRequests"])
 
     def test_serializes_an_action_request(self) -> None:
         action_request = self.add_request(
@@ -428,7 +437,11 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_an_undelivered_follow_up_has_no_reason(self) -> None:
         self.add_followed_up_request(
             status=InvestigationOrchestrationCommandStatus.FAILED,
-            error={"code": "seer_command_dispatch_failed", "retryable": True},
+            error={
+                "code": "seer_command_dispatch_failed",
+                "dispatchReason": "actor_access_denied",
+                "retryable": True,
+            },
         )
 
         (serialized,) = self.serialize_requests()
@@ -653,12 +666,19 @@ class InvestigationActionRequestSerializationTest(TestCase):
 
     def serialize_for(self, user: Any) -> list[dict[str, Any]]:
         access = from_user(user, self.organization)
-        return serialize(self.investigation, user, InvestigationDetailsSerializer(access=access))[
-            "actionRequests"
-        ]
+        detail = cast(
+            "InvestigationDetailsSerializerResponse",
+            serialize(
+                self.investigation,
+                user,
+                InvestigationDetailsSerializer(access=access),
+            ),
+        )
+        return cast("list[dict[str, Any]]", detail["actionRequests"])
 
     def cannot_apply_reason(self, user: Any = None) -> str | None:
-        return self.serialize_for(user or self.user)[0]["cannotApplyReason"]
+        reason = self.serialize_for(user or self.user)[0]["cannotApplyReason"]
+        return reason if isinstance(reason, str) else None
 
     def test_an_editor_can_apply_a_suggestion(self) -> None:
         self.add_request()

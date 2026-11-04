@@ -323,7 +323,9 @@ class DisassociateOrganizationIntegrationTest(TestCase):
             provider="github",
         )
         self.provider = "integrations:github"
-        self.org_integration = self.integration.organizationintegration_set.first()
+        org_integration = self.integration.organizationintegration_set.first()
+        assert org_integration is not None
+        self.org_integration = org_integration
 
     def test_disassociates_repos(self) -> None:
         repo = Repository.objects.create(
@@ -427,7 +429,7 @@ class RepointOrganizationIntegrationDataTest(TestCase):
             external_id="gitlab.example.com:1",
             provider="gitlab",
         )
-        self.organization_integration = self.old_integration.organizationintegration_set.get()
+        self.old_org_integration = self.old_integration.organizationintegration_set.get()
         self.new_integration = self.create_integration(
             organization=self.organization,
             external_id=f"gitlab.example.com:1-{self.organization.id}",
@@ -450,7 +452,7 @@ class RepointOrganizationIntegrationDataTest(TestCase):
         code_mapping = self.create_code_mapping(
             project=self.project,
             repo=repository,
-            organization_integration=self.organization_integration,
+            organization_integration=self.old_org_integration,
         )
         external_issue = ExternalIssue.objects.create(
             organization=self.organization,
@@ -483,7 +485,7 @@ class RepointOrganizationIntegrationDataTest(TestCase):
         assert repository.integration_id == self.new_integration.id
         code_mapping.refresh_from_db()
         assert code_mapping.integration_id == self.new_integration.id
-        assert code_mapping.organization_integration_id == self.organization_integration.id
+        assert code_mapping.organization_integration_id == self.old_org_integration.id
         external_issue.refresh_from_db()
         assert external_issue.integration_id == self.new_integration.id
         external_actor.refresh_from_db()

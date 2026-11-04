@@ -250,7 +250,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         )
         assert event.group is not None
         self.group = event.group
-        self.event = event.for_group(self.group)
+        self.group_event = event.for_group(self.group)
 
     def create_channel_action(self, action_type: str, provider: str) -> Action:
         integration, _ = self.create_provider_integration_for(
@@ -272,7 +272,7 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
 
     def invocation(self, action: Action) -> ActionInvocation:
         return ActionInvocation(
-            event_data=WorkflowEventData(event=self.event, group=self.group),
+            event_data=WorkflowEventData(event=self.group_event, group=self.group),
             action=action,
             detector=self.detector,
             notification_uuid=str(uuid.uuid4()),

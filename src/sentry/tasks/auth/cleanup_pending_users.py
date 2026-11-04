@@ -14,5 +14,5 @@ from sentry.users.models.pending_user import PendingUser
     silo_mode=SiloMode.CONTROL,
     processing_deadline_duration=90,
 )
-def cleanup_pending_users(**kwargs) -> None:
+def cleanup_pending_users(**kwargs: object) -> None:
     PendingUser.objects.filter(expires_at__lte=timezone.now()).delete()

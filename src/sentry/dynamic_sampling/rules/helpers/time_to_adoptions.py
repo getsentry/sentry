@@ -47,6 +47,7 @@ LATEST_RELEASE_TTAS = {
     "dotnet-xamarin": 36899,
     "electron": 25198,
     "elixir": 12596,
+    "expo": 54047,
     "flutter": 204973,
     "go": 16487,
     "go-http": 5658,
@@ -115,8 +116,6 @@ LATEST_RELEASE_TTAS = {
     "python-tryton": 3605,
     "python-wsgi": 4657,
     "react-native": 54047,
-    # Expo apps use the React Native SDK and ship through the same app stores.
-    "expo": 54047,
     "ruby": 3990,
     "ruby-rack": 4599,
     "ruby-rails": 4421,

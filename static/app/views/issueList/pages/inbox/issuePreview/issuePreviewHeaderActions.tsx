@@ -1,5 +1,6 @@
 import {useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -23,7 +24,6 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
@@ -83,20 +83,22 @@ function IssuePreviewResolutionActions({
 }) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const location = useLocation();
+  const [{alert_date, alert_rule_id, alert_type}] = useQueryStates({
+    alert_date: parseAsString,
+    alert_rule_id: parseAsString,
+    alert_type: parseAsString,
+  });
   const queryClient = useQueryClient();
   const invalidateInboxQueries = useInvalidateInboxQueries(group.id);
   async function handleUpdate(data: GroupStatusResolution) {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_inbox.resolve_clicked', {
       organization,
       action_type: data.status,
       action_substatus: data.substatus ?? undefined,
       action_status_details: Object.keys(data.statusDetails || {})[0],
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+      alert_rule_id: alert_rule_id ?? undefined,
+      alert_type: alert_type ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,

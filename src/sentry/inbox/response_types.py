@@ -46,7 +46,7 @@ class InboxItemResponse(TypedDict):
     lastReadAt: datetime | None
 
 
-class InboxUnreadCountResponse(TypedDict):
-    """Number of active unread inbox items."""
+class InboxCountResponse(TypedDict):
+    """Number of active inbox items matching the filters."""
 
     count: int

@@ -1,13 +1,13 @@
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Callable, Mapping, Sequence, Set
 
 
 class Encoder:
     number_types = (int, float)
 
-    def __init__(self, types=None):
+    def __init__(self, types: Mapping[type[object], Callable[..., object]] | None = None) -> None:
         self.types = types if types is not None else {}
 
-    def dumps(self, value):
+    def dumps(self, value: object) -> bytes:
         for cls, function in self.types.items():
             if isinstance(value, cls):
                 value = function(value)

@@ -7,6 +7,7 @@ import {
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -285,7 +286,8 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('disables saving when a later metric row has transformations', async () => {
+  it('allows query saves when a later metric row has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
     render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
       additionalWrapper: ProviderWrapper,
       organization,
@@ -312,9 +314,18 @@ describe('MetricsTabContent', () => {
       },
     });
 
-    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
       'aria-disabled',
       'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('Enter a name for your new query')).toBeVisible()
     );
     expect(
       await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {

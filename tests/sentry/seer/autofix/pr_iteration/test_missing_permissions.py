@@ -149,26 +149,34 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             log_ctx=_log_ctx(state),
         )
 
-    def test_allows_iteration_when_nothing_missing(self, mock_get_perms, mock_delay) -> None:
+    def test_allows_iteration_when_nothing_missing(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {}
 
         assert self._run(_state(getsentry__sentry=7)) is False
         mock_delay.assert_not_called()
 
-    def test_only_checks_repos_with_a_pr(self, mock_get_perms, _mock_delay) -> None:
+    def test_only_checks_repos_with_a_pr(
+        self, mock_get_perms: MagicMock, _mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {}
 
         self._run(_state(getsentry__sentry=7, getsentry__seer=None))
 
         assert mock_get_perms.call_args[0][1] == [REPO_NAME]
 
-    def test_allows_iteration_when_the_check_raises(self, mock_get_perms, mock_delay) -> None:
+    def test_allows_iteration_when_the_check_raises(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.side_effect = ValueError("boom")
 
         assert self._run(_state(getsentry__sentry=7)) is False
         mock_delay.assert_not_called()
 
-    def test_blocks_and_queues_a_comment(self, mock_get_perms, mock_delay) -> None:
+    def test_blocks_and_queues_a_comment(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
 
         assert self._run(_state(getsentry__sentry=7)) is True
@@ -183,7 +191,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             repository_id=123,
         )
 
-    def test_queues_per_repo(self, mock_get_perms, mock_delay) -> None:
+    def test_queues_per_repo(self, mock_get_perms: MagicMock, mock_delay: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(), OTHER_REPO_NAME: _perms()}
 
         assert self._run(_state(getsentry__sentry=7, getsentry__seer=9)) is True
@@ -194,7 +202,9 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             OTHER_REPO_NAME,
         }
 
-    def test_skips_the_queue_once_the_marker_is_set(self, mock_get_perms, mock_delay) -> None:
+    def test_skips_the_queue_once_the_marker_is_set(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         self.seer_run.update(
             extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_tiers": ["pr_iteration"]}}}
@@ -203,7 +213,9 @@ class BlockIterationForMissingPermissionsTest(TestCase):
         assert self._run(_state(getsentry__sentry=7)) is True
         mock_delay.assert_not_called()
 
-    def test_blocks_without_queueing_when_no_seer_run(self, mock_get_perms, mock_delay) -> None:
+    def test_blocks_without_queueing_when_no_seer_run(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         self.seer_run.delete()
         mock_get_perms.return_value = {REPO_NAME: _perms()}
 
@@ -219,7 +231,9 @@ class BlockIterationForMissingPermissionsTest(TestCase):
         )
 
     @freeze_time("2024-01-01 00:00:00")
-    def test_records_the_outcome_the_first_time_it_blocks(self, mock_get_perms, mock_delay) -> None:
+    def test_records_the_outcome_the_first_time_it_blocks(
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
         self._open_row()
 
@@ -239,7 +253,7 @@ class BlockIterationForMissingPermissionsTest(TestCase):
             assert self._run(_state(getsentry__sentry=7)) is True
 
     def test_does_not_re_record_the_outcome_for_the_same_iteration(
-        self, mock_get_perms, mock_delay
+        self, mock_get_perms: MagicMock, mock_delay: MagicMock
     ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
         self._open_row()
@@ -277,7 +291,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
 
-    def test_comments_and_marks(self, mock_get_perms) -> None:
+    def test_comments_and_marks(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
         actions = self._stub_scm()
 
@@ -300,7 +314,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         assert f"/settings/installations/{INTEGRATION_ID}/permissions/update" in body
         assert self.mock_make_scm.call_args[0] == (self.organization.id, 123)
 
-    def test_comment_body_is_generic_and_lists_no_features(self, mock_get_perms) -> None:
+    def test_comment_body_is_generic_and_lists_no_features(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
 
@@ -313,7 +327,9 @@ class PostMissingPermissionsCommentTest(TestCase):
         assert "following features" not in body
         assert "Seer Autofix" not in body
 
-    def test_warns_when_more_than_the_pr_iteration_tier_is_missing(self, mock_get_perms) -> None:
+    def test_warns_when_more_than_the_pr_iteration_tier_is_missing(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {
             REPO_NAME: _perms(permissions=_MISSING_AUTOFIX_AND_PR_ITERATION)
         }
@@ -331,7 +347,9 @@ class PostMissingPermissionsCommentTest(TestCase):
         assert len(unexpected) == 1
         assert unexpected[0].__dict__["missing_tiers"] == ["pr_iteration", "autofix_pull_requests"]
 
-    def test_no_warning_when_only_the_pr_iteration_tier_is_missing(self, mock_get_perms) -> None:
+    def test_no_warning_when_only_the_pr_iteration_tier_is_missing(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(permissions=_ONLY_PR_ITERATION_MISSING)}
         actions = self._stub_scm()
 
@@ -346,7 +364,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         assert marker["missing_tiers"] == ["pr_iteration"]
         assert marker["pr_id"] == "4242"
 
-    def test_stays_silent_once_marked(self, mock_get_perms) -> None:
+    def test_stays_silent_once_marked(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
         self.seer_run.update(
@@ -359,7 +377,9 @@ class PostMissingPermissionsCommentTest(TestCase):
 
         actions.create_pull_request_comment.assert_not_called()
 
-    def test_records_the_ids_resolved_here_not_the_ones_queued(self, mock_get_perms) -> None:
+    def test_records_the_ids_resolved_here_not_the_ones_queued(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {
             REPO_NAME: _perms(integration_id=INTEGRATION_ID, repository_id=123)
         }
@@ -378,7 +398,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             self._post(integration_id=INTEGRATION_ID + 1, queued_repository_id=456)
 
     def test_comments_and_logs_when_the_repo_was_re_pointed_while_queued(
-        self, mock_get_perms
+        self, mock_get_perms: MagicMock
     ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms(repository_id=123)}
         actions = self._stub_scm()
@@ -392,7 +412,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         assert logs.records[0].__dict__["queued_repository_id"] == 456
         assert logs.records[0].__dict__["repository_id"] == 123
 
-    def test_stays_silent_when_nothing_is_missing(self, mock_get_perms) -> None:
+    def test_stays_silent_when_nothing_is_missing(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {}
         actions = self._stub_scm()
 
@@ -402,7 +422,9 @@ class PostMissingPermissionsCommentTest(TestCase):
         self.seer_run.refresh_from_db()
         assert get_missing_permissions_marker(self.seer_run, REPO_NAME) is None
 
-    def test_no_second_comment_when_a_racing_task_marks_first(self, mock_get_perms) -> None:
+    def test_no_second_comment_when_a_racing_task_marks_first(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
 
@@ -416,7 +438,9 @@ class PostMissingPermissionsCommentTest(TestCase):
 
         actions.create_pull_request_comment.assert_not_called()
 
-    def test_stays_silent_when_run_deleted_before_marker_write(self, mock_get_perms) -> None:
+    def test_stays_silent_when_run_deleted_before_marker_write(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
 
@@ -425,7 +449,7 @@ class PostMissingPermissionsCommentTest(TestCase):
 
         actions.create_pull_request_comment.assert_not_called()
 
-    def test_no_marker_when_the_comment_fails(self, mock_get_perms) -> None:
+    def test_no_marker_when_the_comment_fails(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
         actions.create_pull_request_comment.side_effect = Exception("nope")
@@ -435,7 +459,7 @@ class PostMissingPermissionsCommentTest(TestCase):
         self.seer_run.refresh_from_db()
         assert get_missing_permissions_marker(self.seer_run, REPO_NAME) is None
 
-    def test_no_marker_when_the_provider_cannot_comment(self, mock_get_perms) -> None:
+    def test_no_marker_when_the_provider_cannot_comment(self, mock_get_perms: MagicMock) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
         self.mock_make_scm.return_value = object()
@@ -446,7 +470,9 @@ class PostMissingPermissionsCommentTest(TestCase):
         self.seer_run.refresh_from_db()
         assert get_missing_permissions_marker(self.seer_run, REPO_NAME) is None
 
-    def test_raises_for_the_task_to_retry_when_the_lock_is_held(self, mock_get_perms) -> None:
+    def test_raises_for_the_task_to_retry_when_the_lock_is_held(
+        self, mock_get_perms: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
         lock = MagicMock()
@@ -458,7 +484,7 @@ class PostMissingPermissionsCommentTest(TestCase):
 
         actions.create_pull_request_comment.assert_not_called()
 
-    def test_stays_silent_when_no_seer_run(self, mock_get_perms) -> None:
+    def test_stays_silent_when_no_seer_run(self, mock_get_perms: MagicMock) -> None:
         self.seer_run.delete()
         mock_get_perms.return_value = {REPO_NAME: _perms()}
         actions = self._stub_scm()
@@ -500,7 +526,7 @@ class MissingPermissionsMetricsTest(TestCase):
         )
 
     def test_blocked_tag_unions_tiers_across_repos(
-        self, mock_get_perms, _mock_delay, mock_incr
+        self, mock_get_perms: MagicMock, _mock_delay: MagicMock, mock_incr: MagicMock
     ) -> None:
         mock_get_perms.return_value = {
             REPO_NAME: _perms(1, permissions=_MISSING_AUTOFIX_AND_PR_ITERATION),
@@ -529,7 +555,9 @@ class CommentedMetricTagTest(TestCase):
             organization=self.organization, seer_run_state_id=RUN_ID, user_id=self.user.id
         )
 
-    def test_commented_tag_is_per_repo(self, mock_get_perms, mock_incr) -> None:
+    def test_commented_tag_is_per_repo(
+        self, mock_get_perms: MagicMock, mock_incr: MagicMock
+    ) -> None:
         mock_get_perms.return_value = {
             REPO_NAME: _perms(permissions=_MISSING_AUTOFIX_AND_PR_ITERATION)
         }

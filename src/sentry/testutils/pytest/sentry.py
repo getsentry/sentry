@@ -159,7 +159,7 @@ def _forbid_single_host_flushall() -> None:
 
     flushall = Redis.flushall
 
-    def guarded_flushall(self: Redis, *args: Any, **kwargs: Any) -> Any:
+    def guarded_flushall(self: Redis[str], *args: Any, **kwargs: Any) -> Any:
         # Prefixed cluster clients only delete the keys of this worker.
         if isinstance(self, RedisCluster):
             return flushall(self, *args, **kwargs)
@@ -319,7 +319,7 @@ def pytest_configure(config: pytest.Config) -> None:
                 "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
-                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7003)],
                     "key_prefix": xdist.get_redis_cluster_key_prefix(),
                 },
             },
