@@ -59,12 +59,13 @@ function ModalContent({
 }
 
 export function GlobalModal() {
-  const [portal, setPortal] = useState<HTMLDivElement | null>(null);
+  const [portal] = useState(getModalPortal);
   useLayoutEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setPortal(getModalPortal());
-  }, []);
-  return portal ? <ModalHost portal={portal} /> : null;
+    if (!portal.isConnected) {
+      document.body.appendChild(portal);
+    }
+  }, [portal]);
+  return <ModalHost portal={portal} />;
 }
 
 function ModalHost({portal}: {portal: HTMLDivElement}) {
