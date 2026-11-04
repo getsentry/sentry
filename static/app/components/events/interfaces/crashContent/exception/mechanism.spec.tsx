@@ -92,99 +92,54 @@ describe('ExceptionMechanism', () => {
   });
 
   describe('errno meta', () => {
-    it('should render the errno number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {errno: {number: 7}},
-      };
-
-      render(<Mechanism data={mechanism} />);
+    it.each([
+      [{number: 7}, '7', undefined],
+      [{number: 7, name: 'E2BIG'}, 'E2BIG', '7'],
+    ])('should render errno %o as %s', (errno, expected, hidden) => {
+      render(<Mechanism data={{type: 'generic', handled: false, meta: {errno}}} />);
 
       expect(screen.getByText('errno')).toBeInTheDocument();
-      expect(screen.getByText('7')).toBeInTheDocument();
-    });
-
-    it('should prefer the errno name if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {errno: {number: 7, name: 'E2BIG'}},
-      };
-
-      render(<Mechanism data={mechanism} />);
-
-      expect(screen.getByText('E2BIG')).toBeInTheDocument();
-      expect(screen.queryByText('7')).not.toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      if (hidden) {
+        expect(screen.queryByText(hidden)).not.toBeInTheDocument();
+      }
     });
   });
 
   describe('mach_exception meta', () => {
-    it('should render the mach exception number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {mach_exception: {exception: 1, subcode: 8, code: 1}},
-      };
-
-      render(<Mechanism data={mechanism} />);
+    it.each([
+      [{exception: 1, subcode: 8, code: 1}, '1', undefined],
+      [
+        {exception: 1, subcode: 8, code: 1, name: 'EXC_BAD_ACCESS'},
+        'EXC_BAD_ACCESS',
+        '1',
+      ],
+    ])('should render mach exception %o as %s', (mach_exception, expected, hidden) => {
+      render(
+        <Mechanism data={{type: 'generic', handled: false, meta: {mach_exception}}} />
+      );
 
       expect(screen.getByText('mach exception')).toBeInTheDocument();
-      expect(screen.getByText('1')).toBeInTheDocument();
-    });
-
-    it('should prefer the exception name if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {
-          mach_exception: {exception: 1, subcode: 8, code: 1, name: 'EXC_BAD_ACCESS'},
-        },
-      };
-
-      render(<Mechanism data={mechanism} />);
-
-      expect(screen.getByText('EXC_BAD_ACCESS')).toBeInTheDocument();
-      expect(screen.queryByText('1')).not.toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      if (hidden) {
+        expect(screen.queryByText(hidden)).not.toBeInTheDocument();
+      }
     });
   });
 
   describe('signal meta', () => {
-    it('should render the signal number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11}},
-      };
-
-      render(<Mechanism data={mechanism} />);
+    it.each([
+      [{number: 11}, '11'],
+      [{number: 11, code: 0}, '11 (code 0)'],
+      [
+        {number: 11, code: 0, name: 'SIGSEGV', code_name: 'SEGV_NOOP'},
+        'SIGSEGV (SEGV_NOOP)',
+      ],
+    ])('should render signal %o as %s', (signal, expected) => {
+      render(<Mechanism data={{type: 'generic', handled: false, meta: {signal}}} />);
 
       expect(screen.getByText('signal')).toBeInTheDocument();
-      expect(screen.getByText('11')).toBeInTheDocument();
-    });
-
-    it('should add the signal code if present', () => {
-      const mechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11, code: 0}},
-      };
-
-      render(<Mechanism data={mechanism} />);
-
-      expect(screen.getByText('11 (code 0)')).toBeInTheDocument();
-    });
-
-    it('should prefer signal and code names if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11, code: 0, name: 'SIGSEGV', code_name: 'SEGV_NOOP'}},
-      };
-
-      render(<Mechanism data={mechanism} />);
-
-      expect(screen.getByText('SIGSEGV (SEGV_NOOP)')).toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
     });
   });
 
