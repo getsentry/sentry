@@ -141,11 +141,6 @@
       "count": 4
     }
   },
-  "components/checkInTimeline/checkInTooltip.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 4
-    }
-  },
   "components/clippedBox.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
