@@ -19,7 +19,7 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -70,10 +70,9 @@ export default function ProjectReleaseTracking() {
         data: {project: project.slug},
       }),
     onSuccess: data => {
-      setApiQueryData(
-        queryClient,
+      queryClient.setQueryData(
         releaseTokenOptions(organization.slug, project.slug).queryKey,
-        data
+        oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
       addSuccessMessage(
         t(

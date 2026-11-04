@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {AccessRequest} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OrganizationTeams} from './organizationTeams';
@@ -41,7 +40,11 @@ export default function OrganizationTeamsContainer() {
       const newRequestList = requestList.filter(request => request.id !== id);
 
       // Update the cache with the new value
-      setApiQueryData(queryClient, accessRequestsOptions.queryKey, newRequestList);
+      queryClient.setQueryData(accessRequestsOptions.queryKey, oldData => ({
+        ...oldData,
+        json: newRequestList,
+        headers: oldData?.headers ?? {},
+      }));
 
       // To be safer, trigger a refetch to ensure data is correct
       queryClient.invalidateQueries({queryKey: accessRequestsOptions.queryKey});

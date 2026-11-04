@@ -26,7 +26,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -207,26 +206,25 @@ function OrganizationMembersList() {
   };
 
   const updateInviteRequest = (id: string, data: Partial<Member>) => {
-    setApiQueryData<Member[]>(
-      queryClient,
-      inviteRequestsOptions({organization}).queryKey,
-      currentInviteRequests => {
-        return currentInviteRequests?.map(request => {
-          if (request.id === id) {
-            return {...request, ...data};
-          }
-
-          return request;
-        });
+    queryClient.setQueryData(inviteRequestsOptions({organization}).queryKey, oldData => {
+      if (!oldData) {
+        return oldData;
       }
-    );
+
+      return {
+        ...oldData,
+        json: oldData.json.map(request =>
+          request.id === id ? {...request, ...data} : request
+        ),
+      };
+    });
   };
 
   const removeInviteRequest = (id: string) => {
-    setApiQueryData<Member[]>(
-      queryClient,
-      inviteRequestsOptions({organization}).queryKey,
-      curentInviteRequests => curentInviteRequests?.filter(request => request.id !== id)
+    queryClient.setQueryData(inviteRequestsOptions({organization}).queryKey, oldData =>
+      oldData
+        ? {...oldData, json: oldData.json.filter(request => request.id !== id)}
+        : oldData
     );
   };
 

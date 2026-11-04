@@ -20,7 +20,7 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -76,43 +76,44 @@ export default function ProjectOwnership() {
   });
 
   const handleOwnershipSave = (newOwnership: IssueOwnership) => {
-    setApiQueryData<IssueOwnership>(queryClient, ownershipOptions.queryKey, data =>
-      newOwnership ? newOwnership : data
-    );
+    queryClient.setQueryData(ownershipOptions.queryKey, oldData => ({
+      ...oldData,
+      json: newOwnership,
+      headers: oldData?.headers ?? {},
+    }));
     closeModal();
   };
 
   const handleCodeOwnerAdded = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(
-      queryClient,
-      codeownersOptions.queryKey,
-      existingCodeowners => [data, ...(existingCodeowners || [])]
-    );
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => ({
+      ...oldData,
+      json: [data, ...(oldData?.json ?? [])],
+      headers: oldData?.headers ?? {},
+    }));
   };
 
   const handleCodeOwnerDeleted = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(
-      queryClient,
-      codeownersOptions.queryKey,
-      existingCodeowners =>
-        (existingCodeowners || []).filter(codeowner => codeowner.id !== data.id)
-    );
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => ({
+      ...oldData,
+      json: (oldData?.json ?? []).filter(codeowner => codeowner.id !== data.id),
+      headers: oldData?.headers ?? {},
+    }));
   };
 
   const handleCodeOwnerUpdated = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(
-      queryClient,
-      codeownersOptions.queryKey,
-      stateCodeOwners => {
-        const existingCodeowners = stateCodeOwners || [];
-        const index = existingCodeowners.findIndex(item => item.id === data.id);
-        return [
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => {
+      const existingCodeowners = oldData?.json ?? [];
+      const index = existingCodeowners.findIndex(item => item.id === data.id);
+      return {
+        ...oldData,
+        json: [
           ...existingCodeowners.slice(0, index),
           data,
           ...existingCodeowners.slice(index + 1),
-        ];
-      }
-    );
+        ],
+        headers: oldData?.headers ?? {},
+      };
+    });
   };
 
   const handleAddCodeOwner = () => {

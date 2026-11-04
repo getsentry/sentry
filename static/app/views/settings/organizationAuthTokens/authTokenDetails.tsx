@@ -21,7 +21,7 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -71,42 +71,36 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
       addSuccessMessage(t('Updated auth token.'));
 
       // Update get by id query
-      setApiQueryData(
-        queryClient,
+      queryClient.setQueryData(
         orgAuthTokenOptions({orgSlug: organization.slug, tokenId: token.id}).queryKey,
-        (oldData: OrgAuthToken | undefined) => {
+        oldData => {
           if (!oldData) {
             return oldData;
           }
 
-          oldData.name = name;
-
-          return oldData;
+          return {...oldData, json: {...oldData.json, name}};
         }
       );
 
       // Update get list query
       if (
-        getApiQueryData(
-          queryClient,
+        queryClient.getQueryData(
           orgAuthTokensOptions({orgSlug: organization.slug}).queryKey
         )
       ) {
-        setApiQueryData(
-          queryClient,
+        queryClient.setQueryData(
           orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
-          (oldData: OrgAuthToken[] | undefined) => {
-            if (!Array.isArray(oldData)) {
+          oldData => {
+            if (!oldData) {
               return oldData;
             }
 
-            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-
-            if (existingToken) {
-              existingToken.name = name;
-            }
-
-            return oldData;
+            return {
+              ...oldData,
+              json: oldData.json.map(oldToken =>
+                oldToken.id === token.id ? {...oldToken, name} : oldToken
+              ),
+            };
           }
         );
       }

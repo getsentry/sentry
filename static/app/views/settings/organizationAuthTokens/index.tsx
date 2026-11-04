@@ -18,7 +18,6 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -129,15 +128,17 @@ function OrganizationAuthTokensIndex() {
     onSuccess: (_data, {token}) => {
       addSuccessMessage(t('Revoked auth token for the organization.'));
 
-      setApiQueryData(
-        queryClient,
+      queryClient.setQueryData(
         orgAuthTokensOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          if (!Array.isArray(oldData)) {
+          if (!oldData) {
             return oldData;
           }
 
-          return oldData.filter(oldToken => oldToken.id !== token.id);
+          return {
+            ...oldData,
+            json: oldData.json.filter(oldToken => oldToken.id !== token.id),
+          };
         }
       );
     },

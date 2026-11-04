@@ -33,7 +33,6 @@ import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {Teams} from 'sentry/utils/teams';
 import {useApi} from 'sentry/utils/useApi';
@@ -109,10 +108,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
-      setApiQueryData<Member>(
-        queryClient,
+      queryClient.setQueryData(
         memberOptions(organization.slug, member.id).queryKey,
-        data
+        oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
       );
     },
     onError: error => {
@@ -134,10 +132,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         addSuccessMessage(t('Sent invite!'));
 
-        setApiQueryData<Member>(
-          queryClient,
+        queryClient.setQueryData(
           memberOptions(organization.slug, member.id).queryKey,
-          data
+          oldData => ({...oldData, json: data, headers: oldData?.headers ?? {}})
         );
       },
       onError: () => {
