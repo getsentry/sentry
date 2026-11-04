@@ -198,21 +198,17 @@ def _is_published(status: ApiPublishStatus) -> bool:
     return status.is_published
 
 
-def _public_spelling(path: str) -> str:
-    return path
-
-
 def custom_preprocessing_hook(  # TODO: organize method, rename
     endpoints: Any,
     *,
     admit: Callable[[ApiPublishStatus], bool] = _is_published,
-    public_path: Callable[[str], str] = _public_spelling,
+    public_path: Callable[[str], str] | None = None,
 ) -> Any:
     """Check every endpoint, collect its metadata, and keep the methods `admit` lets in.
 
-    `public_path` gives the spelling of a path that the exclusions and the ownership
-    allowlist are written against. A build that spells paths otherwise, such as the
-    internal one (`sentry.apidocs.internal`), supplies both."""
+    The exclusions and the ownership allowlist are written against the published build's
+    spelling of each path. A build that spells paths otherwise, such as the internal one
+    (`sentry.apidocs.internal`), passes `public_path` to give that spelling."""
     _ENDPOINT_SERVERS.clear()
     _EXPERIMENTAL_OPERATIONS.clear()
     _OPERATION_SILOS.clear()
@@ -221,6 +217,8 @@ def custom_preprocessing_hook(  # TODO: organize method, rename
     filtered = []
     ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]] = {}
     for path, path_regex, method, callback in endpoints:
+        spelling = path if public_path is None else public_path(path)
+
         # Collect servers from endpoint class for postprocessing
         endpoint_servers = getattr(callback.view_class, "servers", None)
         if endpoint_servers is not None:
@@ -237,7 +235,7 @@ def custom_preprocessing_hook(  # TODO: organize method, rename
 
         # Fail if endpoint is unowned
         if owner_team == ApiOwner.UNOWNED:
-            if public_path(path) not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
+            if spelling not in API_OWNERSHIP_ALLOWLIST_DONT_MODIFY:
                 raise SentryApiBuildError(
                     f"Endpoint {callback.view_class} is missing the attribute owner: ApiOwner. \n"
                     + "If you can't find your team in ApiOwners feel free to add the associated github group. ",
@@ -262,7 +260,7 @@ def custom_preprocessing_hook(  # TODO: organize method, rename
                 f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
             )
 
-        if any(public_path(path).startswith(p) for p in EXCLUSION_PATH_PREFIXES):
+        if any(spelling.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
         else:
@@ -361,22 +359,19 @@ def _validate_request_body(
         )
 
 
-def _in_reference(operation: Mapping[str, Any]) -> bool:
-    return True
-
-
 def custom_postprocessing_hook(
     result: dict[str, Any],
     generator: Any,
     *,
-    in_reference: Callable[[Mapping[str, Any]], bool] = _in_reference,
+    in_reference: Callable[[Mapping[str, Any]], bool] | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """Stamp operation metadata, then check what the published reference needs.
 
-    Operations `in_reference` rejects skip those checks. The published build has none;
-    the internal one (`sentry.apidocs.internal`) rejects its unpublished operations,
-    which it describes only for their shapes."""
+    The published build describes only what the reference carries, so every operation
+    gets those checks. A build that describes more, such as the internal one
+    (`sentry.apidocs.internal`), passes `in_reference` to pick the operations that get
+    them; it describes its unpublished operations only for their shapes."""
     # Stamp before alias canonicalization so metadata stays with its operation.
     for path, operations in result["paths"].items():
         for method, operation in operations.items():
@@ -432,7 +427,7 @@ def custom_postprocessing_hook(
 
             endpoint_name = f"'{method_info['operationId']}'"
 
-            if not in_reference(method_info):
+            if in_reference is not None and not in_reference(method_info):
                 continue
 
             summary = method_info.get("summary")
