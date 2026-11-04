@@ -68,6 +68,16 @@ class SeerAgentAccess:
     all_projects: bool = False
 
 
+class _AgentServiceAccountChanged(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class SeerAgentAccessUpdate:
+    service_account: RpcServiceAccount
+    created: bool
+
+
 @dataclass(frozen=True, kw_only=True)
 class SeerWorkflow:
     """Apply each change to fresh state under the workflow config's row lock.
@@ -379,6 +389,45 @@ class SeerWorkflow:
             service_account_service.delete_service_account(
                 organization_id=self.organization_id, service_account_id=service_account_id
             )
+
+    def set_agent_access(
+        self, agent: SeerAgentAccess, *, created_by_id: int | None
+    ) -> SeerAgentAccessUpdate:
+        """
+        Replace the scopes and projects of the automation's service account, creating the
+        account if the automation has none. Callers must authorize the grant and audit it.
+        """
+        service_account_id = self.get_config().service_account_id
+        if service_account_id is not None:
+            self._validate_agent_project_ids(self.organization_id, agent)
+            account = service_account_service.update_service_account(
+                organization_id=self.organization_id,
+                service_account_id=service_account_id,
+                scope_list=list(agent.scopes),
+                project_ids=[] if agent.all_projects else list(agent.project_ids),
+                all_projects=agent.all_projects,
+            )
+            if account is not None:
+                return SeerAgentAccessUpdate(service_account=account, created=False)
+
+        try:
+            with (
+                self._create_agent_service_account(
+                    self.organization_id,
+                    agent,
+                    automation_name=self.extras.name,
+                    created_by_id=created_by_id,
+                ) as account,
+                self._lock_config() as config,
+            ):
+                if config.service_account_id != service_account_id:
+                    raise _AgentServiceAccountChanged
+                config.service_account_id = account.id
+                config.version += 1
+                config.save(update_fields=["service_account_id", "version", "date_updated"])
+        except _AgentServiceAccountChanged:
+            return self.set_agent_access(agent, created_by_id=created_by_id)
+        return SeerAgentAccessUpdate(service_account=account, created=True)
 
     def get_agent_service_account(self) -> RpcServiceAccount | None:
         """Read the automation's service account from control, which the replica may lag."""
