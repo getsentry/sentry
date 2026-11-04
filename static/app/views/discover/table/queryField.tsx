@@ -62,7 +62,6 @@ type Props = {
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
   className?: string;
-  disableParameterSelector?: boolean;
   disabled?: boolean;
   error?: string;
   /**
@@ -85,6 +84,7 @@ type Props = {
    * render an empty parameter placeholder. Leave blank to avoid adding spacers.
    */
   gridColumns?: number;
+  hideParameterSelector?: boolean;
   otherColumns?: Column[];
   placeholder?: string;
   /**
@@ -421,14 +421,8 @@ class _QueryField extends Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {
-      disabled,
-      filterAggregateParameters,
-      fieldValue,
-      useMenuPortal,
-      theme,
-      disableParameterSelector,
-    } = this.props;
+    const {disabled, filterAggregateParameters, fieldValue, useMenuPortal, theme} =
+      this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
@@ -471,7 +465,7 @@ class _QueryField extends Component<Props> {
             options={aggregateParameters}
             value={descriptor.value}
             onChange={this.handleFieldParameterChange}
-            disabled={disabled || disableParameterSelector}
+            disabled={disabled}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
@@ -585,6 +579,7 @@ class _QueryField extends Component<Props> {
       disabled,
       error,
       gridColumns,
+      hideParameterSelector,
       otherColumns,
       placeholder,
     } = this.props;
@@ -616,7 +611,9 @@ class _QueryField extends Component<Props> {
       selectProps.autoFocus = true;
     }
 
-    const parameters = this.renderParameterInputs(parameterDescriptions);
+    const parameters = hideParameterSelector
+      ? []
+      : this.renderParameterInputs(parameterDescriptions);
 
     if (fieldValue?.kind === FieldValueKind.EQUATION) {
       return (

@@ -8,17 +8,14 @@ import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
-  FieldKind,
   FieldValueType,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
-import {SpanFields} from 'sentry/views/insights/types';
 
 interface UseVisualizeFieldsProps {
   booleanTags: TagCollection;
@@ -91,17 +88,6 @@ function getSupportedAttributes({
   functionName?: string;
 }): TagCollection {
   if (traceItemType === TraceItemDataset.SPANS) {
-    if (functionName === AggregationKey.COUNT) {
-      const countTags: TagCollection = {
-        [SpanFields.SPAN_DURATION]: {
-          name: t('spans'),
-          key: SpanFields.SPAN_DURATION,
-          kind: FieldKind.MEASUREMENT,
-        },
-      };
-      return countTags;
-    }
-
     if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
       return {
         '': {
@@ -136,15 +122,6 @@ function getSupportedAttributes({
   }
 
   if (traceItemType === TraceItemDataset.LOGS) {
-    if (functionName === AggregationKey.COUNT) {
-      return {
-        [OurLogKnownFieldKey.MESSAGE]: {
-          name: t('logs'),
-          key: OurLogKnownFieldKey.MESSAGE,
-        },
-      };
-    }
-
     if (functionName === AggregationKey.COUNT_UNIQUE) {
       return {...numberTags, ...stringTags, ...booleanTags};
     }

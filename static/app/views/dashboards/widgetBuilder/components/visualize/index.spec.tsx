@@ -2154,7 +2154,7 @@ describe('Visualize', () => {
     });
   });
 
-  it('disables changing visualize fields for count', async () => {
+  it('hides the column selection for count', async () => {
     render(
       <WidgetBuilderProvider>
         <Visualize />
@@ -2177,11 +2177,13 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toBeEnabled();
-    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
   });
 
   it('changes to count(span.duration) when using count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -2216,10 +2218,10 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
-    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-      'spans'
-    );
-    expect(await screen.findByRole('button', {name: 'Column Selection'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Column Selection'})
+    ).not.toBeInTheDocument();
+    expect(router.location.query.yAxis).toBe('count(span.duration)');
   });
 
   it('disables changing visualize fields for epm', async () => {
@@ -2576,9 +2578,6 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toHaveTextContent('count');
-    expect(
-      await screen.findByRole('button', {name: 'Column Selection'})
-    ).toHaveTextContent('spans');
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Aggregate Selection'})

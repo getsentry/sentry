@@ -39,15 +39,9 @@ import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 
 function resolveArgumentDisplayLabel(
-  parameterDefinition:
-    | {defaultLabel?: string; kind?: string; name?: string}
-    | null
-    | undefined,
+  parameterDefinition: {kind?: string; name?: string} | null | undefined,
   fallbackLabel: string
 ): string {
-  if (parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel) {
-    return parameterDefinition.defaultLabel;
-  }
   if (isSearchFilterParameter(parameterDefinition)) {
     return unwrapSearchFilterArgument(fallbackLabel);
   }
@@ -432,34 +426,16 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
         }));
     }
 
-    // Remap labels (e.g. span.duration → spans for count), then filter
-    let result = attributeItems;
-    if (
-      parameterDefinition?.kind === 'column' &&
-      parameterDefinition.defaultLabel &&
-      parameterDefinition.defaultValue
-    ) {
-      result = result.map(item =>
-        item.value === parameterDefinition.defaultValue
-          ? {
-              ...item,
-              label: parameterDefinition.defaultLabel,
-              textValue: parameterDefinition.defaultLabel,
-            }
-          : item
-      );
+    if (!filterValue) {
+      return attributeItems;
     }
 
-    if (filterValue) {
-      const lower = filterValue.toLowerCase();
-      result = result.filter(
-        item =>
-          item.value.includes(filterValue) ||
-          (item.textValue?.toLowerCase().includes(lower) ?? false)
-      );
-    }
-
-    return result;
+    const lower = filterValue.toLowerCase();
+    return attributeItems.filter(
+      item =>
+        item.value.includes(filterValue) ||
+        (item.textValue?.toLowerCase().includes(lower) ?? false)
+    );
   }, [attributeItems, inputValue, parameterDefinition]);
 
   const onInputBlur = useCallback(
@@ -469,21 +445,6 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
       flushArgumentsIfLeavingGrid(evt);
     },
     [flushArgumentsIfLeavingGrid, resetInputValue]
-  );
-
-  const resolveValue = useCallback(
-    (raw: string): string => {
-      if (
-        parameterDefinition?.kind === 'column' &&
-        parameterDefinition.defaultLabel &&
-        parameterDefinition.defaultValue &&
-        raw === parameterDefinition.defaultLabel
-      ) {
-        return parameterDefinition.defaultValue;
-      }
-      return raw;
-    },
-    [parameterDefinition]
   );
 
   // Non-filter free-text values (e.g. apdex threshold) flush pending edits when leaving.
@@ -517,8 +478,6 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
       value = getSuggestedKey(value) ?? value;
     }
 
-    value = resolveValue(value);
-
     setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
     commitFunctionToken(value);
@@ -533,7 +492,6 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
     parameterDefinition,
     resetInputValue,
     resolveDisplayLabel,
-    resolveValue,
   ]);
 
   const onInputEscape = useCallback(() => {

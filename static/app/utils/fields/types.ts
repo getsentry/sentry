@@ -44,7 +44,6 @@ type AggregateColumnParameter = {
   kind: 'column';
   name: string;
   required: boolean;
-  defaultLabel?: string;
   defaultValue?: string;
 };
 

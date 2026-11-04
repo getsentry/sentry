@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -82,25 +82,29 @@ export function VisualizeSection({query, index}: Props) {
               updateYAxis({yAxes: [newYAxis]});
             }}
           />
-          <CompactSelect
-            search={{
-              highlight: true,
-              filter: (option, searchText) => {
-                return sortSearchedAttributes({
-                  fieldDefinitionType: TraceItemDataset.SPANS,
-                  option,
-                  searchText,
-                });
-              },
-            }}
-            options={options}
-            value={parsedFunction?.arguments?.[0] ?? ''}
-            onChange={newField => {
-              const newYAxis = `${parsedFunction!.name}(${newField.value})`;
-              updateYAxis({yAxes: [newYAxis]});
-            }}
-            disabled={options.length === 1}
-          />
+          {/* `count` counts every span, so it is shown as `count()` without an
+              argument dropdown. */}
+          {parsedFunction?.name === AggregationKey.COUNT ? null : (
+            <CompactSelect
+              search={{
+                highlight: true,
+                filter: (option, searchText) => {
+                  return sortSearchedAttributes({
+                    fieldDefinitionType: TraceItemDataset.SPANS,
+                    option,
+                    searchText,
+                  });
+                },
+              }}
+              options={options}
+              value={parsedFunction?.arguments?.[0] ?? ''}
+              onChange={newField => {
+                const newYAxis = `${parsedFunction!.name}(${newField.value})`;
+                updateYAxis({yAxes: [newYAxis]});
+              }}
+              disabled={options.length === 1}
+            />
+          )}
         </StyledPageFilterBar>
       </Fragment>
     </Section>

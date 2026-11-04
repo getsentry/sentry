@@ -51,14 +51,6 @@ describe('useVisualizeFields', () => {
     ]);
   });
 
-  it('returns numeric fields for count', () => {
-    const {result} = renderHookWithProviders(() => useWrapper('count(span.duration)'), {
-      organization,
-    });
-
-    expect(result.current.map(field => field.value)).toEqual(['span.duration']);
-  });
-
   it('returns string fields for count_unique', () => {
     const {result} = renderHookWithProviders(() => useWrapper('count_unique(foobar)'), {
       organization,

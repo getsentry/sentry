@@ -25,6 +25,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
+  AggregationKey,
   FieldKind,
   getFieldDefinition,
   type GetFieldDefinitionType,
@@ -118,8 +119,12 @@ export function ToolbarVisualizeDropdown({
 
   const aggregateFunc = parsedFunction?.name;
   const formula = findFormula(formulas, aggregateFunc);
+  // `count` counts every span or log, so it is shown as `count()` without an
+  // argument dropdown.
   const aggregateDefinition =
-    aggregateFunc && !formula ? getFieldDefinition(aggregateFunc, 'span') : undefined;
+    aggregateFunc && !formula && aggregateFunc !== AggregationKey.COUNT
+      ? getFieldDefinition(aggregateFunc, 'span')
+      : undefined;
 
   const functionOptions = aggregateOptions.map(option => ({
     ...option,

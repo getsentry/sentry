@@ -40,7 +40,7 @@ function useLogsExportEstimateTimeseries({
 }
 
 /**
- * Intentionally coincidentally the same semantics as the default count(logs) chart.
+ * Intentionally coincidentally the same semantics as the default count() chart.
  * This way, the default view requests are deduplicated.
  */
 export function useLogsExportEstimatedRowCount(

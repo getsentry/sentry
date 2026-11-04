@@ -456,7 +456,7 @@ describe('AggregatesTable', () => {
       }
     );
 
-    expect(screen.getByText('count(spans)')).toBeInTheDocument();
+    expect(screen.getByText('count()')).toBeInTheDocument();
     expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
   });
 

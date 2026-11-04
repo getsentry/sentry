@@ -107,10 +107,6 @@ const LOCKED_SPAN_AGGREGATES = {
     value: DEFAULT_VISUALIZATION_FIELD,
     label: 'span.duration',
   },
-  [AggregationKey.COUNT]: {
-    value: DEFAULT_VISUALIZATION_FIELD,
-    label: 'spans',
-  },
 };
 
 // Type guard for locked span aggregates
@@ -402,6 +398,13 @@ function GenericVisualize() {
   // Get locked option if applicable, with proper type narrowing
   const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
+  // `count` on spans and logs counts every item, so it is shown as `count()` without
+  // a parameter selector.
+  const isTraceItemCount =
+    (dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS) &&
+    aggregate === AggregationKey.COUNT;
+  const visibleParameters = isTraceItemCount ? [] : aggregateMetadata?.parameters;
+
   return (
     <Stack gap="md">
       <Flex gap="md" align="end">
@@ -431,7 +434,7 @@ function GenericVisualize() {
             disabled={isTransactionsDataset}
           />
         </Stack>
-        {aggregateMetadata?.parameters?.map((param, index) => {
+        {visibleParameters?.map((param, index) => {
           return (
             <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
