@@ -127,7 +127,6 @@
     "./roleList": "./fixtures/roleList.ts",
     "./routeComponentPropsFixture": "./fixtures/routeComponentPropsFixture.ts",
     "./routerFixture": "./fixtures/routerFixture.ts",
-    "./search": "./fixtures/search.ts",
     "./secret": "./fixtures/secret.ts",
     "./seerWorkflowConfig": "./fixtures/seerWorkflowConfig.ts",
     "./selectEvent": "./sentry-test/selectEvent.tsx",

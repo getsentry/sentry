@@ -249,11 +249,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/has-mobile-app-events/`,
-    body: null,
-  });
-
-  MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/grouping-info/`,
     body: {},
   });

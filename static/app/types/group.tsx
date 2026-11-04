@@ -47,7 +47,7 @@ export type SavedSearch = {
   visibility: SavedSearchVisibility;
 };
 
-export enum SavedSearchVisibility {
+enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
   OWNER = 'owner',
   OWNER_PINNED = 'owner_pinned',
