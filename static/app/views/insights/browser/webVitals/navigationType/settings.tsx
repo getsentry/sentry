@@ -197,19 +197,13 @@ export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {
 }
 
 /**
- * The datasets the dashboard's web vitals widgets read from, taken from the
- * navigation type filters it carries. The metrics backed dashboards carry a
- * trace metrics filter, and the summary one keeps a spans filter too for the
- * widgets still on spans. Spans when there is none, which is a dashboard from
+ * The dataset the dashboard's web vitals widgets read from, taken from the
+ * navigation type filter it carries. The metrics backed dashboards carry a
+ * trace metrics filter. Spans when there is none, which is a dashboard from
  * before the filter existed.
  */
-export function getNavigationTypeDatasets(filters: GlobalFilter[]): WidgetType[] {
-  const datasets = [WidgetType.SPANS, WidgetType.TRACEMETRICS].filter(dataset =>
-    filters.some(
-      filter => isNavigationTypeGlobalFilter(filter) && filter.dataset === dataset
-    )
-  );
-  return datasets.length > 0 ? datasets : [WidgetType.SPANS];
+export function getNavigationTypeDataset(filters: GlobalFilter[]): WidgetType {
+  return filters.find(isNavigationTypeGlobalFilter)?.dataset ?? WidgetType.SPANS;
 }
 
 export function getBucketsFromGlobalFilters(

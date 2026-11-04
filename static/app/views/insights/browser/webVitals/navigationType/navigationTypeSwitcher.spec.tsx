@@ -254,42 +254,4 @@ describe('NavigationTypeSwitcher', () => {
       ),
     ]);
   });
-
-  it('writes the selection for every dataset the dashboard carries', async () => {
-    const mock = mockCounts([
-      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', [LCP_COUNT_FIELD]: 10},
-    ]);
-    const onChange = jest.fn();
-
-    renderSwitcher(
-      [
-        buildNavigationTypeGlobalFilter([NavigationTypeBucket.PAGE_LOAD]),
-        buildNavigationTypeGlobalFilter(
-          [NavigationTypeBucket.PAGE_LOAD],
-          WidgetType.TRACEMETRICS
-        ),
-      ],
-      onChange
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
-    await userEvent.click(await screen.findByRole('option', {name: /Prerenders/}));
-
-    expect(onChange).toHaveBeenCalledWith([
-      buildNavigationTypeGlobalFilter([
-        NavigationTypeBucket.PAGE_LOAD,
-        NavigationTypeBucket.PRERENDER,
-      ]),
-      buildNavigationTypeGlobalFilter(
-        [NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.PRERENDER],
-        WidgetType.TRACEMETRICS
-      ),
-    ]);
-    // The counts come from the metrics, like the metrics backed widgets do.
-    expect(mock).toHaveBeenCalledTimes(1);
-    expect(mock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({query: expect.objectContaining({dataset: 'tracemetrics'})})
-    );
-  });
 });

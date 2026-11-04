@@ -17,7 +17,7 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 import {
   buildNavigationTypeGlobalFilter,
   getBucketsFromGlobalFilters,
-  getNavigationTypeDatasets,
+  getNavigationTypeDataset,
   isAllBucketsSelected,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NAVIGATION_TYPE_BUCKETS,
@@ -36,8 +36,7 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
   const organization = useOrganization();
   const buckets = getBucketsFromGlobalFilters(globalFilters);
   const isAll = isAllBucketsSelected(buckets);
-  // The selection is written for every dataset the dashboard's widgets read from.
-  const datasets = getNavigationTypeDatasets(globalFilters);
+  const dataset = getNavigationTypeDataset(globalFilters);
 
   const {counts, untaggedCount, isPending} = useNavigationTypeCounts({globalFilters});
 
@@ -81,10 +80,9 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
       onChange={selected => {
         const nextBuckets = normalizeBuckets(selected.map(option => option.value));
         onChange(
-          mergeGlobalFilters(
-            globalFilters,
-            datasets.map(dataset => buildNavigationTypeGlobalFilter(nextBuckets, dataset))
-          )
+          mergeGlobalFilters(globalFilters, [
+            buildNavigationTypeGlobalFilter(nextBuckets, dataset),
+          ])
         );
         trackAnalytics('insight.vital.select_navigation_type', {
           organization,

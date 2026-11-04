@@ -4,7 +4,7 @@ import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {webVitalCountField} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {
   bucketAttributeValues,
-  getNavigationTypeDatasets,
+  getNavigationTypeDataset,
   isNavigationTypeGlobalFilter,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
@@ -45,16 +45,13 @@ export function useNavigationTypeCounts({
   globalFilters,
   enabled = true,
 }: Props): NavigationTypeCounts {
-  // Metrics whenever the dashboard is metrics backed, even while some of its
-  // widgets stay on spans.
-  const isMetrics = getNavigationTypeDatasets(globalFilters).includes(
-    WidgetType.TRACEMETRICS
-  );
+  const dataset = getNavigationTypeDataset(globalFilters);
+  const isMetrics = dataset === WidgetType.TRACEMETRICS;
   const additionalQuery = globalFilters
     .filter(
       filter =>
         !isNavigationTypeGlobalFilter(filter) &&
-        filter.dataset === (isMetrics ? WidgetType.TRACEMETRICS : WidgetType.SPANS) &&
+        filter.dataset === dataset &&
         filter.value
     )
     .map(filter => filter.value)

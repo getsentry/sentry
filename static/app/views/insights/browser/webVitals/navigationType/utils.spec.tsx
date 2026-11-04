@@ -4,7 +4,7 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {
   buildNavigationTypeGlobalFilter,
-  getNavigationTypeDatasets,
+  getNavigationTypeDataset,
   NAVIGATION_TYPE_BUCKET_ORDER,
   NavigationTypeBucket,
   WEB_VITALS_NAVIGATION_TYPE_FEATURE,
@@ -124,22 +124,19 @@ describe('showsNavigationTypeSwitcher', () => {
   });
 });
 
-describe('getNavigationTypeDatasets', () => {
-  const spansFilter = WEB_VITALS_NAVIGATION_TYPE_FILTER;
-  const metricsFilter = buildNavigationTypeGlobalFilter(
-    NAVIGATION_TYPE_BUCKET_ORDER,
-    WidgetType.TRACEMETRICS
-  );
-
+describe('getNavigationTypeDataset', () => {
   it('falls back to spans for a dashboard without the filter', () => {
-    expect(getNavigationTypeDatasets([])).toEqual([WidgetType.SPANS]);
+    expect(getNavigationTypeDataset([])).toBe(WidgetType.SPANS);
   });
 
-  it('reads the datasets from the filters the dashboard carries', () => {
-    expect(getNavigationTypeDatasets([metricsFilter])).toEqual([WidgetType.TRACEMETRICS]);
-    expect(getNavigationTypeDatasets([metricsFilter, spansFilter])).toEqual([
-      WidgetType.SPANS,
-      WidgetType.TRACEMETRICS,
-    ]);
+  it('reads the dataset from the filter the dashboard carries', () => {
+    expect(
+      getNavigationTypeDataset([
+        buildNavigationTypeGlobalFilter(
+          NAVIGATION_TYPE_BUCKET_ORDER,
+          WidgetType.TRACEMETRICS
+        ),
+      ])
+    ).toBe(WidgetType.TRACEMETRICS);
   });
 });
