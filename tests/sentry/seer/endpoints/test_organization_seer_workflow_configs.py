@@ -647,6 +647,45 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             ).exists()
 
     @with_feature("organizations:service-accounts")
+    def test_put_agent_ignores_duplicate_scopes_and_projects(self) -> None:
+        config = self.create_config()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            agent={
+                "scopes": ["project:read", "event:read", "event:read"],
+                "projectIds": [self.project.id, self.project.id],
+            },
+        )
+
+        account = get_agent_account(config.id)
+        assert account.scope_list == ["event:read", "project:read"]
+        assert agent_project_ids(account) == [self.project.id]
+        assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
+        assert response.data["agent"]["projectIds"] == [self.project.id]
+
+    @with_feature("organizations:service-accounts")
+    def test_agent_projects_hide_projects_the_viewer_cannot_access(self) -> None:
+        member, accessible = self.create_member_with_project(open_membership=False)
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config()
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                config.id,
+                method="put",
+                agent={"scopes": ["event:read"], "projectIds": [accessible.id, hidden.id]},
+            )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data["agent"]["projectIds"] == [accessible.id]
+        assert agent_project_ids(get_agent_account(config.id)) == sorted([accessible.id, hidden.id])
+
+    @with_feature("organizations:service-accounts")
     def test_put_updates_the_existing_agent(self) -> None:
         config = self.create_config()
         with outbox_runner():

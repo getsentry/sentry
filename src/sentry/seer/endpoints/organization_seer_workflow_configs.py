@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partial
@@ -124,7 +124,9 @@ class AgentSerializer(serializers.Serializer):
                 {"projectIds": "An agent with access to all projects can't also list projects."}
             )
         return SeerAgent(
-            scopes=data["scopes"], project_ids=data["projectIds"], all_projects=data["allProjects"]
+            scopes=sorted(set(data["scopes"])),
+            project_ids=sorted(set(data["projectIds"])),
+            all_projects=data["allProjects"],
         )
 
 
@@ -687,11 +689,14 @@ def serialize_workflow_configs(
     accounts: Sequence[RpcServiceAccount] = (),
 ) -> SeerWorkflowConfigsResponse:
     """``accounts`` override the cell replicas, which may lag a write in this request."""
-    agents = get_config_agents(configs) | {
+    accessible = set(accessible_project_ids)
+    agents = get_config_agents(configs, accessible_project_ids=accessible) | {
         account.id: SeerAgentResponse(
             serviceAccountId=str(account.id),
             scopes=sorted(account.scope_list),
-            projectIds=account.project_ids,
+            projectIds=[
+                project_id for project_id in account.project_ids if project_id in accessible
+            ],
             allProjects=account.all_projects,
         )
         for account in accounts
@@ -809,14 +814,17 @@ def serialize_workflow_config(
     return result
 
 
-def get_config_agents(configs: Sequence[SeerWorkflowConfig]) -> dict[int, SeerAgentResponse]:
+def get_config_agents(
+    configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Collection[int]
+) -> dict[int, SeerAgentResponse]:
     """Agent settings by service account ID, from the cell replicas."""
     account_ids = {config.service_account_id for config in configs if config.service_account_id}
     if not account_ids:
         return {}
     project_ids: defaultdict[int, list[int]] = defaultdict(list)
     for account_id, project_id in ServiceAccountProjectReplica.objects.filter(
-        service_account__service_account_id__in=account_ids
+        service_account__service_account_id__in=account_ids,
+        project_id__in=accessible_project_ids,
     ).values_list("service_account__service_account_id", "project_id"):
         project_ids[account_id].append(project_id)
     return {
