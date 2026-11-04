@@ -876,7 +876,10 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if (
+            event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
+            and event_type != SentryAppEventType.SEER_ERRORED
+        ):
             lifecycle.record_halt(halt_reason="skipped")
             return
 
