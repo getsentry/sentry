@@ -8,6 +8,13 @@ import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
+import {
+  parseAsBoolean,
+  parseAsInteger,
+  useQueryState,
+  useQueryStates,
+  type SetValues,
+} from 'nuqs';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
 
@@ -38,7 +45,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {decodeBoolean} from 'sentry/utils/queryString';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -70,7 +76,11 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
+import {
+  RELEASES_DRAWER_PARSERS,
+  ReleasesDrawerFields,
+} from 'sentry/views/explore/releases/drawer/utils';
 import {NavigationTypeGate} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeGate';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
@@ -115,6 +125,11 @@ const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.LOGS]: WidgetType.LOGS,
 };
 
+const dashboardFilterParsers = {
+  [DashboardFilterKeys.RELEASE]: parseAsRawList,
+  [DashboardFilterKeys.GLOBAL_FILTER]: parseAsRawList,
+};
+
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
@@ -126,12 +141,16 @@ type Props = {
   api: Client;
   dashboard: DashboardDetails;
   initialState: DashboardState;
+  isReleasesDrawerOpen: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
+  openWidgetTemplatesParam: boolean | null;
   organization: Organization;
   params: RouteParams;
   projects: Project[];
   queryClient: QueryClient;
+  seerRunIdParam: number | null;
+  setDashboardFilterParams: SetValues<typeof dashboardFilterParsers>;
   theme: Theme;
   updateDashboard: (variables: UpdateDashboardVariables) => Promise<DashboardDetails>;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -212,12 +231,10 @@ class DashboardDetail extends Component<Props, State> {
   componentDidMount() {
     this.checkIfShouldMountWidgetViewerModal();
     if (this.isWidgetBuilder()) {
-      const {location} = this.props;
-      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
       // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
-        openWidgetTemplates: shouldOpenTemplates,
+        openWidgetTemplates: this.props.openWidgetTemplatesParam ?? undefined,
       });
     }
     window.addEventListener('beforeunload', this.handleBeforeUnload);
@@ -227,12 +244,10 @@ class DashboardDetail extends Component<Props, State> {
     this.checkIfShouldMountWidgetViewerModal();
 
     if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
-      const {location} = this.props;
-      const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
       // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
-        openWidgetTemplates: shouldOpenTemplates,
+        openWidgetTemplates: this.props.openWidgetTemplatesParam ?? undefined,
       });
     }
 
@@ -306,13 +321,14 @@ class DashboardDetail extends Component<Props, State> {
       params: {widgetId},
       organization,
       dashboard,
+      isReleasesDrawerOpen,
       location,
       navigate,
     } = this.props;
     const {modifiedDashboard} = this.state;
     if (isWidgetViewerPath(location.pathname)) {
       // When the releases drawer is triggered from within the full-screen widget viewer modal, close the modal by navigating away from the widget path.
-      if (location.query[ReleasesDrawerFields.DRAWER] === 'show') {
+      if (isReleasesDrawerOpen) {
         this.closeFullScreenView();
         return;
       }
@@ -545,7 +561,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, location, navigate} = this.props;
+    const {dashboard, setDashboardFilterParams} = this.props;
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -570,13 +586,7 @@ class DashboardDetail extends Component<Props, State> {
         return;
       })
     ) {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          ...filterParams,
-        },
-      });
+      setDashboardFilterParams(filterParams);
     }
   };
 
@@ -889,6 +899,7 @@ class DashboardDetail extends Component<Props, State> {
       location,
       dashboard,
       onDashboardUpdate,
+      seerRunIdParam,
       updateDashboard,
     } = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -906,15 +917,12 @@ class DashboardDetail extends Component<Props, State> {
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
               trackAnalytics('dashboards2.create.complete', {organization});
-              const seerRunId = location.query?.seerRunId
-                ? Number(location.query.seerRunId)
-                : null;
-              if (seerRunId) {
+              if (seerRunIdParam) {
                 Sentry.metrics.count('dashboards.seer.create.save', 1, {
                   attributes: {
                     organization_slug: organization.slug,
                     dashboard_id: newDashboard.id,
-                    seer_run_id: seerRunId,
+                    seer_run_id: seerRunIdParam,
                   },
                 });
               }
@@ -935,12 +943,11 @@ class DashboardDetail extends Component<Props, State> {
               );
             },
             error => {
-              const seerRunId = location.query?.seerRunId;
               // Currently only runs for seer-generated dashboards
-              if (seerRunId && typeof seerRunId === 'string') {
+              if (seerRunIdParam !== null) {
                 Sentry.withScope(scope => {
                   scope.setFingerprint(['generated-dashboard-save-failed']);
-                  scope.setTag('seer.run_id', seerRunId);
+                  scope.setTag('seer.run_id', String(seerRunIdParam));
                   scope.setLevel('error');
                   Sentry.captureMessage('Generated dashboard failed to save', {
                     extra: {
@@ -1434,6 +1441,10 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'params'
   | 'queryClient'
   | 'updateDashboard'
+  | 'isReleasesDrawerOpen'
+  | 'openWidgetTemplatesParam'
+  | 'seerRunIdParam'
+  | 'setDashboardFilterParams'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1449,6 +1460,15 @@ export function DashboardDetailWithInjectedProps(
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const updateDashboard = useUpdateDashboard();
+  const [openWidgetTemplatesParam] = useQueryState('openWidgetTemplates', parseAsBoolean);
+  const [seerRunIdParam] = useQueryState('seerRunId', parseAsInteger);
+  const [releasesDrawer] = useQueryState(
+    ReleasesDrawerFields.DRAWER,
+    RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.DRAWER]
+  );
+  const [, setDashboardFilterParams] = useQueryStates(dashboardFilterParsers, {
+    history: 'push',
+  });
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1467,6 +1487,10 @@ export function DashboardDetailWithInjectedProps(
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       updateDashboard={updateDashboard.mutateAsync}
+      isReleasesDrawerOpen={releasesDrawer === 'show'}
+      openWidgetTemplatesParam={openWidgetTemplatesParam}
+      seerRunIdParam={seerRunIdParam}
+      setDashboardFilterParams={setDashboardFilterParams}
     />
   );
 }
