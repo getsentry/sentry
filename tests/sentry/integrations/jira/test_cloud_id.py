@@ -23,6 +23,7 @@ class AuditCloudIdsTest(TestCase):
         )
         deleted = self._integration("key-3", "https://deleted.atlassian.net")
         internal = self._integration("key-4", "https://10.0.0.1")
+        offsite = self._integration("key-5", "https://offsite.atlassian.net")
         self.create_provider_integration(provider="github", external_id="not-jira")
 
         responses.add(
@@ -42,6 +43,15 @@ class AuditCloudIdsTest(TestCase):
             json={"cloudId": "cloud-a"},
         )
         responses.add(responses.GET, "https://deleted.atlassian.net/_edge/tenant_info", status=404)
+        responses.add(
+            responses.GET,
+            "https://offsite.atlassian.net/_edge/tenant_info",
+            status=302,
+            headers={"Location": "https://example.com/_edge/tenant_info"},
+        )
+        responses.add(
+            responses.GET, "https://example.com/_edge/tenant_info", json={"cloudId": "cloud-b"}
+        )
 
         audit = audit_cloud_ids()
 
@@ -53,7 +63,10 @@ class AuditCloudIdsTest(TestCase):
             ),
             deleted.id: CloudIdLookup(CloudIdStatus.NOT_FOUND, detail="404"),
             internal.id: CloudIdLookup(CloudIdStatus.UNEXPECTED_HOST),
+            offsite.id: CloudIdLookup(
+                CloudIdStatus.UNEXPECTED_HOST, detail="redirected to example.com"
+            ),
         }
         assert audit.duplicates() == {"cloud-a": [live.id, renamed.id]}
         # The internal address was never requested.
-        assert len(responses.calls) == 4
+        assert len(responses.calls) == 6

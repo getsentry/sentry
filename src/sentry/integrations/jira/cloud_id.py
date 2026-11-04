@@ -64,10 +64,14 @@ class CloudIdResult:
     lookup: CloudIdLookup
 
 
+def _is_atlassian_site(host: str) -> bool:
+    return host.endswith(ATLASSIAN_SITE_SUFFIXES)
+
+
 def fetch_cloud_id(base_url: str, timeout: int = 10) -> CloudIdLookup:
     parsed = urlparse(base_url)
     host = parsed.hostname or ""
-    if parsed.scheme != "https" or not host.endswith(ATLASSIAN_SITE_SUFFIXES):
+    if parsed.scheme != "https" or not _is_atlassian_site(host):
         return CloudIdLookup(CloudIdStatus.UNEXPECTED_HOST)
 
     try:
@@ -90,8 +94,10 @@ def fetch_cloud_id(base_url: str, timeout: int = 10) -> CloudIdLookup:
     if not isinstance(cloud_id, str) or not cloud_id:
         return CloudIdLookup(CloudIdStatus.NOT_FOUND, detail="no cloudId in response")
 
-    final_host = urlparse(response.url).hostname
-    moved_to = final_host if final_host and final_host != host else None
+    final_host = urlparse(response.url).hostname or ""
+    if not _is_atlassian_site(final_host):
+        return CloudIdLookup(CloudIdStatus.UNEXPECTED_HOST, detail=f"redirected to {final_host}")
+    moved_to = final_host if final_host != host else None
     return CloudIdLookup(CloudIdStatus.FOUND, cloud_id=cloud_id, moved_to=moved_to)
 
 
@@ -170,7 +176,12 @@ def audit_cloud_ids(
 
     def check(row: tuple[int, int, str]) -> CloudIdResult:
         integration_id, integration_status, base_url = row
-        return CloudIdResult(integration_id, integration_status, base_url, fetch_cloud_id(base_url))
+        try:
+            lookup = fetch_cloud_id(base_url)
+        except Exception as e:
+            # One malformed row shouldn't throw away a long run's results.
+            lookup = CloudIdLookup(CloudIdStatus.ERROR, detail=type(e).__name__)
+        return CloudIdResult(integration_id, integration_status, base_url, lookup)
 
     results: list[CloudIdResult] = []
     with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
