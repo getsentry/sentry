@@ -83,7 +83,7 @@ function Device(props: DeviceProps) {
       <PanelItem key={device.name}>
         <DeviceInformation>
           {device.name}
-          <FadedDateTime date={device.timestamp} />
+          {device.timestamp && <FadedDateTime date={device.timestamp} />}
         </DeviceInformation>
         <Grid flow="column" align="center" gap="md">
           <Button size="sm" onClick={() => setEditting(true)}>
@@ -120,7 +120,7 @@ function Device(props: DeviceProps) {
             setDeviceName(e.target.value);
           }}
         />
-        <FadedDateTime date={device.timestamp} />
+        {device.timestamp && <FadedDateTime date={device.timestamp} />}
       </DeviceInformation>
       <Grid flow="column" align="center" gap="md">
         <Button

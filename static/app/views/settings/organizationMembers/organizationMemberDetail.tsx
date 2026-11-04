@@ -283,7 +283,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               </div>
               <div>
                 <DetailLabel>{t('Added')}</DetailLabel>
-                <DateTime dateOnly date={member.dateCreated} />
+                <DateTime date={member.dateCreated} mode="date" />
               </div>
             </Grid>
           </PanelItem>

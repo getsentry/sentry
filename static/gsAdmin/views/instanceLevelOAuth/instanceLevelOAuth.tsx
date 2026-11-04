@@ -19,7 +19,7 @@ const getRow = (row: any) => [
     {row.clientID}
   </SimpleTable.RowCell>,
   <SimpleTable.RowCell key="created" justify="end">
-    <DateTime date={row.dateAdded} dateOnly year />
+    <DateTime date={row.dateAdded} mode="date" year="always" />
   </SimpleTable.RowCell>,
 ];
 

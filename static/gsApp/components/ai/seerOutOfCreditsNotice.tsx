@@ -181,7 +181,7 @@ export function SeerOutOfCreditsNotice({
         {isDailyLimitReached && (
           <Text>
             {tct('This will reset at [time].', {
-              time: <DateTime date={getDailyLimitResetsAt()} timeOnly timeZone />,
+              time: <DateTime date={getDailyLimitResetsAt()} mode="time" showTimezone />,
             })}
           </Text>
         )}

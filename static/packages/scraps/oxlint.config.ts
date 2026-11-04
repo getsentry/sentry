@@ -59,5 +59,10 @@ export default createPackageConfig(import.meta.dirname, {
       files: ['src/**/*.spec.{ts,tsx}', 'test/**/*.{ts,tsx,mjs}'],
       rules: {'import/no-relative-parent-imports': 'off'},
     },
+    {
+      files: ['src/{dateTime,duration,relativeTime,translation}/**/*.{ts,tsx}'],
+      // Relative imports keep shared formatting internals outside the public export map.
+      rules: {'import/no-relative-parent-imports': 'off'},
+    },
   ],
 });

@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import type {DateTimeProps} from '@sentry/scraps/dateTime';
+import type {DateTimeOptions} from '@sentry/scraps/dateTime';
 
 interface MarkerIntervals {
   /**
@@ -54,11 +54,11 @@ export interface TimeWindowConfig {
   /**
    * The time format used for the cursor label and job tick tooltip
    */
-  dateLabelFormat: string;
+  dateLabelOptions: DateTimeOptions;
   /**
    * Props to pass to <DateTime> when displaying a time marker
    */
-  dateTimeProps: Partial<DateTimeProps>;
+  dateTimeProps: DateTimeOptions;
   /**
    * The elapsed minutes based on the selected resolution
    */

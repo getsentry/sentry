@@ -4,7 +4,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/dateTime';
+import {DateTimeProvider, useClock, useTimezone} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
@@ -88,12 +88,12 @@ export default function MonitorDetails() {
   };
 
   const userTimezone = useTimezone();
-  const clockDisplay = useClockDisplay();
+  const clock = useClock();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
 
   const dateTime = useMemo(
-    () => ({timezone: timezoneOverride, clockDisplay}),
-    [timezoneOverride, clockDisplay]
+    () => ({timezone: timezoneOverride, clock}),
+    [timezoneOverride, clock]
   );
 
   // Only display the unknown legend when there are visible unknown check-ins

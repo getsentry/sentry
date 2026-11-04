@@ -311,7 +311,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     case 'date':
       return (
         <Container>
-          <DateTime date={value} year seconds timeZone />
+          <DateTime date={value} precision="second" year="always" showTimezone />
         </Container>
       );
     default:

@@ -1,87 +1,28 @@
 import type * as React from 'react';
-import type moment from 'moment-timezone';
 
-import {useClockDisplay, useTimezone} from './context';
-import {formatDateTime} from './format';
+import {useDateTimeFormatter} from './context';
+import type {DateTimeInput, DateTimeOptions} from './format';
 
-export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
-  /**
-   * Input date.
-   */
-  date: moment.MomentInput;
-  /**
-   * If true, will only return the date part, e.g. "Jan 1".
-   */
-  dateOnly?: boolean;
-  /**
-   * When set, will force the date time display to be in the specified timezone
-   */
-  forcedTimezone?: string;
-  /**
-   * Formatting string. If specified, this formatting string will override all
-   * other formatting props (dateOnly, timeOnly, year).
-   */
-  format?: string;
-  /**
-   * Whether to show the milliseconds. Is false by default.
-   */
-  milliseconds?: boolean;
-  /**
-   * Whether to show the seconds. Is false by default.
-   */
-  seconds?: boolean;
-  /**
-   * If true, will only return the time part, e.g. "2:50 PM"
-   */
-  timeOnly?: boolean;
-  /**
-   * Whether to show the time zone. If not specified, the returned date string
-   * will not contain the time zone _unless_ the time is UTC, in which case
-   * the user would want to know that it's UTC and not their own time zone.
-   */
-  timeZone?: boolean;
-  /**
-   * Whether the date input is UTC time or not.
-   */
-  utc?: boolean;
-  /**
-   * Whether to show the year. If not specified, the returned date string will
-   * not contain the year _if_ the date is not in the current calendar year.
-   * For example: "Feb 1" (2022), "Jan 1" (2022), "Dec 31, 2021".
-   */
-  year?: boolean;
-}
+export type DateTimeProps = Omit<React.HTMLAttributes<HTMLTimeElement>, 'children'> &
+  DateTimeOptions & {date: DateTimeInput};
 
 export function DateTime({
-  format,
   date,
-  utc,
-  dateOnly,
-  timeOnly,
+  mode,
   year,
-  timeZone,
-  seconds = false,
-  milliseconds = false,
-  forcedTimezone,
+  precision,
+  timezone,
+  clock,
+  showTimezone,
   ...props
 }: DateTimeProps) {
-  const clockDisplay = useClockDisplay();
-  const currentTimezone = useTimezone();
+  const format = useDateTimeFormatter();
+  const options: DateTimeOptions =
+    mode === 'date'
+      ? {mode, year, timezone, clock, showTimezone}
+      : mode === 'time'
+        ? {mode, precision, timezone, clock, showTimezone}
+        : {mode, year, precision, timezone, clock, showTimezone};
 
-  return (
-    <time {...props}>
-      {formatDateTime(date, {
-        format,
-        utc,
-        dateOnly,
-        timeOnly,
-        year,
-        timeZone,
-        seconds,
-        milliseconds,
-        timezone: forcedTimezone ?? currentTimezone,
-        clock24Hours: clockDisplay === '24',
-      })}
-    </time>
-  );
+  return <time {...props}>{format(date, options)}</time>;
 }

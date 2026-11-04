@@ -149,7 +149,7 @@ describe('InstallPage', () => {
     });
 
     render(
-      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
         <ExampleInstallPage />
       </DateTimeProvider>,
       {organization, initialRouterConfig}

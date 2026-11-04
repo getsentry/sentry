@@ -53,7 +53,11 @@ export function ServiceIncidentDetails({incident}: Props) {
             ),
             end: (
               <strong>
-                <DateTime date={incident.resolved_at} />
+                {incident.resolved_at ? (
+                  <DateTime date={incident.resolved_at} />
+                ) : (
+                  t('Unknown')
+                )}
               </strong>
             ),
           }
@@ -66,7 +70,11 @@ export function ServiceIncidentDetails({incident}: Props) {
           ),
           end: (
             <strong>
-              <DateTime date={incident.resolved_at} />
+              {incident.resolved_at ? (
+                <DateTime date={incident.resolved_at} />
+              ) : (
+                t('Unknown')
+              )}
             </strong>
           ),
         })

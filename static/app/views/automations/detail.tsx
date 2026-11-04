@@ -185,7 +185,13 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
                 <Flex gap="md">
                   <TimeSince date={automation.lastTriggered} />
                   <Flex>
-                    (<DateTime date={automation.lastTriggered} year timeZone />)
+                    (
+                    <DateTime
+                      date={automation.lastTriggered}
+                      year="always"
+                      showTimezone
+                    />
+                    )
                   </Flex>
                 </Flex>
               ) : (
@@ -214,7 +220,7 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
                   <DescriptionList striped>
                     <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
                     <DescriptionList.Details>
-                      <DateTime date={automation.dateCreated} dateOnly year />
+                      <DateTime date={automation.dateCreated} mode="date" year="always" />
                     </DescriptionList.Details>
                     <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
                     <DescriptionList.Details>

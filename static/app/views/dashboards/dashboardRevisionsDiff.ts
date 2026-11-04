@@ -18,7 +18,13 @@ function formatTime(d: DashboardDetails): string | null {
     return getRelativeSummary(d.period);
   }
   if (d.start && d.end) {
-    const fmt = (s: string) => formatDateTime(s, {format: 'MMM D, YYYY', utc: d.utc});
+    const fmt = (s: string) =>
+      formatDateTime(s, {
+        mode: 'date',
+        year: 'always',
+        showTimezone: false,
+        timezone: d.utc ? 'UTC' : undefined,
+      });
     return `${fmt(d.start)} – ${fmt(d.end)}`;
   }
   return null;

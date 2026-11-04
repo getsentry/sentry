@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
@@ -73,6 +73,7 @@ export function useCurrentEventMarklineSeries({
   seriesType,
 }: UseEventMarklineSeriesProps) {
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const eventView = useIssueDetailsEventView({group});
   const renderToString = useRenderToString();
 
@@ -149,9 +150,10 @@ export function useCurrentEventMarklineSeries({
         trigger: 'item',
         formatter: () => {
           // Do not use date from xAxis here since we've placed it on the nearest bar
-          const time = formatDateTime(event.dateCreated, {
-            format: getFormat({timeZone: true, year: true}),
-            utc: !!eventView.utc,
+          const time = formatDateTime(event.dateCreated ?? event.dateReceived ?? NaN, {
+            year: 'always',
+            showTimezone: true,
+            timezone: eventView.utc ? 'UTC' : undefined,
           });
 
           const matchingCount = closestEventSeries.value.toLocaleString();
@@ -225,5 +227,6 @@ export function useCurrentEventMarklineSeries({
     unfilteredEventSeries,
     seriesType,
     renderToString,
+    formatDateTime,
   ]);
 }

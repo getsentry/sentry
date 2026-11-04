@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
@@ -25,6 +25,7 @@ export function useReleaseMarkLineSeries({
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const eventView = useIssueDetailsEventView({group});
   const organization = useOrganization();
 
@@ -66,8 +67,9 @@ export function useReleaseMarkLineSeries({
       trigger: 'item',
       formatter: ({data}: any) => {
         const time = formatDateTime(data.value, {
-          format: getFormat({timeZone: true, year: true}),
-          utc: !!eventView.utc,
+          year: 'always',
+          showTimezone: true,
+          timezone: eventView.utc ? 'UTC' : undefined,
         });
         const version = escape(formatVersion(data.name, true));
         return [

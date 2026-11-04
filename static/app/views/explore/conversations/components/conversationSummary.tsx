@@ -240,7 +240,7 @@ export function ConversationSummary({
                     size="sm"
                     title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
                   >
-                    <DateTime date={startTimestamp} year timeZone />
+                    <DateTime date={startTimestamp} year="always" showTimezone />
                   </InfoText>
                 </Flex>
               )}

@@ -58,7 +58,7 @@ export function TimestampButton({
       >
         <IconPlay size="xs" />
         {timestampType === 'absolute' ? (
-          <DateTime timeOnly seconds date={timestampMs} />
+          <DateTime date={timestampMs} mode="time" precision="second" />
         ) : (
           <Duration
             duration={[Math.abs(timestampMs - startTimestampMs), 'ms']}
