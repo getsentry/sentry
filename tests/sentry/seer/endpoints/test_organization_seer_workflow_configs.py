@@ -441,7 +441,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_member_cannot_narrow_all_projects_config(self) -> None:
+    def test_member_cannot_narrow_or_enable_all_projects_config(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
         config = self.create_config(filters={"all_projects": True})
         self.login_as(member)
@@ -457,8 +457,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == (
             "You do not have permission to narrow this config's project scope"
         )
+
+        response = self.get_error_response(
+            self.organization.slug, config.id, method="put", enabled=True, status_code=403
+        )
+
+        assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
+        assert config.enabled is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -606,8 +613,10 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert workflow.get_config().enabled is False
 
-    def test_put_enables_other_strategies(self) -> None:
-        config = self.create_config()
+    def test_put_enables_all_projects_config(self) -> None:
+        config = self.create_config(filters={"all_projects": True})
+        self.get_error_response(self.organization.slug, config.id, method="put", status_code=400)
+
         response = self.get_success_response(
             self.organization.slug, config.id, method="put", enabled=True
         )

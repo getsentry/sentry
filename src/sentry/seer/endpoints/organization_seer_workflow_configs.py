@@ -160,10 +160,10 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if "projectIds" in data and "monitorIds" in data:
-            raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
         if not data:
             raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+        if "projectIds" in data and "monitorIds" in data:
+            raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
 
 
@@ -508,7 +508,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled = serializer.validated_data.get("enabled")
         if enabled is not None:
             denied = _check_project_access(
-                workflow.get_project_ids(),
+                (
+                    [ALL_ACCESS_PROJECT_ID]
+                    if workflow.filters.all_projects
+                    else workflow.get_project_ids()
+                ),
                 request=request,
                 organization=organization,
                 endpoint=self,
