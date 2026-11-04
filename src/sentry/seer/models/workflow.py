@@ -43,6 +43,8 @@ class SeerWorkflowConfigExtras(BaseModel):
     seeded_default: SeerWorkflowStrategy | None = None
     # Optional user-supplied name
     name: str | None = None
+    # The user who created this config; unset for seeded defaults and non-user callers.
+    created_by_id: int | None = None
 
 
 class SeerWorkflowFilters(BaseModel):

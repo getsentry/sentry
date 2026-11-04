@@ -346,6 +346,13 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data == listed.data["configs"][0]
         assert response.data["projects"] == [self.project.id]
 
+    def test_get_includes_created_by_id(self) -> None:
+        config = self.create_config(extras={"created_by_id": self.user.id})
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        assert response.data["createdById"] == str(self.user.id)
+
     def test_unavailable_config_returns_404(self) -> None:
         legacy = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
@@ -842,8 +849,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "seededDefault": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "createdById": str(self.user.id),
         }
-        assert config.extras == {}
+        assert config.extras == {"created_by_id": self.user.id}
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()
@@ -860,7 +868,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage"}
+        assert config.extras == {"name": "Checkout triage", "created_by_id": self.user.id}
         assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
@@ -1006,7 +1014,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches"}
+        assert config.extras == {"name": "Latency breaches", "created_by_id": self.user.id}
         assert config.version == 1
         assert config.backing_workflow is not None
         assert set(

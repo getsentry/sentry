@@ -107,7 +107,7 @@ class SeerWorkflow:
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
-        name: str | None = None,
+        extras: SeerWorkflowConfigExtras,
     ) -> SeerWorkflowConfig:
         """
         Create a config within the org's automation limit. Call inside a transaction on
@@ -131,7 +131,7 @@ class SeerWorkflow:
             strategy=strategy,
             enabled=enabled,
             filters=filters.dict(),
-            extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+            extras=extras.dict(exclude_none=True),
         )
 
     @classmethod
@@ -144,7 +144,7 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule,
         project_ids: Collection[int],
         environments: Sequence[str] = (),
-        name: str | None = None,
+        extras: SeerWorkflowConfigExtras | None = None,
     ) -> SeerWorkflow:
         """
         Create a user-defined automation. Use ``project_ids=[-1]`` to select all
@@ -173,7 +173,7 @@ class SeerWorkflow:
                     all_projects=all_projects,
                     environments=list(environments),
                 ),
-                name=name,
+                extras=extras or SeerWorkflowConfigExtras(),
             )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])

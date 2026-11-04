@@ -10,6 +10,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
     SeerWorkflowSchedule,
@@ -92,7 +93,7 @@ class SeerWorkflowCreateTest(TestCase):
             schedule=SeerWorkflowSchedule.DAILY,
             project_ids=[second.id, first.id],
             environments=["production"],
-            name="Daily triage",
+            extras=SeerWorkflowConfigExtras(name="Daily triage"),
         )
 
         config = workflow.get_config()
