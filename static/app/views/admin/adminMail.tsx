@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -64,7 +65,7 @@ function AdminMailContent() {
   const sendTestEmail = async () => {
     try {
       await api.requestPromise('/internal/mail/', {method: 'POST'});
-      addSuccessMessage(t('A test email has been sent to %s', testMailEmail));
+      toast.success(t('A test email has been sent to %s', testMailEmail));
     } catch (error: any) {
       addErrorMessage(
         error.responseJSON

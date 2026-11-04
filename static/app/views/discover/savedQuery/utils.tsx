@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   deleteHomepageQuery,
@@ -11,7 +12,7 @@ import {
   deleteSavedQuery,
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -47,7 +48,7 @@ export function handleCreateQuery(
 
   promise
     .then((savedQuery: SavedQuery) => {
-      addSuccessMessage(t('Query saved'));
+      toast.success(t('Query saved'));
       trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
@@ -91,7 +92,7 @@ export function handleUpdateQuery(
 
   promise
     .then((savedQuery: SavedQuery) => {
-      addSuccessMessage(t('Query updated'));
+      toast.success(t('Query updated'));
 
       trackAnalytics('discover_v2.update_query_success', {
         organization,
@@ -135,7 +136,7 @@ export function handleUpdateQueryName(
 
   promise
     .then(_saved => {
-      addSuccessMessage(t('Query name saved'));
+      toast.success(t('Query name saved'));
 
       trackAnalytics('discover_v2.update_query_name_successs', {
         organization,
@@ -169,7 +170,7 @@ export function handleDeleteQuery(
 
   promise
     .then(() => {
-      addSuccessMessage(t('Query deleted'));
+      toast.success(t('Query deleted'));
       trackAnalytics('discover_v2.delete_query_success', {
         organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
@@ -196,7 +197,7 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(savedQuery => {
-      addSuccessMessage(t('Saved as Errors default'));
+      toast.success(t('Saved as Errors default'));
       return savedQuery;
     })
     .catch((e: RequestError) => {
@@ -217,7 +218,7 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Successfully removed Errors default'));
+      toast.success(t('Successfully removed Errors default'));
     })
     .catch(() => {
       addErrorMessage(t('Unable to remove Errors default'));

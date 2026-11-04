@@ -3,11 +3,9 @@ import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -146,7 +144,7 @@ export function CustomerDetails() {
       }),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
-      addSuccessMessage(
+      toast.success(
         data.message ??
           `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
@@ -181,7 +179,7 @@ export function CustomerDetails() {
         method: 'POST',
       }),
     onSuccess: () => {
-      addSuccessMessage('Queued spike projection generation task.');
+      toast.success('Queued spike projection generation task.');
     },
     onError: (error: RequestError) => {
       addErrorMessage(error.message);
@@ -205,7 +203,7 @@ export function CustomerDetails() {
       }),
     onSuccess: async () => {
       await refetchSubscription();
-      addSuccessMessage('Test organization flag updated.');
+      toast.success('Test organization flag updated.');
     },
     onError: () => {
       addErrorMessage('Could not update the test organization flag. Try again.');
@@ -226,7 +224,7 @@ export function CustomerDetails() {
       }),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (_data, variables) => {
-      addSuccessMessage(
+      toast.success(
         variables.migrated
           ? 'Marked this org as migrated to the billing platform.'
           : 'Marked this org as not migrated to the billing platform.'
@@ -254,7 +252,7 @@ export function CustomerDetails() {
       }),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (_data, variables) => {
-      addSuccessMessage(`Set the contract package to ${variables.packageUid}.`);
+      toast.success(`Set the contract package to ${variables.packageUid}.`);
       reloadData();
       setContractsKey(key => key + 1);
     },
@@ -353,14 +351,14 @@ export function CustomerDetails() {
     if (params.error) {
       addErrorMessage(params.error.responseJSON.detail);
     } else {
-      addSuccessMessage('The relocation job has started!');
+      toast.success('The relocation job has started!');
     }
   };
 
   const onChangeGoogleDomain = (params: Record<string, any>) => {
     if (params.newDomain) {
       const msg = JSON.stringify(params.newDomain);
-      addSuccessMessage(`Customer account has been updated with new domain: ${msg}.`);
+      toast.success(`Customer account has been updated with new domain: ${msg}.`);
     } else {
       const msg = JSON.stringify(params.error.responseText);
       addErrorMessage(`Failed to update new domain due to ${msg}.`);
@@ -383,7 +381,7 @@ export function CustomerDetails() {
         clone.spendAllocationEnabled = spendAllocationEnabled;
         setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, clone);
       }
-      addSuccessMessage(
+      toast.success(
         `Spend Allocations has been ${spendAllocationEnabled ? 'enabled' : 'disabled'} for organization.`
       );
     }

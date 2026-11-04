@@ -15,7 +15,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
@@ -89,6 +91,7 @@ describe('CreateProject', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     TeamStore.reset();
     TeamStore.loadUserTeams([teamNoAccess]);
 
@@ -607,7 +610,7 @@ describe('CreateProject', () => {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
+    expect(toast.success).toHaveBeenCalledWith('Created project testProj');
     expect(router.location.query.projectCreationVariant).toBe('legacy');
   });
 
@@ -681,7 +684,7 @@ describe('CreateProject', () => {
     expect(
       frameWorkModalMockRequests.orgProjectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
-    expect(addSuccessMessage).toHaveBeenCalledWith(
+    expect(toast.success).toHaveBeenCalledWith(
       'Created testProj under new team #testTeam'
     );
   });

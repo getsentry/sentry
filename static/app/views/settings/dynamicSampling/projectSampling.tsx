@@ -3,12 +3,9 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
@@ -75,7 +72,7 @@ export function ProjectSampling() {
         setSavedProjectRates(value.projectRates);
         setEditMode('single');
         formApi.reset(value);
-        addSuccessMessage(t('Changes applied'));
+        toast.success(t('Changes applied'));
       } catch {
         addErrorMessage(t('Unable to save changes. Please try again.'));
       }

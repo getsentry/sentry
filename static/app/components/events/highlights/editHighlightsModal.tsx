@@ -11,8 +11,9 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
@@ -427,7 +428,7 @@ export function EditHighlightsModal({
                     );
                   },
                   onSuccess: () => {
-                    addSuccessMessage(
+                    toast.success(
                       tct("Successfully updated '[projectName]' project", {
                         projectName: project.name,
                       })

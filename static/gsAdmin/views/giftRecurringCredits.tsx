@@ -11,8 +11,9 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -310,7 +311,7 @@ export function GiftRecurringCredits() {
           `Gifting finished: ${errors} of ${response.results.length} orgs failed.`
         );
       } else {
-        addSuccessMessage(`Gifted recurring credits to ${response.results.length} orgs.`);
+        toast.success(`Gifted recurring credits to ${response.results.length} orgs.`);
       }
     },
     onError: (error: unknown) => {

@@ -6,8 +6,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -124,9 +125,9 @@ export function SpendLimitsEditModal({
       );
 
       if (getTotalBudget(newOnDemandBudget) > 0) {
-        addSuccessMessage(t('Budget updated'));
+        toast.success(t('Budget updated'));
       } else {
-        addSuccessMessage(t('Budget turned off'));
+        toast.success(t('Budget turned off'));
       }
 
       closeModal();

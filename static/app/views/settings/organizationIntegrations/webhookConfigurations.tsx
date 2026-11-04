@@ -6,12 +6,9 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -71,7 +68,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
       });
     },
     onSuccess: (_data, shouldEnable) => {
-      addSuccessMessage(
+      toast.success(
         shouldEnable ? t('Configuration was enabled.') : t('Configuration was disabled.')
       );
       queryClient.invalidateQueries({queryKey});
@@ -102,7 +99,7 @@ function useWebhookProjectMutations(project: WebhookProject) {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Configuration was removed'));
+      toast.success(t('Configuration was removed'));
       queryClient.invalidateQueries({queryKey});
     },
     onError: () => {

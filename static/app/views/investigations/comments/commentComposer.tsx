@@ -3,8 +3,9 @@ import {useEffect, useRef, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -138,7 +139,7 @@ export function EditCommentForm({
       {commentId: comment.id, body},
       {
         onSuccess: () => {
-          addSuccessMessage(t('Comment updated.'));
+          toast.success(t('Comment updated.'));
           onDone();
         },
         onError: () => addErrorMessage(t('Unable to save comment.')),

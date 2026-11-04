@@ -13,8 +13,9 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
@@ -158,7 +159,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
           data: {email},
         }
       );
-      addSuccessMessage(tct('Sent invite to [email]', {email}));
+      toast.success(tct('Sent invite to [email]', {email}));
       onSendInvite();
       const updatedMissingMembers = missingMembers.filter(
         member => member.email !== email

@@ -10,6 +10,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
@@ -170,7 +172,7 @@ describe('OrganizationAuthTokensIndex', () => {
 
   describe('revoking', () => {
     it('allows to revoke tokens', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const tokens: OrgAuthToken[] = [
         {
@@ -224,7 +226,7 @@ describe('OrganizationAuthTokensIndex', () => {
       expect(screen.queryByText('My Token 2')).not.toBeInTheDocument();
       expect(screen.getByText('My Token 3')).toBeInTheDocument();
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Revoked auth token for the organization.'
       );
 

@@ -3,8 +3,9 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
@@ -71,7 +72,7 @@ export function ReauthMonitoringProviderBlock({
           orgSlug={organization.slug}
           isReauth
           onSuccess={() => {
-            addSuccessMessage(t('Provider reconnected.'));
+            toast.success(t('Provider reconnected.'));
             onComplete();
           }}
         />

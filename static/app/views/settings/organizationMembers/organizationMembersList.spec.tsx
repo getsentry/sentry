@@ -15,7 +15,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -85,6 +87,7 @@ describe('OrganizationMembersList', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     ConfigStore.set('user', currentUser.user!);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -175,7 +178,7 @@ describe('OrganizationMembersList', () => {
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
@@ -221,7 +224,7 @@ describe('OrganizationMembersList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     await waitFor(() => {
@@ -251,7 +254,7 @@ describe('OrganizationMembersList', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
-    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
     await waitFor(() => {

@@ -7,12 +7,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {
@@ -131,7 +128,7 @@ export function SeerRepoTableHeader({
     );
     try {
       await mutateRepositorySettings({enabledCodeReview, repositoryIds});
-      addSuccessMessage(
+      toast.success(
         tn(
           'Code review updated for %s repository',
           'Code review updated for %s repositories',
@@ -236,7 +233,7 @@ export function SeerRepoTableHeader({
     if (hasError) {
       addErrorMessage(t('Failed to update triggers'));
     } else {
-      addSuccessMessage(t('Triggers updated'));
+      toast.success(t('Triggers updated'));
     }
   };
 

@@ -3,8 +3,9 @@ import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -60,7 +61,7 @@ export default function AddCredentialsModal({
       mutation
         .mutateAsync(value)
         .then(() => {
-          addSuccessMessage(t('Credentials submitted successfully'));
+          toast.success(t('Credentials submitted successfully'));
           invalidateCredentialsCache();
           trackAnalytics('tempest.credentials.added', {
             organization,

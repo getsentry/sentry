@@ -6,13 +6,10 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container} from '@sentry/scraps/layout';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
@@ -162,11 +159,11 @@ export function SavedQueriesTable({
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
             starQueryHandler(query, false);
-            addSuccessMessage(t('Query unstarred'));
+            toast.success(t('Query unstarred'));
           } else {
             addLoadingMessage(t('Starring query...'));
             starQueryHandler(query, true);
-            addSuccessMessage(t('Query starred'));
+            toast.success(t('Query starred'));
           }
         },
         1000,
@@ -319,7 +316,7 @@ export function SavedQueriesTable({
                         addLoadingMessage(t('Duplicating query...'));
                         try {
                           await duplicateQuery(query);
-                          addSuccessMessage(t('Query duplicated'));
+                          toast.success(t('Query duplicated'));
                         } catch (error) {
                           addErrorMessage(t('Unable to duplicate query'));
                         }
@@ -341,7 +338,7 @@ export function SavedQueriesTable({
                                       queryId: Number(query.id),
                                       queryType: query.queryType,
                                     });
-                                    addSuccessMessage(t('Query deleted'));
+                                    toast.success(t('Query deleted'));
                                   } catch (error) {
                                     addErrorMessage(t('Unable to delete query'));
                                   }

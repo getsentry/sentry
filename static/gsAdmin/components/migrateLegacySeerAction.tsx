@@ -1,11 +1,9 @@
 import {Component, Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
@@ -52,7 +50,7 @@ class MigrateLegacySeerAction extends Component<Props, State> {
         data: {applyImmediately, addSeerTrial},
       })
       .then(() => {
-        addSuccessMessage('Legacy Seer migration complete.');
+        toast.success('Legacy Seer migration complete.');
       })
       .catch(res => {
         if (res instanceof RequestError && typeof res.responseJSON?.detail === 'string') {

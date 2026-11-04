@@ -3,8 +3,9 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -100,7 +101,7 @@ export function ReplayBulkViewedActions({
     });
 
     if (failed.length === 0) {
-      addSuccessMessage(
+      toast.success(
         tn(
           'Marked 1 replay as viewed.',
           'Marked %s replays as viewed.',

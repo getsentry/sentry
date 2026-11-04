@@ -1,10 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {useRefetchFeedbackList} from 'sentry/components/feedback/list/useRefetchFeedbackList';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
@@ -31,7 +29,7 @@ export function useFeedbackActions({feedbackItem}: Props) {
         addErrorMessage(t('An error occurred while updating the feedback.'));
       },
       onSuccess: () => {
-        addSuccessMessage(t('Updated feedback'));
+        toast.success(t('Updated feedback'));
         refetchFeedbackList();
       },
     }),

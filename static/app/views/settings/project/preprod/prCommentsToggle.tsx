@@ -1,12 +1,9 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -29,7 +26,7 @@ export function PrCommentsToggle() {
       {[WRITE_KEY]: !enabled},
       {
         onSuccess: () => {
-          addSuccessMessage(t('PR comment settings updated'));
+          toast.success(t('PR comment settings updated'));
         },
         onError: () => {
           addErrorMessage(t('Failed to save changes. Please try again.'));

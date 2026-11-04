@@ -72,7 +72,7 @@ examples:
     - |
       useMutation({
         mutationFn: (data) => api.requestPromise('/endpoint/', { method: 'POST', data }),
-        onSuccess: () => addSuccessMessage('Saved'),
+        onSuccess: () => toast.success('Saved'),
         onError: () => addErrorMessage('Failed'),
       });
     - |

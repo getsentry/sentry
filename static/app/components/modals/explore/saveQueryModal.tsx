@@ -6,12 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -63,7 +60,7 @@ function SaveQueryModal({
         setQueryParamsSavedQuery(id, name);
       }
       if (showMessage) {
-        addSuccessMessage(t('Query saved successfully'));
+        toast.success(t('Query saved successfully'));
       }
       if (defined(source)) {
         if (source === 'conversations') {

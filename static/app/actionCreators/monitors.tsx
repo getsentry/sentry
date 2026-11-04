@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -76,9 +77,7 @@ export async function updateMonitor(
 
     if (data.status !== undefined) {
       const isEnabled = data.status === 'active';
-      addSuccessMessage(
-        isEnabled ? t('Cron Monitor enabled') : t('Cron Monitor disabled')
-      );
+      toast.success(isEnabled ? t('Cron Monitor enabled') : t('Cron Monitor disabled'));
     }
 
     return resp;

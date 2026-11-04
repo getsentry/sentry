@@ -2,8 +2,9 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -37,7 +38,7 @@ function ForceAutoAssignment() {
     );
 
     const updatedGroupIdsStr = response.updatedGroupIds.join();
-    addSuccessMessage('Updated groups: ' + updatedGroupIdsStr);
+    toast.success('Updated groups: ' + updatedGroupIdsStr);
   };
 
   return (

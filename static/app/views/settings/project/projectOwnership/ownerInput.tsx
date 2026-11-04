@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -76,7 +77,7 @@ export function OwnerInput({
 
     request
       .then(ownership => {
-        addSuccessMessage(t('Updated issue ownership rules'));
+        toast.success(t('Updated issue ownership rules'));
         setHasChanges(false);
         setText(text);
         onSave?.(ownership);

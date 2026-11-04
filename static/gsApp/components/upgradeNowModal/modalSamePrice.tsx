@@ -5,8 +5,9 @@ import HeroImg from 'getsentry-images/features/replay-modal-hero.jpg';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
@@ -62,7 +63,7 @@ function UpgradeNowModal({
         }
 
         closeModal();
-        addSuccessMessage(t('Subscription Updated!'));
+        toast.success(t('Subscription Updated!'));
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {
           organization,

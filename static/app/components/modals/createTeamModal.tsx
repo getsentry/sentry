@@ -4,8 +4,9 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -42,7 +43,7 @@ function CreateTeamModal({
       }),
     onSuccess: team => {
       TeamStore.onCreateSuccess(team);
-      addSuccessMessage(
+      toast.success(
         tct('[team] has been added to the [organization] organization', {
           team: `#${team.slug}`,
           organization: organization.slug,

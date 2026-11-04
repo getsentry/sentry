@@ -1,6 +1,8 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -27,7 +29,7 @@ export function useDeleteDetectorMutation() {
       queryClient.invalidateQueries({
         queryKey: allDetectorListsQueryKey(org),
       });
-      addSuccessMessage(t('Monitor deleted.'));
+      toast.success(t('Monitor deleted.'));
     },
     onError: error => {
       addErrorMessage(t('Unable to delete monitor: %s', error.message));

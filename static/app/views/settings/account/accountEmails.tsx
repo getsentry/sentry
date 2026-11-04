@@ -10,8 +10,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -49,7 +50,7 @@ function AccountEmails() {
     onSuccess: response => {
       queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
       if (response?.detail) {
-        addSuccessMessage(response.detail);
+        toast.success(response.detail);
       }
     },
     onError: error => {

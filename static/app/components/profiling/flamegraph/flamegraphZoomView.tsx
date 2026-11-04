@@ -4,8 +4,9 @@ import {vec2} from 'gl-matrix';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -765,7 +766,7 @@ function FlamegraphZoomView({
     navigator.clipboard
       .writeText(hoveredNodeOnContextMenuOpen.current.frame.name)
       .then(() => {
-        addSuccessMessage(t('Function name copied to clipboard'));
+        toast.success(t('Function name copied to clipboard'));
       })
       .catch(() => {
         addErrorMessage(t('Failed to copy function name to clipboard'));
@@ -788,7 +789,7 @@ function FlamegraphZoomView({
     navigator.clipboard
       .writeText(link)
       .then(() => {
-        addSuccessMessage(t('Function source copied to clipboard'));
+        toast.success(t('Function source copied to clipboard'));
       })
       .catch(() => {
         addErrorMessage(t('Failed to copy function source to clipboard'));

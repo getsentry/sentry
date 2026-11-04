@@ -8,8 +8,8 @@ import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -198,7 +198,7 @@ export default function AutomationNewSettings() {
       try {
         const automation = await createAutomation(newAutomationData);
         onSubmitSuccess(formModel.getData());
-        addSuccessMessage(t('Alert created'));
+        toast.success(t('Alert created'));
         trackAnalytics('automation.created', {
           organization,
           ...analyticsPayload,

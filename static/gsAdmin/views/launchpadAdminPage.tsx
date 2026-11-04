@@ -10,8 +10,9 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
@@ -59,7 +60,7 @@ export function LaunchpadAdminPage() {
         );
       }
       if (succeeded.length > 0) {
-        addSuccessMessage(
+        toast.success(
           `Analysis rerun initiated for ${succeeded.length} artifact${succeeded.length > 1 ? 's' : ''}`
         );
       }
@@ -84,9 +85,7 @@ export function LaunchpadAdminPage() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(
-        `All data deleted successfully for artifact: ${deleteArtifactId}`
-      );
+      toast.success(`All data deleted successfully for artifact: ${deleteArtifactId}`);
       setDeleteArtifactId('');
     },
     onError: () => {
@@ -112,7 +111,7 @@ export function LaunchpadAdminPage() {
           host: locality?.url,
         }
       );
-      addSuccessMessage(`Artifact info fetched successfully for: ${fetchInfoArtifactId}`);
+      toast.success(`Artifact info fetched successfully for: ${fetchInfoArtifactId}`);
       setFetchedArtifactInfo(data);
       setFetchInfoArtifactId('');
     } catch {
@@ -140,7 +139,7 @@ export function LaunchpadAdminPage() {
       const artifactCount = batchDeleteArtifactIds
         .split(',')
         .filter(id => id.trim()).length;
-      addSuccessMessage(`Successfully deleted ${artifactCount} artifacts`);
+      toast.success(`Successfully deleted ${artifactCount} artifacts`);
       setBatchDeleteArtifactIds('');
     },
     onError: () => {

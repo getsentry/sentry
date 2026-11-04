@@ -3,8 +3,9 @@ import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -55,7 +56,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         markStartedTrial: true,
       });
       fetchOrganizationDetails(new Client(), organization.slug);
-      addSuccessMessage(msg);
+      toast.success(msg);
     },
     onError: error => {
       if (error instanceof RequestError) {

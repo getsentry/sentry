@@ -8,8 +8,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -102,7 +103,7 @@ export function CodeOwnerFileTable({
         }
       );
       onUpdate({...codeowner, ...data});
-      addSuccessMessage(t('CODEOWNERS file sync successful.'));
+      toast.success(t('CODEOWNERS file sync successful.'));
     } catch (_err) {
       addErrorMessage(t('An error occurred trying to sync CODEOWNERS file.'));
     }
@@ -126,7 +127,7 @@ export function CodeOwnerFileTable({
         }
       );
       onDelete(codeowner);
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
     } catch {
       // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));

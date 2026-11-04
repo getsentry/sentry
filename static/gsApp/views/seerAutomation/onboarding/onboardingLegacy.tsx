@@ -10,12 +10,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -151,7 +148,7 @@ function ProjectRowWithUpdate({
           updateProjectSeerPreferences({repositories: reposData});
 
           if (reposData.length > 0) {
-            addSuccessMessage(
+            toast.success(
               t('%s repo(s) connected to %s', reposData.length, project.slug)
             );
             onSuccess(project.id);
@@ -500,7 +497,7 @@ function AutoTriggerFixesButton({
         );
       }
 
-      addSuccessMessage(
+      toast.success(
         t(
           'Automation enabled for %s project(s) with repositories',
           projectsWithRepos.length
@@ -586,7 +583,7 @@ function EnableIssueScansButton({
         );
       }
 
-      addSuccessMessage(
+      toast.success(
         t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)
       );
 

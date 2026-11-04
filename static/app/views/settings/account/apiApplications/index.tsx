@@ -6,12 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -66,7 +63,7 @@ export default function ApiApplications() {
         data: {isPublic},
       });
 
-      addSuccessMessage(t('Created a new API Application'));
+      toast.success(t('Created a new API Application'));
       navigate(`${ROUTE_PREFIX}applications/${app.id}/`);
     } catch {
       addErrorMessage(t('Unable to create application. Please try again.'));

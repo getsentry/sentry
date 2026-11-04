@@ -9,12 +9,9 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -254,7 +251,7 @@ export function SeerAutomationProjectList() {
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
       // oxlint-disable-next-line react/todo
@@ -303,7 +300,7 @@ export function SeerAutomationProjectList() {
           })
         );
       }
-      addSuccessMessage('Projects updated successfully');
+      toast.success('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
       // oxlint-disable-next-line react/todo

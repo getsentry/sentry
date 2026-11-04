@@ -8,6 +8,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 
@@ -159,10 +161,7 @@ describe('MigrateLegacySeerAction', () => {
   });
 
   it('shows success message after migration completes', async () => {
-    const successMessage = jest.spyOn(
-      require('sentry/actionCreators/indicator'),
-      'addSuccessMessage'
-    );
+    const successMessage = jest.spyOn(toast, 'success');
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',

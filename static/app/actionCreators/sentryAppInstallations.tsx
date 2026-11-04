@@ -1,7 +1,8 @@
+import {toast} from '@sentry/scraps/toast';
+
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -67,7 +68,7 @@ export function uninstallSentryApp(
     install.app.slug.charAt(0).toUpperCase() + install.app.slug.slice(1);
   promise.then(
     () => {
-      addSuccessMessage(t('%s successfully queued for deletion.', capitalizedAppSlug));
+      toast.success(t('%s successfully queued for deletion.', capitalizedAppSlug));
     },
     () => clearIndicators()
   );

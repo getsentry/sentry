@@ -1,10 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {uniqueId} from 'sentry/utils/guid';
@@ -100,7 +98,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
         {[config.enabledField]: value},
         {
           onSuccess: () => {
-            addSuccessMessage(value ? config.toasts.enabled : config.toasts.disabled);
+            toast.success(value ? config.toasts.enabled : config.toasts.disabled);
           },
           onError: () => {
             addErrorMessage(t('Failed to save changes. Please try again.'));
@@ -119,7 +117,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
         {
           onSuccess: () => {
             if (successMessage) {
-              addSuccessMessage(successMessage);
+              toast.success(successMessage);
             }
           },
           onError: () => {

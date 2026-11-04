@@ -1,7 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openRecoveryOptions} from 'sentry/actionCreators/modal';
 import {
   fetchOrganizationByMember,
@@ -42,7 +44,7 @@ export function useAccountSecurityEnrollActions({
     onError: () => addErrorMessage(t('Error removing authenticator')),
     onSuccess: () => {
       navigate('/settings/account/security/');
-      addSuccessMessage(t('Authenticator has been removed'));
+      toast.success(t('Authenticator has been removed'));
     },
   });
 

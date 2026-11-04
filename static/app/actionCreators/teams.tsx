@@ -1,4 +1,6 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -96,7 +98,7 @@ export function removeTeam(api: Client, params: OrgAndTeamSlug) {
     .then(
       data => {
         TeamStore.onRemoveSuccess(params.teamId);
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been removed from the [organization] organization', {
             team: `#${params.teamId}`,
             organization: params.orgId,

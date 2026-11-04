@@ -9,13 +9,10 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
@@ -305,7 +302,7 @@ export function NotificationActionItem({
       await api.requestPromise(endpoint, {
         method: 'DELETE',
       });
-      addSuccessMessage(t('Successfully deleted notification action'));
+      toast.success(t('Successfully deleted notification action'));
       onDelete(index);
     } catch (err) {
       addErrorMessage(t('Unable to delete notification action'));
@@ -343,7 +340,7 @@ export function NotificationActionItem({
         method: apiMethod,
         data: {...data, projects: [project.slug]},
       });
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       onUpdate(index, resp);
       setEditedAction(resp);
       setIsEditing(false);

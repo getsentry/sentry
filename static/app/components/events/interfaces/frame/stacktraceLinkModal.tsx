@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {TextField} from 'sentry/components/forms/fields/textField';
@@ -207,7 +207,7 @@ export function StacktraceLinkModal({
         },
       });
 
-      addSuccessMessage(t('Stack trace configuration saved.'));
+      toast.success(t('Stack trace configuration saved.'));
       trackAnalytics('integrations.stacktrace_complete_setup', {
         setup_type: 'automatic',
         provider: configData.config?.provider.key,

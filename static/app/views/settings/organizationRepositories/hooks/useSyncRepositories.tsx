@@ -1,11 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -221,7 +219,7 @@ export function useSyncRepositories(
       phaseTimerRef.current.cancel();
       // oxlint-disable-next-line react/set-state-in-effect
       stopSyncing();
-      addSuccessMessage(t('Repositories synced successfully'));
+      toast.success(t('Repositories synced successfully'));
       onSyncedRef.current?.();
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies

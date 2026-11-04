@@ -6,7 +6,9 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -193,7 +195,7 @@ export function useDeleteAutomationMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(t('Alert deleted'));
+      toast.success(t('Alert deleted'));
     },
     onError: error => {
       addErrorMessage(t('Unable to delete alert: %s', error.message));
@@ -231,7 +233,7 @@ export function useDeleteAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(t('Alerts deleted'));
+      toast.success(t('Alerts deleted'));
     },
     onError: error => {
       addErrorMessage(t('Unable to delete alerts: %s', error.message));
@@ -320,7 +322,7 @@ export function useUpdateAutomationsMutation() {
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
+      toast.success(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
       addErrorMessage(
@@ -362,7 +364,7 @@ export function useSendTestNotification(
       queryClient.invalidateQueries({
         queryKey: automationsApiOptions(org).queryKey,
       });
-      addSuccessMessage(
+      toast.success(
         tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );
       options?.onSuccess?.(data, variables, onMutateResult, context);

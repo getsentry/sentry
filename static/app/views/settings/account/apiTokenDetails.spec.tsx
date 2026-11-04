@@ -2,6 +2,8 @@ import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
@@ -51,7 +53,7 @@ describe('ApiTokenDetails', () => {
 
   it('renames token to new name', async () => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -84,12 +86,12 @@ describe('ApiTokenDetails', () => {
       )
     );
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('removes token name', async () => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const mock1 = MockApiClient.addMockResponse({
       method: 'GET',
@@ -122,7 +124,7 @@ describe('ApiTokenDetails', () => {
       )
     );
 
-    expect(indicators.addSuccessMessage).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('does not accept long name', async () => {

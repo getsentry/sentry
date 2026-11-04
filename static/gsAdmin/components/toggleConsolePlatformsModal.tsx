@@ -9,12 +9,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
@@ -220,7 +217,7 @@ function ToggleConsolePlatformsModal({
 
     await Promise.all(promises)
       .then(() => {
-        addSuccessMessage('Console SDK settings updated successfully');
+        toast.success('Console SDK settings updated successfully');
         closeModal();
         onSuccess();
       })

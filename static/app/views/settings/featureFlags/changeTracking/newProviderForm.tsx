@@ -10,12 +10,9 @@ import {
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
@@ -93,7 +90,7 @@ export function NewProviderForm({
       });
     },
     onSuccess: (_response, {secret, provider}) => {
-      addSuccessMessage(t('Added provider and secret.'));
+      toast.success(t('Added provider and secret.'));
       onCreatedSecret(secret);
       setSelectedProvider(provider);
       queryClient.invalidateQueries({

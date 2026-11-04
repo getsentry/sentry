@@ -6,7 +6,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
 
@@ -40,6 +42,7 @@ describe('Relocation', () => {
   let fetchPublicKeys: jest.Mock;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
@@ -485,7 +488,7 @@ describe('Relocation', () => {
           expect.objectContaining({host: fakeLocalities.Earth!.url, method: 'POST'})
         )
       );
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "Your relocation has started - we'll email you with updates as soon as we have 'em!"
       );
 

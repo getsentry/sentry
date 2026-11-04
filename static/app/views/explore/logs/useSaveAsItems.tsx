@@ -2,11 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -94,7 +92,7 @@ export function useSaveAsItems({
           try {
             addLoadingMessage(t('Updating query...'));
             await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
+            toast.success(t('Query updated successfully'));
             trackAnalytics('logs.save_as', {
               save_type: 'update_query',
               ui_source: 'searchbar',

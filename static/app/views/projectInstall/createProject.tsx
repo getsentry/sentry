@@ -10,9 +10,10 @@ import {Input} from '@sentry/scraps/input';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import {List} from 'sentry/components/list';
@@ -338,7 +339,7 @@ export function CreateProject() {
           variant: 'legacy',
         });
 
-        addSuccessMessage(
+        toast.success(
           team
             ? t('Created project %s', project.slug)
             : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)

@@ -1,11 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {useQueryState} from 'nuqs';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
@@ -61,7 +59,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
         );
       },
       onSuccess: () => {
-        addSuccessMessage(
+        toast.success(
           tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
         );
         deselectAll();
@@ -157,7 +155,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
               );
             },
             onSuccess: () => {
-              addSuccessMessage(
+              toast.success(
                 tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
               );
               deselectAll();

@@ -6,8 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -70,7 +71,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         data: payload,
       }),
     onSuccess: () => {
-      addSuccessMessage('Broadcast updated.');
+      toast.success('Broadcast updated.');
       queryClient.invalidateQueries({
         queryKey: [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
       });

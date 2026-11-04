@@ -2,8 +2,9 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -51,7 +52,7 @@ export function RelocationCancelModal({
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {
-      addSuccessMessage('This relocation has been scheduled for cancellation.');
+      toast.success('This relocation has been scheduled for cancellation.');
       onSuccess?.(rawRelocation);
       closeModal();
     },

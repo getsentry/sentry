@@ -5,9 +5,10 @@ import {useMutation} from '@tanstack/react-query';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {LegacyOnRouteLeave} from 'sentry/router/legacy/onRouteLeave';
@@ -57,7 +58,7 @@ export function OrganizationSampling() {
         await updateOrganization({
           targetSampleRate: parsePercent(value.targetSampleRate),
         });
-        addSuccessMessage(t('Changes applied.'));
+        toast.success(t('Changes applied.'));
         setSavedTargetSampleRate(value.targetSampleRate);
         formApi.reset(value);
       } catch {

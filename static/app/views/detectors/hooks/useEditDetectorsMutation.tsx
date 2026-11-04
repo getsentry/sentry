@@ -1,6 +1,8 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -39,9 +41,7 @@ export function useUpdateDetectorsMutation() {
       queryClient.invalidateQueries({
         queryKey: allDetectorListsQueryKey(org),
       });
-      addSuccessMessage(
-        variables.enabled ? t('Monitors enabled') : t('Monitors disabled')
-      );
+      toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
     onError: (_, variables) => {
       addErrorMessage(

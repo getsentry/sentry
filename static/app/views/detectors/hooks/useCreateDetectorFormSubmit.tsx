@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
@@ -67,7 +69,7 @@ export function useCreateDetectorFormSubmit<
           success: true,
         });
 
-        addSuccessMessage(t('Monitor created'));
+        toast.success(t('Monitor created'));
 
         navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 

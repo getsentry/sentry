@@ -5,6 +5,8 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
@@ -65,7 +67,7 @@ describe('useUpdateCustomRepositoriesMutation', () => {
       method: 'PUT',
       body: updatedProject,
     });
-    const successMessageSpy = jest.spyOn(indicators, 'addSuccessMessage');
+    const successMessageSpy = jest.spyOn(toast, 'success');
     const {queryClient, queryKey, result} = renderMutation();
 
     await act(async () => {

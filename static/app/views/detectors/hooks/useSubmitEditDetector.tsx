@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {BaseDetectorUpdatePayload} from 'sentry/types/workflowEngine/detectors';
@@ -34,7 +36,7 @@ export function useSubmitEditDetector() {
           ...getDetectorAnalyticsPayload(resultDetector),
         });
 
-        addSuccessMessage(t('Monitor updated'));
+        toast.success(t('Monitor updated'));
 
         navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 

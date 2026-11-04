@@ -7,8 +7,9 @@ import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {getLocalities} from 'sentry/utils/cells';
@@ -94,7 +95,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
         data: formData,
       });
 
-      addSuccessMessage(
+      toast.success(
         t(
           "Your relocation has started - we'll email you with updates as soon as we have 'em!"
         )

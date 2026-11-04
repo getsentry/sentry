@@ -19,6 +19,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -540,7 +542,7 @@ describe('AutomationNewSettings', () => {
   }, 30000);
 
   it('sends test notification with project slug from connected monitor', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const project = ProjectFixture({id: '1', slug: 'my-project'});
     ProjectsStore.loadInitialData([project]);
@@ -597,7 +599,7 @@ describe('AutomationNewSettings', () => {
     });
 
     await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+      expect(toast.success).toHaveBeenCalledWith('Notification fired!');
     });
   });
 

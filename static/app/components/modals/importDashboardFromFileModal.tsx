@@ -5,9 +5,10 @@ import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {toast} from '@sentry/scraps/toast';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -83,7 +84,7 @@ function ImportDashboardFromFileModal({
         ),
       });
 
-      addSuccessMessage(`${dashboard.title} dashboard template successfully added`);
+      toast.success(`${dashboard.title} dashboard template successfully added`);
       loadDashboard(newDashboard.id);
     } catch (error) {
       addErrorMessage('Could not upload dashboard, JSON may be invalid');

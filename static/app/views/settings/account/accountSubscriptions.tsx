@@ -7,8 +7,9 @@ import {z} from 'zod';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -116,7 +117,7 @@ function AccountSubscriptions() {
                         data: {...subscription, ...data},
                       }),
                     onSuccess: (_, variables) => {
-                      addSuccessMessage(
+                      toast.success(
                         `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
                       );
                       setApiQueryData<Subscription[]>(

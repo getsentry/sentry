@@ -1,10 +1,11 @@
 import {useQueryClient} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
@@ -68,7 +69,7 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
         }),
       });
       clearIndicators();
-      addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
+      toast.success(getPriorityUpdateSuccessMessage(nextPriority));
       onChange?.(nextPriority);
     } catch {
       clearIndicators();

@@ -5,8 +5,8 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -68,7 +68,7 @@ function SegmentedIssueViewSaveButton({
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Saved changes'));
+            toast.success(t('Saved changes'));
           },
         }
       );

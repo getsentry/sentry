@@ -2,6 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {TestUptimeMonitorButton} from 'sentry/views/detectors/components/uptime/testUptimeMonitorButton';
 import {
@@ -16,7 +18,7 @@ describe('TestUptimeMonitorButton', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
     jest.spyOn(indicators, 'addErrorMessage');
   });
 
@@ -109,9 +111,7 @@ describe('TestUptimeMonitorButton', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
 
     await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-        'Uptime check passed successfully'
-      );
+      expect(toast.success).toHaveBeenCalledWith('Uptime check passed successfully');
     });
   });
 

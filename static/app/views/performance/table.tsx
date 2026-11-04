@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
@@ -220,7 +220,7 @@ export function Table({
                     threshold,
                   });
                 }
-                addSuccessMessage(
+                toast.success(
                   tct('[transactionName] updated successfully', {
                     transactionName,
                   })

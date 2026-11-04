@@ -5,8 +5,9 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
@@ -140,7 +141,7 @@ function ThresholdsForm({
           method: 'POST',
           data: value,
         });
-        addSuccessMessage(t('Threshold notifications saved successfully.'));
+        toast.success(t('Threshold notifications saved successfully.'));
         await onSuccess();
         form.reset();
       } catch {

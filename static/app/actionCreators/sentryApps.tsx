@@ -1,9 +1,10 @@
 import {skipToken} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -78,7 +79,7 @@ export function removeSentryApp(client: Client, app: SentryApp): Promise<undefin
   });
   promise.then(
     () => {
-      addSuccessMessage(t('%s successfully removed.', app.slug));
+      toast.success(t('%s successfully removed.', app.slug));
     },
     () => {
       clearIndicators();

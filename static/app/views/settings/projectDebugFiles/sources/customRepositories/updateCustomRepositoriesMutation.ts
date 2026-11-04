@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CustomRepo, CustomRepoFormData} from 'sentry/types/debugFiles';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
@@ -28,7 +30,7 @@ export function useUpdateCustomRepositoriesMutation(
 
       return updateProject({symbolSources: JSON.stringify(repositories.map(expandKeys))})
         .then(updatedProject => {
-          addSuccessMessage(successMessage);
+          toast.success(successMessage);
           return updatedProject;
         })
         .catch(error => {

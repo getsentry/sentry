@@ -1,7 +1,9 @@
 import type {QueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -182,7 +184,7 @@ export async function updateDashboardFavorite(
     queryClient.invalidateQueries({
       queryKey: getStarredDashboardsQueryKey(organization),
     });
-    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
+    toast.success(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse =
       response instanceof RequestError ? response?.responseJSON : null;

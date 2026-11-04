@@ -3,8 +3,9 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -35,7 +36,7 @@ export function RelocationAbortModal({
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {
-      addSuccessMessage(
+      toast.success(
         'This relocation will be immediately halted at the next opportunity.'
       );
       onSuccess?.(rawRelocation);

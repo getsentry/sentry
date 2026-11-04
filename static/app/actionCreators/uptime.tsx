@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -45,7 +46,7 @@ export async function updateUptimeRule(
 
     if (data.status !== undefined) {
       const isEnabled = data.status === 'active';
-      addSuccessMessage(
+      toast.success(
         isEnabled ? t('Uptime monitor enabled') : t('Uptime monitor disabled')
       );
     }

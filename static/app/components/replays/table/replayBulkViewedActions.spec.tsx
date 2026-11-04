@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ReplayBulkViewedActions} from 'sentry/components/replays/table/replayBulkViewedActions';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,14 +25,9 @@ jest.mock('sentry/utils/queryClient', () => ({
 }));
 
 const mockAddErrorMessage = jest.fn();
-const mockAddSuccessMessage = jest.fn();
-
 jest.mock('sentry/actionCreators/indicator', () => ({
   get addErrorMessage() {
     return mockAddErrorMessage;
-  },
-  get addSuccessMessage() {
-    return mockAddSuccessMessage;
   },
 }));
 
@@ -69,6 +66,7 @@ describe('ReplayBulkViewedActions', () => {
     );
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({slug: 'proj-a'})]);
   });
@@ -91,7 +89,7 @@ describe('ReplayBulkViewedActions', () => {
       expect(deselectAll).toHaveBeenCalled();
     });
     expect(mockAddErrorMessage).not.toHaveBeenCalled();
-    expect(mockAddSuccessMessage).toHaveBeenCalledWith('Marked 2 replays as viewed.');
+    expect(toast.success).toHaveBeenCalledWith('Marked 2 replays as viewed.');
     expect(mockTrackAnalytics).toHaveBeenCalledWith('replay.bulk_mark_viewed', {
       organization: expect.objectContaining({slug: 'acme-corp'}),
       failed: 0,
@@ -146,7 +144,7 @@ describe('ReplayBulkViewedActions', () => {
     await waitFor(() => {
       expect(deselectAll).toHaveBeenCalled();
     });
-    expect(mockAddSuccessMessage).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
     expect(mockAddErrorMessage.mock.calls[0]![0]).toMatch(/Updated/);
     expect(mockAddErrorMessage.mock.calls[0]![0]).toMatch(/2/);
     expect(mockTrackAnalytics).toHaveBeenCalledWith('replay.bulk_mark_viewed', {
@@ -169,7 +167,7 @@ describe('ReplayBulkViewedActions', () => {
         'Replays could not be updated. Try again or refresh the list.'
       );
     });
-    expect(mockAddSuccessMessage).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
     expect(deselectAll).not.toHaveBeenCalled();
     expect(mockTrackAnalytics).toHaveBeenCalledWith('replay.bulk_mark_viewed', {
       organization: expect.objectContaining({slug: 'acme-corp'}),

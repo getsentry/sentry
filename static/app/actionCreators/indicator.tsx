@@ -123,13 +123,3 @@ export function addErrorMessage(msg: React.ReactNode, options?: IndicatorOptions
     options
   );
 }
-
-/**
- * @deprecated Use `toast.success()` from `@sentry/scraps/toast` instead.
- */
-export function addSuccessMessage(
-  msg: React.ReactNode,
-  options?: IndicatorOptions | UndoIndicatorOptions
-) {
-  return addMessage(msg, 'success', options);
-}

@@ -3,6 +3,8 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicator from 'sentry/actionCreators/indicator';
 
 import {useSyncRepositories} from './useSyncRepositories';
@@ -17,6 +19,7 @@ describe('useSyncRepositories', () => {
   });
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/123/',
       body: integration,
@@ -125,9 +128,7 @@ describe('useSyncRepositories', () => {
 
     await waitFor(() => expect(result.current.isSyncing).toBe(false));
 
-    expect(indicator.addSuccessMessage).toHaveBeenCalledWith(
-      'Repositories synced successfully'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Repositories synced successfully');
     expect(onSynced).toHaveBeenCalled();
   });
 

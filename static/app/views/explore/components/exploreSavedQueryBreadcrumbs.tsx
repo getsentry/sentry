@@ -9,12 +9,9 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {LinkProps} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -175,7 +172,7 @@ function useSavedQueryMenuItems({
           ...savedQuery,
           name: `${savedQuery.name} (Copy)`,
         });
-        addSuccessMessage(t('Query duplicated'));
+        toast.success(t('Query duplicated'));
       } catch (error) {
         addErrorMessage(t('Unable to duplicate query'));
       }
@@ -246,7 +243,7 @@ function useSavedQueryMenuItems({
               queryId: savedQuery.id,
               queryType: savedQuery.queryType,
             });
-            addSuccessMessage(t('Query deleted'));
+            toast.success(t('Query deleted'));
           } catch (error) {
             addErrorMessage(t('Unable to delete query'));
             return;

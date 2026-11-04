@@ -3,11 +3,11 @@ import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -53,7 +53,7 @@ export function PromoCodeDetails() {
       addLoadingMessage('Saving Changes...');
     },
     onSuccess: data => {
-      addSuccessMessage(`Promo code has been updated with ${JSON.stringify(data)}.`);
+      toast.success(`Promo code has been updated with ${JSON.stringify(data)}.`);
       setApiQueryData<PromoCode>(queryClient, [ENDPOINT], oldData => {
         return oldData ? {...oldData, data} : undefined;
       });

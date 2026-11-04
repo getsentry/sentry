@@ -5,8 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -54,7 +55,7 @@ function ChangeBalanceModal({
         data: {...data, creditAmount: data.creditAmount * 100},
       }),
     onSuccess: () => {
-      addSuccessMessage('Customer balance updated');
+      toast.success('Customer balance updated');
       onSuccess();
       closeModal();
     },

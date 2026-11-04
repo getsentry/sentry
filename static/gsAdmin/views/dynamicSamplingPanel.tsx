@@ -12,9 +12,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
@@ -196,7 +197,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
         method: 'POST',
         data: {projectId},
       });
-      addSuccessMessage('Project config successfully invalidated');
+      toast.success('Project config successfully invalidated');
     } catch (error) {
       const message = 'Unable to invalidate project config';
       handleXhrErrorResponse(message, error as RequestError);

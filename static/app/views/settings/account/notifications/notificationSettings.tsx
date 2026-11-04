@@ -6,8 +6,8 @@ import {z} from 'zod';
 import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -85,7 +85,7 @@ export function NotificationSettings() {
       });
     },
     onSuccess: (_, variables) => {
-      addSuccessMessage(t('Notification preferences saved'));
+      toast.success(t('Notification preferences saved'));
       setApiQueryData<NotificationFields>(
         queryClient,
         [NOTIFICATIONS_ENDPOINT],

@@ -8,14 +8,11 @@ import isEqual from 'lodash/isEqual';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -109,7 +106,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       addLoadingMessage(t('Saving\u2026'));
     },
     onSuccess: data => {
-      addSuccessMessage(t('Saved'));
+      toast.success(t('Saved'));
       setApiQueryData<Member>(
         queryClient,
         getMemberQueryKey(organization.slug, member.id),
@@ -133,7 +130,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         });
       },
       onSuccess: data => {
-        addSuccessMessage(t('Sent invite!'));
+        toast.success(t('Sent invite!'));
 
         setApiQueryData<Member>(
           queryClient,
@@ -156,7 +153,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       return Promise.all(promises);
     },
     onSuccess: () => {
-      addSuccessMessage(t('All authenticators have been removed'));
+      toast.success(t('All authenticators have been removed'));
       navigate(`/settings/${organization.slug}/members/`);
     },
     onError: error => {

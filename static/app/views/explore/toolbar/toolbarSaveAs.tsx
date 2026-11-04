@@ -6,12 +6,9 @@ import * as Sentry from '@sentry/react';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -135,7 +132,7 @@ export function ToolbarSaveAs() {
         try {
           addLoadingMessage(t('Updating query...'));
           await updateQuery();
-          addSuccessMessage(t('Query updated successfully'));
+          toast.success(t('Query updated successfully'));
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'update_query',
             ui_source: 'toolbar',

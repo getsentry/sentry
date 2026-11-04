@@ -6,12 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -59,7 +56,7 @@ function AuthTokenCreateForm({
         data,
       }),
     onSuccess: (token: OrgAuthTokenWithToken) => {
-      addSuccessMessage(t('Created organization token.'));
+      toast.success(t('Created organization token.'));
 
       queryClient.invalidateQueries({
         queryKey: makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),

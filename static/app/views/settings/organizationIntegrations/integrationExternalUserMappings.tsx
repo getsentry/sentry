@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -99,7 +100,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
       fetchData();
     },
     onError: () => {

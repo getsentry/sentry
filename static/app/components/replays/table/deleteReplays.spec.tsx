@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {DeleteReplays} from 'sentry/components/replays/table/deleteReplays';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -18,14 +20,9 @@ jest.mock('sentry/utils/queryClient', () => ({
 }));
 
 const mockAddErrorMessage = jest.fn();
-const mockAddSuccessMessage = jest.fn();
-
 jest.mock('sentry/actionCreators/indicator', () => ({
   get addErrorMessage() {
     return mockAddErrorMessage;
-  },
-  get addSuccessMessage() {
-    return mockAddSuccessMessage;
   },
 }));
 
@@ -56,6 +53,7 @@ describe('DeleteReplays', () => {
   const replay = createReplay();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'success').mockClear();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'proj-a'})]);
     mockFetchMutation.mockReset().mockResolvedValue({});

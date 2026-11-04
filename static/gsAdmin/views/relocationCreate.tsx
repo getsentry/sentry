@@ -5,8 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {getCells} from 'sentry/utils/cells';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -67,7 +68,7 @@ function RelocationForm() {
         data: formData,
       });
 
-      addSuccessMessage('The relocation job has started!');
+      toast.success('The relocation job has started!');
       navigate(`/_admin/relocations/${cell.name}/${response.uuid}/`);
     } catch (error: any) {
       if (error.responseJSON) {

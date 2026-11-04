@@ -4,8 +4,9 @@ import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SpansContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphSpansContextMenu';
@@ -403,7 +404,7 @@ export function FlamegraphSpans({
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Description copied to clipboard'));
+        toast.success(t('Description copied to clipboard'));
       })
       .catch(() => {
         addErrorMessage(t('Failed to copy description to clipboard'));
@@ -421,7 +422,7 @@ export function FlamegraphSpans({
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Operation copied to clipboard'));
+        toast.success(t('Operation copied to clipboard'));
       })
       .catch(() => {
         addErrorMessage(t('Failed to copy operation to clipboard'));
@@ -441,7 +442,7 @@ export function FlamegraphSpans({
     navigator.clipboard
       .writeText(value)
       .then(() => {
-        addSuccessMessage(t('Event ID copied to clipboard'));
+        toast.success(t('Event ID copied to clipboard'));
       })
       .catch(() => {
         addErrorMessage(t('Failed to copy event ID to clipboard'));

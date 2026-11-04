@@ -8,6 +8,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {Organization} from 'sentry/types/organization';
 
 import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
@@ -134,10 +136,7 @@ describe('DeleteBillingMetricHistory', () => {
       });
 
       // Mock the success indicator
-      const successIndicator = jest.spyOn(
-        require('sentry/actionCreators/indicator'),
-        'addSuccessMessage'
-      );
+      const successIndicator = jest.spyOn(toast, 'success');
 
       // Mock the API endpoint for deleting billing metric history
       const deleteBillingMetricHistoryMock = MockApiClient.addMockResponse({

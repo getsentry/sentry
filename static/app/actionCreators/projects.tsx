@@ -1,10 +1,8 @@
 import {queryOptions, skipToken, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -66,7 +64,7 @@ export function transferProject(
     })
     .then(
       () => {
-        addSuccessMessage(
+        toast.success(
           tct('A request was sent to move [project] to a different organization', {
             project: project.slug,
           })
@@ -127,7 +125,7 @@ export function addTeamToProject(
     })
     .then(
       project => {
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been added to the [project] project', {
             team: `#${team.slug}`,
             project: projectSlug,
@@ -176,7 +174,7 @@ function removeTeamFromProject(
     })
     .then(
       project => {
-        addSuccessMessage(
+        toast.success(
           tct('[team] has been removed from the [project] project', {
             team: `#${teamSlug}`,
             project: projectSlug,

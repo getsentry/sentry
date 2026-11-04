@@ -3,6 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -149,7 +151,7 @@ describe('ConsoleSDKInvitesSettings', () => {
 
   describe('revoking platform invites', () => {
     it('allows revoking a platform invite', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const invites = [
         {
@@ -200,7 +202,7 @@ describe('ConsoleSDKInvitesSettings', () => {
         );
       });
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalled();
     });
 
     it('shows error message when revoke fails', async () => {

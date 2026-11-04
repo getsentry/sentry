@@ -7,12 +7,9 @@ import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/fo
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -111,7 +108,7 @@ export default function ApiNewToken() {
         },
       }),
     onSuccess: token => {
-      addSuccessMessage(t('Created personal token.'));
+      toast.success(t('Created personal token.'));
       queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
       displayNewToken(token.token, handleGoBack);
     },

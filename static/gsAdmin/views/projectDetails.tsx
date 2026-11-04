@@ -2,8 +2,9 @@ import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -58,7 +59,7 @@ export function ProjectDetails() {
       await api.requestPromise(endpoint, {
         method: 'DELETE',
       });
-      addSuccessMessage('User email has been removed.');
+      toast.success('User email has been removed.');
     } catch {
       addErrorMessage('Failed to remove email.');
     }

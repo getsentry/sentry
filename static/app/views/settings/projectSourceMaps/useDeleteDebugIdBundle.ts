@@ -1,11 +1,9 @@
 import {useMutation} from '@tanstack/react-query';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -38,7 +36,7 @@ export function useDeleteDebugIdBundle(
       options.onMutate?.(...args);
     },
     onSuccess: (...args) => {
-      addSuccessMessage(t('Bundle deleted.'));
+      toast.success(t('Bundle deleted.'));
       options.onSuccess?.(...args);
     },
     onError: (...args) => {

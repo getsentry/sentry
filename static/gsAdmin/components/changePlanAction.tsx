@@ -1,11 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
 import classNames from 'classnames';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
@@ -222,7 +220,7 @@ function ChangePlanAction({
         onSubmit={handleSubmit}
         onCancel={closeModal}
         onSubmitSuccess={(data: Data) => {
-          addSuccessMessage(
+          toast.success(
             `Customer account has been updated with ${JSON.stringify(data)}.`
           );
           closeModal();

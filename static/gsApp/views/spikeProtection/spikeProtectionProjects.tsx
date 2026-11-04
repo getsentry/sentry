@@ -9,8 +9,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -222,7 +223,7 @@ function SpikeProtectionProjects({subscription}: Props) {
       }));
       setProjects(newProjects);
       await fetchData();
-      addSuccessMessage(
+      toast.success(
         tct('[action] spike protection for all projects', {
           action: isEnabling ? t('Enabled') : t('Disabled'),
         })

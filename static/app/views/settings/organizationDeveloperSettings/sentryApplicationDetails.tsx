@@ -13,13 +13,10 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
@@ -412,7 +409,7 @@ function useSaveSentryApp({
       const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
 
       if (app) {
-        addSuccessMessage(t('%s successfully saved.', data.name));
+        toast.success(t('%s successfully saved.', data.name));
 
         // Patch the index cache so the list doesn't flash the stale name
         // on the way back to the index page.
@@ -429,7 +426,7 @@ function useSaveSentryApp({
           queryKey: sentryAppApiOptions({appSlug: app.slug}).queryKey,
         });
       } else {
-        addSuccessMessage(t('%s successfully created.', data.name));
+        toast.success(t('%s successfully created.', data.name));
       }
 
       navigate(normalizeUrl(url));
@@ -847,7 +844,7 @@ function SentryAppEditForm({
       addLoadingMessage(t('Adding token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully added.'));
+      toast.success(t('Token successfully added.'));
     },
     onError: () => {
       addErrorMessage(t('Unable to create token'));
@@ -866,7 +863,7 @@ function SentryAppEditForm({
       addLoadingMessage(t('Removing token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully deleted.'));
+      toast.success(t('Token successfully deleted.'));
     },
     onError: () => {
       addErrorMessage(t('Unable to delete token'));
@@ -885,7 +882,7 @@ function SentryAppEditForm({
       addLoadingMessage(t('Deleting %s...', app.slug));
     },
     onSuccess: () => {
-      addSuccessMessage(t('%s successfully removed.', app.slug));
+      toast.success(t('%s successfully removed.', app.slug));
       queryClient.setQueryData(
         sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
         old => old && {...old, json: old.json.filter(item => item.slug !== app.slug)}

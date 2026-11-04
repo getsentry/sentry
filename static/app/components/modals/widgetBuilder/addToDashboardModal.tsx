@@ -9,17 +9,14 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   fetchDashboard,
   fetchDashboards,
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
@@ -272,7 +269,7 @@ function AddToDashboardModal({
   async function handleAddAndStayOnCurrentPage() {
     try {
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',
@@ -319,7 +316,7 @@ function AddToDashboardModal({
         )
       );
       await handleAddWidgetsToExistingDashboard();
-      addSuccessMessage(
+      toast.success(
         tn(
           'Successfully added widget to dashboard',
           'Successfully added widgets to dashboard',

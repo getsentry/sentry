@@ -1,10 +1,8 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -93,7 +91,7 @@ function OrganizationApiKeys() {
       }
 
       navigate(`/settings/${organization.slug}/api-keys/${data.id}/`);
-      addSuccessMessage(t('Created a new API key "%s"', data.label));
+      toast.success(t('Created a new API key "%s"', data.label));
     },
     onError: () => {
       addErrorMessage(t('Error creating key'));

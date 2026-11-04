@@ -6,12 +6,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
@@ -123,7 +120,7 @@ export function SeerRepoTableRow({
                   );
                 },
                 onSuccess: () => {
-                  addSuccessMessage(t('Code review updated for %s', repository.name));
+                  toast.success(t('Code review updated for %s', repository.name));
                 },
                 onSettled: () => {
                   queryClient.invalidateQueries({queryKey});

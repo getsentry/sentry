@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -112,7 +113,7 @@ function AdminUserEditForm({
         headers: prev?.headers ?? {},
       }));
       form.reset(toFormValues(response));
-      addSuccessMessage(t('User account updated.'));
+      toast.success(t('User account updated.'));
     },
     onError: error => {
       const detail =
@@ -131,7 +132,7 @@ function AdminUserEditForm({
         data: {hardDelete: true, organizations: []},
       }),
     onSuccess: () => {
-      addSuccessMessage(t("%s's account has been deleted.", user.email));
+      toast.success(t("%s's account has been deleted.", user.email));
       navigate('/manage/users/', {replace: true});
     },
     onError: () => {
@@ -152,7 +153,7 @@ function AdminUserEditForm({
         headers: prev?.headers ?? {},
       }));
       form.reset(toFormValues(response));
-      addSuccessMessage(t("%s's account has been deactivated.", response.email));
+      toast.success(t("%s's account has been deactivated.", response.email));
     },
     onError: () => {
       addErrorMessage(t('Failed to deactivate user account.'));

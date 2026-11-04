@@ -1,11 +1,11 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -95,7 +95,7 @@ export function UserDetails() {
     },
     onSuccess: (data, params) => {
       clearIndicators();
-      addSuccessMessage(`User account has been updated with ${JSON.stringify(params)}`);
+      toast.success(`User account has been updated with ${JSON.stringify(params)}`);
       setApiQueryData(queryClient, makeFetchUserQueryKey(), data);
     },
     onError: () => {
@@ -112,7 +112,7 @@ export function UserDetails() {
       });
     },
     onSuccess: (_data, token) => {
-      addSuccessMessage('Token has been revoked.');
+      toast.success('Token has been revoked.');
       const newTokens = tokens?.filter((tkn: any) => tkn.id !== token.id) ?? [];
       setApiQueryData(queryClient, makeFetchTokensQueryKey(), newTokens);
     },
@@ -134,7 +134,7 @@ export function UserDetails() {
     onSuccess: (_data, params) => {
       clearIndicators();
       const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
-      addSuccessMessage(`User account has been ${action}.`);
+      toast.success(`User account has been ${action}.`);
       queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
     },
     onError: () => {
@@ -154,7 +154,7 @@ export function UserDetails() {
   const onMergeAccounts = ({error = null}) =>
     error
       ? addErrorMessage('An error occurred while merging users')
-      : addSuccessMessage('Usernames have been merged');
+      : toast.success('Usernames have been merged');
 
   const onAuthenticatorRemove = (auth: NonNullable<User['authenticators']>[number]) => {
     const endpoint = `/users/${userId}/authenticators/${auth.id}/`;
@@ -167,7 +167,7 @@ export function UserDetails() {
             method: 'DELETE',
             includeAllArgs: true,
           });
-          addSuccessMessage('Authenticator has been removed.');
+          toast.success('Authenticator has been removed.');
           const authenticators =
             user?.authenticators?.filter(a => a.id !== auth.id) ?? [];
           setApiQueryData(queryClient, makeFetchUserQueryKey(), {
@@ -206,7 +206,7 @@ export function UserDetails() {
             method: 'DELETE',
             includeAllArgs: true,
           });
-          addSuccessMessage('Identity has been disconnected.');
+          toast.success('Identity has been disconnected.');
           const newIdentities =
             identities?.filter(
               i => i.id !== identity.id || i.category !== identity.category

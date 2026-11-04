@@ -7,8 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {Count} from 'sentry/components/count';
@@ -167,7 +168,7 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
         }
       )
       .then(() => {
-        addSuccessMessage(t('Events similar to these will no longer be filtered'));
+        toast.success(t('Events similar to these will no longer be filtered'));
       })
       .catch(() => {
         addErrorMessage(t('We were unable to undiscard this issue'));

@@ -11,6 +11,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -53,7 +55,7 @@ function renderView({
 
 describe('Explore Investigations', () => {
   beforeEach(() => {
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     ConfigStore.set('customerDomain', null);
   });
@@ -382,9 +384,7 @@ describe('Explore Investigations', () => {
         `${window.location.origin}/organizations/org-slug/seer/investigations/1/`
       )
     );
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Investigation link copied.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Investigation link copied.');
   });
 
   it('deletes only after confirmation and sends the current version', async () => {

@@ -18,8 +18,9 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
@@ -592,7 +593,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
       throw err;
     }
 
-    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    toast.success(tct('[project] was successfully removed', {project: project.slug}));
     navigate(`/settings/${organization.slug}/projects/`);
   };
 

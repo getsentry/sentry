@@ -5,8 +5,9 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -60,7 +61,7 @@ export function DataScrubbing({
   const successfullySaved = useCallback(
     (response: {relayPiiConfig: string}, successMessage: string) => {
       setRules(convertRelayPiiConfig(response.relayPiiConfig));
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       onSubmitSuccess?.(response);
     },
     [onSubmitSuccess]
@@ -157,7 +158,7 @@ export function DataScrubbing({
       const data = await submitRules(api, endpoint, filteredRules);
       if (data?.relayPiiConfig) {
         setRules(convertRelayPiiConfig(data.relayPiiConfig));
-        addSuccessMessage(t('Successfully deleted data scrubbing rule'));
+        toast.success(t('Successfully deleted data scrubbing rule'));
       }
     } catch {
       addErrorMessage(t('An unknown error occurred while deleting data scrubbing rule'));

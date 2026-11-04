@@ -4,9 +4,10 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
@@ -112,7 +113,7 @@ function IssuePreviewResolutionActions({
         data,
       });
       clearIndicators();
-      addSuccessMessage(
+      toast.success(
         data.status === GroupStatus.UNRESOLVED
           ? t('Issue marked unresolved')
           : t('Issue resolved')

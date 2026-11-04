@@ -1,10 +1,8 @@
 import {Component} from 'react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {TextField} from 'sentry/components/forms/fields/textField';
@@ -53,7 +51,7 @@ class SendWeeklyEmailAction extends Component<Props, State> {
         data: {targetEmail, deliveryEmail, dryRun},
       })
       .then(() => {
-        addSuccessMessage('Email queued');
+        toast.success('Email queued');
       })
       .catch(res => {
         if (res instanceof RequestError) {

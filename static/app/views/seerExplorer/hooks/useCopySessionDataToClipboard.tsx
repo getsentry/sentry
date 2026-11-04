@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -37,7 +39,7 @@ export function useCopySessionDataToClipboard({
         ? formatSessionData(blocks, organization, projects)
         : `No data available. Status: ${status ?? 'unknown'}`;
       await navigator.clipboard.writeText(text);
-      addSuccessMessage('Copied conversation to clipboard');
+      toast.success('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
       addErrorMessage('Failed to copy conversation to clipboard');

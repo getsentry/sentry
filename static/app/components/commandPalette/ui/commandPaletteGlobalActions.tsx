@@ -35,11 +35,7 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -130,6 +126,8 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {toast} from '@sentry/scraps/toast';
+
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 
 import {CMDKAction} from './cmdk';
@@ -1134,7 +1132,7 @@ export function GlobalCommandPaletteActions() {
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'system'});
-              addSuccessMessage(t('Theme preference saved: System'));
+              toast.success(t('Theme preference saved: System'));
             }}
           />
           <CMDKAction
@@ -1143,7 +1141,7 @@ export function GlobalCommandPaletteActions() {
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'light'});
-              addSuccessMessage(t('Theme preference saved: Light'));
+              toast.success(t('Theme preference saved: Light'));
             }}
           />
           <CMDKAction
@@ -1152,7 +1150,7 @@ export function GlobalCommandPaletteActions() {
             onAction={async () => {
               addLoadingMessage(t('Saving…'));
               await mutateUserOptions({theme: 'dark'});
-              addSuccessMessage(t('Theme preference saved: Dark'));
+              toast.success(t('Theme preference saved: Dark'));
             }}
           />
         </CMDKAction>

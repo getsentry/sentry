@@ -1,6 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
 import {sentryAppInstallationsApiOptions} from 'sentry/actionCreators/sentryAppInstallations';
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
@@ -71,7 +73,7 @@ export function useSentryAppExternalIssues({
           deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
             .then(_data => {
               onDeleteExternalIssue(externalIssue);
-              addSuccessMessage(t('Successfully unlinked issue.'));
+              toast.success(t('Successfully unlinked issue.'));
             })
             .catch(_error => {
               addErrorMessage(t('Unable to unlink issue.'));
@@ -129,7 +131,7 @@ export function useSentryAppExternalIssues({
         deleteExternalIssue(api, organization.slug, group.id, externalIssue.id)
           .then(_data => {
             onDeleteExternalIssue(externalIssue);
-            addSuccessMessage(t('Successfully unlinked issue.'));
+            toast.success(t('Successfully unlinked issue.'));
           })
           .catch(_error => {
             addErrorMessage(t('Unable to unlink issue.'));

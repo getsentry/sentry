@@ -7,8 +7,9 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import {t, tct} from 'sentry/locale';
@@ -101,7 +102,7 @@ export function SentryAppPublishRequestModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Request to publish %s successful.', app.slug));
+      toast.success(t('Request to publish %s successful.', app.slug));
       closeModal();
       onPublishSubmission();
     },

@@ -10,8 +10,9 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -107,7 +108,7 @@ export function useSnapshotActions({
       });
     },
     onSuccess: (_resp, {successMessage}) => {
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       queryClient.invalidateQueries({queryKey: [apiUrl]});
     },
     onError: error => handleRequestError(error, t('Failed to approve snapshot')),
@@ -150,7 +151,7 @@ export function useSnapshotActions({
         data: {check_types: ['snapshots']},
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Status checks rerun initiated'));
+      toast.success(t('Status checks rerun initiated'));
       queryClient.invalidateQueries({queryKey: [apiUrl]});
     },
     onError: () => {
@@ -173,7 +174,7 @@ export function useSnapshotActions({
         method: 'POST',
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Re-run comparison initiated'));
+      toast.success(t('Re-run comparison initiated'));
       queryClient.invalidateQueries({queryKey: [apiUrl]});
     },
     onError: error => handleRequestError(error, t('Failed to re-run comparison')),
@@ -182,7 +183,7 @@ export function useSnapshotActions({
   const {mutate: deleteSnapshot} = useMutation<unknown, RequestError>({
     mutationFn: () => fetchMutation({url: apiUrl, method: 'DELETE'}),
     onSuccess: () => {
-      addSuccessMessage(t('Snapshot deleted'));
+      toast.success(t('Snapshot deleted'));
       // TODO(preprod): Redirect to snapshot builds list once that UI is added
       navigate('/');
     },
@@ -204,7 +205,7 @@ export function useSnapshotActions({
   >({
     mutationFn: () => fetchMutation({url: archiveUrl, method: 'POST'}),
     onSuccess: () => {
-      addSuccessMessage(
+      toast.success(
         t(
           "We're building your snapshot images — we'll email you a download link when it's ready."
         )

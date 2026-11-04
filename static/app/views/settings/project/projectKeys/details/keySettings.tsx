@@ -6,12 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
@@ -96,7 +93,7 @@ export function KeySettings({
       );
 
       onRemove();
-      addSuccessMessage(t('Revoked key'));
+      toast.success(t('Revoked key'));
     } catch (_err) {
       addErrorMessage(t('Unable to revoke key'));
     }

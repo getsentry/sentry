@@ -9,8 +9,9 @@ import {Container as LayoutContainer, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -144,7 +145,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
       addErrorMessage(typeof detail === 'string' ? detail : t('Unable to save formula'));
       return;
     }
-    addSuccessMessage(t('Formula saved'));
+    toast.success(t('Formula saved'));
     navigate(listPathname);
   }
 

@@ -1,4 +1,6 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 
@@ -63,7 +65,7 @@ export async function downloadPreprodArtifact({
 
     downloadFromHref(`preprod_artifact_${artifactId}.zip`, downloadUrl);
 
-    addSuccessMessage(t('Build download started'));
+    toast.success(t('Build download started'));
   } catch (error) {
     addErrorMessage(t('Download failed: %s', String(error)));
   }

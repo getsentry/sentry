@@ -6,9 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
@@ -174,7 +175,7 @@ function OrganizationMembersList() {
       return;
     }
 
-    addSuccessMessage(tct('Removed [name] from [orgName]', {name, orgName}));
+    toast.success(tct('Removed [name] from [orgName]', {name, orgName}));
   };
 
   const handleLeave = async ({id}: Member) => {
@@ -190,7 +191,7 @@ function OrganizationMembersList() {
       orgId: organization.slug,
       removeOrg: true,
     });
-    addSuccessMessage(tct('You left [orgName]', {orgName: organization.slug}));
+    toast.success(tct('You left [orgName]', {orgName: organization.slug}));
   };
 
   const handleSendInvite = async ({id, expired}: any) => {
@@ -255,7 +256,7 @@ function OrganizationMembersList() {
       );
 
       removeInviteRequest(inviteRequest.id);
-      addSuccessMessage(successMessage);
+      toast.success(successMessage);
       trackAnalytics(eventKey, {
         member_id: parseInt(inviteRequest.id, 10),
         invite_status: inviteRequest.inviteStatus,

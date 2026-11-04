@@ -10,8 +10,9 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -177,7 +178,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
         },
         {
           onSuccess: () => {
-            addSuccessMessage(t('Connected alerts updated'));
+            toast.success(t('Connected alerts updated'));
             queryClient.invalidateQueries({
               queryKey: automationsApiOptions(organization).queryKey,
             });

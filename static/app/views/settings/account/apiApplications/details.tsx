@@ -13,8 +13,9 @@ import {
   FormSearch,
 } from '@sentry/scraps/form';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -120,7 +121,7 @@ function ApiApplicationsDetails() {
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
-    addSuccessMessage(t('Changes applied.'));
+    toast.success(t('Changes applied.'));
   };
 
   const stringFieldMutationOptions = {

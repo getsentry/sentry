@@ -5,8 +5,9 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -58,7 +59,7 @@ function AccountAuthorizations() {
         method: 'DELETE',
         data: {authorization: authorization.id},
       });
-      addSuccessMessage(t('Saved changes'));
+      toast.success(t('Saved changes'));
     } catch (_err) {
       setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
       addErrorMessage(t('Unable to save changes, please try again'));

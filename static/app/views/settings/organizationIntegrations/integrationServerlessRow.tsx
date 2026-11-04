@@ -3,12 +3,9 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
@@ -71,7 +68,7 @@ export function IntegrationServerlessRow({
       });
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
@@ -98,7 +95,7 @@ export function IntegrationServerlessRow({
       });
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);

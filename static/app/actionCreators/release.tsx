@@ -1,8 +1,6 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
@@ -35,7 +33,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
       }
     )
     .then(() => {
-      addSuccessMessage(t('Release was successfully archived.'));
+      toast.success(t('Release was successfully archived.'));
     })
     .catch(error => {
       if (
@@ -70,7 +68,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
       }
     )
     .then(() => {
-      addSuccessMessage(t('Release was successfully restored.'));
+      toast.success(t('Release was successfully restored.'));
     })
     .catch(error => {
       if (

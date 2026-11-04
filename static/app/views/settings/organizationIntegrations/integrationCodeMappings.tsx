@@ -14,8 +14,9 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -117,7 +118,7 @@ function useDeletePathConfig({
       }
     },
     onSuccess: () => {
-      addSuccessMessage(t('Successfully deleted code mapping'));
+      toast.success(t('Successfully deleted code mapping'));
     },
     onError: error => {
       addErrorMessage(`${error.statusText}: ${error.responseText}`);

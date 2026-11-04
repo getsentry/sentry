@@ -5,11 +5,11 @@ import {Tag} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -54,7 +54,7 @@ export function DocIntegrationDetails() {
       addLoadingMessage('Saving changes...');
     },
     onSuccess: updatedData => {
-      addSuccessMessage(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
+      toast.success(`Resource has been updated with ${JSON.stringify(updatedData)}.`);
       clearIndicators();
       setApiQueryData(queryClient, [ENDPOINT], updatedData);
     },
@@ -74,7 +74,7 @@ export function DocIntegrationDetails() {
       addLoadingMessage('Deleting doc integration...');
     },
     onSuccess: () => {
-      addSuccessMessage('Resource has been deleted.');
+      toast.success('Resource has been deleted.');
       navigate('_admin/doc-integrations/');
       clearIndicators();
     },

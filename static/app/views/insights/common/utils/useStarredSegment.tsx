@@ -1,10 +1,8 @@
 import {useIsMutating, useMutation} from '@tanstack/react-query';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,7 +42,7 @@ export function useStarredSegment({
   };
 
   const onSuccess = (message: string) => {
-    addSuccessMessage(message);
+    toast.success(message);
   };
 
   const {mutate: starTransaction} = useMutation({

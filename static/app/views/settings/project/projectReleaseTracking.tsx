@@ -7,8 +7,9 @@ import {FieldGroup as FormFieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -81,7 +82,7 @@ export default function ProjectReleaseTracking() {
         getReleaseTokenQueryKey(organization.slug, project.slug),
         data
       );
-      addSuccessMessage(
+      toast.success(
         t(
           'Your deploy token has been regenerated. You will need to update any existing deploy hooks.'
         )

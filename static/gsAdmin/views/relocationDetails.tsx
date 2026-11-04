@@ -6,11 +6,11 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   addErrorMessage,
   addLoadingMessage,
-  addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -511,7 +511,7 @@ export function RelocationDetails() {
           }}
           onLoad={() => {
             setArtifactsState(ArtifactsState.FETCHED);
-            addSuccessMessage('Artifacts list loaded.');
+            toast.success('Artifacts list loaded.');
           }}
           onError={res => {
             setArtifactsState(ArtifactsState.ERROR);

@@ -1,6 +1,8 @@
 import {useMutation, useQueryClient, type Query} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -113,9 +115,7 @@ export function useToggleDashboardFavorite() {
     },
 
     onSuccess: (_data, {dashboard, shouldFavorite}) => {
-      addSuccessMessage(
-        shouldFavorite ? t('Added as favorite') : t('Removed as favorite')
-      );
+      toast.success(shouldFavorite ? t('Added as favorite') : t('Removed as favorite'));
       trackAnalytics('dashboards_manage.toggle_favorite', {
         organization,
         dashboard_id: dashboard.id,
