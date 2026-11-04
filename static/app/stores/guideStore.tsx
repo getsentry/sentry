@@ -1,7 +1,7 @@
 import {createStore} from 'zustand';
 
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
-import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
+import type {Guide, GuideStep, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
@@ -22,7 +22,7 @@ export type GuideStoreState = {
   /**
    * Anchors that are currently mounted
    */
-  anchors: Set<string>;
+  anchors: ReadonlySet<string>;
   /**
    * The current guide
    */
@@ -42,23 +42,15 @@ export type GuideStoreState = {
   /**
    * All tooltip guides
    */
-  guides: Guide[];
+  guides: readonly Guide[];
   /**
    * Current organization id
    */
   orgId: string | null;
   /**
-   * Current organization slug
+   * Key of the previously shown guide, used to record a cue once per guide
    */
-  orgSlug: string | null;
-  /**
-   * Current Organization
-   */
-  organization: Organization | null;
-  /**
-   * The previously shown guide
-   */
-  prevGuide: Guide | null;
+  prevGuideKey: string | null;
 };
 
 function isForceEnabled() {
@@ -73,17 +65,33 @@ function getDefaultState(): GuideStoreState {
     currentGuide: null,
     currentStep: 0,
     orgId: null,
-    orgSlug: null,
-    organization: null,
     forceShow: isForceEnabled(),
-    prevGuide: null,
+    prevGuideKey: null,
   };
 }
 
 const store = createStore<GuideStoreState>()(getDefaultState);
 
+/**
+ * The step to show at `target`, if the current guide is on a step anchored
+ * there and guides aren't hidden.
+ */
+export function getActiveGuideStep(
+  state: Pick<GuideStoreState, 'currentGuide' | 'currentStep' | 'forceHide'>,
+  target: string
+): GuideStep | undefined {
+  if (state.forceHide) {
+    return undefined;
+  }
+  const step = state.currentGuide?.steps[state.currentStep];
+  return step?.target === target ? step : undefined;
+}
+
 export const GuideStore = {
-  ...store,
+  // State is only written through the methods below.
+  getState: store.getState,
+  getInitialState: store.getInitialState,
+  subscribe: store.subscribe,
 
   reset() {
     store.setState(getDefaultState());
@@ -95,11 +103,7 @@ export const GuideStore = {
   },
 
   setActiveOrganization(organization: Organization) {
-    store.setState({
-      orgId: organization.id,
-      orgSlug: organization.slug,
-      organization,
-    });
+    store.setState({orgId: organization.id});
     GuideStore.updateCurrentGuide();
   },
 
@@ -194,7 +198,7 @@ export const GuideStore = {
    *  - Otherwise show the guide
    */
   updateCurrentGuide(dismissed?: boolean) {
-    const {anchors, guides, forceShow, currentGuide, currentStep, prevGuide} =
+    const {anchors, guides, forceShow, currentGuide, currentStep, prevGuideKey} =
       store.getState();
 
     let guideOptions = guides
@@ -235,7 +239,7 @@ export const GuideStore = {
           }
         : null;
 
-    const isNewGuide = nextGuide !== null && prevGuide?.guide !== nextGuide.guide;
+    const isNewGuide = nextGuide !== null && prevGuideKey !== nextGuide.guide;
     if (isNewGuide) {
       GuideStore.recordCue(nextGuide.guide);
     }
@@ -246,7 +250,7 @@ export const GuideStore = {
         currentGuide !== null && currentGuide.guide === nextGuide?.guide
           ? currentStep
           : 0,
-      prevGuide: isNewGuide ? nextGuide : prevGuide,
+      prevGuideKey: isNewGuide ? nextGuide.guide : prevGuideKey,
     });
     getOverride('callback:on-guide-update')?.(nextGuide, {dismissed});
   },

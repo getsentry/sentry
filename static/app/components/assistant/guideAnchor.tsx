@@ -13,10 +13,11 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
+import type {GuideStep} from 'sentry/components/assistant/types';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {GuideStore} from 'sentry/stores/guideStore';
+import {getActiveGuideStep, GuideStore} from 'sentry/stores/guideStore';
 
 interface Props {
   target: string;
@@ -56,29 +57,9 @@ function ScrollToGuide({children}: {children: React.ReactNode}) {
   return <span ref={containerElement}>{children}</span>;
 }
 
-function BaseGuideAnchor({
-  target,
-  children,
-  position,
-  offset,
-  containerClassName,
-  onFinish,
-  onStepComplete,
-}: Props) {
-  const {
-    currentGuide,
-    currentStep: step,
-    orgId,
-    forceHide,
-  } = useStore(
-    GuideStore,
-    useShallow(state => ({
-      currentGuide: state.currentGuide,
-      currentStep: state.currentStep,
-      orgId: state.orgId,
-      forceHide: state.forceHide,
-    }))
-  );
+function BaseGuideAnchor({children, target, ...props}: Props) {
+  // Only the anchor that's showing a step re-renders when the guide changes.
+  const activeStep = useStore(GuideStore, state => getActiveGuideStep(state, target));
 
   useEffect(() => {
     registerAnchor(target);
@@ -87,7 +68,37 @@ function BaseGuideAnchor({
     };
   }, [target]);
 
-  const active = currentGuide?.steps[step]?.target === target && !forceHide;
+  if (!activeStep) {
+    return children ? children : null;
+  }
+
+  return (
+    <ActiveGuideAnchor step={activeStep} {...props}>
+      {children}
+    </ActiveGuideAnchor>
+  );
+}
+
+interface ActiveGuideAnchorProps extends Omit<Props, 'target'> {
+  step: GuideStep;
+}
+
+function ActiveGuideAnchor({
+  step: currentStep,
+  children,
+  position,
+  offset,
+  containerClassName,
+  onFinish,
+  onStepComplete,
+}: ActiveGuideAnchorProps) {
+  const {step, totalStepCount} = useStore(
+    GuideStore,
+    useShallow(state => ({
+      step: state.currentStep,
+      totalStepCount: state.currentGuide?.steps.length ?? 0,
+    }))
+  );
 
   /**
    * Terminology:
@@ -102,12 +113,13 @@ function BaseGuideAnchor({
       onStepComplete?.(e);
       onFinish?.(e);
 
+      const {currentGuide, orgId} = GuideStore.getState();
       if (currentGuide) {
         recordFinish(currentGuide.guide, orgId);
       }
       closeGuide();
     },
-    [currentGuide, onFinish, onStepComplete, orgId]
+    [onFinish, onStepComplete]
   );
 
   const handleNextStep = useCallback(
@@ -119,13 +131,7 @@ function BaseGuideAnchor({
     [onStepComplete]
   );
 
-  if (!active) {
-    return children ? children : null;
-  }
-
-  const totalStepCount = currentGuide?.steps.length ?? 0;
   const currentStepCount = step + 1;
-  const currentStep = currentGuide?.steps[step]!;
   const lastStep = currentStepCount === totalStepCount && !currentStep.hasNextGuide;
   const hasManySteps = totalStepCount > 1;
 
@@ -138,6 +144,7 @@ function BaseGuideAnchor({
       stepTotal={totalStepCount}
       handleDismiss={e => {
         e.stopPropagation();
+        const {currentGuide, orgId} = GuideStore.getState();
         if (currentGuide) {
           dismissGuide(currentGuide.guide, step, orgId);
         }
@@ -160,8 +167,8 @@ function BaseGuideAnchor({
       position={position}
       offset={offset}
     >
-      {props => (
-        <Container as="span" maxWidth="100%" display="inline-block" {...props}>
+      {tourProps => (
+        <Container as="span" maxWidth="100%" display="inline-block" {...tourProps}>
           <ScrollToGuide>{children}</ScrollToGuide>
         </Container>
       )}
