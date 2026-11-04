@@ -63,7 +63,7 @@ export function SharedSpendLimitPriceTable({
       aria-label={t('Product prices')}
       columns={COLUMNS}
       header={
-        <SimpleTable.HeaderRow>
+        <SimpleTable.HeaderRow className="spend-limit-price-header">
           <SimpleTable.HeaderCell>{t('Product')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell align="right" divider={false}>
             <Container display={{zero: 'none', md: 'block'}}>{t('Price')}</Container>
@@ -223,7 +223,7 @@ const FlushTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
 
-  > thead > tr {
+  .spend-limit-price-header {
     border-radius: 0;
   }
 `;

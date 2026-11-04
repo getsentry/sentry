@@ -1972,6 +1972,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         assert widget_data["layout"] is None
 
+    def test_get_with_widget_with_removed_display_type(self) -> None:
+        # 5 was the world_map display type. It was removed from
+        # DashboardWidgetDisplayTypes, but older widgets can still store it.
+        DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            title="Widget 1",
+            display_type=5,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+        )
+        response = self.do_request("get", self.url, data={"query": "1"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["widgetDisplay"] == [None]
+        assert response.data[0]["widgetPreview"] == [{"displayType": None, "layout": None}]
+
     def test_post_dashboard_with_widget_filter_requiring_environment(self) -> None:
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
