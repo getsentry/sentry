@@ -34,9 +34,7 @@ interface TextWidgetViewerModalOptions {
   onEdit?: () => void;
 }
 
-interface Props extends ModalRenderProps, TextWidgetViewerModalOptions {
-  organization: Organization;
-}
+type Props = ModalRenderProps & TextWidgetViewerModalOptions;
 
 const HALF_CONTAINER_HEIGHT = 300;
 

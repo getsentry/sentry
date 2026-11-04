@@ -124,9 +124,7 @@ export interface DataWidgetViewerModalOptions {
   widgetInterval?: string;
 }
 
-interface Props extends ModalRenderProps, DataWidgetViewerModalOptions {
-  organization: Organization;
-}
+type Props = ModalRenderProps & DataWidgetViewerModalOptions;
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;

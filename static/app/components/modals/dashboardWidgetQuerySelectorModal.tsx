@@ -23,10 +23,7 @@ export type DashboardWidgetQuerySelectorModalOptions = {
   widget: Widget;
 };
 
-type Props = ModalRenderProps &
-  DashboardWidgetQuerySelectorModalOptions & {
-    organization: Organization;
-  };
+type Props = ModalRenderProps & DashboardWidgetQuerySelectorModalOptions;
 
 function DashboardWidgetQuerySelectorModal(props: Props) {
   const {organization, widget, Body, Header, dashboardFilters} = props;
