@@ -508,7 +508,6 @@ class TestTriggerAutofixAgent(TestCase):
             run_id=777,
             user_context="Keep compatibility",
             insert_index=3,
-            enable_bash_mode=True,
             actor_user_id=self.user.id,
         )
 

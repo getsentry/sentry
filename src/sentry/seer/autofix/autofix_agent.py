@@ -441,7 +441,6 @@ def trigger_autofix_agent(
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
-    enable_bash_mode: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
@@ -475,11 +474,6 @@ def trigger_autofix_agent(
                 if not has_budget:
                     raise NoSeerQuotaException()
 
-        # Repo checks depend on bash tools, so the flag forces bash mode on.
-        enable_bash_mode = enable_bash_mode or features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        )
-
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
@@ -488,9 +482,9 @@ def trigger_autofix_agent(
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
-            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
+            step_args = SolutionStepArgs(should_run_repo_checks=True)
         elif step == AutofixStep.CODE_CHANGES:
-            step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
+            step_args = CodeChangesStepArgs(should_run_repo_checks=True)
         elif step == AutofixStep.PR_ITERATION:
             iteration_run_state = (
                 get_autofix_run_state(group, run_id) if run_id is not None else None
@@ -521,7 +515,7 @@ def trigger_autofix_agent(
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,
-            enable_bash_mode=enable_bash_mode,
+            enable_bash_mode=True,
             single_run=single_run,
         )
         feature_run = trigger_autofix_feature(group, args)
