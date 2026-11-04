@@ -71,8 +71,9 @@ class ApiSetupCode(Model):
     # The OAuth application the code can be redeemed for
     application = FlexibleForeignKey("sentry.ApiApplication")
 
-    # User the code was minted for; the issued token belongs to this user
-    user = FlexibleForeignKey("sentry.User", on_delete=models.CASCADE)
+    # User the code was minted for; the issued token belongs to this user.
+    # The unique constraint below covers lookups, so no separate index.
+    user = FlexibleForeignKey("sentry.User", on_delete=models.CASCADE, db_index=False)
 
     # Organization selected when minting (for org-level access apps)
     organization_id = HybridCloudForeignKey(
@@ -91,6 +92,11 @@ class ApiSetupCode(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apisetupcode"
+        # Minting revokes a user's earlier codes, so a user has at most one
+        # live code. Enforce that here so concurrent mints can't leave two.
+        constraints = [
+            models.UniqueConstraint(fields=["user"], name="sentry_apisetupcode_user_uniq"),
+        ]
 
     def __str__(self) -> str:
         return f"id={self.id}, application={self.application_id}, user={self.user_id}"

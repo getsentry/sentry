@@ -4,6 +4,8 @@ from datetime import timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+import pytest
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 
 from sentry.locks import locks
@@ -2113,6 +2115,15 @@ class OAuthTokenSetupCodeTest(TestCase):
         resp = self.exchange(self.code)
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_one_code_per_user(self) -> None:
+        with pytest.raises(IntegrityError), transaction.atomic(router.db_for_write(ApiSetupCode)):
+            ApiSetupCode.objects.create(
+                hashed_code="0" * 64,
+                application=self.application,
+                user_id=self.user.id,
+                scope_list=["project:read"],
+            )
 
     def test_missing_setup_code(self) -> None:
         resp = self.exchange()
