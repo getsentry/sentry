@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';

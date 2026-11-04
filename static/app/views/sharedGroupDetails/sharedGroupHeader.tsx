@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';

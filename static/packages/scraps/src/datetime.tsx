@@ -1,6 +1,8 @@
 import type * as React from 'react';
 import {createContext, useContext} from 'react';
 
+import {getDuration, type DurationFormatter} from '@sentry/scraps/duration';
+
 /**
  * How an absolute time should be written out for the person reading it.
  *
@@ -20,6 +22,8 @@ export interface DateTimeContextValue {
    * IANA timezone name, e.g. "America/New_York".
    */
   timezone: string;
+  /** Optional localized formatting for relative time units. */
+  formatDuration?: DurationFormatter;
 }
 
 const DEFAULT_DATE_TIME: DateTimeContextValue = {
@@ -57,4 +61,8 @@ export function useTimezone(): string {
  */
 export function useClockDisplay(): DateTimeContextValue['clockDisplay'] {
   return useContext(DateTimeContext).clockDisplay;
+}
+
+export function useDurationFormatter(): DurationFormatter {
+  return useContext(DateTimeContext).formatDuration ?? getDuration;
 }

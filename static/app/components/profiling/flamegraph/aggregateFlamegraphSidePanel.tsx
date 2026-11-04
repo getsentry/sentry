@@ -1,11 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

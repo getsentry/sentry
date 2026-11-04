@@ -7,13 +7,13 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

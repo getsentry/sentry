@@ -4,11 +4,11 @@ import {IconJson} from '@sentry/icons/json';
 import {IconTag} from '@sentry/icons/tag';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';

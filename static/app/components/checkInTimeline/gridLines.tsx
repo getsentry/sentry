@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';

@@ -1,16 +1,15 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {useTimezone} from '@sentry/scraps/datetime';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {useDurationFormatter, useTimezone} from '@sentry/scraps/datetime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {DateTime} from 'sentry/components/dateTime';
-import {defined} from 'sentry/utils/defined';
 
 import {getRelativeDate, type RelaxedDateType, type UnitStyle} from './getRelativeDate';
 
@@ -27,7 +26,7 @@ export const RELATIVE_TIME_MAX_WIDTH = 280;
  */
 const UTC = 'UTC';
 
-interface RelativeTimeProps {
+export interface RelativeTimeProps {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
@@ -92,6 +91,7 @@ export function RelativeTime({
   showSeconds,
 }: RelativeTimeProps) {
   const timezone = useTimezone();
+  const formatDuration = useDurationFormatter();
   const {t} = useTranslation();
 
   // Defaulted to match <TimeSince>, so a card that omits them reads the same as
@@ -108,9 +108,15 @@ export function RelativeTime({
 
   return (
     <Fragment>
-      {defined(label) && (
+      {label != null && (
         <Tooltip.Header
-          trailingItems={getRelativeDate(date, resolvedSuffix, resolvedPrefix, unitStyle)}
+          trailingItems={getRelativeDate(
+            date,
+            resolvedSuffix,
+            resolvedPrefix,
+            unitStyle,
+            formatDuration
+          )}
         >
           {label}
         </Tooltip.Header>
