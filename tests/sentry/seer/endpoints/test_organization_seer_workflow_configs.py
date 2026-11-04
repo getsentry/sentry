@@ -742,6 +742,29 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
 
+    def test_open_membership_member_can_delete(self) -> None:
+        member, _ = self.create_member_with_project(open_membership=True)
+        config = self.create_config()
+        self.login_as(user=member)
+
+        self.get_success_response(
+            self.organization.slug, config.id, method="delete", status_code=204
+        )
+
+        assert not SeerWorkflowConfig.objects.filter(id=config.id).exists()
+
+    def test_closed_membership_member_cannot_delete(self) -> None:
+        member, _ = self.create_member_with_project(open_membership=False)
+        config = self.create_config()
+        self.login_as(user=member)
+
+        response = self.get_error_response(
+            self.organization.slug, config.id, method="delete", status_code=403
+        )
+
+        assert response.data == {"detail": "Deleting an automation requires global access"}
+        assert SeerWorkflowConfig.objects.filter(id=config.id).exists()
+
     def test_delete_breached_metric(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
