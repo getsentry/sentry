@@ -23,7 +23,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
+import {useTrackResponse} from 'sentry/views/insights/common/utils/useTrackResponse';
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -95,6 +95,7 @@ function useSpansQueryBase<T>({
   }
 
   const isTimeseriesQuery = (eventView.yAxis?.length ?? 0) > 0;
+  /* oxlint-disable react/hooks -- Picks the hook at runtime. `withPageFilters` is fixed per entry point and callers don't switch an event view between timeseries and table queries. */
   const queryFunction = isTimeseriesQuery
     ? withPageFilters
       ? useWrappedDiscoverTimeseriesQuery
@@ -121,10 +122,9 @@ function useSpansQueryBase<T>({
     spanQuery: queryExtras?.spanQuery,
     staleTime,
   });
+  /* oxlint-enable react/hooks */
 
-  if (trackResponseAnalytics) {
-    TrackResponse(eventView, response);
-  }
+  useTrackResponse(response, trackResponseAnalytics ?? false);
 
   return response;
 }
