@@ -67,6 +67,14 @@ class InvalidSearchQuery(Exception):
     pass
 
 
+class SearchQueryParseError(InvalidSearchQuery):
+    """The search query string failed to parse or validate.
+
+    Lets API clients tell a rejected `query` parameter apart from other invalid
+    query errors without parsing the message.
+    """
+
+
 class IncompatibleMetricsQuery(Exception):
     # Tried to build a metrics enhanced performance query but it was incompatible
     pass
