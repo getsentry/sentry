@@ -92,7 +92,7 @@ class SeerWorkflowConfigPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "seer:read"],
         "POST": ["org:write", "org:admin", "seer:write"],
         "PUT": ["org:write", "org:admin", "seer:write"],
-        "DELETE": ["org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin", "seer:write"],
     }
 
 

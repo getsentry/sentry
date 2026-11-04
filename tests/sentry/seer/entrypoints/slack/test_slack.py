@@ -270,6 +270,48 @@ class SlackAutofixEntrypointTest(TestCase):
         renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
         assert "https://github.com/owner/repo/pull/123" in str(renderable["blocks"])
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_errored_run_posts_to_every_thread(
+        self,
+        mock_send_threaded_message: MagicMock,
+        mock_send_threaded_ephemeral_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
+        other_thread = SlackThreadDetails(channel_id="C0OTHER", thread_ts="1234567890.999999")
+        cache_payload = self._get_entrypoint().create_autofix_cache_payload()
+        cache_payload["threads"] = [self.thread, other_thread]
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=cache_payload,
+        )
+
+        with self.tasks():
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload={"run_id": MOCK_RUN_ID, "group_id": self.group.id},
+                organization_id=self.organization.id,
+            )
+
+        posted_to = [
+            (call.kwargs["channel_id"], call.kwargs["thread_ts"])
+            for call in mock_send_threaded_message.call_args_list
+        ]
+        assert sorted(posted_to) == sorted(
+            [
+                (self.thread["channel_id"], self.thread["thread_ts"]),
+                (other_thread["channel_id"], other_thread["thread_ts"]),
+            ]
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "couldn't finish working on this issue" in str(renderable["blocks"])
+        mock_send_threaded_ephemeral_message.assert_not_called()
+
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",

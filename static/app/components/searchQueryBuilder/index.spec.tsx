@@ -1,10 +1,11 @@
-import {Fragment, type ComponentProps} from 'react';
+import {Fragment, useState, type ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -804,6 +805,38 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it('keeps a cleared query when the initial query changes in the same render', async () => {
+      const mockOnSearch = jest.fn();
+      function UrlBackedSearch() {
+        const [query, setQuery] = useState('browser.name:firefox');
+        return (
+          <Fragment>
+            <button onClick={() => setQuery('browser.name:chrome')}>Navigate</button>
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery={query}
+              onSearch={newQuery => {
+                mockOnSearch(newQuery);
+                setQuery(newQuery);
+              }}
+            />
+          </Fragment>
+        );
+      }
+      render(<UrlBackedSearch />);
+      const clearButton = await screen.findByRole('button', {
+        name: 'Clear search query',
+      });
+
+      act(() => {
+        fireEvent.click(screen.getByRole('button', {name: 'Navigate'}));
+        fireEvent.click(clearButton);
+      });
+
+      expect(mockOnSearch.mock.calls).toEqual([['']]);
+      expect(screen.queryByRole('row', {name: /browser\.name/})).not.toBeInTheDocument();
     });
 
     it('searches once when clearing a filter that was never committed', async () => {
