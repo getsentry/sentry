@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
@@ -6,17 +7,14 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
-import type {LocationDescriptor} from 'history';
 
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {ExternalLink, Link, type LinkProps} from '@sentry/scraps/link';
 import {
   ListItem,
   type ListItemProps,
   type MenuItemTrailingAction,
 } from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
-
-import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
@@ -97,7 +95,7 @@ export interface MenuItemProps extends ListItemProps {
   /**
    * Destination if this menu item is a link.
    */
-  to?: LocationDescriptor;
+  to?: LinkProps['to'];
   /**
    * An icon-only button rendered beside, rather than inside, the focusable menu item.
    */
@@ -195,10 +193,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   // Open submenu on hover
   const {hoverProps, isHovered} = useHover({});
-  const prevIsHovered = usePrevious(isHovered);
-  const prevIsFocused = usePrevious(isFocused);
+  const previousInteraction = useRef({isHovered, isFocused});
   useEffect(() => {
-    if (isHovered === prevIsHovered && isFocused === prevIsFocused) {
+    const previous = previousInteraction.current;
+    previousInteraction.current = {isHovered, isFocused};
+    if (isHovered === previous.isHovered && isFocused === previous.isFocused) {
       return;
     }
 
@@ -209,15 +208,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       state.selectionManager.clearSelection();
     }
-  }, [
-    isHovered,
-    isFocused,
-    prevIsHovered,
-    prevIsFocused,
-    isSubmenu,
-    node.key,
-    state.selectionManager,
-  ]);
+  }, [isHovered, isFocused, isSubmenu, node.key, state.selectionManager]);
 
   // ArrowRight opens a submenu or moves focus to an adjacent action.
   const {keyboardProps} = useKeyboard({

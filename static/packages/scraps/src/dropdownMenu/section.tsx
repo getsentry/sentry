@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 

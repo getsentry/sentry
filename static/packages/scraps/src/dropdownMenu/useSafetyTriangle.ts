@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useEffect, useState} from 'react';
 
 type Point = {x: number; y: number};

@@ -255,6 +255,10 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./dropdownMenu": {
+      "types": "./dist/dropdownMenu/index.d.ts",
+      "import": "./dist/dropdownMenu/index.js"
+    },
     "./codeBlock": {
       "types": "./dist/codeBlock/index.d.ts",
       "import": "./dist/codeBlock/index.js"
@@ -320,6 +324,7 @@
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
     "@react-aria/listbox": "3.16.1",
+    "@react-aria/menu": "3.22.1",
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
@@ -334,6 +339,7 @@
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
     "@react-stately/slider": "3.8.1",
+    "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",

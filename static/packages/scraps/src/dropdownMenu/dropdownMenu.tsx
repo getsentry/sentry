@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';

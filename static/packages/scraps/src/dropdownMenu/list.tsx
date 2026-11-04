@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,9 +12,9 @@ import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
-import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
+import {useResolveLinkHref} from '@sentry/scraps/link/linkBehaviorContext';
 import {
   calculateMenuMinHeight,
   Header,
@@ -26,8 +27,6 @@ import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
-
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
@@ -424,29 +423,26 @@ function DropdownMenuList({
 
 // react-aria uses the href prop on item state to determine if the item is a link
 // and will navigate there when selected
-function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
-  if (item.to) {
-    // This matches the behavior of the Link component
-    return normalizeUrl(item.to);
-  }
-
-  return item.externalHref;
-}
 
 /**
  * Recursively removes hidden items, including those nested in submenus
  * Apply href to items that have a to or externalHref prop
  */
-function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
+function removeHiddenItemsAndSetHref(
+  source: MenuItemProps[],
+  resolveHref: ReturnType<typeof useResolveLinkHref>
+): MenuItemProps[] {
   return source
     .filter(item => !item.hidden)
     .map(item => {
-      const href = makeItemHref(item);
+      const href = item.to ? resolveHref(item.to) : item.externalHref;
 
       return {
         ...item,
         ...(href === undefined ? {} : {href}),
-        ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
+        ...(item.children
+          ? {children: removeHiddenItemsAndSetHref(item.children, resolveHref)}
+          : {}),
       };
     });
 }
@@ -518,7 +514,11 @@ export function DropdownMenuContent({
   ...props
 }: DropdownMenuContentProps) {
   const [searchValue, setSearchValue] = useState('');
-  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
+  const resolveHref = useResolveLinkHref();
+  const activeItems = useMemo(
+    () => removeHiddenItemsAndSetHref(items, resolveHref),
+    [items, resolveHref]
+  );
   const visibleItems = useMemo(
     () =>
       search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
