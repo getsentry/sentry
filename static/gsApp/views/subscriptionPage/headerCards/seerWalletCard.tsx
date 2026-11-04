@@ -39,7 +39,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
   const wallet = balanceQuery.data;
   const autoTopUp = autoTopUpQuery.data;
   const {creditPriceCents} = wallet;
-  // The wallet only includes pricing for billing roles, and this card is only
+  // The wallet only includes credit pricing for billing roles, and this card is only
   // rendered for them.
   if (creditPriceCents === undefined) {
     return <SeerWalletError />;
