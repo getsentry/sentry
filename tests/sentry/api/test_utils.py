@@ -28,6 +28,7 @@ from sentry.exceptions import (
     InvalidFunctionArgumentQuery,
     InvalidParams,
     InvalidSearchQuery,
+    SearchQueryParseError,
 )
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase
@@ -229,6 +230,15 @@ class HandleQueryErrorsTest(APITestCase):
             "code": "invalid_function_argument",
             "function": "p75",
             "argument": "foo",
+        }
+
+    def test_handle_search_query_parse_error(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise SearchQueryParseError("Empty string after 'user.email:'")
+        assert excinfo.value.detail == {
+            "detail": "Empty string after 'user.email:'",
+            "code": "invalid_search_query",
         }
 
     def test_handle_postgres_timeout(self) -> None:

@@ -33,6 +33,7 @@ from sentry.exceptions import (
     InvalidFunctionArgumentQuery,
     InvalidParams,
     InvalidSearchQuery,
+    SearchQueryParseError,
 )
 from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.apikey import is_api_key_auth
@@ -419,6 +420,8 @@ def handle_query_errors() -> Iterator[None]:
                     "argument": error.argument,
                 }
             )
+        if isinstance(error, SearchQueryParseError):
+            raise ParseError(detail={"detail": original_error, "code": "invalid_search_query"})
         raise ParseError(detail=original_error)
     except ArithmeticError as error:
         message = str(error)

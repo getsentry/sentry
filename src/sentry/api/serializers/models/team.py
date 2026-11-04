@@ -4,13 +4,14 @@ import dataclasses
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.app import env
 from sentry.auth.access import (
     Access,
@@ -134,14 +135,14 @@ class BaseTeamSerializerResponse(TypedDict):
     id: str
     slug: str
     name: str
-    dateCreated: datetime | None
-    isMember: bool
-    teamRole: str | None
+    dateCreated: Annotated[datetime | None, ApiDescription("When the team was created (ISO 8601)")]
+    isMember: Annotated[bool, ApiDescription("Whether the requesting user is a member of the team")]
+    teamRole: Annotated[str | None, ApiDescription("The requesting user's role in the team")]
     flags: dict[str, bool]
     access: list[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
-    memberCount: int
+    memberCount: Annotated[int, ApiDescription("Number of members in the team")]
     avatar: SerializedAvatarFields
 
 

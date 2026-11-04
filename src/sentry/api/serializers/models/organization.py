@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import JSONField
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -124,7 +125,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
-    features: list[str]  # Only included if include_feature_flags is True
+    # Only included if include_feature_flags is True
+    features: Annotated[list[str], ApiDescription("Features enabled for the organization")]
     extraOptions: dict[str, dict[str, object]]
     access: list[str]  # Only if access=... is passed
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
@@ -133,16 +135,22 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
     id: str
     slug: str
-    status: _Status
+    status: Annotated[_Status, ApiDescription("Organization status")]
     name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    avatar: SerializedAvatarFields
-    links: _Links
-    hasAuthProvider: bool
-    allowMemberInvite: bool
-    allowMemberProjectCreation: bool
+    dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
+    isEarlyAdopter: Annotated[bool, ApiDescription("Whether the organization is an early adopter")]
+    require2FA: Annotated[
+        bool, ApiDescription("Whether members must use two-factor authentication")
+    ]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("Organization avatar")]
+    links: Annotated[_Links, ApiDescription("Organization and region URLs")]
+    hasAuthProvider: Annotated[
+        bool, ApiDescription("Whether SSO is configured for the organization")
+    ]
+    allowMemberInvite: Annotated[bool, ApiDescription("Whether members can invite other members")]
+    allowMemberProjectCreation: Annotated[
+        bool, ApiDescription("Whether members can create projects")
+    ]
     allowSuperuserAccess: bool
 
 
