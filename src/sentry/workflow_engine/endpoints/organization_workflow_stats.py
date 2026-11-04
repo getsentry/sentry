@@ -64,5 +64,8 @@ class OrganizationWorkflowStatsEndpoint(OrganizationWorkflowEndpoint):
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams:
             raise ParseError(detail="Invalid date range")
-        results = fetch_workflow_hourly_stats(workflow, start, end)
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        results = fetch_workflow_hourly_stats(
+            workflow, start, end, project_ids=[project.id for project in projects]
+        )
         return Response(serialize_workflow_stats(results, start, end))

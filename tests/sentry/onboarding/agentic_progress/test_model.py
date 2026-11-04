@@ -15,6 +15,7 @@ from sentry.onboarding.agentic_progress.model import (
     OnboardingRunTerminal,
     ProgressUpdate,
     ProgressUpdateField,
+    RunOrigin,
     RunStatus,
     Stage,
     StageDefinition,
@@ -613,3 +614,15 @@ def test_persisted_timestamps_round_trip_as_datetimes() -> None:
 
     assert restored == run
     assert isinstance(restored.created_at, datetime)
+
+
+@pytest.mark.parametrize("origin", [*RunOrigin, None])
+def test_round_trip_origin(origin: RunOrigin | None) -> None:
+    run = replace(make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)), origin=origin)
+    assert OnboardingRun.from_dict(run.to_dict()).origin == origin
+
+
+def test_restore_run_without_origin() -> None:
+    persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
+    del persisted["origin"]
+    assert OnboardingRun.from_dict(persisted).origin is None

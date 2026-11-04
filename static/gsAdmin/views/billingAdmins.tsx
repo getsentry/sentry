@@ -1,11 +1,12 @@
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
 const getRow = (row: any) => [
-  <td key="id">{row.id}</td>,
-  <td key="email">{row.email}</td>,
-  <td key="permission">{row.permission}</td>,
+  <SimpleTable.RowCell key="id">{row.id}</SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="email">{row.email}</SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="permission">{row.permission}</SimpleTable.RowCell>,
 ];
 
 export function BillingAdmins() {
@@ -18,9 +19,9 @@ export function BillingAdmins() {
         path="/_admin/billingadmins"
         endpoint="/billingadmins/"
         columns={[
-          <th key="id">User Id</th>,
-          <th key="email">Email</th>,
-          <th key="permission">Permission</th>,
+          {key: 'id', label: 'User Id'},
+          {key: 'email', label: 'Email'},
+          {key: 'permission', label: 'Permission'},
         ]}
         columnsForRow={getRow}
       />

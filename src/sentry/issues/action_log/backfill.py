@@ -19,16 +19,19 @@ from django.utils import timezone
 
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    FirstSeenAction,
     GroupAction,
     GroupActionActor,
     GroupActionType,
     PullRequestClosedAction,
     PullRequestMergedAction,
     PullRequestReopenedAction,
+    first_seen_idempotency_key,
 )
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
@@ -42,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 BACKFILL_ACTIVITY_SOURCE = "backfill:activity"
 BACKFILL_PR_LIFECYCLE_SOURCE = "backfill:pr-lifecycle"
+BACKFILL_FIRST_SEEN_SOURCE = "backfill:first-seen"
 
 _PR_LIFECYCLE_ACTION_TYPES = (
     GroupActionType.PULL_REQUEST_CLOSED,
@@ -150,6 +154,47 @@ def backfill_actions(
         # entries are sorted ascending, so [0] is the earliest.
         invalidate_group_derived_data(group_id, cursor=(entries[0].date_added, 0))
 
+    return inserted
+
+
+def backfill_first_seen_actions(group_ids: Sequence[int]) -> int:
+    """Insert a FIRST_SEEN entry, dated at the group's first_seen, for each group lacking one.
+
+    Temporary, for groups created before FIRST_SEEN was logged on creation; remove once
+    every group has one. Unlike backfill_actions this doesn't invalidate derived data:
+    no derived state depends on FIRST_SEEN, and the caller rebuilds the groups anyway.
+
+    Returns the number of rows actually inserted.
+    """
+    groups = list(
+        Group.objects.filter(id__in=group_ids).values_list("id", "project_id", "first_seen")
+    )
+    if not groups:
+        return 0
+
+    now = timezone.now()
+    params: list[int | str | datetime] = []
+    for group_id, project_id, first_seen in groups:
+        action = FirstSeenAction(first_seen=first_seen)
+        params.extend(
+            [
+                group_id,
+                project_id,
+                action.get_type().value,
+                SYSTEM_ACTOR.actor_type.value,
+                SYSTEM_ACTOR.actor_id,
+                BACKFILL_FIRST_SEEN_SOURCE,
+                json.dumps(action.json_dict()),
+                first_seen,
+                now,  # date_updated
+                first_seen_idempotency_key(group_id),
+            ]
+        )
+
+    with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+        inserted = bulk_insert_action_log_entries(params, len(groups))
+
+    metrics.incr("issues.action_log.backfill_first_seen", amount=inserted, sample_rate=1.0)
     return inserted
 
 

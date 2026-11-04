@@ -1,19 +1,29 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorEnvironment,
+    MonitorStatus,
+    ScheduleType,
+    get_detector_for_monitor,
+    is_monitor_muted,
+)
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
@@ -21,6 +31,7 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import Detector
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -30,12 +41,19 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def check_valid_response(self, response, expected_monitors):
+    def check_valid_response(
+        self, response: Response, expected_monitors: Sequence[Monitor]
+    ) -> None:
         assert [monitor.slug for monitor in expected_monitors] == [
             monitor_resp["slug"] for monitor_resp in response.data
         ]
 
-    def check_valid_environments_response(self, response, monitor, expected_environments):
+    def check_valid_environments_response(
+        self,
+        response: Response,
+        monitor: Mapping[str, Any],
+        expected_environments: Sequence[MonitorEnvironment],
+    ) -> None:
         assert [
             monitor_environment.get_environment().name
             for monitor_environment in expected_environments
@@ -57,7 +75,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             env_status_key: str,
             mon_status_key: str = "ACTIVE",
             date: datetime | None = None,
-        ):
+        ) -> Monitor:
             env_status = getattr(MonitorStatus, env_status_key)
             mon_status = getattr(ObjectStatus, mon_status_key)
 
@@ -1025,8 +1043,10 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         env_two.refresh_from_db()
         assert is_monitor_muted(monitor_one)
         assert is_monitor_muted(monitor_two)
-        assert env_one.is_muted
-        assert env_two.is_muted
+        muted_one = env_one.is_muted
+        muted_two = env_two.is_muted
+        assert muted_one
+        assert muted_two
         assert_org_audit_log_exists(
             organization=self.organization,
             event=audit_log.get_event_id("MONITOR_EDIT"),
@@ -1057,6 +1077,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     def test_bulk_disable_enable(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
+        ensure_cron_detector(monitor_one)
+        ensure_cron_detector(monitor_two)
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
             "status": "disabled",
@@ -1068,6 +1090,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert not Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
@@ -1081,6 +1105,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.ACTIVE
         assert monitor_two.status == ObjectStatus.ACTIVE
+        assert Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
     @patch("sentry.quotas.backend.check_assign_seats")
     def test_enable_no_quota(self, check_assign_seats: MagicMock) -> None:

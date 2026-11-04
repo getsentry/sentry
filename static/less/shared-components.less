@@ -200,6 +200,16 @@ pre.plain {
   margin: 6em auto;
   position: relative;
 
+  .loading-indicator-container {
+    position: relative;
+    width: fit-content;
+    margin: 0 auto;
+    /* Keep antialiased edges inside the clip without changing the outer size. */
+    padding: 0.5px;
+    /* The circular ring's rotating square box must not expand scrollable overflow. */
+    overflow: hidden;
+  }
+
   .loading-indicator {
     position: relative;
     border: 6px solid @white-darkest;
@@ -212,8 +222,8 @@ pre.plain {
   .loading-indicator,
   .loading-indicator:after {
     border-radius: 50%;
-    width: @loader-size;
-    height: @loader-size;
+    width: (@loader-size - 1px);
+    height: (@loader-size - 1px);
   }
 
   .loading-message {
@@ -259,21 +269,25 @@ pre.plain {
   height: 24px;
   width: 24px;
 
-  .loading-indicator {
-    margin: 0;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    border-width: 2px;
+  .loading-indicator-container {
     position: absolute;
     left: 0;
     top: 0;
+    width: 24px;
+    height: 24px;
 
     &.relative {
       position: relative;
       left: auto;
       top: auto;
     }
+  }
+
+  .loading-indicator {
+    margin: 0;
+    width: (24px - 1px);
+    height: (24px - 1px);
+    border-width: 2px;
   }
 
   .loading-message {

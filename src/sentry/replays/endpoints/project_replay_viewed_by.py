@@ -10,10 +10,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEventPermission
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.kafka import publish_replay_event
@@ -60,11 +66,6 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         """Return a list of users who have viewed a replay."""
         self.check_replay_access(request, project)
 
-        try:
-            uuid.UUID(replay_id)
-        except ValueError:
-            return Response(status=404)
-
         # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
@@ -75,7 +76,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                 replay_id=replay_id,
                 start=filter_params["start"],
                 end=filter_params["end"],
-                request_user_id=request.user.id,
+                request_user_id=acting_user_id(request.user),
                 organization=project.organization,
             )
         if not viewed_by_ids_response:
@@ -94,19 +95,40 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
 
         return Response({"data": {"viewed_by": serialized_users}}, status=200)
 
+    @extend_schema(
+        operation_id="createProjectReplayViewedBy",
+        summary="Mark a Replay as Viewed",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReplayParams.REPLAY_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+        ],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
-        """Create a replay-viewed event."""
+        """
+        Record that the requesting user has viewed a replay. The time range is used to look up
+        the replay and defaults to the last 90 days. Requests from users outside the replay's
+        organization are accepted but not recorded.
+        """
         if not request.user.is_authenticated:
             return Response(status=400)
 
         self.check_replay_access(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
-        user_orgs = user_service.get_organizations(user_id=request.user.id)
+        user = require_user(request)
+        user_orgs = user_service.get_organizations(user_id=user.id)
         if project.organization.id not in [org.id for org in user_orgs]:
             # If the user is not in the same organization as the replay, we don't need to do anything.
             return Response(status=204)
@@ -121,7 +143,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                     project_ids=[project.id],
                     period_start=filter_params["start"],
                     period_end=filter_params["end"],
-                    request_user_id=request.user.id,
+                    request_user_id=acting_user_id(request.user),
                 ),
                 tenant_id={"organization_id": project.organization.id}
                 if project.organization
@@ -137,7 +159,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         message = viewed_event(
             project.id,
             replay_id,
-            request.user.id,
+            user.id,
             finished_at_ts,
         )
         publish_replay_event(message)

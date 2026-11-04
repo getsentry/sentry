@@ -35,7 +35,7 @@ class TeamAvatar(AvatarBase):
 
     url_path = "team-avatar"
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size: int) -> str:
         return f"team_avatar:{self.team_id}:{size}"
 
     def absolute_url(self) -> str:

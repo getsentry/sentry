@@ -5,14 +5,14 @@ import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import {
-  type IssueAlertNotificationProps,
-  providerDetails,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   ChannelField,
   ChannelSelect,
   useMessagingIntegrationAlertRule,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  type IssueAlertNotificationProps,
+  providerDetails,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 
@@ -74,7 +74,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
           <FullWidthSelect
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />
@@ -109,7 +109,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
 
 const FullWidthSelect = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;
 
 const FullWidthChannelSelect = styled(ChannelSelect)`
   width: 100%;

@@ -21,6 +21,7 @@ class CacheHaltReason(StrEnum):
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
 AGENT_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
 PENDING_MENTION_CACHE_TIMEOUT_SECONDS = 15 * 60  # 15 minutes
+INVESTIGATION_CACHE_TIMEOUT_SECONDS = 60 * 60 * 24  # 24 hours
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
@@ -44,7 +45,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def _get_pre_autofix_cache(
         cls, *, entrypoint_key: str, group_id: int
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         cache_key = cls._get_pre_autofix_cache_key(entrypoint_key=entrypoint_key, group_id=group_id)
         cache_payload = cache.get(cache_key)
         if not cache_payload:
@@ -58,7 +59,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def _get_post_autofix_cache(
         cls, *, entrypoint_key: str, run_id: int
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         cache_key = cls._get_post_autofix_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
         cache_payload = cache.get(cache_key)
         if not cache_payload:
@@ -72,7 +73,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def populate_pre_autofix_cache(
         cls, *, entrypoint_key: str, group_id: int, cache_payload: CachePayloadT
-    ) -> SeerOperatorCacheResult:
+    ) -> SeerOperatorCacheResult[CachePayloadT]:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_POPULATE_PRE_AUTOFIX,
             entrypoint_key=entrypoint_key,
@@ -91,7 +92,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def populate_post_autofix_cache(
         cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT
-    ) -> SeerOperatorCacheResult:
+    ) -> SeerOperatorCacheResult[CachePayloadT]:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_POPULATE_POST_AUTOFIX,
             entrypoint_key=entrypoint_key,
@@ -110,7 +111,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
     @classmethod
     def get(
         cls, *, entrypoint_key: str, group_id: int | None = None, run_id: int | None = None
-    ) -> SeerOperatorCacheResult | None:
+    ) -> SeerOperatorCacheResult[CachePayloadT] | None:
         """
         Gets the most specific cache payload for a given entrypoint, group_id and/or run_id.
         If run_id cache hits, it's returned, and the group_id cache is deleted (if a group_id was provided).
@@ -300,4 +301,40 @@ class SeerOperatorPendingMentionCache[CachePayloadT]:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
             cache.delete(cache_key)
+            return cache_payload
+
+
+class SeerOperatorInvestigationCache[CachePayloadT]:
+    @classmethod
+    def _get_cache_key(cls, *, entrypoint_key: str, investigation_id: int) -> str:
+        return f"seer:investigation:{entrypoint_key}:{investigation_id}"
+
+    @classmethod
+    def set(
+        cls, *, entrypoint_key: str, investigation_id: int, cache_payload: CachePayloadT
+    ) -> None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key, investigation_id=investigation_id
+            )
+            lifecycle.add_extras({"investigation_id": investigation_id, "cache_key": cache_key})
+            cache.set(cache_key, cache_payload, timeout=INVESTIGATION_CACHE_TIMEOUT_SECONDS)
+
+    @classmethod
+    def get(cls, *, entrypoint_key: str, investigation_id: int) -> CachePayloadT | None:
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_INVESTIGATION,
+            entrypoint_key=entrypoint_key,
+        ).capture() as lifecycle:
+            cache_key = cls._get_cache_key(
+                entrypoint_key=entrypoint_key, investigation_id=investigation_id
+            )
+            lifecycle.add_extras({"investigation_id": investigation_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
+            if not cache_payload:
+                lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
+                return None
             return cache_payload

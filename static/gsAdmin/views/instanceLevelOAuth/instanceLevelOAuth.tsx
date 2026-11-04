@@ -4,22 +4,23 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {PageHeader} from 'admin/components/pageHeader';
 import {NewInstanceLevelOAuthClient} from 'admin/views/instanceLevelOAuth/components/newInstanceLevelOAuthClient';
 
 const getRow = (row: any) => [
-  <td key="name">
+  <SimpleTable.RowCell key="name">
     <strong>
       <Link to={`/_admin/instance-level-oauth/${row.clientID}/`}>{row.name}</Link>
     </strong>
-  </td>,
-  <td key="id" style={{textAlign: 'center'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="id" justify="center">
     {row.clientID}
-  </td>,
-  <td key="created" style={{textAlign: 'right'}}>
+  </SimpleTable.RowCell>,
+  <SimpleTable.RowCell key="created" justify="end">
     <DateTime date={row.dateAdded} dateOnly year />
-  </td>,
+  </SimpleTable.RowCell>,
 ];
 
 export function InstanceLevelOAuth() {
@@ -39,13 +40,9 @@ export function InstanceLevelOAuth() {
         path="/_admin/instance-level-oauth/"
         endpoint="/_admin/instance-level-oauth/"
         columns={[
-          <th key="name">Name</th>,
-          <th key="id" style={{width: 500, textAlign: 'center'}}>
-            Client ID
-          </th>,
-          <th key="created" style={{width: 250, textAlign: 'right'}}>
-            Created
-          </th>,
+          {key: 'name', label: 'Name'},
+          {key: 'id', label: 'Client ID', width: 500, align: 'center'},
+          {key: 'created', label: 'Created', width: 250, align: 'right'},
         ]}
         columnsForRow={getRow}
         defaultSort="created"

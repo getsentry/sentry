@@ -59,9 +59,16 @@ function NewQueryTokens({
           {parsedQuery
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
-              <FormattedQueryWrapper key={text}>
+              <Container
+                as="span"
+                display="block"
+                width="fit-content"
+                minWidth="0"
+                maxWidth="100%"
+                key={text}
+              >
                 <ProvidedFormattedQuery query={text} />
-              </FormattedQueryWrapper>
+              </Container>
             ))}
         </Stack>
       </Stack>
@@ -214,9 +221,16 @@ function NewQueryTokens({
               {parsedCrossEvent
                 ?.filter(({text}) => text.trim() !== '')
                 .map(({text}) => (
-                  <FormattedQueryWrapper key={text}>
+                  <Container
+                    as="span"
+                    display="block"
+                    width="fit-content"
+                    minWidth="0"
+                    maxWidth="100%"
+                    key={text}
+                  >
                     <ProvidedFormattedQuery query={text} />
-                  </FormattedQueryWrapper>
+                  </Container>
                 ))}
             </Stack>
           </Stack>
@@ -269,10 +283,3 @@ const ExploreVisualizes = styled('span')`
 `;
 
 const ExploreGroupBys = ExploreVisualizes;
-
-const FormattedQueryWrapper = styled('span')`
-  display: block;
-  width: fit-content;
-  min-width: 0;
-  max-width: 100%;
-`;

@@ -9,7 +9,7 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 SEER_PATH = "sentry.api.endpoints.project_custom_inbound_filter_validate.run_oneshot"
 
@@ -43,8 +43,12 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 dataType="error",
                 conditions=[
-                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
-                    {"type": "release", "value": ["3.*"]},
+                    {
+                        "type": "error_message",
+                        "operator": "contains",
+                        "value": ["ConnectionReset", "ETIMEDOUT"],
+                    },
+                    {"type": "release", "operator": "starts_with", "value": ["3."]},
                 ],
             )
 
@@ -54,8 +58,12 @@ class CustomInboundFilterValidateTest(APITestCase):
             "payload": {
                 "data_type": "error",
                 "conditions": [
-                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
-                    {"type": "release", "value": ["3.*"]},
+                    {
+                        "type": "error_message",
+                        "operator": "contains",
+                        "value": ["ConnectionReset", "ETIMEDOUT"],
+                    },
+                    {"type": "release", "operator": "starts_with", "value": ["3."]},
                 ],
             },
         }
@@ -64,10 +72,9 @@ class CustomInboundFilterValidateTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
             project_id=self.project.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
     @patch(SEER_PATH, return_value={"name": "  Padded name  "})
@@ -77,7 +84,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data["suggestedName"] == "Padded name"
@@ -91,7 +98,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="span",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data["suggestedName"] is None
@@ -109,8 +116,8 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 dataType="error",
                 conditions=[
-                    {"type": "error_message", "value": ["*"]},
-                    {"type": "ip_address", "value": ["not-an-address"]},
+                    {"type": "error_message", "operator": "contains", "value": ["Error"]},
+                    {"type": "ip_address", "operator": "cidr", "value": ["not-an-address"]},
                 ],
             )
 
@@ -128,7 +135,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -143,7 +150,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -156,7 +163,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -168,7 +175,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -181,9 +188,9 @@ class CustomInboundFilterValidateTest(APITestCase):
         custom_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="error",
-            conditions=[{"type": "release", "value": ["a" * stored_size]}],
+            conditions=[{"type": "release", "operator": "equals", "value": ["a" * stored_size]}],
         )
-        same_size = [{"type": "release", "value": ["b" * stored_size]}]
+        same_size = [{"type": "release", "operator": "equals", "value": ["b" * stored_size]}]
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -211,7 +218,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 id="999999",
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
                 status_code=404,
             )
 
@@ -221,7 +228,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
                 status_code=404,
             )
 
@@ -231,7 +238,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
                 status_code=400,
             )
 
@@ -247,6 +254,6 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "contains", "value": ["Error"]}],
                 status_code=403,
             )

@@ -271,6 +271,10 @@ describe('ConnectedRepositoriesPanel', () => {
       body: {prefixes: []},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
       url: repoUrl,
       method: 'GET',
       body: () => [
@@ -381,6 +385,10 @@ describe('ConnectedRepositoriesPanel', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mapping-prefixes/repo/`,
       body: {prefixes: []},
     });
     MockApiClient.addMockResponse({

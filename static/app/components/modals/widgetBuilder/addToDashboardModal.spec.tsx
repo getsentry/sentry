@@ -29,7 +29,7 @@ jest.mock('sentry/views/dashboards/createLimitWrapper');
 const mockDashboardCreateLimitWrapper = jest.mocked(DashboardCreateLimitWrapper);
 
 describe('add to dashboard modal', () => {
-  let eventsStatsMock!: jest.Mock;
+  let eventsTimeseriesMock!: jest.Mock;
   let initialData!: ReturnType<typeof initializeOrg>;
   let widget: Widget;
 
@@ -124,9 +124,9 @@ describe('add to dashboard modal', () => {
       body: [],
     });
 
-    eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
+    eventsTimeseriesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
     });
   });
 
@@ -252,14 +252,13 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -268,14 +267,12 @@ describe('add to dashboard modal', () => {
 
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    expect(eventsStatsMock).toHaveBeenLastCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           interval: '1m',
-          orderby: '',
-          partial: '1',
           project: [1],
           query: ' release:"abc@v1.2.0" ',
           statsPeriod: '1h',
@@ -285,7 +282,7 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('calls the events stats endpoint with the query and selection values', async () => {
+  it('calls the events timeseries endpoint with the query and selection values', async () => {
     render(
       <AddToDashboardModal
         Header={stubEl}
@@ -304,14 +301,13 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
+    expect(eventsTimeseriesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         query: expect.objectContaining({
           environment: [],
           project: [],
           interval: '5m',
-          orderby: '',
           statsPeriod: '24h',
           yAxis: ['count()'],
         }),
@@ -319,7 +315,19 @@ describe('add to dashboard modal', () => {
     );
   });
 
-  it('navigates to the widget builder when clicking Open in Widget Builder', async () => {
+  it('opens the widget builder with transformations and saved dashboard filters', async () => {
+    widget = {
+      ...widget,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          ...widget.queries[0]!,
+          aggregates: ['count(span.duration)'],
+          fields: [],
+          transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+        },
+      ],
+    };
     const {router} = render(
       <AddToDashboardModal
         Header={stubEl}
@@ -347,7 +355,7 @@ describe('add to dashboard modal', () => {
     expect(router.location.query).toEqual({
       title: 'Test title',
       description: 'Test description',
-      dataset: 'error-events',
+      dataset: 'spans',
       source: DashboardWidgetSource.DISCOVERV2,
       project: '1',
       statsPeriod: '1h',
@@ -355,55 +363,26 @@ describe('add to dashboard modal', () => {
       legendAlias: '',
       query: '',
       sort: '',
-      yAxis: 'count()',
+      yAxis: 'count(span.duration)',
+      transformations: '[{"0":["fill(locf)","smooth(sma,5)"]}]',
       axisRange: 'auto',
     });
   });
 
-  it('navigates to the widget builder with saved filters', async () => {
-    const {router} = render(
-      <AddToDashboardModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => {}}
-        organization={initialData.organization}
-        widgets={[widget]}
-        selection={defaultSelection}
-        source={DashboardWidgetSource.DISCOVERV2}
-        location={LocationFixture()}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Select Dashboard')).toBeEnabled();
-    });
-    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
-
-    await userEvent.click(screen.getByText('Open in Widget Builder'));
-
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/dashboard/1/widget-builder/widget/new/'
-    );
-    expect(router.location.query).toEqual({
-      title: 'Test title',
-      description: 'Test description',
-      query: '',
-      yAxis: 'count()',
-      sort: '',
-      displayType: DisplayType.LINE,
-      dataset: WidgetType.ERRORS,
-      project: '1',
-      legendAlias: '',
-      statsPeriod: '1h',
-      source: DashboardWidgetSource.DISCOVERV2,
-      axisRange: 'auto',
-    });
-  });
-
-  it('updates the selected dashboard with the widget when clicking Add + Stay in Discover', async () => {
-    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+  it('saves a widget with transformations to the selected dashboard', async () => {
+    widget = {
+      ...widget,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          ...widget.queries[0]!,
+          aggregates: ['count(span.duration)'],
+          fields: [],
+          transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/1/',
       body: {id: '1', widgets: []},
     });
@@ -420,7 +399,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => {}}
         organization={initialData.organization}
-        widgets={[{...widget, widgetType: WidgetType.ERRORS}]}
+        widgets={[widget]}
         selection={defaultSelection}
         location={LocationFixture()}
       />
@@ -432,17 +411,29 @@ describe('add to dashboard modal', () => {
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
     await userEvent.click(screen.getByText('Add + Stay on this Page'));
-    expect(dashboardDetailGetMock).toHaveBeenCalled();
-
-    // mocked widgets response is an empty array, assert this new widget
-    // is sent as an update to the dashboard
     await waitFor(() => {
       expect(dashboardDetailPutMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
             widgets: [
-              {...widget, widgetType: WidgetType.ERRORS, layout: expect.any(Object)},
+              {
+                ...widget,
+                widgetType: WidgetType.SPANS,
+                queries: [
+                  {
+                    name: '',
+                    conditions: '',
+                    fields: [],
+                    aggregates: ['count(span.duration)'],
+                    fieldAliases: [],
+                    columns: [],
+                    orderby: '',
+                    transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                  },
+                ],
+                layout: expect.any(Object),
+              },
             ],
           }),
         })
@@ -906,7 +897,7 @@ describe('add to dashboard modal', () => {
         expect(screen.getByText('Select Dashboard')).toBeEnabled();
       });
 
-      expect(eventsStatsMock).not.toHaveBeenCalled();
+      expect(eventsTimeseriesMock).not.toHaveBeenCalled();
     });
 
     it('adds a text widget to an existing dashboard without modifying queries', async () => {

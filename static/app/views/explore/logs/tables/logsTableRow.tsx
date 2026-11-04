@@ -58,13 +58,13 @@ import {
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  TraceItemDetailsResponse,
-  TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  getScalarAttributeValue,
   usePrefetchTraceItemDetailsOnHover,
   usePrefetchTraceItemDetailsOnMount,
+  type TraceItemAttributeScalarValue,
+  type TraceItemDetailsResponse,
+  type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
@@ -107,8 +107,8 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useExploreLogsTableRow';
 import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
-import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
   getLogRowItem,
@@ -151,6 +151,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  onScrollToLog?: (dataRow: OurLogsResponseItem) => void;
   routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
@@ -276,6 +277,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
   isHighlighted,
   setHoveredRowId,
   togglePinnedRow,
+  onScrollToLog,
   showCellActions,
   showExploreConnectedSpansLink,
 }: LogsRowProps) {
@@ -517,6 +519,22 @@ export const LogRowContent = memo(function LogRowContentImpl({
             isClickable: true,
           };
 
+  const scrollToLogMenuItems: MenuItemProps[] = onScrollToLog
+    ? [
+        {
+          key: 'scroll-to-log',
+          label: t('Scroll to log'),
+          onAction: () => {
+            trackAnalytics('logs.table.pinned_row_scrolled_to', {
+              log_id: rowId,
+              organization,
+            });
+            onScrollToLog(dataRow);
+          },
+        },
+      ]
+    : [];
+
   const buttonSize = 'xs';
   const chevronIcon = (
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
@@ -749,7 +767,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={extraMenuItems}
+                    extraMenuItems={[...(extraMenuItems ?? []), ...scrollToLogMenuItems]}
                     pin={pin}
                   >
                     {renderedField}
@@ -842,9 +860,9 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce<Record<string, TraceItemResponseAttribute['value']>>(
+    data?.attributes?.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (it, attr) => {
-        it[attr.name] = attr.value;
+        it[attr.name] = getScalarAttributeValue(attr);
         return it;
       },
       {

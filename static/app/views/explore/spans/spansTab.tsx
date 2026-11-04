@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
@@ -100,7 +99,6 @@ function SpansTabOnboardingInner({
       'onboardingProject is the project the setup instructions are for. ' +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
-    onboarding: true,
     onboardingProject: {slug: project.slug, platform: project.platform},
     ...toLLMContextProjectFields(selectedProjects),
   });
@@ -297,16 +295,6 @@ function SpanTabContentSectionInner({
     crossEventQueries,
   });
 
-  const error = defined(timeseriesResult.error)
-    ? null // if the timeseries errors, we prefer to show that error in the chart
-    : queryType === 'samples'
-      ? spansTableResult.result.error
-      : queryType === 'traces'
-        ? tracesTableResult.error
-        : queryType === 'aggregate'
-          ? aggregatesTableResult.result.error
-          : null;
-
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
@@ -340,11 +328,6 @@ function SpanTabContentSectionInner({
       {defined(id) && <DroppedFieldsAlert />}
       <ExploreQuotaExceededAlert referrer="spans-explore" traceItemDataset="spans" />
       <ExtrapolationEnabledAlert />
-      {defined(error) && (
-        <Alert.Container>
-          <Alert variant="danger">{error.message}</Alert>
-        </Alert.Container>
-      )}
       <TourElement<ExploreSpansTour>
         tourContext={ExploreSpansTourContext}
         id={ExploreSpansTour.RESULTS}

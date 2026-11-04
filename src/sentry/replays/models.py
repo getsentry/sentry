@@ -63,7 +63,9 @@ class ReplayRecordingSegment(Model):
 
     __repr__ = sane_repr("replay_id", "segment_id", "file_id")
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: object | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         from sentry.models.files.file import File
 
         try:
@@ -77,7 +79,7 @@ class ReplayRecordingSegment(Model):
         else:
             file.delete()
 
-        rv = super().delete(*args, **kwargs)
+        rv = super().delete(using=using, keep_parents=keep_parents)
         return rv
 
 

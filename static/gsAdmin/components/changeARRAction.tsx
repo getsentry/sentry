@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -30,59 +30,57 @@ export function ChangeARRAction(props: Props) {
 
 type ModalProps = ModalRenderProps & Props;
 
-type ModalState = {
-  error: boolean;
-  newAcv: number;
-};
+function ChangeARRModal({
+  customer,
+  onAction,
+  closeModal,
+  Header,
+  Body,
+  Footer,
+}: ModalProps) {
+  const [newAcv, setNewAcv] = useState<number>(customer.acv / 100);
+  const [error, setError] = useState(false);
 
-class ChangeARRModal extends Component<ModalProps, ModalState> {
-  state: ModalState = {
-    newAcv: this.props.customer.acv / 100,
-    error: false,
+  const handleChange = (value: string) => {
+    const parsedAcv = parseInt(value, 10) || 0;
+    setNewAcv(parsedAcv);
+    setError(parsedAcv < 0);
   };
 
-  onChange = (value: string) => {
-    const newAcv = parseInt(value, 10) || 0;
-    this.setState({newAcv, error: newAcv < 0});
+  const handleAction = () => {
+    closeModal();
+    if (!error) {
+      onAction({customPrice: newAcv * 100});
+    }
   };
 
-  onAction = () => {
-    this.props.closeModal();
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    !this.state.error && this.props.onAction({customPrice: this.state.newAcv * 100});
-  };
-
-  render() {
-    const {Header, closeModal, Body, Footer} = this.props;
-
-    return (
-      <Fragment>
-        <Header>Update Annual Recurring Revenue</Header>
-        <Body>
-          <NumberField
-            name="acv"
-            label="ARR"
-            stacked
-            inline={false}
-            help={
-              <Fragment>
-                Their new annual contract value will be{' '}
-                <strong>${this.state.newAcv.toLocaleString()}</strong>
-              </Fragment>
-            }
-            defaultValue={this.props.customer.acv / 100}
-            onChange={this.onChange}
-          />
-        </Body>
-        <Footer>
-          <ButtonBar>
-            <Button onClick={closeModal}>Cancel</Button>
-            <Button variant="primary" onClick={this.onAction} disabled={this.state.error}>
-              Submit
-            </Button>
-          </ButtonBar>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header>Update Annual Recurring Revenue</Header>
+      <Body>
+        <NumberField
+          name="acv"
+          label="ARR"
+          stacked
+          inline={false}
+          help={
+            <Fragment>
+              Their new annual contract value will be{' '}
+              <strong>${newAcv.toLocaleString()}</strong>
+            </Fragment>
+          }
+          defaultValue={customer.acv / 100}
+          onChange={handleChange}
+        />
+      </Body>
+      <Footer>
+        <ButtonBar>
+          <Button onClick={closeModal}>Cancel</Button>
+          <Button variant="primary" onClick={handleAction} disabled={error}>
+            Submit
+          </Button>
+        </ButtonBar>
+      </Footer>
+    </Fragment>
+  );
 }

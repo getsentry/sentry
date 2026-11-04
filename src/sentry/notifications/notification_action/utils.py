@@ -9,9 +9,10 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.notebooks.access import has_investigations_access
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -202,9 +203,13 @@ def metric_alert_notification_data_factory(
         action_type == Action.Type.SLACK
         and metric_issue_context.group is not None
         and metric_issue_context.new_status != IncidentStatus.CLOSED
-        and features.has("organizations:investigations", organization)
+        and has_investigations_access(organization)
         and features.has("organizations:investigations-slack", organization)
     )
+
+    workflow_link = None
+    if notification_context.workflow_id is not None:
+        workflow_link = build_workflow_link(organization, notification_context.workflow_id)
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
@@ -218,6 +223,8 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
+        workflow_name=notification_context.workflow_name,
+        workflow_link=workflow_link,
         show_investigation_button=show_investigation_button,
     )
 

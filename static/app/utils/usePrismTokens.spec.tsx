@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {loadPrismLanguage} from '@sentry/scraps/code';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 

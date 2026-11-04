@@ -22,10 +22,8 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
+import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -98,9 +96,14 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
 
   /**
+   * Disables drag-to-zoom, so zooming never updates the URL or page filters.
+   */
+  disableZoom?: boolean;
+
+  /**
    * Dropped-data annotations rendered as a severity band between the plot and
-   * the x-axis line. The band is hidden when `visible` is false or no bucket has
-   * dropped data. `onClick` is called with the clicked bucket.
+   * the x-axis line. The band is hidden when no bucket has enough dropped data to
+   * highlight. `onClick` is called when the band is clicked.
    */
   droppedData?: DroppedDataProps;
 
@@ -161,6 +164,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showYAxis?: 'auto' | 'never';
+
+  /**
+   * Maximum number of series listed in the tooltip. When set, series are
+   * listed from the highest value to the lowest with zero values last, and the
+   * rest are summarized as "+X more".
+   */
+  tooltipLimit?: number;
 
   /**
    * Truncate the legend's "+n more" menu labels to the width the legend row
@@ -226,6 +236,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     onChartReady: onChartReadyZoom,
     ...chartZoomProps
   } = useChartZoom({
+    disabled: props.disableZoom,
     saveOnZoom: true,
   });
 
@@ -402,6 +413,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         );
       },
       renderSeriesDetails: props.renderTooltipSeriesDetails,
+      limit: props.tooltipLimit,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -462,23 +474,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
-  const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
-    {
-      chartRef,
-      droppedData: props.droppedData,
-      bandOffset: releaseBandHeight,
-      utc,
-      yAxisIndex: yAxes.length,
-    }
-  );
-
-  if (droppedDataYAxis) {
-    yAxes.push(droppedDataYAxis);
-  }
+  const droppedDataBand = useDroppedDataBand({
+    chartRef,
+    droppedData: props.droppedData,
+    bandOffset: releaseBandHeight,
+    utc,
+  });
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
-  const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
 
   const releaseSeries =
     props.releases && props.showReleaseAs !== 'none'
@@ -554,12 +558,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasCustomTicks = customTicks && customTicks.length > 0;
 
-  // Release bubbles and the dropped-data band each reserve space below the plot,
-  // so the axis line moves down by their combined height and the grid shrinks by
-  // the same amount.
-  const xAxisBandOffset = releaseBandHeight + droppedDataBandHeight;
-  const gridBandBottom = releaseGridBottom + droppedDataBandHeight;
-
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -585,8 +583,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        axisLine: {onZero: xAxisBandOffset === 0},
-        offset: xAxisBandOffset,
+        axisLine: {onZero: releaseBandHeight === 0},
+        offset: releaseBandHeight,
       }
     : HIDDEN_AXIS;
 
@@ -690,9 +688,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries, droppedDataSeries].filter(
-    defined
-  );
+  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -719,10 +715,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
-    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-      props.droppedData?.onClick?.();
-      return;
-    }
     runHandler(event, 'onClick');
   };
 
@@ -747,6 +739,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
+  const band = mergeDroppedDataBand(
+    {
+      grid: {
+        // NOTE: Adding a few pixels of left padding prevents ECharts from
+        // incorrectly truncating long labels. See
+        // https://github.com/apache/echarts/issues/15562
+        left: 2,
+        top: 10,
+        right: 8,
+        bottom: releaseGridBottom,
+        containLabel: true,
+      },
+      xAxis,
+      yAxes,
+      series: allSeries,
+      onClick: handleClick,
+    },
+    droppedDataBand,
+    props.droppedData?.onClick
+  );
+
   return (
     <Stack height="100%">
       {ActionMenu}
@@ -763,18 +776,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ref={mergedChartRef}
           autoHeightResize
           renderer="canvas"
-          series={allSeries}
-          grid={{
-            // NOTE: Adding a few pixels of left padding prevents ECharts from
-            // incorrectly truncating long labels. See
-            // https://github.com/apache/echarts/issues/15562
-            left: 2,
-            top: 10,
-            right: 8,
-            bottom: gridBandBottom,
-            containLabel: true,
-            ...xAxisGrid,
-          }}
+          series={band.series}
+          grid={{...band.grid, ...xAxisGrid}}
           legend={
             showLegend
               ? {
@@ -792,8 +795,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             },
             formatter: formatTooltip,
           }}
-          xAxis={xAxis}
-          yAxes={chartYAxes}
+          xAxis={band.xAxis}
+          yAxes={showYAxis ? band.yAxes : band.yAxes.map(() => HIDDEN_AXIS)}
           {...chartZoomProps}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
@@ -809,7 +812,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           utc={utc ?? undefined}
           onHighlight={handleHighlight}
           onDownplay={handleDownplay}
-          onClick={handleClick}
+          onClick={band.onClick}
         />
       </Container>
     </Stack>

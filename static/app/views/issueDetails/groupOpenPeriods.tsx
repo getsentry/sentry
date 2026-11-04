@@ -21,6 +21,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
 
 interface OpenPeriodDisplayData {
@@ -65,7 +69,7 @@ function IssueOpenPeriodsList() {
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
-  const investigationsEnabled = organization.features.includes('investigations');
+  const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
     period => ({
       type: 'metric_open_period',
@@ -96,11 +100,11 @@ function IssueOpenPeriodsList() {
       return {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
-          <Link
+          <EventIdLink
             to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
-          </Link>
+          </EventIdLink>
         ) : (
           '—'
         ),
@@ -109,9 +113,7 @@ function IssueOpenPeriodsList() {
         end: endDate ? <DateTime date={endDate} /> : undefined,
         investigation:
           activity.type === 'opened' && candidate?.status === 'view' ? (
-            <Link
-              to={`/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`}
-            >
+            <Link to={getInvestigationPath(organization.slug, candidate.investigationId)}>
               <Flex as="span" align="center" gap="xs">
                 <IconSeer size="xs" />
                 {candidate.investigationId}
@@ -183,6 +185,19 @@ function IssueOpenPeriodsList() {
 const AlignLeft = styled('span')`
   text-align: left;
   width: 100%;
+`;
+
+// The EventListTable hides link styling if they aren't in the first column
+// so we have to style it manually
+const EventIdLink = styled(Link)`
+  &&& {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    text-decoration: none;
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+    }
+  }
 `;
 
 export default IssueOpenPeriodsList;

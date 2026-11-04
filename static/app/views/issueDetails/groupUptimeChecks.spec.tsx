@@ -89,7 +89,12 @@ describe('GroupUptimeChecks', () => {
       body: {
         data: [],
       },
-      match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.uptime-checks-grid',
+          query: 'trace:[97f0e440317c5bb5b5e0024ca202a61d]',
+        }),
+      ],
     });
 
     render(<GroupUptimeChecks />, {
@@ -127,7 +132,12 @@ describe('GroupUptimeChecks', () => {
       body: {
         data: [{trace: uptimeCheck.traceId, 'count()': 10}],
       },
-      match: [MockApiClient.matchQuery({referrer: 'api.uptime-checks-grid'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.uptime-checks-grid',
+          query: 'trace:[97f0e440317c5bb5b5e0024ca202a61d]',
+        }),
+      ],
     });
 
     render(<GroupUptimeChecks />, {
@@ -143,5 +153,48 @@ describe('GroupUptimeChecks', () => {
     expect(await screen.findByText('17 spans')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceId})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: traceItemId})).toBeInTheDocument();
+  });
+
+  it('requests span counts for every check trace', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${detectorId}/checks/`,
+      body: [
+        UptimeCheckFixture({
+          traceId: '11111111111111111111111111111111',
+          traceItemId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          uptimeCheckId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        }),
+        UptimeCheckFixture({
+          traceId: '22222222222222222222222222222222',
+          traceItemId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          uptimeCheckId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+      },
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.uptime-checks-grid',
+          per_page: 2,
+          query:
+            'trace:[11111111111111111111111111111111,22222222222222222222222222222222]',
+        }),
+      ],
+    });
+
+    render(<GroupUptimeChecks />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByText('Showing 1-2 matching uptime checks')
+    ).toBeInTheDocument();
+    expect(await screen.findAllByText('7 spans')).toHaveLength(2);
   });
 });

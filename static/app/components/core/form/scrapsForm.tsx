@@ -10,10 +10,18 @@ import {
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
+import {
+  FieldMeta,
+  FieldLayout,
+  FormElementContext,
+  fieldContext,
+  formContext,
+  useFormContext,
+  useIsInsideFormElement,
+} from '@sentry/scraps/formPresentation';
 
+import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
@@ -23,13 +31,6 @@ import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {
-  FormElementContext,
-  fieldContext,
-  formContext,
-  useFormContext,
-  useIsInsideFormElement,
-} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({
@@ -42,11 +43,9 @@ export const defaultFormOptions = formOptions({
     // only by the schema would then show no error at all, so run them here.
     formApi.validateSync('submit');
 
-    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const InvalidInput = document.querySelector(
+    const InvalidInput = document.querySelector<HTMLInputElement>(
       `#${CSS.escape(formApi.formId)} [aria-invalid="true"]`
-    ) as HTMLInputElement;
+    );
 
     InvalidInput?.focus();
   },
@@ -59,6 +58,7 @@ export const defaultFormOptions = formOptions({
 const fieldComponents = {
   Base: BaseField,
   Checkbox: CheckboxField,
+  CompactSelect: CompactSelectField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,

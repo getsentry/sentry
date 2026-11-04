@@ -81,6 +81,24 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"]["id"] == replay2_id
 
+    def test_get_replay_invalid_field(self) -> None:
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&field=release")
+
+        assert response.status_code == 400
+        assert response.json() == {"detail": "Invalid field: release"}
+
+    def test_get_replay_restricted_fields(self) -> None:
+        self.store_replays(mock_replay(datetime.datetime.now(), self.project.id, self.replay_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(
+                self.url + "?field=id&field=releases&field=ota_updates&field=replay_type"
+            )
+
+        assert response.status_code == 200
+        assert response.json()["data"].keys() == {"id", "releases", "ota_updates", "replay_type"}
+
     def test_get_replay_schema(self) -> None:
         """Test replay schema is well-formed."""
         replay1_id = self.replay_id
@@ -106,12 +124,14 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                self.project.id,
-                "error",
-                replay1_id,
-                "a3a62ef6ac86415b83c2416fc2f76db1",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    self.project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
         self.store_replays(
@@ -177,21 +197,25 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq2_timestamp, project2.id, replay1_id, segment_id=1))
         self.store_replays(mock_replay(seq3_timestamp, project2.id, replay1_id, segment_id=2))
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                self.project.id,
-                "error",
-                replay1_id,
-                "a3a62ef6ac86415b83c2416fc2f76db1",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    self.project.id,
+                    "error",
+                    replay1_id,
+                    "a3a62ef6ac86415b83c2416fc2f76db1",
+                )
             )
         )
         self.store_replays(
-            self.mock_event_links(
-                seq1_timestamp,
-                project2.id,
-                "error",
-                replay1_id,
-                "e7052fca6e2e406b9dc2d6917932a4c9",
+            dict(
+                self.mock_event_links(
+                    seq1_timestamp,
+                    project2.id,
+                    "error",
+                    replay1_id,
+                    "e7052fca6e2e406b9dc2d6917932a4c9",
+                )
             )
         )
 

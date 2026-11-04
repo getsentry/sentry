@@ -19,6 +19,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -28,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
@@ -195,6 +195,8 @@ function WidgetBuilderSlideoutInner({
   // always use time as the X-axis
   const showXAxisSelector = isCategoricalBarWidget;
 
+  // The slideout's mobile controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
@@ -254,8 +256,8 @@ function WidgetBuilderSlideoutInner({
 
   useHotkeys([
     {
-      match: 'Escape',
-      skipPreventDefault: true,
+      hotkey: 'Escape',
+      options: {preventDefault: false},
       callback: (evt: KeyboardEvent) => {
         if (!isModalVisible) {
           evt.preventDefault();

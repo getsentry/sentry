@@ -5,13 +5,12 @@ from typing import Any
 from taskbroker_client.retry import Retry
 
 from sentry.auth import access
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
-from sentry.models.activity import Activity
+from sentry.issues.action_log import ActionSource
+from sentry.issues.comments import create_comment
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
-from sentry.types.activity import ActivityType
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
@@ -48,19 +47,10 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     if not text or "\x00" in text:
         return
 
-    data = {"text": text}
-    # Outbox delivery can retry, so identical comments must be idempotent.
-    if Activity.objects.filter(
-        group=group,
-        project_id=group.project_id,
-        user_id=user.id,
-        type=ActivityType.NOTE.value,
-        data=data,
-    ).exists():
-        return
-
-    with action_context_scope(ActionSource.EMAIL, GroupActionActor.user(user.id)):
-        Activity.objects.create_group_activity(group, ActivityType.NOTE, user=user, data=data)
+    # Email redelivery deduplicates without the API's one-hour window.
+    create_comment(
+        group=group, user=user, data={"text": text}, source=ActionSource.EMAIL, from_email=True
+    )
 
 
 class TemporaryEmailError(Exception):

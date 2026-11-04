@@ -8,6 +8,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import MergeAccounts from 'sentry/views/settings/account/mergeAccounts';
@@ -38,6 +39,39 @@ describe('MergeAccounts', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the current and other accounts in separate tables', async () => {
+    render(<MergeAccounts />);
+
+    const currentTable = await screen.findByRole('table', {
+      name: 'Your currently active account:',
+    });
+    const otherTable = screen.getByRole('table', {name: 'Your other accounts:'});
+
+    expect(
+      within(currentTable)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', 'Last Active', 'Organizations']);
+    expect(within(currentTable).getByRole('row', {name: /primary/})).toHaveTextContent(
+      'Currently active'
+    );
+    expect(
+      within(otherTable)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', 'Last Active', 'Organizations', 'Merge']);
+    expect(within(otherTable).getByRole('row', {name: /merge me/})).toHaveTextContent(
+      'hojicha, matcha'
+    );
+    expect(within(otherTable).getByRole('row', {name: /delete me/})).toHaveTextContent(
+      'Never'
+    );
+    expect(
+      within(otherTable).getByRole('checkbox', {name: 'Merge merge me'})
+    ).not.toBeChecked();
+    expect(within(currentTable).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
   it('can post verification code', async () => {
     const mock = MockApiClient.addMockResponse({
       url: VERIFICATION_CODE_ENDPOINT,
@@ -66,8 +100,7 @@ describe('MergeAccounts', () => {
     render(<MergeAccounts />);
     renderGlobalModal();
 
-    const checkbox = (await screen.findAllByRole('checkbox'))[0]!;
-    await userEvent.click(checkbox);
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Merge merge me'}));
     expect(
       screen.getByText('Merge 1 account(s) into Foo Bar and delete 1 account(s)') // the signed in user is named Foo Bar
     ).toBeInTheDocument();

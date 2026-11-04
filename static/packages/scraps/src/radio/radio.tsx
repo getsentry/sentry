@@ -1,0 +1,105 @@
+import type * as React from 'react';
+import isPropValid from '@emotion/is-prop-valid';
+import {keyframes} from '@emotion/react';
+import styled from '@emotion/styled';
+
+import type {StrictCSSObject, Theme} from '@sentry/scraps/theme';
+
+const growIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
+interface RadioProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'size'
+> {
+  ref?: React.Ref<HTMLInputElement>;
+  size?: 'xs' | 'sm' | 'md';
+}
+
+const radioConfig = {
+  xs: {
+    outerSize: '12px',
+    innerSize: '6px',
+  },
+  sm: {
+    outerSize: '20px',
+    innerSize: '10px',
+  },
+  md: {
+    outerSize: '24px',
+    innerSize: '12px',
+  },
+};
+
+const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
+  width: radioConfig[props.size ?? 'md'].outerSize,
+  height: radioConfig[props.size ?? 'md'].outerSize,
+  flexShrink: 0,
+
+  borderRadius: props.theme.radius.full,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  appearance: 'none',
+  transition: `border ${props.theme.motion.smooth.fast}, box-shadow ${props.theme.motion.smooth.fast}`,
+
+  /* TODO(bootstrap): Our bootstrap CSS adds this, we can remove when we remove that */
+  margin: '0 !important',
+  border: `1px solid ${props.theme.tokens.border.primary} !important`,
+
+  '&:after': {
+    content: '""',
+    display: 'block',
+    width: radioConfig[props.size ?? 'md'].innerSize,
+    height: radioConfig[props.size ?? 'md'].innerSize,
+    borderRadius: props.theme.radius.full,
+    backgroundColor: props.theme.tokens.content.onVibrant.light,
+    transition: `all ${props.theme.motion.smooth.moderate}`,
+    opacity: 0,
+  },
+
+  '&:focus-visible': {
+    ...props.theme.focusRing(),
+  },
+
+  '&:checked': {
+    backgroundColor: props.theme.tokens.interactive.chonky.debossed.accent.background,
+    border: `1px solid ${props.theme.tokens.interactive.chonky.debossed.accent.chonk}`,
+
+    '&:after': {
+      animation: `${growIn} ${props.theme.motion.smooth.moderate}`,
+      opacity: 1,
+    },
+  },
+
+  '&:disabled': {
+    opacity: props.theme.tokens.interactive.disabled,
+    cursor: 'not-allowed',
+  },
+});
+
+export const Radio = styled(
+  ({
+    ref,
+
+    // Do not forward `size` since it's used for custom styling, not as the
+    // native `size` attribute
+    size: _size,
+
+    ...props
+  }: RadioProps) => <input type="radio" {...props} ref={ref} />,
+  {
+    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  }
+)`
+  ${p => radioStyles(p)}
+`;

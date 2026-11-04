@@ -1,7 +1,7 @@
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -159,7 +159,11 @@ function ProjectAttributesSettings() {
   return (
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
       <SettingsPageHeader
-        title={t('Attributes')}
+        title={{
+          type: 'page-title',
+          label: t('Attributes'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+        }}
         subtitle={t(
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
         )}

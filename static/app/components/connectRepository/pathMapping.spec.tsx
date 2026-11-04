@@ -86,10 +86,7 @@ describe('PathMapping', () => {
     renderMapping({editing: true, isNew: true});
 
     expect(screen.getByText('e.g src/')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
-      'placeholder',
-      'e.g src/app/'
-    );
+    expect(screen.getByText('e.g src/app/')).toBeInTheDocument();
   });
 
   it('renders preview using placeholder example and updates on input', () => {

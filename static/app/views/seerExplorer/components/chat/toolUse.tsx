@@ -10,7 +10,7 @@ import {
   type ToolCallStatus,
 } from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -592,6 +592,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
                     url: toolUrl,
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
+                    // oxlint-disable-next-line react/todo
                     status: ++rendered === 1 ? blockStatus : undefined,
                   }}
                   onLinkClick={handleLinkClick}
@@ -685,7 +686,9 @@ function CallRow({
       </ToolCallLinkIconWrapper>
     </ToolCallLink>
   ) : (
-    <ToolCallPlainRow>{text}</ToolCallPlainRow>
+    <Flex as="span" display="inline-flex" align="center" gap="md" maxWidth="100%">
+      {text}
+    </Flex>
   );
 
   return (
@@ -918,11 +921,4 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-const ToolCallPlainRow = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  max-width: 100%;
 `;

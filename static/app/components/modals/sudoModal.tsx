@@ -40,6 +40,7 @@ type AuthPayload = {
   password?: string;
   response?: string;
   superuserAccessCategory?: string;
+  superuserOrgSlug?: string;
   superuserReason?: string;
 };
 
@@ -249,10 +250,14 @@ export function SudoModal({
         return;
       }
 
+      // Starting a superuser session doesn't authorize the current org by
+      // itself. Without the slug, the post-login reload 403s on the org and
+      // prompts for the same access reason again.
       try {
         await authenticate({
           isSuperuserModal: true,
           ...access,
+          ...(orgSlug ? {superuserOrgSlug: orgSlug} : {}),
         });
       } catch {
         superuserForm.reset();
@@ -284,11 +289,14 @@ export function SudoModal({
       if (webAuthnAccess) {
         payload.superuserAccessCategory = webAuthnAccess.superuserAccessCategory;
         payload.superuserReason = webAuthnAccess.superuserReason;
+        if (orgSlug) {
+          payload.superuserOrgSlug = orgSlug;
+        }
       }
       // It's ok to throw from here, u2fInterface will handle it.
       await authenticate(payload);
     },
-    [authenticate, isSuperuser, webAuthnAccess]
+    [authenticate, isSuperuser, orgSlug, webAuthnAccess]
   );
 
   const getAuthLoginPath = (): string => {
@@ -475,15 +483,24 @@ export function SudoModal({
         <Footer>
           {isAccessStep ? (
             <Flex width="100%" justify="between" align="center" gap="md">
-              <superuserForm.SubmitButton
-                variant="secondary"
-                onClick={() => {
-                  superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
-                  superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
-                }}
-              >
-                {t('COPS/CSM')}
-              </superuserForm.SubmitButton>
+              {/* Not a submit button: as the first submit button in the form,
+                  pressing Enter in the reason field would trigger it and
+                  overwrite the typed reason with the COPS/CSM preset. */}
+              <superuserForm.Subscribe selector={state => state.isSubmitting}>
+                {isSubmitting => (
+                  <Button
+                    variant="secondary"
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
+                      superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
+                      superuserForm.handleSubmit();
+                    }}
+                  >
+                    {t('COPS/CSM')}
+                  </Button>
+                )}
+              </superuserForm.Subscribe>
               <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
             </Flex>
           ) : (

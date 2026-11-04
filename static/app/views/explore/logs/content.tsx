@@ -14,7 +14,6 @@ import {DataCategory} from 'sentry/types/core';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
@@ -59,7 +58,7 @@ export default function LogsContent() {
       >
         <AnalyticsArea name="explore.logs">
           <AiQueryProvider strategy="Logs">
-            <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
+            <LogsPageStack flex={1} data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
@@ -86,12 +85,6 @@ export default function LogsContent() {
 }
 
 const LogsPageStack = styled(Stack)`
-  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-    &[data-footer-constrained] ~ footer {
-      display: none;
-    }
-  }
-
   &[data-hide-footer] ~ footer {
     display: none;
   }

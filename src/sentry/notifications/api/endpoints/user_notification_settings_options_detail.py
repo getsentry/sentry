@@ -1,3 +1,5 @@
+from typing import cast
+
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -6,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.api.utils import to_valid_int_id
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
@@ -22,14 +25,19 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
         self,
         request: Request,
         user_id: int | str | None = None,
-        *args,
+        *args: object,
         notification_option_id: int,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, user_id, *args, **kwargs)
-        user = kwargs["user"]
+        user = cast(User, kwargs["user"])
         try:
-            option = NotificationSettingOption.objects.get(id=notification_option_id, user=user)
+            option = NotificationSettingOption.objects.get(
+                id=to_valid_int_id(
+                    "notification_option_id", notification_option_id, raise_404=True
+                ),
+                user=user,
+            )
         except NotificationSettingOption.DoesNotExist:
             raise NotFound(detail="User notification setting does not exist")
 

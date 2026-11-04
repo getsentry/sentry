@@ -170,7 +170,7 @@ class DatabaseBackedAppService(AppService):
     def get_custom_alert_rule_actions(
         self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
     ) -> list[Mapping[str, Any]]:
-        action_list = []
+        action_list: list[Mapping[str, Any]] = []
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ):
@@ -313,12 +313,14 @@ class DatabaseBackedAppService(AppService):
         self, *, proxy_user_id: int, organization_id: int
     ) -> RpcSentryAppInstallation | None:
         try:
-            sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
+            sentry_app = SentryApp.objects.select_related("application").get(
+                proxy_user_id=proxy_user_id
+            )
         except SentryApp.DoesNotExist:
             return None
 
         try:
-            installation = SentryAppInstallation.objects.get(
+            installation = SentryAppInstallation.objects.select_related("api_token").get(
                 sentry_app_id=sentry_app.id, organization_id=organization_id
             )
         except SentryAppInstallation.DoesNotExist:

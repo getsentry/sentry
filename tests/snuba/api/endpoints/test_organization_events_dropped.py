@@ -5,12 +5,14 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry.constants import DataCategory
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
+from sentry.testutils.cases import APITestCase, OurLogTestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 
-class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
+class OrganizationEventsDroppedEndpointTest(
+    APITestCase, OutcomesSnubaTest, SnubaTestCase, OurLogTestCase
+):
     endpoint = "sentry-api-0-organization-events-dropped"
 
     def setUp(self) -> None:
@@ -67,7 +69,9 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
 
     def test_serves_dropped_and_accepted_events(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
+        self._store_outcome(
+            Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="usage_exceeded"
+        )
 
         response = self._do_request()
         assert response.status_code == 200, response.content
@@ -79,14 +83,28 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         dropped = response.data["droppedEvents"]
         assert len(dropped) == 1
         assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
-        assert dropped[0]["reason"] == "key_quota"
+        assert dropped[0]["reason"] == "usage_exceeded"
         assert dropped[0]["count"] == 400
+        assert dropped[0]["tags"] == ["unintentional"]
 
         accepted = response.data["acceptedEvents"]
         assert len(accepted) == 1
         assert accepted[0]["outcome"] == "accepted"
         assert accepted[0]["reason"] == "accepted"
         assert accepted[0]["count"] == 1000
+        assert accepted[0]["tags"] == []
+
+    def test_filtered_drop_is_tagged_intentional(self) -> None:
+        # Inbound filters are project settings, so a filtered drop is intentional.
+        self._store_outcome(Outcome.FILTERED, DataCategory.LOG_ITEM, 400, reason="web-crawlers")
+
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+
+        dropped = response.data["droppedEvents"]
+        assert len(dropped) == 1
+        assert dropped[0]["outcome"] == Outcome.FILTERED.api_name()
+        assert dropped[0]["tags"] == ["intentional"]
 
     def test_records_usage_metric(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
@@ -196,6 +214,37 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert len(dropped) == 1
         assert dropped[0]["reason"] == "spike_protection"
         assert dropped[0]["count"] == 150
+
+    def test_reports_suppressed_drops_in_meta(self) -> None:
+        self._store_outcome(
+            Outcome.CLIENT_DISCARD, DataCategory.LOG_ITEM, 300, reason="buffer_overflow"
+        )
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 100, reason="key_quota")
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    timestamp=self.start + timedelta(minutes=30),
+                    attributes={
+                        "sentry.sdk.name": "sentry.javascript.browser",
+                        "sentry.sdk.version": "10.5.0",
+                    },
+                )
+            ]
+        )
+
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+
+        assert [d["reason"] for d in response.data["droppedEvents"]] == ["key_quota"]
+        assert response.data["meta"]["suppressedDrops"] == [
+            {
+                "cause": "js_sdk_below_11",
+                "category": DataCategory.LOG_ITEM.api_name(),
+                "outcome": Outcome.CLIENT_DISCARD.api_name(),
+                "reason": "buffer_overflow",
+                "count": 300,
+            }
+        ]
 
     def test_invalid_user_param(self) -> None:
         response = self._do_request(interval="1s")

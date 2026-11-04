@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Sequence
+from typing import Any
 
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -29,7 +30,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.MSTEAMS.value
     integration_key = "team"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "team": {
@@ -88,7 +89,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         )
         yield self.future(send_notification, key=key)
 
-    def render_label(self):
+    def render_label(self) -> str:
         return self.label.format(
             team=self.get_integration_name(), channel=self.get_option("channel")
         )

@@ -23,11 +23,13 @@ from sentry.organizations.services.organization.model import (
     RpcAuditLogEntryActor,
     RpcCellUser,
     RpcOrganization,
+    RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
+    RpcOrganizationProjectSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcTeam,
@@ -50,6 +52,54 @@ class OrganizationService(RpcService):
         )
 
         return DatabaseBackedOrganizationService()
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
+        """Return the supplied IDs that belong to active projects in this organization."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_access_context(
+        self,
+        *,
+        organization_id: int,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        """
+        Return organization/member data for access checks without full resource collections.
+
+        include_resource_ids batches org-wide enumeration into this response; it does not
+        authorize the user to access those resources. Callers must apply access policies.
+        """
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_access_context_by_slug(
+        self,
+        *,
+        slug: str,
+        only_visible: bool,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        """Slug-addressed get_access_context. only_visible excludes inactive organizations."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_project_platform_summary(
+        self, *, organization_id: int
+    ) -> RpcOrganizationProjectSummary:
+        """
+        Return distinct platforms and aggregate flags for broadcast targeting.
+
+        Includes inactive projects to preserve existing targeting semantics.
+        """
+        pass
 
     def get(self, id: int) -> RpcOrganization | None:
         """
