@@ -235,7 +235,8 @@ def trigger_autofix_feature(
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_mode=args.enable_bash_mode,
+        # The client still requires seer-explorer-allow-bash-mode.
+        enable_bash_mode=single_run or args.enable_bash_mode,
         enable_coding=enable_coding,
     )
 
