@@ -9,9 +9,14 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.notifications.notification_action.activity_registry.base import require_integration_id
 from sentry.notifications.notification_action.registry import activity_handler_registry
-from sentry.notifications.notification_action.types import EXCEPTION_IGNORE_LIST, ActivityHandler
+from sentry.notifications.notification_action.types import (
+    EXCEPTION_IGNORE_LIST,
+    ActivityHandler,
+    BaseIssueAlertHandler,
+)
+from sentry.notifications.types import NotificationActionContext
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.types.activity import ActivityType
+from sentry.types.activity import STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
@@ -26,20 +31,28 @@ TICKETING_ACTIVITY_DESCRIPTIONS: dict[ActivityType, str] = {
     ActivityType.SEER_PR_READY_FOR_REVIEW: "Pull Request",
 }
 
-TICKETING_COMPATIBLE_ACTIVITY_TYPES = list(TICKETING_ACTIVITY_DESCRIPTIONS.keys())
+TICKETING_COMPATIBLE_ACTIVITY_TYPES = [
+    *TICKETING_ACTIVITY_DESCRIPTIONS,
+    *STATUS_CHANGE_ACTIVITY_TYPES,
+]
 
 
 def _build_description(
     installation: IssueBasicIntegration,
     group: Group,
-    workflow_id: int | None,
-    organization_slug: str,
+    action_context: NotificationActionContext,
 ) -> str:
     description_parts = installation.get_group_link(group)
-    if workflow_id is not None:
-        workflow_url = create_link_to_workflow(organization_slug, str(workflow_id))
+    if action_context.origin.workflow_id is not None:
+        workflow_url = create_link_to_workflow(
+            action_context.project.organization.slug,
+            str(action_context.origin.workflow_id),
+        )
+        workflow_link = installation.format_link(
+            action_context.origin.label, absolute_uri(workflow_url)
+        )
         description_parts.append(
-            f"\nThis ticket was automatically created by Sentry via [Alert]({absolute_uri(workflow_url)})"
+            f"\nThis ticket was automatically created by Sentry via {workflow_link}"
         )
     return "\n".join(description_parts)
 
@@ -60,6 +73,12 @@ class TicketingActivityHandler(ActivityHandler):
 
         action = invocation.action
         group, _, organization = extract_notification_models_by_activity(activity)
+        action_context = BaseIssueAlertHandler.create_action_context(
+            action=action,
+            detector=invocation.detector,
+            event_data=invocation.event_data,
+            workflow_id=invocation.workflow_id,
+        )
 
         integration_id = require_integration_id(action)
         provider = action.type
@@ -100,9 +119,7 @@ class TicketingActivityHandler(ActivityHandler):
         data: dict[str, Any] = {
             **additional_fields,
             "title": title,
-            "description": _build_description(
-                installation, group, invocation.workflow_id, organization.slug
-            ),
+            "description": _build_description(installation, group, action_context),
         }
 
         try:

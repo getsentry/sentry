@@ -16,7 +16,7 @@ from sentry.notifications.notification_action.activity_registry.ticketing import
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.testutils.helpers.action_log import capture_action_log
-from sentry.types.activity import ActivityType
+from sentry.types.activity import STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -46,6 +46,11 @@ def test_ticketing_registrations(action_type: Action.Type) -> None:
     ],
 )
 def test_activity_compatibility(activity_type: ActivityType) -> None:
+    assert activity_type in TicketingActivityHandler.compatible_activity_types
+
+
+@pytest.mark.parametrize("activity_type", STATUS_CHANGE_ACTIVITY_TYPES)
+def test_status_change_activity_compatibility(activity_type: ActivityType) -> None:
     assert activity_type in TicketingActivityHandler.compatible_activity_types
 
 
@@ -126,6 +131,7 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
         call_data = mock_create.call_args.args[0]
         assert call_data["title"] == f"[Code Changes] {self.group.title}"
         assert "Sentry Issue:" in call_data["description"]
+        assert f"[{self.workflow.name}](" in call_data["description"]
 
         external_issue = ExternalIssue.objects.get(
             organization_id=self.organization.id,
@@ -153,6 +159,18 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
             "label": "getsentry/sentry#321",
             "new": True,
         }
+
+    def test_invoke_action_creates_ticket_for_status_change(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.SET_RESOLVED.value
+        )
+
+        with self._mock_github_create_issue() as mock_create:
+            TicketingActivityHandler.invoke_action(
+                invocation=self._create_invocation(activity), activity=activity
+            )
+
+        assert mock_create.call_args.args[0]["title"] == self.group.title
 
     def test_invoke_action_only_creates_one_ticket(self) -> None:
         with self._mock_github_create_issue() as mock_create:
