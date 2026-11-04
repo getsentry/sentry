@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from snuba_sdk import Entity, Join, Relationship
+from snuba_sdk import Direction, Entity, Join, OrderBy, Relationship
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
@@ -121,6 +121,45 @@ class ErrorsQueryBuilderTest(TestCase):
                 Op.IN,
                 self.projects,
             ),
+        ]
+
+    def test_is_status_project_orderby_wraps_transform_in_any(self) -> None:
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query="is:unresolved",
+            selected_columns=["project", "count()"],
+            orderby=["-project"],
+            params={
+                "project_id": self.projects,
+            },
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+            ),
+        ).get_snql_query()
+        query.validate()
+        e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+
+        assert query.query.orderby == [
+            OrderBy(
+                Function(
+                    "any",
+                    [
+                        Function(
+                            "transform",
+                            [
+                                Column("project_id", entity=e_entity),
+                                [self.project.id],
+                                [self.project.slug],
+                                "",
+                            ],
+                        )
+                    ],
+                ),
+                Direction.DESC,
+            )
         ]
 
     def test_error_received_filter_uses_datetime(self) -> None:
