@@ -29,6 +29,7 @@ from sentry.apidocs.internal import (
     PERMISSIONS_EXTENSION,
     PUBLISH_STATUS_EXTENSION,
     UNDOCUMENTED_EXTENSION,
+    UNRESOLVED_EXTENSION,
     InternalGenerator,
 )
 from sentry.apidocs.internal.generator import (
@@ -41,6 +42,7 @@ from sentry.apidocs.internal.generator import (
 )
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.utils import SentryApiBuildError, inline_sentry_response_serializer
+from tools import api_contracts_to_typescript
 
 # The published build writes API ownership stats to a tracked file; tests must not.
 no_ownership_file = mock.patch("sentry.apidocs.hooks.__write_ownership_data")
@@ -468,3 +470,11 @@ def test_published_build_of_the_same_routes_is_unchanged(_write: Any) -> None:
     declared_item = schema["components"]["schemas"]["BoxDeclaredItem"]
     assert "additionalProperties" not in declared_item
     assert declared_item["properties"].keys() == {"name"}
+
+
+def test_contracts_generator_reads_the_extensions_this_build_writes() -> None:
+    # tools/api_contracts_to_typescript.py spells them out so it runs without Django.
+    assert api_contracts_to_typescript.PATH_ALIASES_EXTENSION == PATH_ALIASES_EXTENSION
+    assert api_contracts_to_typescript.PUBLISH_STATUS_EXTENSION == PUBLISH_STATUS_EXTENSION
+    assert api_contracts_to_typescript.UNDOCUMENTED_EXTENSION == UNDOCUMENTED_EXTENSION
+    assert api_contracts_to_typescript.UNRESOLVED_EXTENSION == UNRESOLVED_EXTENSION
