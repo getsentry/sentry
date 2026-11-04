@@ -1,10 +1,15 @@
+import omit from 'lodash/omit';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 
-import {doDiscoverQuery, GenericDiscoverQuery} from './genericDiscoverQuery';
+import {
+  doDiscoverQuery,
+  GenericDiscoverQuery,
+  type DiscoverQueryProps,
+} from './genericDiscoverQuery';
 
 describe('doDiscoverQuery', () => {
   const api = new MockApiClient();
@@ -38,7 +43,18 @@ describe('GenericDiscoverQuery', () => {
     });
   }
 
-  function renderQuery(props: {eventView: EventView; version?: number}) {
+  function getPayloadWithoutFields({
+    eventView,
+    location: payloadLocation,
+  }: Pick<DiscoverQueryProps, 'eventView' | 'location'>) {
+    return omit(eventView.getEventsAPIPayload(payloadLocation), ['field']);
+  }
+
+  function renderQuery(props: {
+    eventView: EventView;
+    getRequestPayload?: typeof getPayloadWithoutFields;
+    version?: number;
+  }) {
     return (
       <GenericDiscoverQuery<{data: Array<{transaction: string}>}, {version?: number}>
         route="events"
@@ -62,10 +78,20 @@ describe('GenericDiscoverQuery', () => {
       body: {data: [{transaction: '/health'}]},
     });
 
-    const {rerender} = render(renderQuery({eventView: makeEventView([])}));
+    const {rerender} = render(
+      renderQuery({
+        eventView: makeEventView([]),
+        getRequestPayload: getPayloadWithoutFields,
+      })
+    );
     expect(screen.getByText('loading')).toBeInTheDocument();
     expect(getMock).not.toHaveBeenCalled();
-    rerender(renderQuery({eventView: makeEventView(['transaction'])}));
+    rerender(
+      renderQuery({
+        eventView: makeEventView(['transaction']),
+        getRequestPayload: getPayloadWithoutFields,
+      })
+    );
 
     expect(await screen.findByText('/health')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -171,7 +171,7 @@ export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const tableFetchIDRef = useRef<symbol | undefined>(undefined);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs after every render to compare against the previous props, like componentDidUpdate
-  useEffect(() => {
+  useLayoutEffect(() => {
     latestPropsRef.current = props;
     const prevProps = prevPropsRef.current;
     prevPropsRef.current = props;
@@ -227,7 +227,6 @@ export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
       }
     };
 
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     fetchData();
   });
 
