@@ -637,115 +637,21 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         config.refresh_from_db()
         assert config.enabled is True
 
-    @with_feature("organizations:service-accounts")
-    def test_put_creates_agent_for_other_strategies(self) -> None:
-        config = self.create_config()
-        agent = {"scopes": ["event:read", "project:read"], "projectIds": [self.project.id]}
-
-        with outbox_runner():
-            response = self.get_success_response(
-                self.organization.slug, config.id, method="put", agent=agent
-            )
-
-        account = get_agent_service_account(config.id)
-        assert response.data["agent"] == {
-            "serviceAccountId": str(account.id),
-            **agent,
-            "allProjects": False,
-        }
-        assert account.scope_list == ["event:read", "project:read"]
-        assert account.created_by_id == self.user.id
-        assert agent_project_ids(account) == [self.project.id]
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_ADD"), target_object=account.id
-            ).exists()
-
-    @with_feature("organizations:service-accounts")
-    def test_put_agent_ignores_duplicate_scopes_and_projects(self) -> None:
-        config = self.create_config()
-
-        response = self.get_success_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            agent={
-                "scopes": ["project:read", "event:read", "event:read"],
-                "projectIds": [self.project.id, self.project.id],
-            },
-        )
-
-        account = get_agent_service_account(config.id)
-        assert account.scope_list == ["event:read", "project:read"]
-        assert agent_project_ids(account) == [self.project.id]
-        assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
-        assert response.data["agent"]["projectIds"] == [self.project.id]
-
-    @with_feature("organizations:service-accounts")
     def test_agent_projects_hide_projects_the_viewer_cannot_access(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
         hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
-        config = self.create_config()
         with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                config.id,
-                method="put",
-                agent={"scopes": ["event:read"], "projectIds": [accessible.id, hidden.id]},
+            workflow = self.create_metric_workflow(
+                agent=SeerAgentAccess(scopes=["event:read"], project_ids=[accessible.id, hidden.id])
             )
         self.login_as(member)
 
-        response = self.get_success_response(self.organization.slug, config.id)
-        assert response.data["agent"]["projectIds"] == [accessible.id]
+        response = self.get_success_response(self.organization.slug, workflow.config_id)
 
-        response = self.get_success_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            agent={"scopes": ["event:read"], "projectIds": [accessible.id]},
-        )
         assert response.data["agent"]["projectIds"] == [accessible.id]
-        assert agent_project_ids(get_agent_service_account(config.id)) == sorted(
+        assert agent_project_ids(get_agent_service_account(workflow.config_id)) == sorted(
             [accessible.id, hidden.id]
         )
-
-    @with_feature("organizations:service-accounts")
-    def test_put_updates_the_existing_agent(self) -> None:
-        config = self.create_config()
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                config.id,
-                method="put",
-                agent={"scopes": ["event:read"], "projectIds": [self.project.id]},
-            )
-        account = get_agent_service_account(config.id)
-
-        with outbox_runner():
-            response = self.get_success_response(
-                self.organization.slug,
-                config.id,
-                method="put",
-                agent={"scopes": ["project:read"], "allProjects": True},
-            )
-
-        assert response.data["agent"] == {
-            "serviceAccountId": str(account.id),
-            "scopes": ["project:read"],
-            "projectIds": [],
-            "allProjects": True,
-        }
-        account = get_agent_service_account(config.id)
-        assert account.scope_list == ["project:read"]
-        assert account.all_projects
-        assert agent_project_ids(account) == []
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"), target_object=account.id
-            ).exists()
-        detail = self.get_success_response(self.organization.slug, config.id)
-        assert detail.data["agent"] == response.data["agent"]
 
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
@@ -850,97 +756,29 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         assert self.selected_project_ids(workflow.get_config()) == []
 
-    @with_feature("organizations:service-accounts")
     def test_agent_projects_remain_independent_when_monitors_change(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         additional_project = self.create_project()
-        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
-        agent = {
-            "scopes": ["event:read"],
-            "projectIds": [self.project.id, additional_project.id],
-            "allProjects": False,
-        }
-
         with outbox_runner():
-            response = self.get_success_response(
-                self.organization.slug, workflow.config_id, method="put", agent=agent
+            workflow = self.create_metric_workflow(
+                monitor_ids=[monitor.id],
+                agent=SeerAgentAccess(
+                    scopes=["event:read"], project_ids=[self.project.id, additional_project.id]
+                ),
             )
         account = get_agent_service_account(workflow.config_id)
-        assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
-        assert response.data["projects"] == [self.project.id]
-        assert response.data["monitorIds"] == [monitor.id]
 
         response = self.get_success_response(
             self.organization.slug, workflow.config_id, method="put", monitorIds=[]
         )
-        assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
+
+        assert response.data["agent"] == {
+            "serviceAccountId": str(account.id),
+            "scopes": ["event:read"],
+            "projectIds": sorted([self.project.id, additional_project.id]),
+            "allProjects": False,
+        }
         assert response.data["projects"] == []
-
-    @with_feature("organizations:service-accounts")
-    def test_agent_with_scopes_the_caller_lacks_changes_nothing(self) -> None:
-        monitor = self.create_metric_monitor(self.project)
-        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
-        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
-
-        response = self.client.put(
-            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
-            {"monitorIds": [], "agent": {"scopes": ["org:write"]}},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token.token}",
-        )
-
-        assert response.status_code == 403
-        assert self.connected_monitor_ids(workflow) == {monitor.id}
-        assert get_agent_service_account(workflow.config_id).scope_list == ["event:read"]
-
-    @with_feature("organizations:service-accounts")
-    def test_all_projects_agent_requires_a_global_role(self) -> None:
-        workflow = self.create_metric_workflow()
-        api_key = self.create_api_key(
-            organization=self.organization,
-            scope_list=["project:read", "event:read"],
-        )
-
-        response = self.client.put(
-            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
-            {"agent": {"scopes": ["event:read"], "allProjects": True}},
-            format="json",
-            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-        )
-
-        assert response.status_code == 403
-        assert not get_agent_service_account(workflow.config_id).all_projects
-
-        self.get_success_response(
-            self.organization.slug,
-            workflow.config_id,
-            method="put",
-            agent={"scopes": ["event:read"], "allProjects": True},
-        )
-        member, project = self.create_member_with_project(open_membership=False)
-        monitor = self.create_metric_monitor(project)
-        self.login_as(member)
-
-        self.get_error_response(
-            self.organization.slug,
-            workflow.config_id,
-            method="put",
-            monitorIds=[monitor.id],
-            agent={"scopes": ["event:read"], "projectIds": [project.id]},
-            status_code=403,
-        )
-        assert get_agent_service_account(workflow.config_id).all_projects
-        assert workflow.get_monitors() == []
-
-    def test_agent_requires_service_accounts_feature(self) -> None:
-        config = self.create_config()
-        self.get_error_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            agent={"scopes": ["event:read"]},
-            status_code=404,
-        )
 
     def test_delete(self) -> None:
         with outbox_runner():
@@ -997,10 +835,10 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         return self.create_detector(project=project, type=MetricIssue.slug)
 
     def create_metric_workflow(
-        self, monitor_ids: list[int] | None = None
+        self, monitor_ids: list[int] | None = None, agent: SeerAgentAccess = AGENT
     ) -> BreachedMetricWorkflow:
         return BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id, monitor_ids=monitor_ids or [], agent=AGENT
+            self.organization.id, monitor_ids=monitor_ids or [], agent=agent
         )
 
     def connected_monitor_ids(self, workflow: BreachedMetricWorkflow) -> set[int]:
@@ -1149,6 +987,63 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not ServiceAccount.objects.exists()
             assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_agent_ignores_duplicate_scopes_and_projects(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            agent={
+                "scopes": ["project:read", "event:read", "event:read"],
+                "projectIds": [self.project.id, self.project.id],
+            },
+            status_code=201,
+        )
+
+        account = get_agent_service_account(int(response.data["id"]))
+        assert account.scope_list == ["event:read", "project:read"]
+        assert agent_project_ids(account) == [self.project.id]
+        assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
+        assert response.data["agent"]["projectIds"] == [self.project.id]
+
+    def test_agent_grants_are_limited_to_the_callers_access(self) -> None:
+        url = f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:write"])
+        api_key = self.create_api_key(
+            organization=self.organization, scope_list=["org:write", "event:read"]
+        )
+
+        lacks_scope = self.client.post(
+            url,
+            {"strategy": "agentic_triage_v2", "agent": {"scopes": ["org:admin"]}},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        all_projects_without_role = self.client.post(
+            url,
+            {
+                "strategy": "agentic_triage_v2",
+                "agent": {"scopes": ["event:read"], "allProjects": True},
+            },
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+        )
+
+        assert lacks_scope.status_code == 403
+        assert lacks_scope.data["detail"] == "You can't give an agent scopes you don't have."
+        assert all_projects_without_role.status_code == 403
+        assert all_projects_without_role.data["detail"] == (
+            "Only a role with access to all projects can give an agent all projects."
+        )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ServiceAccount.objects.exists()
+
+    def test_requires_service_accounts_feature(self) -> None:
+        with self.feature({"organizations:service-accounts": False}):
+            self.get_error_response(
+                self.organization.slug, strategy="agentic_triage_v2", status_code=404
+            )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()
