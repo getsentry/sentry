@@ -258,7 +258,6 @@ function useSpans({query, trace}: UseSpansOptions): {
     limit: 10,
     referrer: 'api.trace-explorer.trace-spans-list',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
     queryExtras: {caseInsensitive},
   });
 

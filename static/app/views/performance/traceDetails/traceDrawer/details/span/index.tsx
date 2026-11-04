@@ -105,7 +105,6 @@ export function useAvgSpanDuration(
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
-    trackResponseAnalytics: false,
   });
 
   return result.data?.[0]?.['avg(span.duration)'];

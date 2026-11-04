@@ -164,7 +164,6 @@ function useExploreAggregatesTableImp({
     initialData: [],
     limit,
     referrer: 'api.explore.spans-aggregates-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 

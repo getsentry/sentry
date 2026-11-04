@@ -19,7 +19,6 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
-import {useTrackResponse} from 'sentry/views/insights/common/utils/useTrackResponse';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
@@ -37,33 +36,22 @@ type SpansQueryProps<T = any[]> = {
   queryExtras?: RPCQueryExtras;
   referrer?: string;
   staleTime?: number;
-  trackResponseAnalytics?: boolean;
 };
 
-export function useSpansQuery<T = any[]>({
-  trackResponseAnalytics = true,
-  ...props
-}: SpansQueryProps<T>) {
+export function useSpansQuery<T = any[]>(props: SpansQueryProps<T>) {
   const {isReady: pageFiltersReady} = usePageFilters();
-  const response = useWrappedDiscoverQuery<T>(
+  return useWrappedDiscoverQuery<T>(
     toWrappedDiscoverQueryProps({
       ...props,
       enabled: (props.enabled ?? true) && pageFiltersReady,
     })
   );
-  useTrackResponse(response, trackResponseAnalytics);
-  return response;
 }
 
-export function useSpansQueryWithoutPageFilters<T = any[]>({
-  trackResponseAnalytics = true,
-  ...props
-}: SpansQueryProps<T>) {
-  const response = useWrappedDiscoverQueryWithoutPageFilters<T>(
+export function useSpansQueryWithoutPageFilters<T = any[]>(props: SpansQueryProps<T>) {
+  return useWrappedDiscoverQueryWithoutPageFilters<T>(
     toWrappedDiscoverQueryProps({...props, enabled: props.enabled ?? true})
   );
-  useTrackResponse(response, trackResponseAnalytics);
-  return response;
 }
 
 function toWrappedDiscoverQueryProps<T>({
@@ -71,7 +59,7 @@ function toWrappedDiscoverQueryProps<T>({
   queryExtras,
   referrer = 'use-spans-query',
   ...props
-}: Omit<SpansQueryProps<T>, 'trackResponseAnalytics'>): WrappedDiscoverQueryProps<T> {
+}: SpansQueryProps<T>): WrappedDiscoverQueryProps<T> {
   if (!eventView) {
     throw new Error(
       'eventView argument must be defined when Starfish useDiscover is true'
