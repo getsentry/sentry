@@ -734,6 +734,15 @@ describe('token', () => {
       expect(input).toHaveAttribute('placeholder', 'span.duration');
     });
 
+    it('hides the saved argument of count', () => {
+      render(<Tokens expression="count(span.duration)" />);
+
+      expect(screen.getByLabelText('count()')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('combobox', {name: 'Select an attribute'})
+      ).not.toBeInTheDocument();
+    });
+
     it('inserts count without arguments', async () => {
       render(<Tokens expression="" />);
 

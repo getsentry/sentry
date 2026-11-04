@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString, type QueryFieldValue} from 'sentry/utils/discover/fields';
-import {AggregationKey, classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
+import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
@@ -612,17 +612,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       matchingAggregate?.value.meta.name === 'apdex' ||
                       matchingAggregate?.value.meta.name === 'user_misery';
 
-                    // `count` on spans and logs counts every item, so it is shown as
-                    // `count()` without a column selector.
-                    const isTraceItemCount =
-                      (state.dataset === WidgetType.SPANS ||
-                        state.dataset === WidgetType.LOGS) &&
-                      matchingAggregate?.value.meta.name === AggregationKey.COUNT;
-
                     const hasColumnParameter =
                       (fields[index]!.kind === FieldValueKind.FUNCTION &&
                         !isApdexOrUserMisery &&
-                        !isTraceItemCount &&
                         matchingAggregate?.value.meta.parameters.length !== 0) ||
                       fields[index]!.kind === FieldValueKind.FIELD;
 

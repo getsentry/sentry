@@ -602,16 +602,12 @@ function expectRows(rows: HTMLElement[]) {
             new RegExp(`Function${parsedFunction.name}`)
           );
 
-          if (field.yAxis === 'count(span.duration)') {
-            expect(
-              within(row).queryByTestId('editor-visualize-argument')
-            ).not.toBeInTheDocument();
-          } else {
-            const argumentElement = within(row).getByTestId('editor-visualize-argument');
-            expect(argumentElement).toHaveTextContent(
-              new RegExp(parsedFunction.arguments[0]!)
-            );
-          }
+          const argsRegexOverride =
+            field.yAxis === 'count(span.duration)' ? /spans/ : undefined;
+          const argumentElement = within(row).getByTestId('editor-visualize-argument');
+          expect(argumentElement).toHaveTextContent(
+            argsRegexOverride ?? new RegExp(parsedFunction.arguments[0]!)
+          );
         }
       }
     },

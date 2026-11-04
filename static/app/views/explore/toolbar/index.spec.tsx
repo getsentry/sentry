@@ -142,7 +142,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('hides the visualize field for count', async () => {
+  it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
       // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
@@ -156,10 +156,7 @@ describe('ExploreToolbar', () => {
 
     // this is the default
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
-    expect(await within(section).findByRole('button', {name: 'count'})).toBeEnabled();
-    expect(
-      within(section).queryByRole('button', {name: 'span.duration'})
-    ).not.toBeInTheDocument();
+    expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
   it('changes to count(span.duration) when using count', async () => {

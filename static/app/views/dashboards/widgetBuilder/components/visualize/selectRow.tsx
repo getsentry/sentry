@@ -42,6 +42,7 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   applyConditionalFilter,
@@ -149,7 +150,7 @@ export function SelectRow({
   field,
   index,
   hasColumnParameter,
-  columnOptions,
+  columnOptions: defaultColumnOptions,
   aggregateOptions,
   stringFields,
   error,
@@ -217,6 +218,36 @@ export function SelectRow({
     return parseFunction(fieldString);
   }, [conditionalAggregate, fieldString]);
 
+  const [lockOptions, columnOptions] = useMemo(() => {
+    if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
+      if (parsedFunction?.name === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('spans'),
+            value: DEFAULT_VISUALIZATION_FIELD,
+            textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ];
+        return [true, options];
+      }
+    } else if (
+      state.dataset === WidgetType.LOGS &&
+      field.kind === FieldValueKind.FUNCTION
+    ) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('logs'),
+            value: 'message',
+          },
+        ];
+        return [true, options];
+      }
+    }
+
+    return [false, defaultColumnOptions];
+  }, [defaultColumnOptions, state.dataset, field, parsedFunction?.name]);
+
   const aggregateValue = parsedFunction?.name
     ? getAggregateValueKey(parsedFunction.name)
     : NONE;
@@ -231,7 +262,8 @@ export function SelectRow({
   // search input to a debounced server-side fetch (matching Explore) so
   // attributes that weren't in the initial response can still be found by typing.
   const isTraceItemColumnSelect =
-    state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS;
+    (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) &&
+    !lockOptions;
 
   const {
     traceItemType,
@@ -830,7 +862,7 @@ export function SelectRow({
                   aria-label={t('Column Selection')}
                 />
               )}
-              disabled={disabled}
+              disabled={disabled || lockOptions}
             />
           </SelectWrapper>
         )}

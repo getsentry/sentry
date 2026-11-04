@@ -93,7 +93,7 @@ describe('MultiQueryModeContent', () => {
     });
   });
 
-  it('hides the field for count', async () => {
+  it('disables changing fields for count', async () => {
     function Component() {
       return <MultiQueryModeContent />;
     }
@@ -101,10 +101,7 @@ describe('MultiQueryModeContent', () => {
     render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
-    expect(within(section).getByRole('button', {name: 'count'})).toBeEnabled();
-    expect(
-      within(section).queryByRole('button', {name: 'span.duration'})
-    ).not.toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
   it('changes to count(span.duration) when using count', async () => {

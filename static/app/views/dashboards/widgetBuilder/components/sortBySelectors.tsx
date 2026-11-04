@@ -16,6 +16,7 @@ import {
   getEquation,
   isEquation,
   isEquationAlias,
+  parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,12 +51,9 @@ interface Props {
   hasGroupBy?: boolean;
 }
 
-// `count` on spans and logs counts every item, so it is shown as `count()` without
-// a parameter selector.
-const ARGUMENTLESS_COUNT_SORTS: Partial<Record<WidgetType, string>> = {
-  [WidgetType.SPANS]: 'count(span.duration)',
-  [WidgetType.LOGS]: 'count(message)',
-};
+// Lock the sort by parameter option when the value is `count(span.duration)`
+// because we do not want to expose the concept of counting by other fields
+const LOCKED_SPAN_COUNT_SORT = 'count(span.duration)';
 
 export function SortBySelectors({
   values,
@@ -92,8 +90,18 @@ export function SortBySelectors({
     let options: Record<string, SelectValue<FieldValue>> = {};
     if (displayType !== DisplayType.TABLE) {
       options = datasetConfig.getTimeseriesSortOptions(organization, widgetQuery, tags);
-      if (ARGUMENTLESS_COUNT_SORTS[widgetType] && options['function:count']) {
-        options['function:count'] = {...options['function:count'], label: 'count()'};
+      const parsedFunction = parseFunction(values.sortBy);
+      if (
+        widgetType === WidgetType.SPANS &&
+        parsedFunction?.name === 'count' &&
+        options['measurement:span.duration']
+      ) {
+        // Re-map the span duration measurement label so we can simply render
+        // `spans` in the parameter UI
+        options['measurement:span.duration'] = {
+          ...options['measurement:span.duration'],
+          label: t('spans'),
+        };
       }
     }
     return options;
@@ -104,6 +112,7 @@ export function SortBySelectors({
     widgetQuery, // This dependency is unstable!
     widgetType,
     displayType,
+    values.sortBy,
   ]);
 
   return (
@@ -178,8 +187,9 @@ export function SortBySelectors({
                   : undefined
               }
               filterAggregateParameters={datasetConfig.filterAggregateParams}
-              hideParameterSelector={
-                values.sortBy === ARGUMENTLESS_COUNT_SORTS[widgetType]
+              disableParameterSelector={
+                widgetType === WidgetType.SPANS &&
+                values.sortBy === LOCKED_SPAN_COUNT_SORT
               }
               onChange={value => {
                 if (value.alias && isEquationAlias(value.alias)) {

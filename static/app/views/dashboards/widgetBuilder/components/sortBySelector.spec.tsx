@@ -210,10 +210,10 @@ describe('WidgetBuilderSortBySelector', () => {
       }
     );
 
-    expect(await screen.findByText('count()')).toBeInTheDocument();
-    expect(screen.queryByText('span.duration')).not.toBeInTheDocument();
+    expect(await screen.findByText(`count(${ELLIPSIS})`)).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('count()'));
+    await userEvent.click(screen.getByText(`count(${ELLIPSIS})`));
     await userEvent.click(screen.getByText(`count_unique(${ELLIPSIS})`));
 
     await waitFor(() => {

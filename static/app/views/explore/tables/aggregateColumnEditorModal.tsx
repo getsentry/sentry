@@ -413,12 +413,9 @@ function AggregateSelector({
   // filter argument stripped off.
   const parsedFunction = useMemo(() => parseConditionalAggregate(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
-  // `count` counts every span, so it is shown as `count()` without an argument
-  // dropdown.
-  const aggregateDefinition =
-    aggregateFunc && aggregateFunc !== AggregationKey.COUNT
-      ? getFieldDefinition(aggregateFunc, 'span')
-      : undefined;
+  const aggregateDefinition = aggregateFunc
+    ? getFieldDefinition(aggregateFunc, 'span')
+    : undefined;
 
   const filter = parsedFunction?.filter ?? '';
 
@@ -699,6 +696,10 @@ function getSupportedAttributeKinds(
 ): readonly AttributeKind[] {
   if (!functionName) {
     return ['number'];
+  }
+  // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
+  if (functionName === AggregationKey.COUNT) {
+    return [];
   }
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) {
     return [];

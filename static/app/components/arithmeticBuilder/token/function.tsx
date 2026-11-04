@@ -59,7 +59,11 @@ export function ArithmeticTokenFunction({
   state,
   token,
 }: ArithmeticTokenFunctionProps) {
-  const functionArguments = token.attributes;
+  const {getFieldDefinition} = useArithmeticBuilder();
+  // Saved equations can carry an argument the function no longer takes, such as
+  // `count(span.duration)`; render those as `count()`.
+  const ignoresArguments = getFieldDefinition(token.function)?.parameters?.length === 0;
+  const functionArguments = ignoresArguments ? [] : token.attributes;
 
   const ref = useRef<HTMLDivElement>(null);
   const skipArgumentFocusRef = useRef(false);
@@ -106,13 +110,17 @@ export function ArithmeticTokenFunction({
           function reuses this component for the next one. Remount the arguments
           grid when the token identity changes so we don't keep the previous
           function's draft argument state. */}
-      <ArgumentsGrid
-        key={`${token.location.start.offset}:${token.function}`}
-        rowRef={ref}
-        item={item}
-        state={state}
-        token={token}
-      />
+      {ignoresArguments ? (
+        <BaseGridCell>()</BaseGridCell>
+      ) : (
+        <ArgumentsGrid
+          key={`${token.location.start.offset}:${token.function}`}
+          rowRef={ref}
+          item={item}
+          state={state}
+          token={token}
+        />
+      )}
       <FunctionChromeCell {...gridCellProps}>
         <DeleteButton token={token} label={t('Remove function %s', token.text)} />
       </FunctionChromeCell>

@@ -169,7 +169,7 @@ describe('LogsToolbar', () => {
       });
 
       // count has no user changable argument
-      expect(screen.queryByRole('button', {name: 'message'})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'logs'})).toBeDisabled();
 
       // count unique only shows string attributes
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
