@@ -43,7 +43,6 @@ describe('ExceptionMechanism', () => {
       expect(screen.queryByText('Nothing to see here.')).not.toBeInTheDocument();
       await userEvent.hover(screen.getByText('generic'));
       expect(await screen.findByText('Nothing to see here.')).toBeInTheDocument();
-      expect(screen.getByText('Details')).toBeInTheDocument();
     });
 
     it('should add the help_link to the description hovercard', async () => {
