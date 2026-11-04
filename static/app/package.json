@@ -18,7 +18,6 @@
     "@floating-ui/react-dom": "^2.1.9",
     "@intercom/messenger-js-sdk": "^0.0.18",
     "@r4ai/remark-callout": "^0.6.2",
-    "@react-aria/button": "3.15.1",
     "@react-aria/combobox": "3.16.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
