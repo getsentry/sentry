@@ -39,6 +39,34 @@ describe('MetricTimePeriodSelect', () => {
     expect(router.location.query.end).toBeUndefined();
   });
 
+  it('replaces history when syncing the default and pushes when selecting an option', async () => {
+    const onNuqsUrlUpdate = jest.fn();
+    render(<MetricTimePeriodSelect dataset={DetectorDataset.ERRORS} interval={300} />, {
+      onNuqsUrlUpdate,
+    });
+
+    await waitFor(() => {
+      expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryString: '?statsPeriod=14d',
+          options: expect.objectContaining({history: 'replace'}),
+        })
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: /last 14 days/i}));
+    await userEvent.click(screen.getByText(/last 7 days/i));
+
+    await waitFor(() => {
+      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          queryString: '?statsPeriod=7d',
+          options: expect.objectContaining({history: 'push'}),
+        })
+      );
+    });
+  });
+
   it('displays custom statsPeriod values from the URL', async () => {
     const {router} = render(
       <MetricTimePeriodSelect dataset={DetectorDataset.ERRORS} interval={300} />,

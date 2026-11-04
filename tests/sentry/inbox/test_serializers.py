@@ -33,7 +33,7 @@ class InboxItemSerializerTest(TestCase):
         assert results[0]["subtitle"] == "Mentioned you"
         assert results[0]["eventCount"] == 2
         assert results[0]["unreadEventCount"] == 1
-        assert results[0]["eventTypes"] == ["issue.assigned", "issue.mentioned"]
+        assert results[0]["eventTypes"] == ["issue.mentioned", "issue.user_assigned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
         assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
         assert results[1]["title"] == "Second issue"

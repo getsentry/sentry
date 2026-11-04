@@ -27,6 +27,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import SortBy, parse_sort_by, to_valid_int_id
@@ -695,7 +696,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         with write_formula_to_db():
             formula = ExploreSavedFormula.objects.create(
                 organization=organization,
-                created_by_id=acting_user_id(request.user),
+                **get_creator_reference(request),
                 formula=data["formula"],
                 description=data["description"],
                 name=data["name"],

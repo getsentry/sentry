@@ -45,6 +45,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.action_log.activity_translator import (
     GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS,
     GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
@@ -190,6 +191,16 @@ def get_serialized_activity_items(
     first_seen_entry = (
         oldest_entry if oldest_entry.type == GroupActionType.FIRST_SEEN.value else None
     )
+    if first_seen_entry is None:
+        metrics.incr(
+            "issues.action_log.activity_read.first_seen_simulated",
+            sample_rate=1.0,
+            tags={"endpoint": endpoint},
+        )
+        logger.info(
+            "issues.action_log.activity_read.first_seen_simulated",
+            extra={"endpoint": endpoint, "group_id": group.id},
+        )
 
     record_activity_read(endpoint, ActivityReadResult.GAL)
     return [serialized[item] for item in page] + [

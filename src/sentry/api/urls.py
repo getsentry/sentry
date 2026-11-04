@@ -218,6 +218,13 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
+from sentry.inbox.endpoints.organization_inbox import OrganizationInboxIndexEndpoint
+from sentry.inbox.endpoints.organization_inbox_count import (
+    OrganizationInboxCountEndpoint,
+)
+from sentry.inbox.endpoints.organization_inbox_item_events import (
+    OrganizationInboxItemEventsEndpoint,
+)
 from sentry.insights.endpoints.starred_segments import OrganizationStarredServiceSpansEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
@@ -574,6 +581,7 @@ from sentry.scm.endpoints.scm_git import ScmGitEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
+from sentry.seer.endpoints.admin_autofix_single_run import SeerAdminAutofixSingleRunEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -2381,6 +2389,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sentry-apps",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/$",
+        OrganizationInboxIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/count/$",
+        OrganizationInboxCountEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox-count",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/inbox/(?P<item_id>\d+)/events/$",
+        OrganizationInboxItemEventsEndpoint.as_view(),
+        name="sentry-api-0-organization-inbox-item-events",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",
         OrganizationInvestigationCandidatesEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-candidates",
@@ -3751,6 +3774,11 @@ INTERNAL_URLS = [
         r"^seer/autofix/retry/$",
         SeerAdminAutofixRetryEndpoint.as_view(),
         name="sentry-admin-seer-autofix-retry",
+    ),
+    re_path(
+        r"^seer/autofix/single-run/$",
+        SeerAdminAutofixSingleRunEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-single-run",
     ),
 ]
 

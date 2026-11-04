@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -66,7 +67,9 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg();
+  const {organization, project} = initializeOrg({
+    organization: {features: ['dashboards-edit']},
+  });
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -198,7 +201,8 @@ describe('SpansTabContent', () => {
     localStorage.removeItem('explore-spans-toolbar');
   });
 
-  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+  it('allows query saves when a hidden sibling has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: Wrapper});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
@@ -226,16 +230,30 @@ describe('SpansTabContent', () => {
       }
     );
 
-    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Save as'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Create a Monitor'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     act(() => {
       router.navigate('/organizations/org-slug/explore/traces/');

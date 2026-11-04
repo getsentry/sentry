@@ -138,6 +138,18 @@ describe('GlobalModal', () => {
     });
   });
 
+  it('preserves a healthy modal when opened again', async () => {
+    renderGlobalModal();
+    const renderer = () => <input aria-label="Modal draft" />;
+
+    act(() => openModal(renderer));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Modal draft'}), 'Unsaved');
+
+    act(() => openModal(renderer));
+
+    expect(screen.getByRole('textbox', {name: 'Modal draft'})).toHaveValue('Unsaved');
+  });
+
   it('uses actionCreators to open and close Modal', async () => {
     renderGlobalModal();
 

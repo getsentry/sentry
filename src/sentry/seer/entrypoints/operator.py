@@ -546,9 +546,7 @@ class SeerAgentOperator[CachePayloadT]:
 
             enable_code_mode_tools = "off"
             has_create_pr = False
-            if category_key == "slack_thread" and features.has(
-                "organizations:seer-slack-code-mode", organization
-            ):
+            if category_key == "slack_thread":
                 enable_code_mode_tools = "only"
                 # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
                 has_create_pr = features.has(
