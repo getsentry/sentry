@@ -673,6 +673,15 @@ class GitlabIssueSyncTest(GitLabTestCase):
             str(exception_info.value) == "Error Communicating with GitLab (HTTP 403): unauthorized"
         )
 
+    def test_get_group_id_returns_none_when_metadata_is_missing(self) -> None:
+        integration = Integration.objects.get(provider=self.provider)
+        integration.update(metadata={})
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        assert installation.get_group_id() is None
+
     def test_every_config_save_schedules_webhook_reconciliation(self) -> None:
         self.assert_config_schedules_reconciliation({})
 

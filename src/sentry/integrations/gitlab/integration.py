@@ -495,7 +495,7 @@ class GitlabIntegration(
     # Gitlab only functions
 
     def get_group_id(self) -> int | None:
-        return self.model.metadata["group_id"]
+        return self.model.metadata.get("group_id")
 
     def search_projects(self, query: str | None) -> list[Mapping[str, object]]:
         client = self.get_client()
