@@ -62,7 +62,9 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-type AgentAuditEvent = Literal["SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_REMOVE"]
+type AgentAuditEvent = Literal[
+    "SERVICE_ACCOUNT_ADD", "SERVICE_ACCOUNT_EDIT", "SERVICE_ACCOUNT_REMOVE"
+]
 
 
 class SeerAgentResponse(TypedDict):
@@ -685,7 +687,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         if agent is not None:
             update = workflow.set_agent_access(agent, created_by_id=acting_user_id(request.user))
             account = update.service_account
-            event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
+            event: AgentAuditEvent = (
+                "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
+            )
             audit_agent_service_account(self, request, organization, account, event)
 
         if enabled is not None:
