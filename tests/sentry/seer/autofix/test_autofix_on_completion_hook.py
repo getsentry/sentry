@@ -2671,3 +2671,61 @@ class TestAutofixOnCompletionHookMilestones(TestCase):
         )
         self._run_hook(run_state(blocks=[block]))
         assert self._recorded_milestones() == set()
+
+
+class TestCompletionMode(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    @patch("sentry.seer.autofix.analytics.analytics.record")
+    @patch(f"{HOOK_PATH}.metrics.incr")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_step_completion_tags_mode_steps(
+        self, mock_broadcast: MagicMock, mock_metrics: MagicMock, mock_analytics: MagicMock
+    ) -> None:
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, 123, run_state(blocks=[root_cause_memory_block()]), self.group
+        )
+
+        (complete_call,) = [
+            c for c in mock_metrics.call_args_list if c.args[0] == "autofix.explorer.complete"
+        ]
+        assert complete_call.kwargs["tags"]["mode"] == "steps"
+        (event,) = [
+            c.args[0]
+            for c in mock_analytics.call_args_list
+            if c.args[0].type == "ai.autofix.root_cause.completed"
+        ]
+        assert event.mode == "steps"
+
+    @patch("sentry.seer.autofix.analytics.analytics.record")
+    @patch(f"{HOOK_PATH}.metrics.incr")
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_announce_tags_mode_single_run(
+        self, mock_broadcast: MagicMock, mock_metrics: MagicMock, mock_analytics: MagicMock
+    ) -> None:
+        AutofixOnCompletionHook._announce(
+            organization=self.organization,
+            run_id=123,
+            state=run_state(blocks=[root_cause_memory_block()]),
+            group=self.group,
+            seer_run=None,
+            action_type=SeerActionType.ROOT_CAUSE_COMPLETED,
+            payload={"run_id": 123, "group_id": self.group.id},
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=None,
+            actor_user_id=None,
+            mode="single_run",
+        )
+
+        (complete_call,) = [
+            c for c in mock_metrics.call_args_list if c.args[0] == "autofix.explorer.complete"
+        ]
+        assert complete_call.kwargs["tags"]["mode"] == "single_run"
+        (event,) = [
+            c.args[0]
+            for c in mock_analytics.call_args_list
+            if c.args[0].type == "ai.autofix.root_cause.completed"
+        ]
+        assert event.mode == "single_run"

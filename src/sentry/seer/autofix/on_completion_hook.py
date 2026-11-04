@@ -444,6 +444,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         step: AutofixStep | None,
         referrer: AutofixReferrer | None,
         actor_user_id: int | None,
+        mode: str = "steps",
     ) -> None:
         is_pr_created = action_type == SeerActionType.PR_CREATED
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
@@ -518,6 +519,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     group_id=group.id,
                     referrer=None if referrer is None else referrer.value,
                     run_id=run_id,
+                    mode=mode,
                 )
             )
         if step is not None and not is_pr_created:
@@ -529,6 +531,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "step": step.value,
                     "referrer": referrer_value,
                     "iteration_index": iteration_index,
+                    "mode": mode,
                 },
             )
             completed_event_cls = STEP_CONFIGS[step].completed_event
@@ -541,6 +544,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         referrer=referrer_value,
                         run_id=run_id,
                         iteration_index=iteration_index,
+                        mode=mode,
                     )
                 )
 
