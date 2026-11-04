@@ -11,6 +11,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 export interface DroppedDataFilterNoteProps {
   dataset: DiscoverDatasets;
   hasUserQuery: boolean;
+  environments?: string[];
   showIcon?: Responsive<boolean>;
 }
 
@@ -21,10 +22,11 @@ export interface DroppedDataFilterNoteProps {
 export function DroppedDataFilterNote({
   dataset,
   hasUserQuery,
+  environments,
   showIcon = true,
 }: DroppedDataFilterNoteProps) {
   const {selection} = usePageFilters();
-  const hasEnvironment = selection.environments.length > 0;
+  const hasEnvironment = (environments ?? selection.environments).length > 0;
   const isIconVisible = useResponsivePropValue(showIcon);
 
   if (!hasUserQuery && !hasEnvironment) {

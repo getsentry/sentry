@@ -169,6 +169,51 @@ describe('OrganizationMemberDetail', () => {
       );
     });
 
+    it('renders the member teams in column order', async () => {
+      render(<OrganizationMemberDetail />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${member.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
+      });
+
+      const table = await screen.findByRole('table', {name: 'Teams'});
+      const row = await within(table).findByTestId('team-row-for-member');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['Team', 'Team Roles', 'Add Team']);
+      expect(within(table).getAllByRole('row')).toHaveLength(2);
+      expect(within(row).getAllByRole('cell')).toHaveLength(3);
+      expect(within(row).getByRole('link')).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/teams/${team.slug}/`
+      );
+      expect(within(row).getByRole('button', {name: 'Remove'})).toBeEnabled();
+    });
+
+    it('renders an empty message when the member has no teams', async () => {
+      render(<OrganizationMemberDetail />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${managerMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
+      });
+
+      const table = await screen.findByRole('table', {name: 'Teams'});
+
+      expect(await within(table).findByText('No Teams assigned')).toBeInTheDocument();
+      expect(within(table).queryByTestId('team-row-for-member')).not.toBeInTheDocument();
+    });
+
     it('leaves a team', async () => {
       render(<OrganizationMemberDetail />, {
         organization,
@@ -235,7 +280,9 @@ describe('OrganizationMemberDetail', () => {
 
       // Assign as admin to new team
       const teamRoleSelect = screen.getAllByText('Contributor')[0]!;
-      await selectEvent.select(teamRoleSelect, ['Team Admin']);
+      await selectEvent.select(teamRoleSelect, ['Team Admin'], {
+        container: document.body,
+      });
 
       // Save Member
       await userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
