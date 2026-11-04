@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 
@@ -33,13 +33,14 @@ describe('doDiscoverQuery', () => {
 describe('GenericDiscoverQuery', () => {
   const location = LocationFixture({pathname: '/events', query: {}});
 
-  function makeEventView(fields: string[]) {
+  function makeEventView(fields: string[], query?: string) {
     return EventView.fromSavedQuery({
       id: '',
       name: 'test query',
       version: 2,
       fields,
       projects: [1],
+      query,
     });
   }
 
@@ -109,5 +110,35 @@ describe('GenericDiscoverQuery', () => {
     rerender(renderQuery({eventView, version: 2}));
 
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('renders the latest response when an earlier request resolves after it', async () => {
+    const slowResponse = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {data: [{transaction: '/slow'}]},
+      match: [MockApiClient.matchQuery({query: 'transaction:/slow'})],
+      asyncDelay: slowResponse.promise,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {data: [{transaction: '/fast'}]},
+      match: [MockApiClient.matchQuery({query: 'transaction:/fast'})],
+    });
+
+    const {rerender} = render(
+      renderQuery({eventView: makeEventView(['transaction'], 'transaction:/slow')})
+    );
+    rerender(
+      renderQuery({eventView: makeEventView(['transaction'], 'transaction:/fast')})
+    );
+    expect(await screen.findByText('/fast')).toBeInTheDocument();
+    await act(async () => {
+      slowResponse.resolve();
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    expect(screen.getByText('/fast')).toBeInTheDocument();
+    expect(screen.queryByText('/slow')).not.toBeInTheDocument();
   });
 });
