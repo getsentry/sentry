@@ -58,7 +58,10 @@ segment.
 
 This happens in two steps: Get the to-be-flushed segments in `flush_segments`,
 then the consumer produces them, then they are deleted from Redis
-(`done_flush_segments`)
+(`done_flush_segments`). To produce a flush cycle one segment at a time, the
+flusher can instead load the cycle with `load_flush_batch`, keeping payloads
+compressed, and build each segment only when it is produced with
+`iter_flushed_segments`.
 
 On top of this, the global queue is sharded by partition, meaning that each
 consumer reads and writes to shards that correspond to its own assigned
@@ -101,7 +104,8 @@ import itertools
 import logging
 import math
 from collections import defaultdict
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
+from dataclasses import dataclass, field
 from hashlib import blake2b
 from typing import Any, cast
 
@@ -118,18 +122,22 @@ from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.spans.buffer_logger import (
     BufferLogger,
+    FlusherLogEntry,
     FlusherLogger,
     FlushSegmentLog,
     InsertSpansMetrics,
     SubsegmentDebugLog,
 )
-from sentry.spans.buffer_store import SpansBufferStore
+from sentry.spans.buffer_store import SpansBufferStore, decompress_payloads
 from sentry.spans.buffer_store import add_buffer_script as add_buffer_script
 from sentry.spans.buffer_types import (
+    CompressedSegment,
+    FlushBatch,
     FlushedSegment,
     InsertedSubsegment,
     LoadedSegment,
     OutputSpan,
+    ProducedSegment,
     Span,
     Subsegment,
 )
@@ -155,6 +163,35 @@ def _compute_salt(spans: Sequence[Span]) -> str:
         b"".join(s.span_id.encode("ascii") for s in spans),
         digest_size=16,
     ).hexdigest()
+
+
+def _count_dropped_spans(loaded_segment: LoadedSegment) -> int:
+    """
+    The number of spans that were ingested into a segment but not loaded when
+    it was flushed (total ingested - successfully loaded).
+    """
+    ingested_count = loaded_segment.ingest_metadata.ingested_count
+    if ingested_count is None:
+        return 0
+    return max(0, ingested_count - len(loaded_segment.payloads))
+
+
+@dataclass
+class _FlushCycleStats:
+    """
+    Values of a flush cycle that need the decompressed or parsed segments, so
+    they are accumulated while its segments are built.
+    """
+
+    # None when the FlusherLogger is disabled.
+    log_entries: list[FlusherLogEntry] | None
+    num_segments: int = 0
+    num_has_root_spans: int = 0
+    any_shard_at_limit: bool = False
+    decompress_latency_ms: float = 0.0
+    # Only for batches that were not decompressed while loading. The outcomes
+    # of the others were tracked by load_flush_batch.
+    dropped_by_project: defaultdict[int, int] = field(default_factory=lambda: defaultdict(int))
 
 
 class SpansBuffer:
@@ -431,6 +468,26 @@ class SpansBuffer:
         per-segment locks, load payload data, emit loss/flush observability, and
         return producer-ready FlushedSegment objects. SpanFlusher produces those
         objects to Kafka and calls done_flush_segments after successful delivery.
+
+        All segments are decompressed and built before this returns. To build
+        one segment at a time, use `load_flush_batch` with `decompress=False`
+        and `iter_flushed_segments`.
+        """
+        batch = self.load_flush_batch(now, decompress=True)
+        return dict(self.iter_flushed_segments(batch))
+
+    def load_flush_batch(self, now: int, *, decompress: bool) -> FlushBatch:
+        """
+        Select queued segments, acquire their flush locks, load their payload
+        keys, payloads and ingest metadata, and emit the loss metrics that do
+        not need the payloads. These are all Redis commands of a flush cycle
+        except those of done_flush_segments.
+
+        With `decompress=True`, this also tracks outcomes for spans dropped
+        from the segments, before any segment is built. With
+        `decompress=False`, payloads stay compressed until
+        `iter_flushed_segments` builds their segment, which also tracks those
+        outcomes.
         """
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
@@ -443,120 +500,240 @@ class SpansBuffer:
 
         flush_candidates = self.store.acquire_flush_locks(flush_candidates)
 
-        loaded_segments, load_data_latency_ms, decompress_latency_ms = self.store.load_segments(
-            flush_candidates,
-            decompress_payload=self._decompress_batch,
-        )
+        segments: Sequence[LoadedSegment | CompressedSegment]
+        if decompress:
+            segments, load_data_latency_ms, decompress_latency_ms = self.store.load_segments(
+                flush_candidates,
+                decompress_payload=self._decompress_batch,
+            )
+        else:
+            segments, load_data_latency_ms = self.store.load_compressed_segments(flush_candidates)
+            # Measured by iter_flushed_segments instead.
+            decompress_latency_ms = 0
 
-        self._record_segment_loss_metrics(loaded_segments, now)
+        self._record_segment_loss_metrics(segments, now)
 
-        flushed_segments, num_has_root_spans, any_shard_at_limit = self._build_flushed_segments(
-            loaded_segments,
-            max_segments_per_shard,
-            now,
-        )
-
-        self._flusher_logger.log_loaded_segments(
-            loaded_segments,
+        return FlushBatch(
+            now=now,
+            max_segments_per_shard=max_segments_per_shard,
+            segments=segments,
+            decompressed=decompress,
             load_ids_latency_ms=load_ids_latency_ms,
             load_data_latency_ms=load_data_latency_ms,
             decompress_latency_ms=decompress_latency_ms,
         )
 
-        metrics.timing("spans.buffer.flush_segments.num_segments", len(flushed_segments))
-        metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
+    def iter_flushed_segments(
+        self, batch: FlushBatch
+    ) -> Generator[tuple[SegmentKey, FlushedSegment]]:
+        """
+        Build the segments of a batch from `load_flush_batch` into
+        FlushedSegment objects, one at a time and in the order of
+        flush_segments' result.
 
-        self.any_shard_at_limit = any_shard_at_limit
-        return flushed_segments
+        Each segment is decompressed, unless the batch was loaded with
+        decompressed payloads, and parsed only when it is requested, and no
+        reference to it is kept once the next one is requested. A caller that
+        produces and drops each segment before requesting the next one
+        therefore holds one segment's payloads and spans at a time.
 
-    def _build_flushed_segments(
+        A segment that is queued in more than one shard is built for every
+        queue entry and yielded once, with the FlushedSegment of its last queue
+        entry, which is what flush_segments returns for it.
+
+        When iteration ends, also through an exception or close(), the metrics
+        that need the built segments are emitted, and `any_shard_at_limit` is
+        set, for the segments built until then. For a batch that was not
+        decompressed while loading, so are the outcomes for dropped spans, and
+        a failure to track them is logged instead of raised, because such
+        segments are produced while they are built. The outcomes of a
+        decompressed batch were tracked by load_flush_batch.
+        """
+        queue_entries_by_key: dict[SegmentKey, list[LoadedSegment | CompressedSegment]] = {}
+        for segment in batch.segments:
+            queue_entries_by_key.setdefault(segment.segment_key, []).append(segment)
+
+        stats = _FlushCycleStats(log_entries=[] if self._flusher_logger.is_enabled() else None)
+        try:
+            for segment_key, queue_entries in queue_entries_by_key.items():
+                flushed_segment = self._build_queued_segment(queue_entries, batch, stats)
+                stats.num_segments += 1
+
+                yield segment_key, flushed_segment
+                # Free the spans before the next segment is built.
+                del flushed_segment
+        finally:
+            self._finish_flushed_segments(batch, stats)
+
+    def _build_queued_segment(
         self,
-        loaded_segments: Sequence[LoadedSegment],
-        max_segments_per_shard: int,
-        now: int,
-    ) -> tuple[dict[SegmentKey, FlushedSegment], int, bool]:
+        queue_entries: Sequence[LoadedSegment | CompressedSegment],
+        batch: FlushBatch,
+        stats: _FlushCycleStats,
+    ) -> FlushedSegment:
         """
-        Convert loaded payload bytes into FlushedSegment objects that contain
-        the segment metadata and span payloads.
+        Build a segment for each of its queue entries and return the
+        FlushedSegment of the last one.
+
+        This is a separate function so that the decompressed payloads are
+        freed when it returns, while the segment is produced: the spans do not
+        reference them, and no variable of the generator does.
         """
-        return_segments: dict[SegmentKey, FlushedSegment] = {}
-        num_has_root_spans = 0
-        any_shard_at_limit = False
+        loaded_segments = self._decompress_queue_entries(queue_entries, stats)
+        for loaded_segment in loaded_segments[:-1]:
+            self._build_flushed_segment(loaded_segment, batch, stats)
+        return self._build_flushed_segment(loaded_segments[-1], batch, stats)
 
-        for loaded_segment in loaded_segments:
-            segment_key = loaded_segment.segment_key
-            segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
-            segment = loaded_segment.payloads
-            project_id, _, _ = parse_segment_key(segment_key)
-            if len(segment) >= max_segments_per_shard:
-                any_shard_at_limit = True
+    def _decompress_queue_entries(
+        self,
+        queue_entries: Sequence[LoadedSegment | CompressedSegment],
+        stats: _FlushCycleStats,
+    ) -> list[LoadedSegment]:
+        """
+        Return a segment's queue entries, one per shard that it is queued in,
+        with decompressed payloads. The entries share their payloads, so these
+        are decompressed once, like `SpansBufferStore.load_segments` does.
+        """
+        loaded_segments: list[LoadedSegment] = []
+        payloads: list[bytes] | None = None
+        for segment in queue_entries:
+            if isinstance(segment, CompressedSegment):
+                if payloads is None:
+                    payloads, decompress_latency_ms = decompress_payloads(
+                        segment.compressed_payloads,
+                        decompress_payload=self._decompress_batch,
+                    )
+                    stats.decompress_latency_ms += decompress_latency_ms
+                segment = LoadedSegment(
+                    segment.flush_candidate,
+                    payloads,
+                    segment.payload_keys,
+                    segment.ingest_metadata,
+                )
+            loaded_segments.append(segment)
 
-            output_spans: list[OutputSpan] = []
-            has_root_span = False
-            metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
-            # This incr metric is needed to get a rate overall.
-            metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
-            for payload in segment:
-                span: SpanEvent = orjson.loads(payload)
+        return loaded_segments
 
-                if not attribute_value(span, "sentry.segment.id"):
-                    attributes = span.get("attributes")
-                    if not isinstance(attributes, dict):
-                        span["attributes"] = attributes = {}
-                    attributes["sentry.segment.id"] = {
-                        "type": "string",
-                        "value": segment_span_id,
-                    }
+    def _build_flushed_segment(
+        self,
+        loaded_segment: LoadedSegment,
+        batch: FlushBatch,
+        stats: _FlushCycleStats,
+    ) -> FlushedSegment:
+        """
+        Convert loaded payload bytes into a FlushedSegment that contains the
+        segment metadata and span payloads.
+        """
+        segment_key = loaded_segment.segment_key
+        segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
+        payloads = loaded_segment.payloads
+        project_id, _, _ = parse_segment_key(segment_key)
+        if len(payloads) >= batch.max_segments_per_shard:
+            stats.any_shard_at_limit = True
 
-                is_segment = segment_span_id == span["span_id"]
-                span["is_segment"] = is_segment
-                if is_segment:
-                    has_root_span = True
+        output_spans: list[OutputSpan] = []
+        has_root_span = False
+        metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(payloads))
+        # This incr metric is needed to get a rate overall.
+        metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(payloads))
+        for payload in payloads:
+            span: SpanEvent = orjson.loads(payload)
 
-                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
+            if not attribute_value(span, "sentry.segment.id"):
+                attributes = span.get("attributes")
+                if not isinstance(attributes, dict):
+                    span["attributes"] = attributes = {}
+                attributes["sentry.segment.id"] = {
+                    "type": "string",
+                    "value": segment_span_id,
+                }
 
-            metrics.incr(
-                "spans.buffer.flush_segments.num_segments_per_shard",
-                tags={"shard_i": loaded_segment.shard},
+            is_segment = segment_span_id == span["span_id"]
+            span["is_segment"] = is_segment
+            if is_segment:
+                has_root_span = True
+
+            output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
+
+        metrics.incr(
+            "spans.buffer.flush_segments.num_segments_per_shard",
+            tags={"shard_i": loaded_segment.shard},
+        )
+        flushed_segment = FlushedSegment(
+            queue_key=loaded_segment.queue_key,
+            spans=output_spans,
+            project_id=int(project_id.decode("ascii")),
+            payload_keys=loaded_segment.payload_keys,
+        )
+        stats.num_has_root_spans += int(has_root_span)
+
+        if not batch.decompressed:
+            dropped = _count_dropped_spans(loaded_segment)
+            if dropped > 0:
+                stats.dropped_by_project[flushed_segment.project_id] += dropped
+
+        if stats.log_entries is not None and payloads:
+            stats.log_entries.append(FlusherLogEntry.from_loaded_segment(loaded_segment))
+
+        FlushSegmentLog(
+            segment_key=segment_key,
+            segment_span_id=segment_span_id,
+            has_root_span=has_root_span,
+            num_spans=len(payloads),
+            shard=loaded_segment.shard,
+            queue_key=loaded_segment.queue_key,
+            timestamp=batch.now,
+        ).emit(self._get_debug_trace_logger)
+
+        return flushed_segment
+
+    def _finish_flushed_segments(self, batch: FlushBatch, stats: _FlushCycleStats) -> None:
+        if not batch.decompressed:
+            # The segments were produced while they were built, so failing
+            # here would not flush them again. Their outcomes are lost either
+            # way, so still emit the rest of the cycle's metrics.
+            try:
+                self._track_dropped_spans(stats.dropped_by_project)
+            except Exception:
+                logger.exception("spans.buffer.track_dropped_spans_failed")
+
+        if stats.log_entries is not None:
+            self._flusher_logger.log_flushed_segments(
+                stats.log_entries,
+                load_ids_latency_ms=batch.load_ids_latency_ms,
+                load_data_latency_ms=batch.load_data_latency_ms,
+                decompress_latency_ms=batch.decompress_latency_ms
+                + int(stats.decompress_latency_ms),
             )
-            return_segments[segment_key] = FlushedSegment(
-                queue_key=loaded_segment.queue_key,
-                spans=output_spans,
-                project_id=int(project_id.decode("ascii")),
-                payload_keys=loaded_segment.payload_keys,
-            )
-            num_has_root_spans += int(has_root_span)
 
-            FlushSegmentLog(
-                segment_key=segment_key,
-                segment_span_id=segment_span_id,
-                has_root_span=has_root_span,
-                num_spans=len(segment),
-                shard=loaded_segment.shard,
-                queue_key=loaded_segment.queue_key,
-                timestamp=now,
-            ).emit(self._get_debug_trace_logger)
+        metrics.timing("spans.buffer.flush_segments.num_segments", stats.num_segments)
+        metrics.timing("spans.buffer.flush_segments.has_root_span", stats.num_has_root_spans)
 
-        return return_segments, num_has_root_spans, any_shard_at_limit
+        self.any_shard_at_limit = stats.any_shard_at_limit
 
     def _record_segment_loss_metrics(
         self,
-        loaded_segments: Sequence[LoadedSegment],
+        loaded_segments: Sequence[LoadedSegment | CompressedSegment],
         now: int,
     ) -> None:
         """
-        Emit loss and expiration metrics for loaded segments.
+        Emit loss and expiration metrics for loaded segments, and track
+        outcomes for spans dropped from segments whose payloads were
+        decompressed while loading.
+
+        Spans dropped from a CompressedSegment are counted when it is built,
+        because that needs its decompressed payloads (see
+        iter_flushed_segments).
         """
-        # Calculate dropped counts: total ingested - successfully loaded
         redis_ttl = options.get("spans.buffer.redis-ttl")
         root_timeout = options.get("spans.buffer.root-timeout")
 
         deadlines = self.store.get_current_queue_deadlines(
             [
-                loaded_segment
+                loaded_segment.flush_candidate
                 for loaded_segment in loaded_segments
                 if loaded_segment.ingest_metadata.ingested_count is None
-                and not loaded_segment.payloads
+                and not loaded_segment.has_payloads
             ]
         )
         dropped_by_project: defaultdict[int, int] = defaultdict(int)
@@ -571,19 +748,16 @@ class SpansBuffer:
                 )
 
             if ingest_metadata.ingested_count is not None:
-                total_ingested = ingest_metadata.ingested_count
                 metrics.timing(
-                    "spans.buffer.flush_segments.ingested_spans_per_segment", total_ingested
+                    "spans.buffer.flush_segments.ingested_spans_per_segment",
+                    ingest_metadata.ingested_count,
                 )
-                successfully_loaded = len(loaded_segment.payloads)
-                dropped = total_ingested - successfully_loaded
-                if dropped <= 0:
-                    continue
-
-                project_id_bytes, _, _ = parse_segment_key(loaded_segment.segment_key)
-                project_id_int = int(project_id_bytes)
-                dropped_by_project[project_id_int] += dropped
-            elif not loaded_segment.payloads:
+                if isinstance(loaded_segment, LoadedSegment):
+                    dropped = _count_dropped_spans(loaded_segment)
+                    if dropped > 0:
+                        project_id_bytes, _, _ = parse_segment_key(loaded_segment.segment_key)
+                        dropped_by_project[int(project_id_bytes)] += dropped
+            elif not loaded_segment.has_payloads:
                 # Both data and metadata are missing. This could be:
                 # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
                 # 2. Race condition (another consumer flushed between load and metadata fetch)
@@ -599,6 +773,25 @@ class SpansBuffer:
                         # Segment is older than TTL - true expiration (data loss)
                         metrics.incr("spans.buffer.segment_expired_before_flush")
 
+        # Only decompressed segments were counted. None of them is produced
+        # before all of them were built, so if this fails, the flush cycle
+        # fails before any segment is built and is flushed again with its
+        # outcomes.
+        self._track_dropped_spans(dropped_by_project)
+
+        for loaded_segment in loaded_segments:
+            if not loaded_segment.has_payloads:
+                # This is a bug, most likely the input topic is not
+                # partitioned by trace_id so multiple consumers are writing
+                # over each other. The consequence is duplicated segments,
+                # worst-case.
+                metrics.incr("spans.buffer.empty_segments")
+
+    def _track_dropped_spans(self, dropped_by_project: Mapping[int, int]) -> None:
+        """
+        Track outcomes for spans that were ingested into segments but not
+        loaded when they were flushed (total ingested - successfully loaded).
+        """
         if dropped_by_project:
             projects_by_id = {
                 project.id: project
@@ -622,15 +815,9 @@ class SpansBuffer:
                     quantity=dropped,
                 )
 
-        for loaded_segment in loaded_segments:
-            if not loaded_segment.payloads:
-                # This is a bug, most likely the input topic is not
-                # partitioned by trace_id so multiple consumers are writing
-                # over each other. The consequence is duplicated segments,
-                # worst-case.
-                metrics.incr("spans.buffer.empty_segments")
-
-    def done_flush_segments(self, segment_keys: dict[SegmentKey, FlushedSegment]) -> None:
+    def done_flush_segments(
+        self, segment_keys: Mapping[SegmentKey, FlushedSegment | ProducedSegment]
+    ) -> None:
         metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             self.store.cleanup_flushed_segments(segment_keys)

@@ -43,6 +43,15 @@ class FlusherLogEntry(NamedTuple):
     span_count: int
     bytes_flushed: int
 
+    @classmethod
+    def from_loaded_segment(cls, loaded_segment: LoadedSegment) -> FlusherLogEntry:
+        project_id, trace_id, _ = parse_segment_key(loaded_segment.segment_key)
+        return cls(
+            f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}",
+            len(loaded_segment.payloads),
+            sum(len(payload) for payload in loaded_segment.payloads),
+        )
+
 
 class FlusherAggregate(NamedTuple):
     """
@@ -172,36 +181,25 @@ class FlusherLogger:
         self._cumulative_decompress_latency_ms: int = 0
         self._last_log_time: float | None = None
 
-    def log_loaded_segments(
+    def is_enabled(self) -> bool:
+        return options.get("spans.buffer.flusher-cumulative-logger-enabled")
+
+    def log_flushed_segments(
         self,
-        loaded_segments: Sequence[LoadedSegment],
+        entries: Sequence[FlusherLogEntry],
         *,
         load_ids_latency_ms: int,
         load_data_latency_ms: int,
         decompress_latency_ms: int,
     ) -> None:
         """
-        Record loaded segments and periodically log the top traces sorted by
-        cumulative bytes flushed.
+        Record one flush cycle's segments that had payloads, each as
+        `FlusherLogEntry.from_loaded_segment`, and periodically log the top
+        traces sorted by cumulative bytes flushed.
+
+        Callers check `is_enabled()` once per flush cycle before collecting
+        entries.
         """
-        if not options.get("spans.buffer.flusher-cumulative-logger-enabled"):
-            return
-
-        entries: list[FlusherLogEntry] = []
-        for loaded_segment in loaded_segments:
-            if not loaded_segment.payloads:
-                continue
-
-            segment_key = loaded_segment.segment_key
-            project_id, trace_id, _ = parse_segment_key(segment_key)
-            entries.append(
-                FlusherLogEntry(
-                    f"{project_id.decode('ascii')}:{trace_id.decode('ascii')}",
-                    len(loaded_segment.payloads),
-                    sum(len(payload) for payload in loaded_segment.payloads),
-                )
-            )
-
         if not entries:
             return
 
@@ -214,7 +212,7 @@ class FlusherLogger:
 
     def _log_entries(
         self,
-        entries: list[FlusherLogEntry],
+        entries: Sequence[FlusherLogEntry],
         load_ids_latency_ms: int,
         load_data_latency_ms: int,
         decompress_latency_ms: int,

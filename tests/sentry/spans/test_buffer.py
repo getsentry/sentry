@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Iterator, Sequence
-from typing import cast
+from collections import Counter
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, cast
 from unittest import mock
 
 import orjson
@@ -16,7 +17,9 @@ from sentry.constants import DataCategory
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_store import METRICS_SAMPLE_RATE
 from sentry.spans.buffer_types import (
+    CompressedSegment,
     EvalshaResult,
+    FlushBatch,
     FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
@@ -45,6 +48,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.flusher.wait-for-drift-seconds": 0,
+    "spans.buffer.flusher.stream-segments": False,
     "spans.buffer.flusher.flush-lock-ttl": 0,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.flusher.log-flushed-segments": False,
@@ -2035,7 +2039,21 @@ _LOAD_SEGMENT_REDIS_TTL = cast(int, DEFAULT_OPTIONS["spans.buffer.redis-ttl"])
 _LOAD_SEGMENT_ROOT_TIMEOUT = cast(int, DEFAULT_OPTIONS["spans.buffer.root-timeout"])
 
 
-def test_build_flushed_segments_adds_segment_metadata() -> None:
+def _flush_batch(
+    segments: Sequence[LoadedSegment | CompressedSegment], now: int, *, decompressed: bool = True
+) -> FlushBatch:
+    return FlushBatch(
+        now=now,
+        max_segments_per_shard=2,
+        segments=segments,
+        decompressed=decompressed,
+        load_ids_latency_ms=0,
+        load_data_latency_ms=0,
+        decompress_latency_ms=0,
+    )
+
+
+def test_iter_flushed_segments_adds_segment_metadata() -> None:
     buffer = SpansBuffer(assigned_shards=[0])
     trace_id = "a" * 32
     segment_span_id = "b" * 16
@@ -2044,8 +2062,7 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
     queue_key = buffer.store.get_queue_key(0)
     payload_key = _payload_key(1, trace_id, "1" * 32)
     flush_candidate = FlushCandidate(0, queue_key, segment_key, 5)
-
-    flushed_segments, num_has_root_spans, _ = buffer._build_flushed_segments(
+    batch = _flush_batch(
         [
             LoadedSegment(
                 flush_candidate,
@@ -2053,9 +2070,11 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
                 [payload_key],
             )
         ],
-        max_segments_per_shard=2,
         now=10,
     )
+
+    with mock.patch("sentry.spans.buffer.metrics.timing") as metrics_timing:
+        flushed_segments = dict(buffer.iter_flushed_segments(batch))
 
     flushed_segment = flushed_segments[segment_key]
     output_payloads = {span.payload["span_id"]: span.payload for span in flushed_segment.spans}
@@ -2068,7 +2087,10 @@ def test_build_flushed_segments_adds_segment_metadata() -> None:
         output_payloads[child_span_id]["attributes"]["sentry.segment.id"]["value"]
         == segment_span_id
     )
-    assert num_has_root_spans == 1
+    metrics_timing.assert_any_call("spans.buffer.flush_segments.num_segments", 1)
+    metrics_timing.assert_any_call("spans.buffer.flush_segments.has_root_span", 1)
+    # 2 spans reach max_segments_per_shard.
+    assert buffer.any_shard_at_limit is True
 
 
 def test_record_segment_loss_metrics_records_dropped_spans() -> None:
@@ -2112,6 +2134,46 @@ def test_record_segment_loss_metrics_records_dropped_spans() -> None:
     assert outcome_kwargs["outcome"] == Outcome.INVALID
     assert outcome_kwargs["reason"] == "segment_too_large"
     assert outcome_kwargs["category"] == DataCategory.SPAN_INDEXED
+    assert outcome_kwargs["quantity"] == 2
+
+
+def test_iter_flushed_segments_records_dropped_spans_of_compressed_segments() -> None:
+    buffer = SpansBuffer(assigned_shards=[0])
+    trace_id = "a" * 32
+    segment_key = _segment_id(1, trace_id, "b" * 16)
+    span_a = _payload("a" * 16)
+    compressed_segment = CompressedSegment(
+        FlushCandidate(0, buffer.store.get_queue_key(0), segment_key, 5),
+        # An uncompressed member, as written with compression disabled.
+        compressed_payloads=[span_a],
+        payload_keys=[_payload_key(1, trace_id, "1" * 32)],
+        ingest_metadata=SegmentIngestMetadata(
+            ingested_count=3,
+            ingested_byte_count=len(span_a),
+        ),
+    )
+
+    mock_project = mock.Mock(id=1, organization_id=100)
+    with (
+        mock.patch("sentry.spans.buffer.Project") as project_model,
+        mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
+    ):
+        project_model.objects.get_many_from_cache.return_value = [mock_project]
+        # Loading cannot count the dropped spans without decompressing.
+        buffer._record_segment_loss_metrics([compressed_segment], now=0)
+        track_outcome.assert_not_called()
+
+        list(
+            buffer.iter_flushed_segments(
+                _flush_batch([compressed_segment], now=0, decompressed=False)
+            )
+        )
+
+    track_outcome.assert_called_once()
+    outcome_kwargs = track_outcome.call_args.kwargs
+    assert outcome_kwargs["org_id"] == 100
+    assert outcome_kwargs["project_id"] == 1
+    assert outcome_kwargs["reason"] == "segment_too_large"
     assert outcome_kwargs["quantity"] == 2
 
 
@@ -2162,6 +2224,84 @@ def test_record_segment_loss_metrics_records_empty_expired_segments(
     incr_names = [call.args[0] for call in metrics_incr.call_args_list]
     assert ("spans.buffer.segment_expired_before_flush" in incr_names) is expected_expired
     assert "spans.buffer.empty_segments" in incr_names
+
+
+def _record_flush(
+    flush: Callable[[], dict[SegmentKey, FlushedSegment]],
+) -> tuple[dict[SegmentKey, FlushedSegment], list[dict[str, Any]], Counter[str]]:
+    """
+    Run a flush and return its result, the outcomes it tracked and its metric calls.
+    """
+    with (
+        mock.patch("sentry.spans.buffer.Project") as project_model,
+        mock.patch("sentry.spans.buffer.track_outcome") as track_outcome,
+        mock.patch("sentry.spans.buffer.metrics") as buffer_metrics,
+        mock.patch("sentry.spans.buffer_store.metrics") as store_metrics,
+    ):
+        project_model.objects.get_many_from_cache.return_value = [
+            mock.Mock(id=1, organization_id=100)
+        ]
+        flushed_segments = flush()
+
+    outcomes = [dict(outcome.kwargs) for outcome in track_outcome.call_args_list]
+    metric_calls = Counter(
+        [f"buffer.{call!r}" for call in buffer_metrics.mock_calls]
+        + [f"buffer_store.{call!r}" for call in store_metrics.mock_calls]
+    )
+    return flushed_segments, outcomes, metric_calls
+
+
+def test_iter_flushed_segments_matches_flush_segments(buffer: SpansBuffer) -> None:
+    """
+    Loading a batch with compressed payloads and building its segments one at
+    a time returns what flush_segments returns, in the same order, and
+    records the same metrics and outcomes.
+    """
+    process_spans(
+        [
+            _span("a" * 16, None, trace_id="a" * 32, is_segment_span=True),
+            _span("b" * 16, "a" * 16, trace_id="a" * 32),
+            # A segment without a root span.
+            _span("c" * 16, "f" * 16, trace_id="c" * 32),
+            _span("d" * 16, None, trace_id="d" * 32, is_segment_span=True),
+            _span("e" * 16, None, trace_id="e" * 32, is_segment_span=True),
+            _SplitBatch(),
+            # Queues segment "e" in the shard of a second partition too.
+            _span("1" * 16, "e" * 16, trace_id="e" * 32, partition=1),
+        ],
+        buffer,
+        now=0,
+    )
+    # Two more spans were ingested into segment "d" than are loaded.
+    buffer.client.incrby(b"span-buf:ic:" + _segment_id(1, "d" * 32, "d" * 16), 2)
+    # A queued segment whose data expired.
+    expired_segment_key = _segment_id(1, "9" * 32, "9" * 16)
+    buffer.client.zadd(buffer.store.get_queue_key(0), {expired_segment_key: 0})
+    # Past the Redis TTL for the expired segment, and past every deadline.
+    now = 4000
+
+    flushed, flushed_outcomes, flushed_metric_calls = _record_flush(
+        lambda: buffer.flush_segments(now=now)
+    )
+    streamed, streamed_outcomes, streamed_metric_calls = _record_flush(
+        lambda: dict(buffer.iter_flushed_segments(buffer.load_flush_batch(now, decompress=False)))
+    )
+
+    assert list(streamed.items()) == list(flushed.items())
+    assert streamed_outcomes == flushed_outcomes
+    assert streamed_metric_calls == flushed_metric_calls
+
+    # The cases above are covered.
+    assert len(flushed) == 5
+    assert len(flushed[_segment_id(1, "a" * 32, "a" * 16)].spans) == 2
+    assert not any(
+        span.payload["is_segment"] for span in flushed[_segment_id(1, "c" * 32, "f" * 16)].spans
+    )
+    assert flushed[expired_segment_key].spans == []
+    # Segment "e" is built for both queue entries, and the last one is kept.
+    assert flushed[_segment_id(1, "e" * 32, "e" * 16)].queue_key == buffer.store.get_queue_key(1)
+    assert [outcome["quantity"] for outcome in flushed_outcomes] == [2]
+    assert any("segment_expired_before_flush" in call for call in flushed_metric_calls)
 
 
 # --- Distributed payload keys tests ---

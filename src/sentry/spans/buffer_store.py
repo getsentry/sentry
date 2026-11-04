@@ -11,10 +11,12 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry import options
 from sentry.spans.buffer_logger import DeadlineUpdateLog
 from sentry.spans.buffer_types import (
+    CompressedSegment,
     FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
     LoadedSegment,
+    ProducedSegment,
     QueueKey,
     SegmentIngestMetadata,
     Span,
@@ -33,6 +35,39 @@ METRICS_SAMPLE_RATE = 100
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
 type DecompressPayload = Callable[[bytes], list[bytes]]
 type GetDebugTraceLogger = Callable[[], Any]
+
+
+def _decompress_into(
+    payloads: list[bytes], raw_data: bytes, decompress_payload: DecompressPayload
+) -> float:
+    """
+    Decompress one payload set member into `payloads`. Returns the
+    decompression latency in milliseconds.
+    """
+    decompress_start = time.monotonic()
+    decompressed = decompress_payload(raw_data)
+    decompress_latency_ms = (time.monotonic() - decompress_start) * 1000
+    payloads.extend(decompressed)
+    return decompress_latency_ms
+
+
+def decompress_payloads(
+    compressed_payloads: Sequence[bytes], *, decompress_payload: DecompressPayload
+) -> tuple[list[bytes], float]:
+    """
+    Decompress the payloads of a segment loaded by
+    `SpansBufferStore.load_compressed_segments`.
+
+    Returns the same payloads, in the same order, that
+    `SpansBufferStore.load_segments` would have loaded, plus the decompression
+    latency in milliseconds.
+    """
+    payloads: list[bytes] = []
+    decompress_latency_ms = 0.0
+    for compressed_payload in compressed_payloads:
+        decompress_latency_ms += _decompress_into(payloads, compressed_payload, decompress_payload)
+
+    return payloads, decompress_latency_ms
 
 
 class SpansBufferStore:
@@ -342,6 +377,59 @@ class SpansBufferStore:
         Returns loaded segments plus total load latency and payload
         decompression latency, both in milliseconds.
         """
+        payload_keys, payloads, ingest_metadata, load_data_latency_ms, decompress_latency_ms = (
+            self._load_segment_data(flush_candidates, decompress_payload=decompress_payload)
+        )
+        loaded_segments = [
+            LoadedSegment(
+                flush_candidate,
+                payloads.get(flush_candidate.segment_key, []),
+                payload_keys.get(flush_candidate.segment_key, []),
+                ingest_metadata.get(flush_candidate.segment_key, SegmentIngestMetadata()),
+            )
+            for flush_candidate in flush_candidates
+        ]
+
+        return loaded_segments, load_data_latency_ms, decompress_latency_ms
+
+    def load_compressed_segments(
+        self,
+        flush_candidates: Sequence[FlushCandidate],
+    ) -> tuple[list[CompressedSegment], int]:
+        """
+        Like `load_segments`, with the same Redis commands, but keep the
+        payload set members as read so that each segment can be decompressed
+        later with `decompress_payloads`.
+
+        Returns the segments plus the total load latency in milliseconds.
+        """
+        payload_keys, payloads, ingest_metadata, load_data_latency_ms, _ = self._load_segment_data(
+            flush_candidates, decompress_payload=None
+        )
+        compressed_segments = [
+            CompressedSegment(
+                flush_candidate,
+                payloads.get(flush_candidate.segment_key, []),
+                payload_keys.get(flush_candidate.segment_key, []),
+                ingest_metadata.get(flush_candidate.segment_key, SegmentIngestMetadata()),
+            )
+            for flush_candidate in flush_candidates
+        ]
+
+        return compressed_segments, load_data_latency_ms
+
+    def _load_segment_data(
+        self,
+        flush_candidates: Sequence[FlushCandidate],
+        *,
+        decompress_payload: DecompressPayload | None,
+    ) -> tuple[
+        dict[SegmentKey, list[PayloadKey]],
+        dict[SegmentKey, list[bytes]],
+        dict[SegmentKey, SegmentIngestMetadata],
+        int,
+        int,
+    ]:
         data_start = time.monotonic()
         segment_keys = [candidate.segment_key for candidate in flush_candidates]
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
@@ -355,17 +443,14 @@ class SpansBufferStore:
             )
         load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
         ingest_metadata = self.load_segment_ingest_metadata(segment_keys)
-        loaded_segments = [
-            LoadedSegment(
-                flush_candidate,
-                payloads.get(flush_candidate.segment_key, []),
-                payload_keys.get(flush_candidate.segment_key, []),
-                ingest_metadata.get(flush_candidate.segment_key, SegmentIngestMetadata()),
-            )
-            for flush_candidate in flush_candidates
-        ]
 
-        return loaded_segments, load_data_latency_ms, decompress_latency_ms
+        return (
+            payload_keys,
+            payloads,
+            ingest_metadata,
+            load_data_latency_ms,
+            decompress_latency_ms,
+        )
 
     def load_payload_keys(
         self, segment_keys: Sequence[SegmentKey]
@@ -423,10 +508,12 @@ class SpansBufferStore:
         payload_keys: Mapping[SegmentKey, Sequence[PayloadKey]],
         page_size: int,
         *,
-        decompress_payload: DecompressPayload,
+        decompress_payload: DecompressPayload | None,
     ) -> tuple[dict[SegmentKey, list[bytes]], int]:
         """
         Scan payload keys and return decompressed payloads grouped by segment key.
+
+        Without `decompress_payload`, return the payload set members as read.
         """
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         decompress_latency_ms = 0.0
@@ -440,10 +527,12 @@ class SpansBufferStore:
         def _add_spans(key: SegmentKey, raw_data: bytes) -> None:
             nonlocal decompress_latency_ms
 
-            decompress_start = time.monotonic()
-            decompressed = decompress_payload(raw_data)
-            decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
-            payloads[key].extend(decompressed)
+            if decompress_payload is None:
+                payloads[key].append(raw_data)
+            else:
+                decompress_latency_ms += _decompress_into(
+                    payloads[key], raw_data, decompress_payload
+                )
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -468,28 +557,28 @@ class SpansBufferStore:
         return payloads, int(decompress_latency_ms)
 
     def get_current_queue_deadlines(
-        self, loaded_segments: Sequence[LoadedSegment]
+        self, flush_candidates: Sequence[FlushCandidate]
     ) -> dict[SegmentKey, int | None]:
         """
-        Read the current queue deadlines for loaded segments that are still queued.
+        Read the current queue deadlines for flush candidates that are still queued.
         """
-        if not loaded_segments:
+        if not flush_candidates:
             return {}
 
         with self.client.pipeline(transaction=False) as p:
-            for loaded_segment in loaded_segments:
-                p.zscore(loaded_segment.queue_key, loaded_segment.segment_key)
+            for flush_candidate in flush_candidates:
+                p.zscore(flush_candidate.queue_key, flush_candidate.segment_key)
 
             deadline_scores = p.execute()
 
         return {
-            loaded_segment.segment_key: int(score) if score is not None else None
-            for loaded_segment, score in zip(loaded_segments, deadline_scores)
+            flush_candidate.segment_key: int(score) if score is not None else None
+            for flush_candidate, score in zip(flush_candidates, deadline_scores)
         }
 
     def cleanup_flushed_segments(
         self,
-        flushed_segments: Mapping[SegmentKey, FlushedSegment],
+        flushed_segments: Mapping[SegmentKey, FlushedSegment | ProducedSegment],
     ) -> None:
         """
         Remove Redis data for segments that were successfully produced to Kafka.
@@ -505,8 +594,7 @@ class SpansBufferStore:
                 project_id, trace_id, _ = parse_segment_key(segment_key)
                 redirect_map_key = b"span-buf:ssr:{%s:%s}" % (project_id, trace_id)
 
-                for span_batch in itertools.batched(flushed_segment.spans, 100):
-                    span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                for span_ids in itertools.batched(flushed_segment.span_ids, 100):
                     p.hdel(redirect_map_key, *span_ids)
 
                 if flushed_segment.payload_keys:
