@@ -591,6 +591,13 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         agent: SeerAgentAccess | None = serializer.validated_data.get("agent")
         if agent is not None:
             check_can_grant_agent(agent, request, organization, self)
+            agent = _with_no_access_agent_projects(
+                agent,
+                workflow.get_agent_service_account(),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
 
         # Validate and update projects
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
@@ -674,18 +681,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         account: RpcServiceAccount | None = None
         if agent is not None:
-            current = workflow.get_agent_service_account() if not agent.all_projects else None
-            if current is not None:
-                agent = replace(
-                    agent,
-                    project_ids=_with_no_access_project_ids(
-                        agent.project_ids,
-                        current.project_ids,
-                        request=request,
-                        organization=organization,
-                        endpoint=self,
-                    ),
-                )
             update = workflow.set_agent_access(agent, created_by_id=acting_user_id(request.user))
             account = update.service_account
             event = "SERVICE_ACCOUNT_ADD" if update.created else "SERVICE_ACCOUNT_EDIT"
@@ -903,17 +898,52 @@ def check_can_grant_agent(
     if set(agent.scopes) - request.access.scopes:
         raise PermissionDenied("You can't give an agent scopes you don't have.")
     if agent.all_projects:
-        role = request.access.role
-        if role is None or not roles.get(role).is_global:
-            raise PermissionDenied(
-                "Only a role with access to all projects can give an agent all projects."
-            )
+        _require_global_role(
+            request, "Only a role with access to all projects can give an agent all projects."
+        )
     else:
         denied = _check_project_access(
             agent.project_ids, request=request, organization=organization, endpoint=endpoint
         )
         if denied is not None:
             raise PermissionDenied(denied)
+
+
+def _require_global_role(request: Request, detail: str) -> None:
+    role = request.access.role
+    if role is None or not roles.get(role).is_global:
+        raise PermissionDenied(detail)
+
+
+def _with_no_access_agent_projects(
+    agent: SeerAgentAccess,
+    current: RpcServiceAccount | None,
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> SeerAgentAccess:
+    """
+    Return the agent plus the current account's projects the caller can't read. Narrowing
+    an all-projects agent needs the same global role as granting all projects.
+    """
+    if current is None or agent.all_projects:
+        return agent
+    if current.all_projects:
+        _require_global_role(
+            request, "Only a role with access to all projects can narrow an agent's projects."
+        )
+        return agent
+    return replace(
+        agent,
+        project_ids=_with_no_access_project_ids(
+            agent.project_ids,
+            current.project_ids,
+            request=request,
+            organization=organization,
+            endpoint=endpoint,
+        ),
+    )
 
 
 def audit_agent_service_account(

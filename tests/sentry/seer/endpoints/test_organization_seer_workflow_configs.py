@@ -911,6 +911,27 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.status_code == 403
         assert not get_agent_service_account(workflow.config_id).all_projects
 
+        self.get_success_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            agent={"scopes": ["event:read"], "allProjects": True},
+        )
+        member, project = self.create_member_with_project(open_membership=False)
+        monitor = self.create_metric_monitor(project)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            monitorIds=[monitor.id],
+            agent={"scopes": ["event:read"], "projectIds": [project.id]},
+            status_code=403,
+        )
+        assert get_agent_service_account(workflow.config_id).all_projects
+        assert workflow.get_monitors() == []
+
     def test_agent_requires_service_accounts_feature(self) -> None:
         config = self.create_config()
         self.get_error_response(
