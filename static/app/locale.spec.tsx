@@ -4,6 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {getDuration} from '@sentry/scraps/duration';
 import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
 
+import {formatChartDateTime} from './components/charts/formatChartDateTime';
 import {DEFAULT_LOCALE_DATA, getLocaleSnapshot, setLocale, t, tct, tn} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
@@ -188,6 +189,9 @@ describe('shared formatter translations', () => {
     });
     expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
     expect(getRelativeDate(date, {rounding: 'unit'})).toBe('il y a 2 secondes');
+    expect(
+      formatChartDateTime('2026-01-01T00:00:00Z', 'ordinalDate', {timezone: 'UTC'})
+    ).toBe('1 janv.');
     expect(getRelativeDate('2026-01-01T00:00:04Z', {rounding: 'unit'})).toBe(
       'dans 2 secondes'
     );

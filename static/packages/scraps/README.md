@@ -76,6 +76,16 @@ Use `mode` to choose `dateTime`, `date`, or `time`. Time precision is
 `'24'`. UTC output includes its timezone label by default; `showTimezone`
 controls the label explicitly. Formatting-engine types and patterns are private.
 
+Parsing and timezone conversion use a private Temporal ponyfill, without changing
+browser globals. Rendering preserves Intl's locale-specific date order, literal
+characters, and time punctuation while honoring the configured clock. French
+output includes `1 janv. 2025` and `1:05:06,123 PM`; Japanese output includes
+`2025年1月1日` and `午後1:05`. These locale conventions replace Moment's fixed
+month-first layout. UTC
+is labeled `UTC`; other timezone labels follow Intl for the configured locale.
+For example, English labels include `GMT+11` for Sydney in January and
+`GMT+5:45` for Kathmandu. These may differ from Moment's abbreviations.
+
 Without configuration, dates use UTC and a 12-hour clock. Applications call
 `configureFormatting` before rendering with one source. Its `getSnapshot`
 returns the same object until preferences change, and `subscribe` notifies
