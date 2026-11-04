@@ -23,8 +23,9 @@ type Props = {
 };
 
 // The stats endpoint returns its groups in no fixed order, so the series are sorted
-// before the palette is applied. That keeps each filter's color stable across loads
-// and puts the biggest contributor at the bottom of the stack.
+// by total before the palette is applied. Colors are assigned by rank, so they stay
+// the same for the same data, and the biggest contributor ends up at the bottom of
+// the stack.
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
     return [];
