@@ -72,11 +72,6 @@ class TelemetryClassifierUpdateValidator(CamelSnakeSerializer[TelemetryClassifie
         if self.initial_data.keys() - {"status"}:
             raise serializers.ValidationError("Only status can be updated.")
 
-        # TODO: Support custom classifiers once their prompts can be compiled.
-        assert self.instance is not None
-        if self.instance.prebuilt_classifier_key is None:
-            raise serializers.ValidationError("Custom classifiers aren't supported yet.")
-
         return attrs
 
     def update(

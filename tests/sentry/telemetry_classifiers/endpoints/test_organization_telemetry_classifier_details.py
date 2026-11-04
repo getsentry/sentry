@@ -164,18 +164,6 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         assert self.classifier.name == "Refusals"
         assert self.classifier.status == "enabled"
 
-    def test_rejects_custom_classifier(self) -> None:
-        custom = self.create_telemetry_classifier(status="disabled")
-
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug, custom.id, status="enabled", status_code=400
-            )
-
-        assert response.data["nonFieldErrors"] == ["Custom classifiers aren't supported yet."]
-        custom.refresh_from_db()
-        assert custom.status == "disabled"
-
     def test_requires_project_write(self) -> None:
         member = self.create_user()
         self.create_member(
