@@ -11,7 +11,6 @@ describe('useSubscription', () => {
   const otherOrganization = OrganizationFixture({id: '2', slug: 'other-org'});
 
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
     SubscriptionStore.init();
   });
 
@@ -75,6 +74,23 @@ describe('useSubscription', () => {
     );
 
     await waitFor(() => expect(result.current?.plan).toBe('am3_business'));
+  });
+
+  it('loads the subscription for the new organization when the organization changes', async () => {
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
+    const otherCustomerRequest = MockApiClient.addMockResponse({
+      url: `/customers/${otherOrganization.slug}/`,
+      body: SubscriptionFixture({organization: otherOrganization, plan: 'am3_business'}),
+    });
+
+    const {result, rerender} = renderHookWithProviders(
+      ({org}) => useSubscription({organization: org}),
+      {organization, initialProps: {org: organization}}
+    );
+    rerender({org: otherOrganization});
+
+    await waitFor(() => expect(result.current?.plan).toBe('am3_business'));
+    expect(otherCustomerRequest).toHaveBeenCalledTimes(1);
   });
 
   it('returns null without fetching when there is no organization', () => {
