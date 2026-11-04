@@ -293,8 +293,8 @@
     }
   },
   "views/spendLimits/sharedSpendLimitPriceTable.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 3
+    "@sentry/scraps/no-dom-coupling": {
+      "count": 1
     }
   },
   "views/spikeProtection/components/accordionRow.tsx": {
