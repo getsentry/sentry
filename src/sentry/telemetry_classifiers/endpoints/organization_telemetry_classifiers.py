@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,7 +30,8 @@ from sentry.telemetry_classifiers.serializers import (
 
 class TelemetryClassifierPermission(OrganizationPermission):
     # Team admins have project:write on their projects but only org:read on the org, so writes
-    # are checked against the target project in the handler.
+    # check project:write on the classifier's project instead (in the create serializer and in
+    # the update handler).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
@@ -115,11 +115,6 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
             context={"organization": organization, "access": request.access, "request": request},
         )
         serializer.is_valid(raise_exception=True)
-
-        if not request.access.has_project_scope(
-            serializer.validated_data["project"], "project:write"
-        ):
-            raise PermissionDenied
 
         classifier = serializer.save()
         return self.respond(
