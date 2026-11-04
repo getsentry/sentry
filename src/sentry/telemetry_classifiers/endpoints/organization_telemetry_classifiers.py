@@ -29,11 +29,12 @@ from sentry.telemetry_classifiers.validators import TelemetryClassifierValidator
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
-    # The validator requires project:write on the target project, so members with team-level
-    # project:write can create classifiers without org:write.
+    # Creating and updating require project:write on the classifier's project, so members with
+    # team-level project:write can manage classifiers without org:write.
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
     }
 
 

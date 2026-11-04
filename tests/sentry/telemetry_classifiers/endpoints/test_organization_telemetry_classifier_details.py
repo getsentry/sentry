@@ -72,3 +72,179 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
         with self.feature(self.features):
             self.get_success_response(self.organization.slug, self.classifier.id)
             self.get_error_response(self.organization.slug, hidden.id, status_code=404)
+
+
+@cell_silo_test
+class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
+    endpoint = "sentry-api-0-organization-telemetry-classifier-details"
+    method = "put"
+    features = {"organizations:classifiers-ui": True}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.classifier = self.create_telemetry_classifier(
+            name="Refusals",
+            result_attribute="sentry.classifier.refusal",
+            filter_query="gen_ai.agent.name:support",
+            prebuilt_classifier_key="refusal",
+            natural_language_prompt=None,
+            compiled_prompt=None,
+            output_type=None,
+            created_by_id=self.user.id,
+        )
+
+    def test_requires_feature(self) -> None:
+        self.get_error_response(
+            self.organization.slug, self.classifier.id, name="Renamed", status_code=404
+        )
+
+        self.classifier.refresh_from_db()
+        assert self.classifier.name == "Refusals"
+
+    def test_updates_given_fields(self) -> None:
+        date_updated = self.classifier.date_updated
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.classifier.id,
+                name="Renamed",
+                resultAttribute="sentry.classifier.renamed",
+                dataset="trace_spans",
+                filterQuery="gen_ai.agent.name:billing",
+                status="disabled",
+                prebuiltClassifierKey="frustration",
+            )
+
+        self.classifier.refresh_from_db()
+        assert self.classifier.date_updated > date_updated
+        assert self.classifier.created_by_id == self.user.id
+        assert response.data.pop("createdBy")["id"] == str(self.user.id)
+        assert response.data == {
+            "id": str(self.classifier.id),
+            "projectId": str(self.project.id),
+            "name": "Renamed",
+            "resultAttribute": "sentry.classifier.renamed",
+            "dataset": "trace_spans",
+            "filterQuery": "gen_ai.agent.name:billing",
+            "status": "disabled",
+            "prebuiltClassifierKey": "frustration",
+            "naturalLanguagePrompt": None,
+            "outputType": None,
+            "dateAdded": self.classifier.date_added,
+            "dateUpdated": self.classifier.date_updated,
+        }
+
+    def test_partial_update_keeps_other_fields(self) -> None:
+        with self.feature(self.features):
+            self.get_success_response(self.organization.slug, self.classifier.id, status="disabled")
+
+        self.classifier.refresh_from_db()
+        assert self.classifier.status == "disabled"
+        assert self.classifier.name == "Refusals"
+        assert self.classifier.filter_query == "gen_ai.agent.name:support"
+
+    def test_rejects_custom_fields(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.classifier.id,
+                naturalLanguagePrompt="Is the user frustrated?",
+                status_code=400,
+            )
+
+        assert response.data["nonFieldErrors"] == ["Custom classifiers aren't supported yet."]
+        self.classifier.refresh_from_db()
+        assert self.classifier.natural_language_prompt is None
+
+    def test_rejects_updating_custom_classifier(self) -> None:
+        custom = self.create_telemetry_classifier()
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, custom.id, name="Renamed", status_code=400
+            )
+
+        assert response.data["nonFieldErrors"] == ["Custom classifiers aren't supported yet."]
+
+    def test_rejects_moving_to_another_project(self) -> None:
+        other_project = self.create_project(organization=self.organization, teams=[self.team])
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug, self.classifier.id, project=self.project.slug
+            )
+            response = self.get_error_response(
+                self.organization.slug,
+                self.classifier.id,
+                project=other_project.id,
+                status_code=400,
+            )
+
+        assert "project" in response.data
+        self.classifier.refresh_from_db()
+        assert self.classifier.project_id == self.project.id
+
+    def test_rejects_duplicate_result_attribute_in_project(self) -> None:
+        self.create_telemetry_classifier(result_attribute="sentry.classifier.taken")
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.classifier.id,
+                resultAttribute="sentry.classifier.refusal",
+            )
+            response = self.get_error_response(
+                self.organization.slug,
+                self.classifier.id,
+                resultAttribute="sentry.classifier.taken",
+                status_code=400,
+            )
+
+        assert "resultAttribute" in response.data
+
+    def test_requires_project_write(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, self.classifier.id, name="Renamed", status_code=403
+            )
+
+        self.classifier.refresh_from_db()
+        assert self.classifier.name == "Refusals"
+
+    def test_team_admin_can_update(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=team_admin,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.login_as(team_admin)
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug, self.classifier.id, name="Renamed"
+            )
+
+        assert response.data["name"] == "Renamed"
+        assert response.data["createdBy"]["id"] == str(self.user.id)
+
+    def test_classifier_on_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug, self.classifier.id, name="Renamed", status_code=404
+            )
