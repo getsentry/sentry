@@ -83,11 +83,13 @@ class WorkflowConfigListErrorResponse(TypedDict):
 
 
 class SeerWorkflowConfigPermission(OrganizationPermission):
-    # POST and PUT are further limited to the projects the caller can access.
+    # POST and PUT are further limited to the projects the caller can access; DELETE
+    # requires global access.
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "seer:read"],
+        "POST": ["org:write", "org:admin", "seer:write"],
+        "PUT": ["org:write", "org:admin", "seer:write"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -421,7 +423,11 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (SeerWorkflowConfigPermission,)
 
     def serialize(
@@ -604,6 +610,34 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             workflow.set_enabled(enabled)
 
         return Response(self.serialize(request, organization, workflow.get_config()))
+
+    @extend_schema(
+        operation_id="Delete a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={204: None},
+    )
+    def delete(self, request: Request, organization: Organization, config_id: str) -> Response:
+        """Delete a saved Seer automation workflow.
+
+        Requires global access. The config's runs are deleted too.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        if not request.access.has_global_access:
+            raise PermissionDenied(detail="Deleting an automation requires global access")
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=to_valid_int_id("config_id", config_id),
+                organization=organization,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            )
+        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
+            raise NotFound from e
+
+        get_seer_workflow(config).delete()
+        return Response(status=204)
 
 
 def serialize_workflow_configs(
