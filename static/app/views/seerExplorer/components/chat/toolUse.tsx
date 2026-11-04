@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {
   MessageRow,
@@ -643,6 +644,14 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
 
 const OPEN_TRACE_PATHNAME = /\/trace\/[^/]+\/$/;
 
+// The open trace's target params. A new link clears these and sets only its own.
+const openTraceTargetParsers = {
+  eventId: parseAsString,
+  node: parseAsString,
+  revealNode: parseAsString,
+  targetId: parseAsString,
+};
+
 /**
  * Rules build a trace link with only its target, so following one to the trace that is already open
  * would drop the zoom, tab and filters the page has. Keep those and replace only the target. The open
@@ -659,16 +668,21 @@ function useKeepOpenTraceQuery() {
       ) {
         return url;
       }
-      const {
-        node: _node,
-        eventId: _eventId,
-        targetId: _targetId,
-        ...query
-      } = location.query;
-      const {node, ...target} = url.query ?? {};
+      const {query: linkQuery, ...link} = url;
+      const {node, ...target} = linkQuery ?? {};
+      const serialize = createSerializer({
+        ...openTraceTargetParsers,
+        ...Object.fromEntries(Object.keys(target).map(key => [key, parseAsString])),
+      });
       return {
-        ...url,
-        query: {...query, ...target, ...(node ? {revealNode: node} : {})},
+        ...link,
+        search: serialize(location.search, {
+          eventId: null,
+          node: null,
+          targetId: null,
+          ...target,
+          revealNode: typeof node === 'string' ? node : null,
+        }),
       };
     },
     [location]

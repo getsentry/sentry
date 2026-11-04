@@ -13,6 +13,7 @@ import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';
 import * as Sentry from '@sentry/react';
+import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
 import * as qs from 'query-string';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -115,6 +116,16 @@ export interface TraceWaterfallProps {
    */
   scrollToNode?: UseTraceScrollToPath;
 }
+
+// One-shot params that ask the waterfall to scroll to (and zoom into, or just reveal) a node once
+// the trace has loaded. The handler removes them after reading them.
+const zoomQueryParsers = {
+  node: parseAsString,
+  revealNode: parseAsString,
+  zoomToNode: parseAsString,
+  zoomToTimestamp: parseAsFloat,
+  zoomToVital: parseAsString,
+};
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const disableUrlSync = props.disableUrlSync ?? false;
@@ -636,18 +647,19 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     manager: viewManager,
   });
 
+  const [zoomQuery, setZoomQuery] = useQueryStates(zoomQueryParsers, {
+    history: 'replace',
+  });
   const handledZoomQueryRef = useRef<string | null>(null);
   useEffect(() => {
     if (disableUrlSync) {
       return;
     }
 
-    const query = qs.parse(routerLocation.search);
     // `node` is only read when a trace loads, so links into the already open trace (e.g. Seer's
     // "View span") pass their target as `revealNode` instead.
-    const zoomToNode = typeof query.zoomToNode === 'string' ? query.zoomToNode : null;
-    const revealNode =
-      !zoomToNode && typeof query.revealNode === 'string' ? query.revealNode : null;
+    const {zoomToNode, zoomToTimestamp, zoomToVital} = zoomQuery;
+    const revealNode = zoomToNode ? null : zoomQuery.revealNode;
     const targetPath = zoomToNode ?? revealNode;
     if (!targetPath) {
       handledZoomQueryRef.current = null;
@@ -666,20 +678,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       candidate.matchByPath(targetPath as TraceTree.NodePath)
     );
 
-    const {
-      zoomToNode: _zoomToNode,
-      zoomToTimestamp: _zoomToTimestamp,
-      zoomToVital: _zoomToVital,
-      revealNode: _revealNode,
-      ...nextQuery
-    } = query;
-    navigate(
-      {
-        pathname: routerLocation.pathname,
-        query: revealNode ? {...nextQuery, node: revealNode} : nextQuery,
-      },
-      {replace: true}
-    );
+    void setZoomQuery({
+      zoomToNode: null,
+      zoomToTimestamp: null,
+      zoomToVital: null,
+      revealNode: null,
+      ...(revealNode ? {node: revealNode} : {}),
+    });
 
     if (!node) {
       return;
@@ -689,27 +694,20 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (revealNode) {
       return;
     }
-    const timestamp =
-      typeof query.zoomToTimestamp === 'string'
-        ? Number.parseFloat(query.zoomToTimestamp)
-        : Number.NaN;
-    if (Number.isFinite(timestamp)) {
-      viewManager.onZoomToVital(
-        timestamp,
-        typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
-      );
+    if (zoomToTimestamp !== null && Number.isFinite(zoomToTimestamp)) {
+      viewManager.onZoomToVital(zoomToTimestamp, zoomToVital ?? `${zoomToTimestamp}`);
     } else {
       viewManager.onZoomIntoSpace(node.space);
     }
   }, [
     disableUrlSync,
-    navigate,
     onLoadScrollStatus,
     onTabScrollToNode,
     props.tree,
-    routerLocation.pathname,
     routerLocation.search,
+    setZoomQuery,
     viewManager,
+    zoomQuery,
   ]);
 
   // Sync part of the state with the URL
