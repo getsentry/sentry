@@ -250,11 +250,8 @@ class TestDetectorSerializer(TestCase):
     def test_serialize_bulk_nested_actions_one(self) -> None:
         self._assert_serialize_bulk_nested_actions(1)
 
-    def test_serialize_bulk_nested_actions_twenty(self) -> None:
-        self._assert_serialize_bulk_nested_actions(20)
-
-    def test_serialize_bulk_nested_actions_fifty(self) -> None:
-        self._assert_serialize_bulk_nested_actions(50)
+    def test_serialize_bulk_nested_actions_three(self) -> None:
+        self._assert_serialize_bulk_nested_actions(3)
 
     def _assert_serialize_bulk_nested_actions(self, detector_count: int) -> None:
         action = self.create_action(

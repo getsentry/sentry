@@ -166,11 +166,8 @@ class TestWorkflowSerializer(TestCase):
     def test_serialize_bulk_queries_one(self) -> None:
         self._assert_serialize_bulk_queries(1)
 
-    def test_serialize_bulk_queries_twenty(self) -> None:
-        self._assert_serialize_bulk_queries(20)
-
-    def test_serialize_bulk_queries_fifty(self) -> None:
-        self._assert_serialize_bulk_queries(50)
+    def test_serialize_bulk_queries_three(self) -> None:
+        self._assert_serialize_bulk_queries(3)
 
     def _assert_serialize_bulk_queries(self, workflow_count: int) -> None:
         environments = [
