@@ -71,6 +71,10 @@
       "types": "./dist/input/index.d.ts",
       "import": "./dist/input/index.js"
     },
+    "./numberInput": {
+      "types": "./dist/numberInput/index.d.ts",
+      "import": "./dist/numberInput/index.js"
+    },
     "./textarea": {
       "types": "./dist/textarea/index.d.ts",
       "import": "./dist/textarea/index.js"

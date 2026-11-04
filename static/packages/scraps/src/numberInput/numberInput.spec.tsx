@@ -3,7 +3,7 @@ import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import {NumberInput} from '@sentry/scraps/input';
+import {NumberInput} from '@sentry/scraps/numberInput';
 import {lightTheme} from '@sentry/scraps/theme';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
