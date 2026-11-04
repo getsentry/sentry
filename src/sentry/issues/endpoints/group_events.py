@@ -68,6 +68,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
 
     def get_per_page(
         self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None

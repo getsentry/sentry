@@ -33,6 +33,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
@@ -44,6 +45,7 @@ from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.scm.private.rate_limit import DynamicRateLimiter
 from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
     ApiError,
     ApiForbiddenError,
     ApiPaginationTruncated,
@@ -129,6 +131,157 @@ class GitHubApiClientTest(TestCase):
     def test_get_rate_limit_non_existent_resource(self) -> None:
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
+
+    @responses.activate
+    def test_get_rate_limit_records_success_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            json={
+                "resources": {
+                    "graphql": {
+                        "limit": 5000,
+                        "remaining": 4993,
+                        "reset": 1372700389,
+                        "used": 7,
+                    }
+                },
+            },
+        )
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.client.get_current_scm_interaction_type",
+                return_value=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
+            ),
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_rate_limit("graphql")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_rate_limit",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "get_blame_for_files",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_rate_limit_records_error_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            status=500,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiError),
+        ):
+            self.github_client.get_rate_limit()
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_rate_limit",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_success_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            json={"tree": [{"path": "src/foo.py", "type": "blob"}], "truncated": False},
+        )
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.client.get_current_scm_interaction_type",
+                return_value=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+            ),
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            tree = self.github_client.get_tree(self.repo.name, "main")
+
+        assert tree == [{"path": "src/foo.py", "type": "blob"}]
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "derive_codemappings",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_halted_metric_for_empty_repo(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            status=409,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiConflictError),
+        ):
+            self.github_client.get_tree(self.repo.name, "main")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "halted",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    @responses.activate
+    def test_get_tree_records_error_metric(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/git/trees/main",
+            status=500,
+        )
+
+        with (
+            mock.patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+            pytest.raises(ApiError),
+        ):
+            self.github_client.get_tree(self.repo.name, "main")
+
+        assert (
+            mock.call(
+                "integrations.source_code_management.get_repo_tree",
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "unattributed",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
 
     @responses.activate
     def test_internal_rate_limiter_ignores_get_rate_limit(self) -> None:

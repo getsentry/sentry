@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class DeletionTaskManager:
         while task.chunk():
             pass
 
-    def exec_sync_many(self, instances: list[Model]) -> None:
+    def exec_sync_many(self, instances: Sequence[Model]) -> None:
         if not instances:
             return
 

@@ -12,9 +12,15 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowFilters,
+    SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
+from sentry.seer.workflows.workflow import (
+    AllProjects,
+    SeerWorkflow,
+    SelectedProjects,
+    WorkflowUpdateError,
+)
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -73,6 +79,97 @@ class SeerWorkflowEnsureDefaultsTest(TestCase):
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
             ).order_by("id")
         )
+
+
+class SeerWorkflowCreateTest(TestCase):
+    def test_creates_config_with_selected_projects(self) -> None:
+        first, second = self.create_project(), self.create_project()
+
+        workflow = SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            schedule=SeerWorkflowSchedule.DAILY,
+            project_ids=[second.id, first.id],
+            environments=["production"],
+            name="Daily triage",
+        )
+
+        config = workflow.get_config()
+        assert config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        assert config.enabled is True
+        assert config.schedule == SeerWorkflowSchedule.DAILY
+        assert config.filters == {"all_projects": False, "environments": ["production"]}
+        assert workflow.extras.name == "Daily triage"
+        assert config.version == 1
+        assert workflow.get_project_ids() == sorted([first.id, second.id])
+
+    def test_creates_all_projects_config_without_links(self) -> None:
+        project = self.create_project()
+
+        workflow = SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            schedule=SeerWorkflowSchedule.DAILY,
+            project_ids=[-1],
+        )
+
+        config = workflow.get_config()
+        assert config.enabled is False
+        assert config.filters == {"all_projects": True, "environments": []}
+        assert workflow.extras.name is None
+        assert not SeerWorkflowConfigProject.objects.filter(config=config).exists()
+        assert workflow.get_project_ids() == [project.id]
+
+    def test_rejects_unconfigurable_strategy(self) -> None:
+        with pytest.raises(WorkflowUpdateError, match="cannot be configured"):
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[],
+            )
+        assert not SeerWorkflowConfig.objects.exists()
+
+    def test_rejects_metric_strategy_with_internal_error(self) -> None:
+        with pytest.raises(ValueError, match="Use create_with_monitors") as excinfo:
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[],
+            )
+        assert not isinstance(excinfo.value, WorkflowUpdateError)
+        assert not SeerWorkflowConfig.objects.exists()
+
+    def test_rejects_other_org_project(self) -> None:
+        foreign = self.create_project(organization=self.create_organization())
+
+        with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[self.project.id, foreign.id],
+            )
+        assert not SeerWorkflowConfig.objects.exists()
+
+    @patch("sentry.seer.workflows.workflow.MAX_WORKFLOW_CONFIGS_PER_ORG", 2)
+    def test_caps_configs_per_organization(self) -> None:
+        for _ in range(2):
+            Factories.create_seer_workflow_config(
+                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            )
+
+        with pytest.raises(WorkflowUpdateError, match="at most 2 automations"):
+            SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[self.project.id],
+            )
+        assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
+        assert not SeerWorkflowConfigProject.objects.exists()
 
 
 class SeerWorkflowScopeTest(TestCase):
@@ -285,6 +382,51 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.filters.all_projects is False
         assert workflow.get_config().version == 1
         assert workflow.get_project_ids() == [previous.id]
+
+    def test_has_all_projects_with_all_projects_flag(self) -> None:
+        self.create_project()
+        self.create_project(status=ObjectStatus.PENDING_DELETION)
+        self.create_project(organization=self.create_organization())
+        config = self.create_config(all_projects=True)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        assert workflow.has_all_projects() is True
+
+        self.create_project()
+        assert workflow.has_all_projects() is True
+
+    def test_has_all_projects_requires_every_active_project_selected(self) -> None:
+        first, second = self.create_project(), self.create_project()
+        self.create_project(status=ObjectStatus.PENDING_DELETION)
+        config = self.create_config(first)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        assert workflow.has_all_projects() is False
+
+        # An explicit selection of every active project counts, even without the flag.
+        workflow.set_project_selection(SelectedProjects(project_ids=(first.id, second.id)))
+        assert workflow.filters.all_projects is False
+        assert workflow.has_all_projects() is True
+
+        self.create_project()
+        assert workflow.has_all_projects() is False
+
+    def test_has_all_projects_without_active_projects(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(
+            organization=organization, status=ObjectStatus.PENDING_DELETION
+        )
+        config = Factories.create_seer_workflow_config(
+            organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+
+        # An empty scope never counts as all projects, even with no active projects.
+        assert workflow.get_project_ids() == []
+        assert workflow.has_all_projects() is False
+
+        workflow.set_project_selection(SelectedProjects(project_ids=(project.id,)))
+        assert workflow.has_all_projects() is False
 
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
         config = Factories.create_seer_workflow_config(

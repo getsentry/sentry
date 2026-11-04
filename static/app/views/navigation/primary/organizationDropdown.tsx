@@ -54,6 +54,7 @@ import {
   useSettingsNavigationTour,
 } from 'sentry/views/navigation/settingsNavigationTour';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
@@ -62,7 +63,9 @@ const QUICK_ACCESS_PROJECT_LIMIT = 5;
 
 interface OrganizationDropdownProps {
   /**
-   * When true, hides settings, projects, members, teams, and billing links for the current organization.
+   * When true, hides the links into the current organization. Without
+   * settings-v3, these are settings, projects, members, teams, and billing.
+   * With settings-v3, these are settings and project settings.
    */
   hideCurrentOrganizationLinks?: boolean;
 }
@@ -174,7 +177,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         returnFocusRef={triggerRef}
         title={
           hasNoProjects
-            ? t('Project Settings')
+            ? getSettingsScopeTitle('project')
             : t('Quick settings-access for your important Projects')
         }
         description={
@@ -268,7 +271,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               },
               {
                 key: 'project-settings',
-                label: t('Project Settings'),
+                label: getSettingsScopeTitle('project'),
                 ref: projectsTourProps.ref,
                 hidden: props.hideCurrentOrganizationLinks,
                 children: [

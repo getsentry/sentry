@@ -235,6 +235,25 @@ const security = {
     'src/sentry/new_migrations/**',
   ],
   rules: {
+    lookupMayMatchNullRows: {
+      prompt:
+        'Does the code put a value that is None for some callers or rows into an exact ORM lookup keyword (in filter(), exclude(), get(), get_or_create(), update_or_create() or Q()) without checking for None first? Examples: user_id=request.user.id, which is None for API keys and anonymous callers; user_id=member.user_id, which is None for a pending invite; application=app.application or user=obj.user when that foreign key is nullable; a parameter typed int | None. It does not count when the code checks the value first (if x is None: return), adds an __isnull=False lookup for the same field, passes a literal None, writes x.id if x else None on purpose to match NULL rows, or uses a value that is always set, such as a primary key or a required field.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A lookup keyword takes request.user.id, a member or object user id, a nullable foreign key, or an optional parameter that can be None, with no None check, so None silently matches rows where the column IS NULL.',
+          severity: 'warn',
+          report:
+            "`filter(field=None)` matches rows where the column is NULL. Decide what None means here: no rows (check for None first, or use `owned_by_acting_user()` for the caller's own rows), no filter (leave the lookup out), or NULL rows (pass None or use `__isnull=True`). See src/AGENTS.md, Request Principals.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every lookup value is always set or checked for None first, or matching NULL rows is clearly intended.',
+        },
+      ],
+    },
     comparesSecretWithEquality: {
       // Raised to cut borderline false positives, accepting that some real findings score below it.
       threshold: 0.8,

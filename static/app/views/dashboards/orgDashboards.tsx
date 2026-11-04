@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -13,8 +14,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
@@ -44,7 +45,7 @@ interface OrgDashboardsProps {
 export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const navigate = useNavigate();
+  const [, setPageFilterParams] = useQueryStates(pageFilterParsers, {history: 'replace'});
   const {dashboardId} = useParams<{dashboardId: string}>();
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -142,22 +143,15 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     }
 
     dashboardRedirectRef.current = selectedDashboard.id;
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          project: selectedDashboard.projects,
-          environment: selectedDashboard.environment,
-          statsPeriod: selectedDashboard.period,
-          start: selectedDashboard.start,
-          end: selectedDashboard.end,
-          utc: selectedDashboard.utc,
-        },
-      },
-      {replace: true}
-    );
-  }, [location, navigate, selectedDashboard]);
+    setPageFilterParams({
+      project: selectedDashboard.projects?.map(String) ?? null,
+      environment: selectedDashboard.environment ?? null,
+      statsPeriod: selectedDashboard.period ?? null,
+      start: selectedDashboard.start ?? null,
+      end: selectedDashboard.end ?? null,
+      utc: selectedDashboard.utc?.toString() ?? null,
+    });
+  }, [location, setPageFilterParams, selectedDashboard]);
 
   useEffect(() => {
     // Clean up the query cache when the dashboard unmounts to prevent

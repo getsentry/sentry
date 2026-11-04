@@ -11,6 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
@@ -133,7 +134,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
                 defaults={
                     "threshold": data["threshold"],
                     "metric": data["metric"],
-                    "edited_by_id": request.user.id,
+                    "edited_by_id": acting_user_id(request.user),
                 },
             )
 

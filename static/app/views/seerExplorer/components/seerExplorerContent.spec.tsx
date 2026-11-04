@@ -1575,7 +1575,7 @@ describe('SeerExplorerContent', () => {
       );
     });
 
-    it('does not show the debug menu without any debug feature flag', async () => {
+    it('shows the debug menu to employees', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -1589,8 +1589,7 @@ describe('SeerExplorerContent', () => {
           organization,
         }
       );
-      await screen.findByTestId('seer-explorer-input');
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Debug'})).toBeInTheDocument();
     });
   });
 

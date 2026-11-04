@@ -5,6 +5,7 @@ from typing import cast
 from unittest import mock
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
@@ -26,6 +27,8 @@ from sentry.api.bases.organization import (
     OrganizationPermission,
     OrganizationReleasesBaseEndpoint,
 )
+from sentry.api.endpoints.organization_recent_searches import OrganizationRecentSearchPermission
+from sentry.api.endpoints.prompts_activity import PromptsActivityPermission
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
     ResourceDoesNotExist,
@@ -40,6 +43,26 @@ from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
+from sentry.dashboards.endpoints import organization_dashboards_starred
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGeneratePermission,
+)
+from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
+from sentry.discover.endpoints import discover_saved_query_starred
+from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
+from sentry.explore.endpoints import explore_saved_query_starred, saved_query_starred_order
+from sentry.explore.endpoints.bases import (
+    ExploreSavedFormulaPermission,
+    ExploreSavedQueryPermission,
+)
+from sentry.insights.endpoints import starred_segments
+from sentry.issues.endpoints import (
+    organization_group_search_view_details_starred,
+    organization_group_search_view_starred_order,
+    organization_group_search_view_visit,
+    organization_group_search_views_starred,
+)
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -567,6 +590,60 @@ class RejectsDeprecatedScopesTest(TestCase):
     @override_options({"auth.deprecated-scope-translation.enabled": True})
     def test_keeps_deprecated_scopes_unless_opted_in(self) -> None:
         assert self.allowed_scopes(OrganizationPermission) == {"org:read", "org:write", "org:admin"}
+
+
+# Every permission class that stops accepting deprecated scopes in orgs with granular scopes.
+OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
+    OrganizationDashboardsPermission,
+    OrganizationDashboardGeneratePermission,
+    DiscoverSavedQueryPermission,
+    ExploreSavedQueryPermission,
+    ExploreSavedFormulaPermission,
+    GroupSearchViewPermission,
+    OrganizationRecentSearchPermission,
+    PromptsActivityPermission,
+    organization_dashboards_starred.MemberPermission,
+    discover_saved_query_starred.MemberPermission,
+    explore_saved_query_starred.MemberPermission,
+    saved_query_starred_order.MemberPermission,
+    starred_segments.MemberPermission,
+    organization_group_search_view_details_starred.MemberPermission,
+    organization_group_search_view_starred_order.MemberPermission,
+    organization_group_search_view_visit.MemberPermission,
+    organization_group_search_views_starred.MemberPermission,
+]
+
+
+@pytest.mark.parametrize("permission_cls", OPTED_IN_PERMISSIONS)
+def test_opted_in_permission_is_opted_in(permission_cls: type[OrganizationPermission]) -> None:
+    assert permission_cls.rejects_deprecated_scopes
+
+
+@pytest.mark.parametrize("permission_cls", OPTED_IN_PERMISSIONS)
+def test_deprecated_scopes_translate_to_accepted_scopes(
+    permission_cls: type[OrganizationPermission],
+) -> None:
+    """A token holding only a deprecated scope keeps access through its translation."""
+    untranslated = {
+        (method, scope)
+        for method, scopes in permission_cls.scope_map.items()
+        for scope in set(scopes) & settings.DEPRECATED_SCOPES
+        if not settings.DEPRECATED_SCOPE_TRANSLATIONS[scope]
+        & (set(scopes) - settings.DEPRECATED_SCOPES)
+    }
+    assert untranslated == set()
+
+
+@pytest.mark.parametrize("permission_cls", OPTED_IN_PERMISSIONS)
+def test_granular_roles_keep_access(permission_cls: type[OrganizationPermission]) -> None:
+    """Every granular role still holds a scope the permission accepts for each method."""
+    without_access = {
+        (method, role["id"])
+        for method, scopes in permission_cls.scope_map.items()
+        for role in settings.SENTRY_GRANULAR_ROLES
+        if not set(role["scopes"]) & (set(scopes) - settings.DEPRECATED_SCOPES)
+    }
+    assert without_access == set()
 
 
 class BaseOrganizationEndpointTest(TestCase):

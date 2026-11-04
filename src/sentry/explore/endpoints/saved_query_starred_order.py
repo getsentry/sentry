@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import require_user
 from sentry.explore import utils
 from sentry.explore.models import ExploreSavedQueryStarred
 from sentry.explore.types import SavedQueryRef, SavedQueryType
@@ -21,6 +22,9 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["member:read", "member:write", "user_preference:write"],
     }
+
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
@@ -76,7 +80,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
         try:
             # DiscoverSavedQueryStarred should be in the same db as ExploreSavedQueryStarred.
             with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-                utils.reorder_starred_queries(organization, request.user.id, refs)
+                utils.reorder_starred_queries(organization, require_user(request).id, refs)
         except (IntegrityError, ValueError):
             raise ParseError("Mismatch between existing and provided starred queries.")
 
