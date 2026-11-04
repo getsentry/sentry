@@ -33,7 +33,7 @@ In both paths, `detect_performance_problems()` in [performance_detection.py](./p
   - It will map each `PerformanceProblem` into an `IssueOccurrence`
   - Then run `produce_occurrence_to_kafka` from [producer.py](../issues/producer.py) which passes the occurrence along to the [Issue Platform](https://develop.sentry.dev/backend/issue-platform/)
 
-For context, the Issue Platform operates off of the the GroupType subclasses (from [grouptype.py](../issues/grouptype.py)). The [issue platform docs](https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type) provide a way to control the rollout of new `GroupType`s via the `released` property. Keep in mind, **this rollout is entirely separate from the PerformanceDetector**! The checks within `detect_performance_problems` may skip running the detector, or skip creating problems completely all before they ever reach the Issue Platform.
+For context, the Issue Platform operates off of the GroupType subclasses (from [grouptype.py](../issues/grouptype.py)). The [issue platform docs](https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type) provide a way to control the rollout of new `GroupType`s via the `released` property. Keep in mind, **this rollout is entirely separate from the PerformanceDetector**! The checks within `detect_performance_problems` may skip running the detector, or skip creating problems completely all before they ever reach the Issue Platform.
 
 ### Detector Assumptions
 
