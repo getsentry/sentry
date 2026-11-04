@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -13,8 +14,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationFireHistoryApiOptions} from 'sentry/views/automations/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -59,18 +58,14 @@ function Skeletons() {
 export function AutomationHistoryList({automationId, query}: Props) {
   const limit = DEFAULT_HISTORY_PER_PAGE;
   const org = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const getPaginationCaption = useGetPaginationCaption();
-
-  const cursor =
-    typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
+  const [cursor, setCursor] = useQueryState('cursor', {history: 'push'});
 
   const {data, isLoading, isError} = useQuery({
     ...automationFireHistoryApiOptions({
       organization: org,
       automationId,
-      cursor,
+      cursor: cursor ?? undefined,
       limit,
       query,
     }),
@@ -148,13 +143,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
       </SimpleTable>
       <StyledPagination
         onCursor={newCursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              cursor: newCursor,
-            },
-          });
+          setCursor(newCursor ?? null);
         }}
         pageLinks={pageLinks}
         caption={paginationCaption}

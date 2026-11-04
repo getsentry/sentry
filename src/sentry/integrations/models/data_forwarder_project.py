@@ -29,7 +29,7 @@ class DataForwarderProject(DefaultFieldsModel):
         db_table = "sentry_dataforwarderproject"
         unique_together = (("data_forwarder", "project"),)
 
-    def get_config(self) -> dict:
+    def get_config(self) -> dict[str, str]:
         """
         Get the configuration by merging the base config with project overrides.
         """

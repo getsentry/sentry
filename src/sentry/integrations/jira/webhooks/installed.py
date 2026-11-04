@@ -39,7 +39,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         with IntegrationPipelineViewEvent(
             interaction_type=IntegrationPipelineViewType.VERIFY_INSTALLATION,
             domain=IntegrationDomain.PROJECT_MANAGEMENT,

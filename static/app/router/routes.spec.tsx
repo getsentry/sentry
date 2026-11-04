@@ -310,6 +310,12 @@ describe('buildRoutes()', () => {
     expect(components).not.toContain(AuthenticatedApiErrorHandler);
   });
 
+  it('redirects legacy project group urls to the organization issue details', () => {
+    expect(getRedirectTarget(buildRoutes(), '/test-org/test-project/group/123/')).toBe(
+      '/organizations/test-org/issues/123/'
+    );
+  });
+
   it('matches legacy project event redirects under the organization layout', () => {
     const matchedPaths = getMatchedPaths(
       buildRoutes(),

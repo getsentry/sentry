@@ -12,11 +12,11 @@ export default function SavedQueriesView() {
   const organization = useOrganization();
 
   return (
-    <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
+    <SentryDocumentTitle title={t('Saved Queries')} orgSlug={organization?.slug}>
       <Stack flex={1}>
         <TopBar.Slot
           name="breadcrumbs"
-          title={{type: 'page-title', label: t('All Queries')}}
+          title={{type: 'page-title', label: t('Saved Queries')}}
         />
         <TopBar.Slot name="feedback">
           <FeedbackButton

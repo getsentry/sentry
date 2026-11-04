@@ -127,6 +127,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             project_id=self.project.id,
         )
 
+        assert event_a.group_id is not None
         groups = list(
             Group.objects.filter(id=event_a.group_id).values(
                 "id", "type", "project_id", "project__organization_id"
@@ -168,6 +169,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             project_id=self.project.id,
         )
 
+        assert event_a.group_id is not None
         groups = list(
             Group.objects.filter(id=event_a.group_id).values(
                 "id", "type", "project_id", "project__organization_id"

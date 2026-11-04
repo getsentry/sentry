@@ -710,6 +710,40 @@ describe('ReleasesList', () => {
     expect(router.location.query.query).toBeFalsy();
   });
 
+  it('restores the previous display with one back navigation when the display changes', async () => {
+    const {router} = renderMobileBuildsTab();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Display Size'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Distribution'}));
+    await screen.findByRole('button', {name: 'Display Distribution'});
+
+    router.navigate(-1);
+    await screen.findByRole('button', {name: 'Display Size'});
+
+    expect(router.location.query.display).toBeUndefined();
+    expect(router.location.query.query).toBeUndefined();
+  });
+
+  it('keeps the previous cursor when navigating back after a search', async () => {
+    const {router} = renderMobileBuildsTab({display: 'distribution', cursor: '0:25:0'});
+
+    const searchInput = await screen.findByTestId('query-builder-input');
+    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('install_groups:alpha');
+    });
+
+    router.navigate(-1);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('row', {name: 'install_groups:alpha'})
+      ).not.toBeInTheDocument();
+    });
+
+    expect(router.location.query.query).toBeUndefined();
+    expect(router.location.query.cursor).toBe('0:25:0');
+  });
+
   it('shows the Download CSV button on the distribution display', async () => {
     renderMobileBuildsTab({display: 'distribution'});
     expect(await screen.findByRole('button', {name: 'Download CSV'})).toBeInTheDocument();

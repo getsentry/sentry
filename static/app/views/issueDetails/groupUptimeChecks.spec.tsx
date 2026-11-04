@@ -13,6 +13,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import GroupUptimeChecks from 'sentry/views/issueDetails/groupUptimeChecks';
 
 describe('GroupUptimeChecks', () => {
@@ -66,10 +67,12 @@ describe('GroupUptimeChecks', () => {
       body: [],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUptimeChecks />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
       expect(screen.getByText(column)).toBeInTheDocument();
@@ -97,10 +100,15 @@ describe('GroupUptimeChecks', () => {
       ],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUptimeChecks />
+      </GroupIdProvider>,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1-1 matching uptime checks')).toBeInTheDocument();
@@ -140,10 +148,12 @@ describe('GroupUptimeChecks', () => {
       ],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUptimeChecks />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 
     const traceId = getShortEventId(uptimeCheck.traceId);
@@ -187,10 +197,12 @@ describe('GroupUptimeChecks', () => {
       ],
     });
 
-    render(<GroupUptimeChecks />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupUptimeChecks />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
 
     expect(
       await screen.findByText('Showing 1-2 matching uptime checks')

@@ -16,6 +16,7 @@ from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExa
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.project import Project
 from sentry.search.utils import tokenize_query
 from sentry.services import eventstore
 
@@ -60,7 +61,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         examples=EventAttachmentExamples.LIST_EVENT_ATTACHMENTS,
     )
     def get(
-        self, request: Request, project, event_id
+        self, request: Request, project: Project, event_id: str
     ) -> Response[list[EventAttachmentSerializerResponse]]:
         """
         Retrieve a list of attachments uploaded for a given event.

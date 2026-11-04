@@ -1,3 +1,5 @@
+from typing import cast
+
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,8 +22,9 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
+from sentry.tagstore.types import TagKey, TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 _TAG_KEY_PARAM = OpenApiParameter(
@@ -68,7 +71,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, key) -> Response[TagKeySerializerResponse]:
+    def get(
+        self, request: Request, project: Project, key: str
+    ) -> Response[TagKeySerializerResponse]:
         """
         Return details about a tag key, including the number of unique and total values.
         """
@@ -102,7 +107,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, key) -> Response:
+    def delete(self, request: Request, project: Project, key: str) -> Response:
         """
         Remove all occurrences of the given tag key and its values.
         """
@@ -138,14 +143,17 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def get_tag_keys_for_deletion(self, project, key):
+    def get_tag_keys_for_deletion(self, project: Project, key: str) -> list[TagKey]:
         try:
             return [
-                tagstore.backend.get_tag_key(
-                    project_id=project.id,
-                    key=key,
-                    environment_id=None,
-                    tenant_ids={"organization_id": project.organization_id},
+                cast(
+                    TagKey,
+                    tagstore.backend.get_tag_key(
+                        project_id=project.id,
+                        key=key,
+                        environment_id=None,
+                        tenant_ids={"organization_id": project.organization_id},
+                    ),
                 )
             ]
         except tagstore.TagKeyNotFound:

@@ -267,6 +267,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# OAuth client IDs that may redeem one-time setup codes with the setup_code
+# grant. Empty disables setup codes.
+register(
+    "oauth.setup-code.allowed-client-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Auth
 register(
     "auth.ip-rate-limit",
@@ -759,6 +768,30 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Bound GitLab project webhook reconciliation independently in each cell region. Each
+# repository consumes three capacity tokens to leave room for repairs that make multiple
+# GitLab API requests.
+register(
+    "gitlab.webhook-reconcile.rate-limit.burst",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.per-second",
+    default=1,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-delay-seconds",
+    default=73,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
 # checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
@@ -953,6 +986,15 @@ register("pagerduty.app-id", default="", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOM
 register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Jira Forge apps whose invocation tokens we accept, as app ARIs
+# (`ari:cloud:ecosystem::app/<uuid>`). Empty rejects every Forge request.
+register(
+    "jira.forge.app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -2283,55 +2325,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# per-organization limits on the number of timeseries that can be observed in
-# each window.
-#
-# Format is a list of dictionaries of format {
-#   "window_seconds": ...,
-#   "granularity_seconds": ...,
-#   "limit": ...
-# }
-#
-# See sentry.ratelimiters.cardinality for an explanation of what each of
-# those terms mean.
-#
-# Note that changing either window or granularity_seconds of a limit will
-# effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.10s-granularity",
     default=False,

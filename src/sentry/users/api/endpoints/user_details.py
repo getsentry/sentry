@@ -394,6 +394,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param list organizations: List of organization ids to remove
         :auth required:
         """
+        actor = require_user(request)
         serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -463,8 +464,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         organization_id=member_mapping.organization_id,
                         date_added=django_timezone.now(),
                         event_id=audit_log.get_event_id("MEMBER_REMOVE"),
-                        actor_user_id=require_user(request).id,
-                        actor_label=request.user.username,
+                        actor_user_id=actor.id,
+                        actor_label=actor.username,
                         ip_address=request.META["REMOTE_ADDR"],
                         target_object_id=member_mapping.organizationmember_id,
                         target_user_id=user.id,
@@ -473,7 +474,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 )
 
         logging_data = {
-            "actor_id": require_user(request).id,
+            "actor_id": actor.id,
             "ip_address": request.META["REMOTE_ADDR"],
             "user_id": user.id,
         }
@@ -490,7 +491,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        is_current_user = require_user(request).id == user.id
+        is_current_user = actor.id == user.id
 
         if hard_delete:
             user_id = user.id
@@ -500,7 +501,7 @@ class UserDetailsEndpoint(UserEndpoint):
             record_hard_user_deletion(
                 user_id=user_id,
                 user_email=user_email,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
         else:
@@ -510,7 +511,7 @@ class UserDetailsEndpoint(UserEndpoint):
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
 

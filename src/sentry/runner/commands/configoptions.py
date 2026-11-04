@@ -90,7 +90,8 @@ def _load_options(file: str | None) -> dict[str, Any]:
         import yaml
 
         loaded = yaml.safe_load(content)
-    return loaded["options"]
+    options = loaded.get("options")
+    return options
 
 
 def _validate_options(
@@ -240,7 +241,8 @@ def _single_file(ctx: click.Context, command: str) -> str | None:
             f"{command} operates on a single file; pass one -f, "
             f"or use 'validate' to check multiple files at once."
         )
-    return files[0]
+    single_file = files[0]
+    return single_file
 
 
 @configoptions.command()

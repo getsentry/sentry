@@ -22,6 +22,7 @@ from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
@@ -29,6 +30,7 @@ from sentry.onboarding.agentic_progress.model import (
     OnboardingRunExpired,
     OnboardingRunTerminal,
     ProgressUpdate,
+    RunOrigin,
     RunStatus,
     Stage,
     StageExtra,
@@ -61,6 +63,7 @@ StageStatusValue = Literal["active", "waiting", "completed", "skipped", "failed"
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
     onboarding_code: str
+    origin: RunOrigin | None
 
 
 class AgenticOnboardingStatusRequest(TypedDict):
@@ -88,6 +91,7 @@ class AgenticOnboardingPermission(OrganizationPermission):
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
     onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -168,14 +172,16 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingRunRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
         try:
             run, onboarding_code = get_onboarding_progress_service().create_or_resume(
                 user_id=user_id,
                 organization_id=organization.id,
                 client_run_id=str(serializer.validated_data["client_run_id"]),
                 onboarding_code=serializer.validated_data["onboarding_code"],
+                origin=RunOrigin(serializer.validated_data["origin"])
+                if serializer.validated_data["origin"] is not None
+                else None,
             )
         except RunOwnershipMismatch:
             return Response({"detail": "Onboarding run not found"}, status=404)
@@ -207,8 +213,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         serializer = AgenticOnboardingStatusRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         values = serializer.validated_data
-        user_id = request.user.id
-        assert user_id is not None
+        user_id = require_user(request).id
 
         try:
             run, changed, stage_status_changed = get_onboarding_progress_service().update(
@@ -232,6 +237,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     user_id=user_id,
                     organization_id=organization.id,
                     run_id=run.run_id,
+                    origin=run.origin,
                     stage=values["update"].stage.value,
                     status=values["update"].status.value,
                 )
@@ -243,6 +249,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                         user_id=user_id,
                         organization_id=organization.id,
                         run_id=run.run_id,
+                        origin=run.origin,
                         stage=values["update"].stage.value,
                         status=values["update"].status.value,
                     )
@@ -254,6 +261,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     user_id=user_id,
                     organization_id=organization.id,
                     run_id=run.run_id,
+                    origin=run.origin,
                     status=run.run_status.value,
                 )
             )
