@@ -11,8 +11,8 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 
 
