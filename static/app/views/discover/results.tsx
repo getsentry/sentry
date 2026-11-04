@@ -7,7 +7,14 @@ import {useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
-import {createMultiParser, parseAsString, useQueryState, useQueryStates} from 'nuqs';
+import {
+  createMultiParser,
+  parseAsString,
+  useQueryState,
+  useQueryStates,
+  type SetValues,
+  type Values,
+} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -145,12 +152,6 @@ const resultsQueryParsers = {
   yAxis: parseAsYAxis,
 };
 
-function useResultsQueryParams() {
-  return useQueryStates(resultsQueryParsers, {history: 'push'});
-}
-
-type ResultsQueryParams = ReturnType<typeof useResultsQueryParams>;
-
 type Props = {
   addAlert: AddAlert;
   api: Client;
@@ -158,9 +159,9 @@ type Props = {
   location: Location;
   navigate: ReturnType<typeof useNavigate>;
   organization: Organization;
-  queryParams: ResultsQueryParams[0];
+  queryParams: Values<typeof resultsQueryParsers>;
   selection: PageFilters;
-  setQueryParams: ResultsQueryParams[1];
+  setQueryParams: SetValues<typeof resultsQueryParsers>;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   getAiQueryRunId?: () => number | string | null;
   isHomepage?: boolean;
@@ -822,7 +823,9 @@ class ResultsContent extends Component<Props, State> {
 type ResultsProps = Omit<Props, 'queryParams' | 'setQueryParams'>;
 
 export function Results(props: ResultsProps) {
-  const [queryParams, setQueryParams] = useResultsQueryParams();
+  const [queryParams, setQueryParams] = useQueryStates(resultsQueryParsers, {
+    history: 'push',
+  });
   return (
     <ResultsContent
       {...props}
