@@ -1,5 +1,6 @@
 import {Fragment, useContext} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -43,10 +44,14 @@ interface FilesChangedProps {
 function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChangedProps) {
   const location = useLocation();
   const params = useParams<{release: string}>();
+  const [{activeRepo, cursor}, setQueryParams] = useQueryStates({
+    activeRepo: parseAsString,
+    cursor: parseAsString,
+  });
   const activeReleaseRepo =
-    releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
+    releaseRepos.find(repo => repo.name === activeRepo) ?? releaseRepos[0];
 
-  const query = getQuery({location});
+  const query = {...getQuery({location}), cursor: cursor ?? undefined};
   const {
     data,
     isPending: isLoadingFileList,
@@ -116,7 +121,12 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                   </Panel>
                 );
               })}
-              <Pagination pageLinks={fileListPageLinks} />
+              <Pagination
+                pageLinks={fileListPageLinks}
+                onCursor={newCursor =>
+                  setQueryParams({cursor: newCursor ?? null}, {history: 'push'})
+                }
+              />
             </Fragment>
           ) : (
             <EmptyState>

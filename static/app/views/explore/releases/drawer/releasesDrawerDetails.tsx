@@ -1,5 +1,6 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {createSerializer, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -25,7 +26,6 @@ import type {ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -33,9 +33,14 @@ import {CommitsFilesSection} from 'sentry/views/explore/releases/drawer/commitsF
 import {DeploysCard} from 'sentry/views/explore/releases/drawer/deploysCard';
 import {GeneralCard} from 'sentry/views/explore/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/explore/releases/drawer/newIssues';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {
+  RELEASES_DRAWER_PARSERS,
+  ReleasesDrawerFields,
+} from 'sentry/views/explore/releases/drawer/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta';
+
+const serializeReleasesDrawerQuery = createSerializer(RELEASES_DRAWER_PARSERS);
 
 interface ReleasesDrawerDetailsProps {
   end: Date | null;
@@ -78,10 +83,11 @@ function ReleasesDrawerContent({
                       data-test-id={`select-project-${releaseProject.id}`}
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProject.id,
-                        },
+                        search: serializeReleasesDrawerQuery(location.search, {
+                          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: String(
+                            releaseProject.id
+                          ),
+                        }),
                       }}
                     >
                       <ProjectBadge
@@ -206,7 +212,10 @@ export function ReleasesDrawerDetails({
   start,
 }: ReleasesDrawerDetailsProps) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [, setReleaseProjectId] = useQueryState(
+    ReleasesDrawerFields.RELEASE_PROJECT_ID,
+    RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.RELEASE_PROJECT_ID]
+  );
   const {
     isLoading: isLoadingMeta,
     isError: isMetaError,
@@ -229,41 +238,18 @@ export function ReleasesDrawerDetails({
     project_id: projectId,
   });
 
-  const {
-    // oxlint-disable-next-line react/todo
-    [ReleasesDrawerFields.RELEASE]: _release,
-    // oxlint-disable-next-line react/todo
-    [ReleasesDrawerFields.RELEASE_PROJECT_ID]: _releaseProjectId,
-    ...locationQueryWithoutRelease
-  } = location.query;
-
-  const handleProjectSelect = useCallback(
-    (selectedProjectId: string) => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            [ReleasesDrawerFields.RELEASE_PROJECT_ID]: selectedProjectId,
-          },
-        },
-        {replace: true}
-      );
-    },
-    [location, navigate]
-  );
-
   const crumbs = [
     {
       label:
         start && end ? (
           <Link
             to={{
-              query: {
-                ...locationQueryWithoutRelease,
+              search: serializeReleasesDrawerQuery(location.search, {
+                [ReleasesDrawerFields.RELEASE]: null,
+                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: null,
                 [ReleasesDrawerFields.START]: start.toISOString(),
                 [ReleasesDrawerFields.END]: end.toISOString(),
-              },
+              }),
             }}
           >
             {t('Releases')}
@@ -312,7 +298,7 @@ export function ReleasesDrawerDetails({
         ) : showProjectSelect ? (
           <EnsureSingleProject
             releaseMeta={releaseMeta}
-            onProjectSelect={handleProjectSelect}
+            onProjectSelect={setReleaseProjectId}
           />
         ) : (
           <EventDrawerBody>

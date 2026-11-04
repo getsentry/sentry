@@ -1,8 +1,7 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
 import {Outlet} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
-import pick from 'lodash/pick';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -10,7 +9,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -33,8 +31,8 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -59,12 +57,18 @@ type ReleaseContextType = {
 };
 const ReleaseContext = createContext({} as ReleaseContextType);
 
-function pickLocationQuery(location: Location) {
-  return pick(location.query, [
-    ...Object.values(URL_PARAM),
-    ...Object.values(PAGE_URL_PARAM),
-  ]);
-}
+const releaseDetailParsers = {
+  start: parseAsString,
+  end: parseAsString,
+  utc: parseAsString,
+  statsPeriod: parseAsString,
+  project: parseAsStringArray,
+  environment: parseAsStringArray,
+  pageStart: parseAsString,
+  pageEnd: parseAsString,
+  pageUtc: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 function ReleasesDetail({
   children,
@@ -77,6 +81,7 @@ function ReleasesDetail({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
+  const [releaseQueryParams] = useQueryStates(releaseDetailParsers);
   const {
     data: release,
     refetch: refetchRelease,
@@ -89,7 +94,7 @@ function ReleasesDetail({
         path: {organizationIdOrSlug: organization.slug, version: params.release},
         query: {
           adoptionStages: 1,
-          ...normalizeDateTimeParams(pickLocationQuery(location)),
+          ...normalizeDateTimeParams(releaseQueryParams),
         },
         staleTime: Infinity,
       }
@@ -105,7 +110,7 @@ function ReleasesDetail({
     ...deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion: params.release,
-      query: {project: location.query.project},
+      query: {project: releaseQueryParams.project},
     }),
     enabled: isDeploysEnabled,
   });
@@ -122,8 +127,8 @@ function ReleasesDetail({
       }),
       {
         query: {
-          project: location.query.project,
-          environment: location.query.environment ?? [],
+          project: releaseQueryParams.project,
+          environment: releaseQueryParams.environment,
           query: searchReleaseVersion(params.release),
           field: 'sum(session)',
           statsPeriod: '90d',
@@ -235,26 +240,19 @@ function ReleasesDetail({
 function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
   const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
+  const [{start, end, statsPeriod, utc}, setQueryParams] =
+    useQueryStates(releaseDetailParsers);
   const {release} = params;
 
   useRouteAnalyticsParams({release});
 
   // Remove global date time from URL
   useEffect(() => {
-    const {start, end, statsPeriod, utc, ...restQuery} = location.query;
-
     if (start || end || statsPeriod || utc) {
-      navigate(
-        {
-          ...location,
-          query: restQuery,
-        },
-        {replace: true}
-      );
+      setQueryParams({start: null, end: null, statsPeriod: null, utc: null});
     }
-  }, [location, navigate]);
+  }, [start, end, statsPeriod, utc, setQueryParams]);
 
   const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
 
@@ -282,6 +280,7 @@ function ReleasesDetailContainer() {
   }
 
   const {projects} = releaseMeta;
+  // nuqs lags the router location, which re-opens PickProjectToContinue after a pick.
   const projectId = location.query.project;
   const isProjectMissingInUrl = !projectId || typeof projectId !== 'string';
 

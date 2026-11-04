@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface RepositorySwitcherProps {
   repositories: Repository[];
@@ -17,14 +16,13 @@ export function RepositorySwitcher({
   repositories,
   activeRepository,
 }: RepositorySwitcherProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setQueryParams] = useQueryStates({
+    activeRepo: parseAsString,
+    cursor: parseAsString,
+  });
 
   const handleRepoFilterChange = (activeRepo: string) => {
-    navigate({
-      ...location,
-      query: {...location.query, cursor: undefined, activeRepo},
-    });
+    setQueryParams({activeRepo, cursor: null}, {history: 'push'});
   };
 
   const activeRepo = activeRepository?.name;
