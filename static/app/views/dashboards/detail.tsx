@@ -8,13 +8,7 @@ import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import {
-  parseAsBoolean,
-  parseAsInteger,
-  useQueryState,
-  useQueryStates,
-  type SetValues,
-} from 'nuqs';
+import {parseAsBoolean, parseAsInteger, useQueryState} from 'nuqs';
 
 import {Grid, Stack} from '@sentry/scraps/layout';
 
@@ -76,7 +70,6 @@ import {
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
-import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {
   RELEASES_DRAWER_PARSERS,
   ReleasesDrawerFields,
@@ -125,11 +118,6 @@ const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.LOGS]: WidgetType.LOGS,
 };
 
-const dashboardFilterParsers = {
-  [DashboardFilterKeys.RELEASE]: parseAsRawList,
-  [DashboardFilterKeys.GLOBAL_FILTER]: parseAsRawList,
-};
-
 type RouteParams = {
   dashboardId?: string;
   templateId?: string;
@@ -150,7 +138,6 @@ type Props = {
   projects: Project[];
   queryClient: QueryClient;
   seerRunIdParam: number | null;
-  setDashboardFilterParams: SetValues<typeof dashboardFilterParsers>;
   theme: Theme;
   updateDashboard: (variables: UpdateDashboardVariables) => Promise<DashboardDetails>;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -561,7 +548,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   handleChangeFilter = (activeFilters: DashboardFilters) => {
-    const {dashboard, setDashboardFilterParams} = this.props;
+    const {dashboard, location, navigate} = this.props;
 
     const filterParams: Record<string, string[]> = {};
     filterParams[DashboardFilterKeys.RELEASE] = activeFilters[DashboardFilterKeys.RELEASE]
@@ -586,7 +573,14 @@ class DashboardDetail extends Component<Props, State> {
         return;
       })
     ) {
-      setDashboardFilterParams(filterParams);
+      // Not nuqs: it would carry location.state (the optimistic dashboard snapshot) into the new entry.
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          ...filterParams,
+        },
+      });
     }
   };
 
@@ -1444,7 +1438,6 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'isReleasesDrawerOpen'
   | 'openWidgetTemplatesParam'
   | 'seerRunIdParam'
-  | 'setDashboardFilterParams'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1466,9 +1459,6 @@ export function DashboardDetailWithInjectedProps(
     ReleasesDrawerFields.DRAWER,
     RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.DRAWER]
   );
-  const [, setDashboardFilterParams] = useQueryStates(dashboardFilterParsers, {
-    history: 'push',
-  });
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1490,7 +1480,6 @@ export function DashboardDetailWithInjectedProps(
       isReleasesDrawerOpen={releasesDrawer === 'show'}
       openWidgetTemplatesParam={openWidgetTemplatesParam}
       seerRunIdParam={seerRunIdParam}
-      setDashboardFilterParams={setDashboardFilterParams}
     />
   );
 }

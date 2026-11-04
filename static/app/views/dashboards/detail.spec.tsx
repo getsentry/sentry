@@ -1301,6 +1301,35 @@ describe('Dashboards > Detail', () => {
       });
     });
 
+    it('tags the save failure with the seer run id from the URL when a generated dashboard fails to save', async () => {
+      const setTagSpy = jest.spyOn(Sentry.Scope.prototype, 'setTag');
+      const captureMessageSpy = jest.spyOn(Sentry, 'captureMessage');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        method: 'POST',
+        statusCode: 400,
+        body: {detail: 'Invalid dashboard'},
+      });
+      render(<CreateDashboard />, {
+        ...makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboards/new/',
+          route: DASHBOARD_NEW_ROUTE,
+          query: {seerRunId: '123'},
+        }),
+        organization: initialData.organization,
+      });
+
+      await userEvent.click(await screen.findByText('Save and Finish'));
+
+      await waitFor(() => {
+        expect(captureMessageSpy).toHaveBeenCalledWith(
+          'Generated dashboard failed to save',
+          expect.anything()
+        );
+      });
+      expect(setTagSpy).toHaveBeenCalledWith('seer.run_id', '123');
+    });
+
     it('opens the widget viewer with saved dashboard filters', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
@@ -1491,7 +1520,7 @@ describe('Dashboards > Detail', () => {
       });
     });
 
-    it('pushes blank filter params while keeping other params when saved filters are cleared', async () => {
+    it('writes blank filter params while keeping other params when saved filters are cleared', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(widgets, {
@@ -1509,7 +1538,6 @@ describe('Dashboards > Detail', () => {
           }),
         ],
       });
-      const onNuqsUrlUpdate = jest.fn();
       const {router} = render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
           pathname: '/organizations/org-slug/dashboard/1/',
@@ -1517,7 +1545,6 @@ describe('Dashboards > Detail', () => {
           query: {statsPeriod: '7d', environment: ['alpha', 'beta']},
         }),
         organization: initialData.organization,
-        onNuqsUrlUpdate,
       });
 
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
@@ -1532,9 +1559,6 @@ describe('Dashboards > Detail', () => {
           globalFilter: '',
         });
       });
-      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
-        expect.objectContaining({options: expect.objectContaining({history: 'push'})})
-      );
     });
 
     it('can save absolute time range in existing dashboard', async () => {
@@ -2452,6 +2476,32 @@ describe('Dashboards > Detail', () => {
               query: {openWidgetTemplates: 'true'},
             }),
           }
+        );
+
+        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
+      });
+
+      it('opens the widget library when navigating to a widget builder URL that sets openWidgetTemplates', async () => {
+        const {router} = render(
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {id: '1'})}
+            onDashboardUpdate={jest.fn()}
+          />,
+          {
+            organization: initialData.organization,
+            ...makeDashboardRouterConfig({
+              pathname: '/organizations/org-slug/dashboard/1/',
+              routes: [DASHBOARD_ROUTE, DASHBOARD_NEW_WIDGET_BUILDER_ROUTE],
+            }),
+          }
+        );
+        await screen.findByRole('button', {name: 'Add Widget'});
+
+        act(() =>
+          router.navigate(
+            '/organizations/org-slug/dashboard/1/widget-builder/widget/new/?openWidgetTemplates=true'
+          )
         );
 
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
