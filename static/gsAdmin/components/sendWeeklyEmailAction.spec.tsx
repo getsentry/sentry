@@ -61,6 +61,33 @@ describe('SendWeeklyEmailAction', () => {
     );
   });
 
+  it('sends the entered emails when dry run is disabled', async () => {
+    const sendMock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      body: {},
+    });
+
+    openModal();
+    const [targetInput, deliveryInput] = screen.getAllByRole('textbox');
+    await userEvent.type(targetInput!, 'target@example.com');
+    await userEvent.type(deliveryInput!, 'delivery@example.com');
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => {
+      expect(sendMock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: {
+            targetEmail: 'target@example.com',
+            deliveryEmail: 'delivery@example.com',
+            dryRun: false,
+          },
+        })
+      );
+    });
+  });
+
   it('shows a membership error after the modal closes when the request returns 404', async () => {
     MockApiClient.asyncDelay = 1;
     const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
