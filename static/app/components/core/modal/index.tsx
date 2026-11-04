@@ -4,6 +4,8 @@ import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
@@ -14,8 +16,7 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ROOT_ELEMENT} from 'sentry/constants';
-import {ModalStore} from 'sentry/stores/modalStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {isModalOpen, ModalStore, type ModalRenderer} from 'sentry/stores/modalStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -102,10 +103,18 @@ export type ModalTypes = {
 };
 
 function useModalStore() {
-  const store = useLegacyStore(ModalStore);
+  const store = useStore(
+    ModalStore,
+    useShallow(state => ({
+      modalId: state.modalId,
+      renderer: state.renderer,
+      options: state.options,
+      triggerElement: state.triggerElement,
+    }))
+  );
   return {
     ...store,
-    visible: typeof store.renderer === 'function',
+    visible: isModalOpen(store),
   };
 }
 
@@ -115,7 +124,7 @@ function ModalContent({
   renderProps,
 }: {
   renderProps: ModalRenderProps;
-  renderer: ((props: ModalRenderProps) => React.ReactNode) | null;
+  renderer: ModalRenderer | null;
 }) {
   return renderer?.(renderProps);
 }
@@ -305,7 +314,7 @@ export function GlobalModal() {
                       {...p}
                     >
                       <ErrorBoundary
-                        key={modalId}
+                        resetKey={modalId}
                         mini
                         allowDismiss
                         onDismiss={onCloseButtonClick}
@@ -351,40 +360,30 @@ export function GlobalModal() {
 interface UseModalReturn {
   closeModal: () => void;
   isOpen: boolean;
-  openModal: (
-    renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-    options?: ModalOptions
-  ) => void;
+  openModal: (renderer: ModalRenderer, options?: ModalOptions) => void;
   /** @deprecated Use `isOpen` instead. */
   visible: boolean;
   focusTrap?: FocusTrap;
 }
 
 export function useModal(): UseModalReturn {
-  const store = useLegacyStore(ModalStore);
+  const isOpen = useStore(ModalStore, isModalOpen);
+  const focusTrap = useStore(ModalStore, state => state.focusTrap);
 
-  const openModal = useCallback(
-    (
-      renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-      options?: ModalOptions
-    ) => {
-      ModalStore.openModal(renderer, options ?? {});
-    },
-    []
-  );
+  const openModal = useCallback((renderer: ModalRenderer, options?: ModalOptions) => {
+    ModalStore.openModal(renderer, options ?? {});
+  }, []);
 
   const closeModalFn = useCallback(() => {
     ModalStore.closeModal();
   }, []);
-
-  const isOpen = typeof store.renderer === 'function';
 
   return {
     openModal,
     closeModal: closeModalFn,
     isOpen,
     visible: isOpen,
-    focusTrap: store.focusTrap,
+    focusTrap,
   };
 }
 

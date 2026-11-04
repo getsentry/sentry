@@ -36,7 +36,7 @@ HEAD_SHA = "abc"
 PR_NUMBER = 42
 
 
-def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
+def _green_event(raw: dict[str, Any] | None = None) -> CheckSuiteEvent:
     if raw is None:
         raw = {
             "check_suite": {
@@ -71,11 +71,11 @@ def _pull_request_result(
     *,
     state: str = "open",
     merged: bool = False,
-    requested_reviewers: list[dict] | None = None,
+    requested_reviewers: list[dict[str, Any]] | None = None,
     author: str | None = None,
     head_sha: str = HEAD_SHA,
     draft: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     raw: dict[str, Any] = {"requested_reviewers": requested_reviewers or [], "draft": draft}
     if author is not None:
         raw["user"] = {"login": author}
@@ -149,9 +149,10 @@ class RequestReviewFromContextTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:
+    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -560,9 +561,10 @@ class RequestReviewFromCandidatesTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=1
         )
 
-    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict | None:
+    def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     def test_requests_top_candidate_and_records_provenance(
         self,

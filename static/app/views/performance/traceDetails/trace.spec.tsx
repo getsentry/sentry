@@ -701,7 +701,9 @@ describe('trace view', () => {
       await waitFor(() =>
         expect(router.location.query.pinnedAttribute).toBe('tags[custom.size,number]')
       );
-      expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument()
+      );
       expect(
         within(screen.getByTestId('tree-key-custom.region')).queryByRole('img', {
           name: 'Pinned attribute',

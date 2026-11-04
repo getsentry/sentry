@@ -1,7 +1,7 @@
 export type WorkflowStrategy =
   | 'agentic_triage'
   | 'agentic_triage_v2'
-  | 'breached_metrics'
+  | 'breached_metric_investigation'
   | 'duplicate_monitors';
 
 type SeerWorkflowError = {
@@ -66,7 +66,18 @@ export type WorkflowDisplayStatus =
   | 'running'
   | 'partial';
 
+export type SeerAgentResponse = {
+  allProjects: boolean;
+  projectIds: number[];
+  scopes: string[];
+  serviceAccountId: string;
+};
+
 export type SeerWorkflowConfigResponse = {
+  /**
+   * Null when the automation has no agent
+   */
+  agent: SeerAgentResponse | null;
   dateAdded: string;
   dateUpdated: string;
   enabled: boolean;
@@ -76,6 +87,7 @@ export type SeerWorkflowConfigResponse = {
   environments: string[];
   filters: Record<string, unknown>;
   id: string;
+  monitorIds: number[];
   outputPolicy: Record<string, unknown>;
   /**
    * [-1] for all projects, [] for none, otherwise selected project IDs
@@ -93,6 +105,7 @@ export type SeerWorkflowConfigResponse = {
    * Status of the latest visible run. Omitted if there are none
    */
   lastRunStatus?: SeerAutomationRunStatus;
+  name?: string;
 };
 
 export type SeerWorkflowConfigsResponse = {

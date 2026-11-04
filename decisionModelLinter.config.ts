@@ -193,6 +193,37 @@ const frontend = {
         },
       ],
     },
+    usesUrlQueryParamWithoutNuqs: {
+      // Rule ignores replace the suite's, so the suite's test and story globs are repeated.
+      ignores: [
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
+        '**/*.stories.tsx',
+        '**/__stories__/**',
+        'static/app/utils/url/**',
+        'static/app/utils/queryString.tsx',
+        'static/app/views/explore/queryParams/parsers.ts',
+        'static/app/components/pageFilters/**',
+        'static/app/router/legacy/**',
+      ],
+      prompt:
+        "Does the code read a query parameter of the current page's URL, or navigate or link to the current page with a changed query, without nuqs? Reading means taking a value from location.query (directly or through decodeScalar, decodeList, decodeInteger, decodeBoolean, or decodeSorts), from location.search or window.location.search with URLSearchParams or qs.parse, or from useSearchParams. Navigating or linking to the current page means calling navigate, or setting the to of a Link or LinkButton, with the current pathname (...location, location.pathname, a pathname taken from useLocation(), or no pathname) and a query built from location.query, for example navigate({...location, query: {...location.query, cursor}}). Using useQueryState, useQueryStates, createLoader, createSerializer, or Sentry helpers built on them such as loadQueryParamsFromLocation and applyQueryParamsUpdates does not count. Neither do links or navigation to a different pathname, even when they copy location.query to keep page filters. Reading route path parameters from useParams, location.pathname, location.hash, or location.state does not count either, nor do URLs that are not the current page's address, nor passing the whole location, query, or search string along without reading a parameter from it.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "The code reads a query parameter of the current page's URL, or navigates or links to the current page with a changed query, without nuqs.",
+          severity: 'warn',
+          report:
+            'URL query params should be read and updated through nuqs, with `useQueryState` or `useQueryStates` in React or `createLoader` elsewhere, and a parser (for repeated-key lists, `parseAsStringArray`). Page filters should come from `usePageFilters`. This file reads or updates a query param through `location.query` or another API.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            "The current page's query parameters are only read or updated through nuqs, or the code reads or updates no query parameter of the current page, or only passes the whole location, query, or search string along.",
+        },
+      ],
+    },
   },
 } satisfies Suite;
 
@@ -204,6 +235,25 @@ const security = {
     'src/sentry/new_migrations/**',
   ],
   rules: {
+    lookupMayMatchNullRows: {
+      prompt:
+        'Does the code put a value that is None for some callers or rows into an exact ORM lookup keyword (in filter(), exclude(), get(), get_or_create(), update_or_create() or Q()) without checking for None first? Examples: user_id=request.user.id, which is None for API keys and anonymous callers; user_id=member.user_id, which is None for a pending invite; application=app.application or user=obj.user when that foreign key is nullable; a parameter typed int | None. It does not count when the code checks the value first (if x is None: return), adds an __isnull=False lookup for the same field, passes a literal None, writes x.id if x else None on purpose to match NULL rows, or uses a value that is always set, such as a primary key or a required field.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A lookup keyword takes request.user.id, a member or object user id, a nullable foreign key, or an optional parameter that can be None, with no None check, so None silently matches rows where the column IS NULL.',
+          severity: 'warn',
+          report:
+            "`filter(field=None)` matches rows where the column is NULL. Decide what None means here: no rows (check for None first, or use `owned_by_acting_user()` for the caller's own rows), no filter (leave the lookup out), or NULL rows (pass None or use `__isnull=True`). See src/AGENTS.md, Request Principals.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every lookup value is always set or checked for None first, or matching NULL rows is clearly intended.',
+        },
+      ],
+    },
     comparesSecretWithEquality: {
       // Raised to cut borderline false positives, accepting that some real findings score below it.
       threshold: 0.8,

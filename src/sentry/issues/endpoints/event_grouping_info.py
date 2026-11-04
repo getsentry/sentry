@@ -4,12 +4,13 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
@@ -18,11 +19,12 @@ from sentry.users.services.user_option.service import get_option_from_list
 @cell_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
+    def get(self, request: HttpRequest, project: Project, event_id: str) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````

@@ -3,10 +3,10 @@ from __future__ import annotations
 import base64
 import logging
 from datetime import datetime
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from django.db import router, transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -50,8 +50,15 @@ class _TokenInformation(TypedDict):
     token_type: Literal["Bearer"]
     scope: str
     user: _TokenInformationUser
-    id_token: NotRequired[OpenIDToken]
+    id_token: NotRequired[str]
     organization_id: NotRequired[str]
+
+
+class _TokenGrantResult(TypedDict, total=False):
+    token: ApiToken
+    id_token: str
+    error: str
+    reason: str
 
 
 @control_silo_view
@@ -61,11 +68,17 @@ class OAuthTokenView(View):
     # appropriately without repeating headers across handlers.
     @csrf_exempt
     @method_decorator(never_cache)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
-    def error(self, request: HttpRequest, name, reason=None, status=400):
+    def error(
+        self,
+        request: HttpRequest | Request,
+        name: str,
+        reason: str | None = None,
+        status: int = 400,
+    ) -> HttpResponse:
         client_id = request.POST.get("client_id")
 
         logger.error(
@@ -280,11 +293,11 @@ class OAuthTokenView(View):
             return self.error(
                 request=request,
                 name=token_data["error"],
-                reason=token_data["reason"] if "reason" in token_data else None,
+                reason=token_data.get("reason"),
             )
         return self.process_token_details(
             token=token_data["token"],
-            id_token=token_data["id_token"] if "id_token" in token_data else None,
+            id_token=token_data.get("id_token"),
         )
 
     def _extract_basic_auth_credentials(
@@ -370,7 +383,7 @@ class OAuthTokenView(View):
         # Neither header nor body provided credentials.
         return (None, None), None
 
-    def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
+    def get_access_tokens(self, request: Request, application: ApiApplication) -> _TokenGrantResult:
         code = request.POST.get("code")
         try:
             grant = ApiGrant.objects.get(application=application, code=code)
@@ -398,7 +411,7 @@ class OAuthTokenView(View):
                 "reason": str(e) if str(e) else "grant expired",
             }
 
-        token_data: dict[str, Any] = {"token": api_token}
+        token_data: _TokenGrantResult = {"token": api_token}
 
         # OpenID token generation (stays in endpoint)
         if grant_has_openid and options.get("codecov.signing_secret"):
@@ -420,7 +433,7 @@ class OAuthTokenView(View):
 
         return token_data
 
-    def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
+    def get_refresh_token(self, request: Request, application: ApiApplication) -> _TokenGrantResult:
         refresh_token_code = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
 
@@ -626,9 +639,7 @@ class OAuthTokenView(View):
             reason="device code in invalid state",
         )
 
-    def process_token_details(
-        self, token: ApiToken, id_token: OpenIDToken | None = None
-    ) -> HttpResponse:
+    def process_token_details(self, token: ApiToken, id_token: str | None = None) -> HttpResponse:
         token_information: _TokenInformation = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,

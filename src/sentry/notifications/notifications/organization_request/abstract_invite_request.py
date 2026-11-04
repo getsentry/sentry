@@ -28,7 +28,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
 
     def __init__(
         self, pending_member: OrganizationMember | OrganizationMemberInvite, requester: User
-    ):
+    ) -> None:
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
 

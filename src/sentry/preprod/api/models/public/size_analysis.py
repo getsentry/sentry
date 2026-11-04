@@ -163,6 +163,7 @@ def _build_failed_comparison(
     error_code: str | None,
     error_message: str | None,
 ) -> ComparisonResponseDict:
+    assert head_metric.metrics_artifact_type is not None
     return {
         "metricsArtifactType": PreprodArtifactSizeMetrics.MetricsArtifactType(
             head_metric.metrics_artifact_type
@@ -182,6 +183,7 @@ def _build_comparison_result(
     comparison_obj: PreprodArtifactSizeComparison,
 ) -> ComparisonResponseDict:
     """Build a single comparison result."""
+    assert head_metric.metrics_artifact_type is not None
     if comparison_obj.state == PreprodArtifactSizeComparison.State.SUCCESS:
         return _build_success_comparison(head_metric, comparison_obj)
     elif comparison_obj.state == PreprodArtifactSizeComparison.State.FAILED:
@@ -212,6 +214,7 @@ def _build_success_comparison(
     comparison_obj: PreprodArtifactSizeComparison,
 ) -> ComparisonResponseDict:
     """Build a comparison result with inlined diff data for SUCCESS state."""
+    assert head_metric.metrics_artifact_type is not None
 
     if comparison_obj.file_id is None:
         sentry_sdk.capture_message(

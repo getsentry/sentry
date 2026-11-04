@@ -386,9 +386,12 @@ export function SearchQueryBuilderProvider({
       setDisplayAskSeerFeedback(false);
       setReopenDropdownOnQueryClear(reopenDropdown);
       dispatch({type: 'CLEAR'});
-      handleSearch('');
+      // A changed committed query already searches via useOnChange
+      if (state.committedQuery === '') {
+        handleSearch('');
+      }
     },
-    [dispatch, handleSearch]
+    [dispatch, handleSearch, state.committedQuery]
   );
 
   const consumeReopenDropdownOnQueryClear = useCallback(() => {

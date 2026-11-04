@@ -160,7 +160,7 @@ def create_uptime_subscription(
             mode=region_config.mode,
         )
 
-    def commit_tasks():
+    def commit_tasks() -> None:
         create_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
 
@@ -180,7 +180,7 @@ def update_uptime_subscription(
     trace_sampling: bool | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
     response_capture_enabled: bool | NotSet = NOT_SET,
-):
+) -> None:
     """
     Updates an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
     config to the uptime check system.
@@ -234,7 +234,7 @@ def update_uptime_subscription(
     # Associate active regions with this subscription
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
 
-    def commit_tasks():
+    def commit_tasks() -> None:
         if not is_disabled:
             update_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
@@ -247,7 +247,7 @@ def update_uptime_subscription(
     transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
 
-def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
+def delete_uptime_subscription(uptime_subscription: UptimeSubscription) -> None:
     """
     Deletes an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
     deletion to the external system and remove the row once successful.
@@ -404,7 +404,7 @@ def update_uptime_detector(
     downtime_threshold: int | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
     response_capture_enabled: bool | NotSet = NOT_SET,
-):
+) -> None:
     """
     Updates a uptime detector and its associated uptime subscription.
     """
@@ -481,7 +481,7 @@ def update_uptime_detector(
     detector.refresh_from_db()
 
 
-def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
+def disable_uptime_detector(detector: Detector, skip_quotas: bool = False) -> None:
     """
     Disables a uptime detector. If the UptimeSubscription no longer has any active
     detectors, it will also be disabled.
@@ -553,7 +553,7 @@ def ensure_uptime_seat(detector: Detector) -> None:
 
 def enable_uptime_detector(
     detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
-):
+) -> None:
     """
     Enable a uptime detector. If the uptime subscription was also disabled it
     will be re-activated and the remote subscription will be published.
@@ -588,11 +588,11 @@ def enable_uptime_detector(
         )
 
 
-def remove_uptime_seat(detector: Detector):
+def remove_uptime_seat(detector: Detector) -> None:
     quotas.backend.remove_seat(seat_object=detector)
 
 
-def delete_uptime_detector(detector: Detector):
+def delete_uptime_detector(detector: Detector) -> None:
     uptime_subscription = get_uptime_subscription(detector)
 
     remove_uptime_seat(detector)
@@ -678,13 +678,13 @@ def check_and_update_regions(
 
 
 class MaxUrlsForDomainReachedException(Exception):
-    def __init__(self, domain, suffix, max_urls):
+    def __init__(self, domain: str, suffix: str, max_urls: int) -> None:
         self.domain = domain
         self.suffix = suffix
         self.max_urls = max_urls
 
 
-def check_url_limits(url):
+def check_url_limits(url: str) -> None:
     """
     Determines if a URL's domain has reached the global maximum (MAX_MONITORS_PER_DOMAIN).
     In the case that it has a `MaxUrlsForDomainReachedException` will be raised.
