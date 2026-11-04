@@ -18,6 +18,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -117,14 +118,9 @@ class GroupOpenPeriod(DefaultFieldsModel):
             return
 
         if resolution_time < self.date_started:
-            logger.warning(
-                "open_period.resolution_time_before_start",
-                extra={
-                    "group_id": self.group_id,
-                    "open_period_id": self.id,
-                    "date_started": self.date_started.isoformat(),
-                    "resolution_time": resolution_time.isoformat(),
-                },
+            metrics.incr(
+                "group_open_period.close.resolution_time_before_start",
+                tags={"group_type": get_group_type_by_type_id(self.group.type).slug},
             )
 
             resolution_time = self.date_started

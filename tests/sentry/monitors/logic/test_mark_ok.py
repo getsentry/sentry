@@ -300,8 +300,9 @@ class MarkOkTestCase(TestCase):
             ),
         )
 
+    @patch("sentry.models.groupopenperiod.metrics")
     def test_mark_ok_clamps_close_of_open_period_opened_by_a_delayed_failure_occurrence(
-        self,
+        self, mock_metrics: MagicMock
     ) -> None:
         """
         A failure occurrence can reach the issue platform after relay has already received the
@@ -386,3 +387,8 @@ class MarkOkTestCase(TestCase):
             (first_failed_at, first_recovered_at),
             (second_failure_processed_at, second_failure_processed_at),
         ]
+
+        mock_metrics.incr.assert_called_once_with(
+            "group_open_period.close.resolution_time_before_start",
+            tags={"group_type": MonitorIncidentType.slug},
+        )
