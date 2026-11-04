@@ -1181,6 +1181,16 @@ class SearchResolver:
         ):
             raise HiddenApiAttribute(f"Could not parse {column}")
 
+    def _function_argument_hint(self, argument: str) -> str | None:
+        """A fix for a function argument of the wrong type, sent as the 400's `hint`."""
+        # Transactions are stored as spans, which keep their duration in span.duration.
+        if (
+            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_SPAN
+            and argument == "transaction.duration"
+        ):
+            return "Use span.duration instead of transaction.duration on the spans dataset."
+        return None
+
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
     ) -> tuple[ResolvedAttribute, list[VirtualColumnDefinition | None]]:
@@ -1446,12 +1456,14 @@ class SearchResolver:
                             f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}.",
                             function=function_name,
                             argument=argument,
+                            hint=self._function_argument_hint(argument),
                         )
                 else:
                     raise InvalidFunctionArgumentQuery(
                         f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}",
                         function=function_name,
                         argument=argument,
+                        hint=self._function_argument_hint(argument),
                     )
 
         resolved_arguments: ResolvedArguments = []

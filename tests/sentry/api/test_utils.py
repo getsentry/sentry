@@ -232,6 +232,23 @@ class HandleQueryErrorsTest(APITestCase):
             "argument": "foo",
         }
 
+    def test_handle_invalid_function_argument_with_hint(self) -> None:
+        with pytest.raises(ParseError) as excinfo:
+            with handle_query_errors():
+                raise InvalidFunctionArgumentQuery(
+                    "foo is invalid for parameter 1 in p75.",
+                    function="p75",
+                    argument="foo",
+                    hint="Use bar instead of foo.",
+                )
+        assert excinfo.value.detail == {
+            "detail": "foo is invalid for parameter 1 in p75.",
+            "code": "invalid_function_argument",
+            "function": "p75",
+            "argument": "foo",
+            "hint": "Use bar instead of foo.",
+        }
+
     def test_handle_search_query_parse_error(self) -> None:
         with pytest.raises(ParseError) as excinfo:
             with handle_query_errors():
