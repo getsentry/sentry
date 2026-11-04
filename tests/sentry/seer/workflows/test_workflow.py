@@ -456,7 +456,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         with outbox_runner():
             self.account = Factories.create_service_account(self.organization, id=910001)
 
-    def link(self, service_account_id: int) -> None:
+    def link(self, service_account_id: int | None) -> None:
         SeerWorkflowConfig.objects.filter(id=self.config.id).update(
             service_account_id=service_account_id
         )
@@ -542,9 +542,8 @@ class SeerWorkflowServiceAccountTest(TestCase):
         ServiceAccountReplica.objects.filter(service_account_id=unrelated.id).update(
             id=self.account.id
         )
-        assert ServiceAccountReplica.objects.get(service_account_id=self.account.id).id != (
-            self.account.id
-        )
+        replica = ServiceAccountReplica.objects.get(service_account_id=self.account.id)
+        assert replica.id != self.account.id
 
         self.link(self.account.id)
 
@@ -559,7 +558,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
         self.link(replacement.id)
         assert self.workflow.resolve_service_account().service_account_id == replacement.id
 
-        SeerWorkflowConfig.objects.filter(id=self.config.id).update(service_account_id=None)
+        self.link(None)
         with pytest.raises(ValueError, match="no service account"):
             self.workflow.resolve_service_account()
 

@@ -57,9 +57,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.services.service_account import (
-    RpcServiceAccount,
-)
+from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -817,7 +815,6 @@ def serialize_workflow_config(
 def get_config_agents(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Collection[int]
 ) -> dict[int, SeerAgentResponse]:
-    """Agent settings by service account ID, from the cell replicas."""
     account_ids = {config.service_account_id for config in configs if config.service_account_id}
     if not account_ids:
         return {}

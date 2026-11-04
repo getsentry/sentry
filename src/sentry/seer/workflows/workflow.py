@@ -382,11 +382,11 @@ class SeerWorkflow:
         Replace the scopes and projects of the automation's service account, creating the
         account if the automation has none. Callers must authorize the grant and audit it.
         """
-        config = self.get_config()
-        if config.service_account_id is not None:
+        service_account_id = self.get_config().service_account_id
+        if service_account_id is not None:
             account = service_account_service.update_service_account(
                 organization_id=self.organization_id,
-                service_account_id=config.service_account_id,
+                service_account_id=service_account_id,
                 scope_list=list(agent.scopes),
                 project_ids=[] if agent.all_projects else list(agent.project_ids),
                 all_projects=agent.all_projects,

@@ -720,10 +720,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             assert AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"), target_object=account.id
             ).exists()
-        assert (
-            self.get_success_response(self.organization.slug, config.id).data["agent"]
-            == (response.data["agent"])
-        )
+        detail = self.get_success_response(self.organization.slug, config.id)
+        assert detail.data["agent"] == response.data["agent"]
 
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
