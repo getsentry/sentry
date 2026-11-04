@@ -308,8 +308,7 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
         # --------------------------------
         #
-        # INFRENG-811: reserved_budget_subscription_lock in tally_usage. Legacy billing code that
-        # will be deleted, not fixed. Remove this entry when REVENG-686 lands:
+        # Remove this entry when REVENG-686 lands:
         # https://linear.app/getsentry/issue/REVENG-686/delete-tally-usage
         (
             "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
