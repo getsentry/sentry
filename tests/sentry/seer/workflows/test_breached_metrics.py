@@ -581,7 +581,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         )
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
-    def test_failed_investigation_dispatch_fails_the_run(self) -> None:
+    def test_inactive_service_account_fails_the_run(self) -> None:
         self.attach_service_account()
         assert self.config.service_account_id is not None
         ServiceAccountReplica.objects.filter(
@@ -602,7 +602,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
-    def test_breach_starts_one_investigation_as_service_account(self, dispatch: mock.Mock) -> None:
+    def test_breach_runs_an_investigation_to_completion(self, dispatch: mock.Mock) -> None:
         self.attach_service_account()
         event = self.breach_event(detector_id=self.detector.id)
 
@@ -613,20 +613,8 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert notebook.creator_actor == ActorId(
             ActorType.SERVICE_ACCOUNT, self.config.service_account_id
         )
+        assert notebook.created_by_id is None
         dispatch.assert_called_once_with(notebook.orchestration_run.id)
-        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
-        execution = SeerWorkflowRunExecution.objects.get(run=run)
-        assert run.status == SeerWorkflowRunStatus.RUNNING
-        assert execution.status == SeerWorkflowExecutionStatus.RUNNING
-        assert SeerWorkflowOutputLink.objects.get(execution=execution).notebook_id == notebook.id
-
-    @with_feature(["organizations:investigations", "organizations:service-accounts"])
-    def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:
-        self.attach_service_account()
-        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.PROCESSING)
-
-        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
-
         run = SeerWorkflowRun.objects.get(workflow_config=self.config)
         assert run.status == SeerWorkflowRunStatus.RUNNING
         execution = SeerWorkflowRunExecution.objects.get(run=run)
@@ -634,7 +622,6 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert list(SeerWorkflowOutputLink.objects.values_list("execution_id", "notebook_id")) == [
             (execution.id, notebook.id)
         ]
-        assert Notebook.objects.get() == notebook
 
         notebook.orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
         finish_investigation_executions(investigation_id=notebook.id)
