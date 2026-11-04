@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+
 import {RecursiveStructuredData} from 'sentry/components/structuredEventData/recursiveStructuredData';
 import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';

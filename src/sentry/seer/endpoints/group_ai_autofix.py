@@ -265,11 +265,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_mode = serializers.BooleanField(
-        required=False,
-        default=False,
-        help_text="Override bash mode tools.",
-    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -565,7 +560,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=acting_user(request.user),
-                        enable_bash_mode=data.get("enable_bash_mode", False),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
                         # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(

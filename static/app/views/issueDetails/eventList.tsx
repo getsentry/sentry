@@ -11,8 +11,10 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {
+  CURSOR_PARSERS,
   EventListTable,
   Header,
   HeaderItem,
@@ -133,13 +135,9 @@ export function EventList({group}: EventListProps) {
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.previous?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links.previous?.cursor ?? null,
+                    })}
                     disabled={isPending || previousDisabled}
                   />
                   <PaginationButton
@@ -147,13 +145,9 @@ export function EventList({group}: EventListProps) {
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.next?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links.next?.cursor ?? null,
+                    })}
                     disabled={isPending || nextDisabled}
                   />
                 </Grid>

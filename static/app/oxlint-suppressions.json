@@ -522,11 +522,6 @@
       "count": 1
     }
   },
-  "components/events/interfaces/threads/threadSelector/styles.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "components/events/ourlogs/ourlogsSection.tsx": {
     "@sentry/scraps/no-manual-table": {
       "count": 1
@@ -4281,9 +4276,6 @@
     }
   },
   "views/settings/components/teamSelect/teamSelectForMember.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
     "@sentry/scraps/no-manual-table": {
       "count": 1
     }

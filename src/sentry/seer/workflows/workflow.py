@@ -293,6 +293,14 @@ class SeerWorkflow:
         )
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
+    def set_enabled(self, enabled: bool) -> None:
+        with self._lock_config() as config:
+            if config.enabled == enabled:
+                return
+            config.enabled = enabled
+            config.version += 1
+            config.save(update_fields=["enabled", "version", "date_updated"])
+
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
         with self._lock_config() as config:

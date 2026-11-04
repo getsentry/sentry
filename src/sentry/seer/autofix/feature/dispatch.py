@@ -60,7 +60,6 @@ class AutofixFeatureArgs:
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_mode: bool = False
     flush: bool = True
     single_run: bool = False
 
@@ -172,7 +171,7 @@ def trigger_autofix_feature(
             reasoning_effort=args.step_args.reasoning_effort,
             repo_pins=args.step_args.repo_pins,
             user_context=args.user_context,
-            should_run_repo_checks=args.enable_bash_mode,
+            should_run_repo_checks=True,
         )
         enable_coding = stopping_point in (
             AutofixStoppingPoint.CODE_CHANGES,
@@ -204,9 +203,10 @@ def trigger_autofix_feature(
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_mode=args.enable_bash_mode,
         enable_coding=enable_coding,
     )
+    # Autofix always gets bash mode, bypassing seer-explorer-allow-bash-mode.
+    client.enable_bash_mode = True
 
     agent_run_options = AgentRunOptions(
         is_context_engine_enabled=False,
@@ -281,7 +281,6 @@ def trigger_autofix_feature(
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "has_user_context": args.user_context is not None,
-            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 
