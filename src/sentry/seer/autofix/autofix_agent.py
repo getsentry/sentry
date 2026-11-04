@@ -876,7 +876,7 @@ def trigger_push_changes(
     )
 
 
-# Kept in sync with the automated SeerAutomationSource entries in issue_summary.referrer_map.
+# Referrers for runs started without a user.
 AUTOMATED_AUTOFIX_REFERRERS = frozenset(
     {
         AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,

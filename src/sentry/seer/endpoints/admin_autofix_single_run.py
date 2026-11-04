@@ -54,20 +54,23 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 status=400,
             )
 
-        user = None if serializer.validated_data["automated"] else require_user(request)
-        actor = (
-            Actor(type=ActorType.SYSTEM)
-            if user is None
-            else Actor(type=ActorType.USER, actor_id=user.id)
-        )
+        if serializer.validated_data["automated"]:
+            user = None
+            actor = Actor(type=ActorType.SYSTEM)
+            referrer = AutofixReferrer.ADMIN_AUTOMATED
+        else:
+            user = require_user(request)
+            actor = Actor(type=ActorType.USER, actor_id=user.id)
+            referrer = AutofixReferrer.ADMIN
+
         with viewer_context_scope(ViewerContext(actor=actor, organization_id=organization.id)):
             try:
                 run = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
-                    referrer=(AutofixReferrer.ADMIN if user else AutofixReferrer.ADMIN_AUTOMATED),
+                    referrer=referrer,
                     user=user,
-                    actor_user_id=user.id if user else None,
+                    actor_user_id=actor.user_id,
                     single_run=True,
                 )
             except NoSeerQuotaException:
