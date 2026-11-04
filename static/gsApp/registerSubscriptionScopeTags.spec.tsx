@@ -92,6 +92,11 @@ describe('registerSubscriptionScopeTags', () => {
     registerSubscriptionScopeTags()();
 
     SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
+    SubscriptionStore.set(
+      otherOrganization.slug,
+      SubscriptionFixture({organization: otherOrganization})
+    );
+    OrganizationStore.onUpdate(otherOrganization, {replace: true});
 
     expect(setTag).not.toHaveBeenCalled();
   });
