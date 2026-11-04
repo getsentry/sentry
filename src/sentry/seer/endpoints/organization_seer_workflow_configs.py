@@ -536,7 +536,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             if denied is not None:
                 raise PermissionDenied(detail=denied)
 
-        # Updates are done in one txn. Errors must raise rather than return so the transaction rolls back.
+        # Updates are done in one txn. Error cases must raise instead of early return,
+        # so the transaction can rollback.
         try:
             with workflow.update_config() as update:
                 all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]

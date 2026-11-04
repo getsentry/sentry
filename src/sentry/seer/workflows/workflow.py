@@ -321,7 +321,7 @@ class SeerWorkflow:
         """Lock the config row for a group of changes that commit or roll back together.
 
         On a normal exit, any marked changes are saved atomically with a single version bump.
-        Propagate exceptions so the transaction can roll back.
+        Do not early return on error cases - propagate an exception so the transaction can roll back.
         """
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
             update = self._new_config_update(self._config_queryset().select_for_update().get())
@@ -387,6 +387,7 @@ class ConfigUpdate:
     ``config`` then mark what they changed after their last step that can fail.
     """
 
+    # Config DB row to update. DO NOT call save() on this directly - use ``update_config``
     config: SeerWorkflowConfig
     dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
