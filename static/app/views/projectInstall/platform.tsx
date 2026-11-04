@@ -1,6 +1,7 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
+import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -23,10 +24,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -65,13 +65,17 @@ function ProjectCreationGettingStartedAnalytics({
   return null;
 }
 
+const platformParsers = {
+  projectCreationVariant: parseAsStringLiteral(['scm', 'legacy'] as const),
+  product: parseAsStringArray,
+};
+
 export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
   const navigate = useNavigate();
-  const variantQuery = decodeScalar(location.query.projectCreationVariant);
-  const projectCreationVariant =
-    variantQuery === 'scm' || variantQuery === 'legacy' ? variantQuery : undefined;
+  const [{projectCreationVariant: variantParam, product}] =
+    useQueryStates(platformParsers);
+  const projectCreationVariant = variantParam ?? undefined;
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
@@ -87,10 +91,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         ? 'project-creation'
         : undefined;
 
-  const products = useMemo(
-    () => decodeList(location.query.product ?? []) as ProductSolution[],
-    [location.query.product]
-  );
+  const products = product as ProductSolution[];
 
   const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
     if (!project?.id) {
