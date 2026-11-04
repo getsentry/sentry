@@ -1,1 +1,0 @@
-src/sentry/issues/endpoints/group_integration_details.py
