@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -132,8 +133,9 @@ export function FlagDetailsDrawerContent({group}: Props) {
       </Container>
       {isPending || isError || !flagLog.json.data.length ? null : (
         <Pagination
-          pageLinks={pageLinks}
-          onCursor={(cursor, path, query) => {
+          {...getPaginationProps(pageLinks)}
+          onCursor={cursor => {
+            const {pathname: path, query} = location;
             trackAnalytics('flags.logs-paginated', {
               direction: cursor?.endsWith(':1') ? 'prev' : 'next',
               organization,

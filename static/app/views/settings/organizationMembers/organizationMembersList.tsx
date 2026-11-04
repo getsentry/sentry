@@ -27,6 +27,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -458,7 +459,7 @@ function OrganizationMembersList() {
         </SimpleTable>
       </Stack>
 
-      <Pagination pageLinks={membersPageLinks} />
+      <Pagination {...getPaginationProps(membersPageLinks)} />
     </Fragment>
   );
 }

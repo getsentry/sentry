@@ -28,6 +28,7 @@ import type {Release, ReleaseProject} from 'sentry/types/release';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -215,8 +216,9 @@ export function ReleasesDrawerTable({
         }}
       />
       <PaginationNoMargin
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, searchQuery) => {
+        {...getPaginationProps(pageLinks)}
+        onCursor={cursor => {
+          const {pathname: path, query: searchQuery} = location;
           navigate({
             pathname: path,
             query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},

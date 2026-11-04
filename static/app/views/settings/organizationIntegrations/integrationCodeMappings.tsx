@@ -25,6 +25,7 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -372,7 +373,9 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
             .filter(item => !!item)
         )}
       </SimpleTable>
-      {pathConfigsPageLinks && <Pagination pageLinks={pathConfigsPageLinks} />}
+      {pathConfigsPageLinks && (
+        <Pagination {...getPaginationProps(pathConfigsPageLinks)} />
+      )}
     </Fragment>
   );
 }

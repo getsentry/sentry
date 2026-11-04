@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody, ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
@@ -157,9 +158,11 @@ export function IssueListTable({
       </DemoTourElement>
       <StyledPagination
         caption={paginationCaption}
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={onCursor}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
       />
     </Fragment>
   );

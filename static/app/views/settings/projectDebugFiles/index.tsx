@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -245,7 +246,7 @@ export default function ProjectDebugSymbols() {
                 })
               : null}
           </StyledSimpleTable>
-          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
+          <Pagination {...getPaginationProps(debugFilesResponse?.headers.Link)} />
         </Fragment>
       )}
     </SentryDocumentTitle>

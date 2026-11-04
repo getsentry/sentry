@@ -22,6 +22,7 @@ import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -502,7 +503,7 @@ export function UsageStatsProjects({
           usageStats={tableStats}
           showStoredOutcome={showStoredOutcome}
         />
-        <Pagination pageLinks={pageLink} />
+        <Pagination {...getPaginationProps(pageLink)} />
       </Container>
     </Fragment>
   );

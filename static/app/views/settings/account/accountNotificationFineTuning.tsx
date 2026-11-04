@@ -23,6 +23,7 @@ import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
@@ -234,7 +235,7 @@ export function AccountNotificationFineTuning() {
           )}
         </Stack>
       </Panel>
-      {projects && <Pagination pageLinks={projectsResp?.headers.Link} />}
+      {projects && <Pagination {...getPaginationProps(projectsResp?.headers.Link)} />}
     </div>
   );
 }

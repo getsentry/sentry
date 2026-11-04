@@ -177,6 +177,33 @@ describe('TransactionsList', () => {
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
 
+    it('keeps custom cursor keys and the app location when paginating', async () => {
+      const paginationLocation = {
+        pathname: '/transactions/',
+        query: {environment: ['production', 'staging'], query: 'transaction:checkout'},
+      };
+      const {router} = render(
+        <WrapperComponent
+          location={paginationLocation}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />,
+        {initialRouterConfig: {location: paginationLocation}}
+      );
+      await screen.findByTestId('transactions-table');
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          ...paginationLocation.query,
+          transactionCursor: '0:20:0',
+        });
+      });
+      expect(router.location.pathname).toBe('/transactions/');
+    });
+
     it('links "Open in Explore" to Explore > Traces', async () => {
       initialize({
         organization: {

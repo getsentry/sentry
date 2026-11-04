@@ -477,7 +477,8 @@ export class Results extends Component<Props, State> {
     );
   }
 
-  handleCursor: CursorHandler = (cursor, path, query, _direction) => {
+  handleCursor: CursorHandler = cursor => {
+    const {pathname: path, query} = this.props.location;
     this.props.navigate({
       pathname: path,
       query: {...query, cursor},

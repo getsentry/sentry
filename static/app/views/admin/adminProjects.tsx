@@ -17,6 +17,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Row = {
@@ -145,7 +146,7 @@ export default function AdminProjects() {
         </SimpleTable>
       )}
 
-      {data?.headers.Link && <Pagination pageLinks={data.headers.Link} />}
+      {data?.headers.Link && <Pagination {...getPaginationProps(data.headers.Link)} />}
     </Stack>
   );
 }

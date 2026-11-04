@@ -22,6 +22,7 @@ import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useApi} from 'sentry/utils/useApi';
@@ -341,11 +342,11 @@ export function SourceMapsDetails({bundleId, project}: Props) {
             })}
       </SimpleTable>
       <Pagination
-        pageLinks={
+        {...getPaginationProps(
           isDebugIdBundle
             ? (debugIdBundlesArtifactsResponse?.headers.Link ?? '')
             : (artifactsResponse?.headers.Link ?? '')
-        }
+        )}
       />
     </Fragment>
   );

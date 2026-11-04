@@ -13,8 +13,10 @@ import type {Project, ProjectSummaryWithOptions} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withProjects} from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
@@ -77,6 +79,7 @@ function ProjectDetails({
   storedSpikes,
 }: ProjectDetailsProps) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const spikesForDataCategory = storedSpikes.filter(
     spike => spike.dataCategory === dataCategoryInfo.name
@@ -105,8 +108,9 @@ function ProjectDetails({
         isLoading={loading}
       />
       <Pagination
-        pageLinks={pageLink}
-        onCursor={(cursor, path, query) => {
+        {...getPaginationProps(pageLink)}
+        onCursor={cursor => {
+          const {pathname: path, query} = location;
           navigate({
             pathname: path,
             query: {...query, [SPIKE_TABLE_CURSOR_KEY]: cursor},

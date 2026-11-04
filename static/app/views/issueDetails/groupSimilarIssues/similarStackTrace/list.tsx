@@ -12,6 +12,7 @@ import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
@@ -163,7 +164,7 @@ export function List({
         </Flex>
       )}
 
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

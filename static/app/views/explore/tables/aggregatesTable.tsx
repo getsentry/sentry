@@ -17,6 +17,7 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -111,8 +112,11 @@ export function AggregatesTable({
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
-  const cursorHandler: CursorHandler = (cursor, path, q) =>
-    navigate({pathname: path, query: {...q, [SPANS_AGGREGATE_CURSOR]: cursor}});
+  const cursorHandler: CursorHandler = cursor =>
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, [SPANS_AGGREGATE_CURSOR]: cursor},
+    });
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'aggregates',
@@ -266,8 +270,10 @@ export function AggregatesTable({
         )}
       </SimpleTable>
       <Pagination
-        pageLinks={result.pageLinks}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
+        {...getPaginationProps(result.pageLinks)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
         onCursor={cursorHandler}
       />
     </Fragment>

@@ -33,6 +33,7 @@ import {t} from 'sentry/locale';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -414,7 +415,7 @@ export default function TeamMembers() {
       >
         {renderMembers()}
       </SimpleTable>
-      <Pagination pageLinks={teamMembersPageLinks} />
+      <Pagination {...getPaginationProps(teamMembersPageLinks)} />
     </Fragment>
   );
 }

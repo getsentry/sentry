@@ -25,6 +25,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -197,7 +198,7 @@ export default function TeamProjects() {
           )}
         </PanelBody>
       </Panel>
-      <Pagination pageLinks={linkedProjectsPageLinks} />
+      <Pagination {...getPaginationProps(linkedProjectsPageLinks)} />
     </Fragment>
   );
 }
