@@ -45,7 +45,7 @@ class ServiceAccountService(RpcService):
     def get_service_account(
         self, *, organization_id: int, service_account_id: int
     ) -> RpcServiceAccount | None:
-        pass
+        """Returns None when the account isn't in `organization_id`."""
 
     @rpc_method
     @abstractmethod
@@ -59,7 +59,11 @@ class ServiceAccountService(RpcService):
         all_projects: bool,
         created_by_id: int | None,
     ) -> RpcServiceAccount:
-        """Callers must authorize the grant and write the audit log."""
+        """
+        `scope_list` must not be empty, `name` must be at most `MAX_NAME_LENGTH` characters,
+        and `project_ids` must be projects in `organization_id`. None of these are checked
+        here. Callers must authorize the grant and write the audit log.
+        """
 
     @rpc_method
     @abstractmethod
@@ -74,13 +78,18 @@ class ServiceAccountService(RpcService):
     ) -> RpcServiceAccount | None:
         """
         Replace an account's scopes and projects. Returns None when the account isn't in
-        `organization_id`. Callers must authorize the grant and write the audit log.
+        `organization_id`. `scope_list` must not be empty and `project_ids` must be projects
+        in `organization_id`; neither is checked here. Callers must authorize the grant and
+        write the audit log.
         """
 
     @rpc_method
     @abstractmethod
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
-        pass
+        """
+        Does nothing when the account isn't in `organization_id`. Callers must write the
+        audit log.
+        """
 
 
 service_account_service = ServiceAccountService.create_delegation()

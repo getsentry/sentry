@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import psycopg2.errors
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
+    NAME_UNIQUE_CONSTRAINT,
     InvalidScopeError,
     ServiceAccount,
     ServiceAccountProject,
@@ -82,14 +84,20 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 method_name="create_service_account",
             ) from e
         except IntegrityError as e:
-            # TODO: Only catch the name unique constraint.
+            if not (
+                isinstance(e.__cause__, psycopg2.errors.UniqueViolation)
+                and e.__cause__.diag.constraint_name == NAME_UNIQUE_CONSTRAINT
+            ):
+                raise
             raise RpcValidationException(
                 detail=f"A service account named '{name}' already exists.",
                 code="duplicate_name",
                 service_name="service_account",
                 method_name="create_service_account",
             ) from e
-        return serialize_service_account(service_account, [] if all_projects else project_ids)
+        return serialize_service_account(
+            service_account, set() if all_projects else set(project_ids)
+        )
 
     def update_service_account(
         self,
@@ -121,7 +129,9 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             service_account.all_projects = all_projects
             service_account.replace_projects([] if all_projects else project_ids)
             service_account.save()
-        return serialize_service_account(service_account, [] if all_projects else project_ids)
+        return serialize_service_account(
+            service_account, set() if all_projects else set(project_ids)
+        )
 
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
         service_account = ServiceAccount.objects.filter(

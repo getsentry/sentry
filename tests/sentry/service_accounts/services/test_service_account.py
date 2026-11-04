@@ -4,6 +4,7 @@ from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
+    ServiceAccountProjectReplica,
     ServiceAccountReplica,
 )
 from sentry.service_accounts.services.service_account import service_account_service
@@ -20,6 +21,14 @@ class ServiceAccountServiceTest(TestCase):
             return sorted(
                 ServiceAccountProject.objects.filter(
                     service_account_id=service_account_id
+                ).values_list("project_id", flat=True)
+            )
+
+    def replica_project_ids(self, service_account_id: int) -> list[int]:
+        with assume_test_silo_mode(SiloMode.CELL):
+            return sorted(
+                ServiceAccountProjectReplica.objects.filter(
+                    service_account__service_account_id=service_account_id
                 ).values_list("project_id", flat=True)
             )
 
@@ -56,6 +65,19 @@ class ServiceAccountServiceTest(TestCase):
         assert stored.created_by_id == self.user.id
         with assume_test_silo_mode(SiloMode.CELL):
             assert ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
+
+    def test_create_returns_deduplicated_project_ids(self) -> None:
+        with outbox_runner():
+            account = service_account_service.create_service_account(
+                organization_id=self.organization.id,
+                name="seer-agent",
+                scope_list=["event:read"],
+                project_ids=[self.project.id, self.project.id],
+                all_projects=False,
+                created_by_id=None,
+            )
+
+        assert account.project_ids == self.project_ids(account.id) == [self.project.id]
 
     def test_create_all_projects_ignores_listed_projects(self) -> None:
         with outbox_runner():
@@ -120,6 +142,26 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             replica = ServiceAccountReplica.objects.get(service_account_id=account_id)
             assert replica.scope_list == ["project:read"]
+        assert self.replica_project_ids(account_id) == [other_project.id]
+
+    def test_update_to_all_projects_clears_project_links(self) -> None:
+        account_id = self.create()
+
+        with outbox_runner():
+            account = service_account_service.update_service_account(
+                organization_id=self.organization.id,
+                service_account_id=account_id,
+                scope_list=["event:read"],
+                project_ids=[self.project.id],
+                all_projects=True,
+            )
+
+        assert account is not None
+        assert account.all_projects
+        assert account.project_ids == self.project_ids(account_id) == []
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ServiceAccountReplica.objects.get(service_account_id=account_id).all_projects
+        assert self.replica_project_ids(account_id) == []
 
     def test_update_ungrantable_scope_raises_validation_error(self) -> None:
         account_id = self.create()
