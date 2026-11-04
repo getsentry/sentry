@@ -1,4 +1,10 @@
-import {doDiscoverQuery} from './genericDiscoverQuery';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {EventView} from 'sentry/utils/discover/eventView';
+
+import {doDiscoverQuery, GenericDiscoverQuery} from './genericDiscoverQuery';
 
 describe('doDiscoverQuery', () => {
   const api = new MockApiClient();
@@ -16,5 +22,66 @@ describe('doDiscoverQuery', () => {
       doDiscoverQuery(api, '/organizations/org-slug/events/', {})
     ).rejects.toBeDefined();
     expect(eventsMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('GenericDiscoverQuery', () => {
+  const location = LocationFixture({pathname: '/events', query: {}});
+
+  function makeEventView(fields: string[]) {
+    return EventView.fromSavedQuery({
+      id: '',
+      name: 'test query',
+      version: 2,
+      fields,
+      projects: [1],
+    });
+  }
+
+  function renderQuery(props: {eventView: EventView; version?: number}) {
+    return (
+      <GenericDiscoverQuery<{data: Array<{transaction: string}>}, {version?: number}>
+        route="events"
+        orgSlug="test-org"
+        location={location}
+        shouldRefetchData={(prevProps, nextProps) =>
+          prevProps.version !== nextProps.version
+        }
+        {...props}
+      >
+        {({tableData, isLoading}) =>
+          isLoading ? 'loading' : <p>{tableData?.data[0]?.transaction}</p>
+        }
+      </GenericDiscoverQuery>
+    );
+  }
+
+  it('fetches once the event view becomes valid when it starts invalid', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {data: [{transaction: '/health'}]},
+    });
+
+    const {rerender} = render(renderQuery({eventView: makeEventView([])}));
+    expect(screen.getByText('loading')).toBeInTheDocument();
+    expect(getMock).not.toHaveBeenCalled();
+    rerender(renderQuery({eventView: makeEventView(['transaction'])}));
+
+    expect(await screen.findByText('/health')).toBeInTheDocument();
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refetches an equivalent payload when shouldRefetchData reports a change', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: '/organizations/test-org/events/',
+      body: {data: [{transaction: '/health'}]},
+    });
+    const eventView = makeEventView(['transaction']);
+
+    const {rerender} = render(renderQuery({eventView, version: 1}));
+    expect(await screen.findByText('/health')).toBeInTheDocument();
+    rerender(renderQuery({eventView, version: 2}));
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
   });
 });

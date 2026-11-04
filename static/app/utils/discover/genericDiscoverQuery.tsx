@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -139,73 +139,49 @@ type ComponentProps<T, P> = {
 
 type Props<T, P> = DiscoverQueryProps & P & ReactProps<T> & ComponentProps<T, P>;
 
-type State<T> = {
-  api: Client;
-  tableFetchID: symbol | undefined;
-} & GenericChildrenProps<T>;
+function shouldRefetch<T, P>(prevProps: Props<T, P>, props: Props<T, P>): boolean {
+  const payloadChanged =
+    !isAPIPayloadSimilar(getPayload(props), getPayload(prevProps)) ||
+    prevProps.limit !== props.limit ||
+    prevProps.route !== props.route ||
+    prevProps.cursor !== props.cursor;
+
+  const becameValid = !prevProps.eventView.isValid() && props.eventView.isValid();
+
+  return (
+    payloadChanged ||
+    becameValid ||
+    (props.shouldRefetchData?.(prevProps, props) ?? false)
+  );
+}
 
 /**
  * Generic component for discover queries
  */
-class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
-  state: State<T> = {
+export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
+  const [api] = useState(() => new Client());
+  const [state, setState] = useState<GenericChildrenProps<T>>({
     isLoading: true,
-    tableFetchID: undefined,
     error: null,
-
     tableData: null,
     pageLinks: null,
-    api: new Client(),
-  };
+  });
+  const latestPropsRef = useRef(props);
+  const prevPropsRef = useRef<Props<T, P> | undefined>(undefined);
+  const tableFetchIDRef = useRef<symbol | undefined>(undefined);
 
-  componentDidMount() {
-    this.fetchData();
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs after every render to compare against the previous props, like componentDidUpdate
+  useEffect(() => {
+    latestPropsRef.current = props;
+    const prevProps = prevPropsRef.current;
+    prevPropsRef.current = props;
 
-  componentDidUpdate(prevProps: Props<T, P>) {
-    // Reload data if the payload changes
-    const refetchCondition = this._shouldRefetchData(prevProps);
-
-    // or if we've moved from an invalid view state to a valid one,
-    const eventViewValidation =
-      !prevProps.eventView.isValid() && this.props.eventView.isValid();
-
-    const shouldRefetchExternal = this.props.shouldRefetchData
-      ? this.props.shouldRefetchData(prevProps, this.props)
-      : false;
-
-    if (refetchCondition || eventViewValidation || shouldRefetchExternal) {
-      this.fetchData();
-    }
-  }
-
-  _shouldRefetchData = (prevProps: Props<T, P>): boolean => {
-    const thisAPIPayload = getPayload(this.props);
-    const otherAPIPayload = getPayload(prevProps);
-
-    return (
-      !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload) ||
-      prevProps.limit !== this.props.limit ||
-      prevProps.route !== this.props.route ||
-      prevProps.cursor !== this.props.cursor
-    );
-  };
-
-  /**
-   * The error type isn't consistent across APIs. We see detail as just string some times, other times as an object.
-   */
-  _parseError = (error: any): QueryError | null => {
-    if (this.props.parseError) {
-      return this.props.parseError(error);
+    if (prevProps && !shouldRefetch(prevProps, props)) {
+      return;
     }
 
-    return parseError(error);
-  };
-
-  fetchData = async () => {
     const {beforeFetch, afterFetch, didFetch, eventView, orgSlug, route, setError} =
-      this.props;
-    const {api} = this.state;
+      props;
 
     if (!eventView.isValid()) {
       return;
@@ -213,9 +189,10 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol('tableFetchID');
-    const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(this.props);
+    const apiPayload: Partial<EventQuery & LocationQuery> = getPayload(props);
 
-    this.setState({isLoading: true, tableFetchID});
+    tableFetchIDRef.current = tableFetchID;
+    setState(prevState => ({...prevState, isLoading: true}));
 
     setError?.(undefined);
 
@@ -224,54 +201,37 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     // clear any inflight requests since they are now stale
     api.clear();
 
-    try {
-      const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
+    const fetchData = async () => {
+      try {
+        const [data, , resp] = await doDiscoverQuery<T>(api, url, apiPayload);
 
-      if (this.state.tableFetchID !== tableFetchID) {
-        // invariant: a different request was initiated after this request
-        return;
+        if (tableFetchIDRef.current !== tableFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
+        tableFetchIDRef.current = undefined;
+
+        const tableData = afterFetch ? afterFetch(data, latestPropsRef.current) : data;
+        didFetch?.(tableData);
+        setState(prevState => ({
+          isLoading: false,
+          error: null,
+          pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
+          tableData,
+        }));
+      } catch (err) {
+        tableFetchIDRef.current = undefined;
+        const error = (latestPropsRef.current.parseError ?? parseError)(err);
+        setState(prevState => ({...prevState, isLoading: false, error, tableData: null}));
+        setError?.(error ?? undefined);
       }
-
-      const tableData = afterFetch ? afterFetch(data, this.props) : data;
-      didFetch?.(tableData);
-      this.setState(prevState => ({
-        isLoading: false,
-        tableFetchID: undefined,
-        error: null,
-        pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
-        tableData,
-      }));
-    } catch (err) {
-      const error = this._parseError(err);
-      this.setState({
-        isLoading: false,
-        tableFetchID: undefined,
-        error,
-        tableData: null,
-      });
-      if (setError) {
-        setError(error ?? undefined);
-      }
-    }
-  };
-
-  render() {
-    const {isLoading, error, tableData, pageLinks} = this.state;
-
-    const childrenProps: GenericChildrenProps<T> = {
-      isLoading,
-      error,
-      tableData,
-      pageLinks,
     };
-    const children = this.props.children; // Explicitly setting type due to issues with generics and React's children
-    return children?.(childrenProps);
-  }
-}
 
-export function GenericDiscoverQuery<T, P>(props: Props<T, P>) {
-  // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-  return <_GenericDiscoverQuery<T, P> {...(props as any)} />;
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    fetchData();
+  });
+
+  return props.children?.(state);
 }
 
 export type DiscoverQueryRequestParams = Partial<
