@@ -17,7 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user, acting_user_id
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -28,6 +28,13 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.autofix.constants import (
+    AUTOFIX_RUN_SCOPES,
+    PUBLISH_SCOPES,
+    AutofixReferrer,
+)
+from sentry.seer.autofix.feature.dispatch import continue_single_run
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -355,6 +362,39 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             if isinstance(result, Response):
                 return result
             resolved = result
+
+            single_run = (
+                SeerAgentRun.objects.filter(
+                    run__organization_id=organization.id,
+                    run__seer_run_state_id=resolved.seer_run_state_id,
+                    source=SINGLE_RUN_FEATURE_ID,
+                    group__isnull=False,
+                )
+                .select_related("run", "group__project")
+                .first()
+            )
+            replier = acting_user(request.user)
+            if single_run is not None and single_run.group is not None and replier is not None:
+                project = single_run.group.project
+                if not request.access.has_any_project_scope(project, AUTOFIX_RUN_SCOPES):
+                    raise PermissionDenied("You do not have access to this run.")
+                try:
+                    continue_single_run(
+                        single_run,
+                        single_run.group,
+                        query,
+                        user=replier,
+                        can_publish=request.access.has_any_project_scope(project, PUBLISH_SCOPES),
+                        referrer=AutofixReferrer.SEER_EXPLORER,
+                    )
+                except SeerApiError as e:
+                    sentry_sdk.capture_exception(e)
+                    return Response(
+                        {"detail": "Failed to start or continue chat session"}, status=500
+                    )
+                return Response(
+                    {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}
+                )
 
         if not has_access and not (
             resolved is not None and _is_dashboard_generate_run(organization, resolved)
