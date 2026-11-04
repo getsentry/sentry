@@ -17,14 +17,17 @@ from sentry.integrations.jira.tasks import sync_forge_installation
 from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import jwt
 
 CLOUD_ID = "11111111-2222-3333-4444-555555555555"
 API_BASE_URL = f"https://api.atlassian.com/ex/jira/{CLOUD_ID}"
 INSTALLATION_ID = "ari:cloud:ecosystem::installation/test-installation"
+APP_ID = "ari:cloud:ecosystem::app/test"
 SYSTEM_TOKEN_EXPIRES_AT = 1900000000
-SYSTEM_TOKEN = jwt.encode({"exp": SYSTEM_TOKEN_EXPIRES_AT}, "secret")
+# Atlassian requires system tokens to be treated as opaque.
+SYSTEM_TOKEN = "opaque-system-token"
 
 
 def _invocation(**overrides: str | None) -> ForgeInvocation:
@@ -50,6 +53,7 @@ class JiraForgeInstallationWebhookTest(APITestCase):
         self.url = reverse("sentry-extensions-jira-forge-installation")
         self.headers = {"Authorization": "Bearer fit", "X-Forge-OAuth-System": SYSTEM_TOKEN}
 
+    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_queues_encrypted_installation(
         self, mock_verify: MagicMock, mock_task: MagicMock
     ) -> None:
@@ -80,6 +84,7 @@ class JiraForgeInstallationWebhookTest(APITestCase):
             sync_forge_installation(**kwargs)
         mock_get_key.assert_called_once_with(API_BASE_URL, SYSTEM_TOKEN)
 
+    @freeze_time("2025-01-01 00:00:00")
     def test_takes_site_from_api_base_url(
         self, mock_verify: MagicMock, mock_task: MagicMock
     ) -> None:
@@ -98,6 +103,8 @@ class JiraForgeInstallationWebhookTest(APITestCase):
             fernet.decrypt(mock_task.delay.call_args.kwargs["encrypted_payload"])
         )
         assert payload["cloud_id"] == CLOUD_ID
+        # Two hours from receipt, the token's guaranteed minimum lifetime.
+        assert payload["system_token_expires_at"] == 1735689600 + 2 * 60 * 60
 
     def test_rejects_bad_requests(self, mock_verify: MagicMock, mock_task: MagicMock) -> None:
         mock_verify.side_effect = ForgeInvocationTokenError("bad")
@@ -115,10 +122,6 @@ class JiraForgeInstallationWebhookTest(APITestCase):
         mock_verify.return_value = _invocation()
         response = self.client.post(self.url, headers={"Authorization": "Bearer fit"})
         assert response.status_code == 400
-        response = self.client.post(
-            self.url, headers={"Authorization": "Bearer fit", "X-Forge-OAuth-System": "not-a-jwt"}
-        )
-        assert response.status_code == 400
 
         assert not mock_task.delay.called
 
@@ -134,13 +137,18 @@ class SyncForgeInstallationTest(TestCase):
         )
         self.server_info_url = f"{API_BASE_URL}/rest/api/3/serverInfo"
 
-    def sync(self, installation_id: str = INSTALLATION_ID) -> None:
+    def sync(
+        self,
+        installation_id: str = INSTALLATION_ID,
+        system_token_expires_at: int = SYSTEM_TOKEN_EXPIRES_AT,
+    ) -> None:
         payload = {
+            "app_id": APP_ID,
             "installation_id": installation_id,
             "cloud_id": CLOUD_ID,
             "api_base_url": API_BASE_URL,
             "system_token": SYSTEM_TOKEN,
-            "system_token_expires_at": SYSTEM_TOKEN_EXPIRES_AT,
+            "system_token_expires_at": system_token_expires_at,
         }
         with patch(
             "sentry.integrations.jira.tasks.FernetKeyStore.get_fernet_for_key_id",
@@ -158,6 +166,7 @@ class SyncForgeInstallationTest(TestCase):
         }
 
     @responses.activate
+    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_records_forge_installation_on_connect_integration(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -181,7 +190,6 @@ class SyncForgeInstallationTest(TestCase):
 
     @responses.activate
     def test_creates_forge_only_integration_keyed_by_cloud_id(self) -> None:
-        responses.get(self.property_url, status=404)
         responses.get(
             self.server_info_url,
             json={"baseUrl": "https://example.atlassian.net", "serverTitle": "Example"},
@@ -198,9 +206,25 @@ class SyncForgeInstallationTest(TestCase):
             "domain_name": "example.atlassian.net",
             "forge": self.forge_metadata("ari:cloud:ecosystem::installation/reinstalled"),
         }
-        assert len(responses.calls) == 2
+        # A Forge-native app never has a Connect install to look up.
+        assert len(responses.calls) == 1
 
     @responses.activate
+    def test_keeps_the_newest_token(self) -> None:
+        responses.get(
+            self.server_info_url,
+            json={"baseUrl": "https://example.atlassian.net", "serverTitle": "Example"},
+        )
+
+        self.sync()
+        # A delayed retry carrying an older token.
+        self.sync(system_token_expires_at=SYSTEM_TOKEN_EXPIRES_AT - 60)
+
+        integration = Integration.objects.get(provider="jira", external_id=CLOUD_ID)
+        assert integration.metadata["forge"] == self.forge_metadata()
+
+    @responses.activate
+    @override_options({"jira.forge.connect-app-ids": [APP_ID]})
     def test_does_not_record_unless_the_site_matches(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -218,6 +242,11 @@ class SyncForgeInstallationTest(TestCase):
         responses.replace(responses.GET, self.property_url, status=403)
         with pytest.raises(ApiError):
             self.sync()
+        # A missing clientKey is retried too, never taken to mean there's no Connect install.
+        responses.replace(responses.GET, self.property_url, status=404)
+        with pytest.raises(ApiError):
+            self.sync()
+        assert not Integration.objects.filter(provider="jira", external_id=CLOUD_ID).exists()
 
         # The integration is already linked to a different site.
         responses.replace(responses.GET, self.property_url, json={"value": "connect-client-key"})

@@ -979,6 +979,15 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Forge apps that replace the Connect app (they declare `app.connect.key`). Every site
+# installing one also has a Connect integration, which Forge installs are linked to.
+# Installs of any other trusted Forge app get a Forge-only integration.
+register(
+    "jira.forge.connect-app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Jira integrations whose outbound API calls use their Forge system token instead
 # of the Connect JWT. Forge-only integrations have no Connect secret and always do.
 register(

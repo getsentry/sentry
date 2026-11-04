@@ -2,6 +2,7 @@ import orjson
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.integrations.jira.forge.client import ForgeInstallationClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.service import integration_service
@@ -73,27 +74,25 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
     # Forge-only integrations are keyed by cloud ID. Connect integrations keep their
     # clientKey until the cloud ID backfill rekeys them.
     integration = Integration.objects.filter(provider="jira", external_id=cloud_id).first()
-    if integration is None:
-        try:
-            client_key = client.get_connect_client_key(api_base_url, system_token)
-        except ApiError as e:
-            if e.code != 404:
-                raise
-            server_info = client.get_server_info(api_base_url, system_token)
-            base_url = server_info["baseUrl"]
-            integration, _ = Integration.objects.get_or_create(
-                provider="jira",
-                external_id=cloud_id,
-                defaults={
-                    "name": server_info["serverTitle"],
-                    "metadata": {
-                        "base_url": base_url,
-                        "domain_name": base_url.replace("https://", ""),
-                    },
+    if integration is None and payload["app_id"] in options.get("jira.forge.connect-app-ids"):
+        # The site also has the Connect install, so a failed lookup is retried rather
+        # than taken to mean there's no Connect integration.
+        client_key = client.get_connect_client_key(api_base_url, system_token)
+        integration = Integration.objects.get(provider="jira", external_id=client_key)
+    elif integration is None:
+        server_info = client.get_server_info(api_base_url, system_token)
+        base_url = server_info["baseUrl"]
+        integration, _ = Integration.objects.get_or_create(
+            provider="jira",
+            external_id=cloud_id,
+            defaults={
+                "name": server_info["serverTitle"],
+                "metadata": {
+                    "base_url": base_url,
+                    "domain_name": base_url.replace("https://", ""),
                 },
-            )
-        else:
-            integration = Integration.objects.get(provider="jira", external_id=client_key)
+            },
+        )
 
     forge = {
         "cloud_id": cloud_id,
@@ -107,5 +106,8 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
         existing = integration.metadata.get("forge") or {}
         if existing.get("cloud_id", cloud_id) != cloud_id:
             raise ValueError("Forge cloud ID does not match the existing integration")
+        # A delayed retry can arrive after a newer token was stored.
+        if existing.get("system_token_expires_at", 0) > forge["system_token_expires_at"]:
+            return
         if existing != forge:
             integration.update(metadata={**integration.metadata, "forge": forge})
