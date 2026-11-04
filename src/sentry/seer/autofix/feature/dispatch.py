@@ -204,9 +204,8 @@ def trigger_autofix_feature(
         group=group,
         user=args.user,
         enable_coding=enable_coding,
+        enable_bash_mode=True,
     )
-    # Autofix always gets bash mode, bypassing seer-explorer-allow-bash-mode.
-    client.enable_bash_mode = True
 
     agent_run_options = AgentRunOptions(
         is_context_engine_enabled=False,

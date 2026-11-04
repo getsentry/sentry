@@ -298,8 +298,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     # Enable context engine experimental contexts
     manager.add("organizations:context-engine-experiments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable frontend override for bash mode
-    manager.add("organizations:seer-explorer-allow-bash-mode", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable frontend override for context engine (only for AI/ML/Reasoning platform team)
     manager.add("organizations:seer-explorer-context-engine-allow-fe-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Agent-created PRs in Ask Seer chat; also gates code editing tools in chat
@@ -341,8 +339,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Keep PR iteration turns on their PR's latest commit, and retry a push the branch moved under
     manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Steer autofix to run the repo's linter and tests over its changes
-    manager.add("organizations:autofix-should-run-repo-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
