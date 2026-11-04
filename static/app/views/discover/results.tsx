@@ -396,6 +396,15 @@ class ResultsContent extends Component<Props, State> {
     });
   };
 
+  // Confirming before the URL write lands would fetch with the previous location.
+  confirmAfterUpdate = (update: Promise<URLSearchParams>) => {
+    void update.then(() => {
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
+    });
+  };
+
   handleCancelled = () => {
     this.setState({needConfirmation: false, confirmedQuery: false});
   };
@@ -507,11 +516,8 @@ class ResultsContent extends Component<Props, State> {
   }
 
   handleCursor: CursorHandler = cursor => {
-    this.props.setQueryParams({cursor: cursor ?? null});
     // Treat pagination like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
-    }
+    this.confirmAfterUpdate(this.props.setQueryParams({cursor: cursor ?? null}));
   };
 
   handleChangeShowTags = () => {
@@ -529,17 +535,7 @@ class ResultsContent extends Component<Props, State> {
   handleSearch = (query: string) => {
     const {queryParams, setQueryParams} = this.props;
 
-    const {statsPeriod, start, end, utc} = normalizeDateTimeParams({
-      end: queryParams.end,
-      pageEnd: queryParams.pageEnd,
-      pageStart: queryParams.pageStart,
-      pageStatsPeriod: queryParams.pageStatsPeriod,
-      pageUtc: queryParams.pageUtc,
-      period: queryParams.period,
-      start: queryParams.start,
-      statsPeriod: queryParams.statsPeriod,
-      utc: queryParams.utc,
-    });
+    const {statsPeriod, start, end, utc} = normalizeDateTimeParams(queryParams);
 
     setQueryParams({
       query,
@@ -564,7 +560,7 @@ class ResultsContent extends Component<Props, State> {
       mode => mode === queryParams.display
     );
 
-    setQueryParams({
+    const update = setQueryParams({
       yAxis: value,
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
@@ -576,9 +572,7 @@ class ResultsContent extends Component<Props, State> {
     });
 
     // Treat axis changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
-    }
+    this.confirmAfterUpdate(update);
 
     trackAnalytics('discover_v2.y_axis_change', {
       organization: this.props.organization,
@@ -587,34 +581,22 @@ class ResultsContent extends Component<Props, State> {
   };
 
   handleDisplayChange = (value: string) => {
-    this.props.setQueryParams({display: value});
-
     // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
-    }
+    this.confirmAfterUpdate(this.props.setQueryParams({display: value}));
   };
 
   handleIntervalChange = (value: string | undefined) => {
     const {queryParams, setQueryParams} = this.props;
 
     if ((queryParams.interval ?? undefined) !== value) {
-      setQueryParams({interval: value ?? null});
-
       // Treat display changing like the user already confirmed the query
-      if (!this.state.needConfirmation) {
-        this.handleConfirmed();
-      }
+      this.confirmAfterUpdate(setQueryParams({interval: value ?? null}));
     }
   };
 
   handleTopEventsChange = (value: string) => {
-    this.props.setQueryParams({topEvents: value});
-
     // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
-    }
+    this.confirmAfterUpdate(this.props.setQueryParams({topEvents: value}));
   };
 
   getDocumentTitle(): string {
