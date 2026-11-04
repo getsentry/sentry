@@ -97,6 +97,18 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
+    def test_expo_platform(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="expo app",
+            platform="expo",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.platform == "expo"
+
     def test_invalid_platform(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
