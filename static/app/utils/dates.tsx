@@ -1,5 +1,11 @@
 import moment from 'moment-timezone';
 
+import {
+  getFormat as formatDateTime,
+  getTimeFormat as formatTime,
+  type DateTimeFormatOptions,
+} from '@sentry/scraps/dateTime';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {TableDataRow} from './discover/discoverQuery';
@@ -217,114 +223,6 @@ export function shouldUse24Hours() {
   return ConfigStore.get('user')?.options?.clock24Hours;
 }
 
-/**
- * Get a common date format
- */
-function getDateFormat({year}: {year?: boolean}) {
-  // "Jan 1, 2022" or "Jan 1"
-  return year ? 'MMM D, YYYY' : 'MMM D';
-}
-
-/**
- * Get a common time format
- */
-export function getTimeFormat({
-  clock24Hours,
-  seconds,
-  timeZone,
-  milliseconds,
-}: {
-  clock24Hours?: boolean;
-  milliseconds?: boolean;
-  seconds?: boolean;
-  timeZone?: boolean;
-} = {}) {
-  let format = '';
-
-  if (clock24Hours ?? shouldUse24Hours()) {
-    if (milliseconds) {
-      format = 'HH:mm:ss.SSS';
-    } else {
-      format = seconds ? 'HH:mm:ss' : 'HH:mm';
-    }
-  } else {
-    if (milliseconds) {
-      format = 'h:mm:ss.SSS A';
-    } else {
-      format = seconds ? 'LTS' : 'LT';
-    }
-  }
-
-  if (timeZone) {
-    format += ' z';
-  }
-
-  return format;
-}
-
-interface FormatProps {
-  /**
-   * Should show a 24hour clock? If not set the users preference will be used
-   */
-  clock24Hours?: boolean;
-  /**
-   * If true, will only return the date part, e.g. "Jan 1".
-   */
-  dateOnly?: boolean;
-  /**
-   * Whether to show the milliseconds.
-   */
-  milliseconds?: boolean;
-  /**
-   * Whether to show the seconds.
-   */
-  seconds?: boolean;
-  /**
-   * If true, will only return the time part, e.g. "2:50 PM"
-   */
-  timeOnly?: boolean;
-  /**
-   * Whether to show the time zone.
-   */
-  timeZone?: boolean;
-  /**
-   * Whether to show the year. If not specified, the returned date string will
-   * not contain the year _if_ the date is not in the current calendar year.
-   * For example: "Feb 1" (2022), "Jan 1" (2022), "Dec 31, 2021".
-   */
-  year?: boolean;
-}
-
-export function getFormat({
-  dateOnly,
-  timeOnly,
-  year,
-  seconds,
-  timeZone,
-  clock24Hours,
-  milliseconds,
-}: FormatProps = {}) {
-  if (dateOnly) {
-    return getDateFormat({year});
-  }
-
-  if (timeOnly) {
-    return getTimeFormat({clock24Hours, seconds, timeZone});
-  }
-
-  const dateFormat = getDateFormat({year});
-  const timeFormat = getTimeFormat({
-    clock24Hours,
-    seconds,
-    milliseconds,
-    timeZone,
-  });
-
-  // If the year is shown, then there's already a comma in dateFormat ("Jan 1, 2020"),
-  // so we don't need to add another comma between the date and time
-  return year ? `${dateFormat} ${timeFormat}` : `${dateFormat}, ${timeFormat}`;
-}
-
 export function getInternalDate(date: string | Date, utc?: boolean | null) {
   if (utc) {
     return getUtcToSystem(date);
@@ -376,4 +274,22 @@ export function getDateFromTimestampAssumeUtc(value: unknown): Date | null {
       : value;
 
   return getDateFromTimestamp(withTz);
+}
+
+export function getFormat(options: DateTimeFormatOptions = {}) {
+  return formatDateTime({
+    ...options,
+    clock24Hours: options.clock24Hours ?? shouldUse24Hours(),
+  });
+}
+export function getTimeFormat(
+  options: Pick<
+    DateTimeFormatOptions,
+    'clock24Hours' | 'milliseconds' | 'seconds' | 'timeZone'
+  > = {}
+) {
+  return formatTime({
+    ...options,
+    clock24Hours: options.clock24Hours ?? shouldUse24Hours(),
+  });
 }

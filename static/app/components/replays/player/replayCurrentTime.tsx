@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {Duration} from 'sentry/components/duration/duration';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayCurrentTime} from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';

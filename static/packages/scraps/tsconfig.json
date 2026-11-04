@@ -11,6 +11,7 @@
     "outDir": "dist",
     "types": ["node"],
     "paths": {
+      "@sentry/scraps/dateTime": ["./src/dateTime/index.tsx"],
       "@sentry/scraps/*": ["./src/*"]
     }
   },

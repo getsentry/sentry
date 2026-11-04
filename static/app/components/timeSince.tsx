@@ -3,7 +3,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {InfoText, type InfoTextProps} from '@sentry/scraps/info';
 import {
   getDateObj,
-  getRelativeDate,
+  getRelativeDate as formatRelativeDate,
   type RelaxedDateType,
   RELATIVE_TIME_MAX_WIDTH,
   RelativeTime,
@@ -11,8 +11,16 @@ import {
 } from '@sentry/scraps/relativeTime';
 
 import {t} from 'sentry/locale';
+import {durationFormatter} from 'sentry/utils/duration/getDuration';
 
-export {getRelativeDate};
+export function getRelativeDate(
+  date: RelaxedDateType,
+  suffix?: string,
+  prefix?: string,
+  unitStyle?: UnitStyle
+) {
+  return formatRelativeDate(date, suffix, prefix, unitStyle, durationFormatter);
+}
 
 interface Props extends Omit<
   React.TimeHTMLAttributes<HTMLTimeElement>,

@@ -1,8 +1,9 @@
+import type * as React from 'react';
 import moment from 'moment-timezone';
 
 import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 
-import {getFormat} from 'sentry/utils/dates';
+import {getFormat} from './dateTimeFormatting';
 
 export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**

@@ -1,9 +1,9 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,

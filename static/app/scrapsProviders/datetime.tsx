@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import {DateTimeProvider} from '@sentry/scraps/datetime';
 
+import {durationFormatter} from 'sentry/utils/duration/getDuration';
 import {useUser} from 'sentry/utils/useUser';
 
 /**
@@ -34,7 +35,7 @@ export function SentryDateTimeProvider({children}: {children: React.ReactNode}) 
   const clockDisplay = user?.options.clock24Hours ? '24' : '12';
 
   const value = useMemo(
-    () => ({timezone, clockDisplay}) as const,
+    () => ({timezone, clockDisplay, formatDuration: durationFormatter}) as const,
     [timezone, clockDisplay]
   );
 

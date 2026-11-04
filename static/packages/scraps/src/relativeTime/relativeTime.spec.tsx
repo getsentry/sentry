@@ -1,7 +1,18 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 
 import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
+import {lightTheme} from '@sentry/scraps/theme';
+
+afterEach(() => {
+  try {
+    jest.runOnlyPendingTimers();
+  } finally {
+    jest.useRealTimers();
+  }
+});
 
 // Midnight UTC on New Year's Day, which is still the previous year in Los
 // Angeles. Rows straddling a date boundary is the case the card exists for.
@@ -13,17 +24,15 @@ function renderInTimezone(
   clockDisplay: DateTimeContextValue['clockDisplay'] = '12'
 ) {
   return render(
-    <DateTimeProvider value={{timezone, clockDisplay}}>{children}</DateTimeProvider>
+    <ThemeProvider theme={lightTheme}>
+      <DateTimeProvider value={{timezone, clockDisplay}}>{children}</DateTimeProvider>
+    </ThemeProvider>
   );
 }
 
 describe('RelativeTime', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders the label and relative time in the header', () => {
@@ -144,5 +153,41 @@ describe('RelativeTime', () => {
     );
 
     expect(screen.getByText('8mo ago')).toBeInTheDocument();
+  });
+});
+
+describe('localized preferences', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:05Z'));
+  });
+  it('updates localized duration and clock preferences through the date provider', () => {
+    const formatDuration = (seconds: number) => `translated ${seconds} seconds`;
+    const {rerender} = render(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12', formatDuration}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            unitStyle="regular"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('translated 5 seconds elapsed')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24', formatDuration}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            unitStyle="regular"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('00:00')).toBeInTheDocument();
   });
 });
