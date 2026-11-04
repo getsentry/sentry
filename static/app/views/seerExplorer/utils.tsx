@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -470,6 +471,13 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
 const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
+const CHANGES_QUERY_PARAM = 'explorerChanges';
+
+/** The query without a chat link's params: the run, and the changes open over it. */
+function withoutChatLinkParams<T extends Record<string, unknown>>(query: T) {
+  const {[RUN_ID_QUERY_PARAM]: _runId, [CHANGES_QUERY_PARAM]: _changes, ...rest} = query;
+  return rest;
+}
 
 export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   if (/^\d+$/.test(value)) {
@@ -550,9 +558,7 @@ export function useRemoveSeerExplorerRunIdParam() {
     if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
       return;
     }
-    // oxlint-disable-next-line react/todo
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
-    navigate({...location, query: restQuery});
+    navigate({...location, query: withoutChatLinkParams(location.query)});
   }, [location, navigate]);
 }
 
@@ -581,13 +587,64 @@ export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
 
     // Push rather than replace, so the browser back button returns to the previous
     // conversation (the deep link listener switches to it when the param changes).
-    // oxlint-disable-next-line react/todo
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    // Changes open over the previous run don't carry over.
+    const restQuery = withoutChatLinkParams(location.query ?? {});
     navigate({
       ...location,
       query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
     });
   }, [runId, location, navigate]);
+}
+
+/**
+ * The repo whose changes are open over the chat, and a setter (`null` closes them). On a chat link
+ * (the run ID param is in the URL) it lives in the URL, so the link can open the changes and
+ * browser back closes them. Otherwise it's local state and the page URL is left alone.
+ */
+export function useOpenChangesRepo(
+  runId: SeerExplorerRunId | null
+): [string | null, (repoName: string | null) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Tied to its run, so switching runs closes it.
+  const [local, setLocal] = useState<{
+    repoName: string;
+    runId: SeerExplorerRunId | null;
+  } | null>(null);
+
+  const linkedRunId = location.query?.[RUN_ID_QUERY_PARAM];
+  const linkedRepo = location.query?.[CHANGES_QUERY_PARAM];
+  const isChatLink = linkedRunId !== undefined;
+
+  let repoName: string | null = null;
+  if (isChatLink) {
+    // Until the link's run is the active one, its changes aren't on screen to open.
+    repoName =
+      linkedRunId === String(runId) && typeof linkedRepo === 'string' ? linkedRepo : null;
+  } else if (local?.runId === runId) {
+    repoName = local.repoName;
+  }
+
+  const setRepoName = useCallback(
+    (newRepoName: string | null) => {
+      if (!isChatLink) {
+        setLocal(newRepoName === null ? null : {repoName: newRepoName, runId});
+        return;
+      }
+      // oxlint-disable-next-line react/todo
+      const {[CHANGES_QUERY_PARAM]: _changes, ...restQuery} = location.query;
+      navigate({
+        ...location,
+        query:
+          newRepoName === null
+            ? restQuery
+            : {...restQuery, [CHANGES_QUERY_PARAM]: newRepoName},
+      });
+    },
+    [isChatLink, location, navigate, runId]
+  );
+
+  return [repoName, setRepoName];
 }
 
 /**
@@ -622,11 +679,20 @@ export function useSeerExplorerResumeDeepLink({
 }
 
 /**
- * Returns the URL of the current window with the run ID query param set.
+ * Returns the URL of the current window with the run ID query param set, and the changes param
+ * set to `changesRepoName` or removed without it.
  */
-export function getExplorerUrl(runId: number | string): string {
+export function getExplorerUrl(
+  runId: number | string,
+  changesRepoName?: string | null
+): string {
   const url = new URL(window.location.href);
   url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  if (changesRepoName) {
+    url.searchParams.set(CHANGES_QUERY_PARAM, changesRepoName);
+  } else {
+    url.searchParams.delete(CHANGES_QUERY_PARAM);
+  }
   return url.toString();
 }
 
