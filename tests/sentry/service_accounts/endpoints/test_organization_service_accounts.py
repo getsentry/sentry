@@ -17,7 +17,6 @@ from sentry.organizations.services.organization.impl import DatabaseBackedOrgani
 from sentry.service_accounts.endpoints.organization_service_accounts import (
     ALL_PROJECTS_ROLE_ERROR,
     ALL_PROJECTS_WITH_PROJECTS_ERROR,
-    DISABLE_ERROR,
     MAX_PROJECT_IDS_PER_REQUEST,
     OrganizationServiceAccountDetailsEndpoint,
     ServiceAccountCreateSerializer,
@@ -85,7 +84,6 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "scopes": ["org:read", "project:read"],
                 "projectIds": [str(project.id) for project in sorted(projects, key=lambda p: p.id)],
                 "allProjects": False,
-                "isActive": True,
                 "dateCreated": first.date_added,
             },
         ]
@@ -157,7 +155,6 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
             "allProjects": False,
-            "isActive": True,
             "dateCreated": service_account.date_added,
         }
 
@@ -170,36 +167,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "project_ids": [str(project.id)],
             "all_projects": False,
-            "is_active": True,
         }
-
-    def test_create_rejects_inactive(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_error_response(
-                self.organization.slug,
-                method="post",
-                name="nightly-triage",
-                scopes=["event:read"],
-                isActive=False,
-                status_code=400,
-            )
-
-        assert response.data["detail"]["isActive"] == [DISABLE_ERROR]
-        assert not ServiceAccount.objects.filter(organization_id=self.organization.id).exists()
-
-    def test_create_accepts_active(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug,
-                method="post",
-                name="nightly-triage",
-                scopes=["event:read"],
-                isActive=True,
-                status_code=201,
-            )
-
-        assert response.data["isActive"] is True
-        assert ServiceAccount.objects.get(id=response.data["id"]).is_active
 
     def test_create_reuses_deleted_account_name(self) -> None:
         deleted = self.create_service_account(organization=self.organization, name="nightly-triage")
@@ -543,7 +511,6 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["org:read", "project:read"],
             "projectIds": [str(self.projects[0].id)],
             "allProjects": False,
-            "isActive": True,
             "dateCreated": self.service_account.date_added,
         }
 
@@ -594,34 +561,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["event:read"],
             "project_ids": [str(self.projects[0].id)],
             "all_projects": False,
-            "is_active": True,
         }
-
-    def test_update_rejects_inactive(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.service_account.id,
-                method="put",
-                name="renamed",
-                isActive=False,
-                status_code=400,
-            )
-
-        assert response.data["detail"]["isActive"] == [DISABLE_ERROR]
-        self.service_account.refresh_from_db()
-        assert self.service_account.is_active
-        assert self.service_account.name == "seer-autofix"
-
-    def test_update_accepts_active(self) -> None:
-        with self.feature(FEATURE_FLAG):
-            response = self.get_success_response(
-                self.organization.slug, self.service_account.id, method="put", isActive=True
-            )
-
-        assert response.data["isActive"] is True
-        self.service_account.refresh_from_db()
-        assert self.service_account.is_active
 
     def test_update_replaces_projects(self) -> None:
         with self.feature(FEATURE_FLAG), assert_no_organization_resource_hydration():
@@ -926,7 +866,6 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             "scopes": ["org:read", "project:read"],
             "project_ids": [str(self.projects[0].id)],
             "all_projects": False,
-            "is_active": True,
         }
 
     def test_delete_clears_all_projects(self) -> None:

@@ -56,7 +56,6 @@ FEATURE_FLAG = "organizations:service-accounts"
 MAX_PROJECT_IDS_PER_REQUEST = 1000
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
-DISABLE_ERROR = "Service accounts can't be disabled. Delete the account instead."
 ALL_PROJECTS_WITH_PROJECTS_ERROR = (
     "A service account with access to all projects can't also list projects."
     " Set allProjects to false to choose projects."
@@ -81,7 +80,6 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
-    isActive: bool
     dateCreated: datetime
 
 
@@ -90,7 +88,6 @@ class ServiceAccountCreateRequestData(TypedDict):
     scopes: list[str]
     projectIds: NotRequired[list[int] | None]
     allProjects: NotRequired[bool]
-    isActive: NotRequired[bool]
 
 
 class ServiceAccountUpdateRequestData(TypedDict, total=False):
@@ -98,7 +95,6 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     scopes: list[str]
     projectIds: list[int] | None
     allProjects: bool
-    isActive: bool
 
 
 class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
@@ -121,7 +117,6 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
-            "isActive": obj.is_active,
             "dateCreated": obj.date_added,
         }
 
@@ -132,7 +127,6 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
         "scopes": response["scopes"],
         "project_ids": response["projectIds"],
         "all_projects": response["allProjects"],
-        "is_active": response["isActive"],
     }
 
 
@@ -171,16 +165,6 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
             " such as Manager or Owner."
         ),
     )
-    # Kept so a request to disable an account fails instead of being silently ignored.
-    isActive = serializers.BooleanField(
-        required=False,
-        help_text="Only `true` is accepted. To turn a service account off, delete it.",
-    )
-
-    def validate_isActive(self, is_active: bool) -> bool:
-        if not is_active:
-            raise serializers.ValidationError(DISABLE_ERROR)
-        return is_active
 
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
         if not project_ids:
