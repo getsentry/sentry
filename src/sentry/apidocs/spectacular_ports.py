@@ -63,7 +63,7 @@ from drf_spectacular.utils import _SchemaType
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
-from sentry.apidocs.response_coverage import FIELD_SOURCE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -173,11 +173,15 @@ def _field_schema(schema: Any, typed_dict: Any, field: str, description: str | N
 
 def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     """Stand-in for a TypedDict met again while its own fields are being resolved."""
-    return {
+    placeholder: dict[str, Any] = {
         "type": "object",
         "description": f"Same as the {hint.__name__} this is inside. "
         "Its fields are left out here so it doesn't repeat forever.",
     }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        placeholder[CYCLE] = True
+    return placeholder
 
 
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
