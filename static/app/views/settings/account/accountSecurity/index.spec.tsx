@@ -234,6 +234,28 @@ describe('AccountSecurity', () => {
     await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
 
+  it('cannot enroll when only a secondary email is verified', async () => {
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      body: [AuthenticatorsFixture().Totp({isEnrolled: false})],
+    });
+    MockApiClient.addMockResponse({
+      url: ACCOUNT_EMAILS_ENDPOINT,
+      body: [
+        {email: 'primary@example.com', isPrimary: true, isVerified: false},
+        {email: 'secondary@example.com', isPrimary: false, isVerified: true},
+      ],
+    });
+
+    renderComponent();
+
+    const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add'}));
+
+    await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
+  });
+
   it('renders a backup interface that is not enrolled', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,

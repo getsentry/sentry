@@ -6,6 +6,7 @@ import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {
+  PRIMARY_EMAIL_VERIFICATION_REQUIRED,
   PROJECT_MOVED,
   STAFF_REQUIRED,
   SUDO_REQUIRED,
@@ -130,6 +131,7 @@ export const initApiClientErrorHandling = () =>
     if (
       [
         'sudo-required',
+        PRIMARY_EMAIL_VERIFICATION_REQUIRED,
         'ignore',
         '2fa-required',
         'app-connect-authentication-error',

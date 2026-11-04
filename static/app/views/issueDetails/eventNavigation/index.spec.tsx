@@ -80,6 +80,7 @@ describe('EventNavigation', () => {
       eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      scrollContext: 'page',
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({
