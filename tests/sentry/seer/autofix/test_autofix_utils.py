@@ -34,6 +34,7 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_project_repos,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
+    is_seer_token_billed_enabled,
     read_preference_from_sentry_db,
     replace_all_seer_project_repos,
     update_seer_project_settings,
@@ -270,6 +271,32 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
         # Even without feature flags enabled, should return cached True
         result = is_seer_seat_based_tier_enabled(self.organization)
         assert result is True
+
+
+class TestIsSeerTokenBilledEnabled(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+        self.cache_key = f"seer:token-billed:{self.organization.id}"
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        cache.delete(self.cache_key)
+
+    def test_returns_true_when_token_billed_seer_enabled(self) -> None:
+        with self.feature("organizations:token-billed-seer-enabled"):
+            assert is_seer_token_billed_enabled(self.organization) is True
+
+        assert cache.get(self.cache_key) is True
+
+    def test_returns_false_when_flag_disabled(self) -> None:
+        assert is_seer_token_billed_enabled(self.organization) is False
+        assert cache.get(self.cache_key) is False
+
+    def test_returns_cached_value(self) -> None:
+        cache.set(self.cache_key, True, timeout=60)
+
+        assert is_seer_token_billed_enabled(self.organization) is True
 
 
 class HasProjectConnectedReposBaseTest(TestCase):

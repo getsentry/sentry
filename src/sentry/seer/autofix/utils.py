@@ -1008,6 +1008,26 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
+def get_seer_token_billed_cache_key(organization_id: int) -> str:
+    """Get the cache key for token-based Seer billing check."""
+    return f"seer:token-billed:{organization_id}"
+
+
+def is_seer_token_billed_enabled(organization: Organization) -> bool:
+    """
+    Check if organization has token-based Seer billing via billing.
+    """
+    cache_key = get_seer_token_billed_cache_key(organization.id)
+    cached_value = cache.get(cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    has_token_billed_seer = features.has("organizations:token-billed-seer-enabled", organization)
+    cache.set(cache_key, has_token_billed_seer, timeout=60 * 60 * 4)  # 4 hours TTL
+
+    return has_token_billed_seer
+
+
 def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
     """Check if Seer onboarding changes for token-based billing apply to this organization."""
     return features.has(
