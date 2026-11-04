@@ -12,6 +12,8 @@ from django.db import DatabaseError
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobpending import FileBlobPending
 from sentry.models.group import Group
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.notifications.models.notificationmessage import NotificationMessage
@@ -22,6 +24,7 @@ from sentry.notifications.platform.types import NotificationProviderKey, Notific
 from sentry.runner.commands.cleanup import (
     CleanupExecutionAborted,
     _cleanup,
+    cleanup_pending_files,
     generate_bulk_query_deletes,
     models_which_use_deletions_code_path,
     models_which_use_expiry_deletions,
@@ -370,6 +373,29 @@ class UptimeResponseCaptureCleanupTest(TestCase):
 
         assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
         assert not File.objects.filter(id=file_id).exists()
+
+
+class PendingFileBlobCleanupTest(TestCase):
+    def _run(self) -> Any:
+        with patch("sentry.models.files.utils.get_storage") as get_storage:
+            cleanup_pending_files(FileBlob, FileBlobPending)
+        return get_storage.return_value
+
+    def test_deletes_file_of_unfinished_write(self) -> None:
+        pending = FileBlobPending.objects.create(path="ab/cdef/0123", created=before_now(days=2))
+
+        storage = self._run()
+
+        storage.delete.assert_called_once_with("ab/cdef/0123")
+        assert not FileBlobPending.objects.filter(id=pending.id).exists()
+
+    def test_keeps_write_that_may_still_be_in_progress(self) -> None:
+        pending = FileBlobPending.objects.create(path="ab/cdef/0123", created=before_now(hours=1))
+
+        storage = self._run()
+
+        storage.delete.assert_not_called()
+        assert FileBlobPending.objects.filter(id=pending.id).exists()
 
 
 class SeerRunCleanupTest(TestCase):

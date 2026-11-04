@@ -8,6 +8,7 @@ from taskbroker_client.task import Task
 from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
+from sentry.models.files.control_fileblobpending import ControlFileBlobPending
 from sentry.tasks.files import delete_file_control
 
 
@@ -47,6 +48,10 @@ class ControlFileBlob(AbstractFileBlob[ControlFileBlobOwner]):
 
     def _create_blob_owner(self, organization_id: int) -> ControlFileBlobOwner:
         return ControlFileBlobOwner.objects.create(organization_id=organization_id, blob=self)
+
+    @classmethod
+    def _pending_model(cls) -> type[ControlFileBlobPending]:
+        return ControlFileBlobPending
 
     def _delete_file_task(self) -> Task[Any, Any]:
         return delete_file_control

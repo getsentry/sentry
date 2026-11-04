@@ -34,6 +34,8 @@ _last_progress_log: dict[str, float] = {}
 if TYPE_CHECKING:
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.db.models.base import BaseModel
+    from sentry.models.files.abstractfileblob import AbstractFileBlob
+    from sentry.models.files.abstractfileblobpending import AbstractFileBlobPending
 
     # TypeVar for concrete subclasses of BaseModel
     ModelT = TypeVar("ModelT", bound=BaseModel)
@@ -490,6 +492,7 @@ def _cleanup(
             )
 
             remove_file_blobs(is_filtered, models_attempted)
+            remove_pending_file_blobs(is_filtered, models_attempted)
         except CleanupExecutionAborted:
             click.echo("Cleanup was aborted via cleanup.abort_execution option.")
             metrics.incr(
@@ -1279,6 +1282,58 @@ def cleanup_unused_files() -> None:
         if File.objects.filter(blob=blob).exists():
             continue
         blob.delete()
+
+
+@continue_on_error("fileblob_pending_cleanup")
+def remove_pending_file_blobs(
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
+) -> None:
+    from sentry import options
+    from sentry.models.files.control_fileblob import ControlFileBlob
+    from sentry.models.files.control_fileblobpending import ControlFileBlobPending
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobpending import FileBlobPending
+
+    if options.get("cleanup.abort_execution"):
+        raise CleanupExecutionAborted()
+
+    for blob_model, pending_model in (
+        (FileBlob, FileBlobPending),
+        (ControlFileBlob, ControlFileBlobPending),
+    ):
+        if is_filtered(pending_model):
+            debug_output(f">> Skipping {pending_model.__name__}")
+            continue
+        debug_output(f"Removing files of unfinished {blob_model.__name__} writes")
+        models_attempted.add(pending_model.__name__.lower())
+        cleanup_pending_files(blob_model, pending_model)
+
+
+def cleanup_pending_files(
+    blob_model: type[AbstractFileBlob[Any]], pending_model: type[AbstractFileBlobPending]
+) -> None:
+    """
+    Remove the storage paths of writes that never produced a blob row.
+
+    A pending row is deleted in the same transaction that inserts the blob
+    row, so every row still here points at a path without a blob. The cutoff
+    matches `cleanup_unused_files`: a write younger than that may still be
+    in progress.
+    """
+    from sentry.models.files.utils import get_storage
+
+    if os.environ.get("SENTRY_CLEANUP_SILENT", None):
+        from sentry.utils.query import RangeQuerySetWrapper
+    else:
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar as RangeQuerySetWrapper
+
+    storage = get_storage(blob_model._storage_config())
+    cutoff = timezone.now() - timedelta(days=1)
+    queryset = pending_model.objects.filter(created__lte=cutoff)
+
+    for pending in RangeQuerySetWrapper(queryset):
+        storage.delete(pending.path)
+        pending.delete()
 
 
 @continue_on_error("specialized_cleanup_notification_messages")
