@@ -2,5 +2,4 @@ src/sentry/api/bases/organizationmember.py
 src/sentry/core/endpoints/organization_member_details.py
 src/sentry/core/endpoints/organization_member_index.py
 src/sentry/core/endpoints/organization_member_requests_invite_index.py
-src/sentry/data_export/endpoints/data_export.py
 src/sentry/issues/endpoints/group_integration_details.py
