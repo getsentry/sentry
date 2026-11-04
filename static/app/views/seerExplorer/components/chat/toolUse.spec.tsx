@@ -278,6 +278,30 @@ describe('ToolUseBlock', () => {
     );
   });
 
+  it('keeps the open trace view state when linking to another span in it', () => {
+    const block = createBlock({
+      tool_links: [
+        {kind: 'get_span_details', params: {trace_id: 'abc', span_id: 'new-span'}},
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/trace/abc/',
+          query: {fov: '1,2', tab: 'waterfall', node: 'span-old-span'},
+        },
+      },
+    });
+
+    const href = new URL(screen.getByRole('link').getAttribute('href')!, 'http://x');
+    expect(Object.fromEntries(href.searchParams)).toEqual({
+      fov: '1,2',
+      tab: 'waterfall',
+      revealNode: 'span-new-span',
+    });
+  });
+
   it('links a telemetry call row with its multi-project Explore bus destination', () => {
     // The call row supplies the useful title while the bus link supplies the translated query and
     // projects. Pair them into one link instead of showing a separate "View spans" row.
