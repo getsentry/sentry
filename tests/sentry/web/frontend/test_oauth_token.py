@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING
+from unittest import mock
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -2124,6 +2125,24 @@ class OAuthTokenSetupCodeTest(TestCase):
                 user_id=self.user.id,
                 scope_list=["project:read"],
             )
+
+    def test_mint_retries_on_concurrent_insert(self) -> None:
+        real_create = ApiSetupCode.objects.create
+        with mock.patch.object(
+            ApiSetupCode.objects,
+            "create",
+            side_effect=[IntegrityError("sentry_apisetupcode_user_uniq"), mock.DEFAULT],
+            wraps=real_create,
+        ) as create:
+            setup_code, code = ApiSetupCode.mint(
+                application=self.application,
+                user_id=self.user.id,
+                scope_list=["project:read"],
+                organization_id=None,
+            )
+        assert create.call_count == 2
+        assert list(ApiSetupCode.objects.filter(user_id=self.user.id)) == [setup_code]
+        assert self.exchange(code).status_code == 200
 
     def test_missing_setup_code(self) -> None:
         resp = self.exchange()

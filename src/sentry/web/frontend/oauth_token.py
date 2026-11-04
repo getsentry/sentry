@@ -705,7 +705,6 @@ class OAuthTokenView(View):
                 "application_id": application.id,
                 "user_id": setup_code.user_id,
                 "token_id": token.id,
-                "ip_address": request.META.get("REMOTE_ADDR"),
             },
         )
         return self.process_token_details(token=token)

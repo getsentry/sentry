@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from django.contrib.postgres.fields.array import ArrayField
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry import options
@@ -24,6 +24,8 @@ SETUP_CODE_PREFIX = "sntryc_"
 DEFAULT_EXPIRATION = timedelta(minutes=5)
 
 SETUP_CODE_SECRET_BYTES = 32
+
+MAX_MINT_ATTEMPTS = 3
 
 
 def default_expiration() -> datetime:
@@ -120,13 +122,22 @@ class ApiSetupCode(Model):
         codes. Returns the model and the plaintext code, which is not stored.
         """
         code = generate_setup_code()
-        with transaction.atomic(router.db_for_write(cls)):
-            cls.objects.filter(user_id=user_id).delete()
-            setup_code = cls.objects.create(
-                hashed_code=hash_setup_code(code),
-                application=application,
-                user_id=user_id,
-                organization_id=organization_id,
-                scope_list=list(scope_list),
-            )
-        return setup_code, code
+        # A concurrent mint for the same user can insert between our delete
+        # and create, tripping the per-user unique constraint. Retrying
+        # deletes that row so the newest mint wins.
+        for attempt in range(MAX_MINT_ATTEMPTS):
+            try:
+                with transaction.atomic(router.db_for_write(cls)):
+                    cls.objects.filter(user_id=user_id).delete()
+                    setup_code = cls.objects.create(
+                        hashed_code=hash_setup_code(code),
+                        application=application,
+                        user_id=user_id,
+                        organization_id=organization_id,
+                        scope_list=list(scope_list),
+                    )
+                return setup_code, code
+            except IntegrityError:
+                if attempt == MAX_MINT_ATTEMPTS - 1:
+                    raise
+        raise AssertionError("unreachable")
