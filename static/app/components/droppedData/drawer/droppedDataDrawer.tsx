@@ -23,24 +23,25 @@ import {
   type AskSeerHandler,
   type DroppedDataScope,
 } from 'sentry/components/droppedData/outcomeSections';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {
+  useDroppedData,
+  type UseDroppedDataParams,
+} from 'sentry/components/droppedData/useDroppedData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
-interface DroppedDataDrawerProps {
-  dataset: DiscoverDatasets;
-  interval: string;
+interface DroppedDataDrawerProps extends UseDroppedDataParams {
   onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataDrawer({
   dataset,
   interval,
+  projects,
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
@@ -48,6 +49,7 @@ export function DroppedDataDrawer({
   const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
     interval,
+    projects,
   });
 
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');

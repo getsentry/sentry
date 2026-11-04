@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -6,9 +7,9 @@ import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
+import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,17 +19,12 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
-interface UseDroppedDataDrawerParams {
-  dataset: DiscoverDatasets;
-  interval: string;
-}
-
 interface UseDroppedDataDrawerOptions {
   enabled?: boolean;
 }
 
 export function useDroppedDataDrawer(
-  {dataset, interval}: UseDroppedDataDrawerParams,
+  {dataset, interval, projects}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataDrawerOptions = {}
 ) {
   const organization = useOrganization();
@@ -64,7 +60,7 @@ export function useDroppedDataDrawer(
     },
     [navigate, paramValue]
   );
-  const renderedIntervalRef = useRef(interval);
+  const renderedQueryRef = useRef({interval, projects});
 
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
@@ -95,14 +91,20 @@ export function useDroppedDataDrawer(
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const isStale = isDrawerOpen && renderedIntervalRef.current !== interval;
+    const query = {interval, projects};
+    const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
     }
-    renderedIntervalRef.current = interval;
+    renderedQueryRef.current = query;
     openDrawer(
       () => (
-        <DroppedDataDrawer dataset={dataset} interval={interval} onAskSeer={onAskSeer} />
+        <DroppedDataDrawer
+          dataset={dataset}
+          interval={interval}
+          projects={projects}
+          onAskSeer={onAskSeer}
+        />
       ),
       {
         ariaLabel: droppedAndFilteredLabel(dataset),
@@ -124,6 +126,7 @@ export function useDroppedDataDrawer(
     dataset,
     paramValue,
     interval,
+    projects,
     onAskSeer,
     pathname,
     setIsDrawerInUrl,
