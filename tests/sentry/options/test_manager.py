@@ -31,7 +31,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 from sentry.utils.types import Int, String, Type
 
-
 if TYPE_CHECKING:
     from sentry.options.manager import ReadHook
 
