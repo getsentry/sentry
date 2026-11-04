@@ -34,14 +34,8 @@ export function MigrateLegacySeerAction({
   subscription,
   setConfirmCallback,
 }: Props) {
-  const [options, setOptions] = useState<MigrationOptions>({
-    applyImmediately: true,
-    addSeerTrial: true,
-  });
-
-  const updateOptions = (update: Partial<MigrationOptions>) => {
-    setOptions(prev => ({...prev, ...update}));
-  };
+  const [applyImmediately, setApplyImmediately] = useState(true);
+  const [addSeerTrial, setAddSeerTrial] = useState(true);
 
   // The modal unmounts before the request settles; only hook-level callbacks still run.
   const {mutate} = useMutation({
@@ -73,11 +67,10 @@ export function MigrateLegacySeerAction({
   useEffect(() => {
     setConfirmCallback(() => {
       addLoadingMessage('Running legacy Seer migration\u2026');
-      mutate(options);
+      mutate({applyImmediately, addSeerTrial});
     });
-  }, [setConfirmCallback, mutate, options]);
+  }, [setConfirmCallback, mutate, applyImmediately, addSeerTrial]);
 
-  const {applyImmediately, addSeerTrial} = options;
   const periodEnd = moment(subscription.onDemandPeriodEnd).format('ll');
 
   const timingOptions: Array<[boolean, string, string]> = [
@@ -105,7 +98,7 @@ export function MigrateLegacySeerAction({
                 type="radio"
                 name="applyImmediately"
                 checked={applyImmediately === value}
-                onChange={() => updateOptions({applyImmediately: value})}
+                onChange={() => setApplyImmediately(value)}
               />
             </div>
             <div style={{marginLeft: 25}}>
@@ -123,7 +116,7 @@ export function MigrateLegacySeerAction({
           name="addSeerTrial"
           checked={addSeerTrial}
           style={{marginRight: 5}}
-          onChange={e => updateOptions({addSeerTrial: e.target.checked})}
+          onChange={e => setAddSeerTrial(e.target.checked)}
         />
         <strong>Add 14-day Seer seat trial</strong>{' '}
         {applyImmediately

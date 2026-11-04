@@ -26,15 +26,9 @@ type WeeklyEmailData = {
  * Rendered as part of a openAdminConfirmModal call
  */
 export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
-  const [data, setData] = useState<WeeklyEmailData>({
-    targetEmail: '',
-    deliveryEmail: '',
-    dryRun: false,
-  });
-
-  const updateData = (update: Partial<WeeklyEmailData>) => {
-    setData(prev => ({...prev, ...update}));
-  };
+  const [targetEmail, setTargetEmail] = useState('');
+  const [deliveryEmail, setDeliveryEmail] = useState('');
+  const [dryRun, setDryRun] = useState(false);
 
   // The modal unmounts before the request settles; only hook-level callbacks still run.
   const {mutate} = useMutation({
@@ -62,15 +56,15 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
 
   useEffect(() => {
     setConfirmCallback(() => {
-      if (!data.dryRun && !data.deliveryEmail) {
+      if (!dryRun && !deliveryEmail) {
         addErrorMessage('Delivery email address is required when dry run is disabled');
         return;
       }
 
       addLoadingMessage('Sending Email');
-      mutate(data);
+      mutate({targetEmail, deliveryEmail, dryRun});
     });
-  }, [setConfirmCallback, mutate, data]);
+  }, [setConfirmCallback, mutate, targetEmail, deliveryEmail, dryRun]);
 
   return (
     <div>
@@ -83,8 +77,8 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
         help="The weekly email will be generated based on this user. If left empty the email will be generated for a user with access to all projects"
         name="username"
         inputMode="text"
-        value={data.targetEmail}
-        onChange={(targetEmail: string) => updateData({targetEmail})}
+        value={targetEmail}
+        onChange={setTargetEmail}
       />
       <TextField
         autoFocus
@@ -93,11 +87,11 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
         flexibleControlStateSize
         label="Delivery email address"
         help="The weekly email will be sent to this address."
-        required={!data.dryRun}
+        required={!dryRun}
         name="username"
         inputMode="text"
-        value={data.deliveryEmail}
-        onChange={(deliveryEmail: string) => updateData({deliveryEmail})}
+        value={deliveryEmail}
+        onChange={setDeliveryEmail}
       />
       <BooleanField
         label="Dry Run"
@@ -105,8 +99,8 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
         inline={false}
         name="dryrun"
         stacked
-        value={data.dryRun}
-        onChange={(dryRun: boolean) => updateData({dryRun})}
+        value={dryRun}
+        onChange={setDryRun}
       />
     </div>
   );

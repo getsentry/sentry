@@ -83,6 +83,26 @@ describe('SendWeeklyEmailAction', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('shows the response text after the modal closes when the request fails with another status', async () => {
+    MockApiClient.asyncDelay = 1;
+    const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Report generation failed'},
+    });
+
+    openModal();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Dry Run'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+    await waitFor(() => {
+      expect(errorMessage).toHaveBeenCalledWith('{"detail":"Report generation failed"}');
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('shows a validation error without sending when the delivery email is missing', async () => {
     const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
     const sendMock = MockApiClient.addMockResponse({
