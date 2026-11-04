@@ -20,6 +20,7 @@ from sentry.auth.principal import acting_user_id, is_acting_user, require_user
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
+from sentry.constants import SentryAppStatus
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import OrganizationStatus
@@ -384,6 +385,14 @@ class SentryAppInstallationsPermission(SentryPermission):
             # can do with its own token.
             if request.method != "GET":
                 return False
+            # Only an org's own internal integrations may see what else the org has installed;
+            # third-party apps have no need to learn about other vendors' installations.
+            if not SentryApp.objects.filter(
+                proxy_user_id=require_user(request).id, status=SentryAppStatus.INTERNAL
+            ).exists():
+                raise SentryAppError(
+                    message="Only internal integrations can list installations", status_code=403
+                )
             return ensure_scoped_permission(request, self.scope_map.get(request.method))
 
         user_id = acting_user_id(request.user)

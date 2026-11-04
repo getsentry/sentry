@@ -207,7 +207,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
         self.get_error_response(self.super_org.id, extra_headers=headers, status_code=404)
 
-    def test_published_app_token_is_limited_to_its_installation(self) -> None:
+    def test_published_app_token_cannot_list_installs(self) -> None:
         # The app's proxy user is installed on both orgs, but its token belongs to one.
         app = self.create_sentry_app(
             name="Published", organization=self.super_org, published=True, scopes=("org:read",)
@@ -221,7 +221,8 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert install.api_token is not None
         headers = {"HTTP_AUTHORIZATION": f"Bearer {install.api_token.token}"}
 
-        self.get_success_response(self.org.slug, extra_headers=headers)
+        response = self.get_error_response(self.org.slug, extra_headers=headers, status_code=403)
+        assert response.data["detail"] == "Only internal integrations can list installations"
         self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
 
     def test_integration_token_cannot_read_inactive_org(self) -> None:
