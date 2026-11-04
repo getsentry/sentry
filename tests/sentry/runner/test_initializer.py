@@ -941,7 +941,7 @@ def test_self_hosted_legacy_secret_alias_retains_precedence(
     assert settings.SENTRY_OPTIONS[key] == "legacy-secret"
 
 
-def test_self_hosted_legacy_filestore_alias_promotes_none(settings) -> None:
+def test_self_hosted_legacy_filestore_alias_promotes_none(settings: types.SimpleNamespace) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
     settings.SENTRY_FILESTORE = None
@@ -954,7 +954,7 @@ def test_self_hosted_legacy_filestore_alias_promotes_none(settings) -> None:
     assert settings.SENTRY_FILE_STORAGE_BACKEND is None
 
 
-def test_self_hosted_migrated_secret_alias_does_not_promote_none(settings) -> None:
+def test_self_hosted_migrated_secret_alias_does_not_promote_none(settings: types.SimpleNamespace) -> None:
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
     settings.GOOGLE_CLIENT_SECRET = None
@@ -1112,7 +1112,7 @@ def test_single_org_explicit_both_empty_app_pair_is_not_backfilled(
 
 @pytest.mark.parametrize("key, setting_name, value", DEPLOYMENT_OPTION_CASES)
 def test_saas_deployment_options_do_not_override_settings(
-    settings, key, setting_name, value
+    settings: types.SimpleNamespace, key: str, setting_name: str, value: object
 ) -> None:
     settings.SENTRY_SELF_HOSTED = False
     setattr(settings, setting_name, value)
@@ -1139,7 +1139,7 @@ def test_saas_deployment_options_do_not_override_settings(
     ],
 )
 def test_removed_mapped_defaults_do_not_create_synthetic_option_keys(
-    settings, setting_name, expected
+    settings: types.SimpleNamespace, setting_name: str, expected: object
 ) -> None:
     bootstrap_options(settings)
 
@@ -1159,7 +1159,7 @@ def test_removed_mapped_defaults_do_not_create_synthetic_option_keys(
     ],
 )
 def test_existing_mapper_defaults_do_not_overwrite_direct_settings(
-    settings, key, setting_name, configured
+    settings: types.SimpleNamespace, key: str, setting_name: str, configured: object
 ) -> None:
     setattr(settings, setting_name, configured)
     settings.SENTRY_DEFAULT_OPTIONS = {key: "custom-default"}
@@ -1170,7 +1170,7 @@ def test_existing_mapper_defaults_do_not_overwrite_direct_settings(
     assert getattr(settings, setting_name) == configured
 
 
-def test_removed_mapped_default_preserves_backend_alias(settings) -> None:
+def test_removed_mapped_default_preserves_backend_alias(settings: types.SimpleNamespace) -> None:
     settings.SENTRY_EMAIL_BACKEND_ALIASES = {"smtp": "django.core.mail.backends.smtp.EmailBackend"}
 
     bootstrap_options(settings)
@@ -1178,7 +1178,7 @@ def test_removed_mapped_default_preserves_backend_alias(settings) -> None:
     assert settings.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
 
 
-def test_existing_mapper_keeps_explicit_null_precedence(settings) -> None:
+def test_existing_mapper_keeps_explicit_null_precedence(settings: types.SimpleNamespace) -> None:
     settings.SENTRY_OPTIONS = {"github-login.client-id": None}
 
     bootstrap_options(settings)
@@ -1198,7 +1198,7 @@ def test_existing_mapper_keeps_explicit_null_precedence(settings) -> None:
     ],
 )
 def test_saas_retired_deployment_alias_does_not_recreate_option(
-    settings, old_name, key, setting_name
+    settings: types.SimpleNamespace, old_name: str, key: str, setting_name: str
 ) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_OPTIONS = {"system.secret-key": "test-system-secret"}
@@ -1273,7 +1273,7 @@ def test_single_org_original_secret_keeps_self_hosted_login_precedence(settings:
         ("", ""),
     ],
 )
-def test_saas_single_org_direct_pair_is_authoritative(settings, app_id, app_secret) -> None:
+def test_saas_single_org_direct_pair_is_authoritative(settings: types.SimpleNamespace, app_id: str, app_secret: str) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.SENTRY_GITHUB_APP_CLIENT_ID = app_id
@@ -1304,7 +1304,7 @@ def test_saas_single_org_direct_pair_is_authoritative(settings, app_id, app_secr
     assert (settings.GITHUB_APP_ID, settings.GITHUB_API_SECRET) == (app_id, app_secret)
 
 
-def test_saas_single_org_does_not_reverse_map_empty_app_credentials(settings) -> None:
+def test_saas_single_org_does_not_reverse_map_empty_app_credentials(settings: types.SimpleNamespace) -> None:
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_SINGLE_ORGANIZATION = True
     settings.GITHUB_APP_ID = "legacy-login-id"

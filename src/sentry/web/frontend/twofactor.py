@@ -22,7 +22,7 @@ class TwoFactorAuthView(BaseView):
 
 @control_silo_view
 def u2f_appid(request: HttpRequest) -> HttpResponse:
-    facets = settings.SENTRY_U
+    facets = settings.SENTRY_U2F_FACETS
     if not facets:
         facets = [options.get("system.url-prefix")]
     return HttpResponse(
