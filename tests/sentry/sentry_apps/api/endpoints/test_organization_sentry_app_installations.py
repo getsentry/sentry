@@ -165,17 +165,19 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             self.org.update(status=OrganizationStatus.PENDING_DELETION)
         self.get_error_response(getattr(self.org, identifier), status_code=404)
 
-    def _integration_token_headers(self, scopes: tuple[str, ...]) -> dict[str, str]:
-        self.internal_app = self.create_internal_integration(
+    def _integration_token_headers(
+        self, scopes: tuple[str, ...]
+    ) -> tuple[SentryApp, dict[str, str]]:
+        internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, scopes=scopes
         )
         token = self.create_internal_integration_token(
-            user=self.user, internal_integration=self.internal_app
+            user=self.user, internal_integration=internal_app
         )
-        return {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
+        return internal_app, {"HTTP_AUTHORIZATION": f"Bearer {token.token}"}
 
     def test_internal_integration_token_lists_installs(self) -> None:
-        headers = self._integration_token_headers(scopes=("org:read",))
+        internal_app, headers = self._integration_token_headers(scopes=("org:read",))
 
         by_slug = self.get_success_response(self.org.slug, extra_headers=headers)
         by_id = self.get_success_response(self.org.id, extra_headers=headers)
@@ -183,11 +185,11 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert by_slug.data == by_id.data
         assert {install["app"]["slug"] for install in by_slug.data} == {
             self.unpublished_app.slug,
-            self.internal_app.slug,
+            internal_app.slug,
         }
 
     def test_integration_token_does_not_see_grant_codes(self) -> None:
-        headers = self._integration_token_headers(scopes=("org:integrations",))
+        _, headers = self._integration_token_headers(scopes=("org:integrations",))
 
         response = self.get_success_response(self.org.slug, extra_headers=headers)
 
@@ -195,12 +197,12 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         assert all("code" not in install for install in response.data)
 
     def test_integration_token_requires_org_scope(self) -> None:
-        headers = self._integration_token_headers(scopes=("project:read",))
+        _, headers = self._integration_token_headers(scopes=("project:read",))
 
         self.get_error_response(self.org.slug, extra_headers=headers, status_code=403)
 
     def test_internal_integration_token_cannot_read_other_org(self) -> None:
-        headers = self._integration_token_headers(scopes=("org:read",))
+        _, headers = self._integration_token_headers(scopes=("org:read",))
 
         self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
         self.get_error_response(self.super_org.id, extra_headers=headers, status_code=404)
@@ -223,7 +225,7 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.get_error_response(self.super_org.slug, extra_headers=headers, status_code=404)
 
     def test_integration_token_cannot_read_inactive_org(self) -> None:
-        headers = self._integration_token_headers(scopes=("org:read",))
+        _, headers = self._integration_token_headers(scopes=("org:read",))
         with assume_test_silo_mode_of(Organization):
             self.org.update(status=OrganizationStatus.PENDING_DELETION)
 
