@@ -607,6 +607,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         event = self.breach_event(detector_id=self.detector.id)
 
         self.process_breach_workflow(event)
+        # A redelivered breach must not start a second investigation or dispatch.
         self.process_breach_workflow(event)
 
         notebook = Notebook.objects.get()
