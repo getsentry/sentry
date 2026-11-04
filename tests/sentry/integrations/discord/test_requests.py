@@ -170,7 +170,7 @@ class DiscordRequestTest(TestCase):
             headers: dict[str, str] = {}
             ViewerContextHook().on_dispatch(headers)
             ctx = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
-            assert ctx.actor.type == (ActorType.USER if linked else ActorType.UNKNOWN)
+            assert ctx.actor.type == (ActorType.USER if linked else ActorType.INTEGRATION)
             assert ctx.actor.user_id == (self.user.id if linked else None)
             assert ctx.organization_id == current.organization_id
             assert ctx.project_id == current.project_id

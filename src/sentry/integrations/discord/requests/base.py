@@ -170,7 +170,7 @@ class DiscordRequest:
             ViewerContext(
                 actor=Actor(type=ActorType.USER, actor_id=self.user.id)
                 if self.user is not None
-                else Actor(type=ActorType.UNKNOWN),
+                else Actor(type=ActorType.INTEGRATION),
                 organization_id=current.organization_id if current is not None else None,
                 project_id=current.project_id if current is not None else None,
             )
