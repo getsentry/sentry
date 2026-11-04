@@ -1,8 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import * as qs from 'query-string';
+import {useQueryState} from 'nuqs';
 
 import {t} from 'sentry/locale';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
@@ -174,11 +173,9 @@ export function useTraceLayoutTabs({
   metricsEnabled,
   overview,
 }: UseTraceLayoutTabsProps): TraceLayoutTabsConfig {
-  const navigate = useNavigate();
   const organization = useOrganization();
-  const queryParams = qs.parse(window.location.search);
-  const tabSlugFromUrl =
-    typeof queryParams.tab === 'string' ? queryParams.tab : undefined;
+  const [tabFromUrl, setTabInUrl] = useQueryState('tab');
+  const tabSlugFromUrl = tabFromUrl ?? undefined;
   const sections = useTraceContextSections({
     tree,
     logs: overview.logs.representative,
@@ -204,26 +201,17 @@ export function useTraceLayoutTabs({
   const [selectedTab, setSelectedTab] = useState(initialTab.slug);
   const isSelectedTabAvailable = tabOptions.some(tab => tab.slug === selectedTab);
   const currentTab = isLoading || isSelectedTabAvailable ? selectedTab : initialTab.slug;
-  const isCurrentTabRequested = queryParams.tab === currentTab;
+  const isCurrentTabRequested = tabFromUrl === currentTab;
 
   const onTabChange = useCallback(
     (slug: Tab['slug']) => {
       if (slug === TraceLayoutTabKeys.AI_SPANS) {
         traceAnalytics.trackAITabClicked(organization);
       }
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...queryParams,
-            tab: slug,
-          },
-        },
-        {replace: true}
-      );
+      setTabInUrl(slug);
       setSelectedTab(slug);
     },
-    [navigate, queryParams, organization, setSelectedTab]
+    [setTabInUrl, organization, setSelectedTab]
   );
 
   // Keep the stored selection in sync with URL and availability changes. The

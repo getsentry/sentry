@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.auth.access import from_request
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
@@ -21,6 +22,7 @@ from sentry.seer.models.workflow import (
     MAX_WORKFLOW_CONFIGS_PER_ORG,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
+    SeerWorkflowRun,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
@@ -32,7 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Detector, Workflow
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -441,7 +443,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_member_cannot_narrow_all_projects_config(self) -> None:
+    def test_member_cannot_narrow_or_enable_all_projects_config(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
         config = self.create_config(filters={"all_projects": True})
         self.login_as(member)
@@ -457,8 +459,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == (
             "You do not have permission to narrow this config's project scope"
         )
+
+        response = self.get_error_response(
+            self.organization.slug, config.id, method="put", enabled=True, status_code=403
+        )
+
+        assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
+        assert config.enabled is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -568,6 +577,55 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [accessible_project.id]
         assert self.connected_monitor_ids(workflow) == {other_accessible.id, hidden.id}
 
+    def test_put_enables_and_pauses_metric_investigations(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert response.data["enabled"] is True
+        assert workflow.matches_scope(self.project.id, None)
+        version = response.data["version"]
+
+        repeated = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=True
+        )
+        assert repeated.data["version"] == version
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", enabled=False
+        )
+        assert response.data["enabled"] is False
+        assert not workflow.matches_scope(self.project.id, None)
+        assert response.data["monitorIds"] == [monitor.id]
+
+    def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        member, _ = self.create_member_with_project(open_membership=False)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            enabled=True,
+            status_code=403,
+        )
+        assert workflow.get_config().enabled is False
+
+    def test_put_enables_all_projects_config(self) -> None:
+        config = self.create_config(filters={"all_projects": True})
+        self.get_error_response(self.organization.slug, config.id, method="put", status_code=400)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", enabled=True
+        )
+        assert response.data["enabled"] is True
+        config.refresh_from_db()
+        assert config.enabled is True
+
     def test_put_breached_metric_replaces_monitors(self) -> None:
         kept, removed, added = (self.create_metric_monitor(self.create_project()) for _ in range(3))
         workflow = self.create_metric_workflow(monitor_ids=[kept.id, removed.id])
@@ -670,6 +728,42 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             "detail": "Breached metric projects are selected by connecting monitors"
         }
         assert self.selected_project_ids(workflow.get_config()) == []
+
+    def test_delete(self) -> None:
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, self.project)
+        run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+
+        self.get_success_response(
+            self.organization.slug, config.id, method="delete", status_code=204
+        )
+
+        assert not SeerWorkflowConfig.objects.filter(id=config.id).exists()
+        assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
+        assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
+
+    def test_delete_breached_metric(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        backing_workflow = workflow.get_config().backing_workflow
+        assert backing_workflow is not None
+        run = Factories.create_seer_workflow_run(
+            self.organization, workflow_config=workflow.get_config()
+        )
+
+        self.get_success_response(
+            self.organization.slug, workflow.config_id, method="delete", status_code=204
+        )
+
+        assert not SeerWorkflowConfig.objects.filter(id=workflow.config_id).exists()
+        backing_workflow = Workflow.objects_for_deletion.get(id=backing_workflow.id)
+        assert backing_workflow.status == ObjectStatus.PENDING_DELETION
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Workflow", object_id=backing_workflow.id
+        ).exists()
+        assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
+        monitor.refresh_from_db()
+        assert monitor.status == ObjectStatus.ACTIVE
 
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)

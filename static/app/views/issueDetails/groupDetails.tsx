@@ -65,7 +65,7 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {GroupIdProvider, useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
@@ -156,12 +156,12 @@ function getReprocessingNewRoute({
   currentTab,
   baseUrl,
   location,
-  currentParamGroupId,
+  currentGroupId,
 }: {
   /**
-   * The groupId from the URL params to compare against the group id that was loaded.
+   * The requested group ID to compare against the group ID that was loaded.
    */
-  currentParamGroupId: string;
+  currentGroupId: string;
   group: Group;
   location: ReturnType<typeof useLocation>;
   orgSlug: string;
@@ -170,7 +170,7 @@ function getReprocessingNewRoute({
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
-  if (currentParamGroupId !== nextGroupId) {
+  if (currentGroupId !== nextGroupId) {
     // Redirects to the Activities tab
     if (
       reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
@@ -263,7 +263,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const {eventId} = useParams<{eventId?: string}>();
+  const groupId = useGroupId();
   const navigate = useNavigate();
   const {projects} = useProjects();
 
@@ -273,15 +274,13 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
 
-  const groupId = params.groupId;
-
   const {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
-    eventId: params.eventId,
+    eventId,
   });
 
   const {
@@ -360,7 +359,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         currentTab,
         location,
         baseUrl,
-        currentParamGroupId: params.groupId,
+        currentGroupId: groupId,
         orgSlug: organization.slug,
       });
 
@@ -368,16 +367,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
         navigate(reprocessingNewRoute, {replace: true});
       }
     }
-  }, [
-    group,
-    event,
-    location,
-    currentTab,
-    baseUrl,
-    navigate,
-    organization.slug,
-    params.groupId,
-  ]);
+  }, [group, event, location, currentTab, baseUrl, navigate, organization.slug, groupId]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -388,9 +378,9 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
 
     const project = projects.find(p => p.id === group?.project.id);
     if (!group.hasSeen && project?.isMember) {
-      markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
+      markEventSeen(api, organization.slug, matchingProjectSlug, groupId);
     }
-  }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
+  }, [api, group?.hasSeen, group?.project, organization.slug, groupId, projects]);
 
   useEffect(() => {
     const {_allp: allProjectsFlag, project: urlProject} = loadAllProjectsQuery(
