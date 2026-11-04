@@ -4,12 +4,14 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import moment from 'moment-timezone';
 
 import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
-import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
+import {
+  formatChartDateTime,
+  parseChartDateTime,
+} from 'sentry/components/charts/formatChartDateTime';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
@@ -46,14 +48,15 @@ export function defaultFormatAxisLabel(
     return `${formatDate(value, 'always')}${showTimeInTooltip ? ` ${formatTime(value)}` : ''} ${zone}`;
   }
 
-  const now = moment.tz(timezone);
-  const bucketStart = moment.tz(value, timezone);
-  const bucketEnd = moment.tz(value + bucketSize, timezone);
+  const now = parseChartDateTime(Date.now(), timezone);
+  const bucketStart = parseChartDateTime(value, timezone);
+  const bucketEnd = parseChartDateTime(value + bucketSize, timezone);
+  if (!now || !bucketStart || !bucketEnd) {
+    return 'Invalid date';
+  }
   const year =
-    now.year() !== bucketStart.year() || now.year() !== bucketEnd.year()
-      ? 'always'
-      : 'never';
-  const showEndDate = !bucketStart.isSame(bucketEnd, 'day');
+    now.year !== bucketStart.year || now.year !== bucketEnd.year ? 'always' : 'never';
+  const showEndDate = !bucketStart.toPlainDate().equals(bucketEnd.toPlainDate());
   const start = `${formatDate(value, year)}${showTimeInTooltip ? ` ${formatTime(value)}` : ''}`;
   const end = [
     showEndDate ? formatDate(value + bucketSize, year) : '',

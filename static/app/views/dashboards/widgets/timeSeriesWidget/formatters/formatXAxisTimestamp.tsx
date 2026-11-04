@@ -1,8 +1,9 @@
-import moment from 'moment-timezone';
-
 import {formatDateTime} from '@sentry/scraps/dateTime';
 
-import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
+import {
+  formatChartDateTime,
+  parseChartDateTime,
+} from 'sentry/components/charts/formatChartDateTime';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -21,7 +22,10 @@ import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime'
  * @returns Formatted X axis label string
  */
 export function formatXAxisTimestamp(value: number, userTimezone: string): string {
-  const parsed = moment.tz(value, userTimezone);
+  const parsed = parseChartDateTime(value, userTimezone);
+  if (!parsed) {
+    return 'Invalid date';
+  }
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the
@@ -29,25 +33,26 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
   let style: 'year' | 'ordinalDate' = 'ordinalDate';
 
   if (
-    parsed.dayOfYear() === 1 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
+    parsed.month === 1 &&
+    parsed.day === 1 &&
+    parsed.hour === 0 &&
+    parsed.minute === 0 &&
+    parsed.second === 0
   ) {
     // Start of a year
     style = 'year';
   } else if (
-    parsed.date() === 1 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
+    parsed.day === 1 &&
+    parsed.hour === 0 &&
+    parsed.minute === 0 &&
+    parsed.second === 0
   ) {
     // Start of a month
     style = 'ordinalDate';
-  } else if (parsed.hour() === 0 && parsed.minute() === 0 && parsed.second() === 0) {
+  } else if (parsed.hour === 0 && parsed.minute === 0 && parsed.second === 0) {
     // Start of a day
     style = 'ordinalDate';
-  } else if (parsed.second() === 0) {
+  } else if (parsed.second === 0) {
     // Hours, minutes
     return formatDateTime(value, {
       mode: 'time',

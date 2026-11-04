@@ -1,5 +1,4 @@
 import {act, render, screen} from '@testing-library/react';
-import moment from 'moment-timezone';
 
 import {configureFormatting} from '@sentry/scraps/dateTime';
 import {TranslationContextProvider} from '@sentry/scraps/translation';
@@ -9,14 +8,7 @@ import {getSnapshot} from '../dateTime/config';
 import {getRelativeDate} from './getRelativeDate';
 import {useRelativeTimeFormatter} from './useRelativeTimeFormatter';
 
-beforeAll(() => {
-  moment.defineLocale('formatting-test', {
-    parentLocale: 'en',
-    relativeTime: {m: 'une minute'},
-  });
-});
 beforeEach(() => {
-  moment.locale('en');
   jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));
 });
 afterEach(() => {
@@ -24,15 +16,11 @@ afterEach(() => {
     jest.runOnlyPendingTimers();
   } finally {
     jest.useRealTimers();
-    moment.locale('en');
   }
 });
 
-afterAll(() => {
-  moment.defineLocale('formatting-test', null);
-});
-
 it('preserves fuzzy thresholds and explicit affix overrides', () => {
+  expect(getRelativeDate(new Date())).toBe('a few seconds ago');
   expect(getRelativeDate('2025-12-31T23:59:30Z')).toBe('a few seconds ago');
   expect(getRelativeDate('2025-12-31T23:59:00Z')).toBe('a minute ago');
   expect(getRelativeDate('2026-01-01T00:03:00Z')).toBe('in 3 minutes');
@@ -73,7 +61,7 @@ it('publishes one locale and complete translated phrase to React and plain calle
     act(() => {
       snapshot = {
         ...initial,
-        locale: 'formatting-test',
+        locale: 'fr',
         messages: {
           ...initial.messages,
           t: (message, ...args) => {
@@ -96,11 +84,64 @@ it('publishes one locale and complete translated phrase to React and plain calle
     });
     expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
     expect(getRelativeDate(date, {rounding: 'unit'})).toBe('il y a 2 secondes');
+    expect(getRelativeDate(date)).toBe('il y a 2 secondes');
     expect(getRelativeDate('2026-01-01T00:00:02Z', {rounding: 'unit'})).toBe(
       'dans 2 secondes'
     );
-    expect(getRelativeDate('2025-12-31T23:59:00Z')).toBe('il y a une minute');
-    expect(moment.locale()).toBe('en');
+    expect(getRelativeDate('2025-12-31T23:59:00Z')).toBe('il y a 1 minute');
+    expect(getRelativeDate('2026-01-01T00:01:00Z')).toBe('dans 1 minute');
+    expect(getRelativeDate('2025-12-31T23:59:00Z', {suffix: ''})).toBe('1 minute');
+  } finally {
+    restore();
+  }
+});
+
+it.each([
+  [44499, 'a few seconds'],
+  [44500, 'a minute'],
+  [89999, 'a minute'],
+  [90000, '2 minutes'],
+  [2669999, '44 minutes'],
+  [2670000, 'an hour'],
+  [5399999, 'an hour'],
+  [5400000, '2 hours'],
+  [77399999, '21 hours'],
+  [77400000, 'a day'],
+  [129599999, 'a day'],
+  [129600000, '2 days'],
+  [2203199999, '25 days'],
+  [2203200000, 'a month'],
+] as const)('preserves the fuzzy threshold at %sms', (milliseconds, body) => {
+  expect(getRelativeDate(new Date(Date.now() - milliseconds))).toBe(`${body} ago`);
+  expect(getRelativeDate(new Date(Date.now() + milliseconds))).toBe(`in ${body}`);
+});
+
+it('preserves calendar-month rounding from the beginning of a month', () => {
+  expect(getRelativeDate('2026-02-15T00:00:00Z')).toBe('in a month');
+  expect(getRelativeDate('2027-07-01T00:00:00Z')).toBe('in 2 years');
+});
+
+it('preserves calendar-month rounding and clamping from the end of a month', () => {
+  jest.setSystemTime(new Date('2026-01-31T00:00:00Z'));
+  expect(getRelativeDate('2026-03-17T00:00:00Z')).toBe('in 2 months');
+  expect(getRelativeDate('2026-02-28T00:00:00Z')).toBe('in a month');
+});
+
+it('keeps a clamped eighteen-month interval at the two-year threshold', () => {
+  jest.setSystemTime(new Date('2024-08-31T00:00:00Z'));
+  expect(getRelativeDate('2026-02-28T00:00:00Z')).toBe('in 2 years');
+});
+
+it('uses elapsed hours across daylight saving changes', () => {
+  jest.setSystemTime(new Date('2026-03-07T17:00:00Z'));
+  const snapshot = {...getSnapshot(), timezone: 'America/New_York'};
+  const restore = configureFormatting({
+    getSnapshot: () => snapshot,
+    subscribe: () => () => {},
+  });
+  try {
+    expect(getRelativeDate('2026-03-08T16:00:00Z')).toBe('in a day');
+    expect(getRelativeDate('2026-03-09T16:00:00Z')).toBe('in 2 days');
   } finally {
     restore();
   }
