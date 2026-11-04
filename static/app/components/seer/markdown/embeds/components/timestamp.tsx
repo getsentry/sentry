@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
 import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince, getRelativeDate} from 'sentry/components/timeSince';

@@ -3,9 +3,9 @@ import {IconEdit} from '@sentry/icons/edit';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 
 import {useStory} from './useStory';

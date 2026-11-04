@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Grid} from '@sentry/scraps/layout';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
@@ -10,7 +11,6 @@ import {Client} from 'sentry/api';
 import {Feature} from 'sentry/components/acl/feature';
 import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';

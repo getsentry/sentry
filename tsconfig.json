@@ -20,6 +20,8 @@
     "strictBindCallApply": false,
 
     "paths": {
+      // Avoid esbuild case-folding dateTime into the lightweight datetime.tsx entry.
+      "@sentry/scraps/dateTime": ["./static/packages/scraps/src/dateTime/index.tsx"],
       // The app falls back to core components until they move into scraps.
       "@sentry/scraps/*": [
         "./static/packages/scraps/src/*",

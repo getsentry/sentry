@@ -3,11 +3,11 @@ import {IconProfiling} from '@sentry/icons/profiling';
 import {useQuery} from '@tanstack/react-query';
 import queryString from 'query-string';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';

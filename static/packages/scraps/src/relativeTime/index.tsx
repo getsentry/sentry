@@ -1,4 +1,8 @@
-export {RelativeTime, RELATIVE_TIME_MAX_WIDTH} from './relativeTime';
+export {
+  RelativeTime,
+  RELATIVE_TIME_MAX_WIDTH,
+  type RelativeTimeProps,
+} from './relativeTime';
 export {
   getDateObj,
   getRelativeDate,

@@ -3,10 +3,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';

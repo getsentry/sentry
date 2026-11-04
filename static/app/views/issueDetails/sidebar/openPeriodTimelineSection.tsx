@@ -3,11 +3,11 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconFire} from '@sentry/icons/fire';
 import orderBy from 'lodash/orderBy';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline} from 'sentry/components/timeline';
