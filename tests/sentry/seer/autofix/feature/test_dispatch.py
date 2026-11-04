@@ -84,7 +84,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert client_kwargs["organization"] == self.group.organization
         assert client_kwargs["project"] == self.group.project
         assert client_kwargs["group"] == self.group
-        assert client_kwargs["enable_bash_mode"] is False
+        assert client.enable_bash_mode is True
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
@@ -315,13 +315,12 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
-                    enable_bash_mode=True,
                 ),
             )
 
         client_kwargs = mock_client_cls.call_args.kwargs
         assert client_kwargs["user"] == user
-        assert client_kwargs["enable_bash_mode"] is True
+        assert mock_client_cls.return_value.enable_bash_mode is True
         assert client_kwargs["enable_coding"] is False
 
     def test_code_changes_enables_coding(self) -> None:

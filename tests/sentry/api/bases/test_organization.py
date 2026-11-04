@@ -48,7 +48,10 @@ from sentry.dashboards.endpoints.organization_dashboards import OrganizationDash
 from sentry.discover.endpoints import discover_saved_query_starred
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.explore.endpoints import explore_saved_query_starred, saved_query_starred_order
-from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
+from sentry.explore.endpoints.bases import (
+    ExploreSavedFormulaPermission,
+    ExploreSavedQueryPermission,
+)
 from sentry.insights.endpoints import starred_segments
 from sentry.issues.endpoints import (
     organization_group_search_view_details_starred,
@@ -56,6 +59,7 @@ from sentry.issues.endpoints import (
     organization_group_search_view_visit,
     organization_group_search_views_starred,
 )
+from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -590,6 +594,8 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     OrganizationDashboardsPermission,
     DiscoverSavedQueryPermission,
     ExploreSavedQueryPermission,
+    ExploreSavedFormulaPermission,
+    GroupSearchViewPermission,
     OrganizationRecentSearchPermission,
     PromptsActivityPermission,
     organization_dashboards_starred.MemberPermission,
