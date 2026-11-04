@@ -45,6 +45,8 @@ service_accounts: 0003_add_all_projects
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
+telemetry_classifiers: 0001_create_telemetry_classifier
+
 tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
