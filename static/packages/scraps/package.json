@@ -290,6 +290,10 @@
     "./compactSelect": {
       "types": "./dist/compactSelect/index.d.ts",
       "import": "./dist/compactSelect/index.js"
+    },
+    "./pictureInPicture": {
+      "types": "./dist/pictureInPicture/index.d.ts",
+      "import": "./dist/pictureInPicture/index.js"
     }
   },
   "publishConfig": {
@@ -305,6 +309,7 @@
     "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",

@@ -9,7 +9,9 @@ import {
   type ReactNode,
 } from 'react';
 
-interface RequestPipWindowOptions {
+import {PictureInPicturePortalContext} from './portalContext';
+
+export interface RequestPipWindowOptions {
   height?: number;
   /**
    * Opens at the browser's default placement instead of remembering where the
@@ -20,7 +22,7 @@ interface RequestPipWindowOptions {
   width?: number;
 }
 
-interface PictureInPictureContextValue {
+export interface PictureInPictureContextValue {
   /**
    * Closes the picture-in-picture window if one is open. Idempotent.
    */
@@ -121,12 +123,30 @@ function copyStyles(source: Document, target: Window) {
  *
  * Pair with `PictureInPicturePortal` to render React content into the window.
  */
-export function PictureInPictureProvider({children}: {children: ReactNode}) {
+export interface PictureInPictureProviderProps {
+  children: ReactNode;
+  /** Configure a newly opened window before its content mounts. */
+  onWindowOpen?: (pipWindow: Window) => void;
+  /** Additional portal content, such as application-wide styles or window effects. */
+  renderPortalContent?: (pipWindow: Window) => ReactNode;
+}
+
+export function PictureInPictureProvider({
+  children,
+  onWindowOpen,
+  renderPortalContent,
+}: PictureInPictureProviderProps) {
   const [pipWindow, setPipWindow] = useState<Window | null>(null);
 
   const documentPictureInPicture =
     typeof window !== 'undefined' && 'documentPictureInPicture' in window
-      ? window.documentPictureInPicture
+      ? (
+          window as Window & {
+            documentPictureInPicture?: {
+              requestWindow: (options?: RequestPipWindowOptions) => Promise<Window>;
+            };
+          }
+        ).documentPictureInPicture
       : null;
 
   // Tracks the live window outside of React state so cleanup logic always sees
@@ -162,9 +182,7 @@ export function PictureInPictureProvider({children}: {children: ReactNode}) {
       // untracked PiP window with no React portal rendered into it.
       try {
         copyStyles(document, pip);
-        // Mirror the theme class (e.g. `theme-dark`) onto the PiP body so global
-        // body selectors apply. Kept in sync after by `PictureInPicturePortal`.
-        pip.document.body.className = document.body.className;
+        onWindowOpen?.(pip);
 
         pip.addEventListener('pagehide', handleClose, {once: true});
 
@@ -175,7 +193,7 @@ export function PictureInPictureProvider({children}: {children: ReactNode}) {
         throw error;
       }
     },
-    [documentPictureInPicture, handleClose]
+    [documentPictureInPicture, handleClose, onWindowOpen]
   );
 
   const closePipWindow = useCallback(() => {
@@ -210,7 +228,9 @@ export function PictureInPictureProvider({children}: {children: ReactNode}) {
 
   return (
     <PictureInPictureContext.Provider value={value}>
-      {children}
+      <PictureInPicturePortalContext value={renderPortalContent}>
+        {children}
+      </PictureInPicturePortalContext>
     </PictureInPictureContext.Provider>
   );
 }
