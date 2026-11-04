@@ -180,7 +180,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._run_completed(organization, run_id, state):
             if state.status == "error":
-                cls._notify_entrypoints_of_failure(organization, run_id, group)
+                cls._notify_entrypoints_of_failure(organization, run_id, group, state)
             return
 
         cls._record_triggered(organization, run_id, group)
@@ -279,7 +279,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
     @classmethod
     def _notify_entrypoints_of_failure(
-        cls, organization: Organization, run_id: int, group: Group
+        cls, organization: Organization, run_id: int, group: Group, state: SeerRunState
     ) -> None:
         """
         Tells entrypoints (e.g. a Slack thread waiting on the run) that the run failed.
@@ -294,7 +294,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": SentryAppEventType.SEER_ERRORED,
-                "event_payload": {"run_id": run_id, "group_id": group.id},
+                "event_payload": {
+                    "run_id": run_id,
+                    "group_id": group.id,
+                    "failure_reason": state.failure_reason,
+                },
                 "organization_id": organization.id,
             }
         )

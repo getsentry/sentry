@@ -1530,7 +1530,11 @@ class TestFailedRunCompletionHook(TestCase):
         mock_process.assert_called_once_with(
             kwargs={
                 "event_type": SentryAppEventType.SEER_ERRORED,
-                "event_payload": {"run_id": 123, "group_id": self.group.id},
+                "event_payload": {
+                    "run_id": 123,
+                    "group_id": self.group.id,
+                    "failure_reason": "timeout",
+                },
                 "organization_id": self.organization.id,
             }
         )
