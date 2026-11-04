@@ -41,7 +41,7 @@ seer_workflow_outputs: 0001_initial
 
 sentry: 1250_add_query_priority_column
 
-service_accounts: 0003_add_all_projects
+service_accounts: 0004_partial_name_unique_constraint
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
