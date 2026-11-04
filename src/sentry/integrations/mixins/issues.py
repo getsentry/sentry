@@ -129,14 +129,15 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         params: dict[str, Any] = {}
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
+        issue_label = group.qualified_short_id or "an issue"
 
         if group.issue_category == GroupCategory.FEEDBACK:
             return [
-                f"Sentry Feedback: {self.format_link(group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params)))}\n"
+                f"Sentry Feedback: {self.format_link(issue_label, absolute_uri(group.get_absolute_url(params=params)))}\n"
             ]
 
         return [
-            f"Sentry Issue: {self.format_link(group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params)))}"
+            f"Sentry Issue: {self.format_link(issue_label, absolute_uri(group.get_absolute_url(params=params)))}"
         ]
 
     @staticmethod
