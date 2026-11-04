@@ -1,3 +1,4 @@
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -5,10 +6,10 @@ import {ensureAttributeObject} from 'sentry/views/insights/pages/agents/utils/ai
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {getAIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
-const TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.call.result';
 const PROMPT_OUTPUT_PREFIX = 'mcp.prompt.result.';
 
 export function MCPOutputSection({
@@ -29,7 +30,7 @@ export function MCPOutputSection({
     return null;
   }
 
-  const toolOutput = attributeDict[TOOL_OUTPUT_ATTRIBUTE];
+  const toolOutput = getAIToolOutput(node, attributes, event);
   const promptOutputDict = Object.entries(attributeDict)
     .filter(([key]) => key.startsWith(PROMPT_OUTPUT_PREFIX))
     .reduce<Record<string, string | number | boolean>>((acc, [key, value]) => {
@@ -38,7 +39,7 @@ export function MCPOutputSection({
     }, {});
   const hasPromptOutput = Object.keys(promptOutputDict).length > 0;
 
-  if (!toolOutput && !hasPromptOutput) {
+  if (toolOutput === undefined && !hasPromptOutput) {
     return null;
   }
 
@@ -48,9 +49,7 @@ export function MCPOutputSection({
       title={t('Output')}
       disableCollapsePersistence
     >
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={2} />
-      ) : null}
+      {toolOutput === undefined ? null : <ToolOutput value={toolOutput} />}
       {hasPromptOutput ? (
         <TraceDrawerComponents.MultilineJSON
           value={promptOutputDict}

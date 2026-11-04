@@ -17,6 +17,7 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import type {AIMessage} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {normalizeToMessages} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
+  ensureAttributeObject,
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -24,6 +25,8 @@ import {
   getCodeModeInput,
   isCodeModeNode,
 } from 'sentry/views/insights/pages/agents/utils/codeMode';
+import {getMCPRequestArguments} from 'sentry/views/insights/pages/mcp/utils/mcpContent';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -84,7 +87,7 @@ export function AIInputSection({
   const roles = messages?.map(m => m.role) ?? [];
   useInvalidRoleDetection(roles);
 
-  if ((!messages || messages.length === 0) && !toolArgs) {
+  if (getIsMCPNode(node) || ((!messages || messages.length === 0) && !toolArgs)) {
     return null;
   }
 
@@ -131,8 +134,11 @@ export function hasAIInputAttribute(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  return INPUT_PRESENCE_ATTRIBUTES.some(key =>
-    getTraceNodeAttribute(key, node, event, attributes)
+  return (
+    INPUT_PRESENCE_ATTRIBUTES.some(key =>
+      getTraceNodeAttribute(key, node, event, attributes)
+    ) ||
+    (getIsMCPNode(node) && getAIToolInput(node, attributes, event) !== undefined)
   );
 }
 
@@ -246,7 +252,10 @@ export function getAIToolInput(
 ) {
   return (
     getTraceNodeAttribute('gen_ai.tool.call.arguments', node, event, attributes) ??
-    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes)
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ??
+    (getIsMCPNode(node)
+      ? getMCPRequestArguments(ensureAttributeObject(node, event, attributes))
+      : undefined)
   );
 }
 

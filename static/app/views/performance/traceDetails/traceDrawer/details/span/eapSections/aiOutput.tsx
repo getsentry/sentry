@@ -7,9 +7,12 @@ import {isRecord} from 'sentry/utils/object/isRecord';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {extractAssistantOutput} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
+  ensureAttributeObject,
   getIsAiNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getLegacyMCPToolResult} from 'sentry/views/insights/pages/mcp/utils/mcpContent';
+import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
@@ -44,7 +47,11 @@ export function AIOutputSection({
   event?: EventTransaction;
   initialCollapse?: boolean;
 }) {
-  if (!getIsAiNode(node) || !hasAIOutputAttribute(node, attributes, event)) {
+  if (
+    getIsMCPNode(node) ||
+    !getIsAiNode(node) ||
+    !hasAIOutputAttribute(node, attributes, event)
+  ) {
     return null;
   }
 
@@ -116,8 +123,11 @@ export function hasAIOutputAttribute(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  return OUTPUT_PRESENCE_ATTRIBUTES.some(
-    key => getTraceNodeAttribute(key, node, event, attributes) !== undefined
+  return (
+    OUTPUT_PRESENCE_ATTRIBUTES.some(
+      key => getTraceNodeAttribute(key, node, event, attributes) !== undefined
+    ) ||
+    (getIsMCPNode(node) && getAIToolOutput(node, attributes, event) !== undefined)
   );
 }
 
@@ -192,7 +202,12 @@ export function getAIToolOutput(
     attributes
   );
   if (result === undefined || result === null) {
-    return getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes);
+    return (
+      getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes) ??
+      (getIsMCPNode(node)
+        ? getLegacyMCPToolResult(ensureAttributeObject(node, event, attributes))
+        : undefined)
+    );
   }
 
   let parsed: unknown = result;

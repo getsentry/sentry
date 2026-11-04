@@ -421,7 +421,17 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
-  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+  // Legacy MCP fields contain separately JSON-encoded values, not complete tool input.
+  const codeInput = isCodeModeNode(node, attributes)
+    ? getCodeModeInput(
+        getTraceNodeAttribute(
+          'gen_ai.tool.call.arguments',
+          node,
+          undefined,
+          attributes
+        ) ?? getTraceNodeAttribute('gen_ai.tool.input', node, undefined, attributes)
+      )
+    : null;
 
   if (codeInput) {
     return (
