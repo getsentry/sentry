@@ -5,7 +5,6 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import pick from 'lodash/pick';
 
-import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -356,18 +355,6 @@ function ManageDashboards() {
     </Grid>
   );
 
-  function renderNoAccess() {
-    return (
-      <Stack flex={1}>
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  }
-
   const dashboardsView = (
     <DashboardTable
       api={api}
@@ -404,78 +391,72 @@ function ManageDashboards() {
   );
 
   return (
-    <Feature
-      organization={organization}
-      features="dashboards-edit"
-      renderDisabled={renderNoAccess}
-    >
-      <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
-        <ErrorBoundary>
-          {isError ? (
-            <Stack flex={1} padding="2xl 3xl">
-              <RouteError error={error} />
-            </Stack>
-          ) : (
-            <Stack flex={1}>
-              <NoProjectMessage organization={organization}>
-                <TopBar.Slot
-                  name="breadcrumbs"
-                  title={{
-                    type: 'page-title',
-                    label: pageTitle,
-                    labelTooltip: (
-                      <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
-                        {isOnlyPrebuilt
-                          ? t(
-                              'Dashboards built by Sentry to help monitor your application out of the box.'
-                            )
-                          : isOnlyCustom
-                            ? t('Dashboards created by you and your team.')
-                            : t(
-                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                              )}
-                      </DocumentationHint>
-                    ),
-                  }}
-                />
-                <TopBar.Slot name="actions">
-                  <Feature features="dashboards-import">
-                    <Button
-                      onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
-                      }}
-                      variant="primary"
-                      icon={<IconAdd />}
-                    >
-                      {t('Import Dashboard from JSON')}
-                    </Button>
-                  </Feature>
-                </TopBar.Slot>
-                <TopBar.Slot name="feedback">
-                  <FeedbackButton
-                    aria-label={t('Give Feedback')}
-                    tooltipProps={{title: t('Give Feedback')}}
+    <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
+      <ErrorBoundary>
+        {isError ? (
+          <Stack flex={1} padding="2xl 3xl">
+            <RouteError error={error} />
+          </Stack>
+        ) : (
+          <Stack flex={1}>
+            <NoProjectMessage organization={organization}>
+              <TopBar.Slot
+                name="breadcrumbs"
+                title={{
+                  type: 'page-title',
+                  label: pageTitle,
+                  labelTooltip: (
+                    <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
+                      {isOnlyPrebuilt
+                        ? t(
+                            'Dashboards built by Sentry to help monitor your application out of the box.'
+                          )
+                        : isOnlyCustom
+                          ? t('Dashboards created by you and your team.')
+                          : t(
+                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                            )}
+                    </DocumentationHint>
+                  ),
+                }}
+              />
+              <TopBar.Slot name="actions">
+                <Feature features="dashboards-import">
+                  <Button
+                    onClick={() => {
+                      openImportDashboardFromFileModal({
+                        organization,
+                        api,
+                        location,
+                      });
+                    }}
+                    variant="primary"
+                    icon={<IconAdd />}
                   >
-                    {null}
-                  </FeedbackButton>
-                </TopBar.Slot>
-                <Layout.Body>
-                  <Layout.Main width="full">
-                    {actions}
-                    <div id="dashboard-list-container">{dashboardsView}</div>
-                    {pagination}
-                  </Layout.Main>
-                </Layout.Body>
-              </NoProjectMessage>
-            </Stack>
-          )}
-        </ErrorBoundary>
-      </SentryDocumentTitle>
-    </Feature>
+                    {t('Import Dashboard from JSON')}
+                  </Button>
+                </Feature>
+              </TopBar.Slot>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+              <Layout.Body>
+                <Layout.Main width="full">
+                  {actions}
+                  <div id="dashboard-list-container">{dashboardsView}</div>
+                  {pagination}
+                </Layout.Main>
+              </Layout.Body>
+            </NoProjectMessage>
+          </Stack>
+        )}
+      </ErrorBoundary>
+    </SentryDocumentTitle>
   );
 }
 

@@ -343,7 +343,7 @@ describe('LogsTabContent', () => {
         },
         organization: OrganizationFixture({
           ...organization,
-          features: [...organization.features, 'dashboards-edit'],
+          features: [...organization.features],
         }),
         additionalWrapper: ProviderWrapper,
       });

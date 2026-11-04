@@ -91,7 +91,7 @@ async function openPermissionsModal() {
 
 describe('Dashboards > Detail', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['discover-query'],
   });
   const projects = [ProjectFixture()];
   const DASHBOARD_ROUTE = '/organizations/:orgId/dashboard/:dashboardId/';
@@ -268,7 +268,7 @@ describe('Dashboards > Detail', () => {
       });
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'discover-query'],
+          features: ['discover-query'],
         }),
       });
 
@@ -672,7 +672,7 @@ describe('Dashboards > Detail', () => {
 
       initialData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
       });
 
@@ -751,7 +751,6 @@ describe('Dashboards > Detail', () => {
     it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
       });
 
       render(
@@ -804,7 +803,6 @@ describe('Dashboards > Detail', () => {
       );
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
       });
 
       render(
@@ -838,7 +836,6 @@ describe('Dashboards > Detail', () => {
     it('shows access controls to org managers without dashboard edit access', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
         access: ['org:read', 'org:write'],
       });
 
@@ -872,7 +869,6 @@ describe('Dashboards > Detail', () => {
     it('disables the edit action with unsaved filters', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
       });
 
       render(
@@ -908,7 +904,6 @@ describe('Dashboards > Detail', () => {
     it('does not show breadcrumb actions in dashboard preview', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
       });
 
       render(
@@ -939,7 +934,6 @@ describe('Dashboards > Detail', () => {
     it('renders the dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['dashboards-edit'],
       });
 
       render(
@@ -1366,7 +1360,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1424,7 +1418,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1464,7 +1458,7 @@ describe('Dashboards > Detail', () => {
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1516,7 +1510,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1569,12 +1563,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-basic',
-            'discover-query',
-          ],
+          features: ['discover-basic', 'discover-query'],
         }),
         router: {
           location: {
@@ -1637,7 +1626,7 @@ describe('Dashboards > Detail', () => {
 
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1677,7 +1666,7 @@ describe('Dashboards > Detail', () => {
     it('uses releases from the URL query params', async () => {
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1715,7 +1704,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: {
@@ -1752,7 +1741,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+          features: ['discover-query'],
         }),
         router: {
           location: LocationFixture(),
@@ -1822,12 +1811,7 @@ describe('Dashboards > Detail', () => {
       });
       const testData = initializeOrg({
         organization: OrganizationFixture({
-          features: [
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-basic',
-            'discover-query',
-          ],
+          features: ['discover-basic', 'discover-query'],
         }),
         router: {
           location: LocationFixture(),
@@ -2300,7 +2284,7 @@ describe('Dashboards > Detail', () => {
       beforeEach(() => {
         initialData = initializeOrg({
           organization: OrganizationFixture({
-            features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+            features: ['discover-query'],
           }),
         });
 

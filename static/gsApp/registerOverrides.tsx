@@ -8,7 +8,6 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types'
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
-import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
@@ -99,10 +98,6 @@ const DisabledPerformancePage = lazy(
 );
 
 const DisabledAlertsPage = lazy(() => import('./components/features/disabledAlertsPage'));
-
-const DisabledDashboardPage = lazy(
-  () => import('./components/features/disabledDashboardPage')
-);
 
 const EnhancedOrganizationStats = lazy(() =>
   import('getsentry/overrides/spendVisibility/enhancedIndex').then(module => ({
@@ -231,7 +226,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:disabled-member': () => DisabledMemberView,
   'component:disabled-member-tooltip': () => DisabledMemberTooltip,
   'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
-  'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
@@ -301,13 +295,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
       features={p.features}
     />
   ),
-  'feature-disabled:dashboards-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
-  'feature-disabled:dashboards-page': p => (
-    <LazyLoad LazyComponent={DisabledDashboardPage} {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
-  ),
   'feature-disabled:alert-wizard-performance': p => (
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
@@ -320,14 +307,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
   'feature-disabled:open-discover': p => (
     <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
-  'feature-disabled:dashboards-edit': p => (
-    <PowerFeatureHovercard
-      features={['organizations:dashboards-edit']}
-      id="dashboards-edit"
-    >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
   ),

@@ -1,9 +1,6 @@
 import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Stack} from '@sentry/scraps/layout';
-
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
@@ -26,7 +23,6 @@ export default function CreateFromSeer() {
   const location = useLocation();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
-  const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
 
@@ -68,7 +64,6 @@ export default function CreateFromSeer() {
     useSeerDashboardSession({
       seerRunId,
       onDashboardUpdate: handleDashboardUpdate,
-      enabled: hasFeature,
       onPostCompletePollEnd: handlePostCompletePollEnd,
     });
 
@@ -133,18 +128,6 @@ export default function CreateFromSeer() {
     },
     [seerRunId, setIsUpdating, sendFollowUpMessage]
   );
-
-  if (!hasFeature) {
-    return (
-      <Stack flex={1} padding="2xl 3xl">
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  }
 
   if (!seerRunId) {
     return <CreateFromSeerPrompt />;

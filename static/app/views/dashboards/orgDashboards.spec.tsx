@@ -16,9 +16,7 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('OrgDashboards', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   const dashboardPath = `/organizations/${organization.slug}/dashboard/1/`;
 

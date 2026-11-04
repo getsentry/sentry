@@ -387,72 +387,70 @@ export function getMenuOptions(
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
+  menuOptions.push({
+    key: 'add-to-dashboard',
+    label: t('Add to Dashboard'),
+    disabled: disableTransactionEdit,
+    tooltip: disableTransactionEdit
+      ? t('This dataset is no longer supported. Please use the Spans dataset.')
+      : undefined,
+    onAction: () => {
+      openAddToDashboardModal({
+        organization,
+        location,
+        selection,
+        widgets: [
+          {
+            ...widget,
+            id: undefined,
+            dashboardId: undefined,
+            layout: undefined,
+          },
+        ],
+        actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
+        source: DashboardWidgetSource.DASHBOARDS,
+      });
+    },
+  });
+  if (onDuplicate) {
     menuOptions.push({
-      key: 'add-to-dashboard',
-      label: t('Add to Dashboard'),
-      disabled: disableTransactionEdit,
+      key: 'duplicate-widget',
+      label: t('Duplicate Widget'),
+      onAction: onDuplicate,
       tooltip: disableTransactionEdit
         ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
+        : prebuiltDashboardMessages?.duplicate,
+      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
+    });
+  }
+
+  if (onEdit) {
+    menuOptions.push({
+      key: 'edit-widget',
+      label: t('Edit Widget'),
+      onAction: onEdit,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? prebuiltDashboardMessages?.edit
+        : t('Static widgets from the widget library cannot be edited.'),
+    });
+  }
+
+  if (onDelete) {
+    menuOptions.push({
+      key: 'delete-widget',
+      label: t('Delete Widget'),
+      priority: 'danger',
       onAction: () => {
-        openAddToDashboardModal({
-          organization,
-          location,
-          selection,
-          widgets: [
-            {
-              ...widget,
-              id: undefined,
-              dashboardId: undefined,
-              layout: undefined,
-            },
-          ],
-          actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
-          source: DashboardWidgetSource.DASHBOARDS,
+        openConfirmModal({
+          message: t('Are you sure you want to delete this widget?'),
+          priority: 'danger',
+          onConfirm: onDelete,
         });
       },
+      disabled: !hasEditAccess,
+      tooltip: prebuiltDashboardMessages?.delete,
     });
-    if (onDuplicate) {
-      menuOptions.push({
-        key: 'duplicate-widget',
-        label: t('Duplicate Widget'),
-        onAction: onDuplicate,
-        tooltip: disableTransactionEdit
-          ? t('This dataset is no longer supported. Please use the Spans dataset.')
-          : prebuiltDashboardMessages?.duplicate,
-        disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
-      });
-    }
-
-    if (onEdit) {
-      menuOptions.push({
-        key: 'edit-widget',
-        label: t('Edit Widget'),
-        onAction: onEdit,
-        disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
-        tooltip: isWidgetEditable(widget.displayType)
-          ? prebuiltDashboardMessages?.edit
-          : t('Static widgets from the widget library cannot be edited.'),
-      });
-    }
-
-    if (onDelete) {
-      menuOptions.push({
-        key: 'delete-widget',
-        label: t('Delete Widget'),
-        priority: 'danger',
-        onAction: () => {
-          openConfirmModal({
-            message: t('Are you sure you want to delete this widget?'),
-            priority: 'danger',
-            onConfirm: onDelete,
-          });
-        },
-        disabled: !hasEditAccess,
-        tooltip: prebuiltDashboardMessages?.delete,
-      });
-    }
   }
 
   return menuOptions;

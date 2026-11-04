@@ -332,9 +332,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('renders Add to Dashboard in context menu', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture();
 
     render(
       <QueryList
@@ -396,9 +394,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture();
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
       ...savedQueries.slice(1)[0]!,
@@ -454,7 +450,7 @@ describe('Discover > QueryList', () => {
 
   it('disabled duplicate for transaction queries with deprecation flag', async () => {
     const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      features: ['discover-saved-queries-deprecation'],
     });
 
     render(
@@ -490,7 +486,7 @@ describe('Discover > QueryList', () => {
 
   it('does not disable duplicate for error queries with deprecation flag', async () => {
     const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      features: ['discover-saved-queries-deprecation'],
     });
 
     render(
@@ -526,9 +522,7 @@ describe('Discover > QueryList', () => {
 
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
+      const featuredOrganization = OrganizationFixture();
       render(
         <QueryList
           savedQuerySearchQuery=""
@@ -591,9 +585,7 @@ describe('Discover > QueryList', () => {
     });
 
     it('opens a modal with the correct params for other chart', async () => {
-      const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit'],
-      });
+      const featuredOrganization = OrganizationFixture();
       render(
         <QueryList
           savedQuerySearchQuery=""
@@ -658,7 +650,7 @@ describe('Discover > QueryList', () => {
 
     it('disables Add to Dashboard for transaction queries with deprecation flag', async () => {
       const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+        features: ['discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
@@ -694,7 +686,7 @@ describe('Discover > QueryList', () => {
 
     it('does not disable Add to Dashboard for error queries with deprecation flag', async () => {
       const featuredOrganization = OrganizationFixture({
-        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+        features: ['discover-saved-queries-deprecation'],
       });
       render(
         <QueryList
@@ -730,9 +722,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes dataset to open modal', async () => {
-    const featuredOrganization = OrganizationFixture({
-      features: ['dashboards-edit'],
-    });
+    const featuredOrganization = OrganizationFixture();
     render(
       <QueryList
         savedQuerySearchQuery=""

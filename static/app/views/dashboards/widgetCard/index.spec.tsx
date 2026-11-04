@@ -33,7 +33,7 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 describe('Dashboards > WidgetCard', () => {
   const {organization} = initializeOrg({
     organization: OrganizationFixture({
-      features: ['dashboards-edit', 'discover-basic'],
+      features: ['discover-basic'],
     }),
   });
 

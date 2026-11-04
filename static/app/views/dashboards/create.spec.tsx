@@ -11,7 +11,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards > CreateDashboard', () => {
   const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: ['discover-query'],
   });
 
   let mockPOST: jest.Mock;
