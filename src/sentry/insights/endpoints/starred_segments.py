@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from django.db import router
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
@@ -18,12 +20,18 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import require_user
 from sentry.insights.models import InsightsStarredSegment
 from sentry.models.organization import Organization
 from sentry.utils.db import atomic_transaction
 
 
-class StarSegmentSerializer(serializers.Serializer):
+class StarSegmentValidatedData(TypedDict):
+    service_span: str
+    project_id: int
+
+
+class StarSegmentSerializer(serializers.Serializer[object, StarSegmentValidatedData]):
     service_span = serializers.CharField(
         required=True,
         help_text="The name of the service span to star or unstar.",
@@ -41,6 +49,9 @@ class MemberPermission(OrganizationPermission):
         "DELETE": ["member:read", "member:write", "user_preference:write"],
     }
 
+    # user_preference:write replaces member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
 
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
@@ -49,10 +60,11 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:insights-modules-use-eap", organization, actor=request.user
         )
@@ -97,7 +109,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
             _, created = InsightsStarredSegment.objects.get_or_create(
                 organization=organization,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 segment_name=service_span_name,
             )
 
@@ -162,7 +174,7 @@ class OrganizationStarredServiceSpansEndpoint(OrganizationEndpoint):
 
         InsightsStarredSegment.objects.filter(
             organization=organization,
-            user_id=request.user.id,
+            user_id=require_user(request).id,
             project_id=project.id,
             segment_name=service_span_name,
         ).delete()

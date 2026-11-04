@@ -10,7 +10,7 @@ from sentry.db.models.utils import Creator
 from sentry.utils import json
 
 
-class JSONField(TextField):
+class JSONField(TextField[object, object]):
     """Simple JSON field that stores python structures as JSON strings
     on database.
     """
@@ -23,7 +23,7 @@ class JSONField(TextField):
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
-    def to_python(self, value):
+    def to_python(self, value: object) -> object:
         """
         Convert the input JSON value into python structures, raises
         django.core.exceptions.ValidationError if the data can't be converted.
@@ -38,7 +38,7 @@ class JSONField(TextField):
         else:
             return value
 
-    def validate(self, value, model_instance):
+    def validate(self, value: object, model_instance: Model | None) -> None:
         """Check value is a valid JSON string, raise ValidationError on
         error."""
         if isinstance(value, str):
@@ -48,17 +48,17 @@ class JSONField(TextField):
             except Exception as e:
                 raise ValidationError(str(e))
 
-    def get_prep_value(self, value):
+    def get_prep_value(self, value: object) -> str:
         """Convert value to JSON string before save"""
         try:
             return json.dumps(value)
         except Exception as e:
             raise ValidationError(str(e))
 
-    def value_to_string(self, obj):
+    def value_to_string(self, obj: Model) -> str:
         """Return value from object converted to string properly"""
         return smart_str(self.value_from_object(obj))
 
-    def value_from_object(self, obj):
+    def value_from_object(self, obj: Model) -> str:
         """Return value dumped to string."""
         return self.get_prep_value(super().value_from_object(obj))

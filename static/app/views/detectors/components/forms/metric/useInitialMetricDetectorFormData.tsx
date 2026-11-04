@@ -1,11 +1,11 @@
+import {parseAsString, useQueryStates} from 'nuqs';
+
 import type {Organization} from 'sentry/types/organization';
 import {
   generateFieldAsString,
   isEquation,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
@@ -15,10 +15,7 @@ import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
-function getLocationDataset(
-  query: Record<string, string | string[] | undefined | null>
-): DetectorDataset {
-  const raw = decodeScalar(query.dataset);
+function getLocationDataset(raw: string | null): DetectorDataset {
   if (!raw) {
     return DEFAULT_THRESHOLD_METRIC_FORM_DATA.dataset;
   }
@@ -29,12 +26,11 @@ function getLocationDataset(
 }
 
 function getLocationAggregate(
-  query: Record<string, string | string[] | undefined | null>,
+  raw: string | null,
   dataset: DetectorDataset,
   datasetConfig: ReturnType<typeof getDatasetConfig>,
   organization: Organization
 ): string | undefined {
-  const raw = decodeScalar(query.aggregate);
   if (!raw) {
     return undefined;
   }
@@ -65,21 +61,22 @@ function getLocationAggregate(
 }
 
 export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormData> {
-  const location = useLocation();
+  const [urlParams] = useQueryStates({
+    aggregate: parseAsString,
+    dataset: parseAsString,
+    query: parseAsString,
+  });
   const organization = useOrganization();
-  const dataset = getLocationDataset(location.query);
+  const dataset = getLocationDataset(urlParams.dataset);
   const datasetConfig = getDatasetConfig(dataset);
   const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
   const aggregateFromUrl = getLocationAggregate(
-    location.query,
+    urlParams.aggregate,
     dataset,
     datasetConfig,
     organization
   );
-  const queryFromUrl =
-    location.query.query === '' ? '' : decodeScalar(location.query.query);
-  const defaultQuery = DEFAULT_THRESHOLD_METRIC_FORM_DATA.query ?? '';
-  const query = queryFromUrl === undefined ? defaultQuery : queryFromUrl;
+  const query = urlParams.query ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.query ?? '';
 
   return {
     ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,

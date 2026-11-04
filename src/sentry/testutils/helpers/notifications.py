@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
@@ -102,10 +103,10 @@ class DummyNotification(BaseNotification):
     def determine_recipients(self) -> list[Actor]:
         return []
 
-    def build_attachment_title(self, *args) -> str:
+    def build_attachment_title(self, recipient: Actor) -> str:
         return "My Title"
 
-    def get_title_link(self, *args):
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         return None
 
     def get_notification_title(
@@ -113,14 +114,14 @@ class DummyNotification(BaseNotification):
     ) -> str:
         return "Notification Title"
 
-    def record_notification_sent(self, *args):
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         pass
 
-    def build_notification_footer(self, *args) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         return ""
 
-    def get_participants(self):
-        return []
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
+        return cast(Mapping[ExternalProviders, Iterable[Actor]], [])
 
     def get_message_actions(
         self, recipient: Actor, provider: ExternalProviders
@@ -140,7 +141,7 @@ class DummyNotification(BaseNotification):
 
 
 class AnotherDummyNotification(DummyNotification):
-    def __init__(self, organization, some_value) -> None:
+    def __init__(self, organization: Organization, some_value: object) -> None:
         super().__init__(organization)
         self.some_value = some_value
 
@@ -155,13 +156,13 @@ class DummyNotificationWithMoreFields(DummyNotification):
         some_value = context["some_field"]
         return f"Notification Title with {some_value}"
 
-    def build_notification_footer(self, *args) -> str:
+    def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         return "Notification Footer"
 
     def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         return "Message Description"
 
-    def get_title_link(self, *args):
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         from sentry.integrations.messaging.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)

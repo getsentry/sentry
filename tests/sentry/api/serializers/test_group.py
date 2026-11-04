@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 from django.utils import timezone
 
@@ -438,7 +438,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
 
 class GroupSerializerDerivedDataTest(TestCase):
     @patch("sentry.issues.derived.serialization.metrics.incr")
-    def test_derived_data_served_metric(self, mock_metrics_incr) -> None:
+    def test_derived_data_served_metric(self, mock_metrics_incr: MagicMock) -> None:
         fresh_group = self.create_group()
         self.create_group_derived_data(
             group=fresh_group,

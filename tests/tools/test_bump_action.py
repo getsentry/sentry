@@ -1,4 +1,6 @@
 import subprocess
+from collections.abc import Iterator
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -7,7 +9,7 @@ from tools.bump_action import main
 
 
 @pytest.fixture
-def workflow_and_action(tmp_path):
+def workflow_and_action(tmp_path: Path) -> Iterator[tuple[Path, Path, Path]]:
     base = tmp_path.joinpath("root")
 
     base.joinpath(".github/workflows").mkdir(parents=True)
@@ -19,7 +21,9 @@ def workflow_and_action(tmp_path):
     yield base, workflow, action
 
 
-def test_main_noop(workflow_and_action, capsys) -> None:
+def test_main_noop(
+    workflow_and_action: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
     base, workflow, action = workflow_and_action
 
     workflow_src = """\
@@ -54,7 +58,9 @@ runs:
     assert out == err == ""
 
 
-def test_main_upgrades_action(workflow_and_action, capsys) -> None:
+def test_main_upgrades_action(
+    workflow_and_action: tuple[Path, Path, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
     base, workflow, action = workflow_and_action
 
     workflow_src = """\

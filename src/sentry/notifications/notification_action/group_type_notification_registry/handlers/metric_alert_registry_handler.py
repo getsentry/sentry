@@ -98,6 +98,8 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
             }
             for action_id, team_id in team_id_by_action_id.items():
                 organization_id = org_by_action_id.get(action_id)
-                result[action_id] = teams.get((team_id, organization_id))
+                result[action_id] = (
+                    teams.get((team_id, organization_id)) if organization_id is not None else None
+                )
 
         return result

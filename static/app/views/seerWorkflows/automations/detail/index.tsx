@@ -2,16 +2,18 @@ import {Fragment} from 'react';
 import {Outlet} from 'react-router';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -19,7 +21,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   getNextUpdate,
-  PLACEHOLDER_CONFIGS,
   type AutomationConfig,
 } from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
@@ -44,28 +45,26 @@ export default function AutomationDetail() {
   const {automationId} = useParams<{automationId: string}>();
   const basePath = getAutomationDetailPath(organization.slug, automationId);
 
-  // TEMPORARY: placeholder configs are only known to the frontend
-  const placeholderConfig = PLACEHOLDER_CONFIGS.find(c => c.id === automationId);
   const {data, isPending, isError, refetch} = useQuery(
     apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
-        path:
-          automationsEnabled && !placeholderConfig
-            ? {organizationIdOrSlug: organization.slug}
-            : skipToken,
+        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {id: automationId},
         staleTime: 0,
       }
     )
   );
-  const config: AutomationConfig | undefined = placeholderConfig ?? data?.configs[0];
+  const config: AutomationConfig | undefined = data?.configs[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
     : undefined;
-  const title = strategyMeta?.label ?? strategy;
-  const nextUpdate = config ? getNextUpdate(config.schedule) : undefined;
+  const title = config?.name ?? strategyMeta?.label ?? strategy;
+  const nextUpdate =
+    config?.enabled && config.strategy !== 'breached_metric_investigation'
+      ? getNextUpdate(config.schedule)
+      : undefined;
 
   if (!automationsEnabled) {
     return <NotFound />;
@@ -106,9 +105,12 @@ export default function AutomationDetail() {
           ]}
         />
         <Stack gap="xs">
-          <Heading as="h1" size="xl">
-            {title}
-          </Heading>
+          <Flex gap="md" align="center">
+            <Heading as="h1" size="xl">
+              {title}
+            </Heading>
+            {!config.enabled && <Tag variant="warning">{t('Paused')}</Tag>}
+          </Flex>
           <Text>{strategyMeta?.description ?? t('No description')}</Text>
           <Stack direction="row" align="center" gap="md" wrap="wrap">
             {config?.dateLastRun !== undefined && (
@@ -137,11 +139,15 @@ export default function AutomationDetail() {
               </Fragment>
             )}
             <Text size="sm" variant="muted">
-              {t('_ projects/monitors')}
-            </Text>
-            <Stack.Separator />
-            <Text size="sm" variant="muted">
-              {t('Created by _')}
+              {config.strategy === 'breached_metric_investigation'
+                ? tn(
+                    '%s monitor connected',
+                    '%s monitors connected',
+                    config.monitorIds.length
+                  )
+                : config.projects.includes(ALL_ACCESS_PROJECTS)
+                  ? t('All projects')
+                  : tn('%s project', '%s projects', config.projects.length)}
             </Text>
           </Stack>
         </Stack>
@@ -163,7 +169,7 @@ export default function AutomationDetail() {
             </TabList.Item>
           </TabList>
         </Tabs>
-        <Outlet />
+        <Outlet context={config} />
       </Stack>
     </SentryDocumentTitle>
   );

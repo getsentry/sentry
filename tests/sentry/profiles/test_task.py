@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import zipfile
+from collections.abc import Iterator
 from io import BytesIO
 from os.path import join
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
@@ -21,6 +22,7 @@ from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.team import Team
 from sentry.profiles.task import (
     UnknownProfileTypeException,
     _calculate_profile_duration_ms,
@@ -45,6 +47,7 @@ from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
@@ -93,47 +96,50 @@ PROGUARD_BUG_UUID = "071207ac-b491-4a74-957c-2c94fd9594f2"
 PROGUARD_BUG_SOURCE = b"x"
 
 
-def load_profile(name):
+def load_profile(name: str) -> dict[str, Any]:
     path = join(PROFILES_FIXTURES_PATH, name)
     with open(path) as f:
-        return json.loads(f.read())
+        profile = json.loads(f.read())
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture
-def owner():
+def owner() -> User:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner):
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 
 @pytest.fixture
-def team(organization, owner):
+def team(organization: Organization, owner: User) -> Team:
     team = Factories.create_team(organization=organization)
     Factories.create_team_membership(team=team, user=owner)
     return team
 
 
 @pytest.fixture
-def project(organization, team):
+def project(organization: Organization, team: Team) -> Project:
     return Factories.create_project(organization=organization, teams=[team])
 
 
 @pytest.fixture
-def ios_profile():
+def ios_profile() -> dict[str, Any]:
     return load_profile("valid_ios_profile.json")
 
 
 @pytest.fixture
-def android_profile():
+def android_profile() -> dict[str, Any]:
     return load_profile("valid_android_profile.json")
 
 
 @pytest.fixture
-def sample_v1_profile():
-    return json.loads(
+def sample_v1_profile() -> dict[str, Any]:
+    profile = json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
   "version": "1",
@@ -219,17 +225,22 @@ def sample_v1_profile():
   }
 }"""
     )
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture
-def sample_v1_profile_without_transaction_timestamps(sample_v1_profile):
+def sample_v1_profile_without_transaction_timestamps(
+    sample_v1_profile: dict[str, Any],
+) -> dict[str, Any]:
     for key in {"relative_start_ns", "relative_end_ns"}:
         del sample_v1_profile["transaction"][key]
     return sample_v1_profile
 
 
-def generate_sample_v2_profile():
-    return json.loads(
+def generate_sample_v2_profile() -> dict[str, Any]:
+    profile = json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
   "version": "2",
@@ -286,15 +297,18 @@ def generate_sample_v2_profile():
   }
 }"""
     )
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture
-def sample_v2_profile():
+def sample_v2_profile() -> dict[str, Any]:
     return generate_sample_v2_profile()
 
 
 @pytest.fixture
-def sample_v2_profile_long():
+def sample_v2_profile_long() -> dict[str, Any]:
     profile = generate_sample_v2_profile()
     samples = profile["profile"]["samples"]
     samples[len(samples) - 1]["timestamp"] += 300
@@ -302,14 +316,16 @@ def sample_v2_profile_long():
 
 
 @pytest.fixture
-def sample_v2_profile_samples_not_sorted():
+def sample_v2_profile_samples_not_sorted() -> dict[str, Any]:
     profile = generate_sample_v2_profile()
     profile["profile"]["samples"][0]["timestamp"] += 300
     return profile
 
 
 @django_db_all
-def test_normalize_sample_v1_profile(organization, sample_v1_profile) -> None:
+def test_normalize_sample_v1_profile(
+    organization: Organization, sample_v1_profile: dict[str, Any]
+) -> None:
     sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=sample_v1_profile, organization=organization)
@@ -320,7 +336,7 @@ def test_normalize_sample_v1_profile(organization, sample_v1_profile) -> None:
 
 
 @django_db_all
-def test_normalize_ios_profile(organization, ios_profile) -> None:
+def test_normalize_ios_profile(organization: Organization, ios_profile: dict[str, Any]) -> None:
     ios_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=ios_profile, organization=organization)
@@ -331,7 +347,9 @@ def test_normalize_ios_profile(organization, ios_profile) -> None:
 
 
 @django_db_all
-def test_normalize_android_profile(organization, android_profile) -> None:
+def test_normalize_android_profile(
+    organization: Organization, android_profile: dict[str, Any]
+) -> None:
     android_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=android_profile, organization=organization)
@@ -628,7 +646,7 @@ def test_process_symbolicator_results_for_sample_js() -> None:
 
 
 @django_db_all
-def test_decode_signature(project, android_profile) -> None:
+def test_decode_signature(project: Project, android_profile: dict[str, Any]) -> None:
     android_profile.update(
         {
             "project_id": project.id,
@@ -784,11 +802,13 @@ def test_determine_profile_type() -> None:
         ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
-def test_calculate_profile_duration(profile, duration_ms, request) -> None:
+def test_calculate_profile_duration(
+    profile: str, duration_ms: int, request: pytest.FixtureRequest
+) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
 
 
-def test_calculate_profile_duration_faulty_version(android_profile) -> None:
+def test_calculate_profile_duration_faulty_version(android_profile: dict[str, Any]) -> None:
     # android trace profiles may arrive with a wrongly set sample version;
     # the duration must still be calculated from the trace format
     android_profile["version"] = "2"
@@ -800,12 +820,12 @@ def test_calculate_profile_duration_faulty_version(android_profile) -> None:
 @debug_files_test_both_backends
 class DeobfuscationViaSymbolicator(TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, set_sentry_option, live_server):
+    def initialize(self, set_sentry_option: Any, live_server: Any) -> Iterator[None]:
         with set_sentry_option("system.url-prefix", live_server.url):
             # Run test case
             yield
 
-    def upload_proguard_mapping(self, uuid, mapping_file_content):
+    def upload_proguard_mapping(self, uuid: str, mapping_file_content: bytes) -> Any:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -1275,21 +1295,21 @@ def test_set_frames_platform_android() -> None:
     ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_emit_profile_duration_outcome(
-    _process_vroomrs_profile,
-    _deobfuscate_profile,
-    _symbolicate_profile,
-    _track_duration_outcome,
-    _track_outcome,
-    profile,
-    organization,
-    project,
-    request,
-):
+    _process_vroomrs_profile: mock.MagicMock,
+    _deobfuscate_profile: mock.MagicMock,
+    _symbolicate_profile: mock.MagicMock,
+    _track_duration_outcome: mock.MagicMock,
+    _track_outcome: mock.MagicMock,
+    profile: str | dict[str, Any],
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
     _process_vroomrs_profile.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
 
-    profile = request.getfixturevalue(profile)
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 
@@ -1321,23 +1341,23 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_not_emit_profile_duration_outcome(
-    _process_vroomrs_profile,
-    _deobfuscate_profile,
-    _symbolicate_profile,
-    _track_duration_outcome,
-    _track_outcome,
-    should_emit_profile_duration_outcome,
-    profile,
-    organization,
-    project,
-    request,
-):
+    _process_vroomrs_profile: mock.MagicMock,
+    _deobfuscate_profile: mock.MagicMock,
+    _symbolicate_profile: mock.MagicMock,
+    _track_duration_outcome: mock.MagicMock,
+    _track_outcome: mock.MagicMock,
+    should_emit_profile_duration_outcome: mock.MagicMock,
+    profile: str | dict[str, Any],
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
     _process_vroomrs_profile.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
     should_emit_profile_duration_outcome.return_value = False
 
-    profile = request.getfixturevalue(profile)
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 
@@ -1374,22 +1394,22 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
 )
 @django_db_all
 def test_track_latest_sdk(
-    get_sdk_index,
-    _symbolicate_profile,
-    _process_vroomrs_profile,
-    profile,
-    event_type,
-    organization,
-    project,
-    request,
-):
+    get_sdk_index: mock.MagicMock,
+    _symbolicate_profile: mock.MagicMock,
+    _process_vroomrs_profile: mock.MagicMock,
+    profile: str | dict[str, Any],
+    event_type: EventType,
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
     _process_vroomrs_profile.return_value = True
     _symbolicate_profile.return_value = True
     get_sdk_index.return_value = {
         "sentry.python": {},
     }
 
-    profile = request.getfixturevalue(profile)
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 
@@ -1419,15 +1439,15 @@ def test_track_latest_sdk(
 )
 @django_db_all
 def test_unknown_sdk(
-    get_sdk_index,
-    _symbolicate_profile,
-    _process_vroomrs_profile,
-    platform,
-    sdk_name,
-    organization,
-    project,
-    request,
-):
+    get_sdk_index: mock.MagicMock,
+    _symbolicate_profile: mock.MagicMock,
+    _process_vroomrs_profile: mock.MagicMock,
+    platform: str,
+    sdk_name: str,
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
     _process_vroomrs_profile.return_value = True
     _symbolicate_profile.return_value = True
     get_sdk_index.return_value = {
@@ -1613,18 +1633,18 @@ def test_process_profile_task_skips_attachments_without_feature(
     ],
 )
 def test_deprecated_sdks(
-    _process_vroomrs_profile,
-    _track_outcome,
+    _process_vroomrs_profile: mock.MagicMock,
+    _track_outcome: mock.MagicMock,
     _symbolicate_profile: mock.MagicMock,
-    profile,
-    category,
-    sdk_version,
-    dropped,
-    organization,
-    project,
-    request,
-):
-    profile = request.getfixturevalue(profile)
+    profile: str | dict[str, Any],
+    category: DataCategory,
+    sdk_version: str,
+    dropped: bool,
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
     profile["client_sdk"] = {
@@ -1668,18 +1688,18 @@ def test_deprecated_sdks(
     ],
 )
 def test_rejected_sdks(
-    _process_vroomrs_profile,
-    _track_outcome,
+    _process_vroomrs_profile: mock.MagicMock,
+    _track_outcome: mock.MagicMock,
     _symbolicate_profile: mock.MagicMock,
-    profile,
-    category,
-    sdk_version,
-    dropped,
-    organization,
-    project,
-    request,
-):
-    profile = request.getfixturevalue(profile)
+    profile: str | dict[str, Any],
+    category: DataCategory,
+    sdk_version: str,
+    dropped: bool,
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
     profile["client_sdk"] = {
@@ -1724,11 +1744,11 @@ def test_process_profile_task_should_flip_project_flag(
     _process_vroomrs_profile: mock.MagicMock,
     _deobfuscate_profile: mock.MagicMock,
     _symbolicate_profile: mock.MagicMock,
-    profile,
-    organization,
-    project,
-    request,
-):
+    profile: str | dict[str, Any],
+    organization: Any,
+    project: Project,
+    request: pytest.FixtureRequest,
+) -> None:
     with patch(
         "sentry.receivers.onboarding.record_first_profile",
     ) as mock_record_first_profile:
@@ -1737,7 +1757,7 @@ def test_process_profile_task_should_flip_project_flag(
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
 
-    profile = request.getfixturevalue(profile)
+    profile = cast("dict[str, Any]", request.getfixturevalue(cast("str", profile)))
     profile["organization_id"] = organization.id
     profile["project_id"] = project.id
 

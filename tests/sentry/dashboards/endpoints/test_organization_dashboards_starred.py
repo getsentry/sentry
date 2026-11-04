@@ -1,18 +1,20 @@
+from typing import Any
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry.models.dashboard import DashboardFavoriteUser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
-    def do_request(self, *args, **kwargs):
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         with self.feature("organizations:dashboards-starred"):
-            return super().do_request(*args, **kwargs)
+            return super().do_request(method, url, data)
 
 
 class OrganizationDashboardsStarredTest(StarredDashboardTestCase):
@@ -241,7 +243,6 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
-@granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardsStarredScopeTest(StarredDashboardTestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -170,7 +170,7 @@ class DatabaseBackedAppService(AppService):
     def get_custom_alert_rule_actions(
         self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
     ) -> list[Mapping[str, Any]]:
-        action_list = []
+        action_list: list[Mapping[str, Any]] = []
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ):

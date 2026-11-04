@@ -4,15 +4,21 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
 def _make_url(project: Project) -> str:
     return f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
+
+
+def _group(event: Event) -> Group:
+    assert event.group is not None
+    return event.group
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
@@ -44,7 +50,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group_id=self.event.group.id,
+            group_id=_group(self.event).id,
         )
         self.report2 = UserReport.objects.create(
             project_id=self.project.id,
@@ -52,7 +58,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group_id=self.event.group.id,
+            group_id=_group(self.event).id,
         )
 
     def test_simple(self) -> None:
@@ -67,7 +73,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
-        group = event1.group
+        group = _group(event1)
         event2 = self.store_event(
             data={
                 "timestamp": timezone.now().isoformat(),
@@ -76,7 +82,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
-        group2 = event2.group
+        group2 = _group(event2)
         group2.status = GroupStatus.RESOLVED
         group2.substatus = None
         group2.save()
@@ -139,7 +145,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
-        group = event.group
+        group = _group(event)
         report_1 = UserReport.objects.create(
             project_id=project.id,
             event_id="a" * 32,
@@ -226,7 +232,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
             event_id=old_event.event_id,
             environment_id=self.environment.id,
-            group_id=old_event.group.id,
+            group_id=_group(old_event).id,
             date_added=before_now(days=1),
         )
         response = self.client.get(_make_url(self.project))
@@ -274,7 +280,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         report = UserReport.objects.get(id=response.data["id"])
         assert report.project_id == self.project.id
-        assert report.group_id == self.event.group.id
+        assert report.group_id == _group(self.event).id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -321,7 +327,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group_id=self.event.group.id,
+            group_id=_group(self.event).id,
             project_id=self.project.id,
             event_id=self.event.event_id,
             name="foo",
@@ -345,7 +351,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         report = UserReport.objects.get(id=response.data["id"])
         assert report.project_id == self.project.id
-        assert report.group_id == self.event.group.id
+        assert report.group_id == _group(self.event).id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -354,7 +360,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group_id=self.old_event.group.id,
+            group_id=_group(self.old_event).id,
             project_id=self.project.id,
             event_id=self.old_event.event_id,
             name="foo",
@@ -446,7 +452,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         report = UserReport.objects.get(id=response.data["id"])
         assert report.project_id == self.project.id
-        assert report.group_id == event_with_replay.group.id
+        assert report.group_id == _group(event_with_replay).id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -473,8 +479,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback_no_event_should_not_call(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         self.login_as(user=self.user)
 
         url = _make_url(self.project)

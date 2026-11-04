@@ -27,7 +27,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
     end = serializers.DateTimeField(required=False)
     statsPeriod = serializers.CharField(required=False)
 
-    def validate_event(self, event):
+    def validate_event(self, event: str) -> int | None:
         try:
             return audit_log.get_event_id_from_api_name(event)
         except AuditLogEventNotRegistered:

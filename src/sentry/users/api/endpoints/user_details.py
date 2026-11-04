@@ -22,6 +22,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import require_user
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
@@ -393,6 +394,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param list organizations: List of organization ids to remove
         :auth required:
         """
+        actor = require_user(request)
         serializer = DeleteUserSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -462,8 +464,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         organization_id=member_mapping.organization_id,
                         date_added=django_timezone.now(),
                         event_id=audit_log.get_event_id("MEMBER_REMOVE"),
-                        actor_user_id=request.user.id,
-                        actor_label=request.user.username,
+                        actor_user_id=actor.id,
+                        actor_label=actor.username,
                         ip_address=request.META["REMOTE_ADDR"],
                         target_object_id=member_mapping.organizationmember_id,
                         target_user_id=user.id,
@@ -472,7 +474,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 )
 
         logging_data = {
-            "actor_id": request.user.id,
+            "actor_id": actor.id,
             "ip_address": request.META["REMOTE_ADDR"],
             "user_id": user.id,
         }
@@ -489,7 +491,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        is_current_user = request.user.id == user.id
+        is_current_user = actor.id == user.id
 
         if hard_delete:
             user_id = user.id
@@ -499,7 +501,7 @@ class UserDetailsEndpoint(UserEndpoint):
             record_hard_user_deletion(
                 user_id=user_id,
                 user_email=user_email,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
         else:
@@ -509,7 +511,7 @@ class UserDetailsEndpoint(UserEndpoint):
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,
-                actor=request.user,
+                actor=actor,
                 ip_address=request.META["REMOTE_ADDR"],
             )
 

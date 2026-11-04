@@ -197,7 +197,7 @@ def iteration_completed_webhook_fields(
     organization: Organization,
     group: Group,
     state: SeerRunState,
-    format_code_changes: Callable[[SeerRunState], dict],
+    format_code_changes: Callable[[SeerRunState], dict[str, Any]],
     *,
     retrying: bool,
 ) -> dict[str, Any] | None:
@@ -484,9 +484,7 @@ def _push_iteration_changes(
             run_id,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
-            verify_content=features.has(
-                "organizations:autofix-verify-pr-content", organization=group.organization
-            ),
+            verify_content=True,
             author=author,
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,

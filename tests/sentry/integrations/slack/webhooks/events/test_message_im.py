@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -58,12 +60,12 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
     This will be superceded by the explorer agentic workflow.
     """
 
-    def get_block_section_text(self, data):
+    def get_block_section_text(self, data: dict[str, Any]) -> tuple[str, str]:
         blocks = data["blocks"]
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_postMessage",
             return_value=SlackResponse(

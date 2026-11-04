@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
@@ -15,6 +16,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry import features, options
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import (
@@ -31,7 +33,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -92,6 +94,12 @@ class OrganizationPermission(DemoSafePermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
+    # Stop accepting `settings.DEPRECATED_SCOPES` in orgs with granular scopes while the
+    # deprecated scope translation is enabled. Members get the replacements from the granular
+    # roles, and tokens holding a deprecated scope get them from the translation. Only opt in
+    # once every deprecated scope in `scope_map` has a translated replacement that the granular
+    # roles grant and this permission accepts.
+    rejects_deprecated_scopes = False
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -99,7 +107,7 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.is_authenticated and request.user.has_2fa():
+        if request.user.is_authenticated and require_user(request).has_2fa():
             return False
 
         if request.user.is_authenticated and request.user.is_sentry_app:
@@ -141,8 +149,30 @@ class OrganizationPermission(DemoSafePermission):
             if not has_staff_perm:
                 raise SuperuserRequired(orgSlug=org_slug)
 
-        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        allowed_scopes = self.get_allowed_scopes(request, organization)
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def get_allowed_scopes(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> set[str]:
+        """The scopes that grant access to `organization` for the request's method."""
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        if self.rejects_deprecated_scopes and self._deprecated_scopes_retired(organization):
+            allowed_scopes -= settings.DEPRECATED_SCOPES
+        return allowed_scopes
+
+    def _deprecated_scopes_retired(
+        self, organization: Organization | RpcOrganization | RpcUserOrganizationContext
+    ) -> bool:
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
+        # TODO: Remove deprecated scopes from opted-in scope maps once the translation is
+        # enabled everywhere.
+        return options.get("auth.deprecated-scope-translation.enabled") and features.has(
+            "organizations:granular-permission-scopes", organization
+        )
 
     def is_member_disabled_from_limit(
         self,
@@ -932,7 +962,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
-                actor_id = "user:%s" % request.user.id
+                actor_id = "user:%s" % require_user(request).id
             elif request.auth is not None:
                 actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
