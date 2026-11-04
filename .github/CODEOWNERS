@@ -941,7 +941,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Universal Inbox
 
 # Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
-/static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
 /static/app/views/settings/project/projectFilters/                  @getsentry/telemetry-experience
 /static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/telemetry-experience
 # End of Telemetry Experience frontend
