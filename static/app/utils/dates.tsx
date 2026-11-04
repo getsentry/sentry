@@ -1,11 +1,5 @@
 import moment from 'moment-timezone';
 
-import {
-  getFormat as formatDateTime,
-  getTimeFormat as formatTime,
-  type DateTimeFormatOptions,
-} from '@sentry/scraps/dateTime';
-
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {TableDataRow} from './discover/discoverQuery';
@@ -16,10 +10,6 @@ const DATE_FORMAT_NO_TIMEZONE = 'YYYY/MM/DD HH:mm:ss';
 const MILLISECOND_TIMESTAMP = 100_000_000_000;
 const MICROSECOND_TIMESTAMP = 100_000_000_000_000;
 const NANOSECOND_TIMESTAMP = 100_000_000_000_000_000;
-
-function getParser(local = false): typeof moment | typeof moment.utc {
-  return local ? moment : moment.utc;
-}
 
 /**
  * Checks if string is valid time. Only accepts 24 hour format.
@@ -86,14 +76,6 @@ export function normalizeTimestampToSeconds(timestamp: number | string): number 
   }
 
   return Math.trunc(timestampInSeconds);
-}
-
-export function getFormattedDate(
-  dateObj: moment.MomentInput,
-  format: string,
-  {local}: {local?: boolean} = {}
-): string {
-  return getParser(local)(dateObj).format(format);
 }
 
 /**
@@ -274,22 +256,4 @@ export function getDateFromTimestampAssumeUtc(value: unknown): Date | null {
       : value;
 
   return getDateFromTimestamp(withTz);
-}
-
-export function getFormat(options: DateTimeFormatOptions = {}) {
-  return formatDateTime({
-    ...options,
-    clock24Hours: options.clock24Hours ?? shouldUse24Hours(),
-  });
-}
-export function getTimeFormat(
-  options: Pick<
-    DateTimeFormatOptions,
-    'clock24Hours' | 'milliseconds' | 'seconds' | 'timeZone'
-  > = {}
-) {
-  return formatTime({
-    ...options,
-    clock24Hours: options.clock24Hours ?? shouldUse24Hours(),
-  });
 }

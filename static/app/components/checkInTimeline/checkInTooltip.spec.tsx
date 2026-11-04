@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {getFormat} from 'sentry/utils/dates';
+import {getFormat} from '@sentry/scraps/dateTime';
 
 import {generateTestStats, testStatusLabel, testStatusStyle} from './utils/testUtils';
 import {CheckInTooltip} from './checkInTooltip';

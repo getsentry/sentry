@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {getTimeFormat} from 'sentry/utils/dates';
+import {getFormat} from '@sentry/scraps/dateTime';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -47,10 +47,10 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
     format = 'MMM Do';
   } else if (parsed.second() === 0) {
     // Hours, minutes
-    format = getTimeFormat();
+    format = getFormat({timeOnly: true});
   } else {
     // Hours, minutes, seconds
-    format = getTimeFormat({seconds: true});
+    format = getFormat({seconds: true, timeOnly: true});
   }
 
   return parsed.format(format);

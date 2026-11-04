@@ -1,16 +1,12 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {DateTime} from '@sentry/scraps/dateTime';
+import {DateTime, formatDateTime} from '@sentry/scraps/dateTime';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
-import {
-  DEFAULT_DAY_END_TIME,
-  DEFAULT_DAY_START_TIME,
-  getFormattedDate,
-} from 'sentry/utils/dates';
+import {DEFAULT_DAY_END_TIME, DEFAULT_DAY_START_TIME} from 'sentry/utils/dates';
 
 import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
@@ -167,8 +163,8 @@ export function getAbsoluteSummary(
 ) {
   // XXX: These are NOT used for display purpose but only to determine if the
   // dates are at the start or end of the day
-  const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
-  const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
+  const startTimeFormatted = formatDateTime(start, {format: 'HH:mm:ss', utc: false});
+  const endTimeFormatted = formatDateTime(end, {format: 'HH:mm:ss', utc: false});
 
   const showDateOnly =
     startTimeFormatted === DEFAULT_DAY_START_TIME &&

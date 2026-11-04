@@ -2,9 +2,10 @@ import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 
-import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
+import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/dateTime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
 import {lightTheme} from '@sentry/scraps/theme';
+import {configureTranslation} from '@sentry/scraps/translation';
 
 afterEach(() => {
   try {
@@ -161,10 +162,14 @@ describe('localized preferences', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:05Z'));
   });
   it('updates localized duration and clock preferences through the date provider', () => {
-    const formatDuration = (seconds: number) => `translated ${seconds} seconds`;
+    const restore = configureTranslation({
+      t: label => label,
+      pgettext: (_context, label) => label,
+      tn: (_singular, plural) => `translated ${plural}`,
+    });
     const {rerender} = render(
       <ThemeProvider theme={lightTheme}>
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12', formatDuration}}>
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <RelativeTime
             date={DATE}
             label="Last seen"
@@ -174,11 +179,11 @@ describe('localized preferences', () => {
         </DateTimeProvider>
       </ThemeProvider>
     );
-    expect(screen.getByText('translated 5 seconds elapsed')).toBeInTheDocument();
+    expect(screen.getByText('5 translated seconds elapsed')).toBeInTheDocument();
     expect(screen.getByText('12:00 AM')).toBeInTheDocument();
     rerender(
       <ThemeProvider theme={lightTheme}>
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24', formatDuration}}>
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
           <RelativeTime
             date={DATE}
             label="Last seen"
@@ -189,5 +194,6 @@ describe('localized preferences', () => {
       </ThemeProvider>
     );
     expect(screen.getByText('00:00')).toBeInTheDocument();
+    restore();
   });
 });

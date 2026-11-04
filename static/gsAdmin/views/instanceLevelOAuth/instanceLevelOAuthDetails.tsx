@@ -3,6 +3,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
@@ -12,7 +13,6 @@ import {toast} from '@sentry/scraps/toast';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -255,7 +255,7 @@ export function InstanceLevelOAuthDetails() {
         name: data.name,
         id: data.id,
         clientID: data.clientID,
-        createdAt: getFormattedDate(data.dateAdded, 'MMM Do YYYY'),
+        createdAt: formatDateTime(data.dateAdded, {format: 'MMM Do YYYY', utc: true}),
         allowedOrigins: data.allowedOrigins.join(' '),
         homepageUrl: data.homepageUrl,
         redirectUris: data.redirectUris.join(' '),
