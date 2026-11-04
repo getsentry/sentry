@@ -129,7 +129,6 @@ from sentry.seer.sentry_data_models import (
     HasRepoCodeMappingsResponse,
     InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
-    OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
@@ -531,10 +530,6 @@ def get_organization_features(
 class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_ids: list[int]
     org_slugs: list[str]
-
-
-def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
-    return OrganizationAutofixConsentResponse(consent=True)
 
 
 def get_attributes_for_span(
@@ -956,7 +951,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
     "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
-    "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
     "send_seer_webhook": seer_rpc(send_seer_webhook),

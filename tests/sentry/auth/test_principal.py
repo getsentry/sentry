@@ -20,7 +20,7 @@ from sentry.auth.principal import (
     acting_user_id,
     has_user,
     is_acting_user,
-    owned_by_acting_user,
+    is_owned_by_acting_user,
     require_user,
     resolve_actor,
     set_request_principal,
@@ -110,7 +110,7 @@ class OwnedByActingUserTest(TestCase):
         )
 
     def test_user(self) -> None:
-        mine = owned_by_acting_user(self.user)
+        mine = is_owned_by_acting_user(self.user)
         assert list(GroupBookmark.objects.filter(mine)) == [self.mine]
         assert list(GroupBookmark.objects.exclude(mine)) == [self.theirs]
 
@@ -118,14 +118,14 @@ class OwnedByActingUserTest(TestCase):
         service_account = ServiceAccountPrincipal(
             service_account_id=1, organization_id=1, name="sa"
         )
-        nothing = owned_by_acting_user(service_account)
+        nothing = is_owned_by_acting_user(service_account)
         assert not GroupBookmark.objects.filter(nothing).exists()
         assert set(GroupBookmark.objects.exclude(nothing)) == {self.mine, self.theirs}
 
     def test_field(self) -> None:
-        assert list(GroupBookmark.objects.filter(owned_by_acting_user(self.user, "user_id"))) == [
-            self.mine
-        ]
+        assert list(
+            GroupBookmark.objects.filter(is_owned_by_acting_user(self.user, "user_id"))
+        ) == [self.mine]
 
 
 class ResolveActorTest(TestCase):
@@ -234,7 +234,8 @@ class SetRequestPrincipalTest(TestCase):
         return Request(RequestFactory().get("/"), authenticators=[Authentication()])
 
 
-SRC = Path(__file__).parents[3] / "src" / "sentry"
+ROOT = Path(__file__).parents[3]
+SRC = ROOT / "src" / "sentry"
 
 
 def _is_request_user(node: ast.AST) -> bool:
@@ -274,8 +275,9 @@ def _is_request_user_type_check(node: ast.AST) -> bool:
 
 
 # Lower these as callers move off. Exact, so the baseline can't drift back up.
-REQUEST_USER_ID_BASELINE = 347
-REQUEST_USER_TYPE_CHECK_BASELINE = 31
+REQUEST_USER_ID_BASELINE = 134
+REQUEST_USER_TYPE_CHECK_BASELINE = 29
+REQUEST_USER_ALLOWLIST_BASELINE = 22
 
 
 def test_request_user_id_uses_only_go_down() -> None:
@@ -300,4 +302,20 @@ def test_request_user_type_checks_only_go_down() -> None:
     assert count == REQUEST_USER_TYPE_CHECK_BASELINE, (
         f"request.user type checks dropped to {count}; lower "
         "REQUEST_USER_TYPE_CHECK_BASELINE to match."
+    )
+
+
+def test_request_user_mypy_allowlist_only_goes_down() -> None:
+    allowlist = "tools/mypy_helpers/request_user_allowlist.txt"
+    paths = (ROOT / allowlist).read_text().split()
+    missing = [path for path in paths if not (ROOT / path).is_file()]
+    assert not missing, f"Remove deleted files from {allowlist}: {missing}"
+    count = len(paths)
+    assert count <= REQUEST_USER_ALLOWLIST_BASELINE, (
+        f"{count - REQUEST_USER_ALLOWLIST_BASELINE} new file(s) in {allowlist}, where mypy "
+        "doesn't know request.user can be a service account. Don't add to it: narrow with "
+        "has_user(request.user), acting_user_id(request.user) or require_user(request)."
+    )
+    assert count == REQUEST_USER_ALLOWLIST_BASELINE, (
+        f"{allowlist} dropped to {count} files; lower REQUEST_USER_ALLOWLIST_BASELINE to match."
     )

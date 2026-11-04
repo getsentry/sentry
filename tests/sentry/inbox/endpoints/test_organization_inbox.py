@@ -124,16 +124,38 @@ class OrganizationInboxIndexTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             id=[str(read.id), str(unread.id)],
-            event_type=["issue.assigned", "issue.pr_ready_for_review"],
+            event_type=["issue.user_assigned", "issue.pr_ready_for_review"],
             subject_type=["issue", "issue"],
         )
         assert {entry["id"] for entry in response.data} == {str(read.id), str(unread.id)}
+
+    def test_assignment_event_filters(self) -> None:
+        individual = self.create_inbox_item(subject_id="1")
+        self.create_inbox_item_event(
+            inbox_item=individual, type="issue.user_assigned", data={"summary": "Assigned to you"}
+        )
+        team = self.create_inbox_item(subject_id="2")
+        self.create_inbox_item_event(
+            inbox_item=team,
+            type="issue.team_assigned",
+            data={"summary": "Assigned to your team"},
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, event_type="issue.user_assigned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(individual.id)]
+
+        response = self.get_success_response(
+            self.organization.slug, event_type="issue.team_assigned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(team.id)]
 
     def test_invalid_filters(self) -> None:
         for params in (
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
-            {"event_type": ["issue.assigned", "unknown"]},
+            {"event_type": ["issue.user_assigned", "unknown"]},
             {"subject_id": "1"},
             {"subject_type": ["issue", "issue"], "subject_id": "1"},
             {"is_read": "unknown"},

@@ -164,7 +164,7 @@ class TransactionCheckingRedisTest(SentryTestCase):
         self, _redis_transaction_callers: mock.MagicMock
     ) -> None:
         client = redis_clusters.get("transaction-guard-cluster")
-        assert all(info["redis_mode"] == "cluster" for info in client.info("server").values())
+        assert all(info["server_mode"] == "cluster" for info in client.info("server").values())
 
         with transaction.atomic(using="default"):
             with pytest.raises(

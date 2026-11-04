@@ -5,14 +5,14 @@ import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
 import {InboxNotebookPreview} from 'sentry/views/inbox/inboxNotebookPreview';
-import type {InboxItem} from 'sentry/views/inbox/types';
+import type {InboxSubject} from 'sentry/views/inbox/types';
 
 interface InboxItemPreviewProps {
-  item: InboxItem | null;
+  subject: InboxSubject | null;
 }
 
-function InboxItemPreviewContent({item}: InboxItemPreviewProps) {
-  if (!item) {
+function InboxItemPreviewContent({subject}: InboxItemPreviewProps) {
+  if (!subject) {
     return (
       <EmptyState
         padding="2xl"
@@ -22,23 +22,26 @@ function InboxItemPreviewContent({item}: InboxItemPreviewProps) {
     );
   }
 
-  switch (item.subjectType) {
+  switch (subject.subjectType) {
     case 'issue':
-      return <InboxIssuePreview key={item.subjectId} groupId={item.subjectId} />;
+      return <InboxIssuePreview key={subject.subjectId} groupId={subject.subjectId} />;
     case 'notebook':
       return (
-        <InboxNotebookPreview key={item.subjectId} investigationId={item.subjectId} />
+        <InboxNotebookPreview
+          key={subject.subjectId}
+          investigationId={subject.subjectId}
+        />
       );
     default:
-      unreachable(item.subjectType);
+      unreachable(subject.subjectType);
       return null;
   }
 }
 
-export function InboxItemPreview({item}: InboxItemPreviewProps) {
+export function InboxItemPreview({subject}: InboxItemPreviewProps) {
   return (
     <AnalyticsArea name="inbox.preview" overrideParent>
-      <InboxItemPreviewContent item={item} />
+      <InboxItemPreviewContent subject={subject} />
     </AnalyticsArea>
   );
 }

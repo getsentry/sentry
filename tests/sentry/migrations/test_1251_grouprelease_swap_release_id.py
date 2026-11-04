@@ -6,7 +6,7 @@ from django.db.migrations.state import StateApps
 
 from sentry.testutils.cases import TestMigrations
 
-migration = importlib.import_module("sentry.migrations.1250_grouprelease_swap_release_id")
+migration = importlib.import_module("sentry.migrations.1251_grouprelease_swap_release_id")
 
 WIDE_RELEASE_ID = 2_147_483_648
 US1_UNIQUE_NAME = "sentry_grouprelease_group_id_46ba6e430d088d04_uniq"
@@ -120,8 +120,8 @@ def fetch_catalog_snapshot() -> dict[str, list[tuple[str, str]]]:
 
 class SwapGroupReleaseReleaseIdTest(TestMigrations):
     app = "sentry"
-    migrate_from = "1249_remove_artifactbundleindex_url_index"
-    migrate_to = "1250_grouprelease_swap_release_id"
+    migrate_from = "1250_add_query_priority_column"
+    migrate_to = "1251_grouprelease_swap_release_id"
 
     narrow_type = "integer"
 
@@ -225,9 +225,9 @@ class SwapUs1ShapedGroupReleaseReleaseIdTest(SwapGroupReleaseReleaseIdTest):
 
 class SwapGroupReleaseInvalidTwinTest(TestMigrations):
     app = "sentry"
-    # Both 1249, so the table is left unswapped and the test runs SWAP_SQL itself.
-    migrate_from = "1249_remove_artifactbundleindex_url_index"
-    migrate_to = "1249_remove_artifactbundleindex_url_index"
+    # Both before the swap, so the table is left unswapped and the test runs SWAP_SQL itself.
+    migrate_from = "1250_add_query_priority_column"
+    migrate_to = "1250_add_query_priority_column"
 
     def test_invalid_twin_index_aborts_the_swap(self) -> None:
         snapshot_before = fetch_catalog_snapshot()

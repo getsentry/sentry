@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
+from sentry.auth.principal import RequestPrincipal
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
@@ -355,7 +356,7 @@ def parse_actor_or_none_value(
 _HACKY_INVALID_USER = RpcUser(id=0)
 
 
-def parse_user_value(value: str, user: User | RpcUser | AnonymousUser | None) -> RpcUser:
+def parse_user_value(value: str, user: RequestPrincipal | None) -> RpcUser:
     if value == "me":
         if isinstance(user, User):
             return serialize_rpc_user(user)

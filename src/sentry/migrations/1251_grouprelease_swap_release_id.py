@@ -163,7 +163,7 @@ class Migration(CheckedMigration):
     atomic = True
 
     dependencies = [
-        ("sentry", "1249_remove_artifactbundleindex_url_index"),
+        ("sentry", "1250_add_query_priority_column"),
     ]
 
     operations = [
