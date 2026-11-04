@@ -19,6 +19,10 @@ const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.TRACEMETRICS,
 ]);
 
+interface UseDroppedDataLayerParams extends UseDroppedDataParams {
+  environments?: string[];
+}
+
 interface UseDroppedDataLayerOptions {
   enabled?: boolean;
   hidden?: boolean;
@@ -26,7 +30,7 @@ interface UseDroppedDataLayerOptions {
 
 interface DroppedDataLayer {
   band: DroppedDataProps | undefined;
-  filterNote: Pick<DroppedDataFilterNoteProps, 'dataset'> | undefined;
+  filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
   layerControl: DroppedDataLayerControlProps | undefined;
 }
 
@@ -35,7 +39,7 @@ interface DroppedDataLayer {
  * and its filter note.
  */
 export function useDroppedDataLayer(
-  params: UseDroppedDataParams,
+  {environments, ...params}: UseDroppedDataLayerParams,
   {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
 ): DroppedDataLayer {
   const {dataset} = params;
@@ -52,7 +56,7 @@ export function useDroppedDataLayer(
     band: isBandShown
       ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
       : undefined,
-    filterNote: isBandShown ? {dataset} : undefined,
+    filterNote: isBandShown ? {dataset, environments} : undefined,
     layerControl: isLoaded
       ? {
           dataset,
