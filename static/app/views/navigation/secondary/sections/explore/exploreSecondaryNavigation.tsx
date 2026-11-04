@@ -268,7 +268,7 @@ function ExploreSecondaryNavigationImpl() {
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                    {t('All Queries')}
+                    {t('Saved Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
                 <Feature features="organizations:explore-saved-formulas">
