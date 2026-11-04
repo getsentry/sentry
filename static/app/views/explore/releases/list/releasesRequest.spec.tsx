@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {
   SessionStatusCountByProjectInPeriodFixture,
   SessionStatusCountByReleaseInPeriodFixture,
@@ -20,8 +19,13 @@ import ReleasesRequest, {
 
 describe('ReleasesRequest', () => {
   const {organization} = initializeOrg();
-  const location = LocationFixture();
   const projectId = 123;
+  const initialRouterConfig = {
+    location: {
+      pathname: '/organizations/org-slug/releases/',
+      query: {project: [`${projectId}`]},
+    },
+  };
   const selection = {
     projects: [projectId],
     environments: [],
@@ -189,12 +193,6 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
       >
@@ -202,7 +200,8 @@ describe('ReleasesRequest', () => {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>
+      </ReleasesRequest>,
+      {initialRouterConfig}
     );
 
     await waitFor(() =>
@@ -419,12 +418,6 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
         display={[ReleasesDisplayOption.USERS]}
         selection={selection}
       >
@@ -432,7 +425,8 @@ describe('ReleasesRequest', () => {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>
+      </ReleasesRequest>,
+      {initialRouterConfig}
     );
 
     await waitFor(() =>
@@ -647,12 +641,6 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}
@@ -661,7 +649,8 @@ describe('ReleasesRequest', () => {
           healthData = getHealthData;
           return null;
         }}
-      </ReleasesRequest>
+      </ReleasesRequest>,
+      {initialRouterConfig}
     );
 
     await waitFor(() =>
@@ -725,5 +714,54 @@ describe('ReleasesRequest', () => {
     expect(requestForAutoHealthStatsPeriodSessionHistogram).toHaveBeenCalledTimes(1);
     expect(requestForAutoTotalCountByProjectInPeriod).toHaveBeenCalledTimes(1);
     expect(requestForAutoTotalCountByReleaseInPeriod).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests sessions for the URL date range when the URL has absolute dates', async () => {
+    const sessionsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sessions/',
+      body: SessionStatusCountByReleaseInPeriodFixture(),
+    });
+
+    render(
+      <ReleasesRequest
+        releases={['7a82c130be9143361f20bc77252df783cf91e4fc']}
+        organization={organization}
+        display={[ReleasesDisplayOption.SESSIONS]}
+        selection={selection}
+      >
+        {() => null}
+      </ReleasesRequest>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/releases/',
+            query: {
+              project: `${projectId}`,
+              environment: 'prod',
+              start: '2021-03-01T00:00:00',
+              end: '2021-03-08T00:00:00',
+              query: 'ignored',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(sessionsRequest).toHaveBeenCalled());
+    expect(sessionsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: {
+          query: 'release:7a82c130be9143361f20bc77252df783cf91e4fc',
+          interval: '1d',
+          start: '2021-03-01T00:00:00.000',
+          end: '2021-03-08T00:00:00.000',
+          project: [`${projectId}`],
+          environment: ['prod'],
+          field: ['sum(session)'],
+          groupBy: ['project', 'release', 'session.status'],
+        },
+      })
+    );
   });
 });

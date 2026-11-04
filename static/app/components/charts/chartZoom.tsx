@@ -6,7 +6,9 @@ import type {
   XAXisComponentOption,
 } from 'echarts';
 import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import moment, {type MomentInput} from 'moment-timezone';
+import {parseAsString, useQueryStates, type SetValues, type Values} from 'nuqs';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
@@ -21,13 +23,20 @@ import type {
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
+
+const pageDateParsers = {
+  pageEnd: parseAsString,
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
+
+type PageDate = Values<typeof pageDateParsers>;
 
 type Period = {
   end: DateString;
@@ -59,6 +68,8 @@ type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
   location: Location;
   navigate: ReactRouter3Navigate;
+  pageDate: PageDate;
+  setPageDate: SetValues<typeof pageDateParsers>;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -141,7 +152,8 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}: any, saveHistory = false) => {
-    const {location, navigate, onZoom, usePageDate, saveOnZoom} = this.props;
+    const {location, navigate, onZoom, pageDate, setPageDate, usePageDate, saveOnZoom} =
+      this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -163,14 +175,16 @@ class ChartZoom extends Component<Props> {
     });
 
     if (usePageDate) {
-      const newQuery = {
-        ...location.query,
-        pageStart: start ? getUtcDateString(start) : undefined,
-        pageEnd: end ? getUtcDateString(end) : undefined,
-        pageStatsPeriod: period ?? undefined,
+      const newPageDate: PageDate = {
+        pageEnd: end ? getUtcDateString(end) : null,
+        pageStart: start ? getUtcDateString(start) : null,
+        pageStatsPeriod: period ?? null,
       };
 
-      navigateIfQueryChanged(navigate, location, {query: newQuery});
+      // nuqs pushes a history entry even when the values are unchanged.
+      if (!isEqual(newPageDate, pageDate)) {
+        setPageDate(newPageDate);
+      }
     } else {
       updateDateTime(
         {
@@ -314,6 +328,8 @@ class ChartZoom extends Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
+      pageDate: _pageDate,
+      setPageDate: _setPageDate,
       ...props
     } = this.props;
 
@@ -367,13 +383,23 @@ class ChartZoom extends Component<Props> {
 }
 
 /**
- * Wrapper that injects `navigate` and `location` hooks into ChartZoom.
  * @deprecated use useChartZoom instead
  */
-function ChartZoomWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
+function ChartZoomWithHooks(
+  props: Omit<Props, 'navigate' | 'location' | 'pageDate' | 'setPageDate'>
+) {
   const navigate = useNavigate();
   const location = useLocation();
-  return <ChartZoom {...props} navigate={navigate} location={location} />;
+  const [pageDate, setPageDate] = useQueryStates(pageDateParsers, {history: 'push'});
+  return (
+    <ChartZoom
+      {...props}
+      navigate={navigate}
+      location={location}
+      pageDate={pageDate}
+      setPageDate={setPageDate}
+    />
+  );
 }
 
 // eslint-disable-next-line @sentry/no-default-exports
