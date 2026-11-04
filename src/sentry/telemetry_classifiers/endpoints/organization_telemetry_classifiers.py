@@ -23,7 +23,7 @@ from sentry.telemetry_classifiers.serializers import (
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Explore"])
+@extend_schema(tags=["Seer"])
 class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.AGENT_TRACING
     publish_status = {
