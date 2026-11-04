@@ -1,7 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import SaveQueryModal from 'sentry/components/modals/explore/saveQueryModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 

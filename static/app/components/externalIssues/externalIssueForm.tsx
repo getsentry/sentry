@@ -4,12 +4,12 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,

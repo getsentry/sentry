@@ -14,11 +14,11 @@ import type {Query} from 'history';
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectHandle, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';

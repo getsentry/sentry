@@ -216,16 +216,6 @@
       "count": 3
     }
   },
-  "components/core/modal/components.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
-    }
-  },
-  "components/core/modal/index.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    }
-  },
   "components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1

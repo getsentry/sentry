@@ -4,7 +4,7 @@ description: Application-wide singleton modal dialog, controlled via the useModa
 category: overlays
 source: '@sentry/scraps/modal'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/modal/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/modal/index.tsx
 ---
 
 import * as Storybook from 'sentry/stories';
@@ -19,6 +19,10 @@ import {
 export const documentation = import('!!type-loader!@sentry/scraps/modal');
 
 `GlobalModal` is an application-wide singleton modal dialog. Only one modal can be open at a time. The modal is controlled via the `useModal()` hook or the imperative `openModal()` / `closeModal()` action creators.
+
+Mount `GlobalModal` once, below the theme provider and any React contexts that modal content needs. Import `openModal`, `closeModal`, `useModal`, and the modal types from `@sentry/scraps/modal`. These APIs share one store.
+
+`OverlayContextProvider` supplies optional location data, an app-root getter, and a modal error boundary. Sentry provides these through `SentryOverlayProvider`. Without app configuration, the modal uses its own body portal, background accessibility handling, and error fallback. Configuration providers can be nested without mounting another modal.
 
 <Storybook.Demo>
   <BasicDemo />

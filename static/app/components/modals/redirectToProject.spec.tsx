@@ -1,6 +1,7 @@
 import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 

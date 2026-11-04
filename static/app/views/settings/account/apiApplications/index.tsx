@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {type ModalRenderProps} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {
@@ -12,7 +13,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

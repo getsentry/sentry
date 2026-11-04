@@ -4,9 +4,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {GlobalModal} from '@sentry/scraps/modal';
+import {GlobalModal, openModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureShowcase, useShowcaseContext} from 'sentry/components/featureShowcase';
 
 function CustomFooter() {

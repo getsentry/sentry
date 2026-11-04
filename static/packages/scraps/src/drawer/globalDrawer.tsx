@@ -13,7 +13,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {useOverlayContext, type DrawerLocation} from '@sentry/scraps/overlayContext';
+import {useOverlayContext, type OverlayLocation} from '@sentry/scraps/overlayContext';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -65,7 +65,7 @@ export interface DrawerOptions {
    * Callback to determine whether the drawer should close when the location changes.
    * Defaults to closing in 'blocking' mode, staying open in 'passive' mode.
    */
-  shouldCloseOnLocationChange?: (nextLocation: DrawerLocation) => boolean;
+  shouldCloseOnLocationChange?: (nextLocation: OverlayLocation) => boolean;
 }
 
 interface DrawerRenderProps {
@@ -125,9 +125,8 @@ function DrawerBoundary({children}: React.PropsWithChildren) {
 }
 
 export function GlobalDrawer({children}: GlobalDrawerProps) {
-  const {drawer} = useOverlayContext();
+  const {drawer, location} = useOverlayContext();
   const {
-    location,
     boundaryComponent: Boundary = DrawerBoundary,
     shouldCloseOnInteractOutside:
       defaultShouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault,

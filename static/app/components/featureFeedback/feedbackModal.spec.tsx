@@ -9,8 +9,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {openModal} from '@sentry/scraps/modal';
+
 import * as indicators from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import {TextField} from 'sentry/components/forms/fields/textField';
 

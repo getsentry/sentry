@@ -10,7 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import * as modalActions from '@sentry/scraps/modal';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -223,7 +224,7 @@ describe('AccountSecurity', () => {
 
     renderComponent();
 
-    const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
+    const openEmailModalFunc = jest.spyOn(modalActions, 'openModal');
 
     expect(
       await screen.findByRole('status', {name: 'Authentication Method Inactive'})

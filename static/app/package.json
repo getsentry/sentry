@@ -85,7 +85,6 @@
     "dompurify": "3.4.17",
     "echarts": "6.1.0",
     "echarts-for-react": "3.0.6",
-    "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
     "fuse.js": "^7.5.0",
     "gl-matrix": "3.4.4",
@@ -123,7 +122,6 @@
     "sprintf-js": "1.0.3",
     "type-fest": "^5.10.0",
     "zod": "4.6.7",
-    "zustand": "5.0.16",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

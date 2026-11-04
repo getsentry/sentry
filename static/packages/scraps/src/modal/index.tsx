@@ -1,6 +1,8 @@
-import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
+import type * as React from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
+import {ariaHideOutside} from '@react-aria/overlays';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -9,102 +11,29 @@ import {useShallow} from 'zustand/react/shallow';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 import {Heading} from '@sentry/scraps/text';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {ROOT_ELEMENT} from 'sentry/constants';
-import {isModalOpen, ModalStore, type ModalRenderer} from 'sentry/stores/modalStore';
-import {getModalPortal} from 'sentry/utils/getModalPortal';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import {useLocation} from 'sentry/utils/useLocation';
-
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
+import {DefaultModalBoundary} from './errorBoundary';
+import {getModalPortal} from './portal';
+import {
+  closeModal as closeModalAction,
+  modalStore,
+  openModal,
+  selectIsModalOpen,
+  setFocusTrap,
+} from './state';
+import type {ModalOptions, ModalRenderer, ModalRenderProps} from './types';
 
 const MotionContainer = motion.create(Container);
 
-type ModalOptions = {
-  /**
-   * Set to `false` to disable the backdrop from being rendered.
-   * Set to `true` (the default) to show a translucent backdrop.
-   * Set to `{}` to pass props to the Backdrop component.
-   */
-  backdrop?: boolean | ComponentProps<typeof Backdrop>;
-  /**
-   * By default, the modal is closed when the backdrop is clicked or the
-   * escape key is pressed. This prop allows you to modify that behavior.
-   * Only use when completely necessary, the defaults are important for
-   * accessibility.
-   *
-   * 'all' (default) - the modal is automatically closed on backdrop click or
-   *   escape key.
-   * 'none' - the modal cannot be dismissed with either the mouse or the
-   *   keyboard. The modal will need to be closed manually with `closeModal()`.
-   *   This should only be used when a modal requires user input and cannot be
-   *   dismissed, which is rare.
-   * 'backdrop-click' - the modal cannot be dimissed by pressing the escape key.
-   * 'escape-key' - the modal cannot be dismissed by clicking on the backdrop.
-   *   This is useful for modals containing user input which will disappear on an
-   *   accidental click.
-   */
-  closeEvents?: 'all' | 'none' | 'backdrop-click' | 'escape-key';
-  /**
-   * Additional CSS which will be applied to the modals `role="dialog"`
-   * component. You may use the `[role="document"]` selector to target the
-   * actual modal content to style the visual element of the modal.
-   */
-  modalCss?: Interpolation<Theme>;
-  /**
-   * Callback for when the modal is closed
-   */
-  onClose?: (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => void;
-};
-
-type ModalRenderProps = {
-  /**
-   * Body container for the modal
-   */
-  Body: typeof ModalBody;
-  /**
-   * Looks like a close button. Useful for when you don't want to render the
-   * header which can include the close button.
-   */
-  CloseButton: ReturnType<typeof makeCloseButton>;
-  /**
-   * Footer container for the modal, typically for actions
-   */
-  Footer: typeof ModalFooter;
-  /**
-   * The modal header, optionally includes a close button which will close the
-   * modal.
-   */
-  Header: ReturnType<typeof makeClosableHeader>;
-  /**
-   * Closes the modal
-   */
-  closeModal: () => void;
-  /**
-   * Reference to the modal's container.
-   */
-  modalContainerRef?: React.RefObject<HTMLDivElement | null>;
-};
-
-/**
- * Meta-type to make re-exporting these in the action creator easy without
- * polluting the global API namespace with duplicate type names.
- *
- * eg. you won't accidentally import ModalRenderProps from here.
- */
-export type ModalTypes = {
-  options: ModalOptions;
-  renderProps: ModalRenderProps;
-};
-
 function useModalStore() {
   const store = useStore(
-    ModalStore,
+    modalStore,
     useShallow(state => ({
       modalId: state.modalId,
       renderer: state.renderer,
@@ -114,7 +43,7 @@ function useModalStore() {
   );
   return {
     ...store,
-    visible: isModalOpen(store),
+    visible: selectIsModalOpen(store),
   };
 }
 
@@ -130,19 +59,28 @@ function ModalContent({
 }
 
 export function GlobalModal() {
+  const [portal, setPortal] = useState<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setPortal(getModalPortal());
+  }, []);
+  return portal ? <ModalHost portal={portal} /> : null;
+}
+
+function ModalHost({portal}: {portal: HTMLDivElement}) {
   const {modalId, renderer, options, visible, triggerElement} = useModalStore();
-  const location = useLocation();
+  const {location, modal} = useOverlayContext();
+  const getAppElement = modal?.getAppElement;
+  const Boundary = modal?.boundaryComponent ?? DefaultModalBoundary;
   const theme = useTheme();
   const {t} = useTranslation();
   const closeEvents = options.closeEvents ?? 'all';
 
   const closeModal = useCallback(
     (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => {
-      // Option close callback, from the thing which opened the modal
       options.onClose?.(reason);
 
-      // actually closes the modal
-      ModalStore.closeModal();
+      closeModalAction();
     },
     [options]
   );
@@ -164,13 +102,6 @@ export function GlobalModal() {
   );
 
   const scrollLock = useScrollLock(document.body);
-  const portal = getModalPortal();
-  // The portal lives at the document body, so container responsive props (bare
-  // breakpoint keys) inside a modal have no DOM container ancestor in the routed
-  // app. `#modal-portal` is a query container (see global styles); broadcast its
-  // breakpoint here so the JS resolution (which would otherwise leak the #main
-  // breakpoint through the React portal) agrees with the CSS @container rules.
-  // The ref is stable because `getModalPortal` is memoized.
   const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
 
@@ -181,15 +112,24 @@ export function GlobalModal() {
       fallbackFocus: portal,
       allowOutsideClick: true,
     });
-    ModalStore.setFocusTrap(focusTrap.current);
+    const trap = focusTrap.current;
+    setFocusTrap(trap);
+    return () => {
+      trap.deactivate({returnFocus: false});
+      if (modalStore.getState().focusTrap === trap) {
+        setFocusTrap(undefined);
+      }
+    };
   }, [portal]);
 
   useEffect(() => {
-    const root = document.getElementById(ROOT_ELEMENT);
+    const root = getAppElement?.();
+    const previousAriaHidden = root?.getAttribute('aria-hidden');
+    let restoreBackground = () => {};
 
     const reset = () => {
       scrollLock.release();
-      root?.removeAttribute('aria-hidden');
+      restoreBackground();
       focusTrap.current?.deactivate({returnFocus: false});
       document.removeEventListener('keydown', handleEscapeClose);
       triggerElement?.focus();
@@ -197,7 +137,18 @@ export function GlobalModal() {
 
     if (visible) {
       scrollLock.acquire();
-      root?.setAttribute('aria-hidden', 'true');
+      if (root) {
+        root.setAttribute('aria-hidden', 'true');
+        restoreBackground = () => {
+          if (previousAriaHidden === null || previousAriaHidden === undefined) {
+            root.removeAttribute('aria-hidden');
+          } else {
+            root.setAttribute('aria-hidden', previousAriaHidden);
+          }
+        };
+      } else if (!getAppElement) {
+        restoreBackground = ariaHideOutside([portal]);
+      }
       focusTrap.current?.activate();
 
       document.addEventListener('keydown', handleEscapeClose);
@@ -206,25 +157,22 @@ export function GlobalModal() {
     }
 
     return reset;
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
+  }, [portal, handleEscapeClose, visible, scrollLock, triggerElement, getAppElement]);
 
-  // Close the modal when the browser history changes.
-  //
-  // XXX: We're using useEffectAfterFirstRender primarily to support tests
-  // which render the GlobalModal after a modal has already been registered in
-  // the modal store, meaning it would be closed immediately.
-  useEffectAfterFirstRender(() => {
-    ModalStore.closeModal();
-  }, [location.pathname]);
+  const pathname = location?.pathname;
+  const previousPathname = useRef(pathname);
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      closeModalAction();
+    }
+    previousPathname.current = pathname;
+  }, [pathname]);
 
-  // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
 
   const allowBackdropClickClose =
     closeEvents === 'all' || closeEvents === 'backdrop-click';
 
-  // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target &&
@@ -313,12 +261,9 @@ export function GlobalModal() {
                       padding={{zero: '3xl 2xl', '3xl': '3xl'}}
                       {...p}
                     >
-                      <ErrorBoundary
+                      <Boundary
                         resetKey={modalId}
-                        mini
-                        allowDismiss
                         onDismiss={onCloseButtonClick}
-                        message={t('There was a problem rendering the dialog.')}
                         header={
                           <Header>
                             <Heading as="h2">{t('Something went wrong')}</Heading>
@@ -326,7 +271,7 @@ export function GlobalModal() {
                         }
                       >
                         <ModalContent renderer={renderer} renderProps={renderProps} />
-                      </ErrorBoundary>
+                      </Boundary>
                     </Container>
                   )}
                 </Surface>
@@ -367,25 +312,18 @@ interface UseModalReturn {
 }
 
 export function useModal(): UseModalReturn {
-  const isOpen = useStore(ModalStore, isModalOpen);
-  const focusTrap = useStore(ModalStore, state => state.focusTrap);
-
-  const openModal = useCallback((renderer: ModalRenderer, options?: ModalOptions) => {
-    ModalStore.openModal(renderer, options ?? {});
-  }, []);
-
-  const closeModalFn = useCallback(() => {
-    ModalStore.closeModal();
-  }, []);
-
-  return {
-    openModal,
-    closeModal: closeModalFn,
-    isOpen,
-    visible: isOpen,
-    focusTrap,
-  };
+  const isOpen = useStore(modalStore, selectIsModalOpen);
+  const focusTrap = useStore(modalStore, state => state.focusTrap);
+  return {openModal, closeModal: closeModalAction, isOpen, visible: isOpen, focusTrap};
 }
+
+export {openModal, closeModal, isModalOpen, subscribeToModalOpen} from './state';
+export type {
+  ModalOptions,
+  ModalRenderProps,
+  ModalRenderer,
+  ModalBoundaryProps,
+} from './types';
 
 /** @internal only used in tests & stories */
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';

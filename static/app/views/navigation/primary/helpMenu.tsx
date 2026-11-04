@@ -15,8 +15,8 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';

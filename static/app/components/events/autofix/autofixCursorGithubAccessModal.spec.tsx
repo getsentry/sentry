@@ -1,6 +1,7 @@
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 
 describe('AutofixCursorGithubAccessModal', () => {

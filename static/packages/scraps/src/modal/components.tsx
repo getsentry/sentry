@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
@@ -59,9 +60,6 @@ interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
    */
   closeButton?: boolean;
 }
-/**
- * Creates a ModalHeader that includes props to enable the close button
- */
 const makeClosableHeader = (closeModal: () => void) => {
   function ClosableHeader({closeButton, children, ...props}: ClosableHeaderProps) {
     return (
@@ -105,9 +103,6 @@ const makeClosableHeader = (closeModal: () => void) => {
   return ClosableHeader;
 };
 
-/**
- * Creates a CloseButton component that is connected to the provided closeModal trigger
- */
 const makeCloseButton = (closeModal: () => void) =>
   function (props: Omit<ButtonProps, 'aria-label'>) {
     return <CloseButton onClick={closeModal} {...props} />;

@@ -2,12 +2,10 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {
-  ModalRenderProps,
-  TeamAccessRequestModalOptions,
-} from 'sentry/actionCreators/modal';
+import type {TeamAccessRequestModalOptions} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

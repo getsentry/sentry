@@ -4,7 +4,8 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -152,3 +153,8 @@ describe('navigation ActionCreator', () => {
     });
   });
 });
+
+jest.mock('@sentry/scraps/modal', () => ({
+  ...jest.requireActual('@sentry/scraps/modal'),
+  openModal: jest.fn(),
+}));

@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 import classNames from 'classnames';
 
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {LoadingError} from 'sentry/components/loadingError';

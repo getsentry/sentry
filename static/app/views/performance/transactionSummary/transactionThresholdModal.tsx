@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
