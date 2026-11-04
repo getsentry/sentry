@@ -7,6 +7,7 @@ import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
+import type {DroppedDataSurface} from 'sentry/components/droppedData/types';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
@@ -19,12 +20,16 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 
 const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
+export interface UseDroppedDataDrawerParams extends UseDroppedDataParams {
+  surface: DroppedDataSurface;
+}
+
 interface UseDroppedDataDrawerOptions {
   enabled?: boolean;
 }
 
 export function useDroppedDataDrawer(
-  {dataset, interval, projects}: UseDroppedDataParams,
+  {dataset, interval, projects, surface}: UseDroppedDataDrawerParams,
   {enabled = true}: UseDroppedDataDrawerOptions = {}
 ) {
   const organization = useOrganization();
@@ -74,6 +79,7 @@ export function useDroppedDataDrawer(
         dataset,
         outcome: row.outcome,
         reason: row.reason,
+        surface,
       });
       openSeerExplorerRef.current({
         initialQuery: buildAskSeerPrompt({
@@ -83,7 +89,7 @@ export function useDroppedDataDrawer(
         }),
       });
     },
-    [dataset, organization]
+    [dataset, organization, surface]
   );
   const onAskSeer = isSeerExplorerEnabled(organization) ? handleAskSeer : undefined;
 
@@ -103,6 +109,7 @@ export function useDroppedDataDrawer(
           dataset={dataset}
           interval={interval}
           projects={projects}
+          surface={surface}
           onAskSeer={onAskSeer}
         />
       ),
@@ -127,13 +134,18 @@ export function useDroppedDataDrawer(
     paramValue,
     interval,
     projects,
+    surface,
     onAskSeer,
     pathname,
     setIsDrawerInUrl,
   ]);
 
   return useCallback(() => {
-    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset});
+    trackAnalytics('explore.dropped_data.drawer_opened', {
+      organization,
+      dataset,
+      surface,
+    });
     setIsDrawerInUrl(true);
-  }, [organization, dataset, setIsDrawerInUrl]);
+  }, [organization, dataset, surface, setIsDrawerInUrl]);
 }

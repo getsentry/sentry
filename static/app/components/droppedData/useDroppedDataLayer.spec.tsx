@@ -40,7 +40,12 @@ describe('useDroppedDataLayer', () => {
     mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          surface: 'explore_spans',
+        }),
       {organization}
     );
 
@@ -64,7 +69,12 @@ describe('useDroppedDataLayer', () => {
     mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          surface: 'explore_spans',
+        }),
       {organization}
     );
 
@@ -82,7 +92,12 @@ describe('useDroppedDataLayer', () => {
     mockDroppedData();
 
     const {result, router} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          surface: 'explore_spans',
+        }),
       {organization}
     );
 
@@ -98,7 +113,7 @@ describe('useDroppedDataLayer', () => {
     const {result} = renderHookWithProviders(
       () =>
         useDroppedDataLayer(
-          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {dataset: DiscoverDatasets.SPANS, interval: '1h', surface: 'explore_spans'},
           {hidden: true}
         ),
       {organization}
@@ -116,7 +131,12 @@ describe('useDroppedDataLayer', () => {
     mockDroppedData([]);
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          surface: 'explore_spans',
+        }),
       {organization}
     );
 
@@ -134,7 +154,7 @@ describe('useDroppedDataLayer', () => {
     const {result} = renderHookWithProviders(
       () =>
         useDroppedDataLayer(
-          {dataset: DiscoverDatasets.SPANS, interval: '1h'},
+          {dataset: DiscoverDatasets.SPANS, interval: '1h', surface: 'explore_spans'},
           {enabled: false}
         ),
       {organization}
@@ -152,7 +172,12 @@ describe('useDroppedDataLayer', () => {
     const request = mockDroppedData();
 
     const {result} = renderHookWithProviders(
-      () => useDroppedDataLayer({dataset: DiscoverDatasets.TRANSACTIONS, interval: '1h'}),
+      () =>
+        useDroppedDataLayer({
+          dataset: DiscoverDatasets.TRANSACTIONS,
+          interval: '1h',
+          surface: 'explore_spans',
+        }),
       {organization}
     );
 

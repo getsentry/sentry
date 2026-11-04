@@ -81,7 +81,7 @@ function DroppedDataTrigger({
   projects?: number[];
 }) {
   const openDroppedDataDrawer = useDroppedDataDrawer(
-    {dataset, interval, projects},
+    {dataset, interval, projects, surface: 'explore_spans'},
     {enabled}
   );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
@@ -114,7 +114,7 @@ describe('useDroppedDataDrawer', () => {
     expect(router.location.query.droppedData).toBe('spans');
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.drawer_opened',
-      expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+      expect.objectContaining({dataset: DiscoverDatasets.SPANS, surface: 'explore_spans'})
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
@@ -493,6 +493,7 @@ describe('useDroppedDataDrawer', () => {
           dataset: DiscoverDatasets.SPANS,
           outcome: 'filtered',
           selected: false,
+          surface: 'explore_spans',
         })
       );
       expect(screen.getByRole('checkbox', {name: 'Inbound Filters'})).not.toBeChecked();
@@ -622,7 +623,11 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.queryByText('14.29%')).not.toBeInTheDocument();
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.dropped_data.scope_toggled',
-        expect.objectContaining({dataset: DiscoverDatasets.SPANS, scope: 'all'})
+        expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          scope: 'all',
+          surface: 'explore_spans',
+        })
       );
 
       await userEvent.click(screen.getByRole('radio', {name: 'Unexpected'}));
@@ -802,7 +807,11 @@ describe('useDroppedDataDrawer', () => {
     expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.ask_seer_clicked',
-      expect.objectContaining({dataset: DiscoverDatasets.SPANS, outcome: 'rate_limited'})
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS,
+        outcome: 'rate_limited',
+        surface: 'explore_spans',
+      })
     );
   });
 });
