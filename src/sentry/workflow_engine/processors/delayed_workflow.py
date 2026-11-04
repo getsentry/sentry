@@ -256,6 +256,24 @@ class EventRedisData:
         }
         return EventRedisData(events=filtered_events)
 
+    def filter_to_group_dcgs(
+        self, groups_to_dcgs: Mapping[GroupId, set[DataConditionGroup]]
+    ) -> EventRedisData:
+        """Return a new EventRedisData containing only events matching their group's DCGs."""
+        if not groups_to_dcgs:
+            return EventRedisData(events={})
+
+        groups_to_dcg_ids = {
+            group_id: {dcg.id for dcg in dcgs} for group_id, dcgs in groups_to_dcgs.items()
+        }
+        filtered_events = {
+            key: instance
+            for key, instance in self.events.items()
+            if key.group_id in groups_to_dcg_ids
+            and not key.dcg_ids.isdisjoint(groups_to_dcg_ids[key.group_id])
+        }
+        return EventRedisData(events=filtered_events)
+
 
 @dataclass
 class GroupQueryParams:
@@ -761,16 +779,7 @@ def get_group_to_groupevent(
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
 ) -> dict[Group, tuple[GroupEvent, datetime | None]]:
-    groups_to_dcg_ids = {
-        group_id: {dcg.id for dcg in dcgs} for group_id, dcgs in groups_to_dcgs.items()
-    }
-    event_data = EventRedisData(
-        events={
-            key: instance
-            for key, instance in event_data.events.items()
-            if key.dcg_ids.intersection(groups_to_dcg_ids.get(key.group_id, set()))
-        }
-    )
+    event_data = event_data.filter_to_group_dcgs(groups_to_dcgs)
     if not event_data.events:
         return {}
 

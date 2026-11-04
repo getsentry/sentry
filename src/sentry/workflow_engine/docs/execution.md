@@ -320,9 +320,11 @@ batches so asynchronous task messages contain identifiers rather than large payl
 8. Sends passing action groups through the normal action path.
 9. Deletes successfully processed Redis items.
 
-Hydration first keeps only buffered entries whose condition-group IDs intersect the
-passing condition-group IDs for their issue group. It loads unique group, event, and
-occurrence IDs from those entries only, retaining 100-key event payload batches. No
+Hydration first uses `EventRedisData.filter_to_group_dcgs` to keep only buffered entries
+whose condition-group IDs intersect the passing condition-group IDs for their issue
+group. The method returns a new container without modifying the original buffered data.
+Hydration loads unique group, event, and occurrence IDs from those entries only,
+retaining 100-key event payload batches. No
 eligible entries means no group-cache, event payload, or occurrence reads; evaluation
 reporting and successful Redis cleanup still run. Eligible entries retain their buffer
 iteration order: the last successfully hydrated event for each issue group supplies the
