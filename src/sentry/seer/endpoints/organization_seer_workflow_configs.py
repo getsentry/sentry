@@ -565,7 +565,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         # Validate and update monitors
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
@@ -600,13 +599,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         if enabled is not None:
             workflow.set_enabled(enabled)
-            config = workflow.get_config()
 
-        return Response(self.serialize(request, organization, config))
+        return Response(self.serialize(request, organization, workflow.get_config()))
 
 
 def serialize_workflow_configs(
