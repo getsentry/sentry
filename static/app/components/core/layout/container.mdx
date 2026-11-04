@@ -122,31 +122,31 @@ Apply rounded corners using theme radius values:
 
 ### Border and Background
 
-`border` sets the border color, using the theme's `md` width (1px) by default. Use `borderWidth` to override the width with a theme border token. It has no effect without a `border*` prop.
+`borderColor` sets the border color, using the theme's `md` width (1px) by default. Use `borderWidth` to override the width with a theme border token. It has no effect without a border color prop. `border` and `background` still work but are deprecated in favor of `borderColor` and `backgroundColor`.
 
 Use `translucent` for a see-through neutral border or fill. It maps to the `transparent.neutral.muted` token, which is how Figma refers to it.
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container padding="md" radius="md" border="translucent">
+    <Container padding="md" radius="md" borderColor="translucent">
       Translucent border
     </Container>
-    <Container padding="md" radius="md" border="primary" borderWidth="xl">
+    <Container padding="md" radius="md" borderColor="primary" borderWidth="xl">
       2px border
     </Container>
-    <Container padding="md" radius="md" background="translucent">
+    <Container padding="md" radius="md" backgroundColor="translucent">
       Translucent background
     </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container border="translucent" radius="md">
+<Container borderColor="translucent" radius="md">
   Translucent border
 </Container>
-<Container border="primary" borderWidth="xl">
+<Container borderColor="primary" borderWidth="xl">
   2px border
 </Container>
-<Container background="translucent">Translucent background</Container>
+<Container backgroundColor="translucent">Translucent background</Container>
 ```
 
 Semantic backgrounds (`accent`, `danger`, `warning`, `success`, `promotion`) map to their `vibrant` token. `overlay` isn't supported. Use `<Surface variant="overlay">` instead, which also applies the border, radius and shadow.

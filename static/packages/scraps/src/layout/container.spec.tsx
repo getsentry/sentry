@@ -35,6 +35,20 @@ describe('Container', () => {
     expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
+  it('does not forward color and width props to the DOM', () => {
+    render(
+      <Container borderColor="translucent" borderWidth="xl" backgroundColor="accent">
+        Hello
+      </Container>,
+      {wrapper: ThemeWrapper}
+    );
+
+    const element = screen.getByText('Hello');
+    expect(element).not.toHaveAttribute('borderColor');
+    expect(element).not.toHaveAttribute('borderWidth');
+    expect(element).not.toHaveAttribute('backgroundColor');
+  });
+
   it('render prop guards against invalid attributes', () => {
     render(
       // @ts-expect-error - aria-activedescendant should be set on the child element

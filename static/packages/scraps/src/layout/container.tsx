@@ -29,6 +29,10 @@ type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
+  backgroundColor?: Responsive<BackgroundVariant>;
+  /**
+   * @deprecated Use `backgroundColor` instead.
+   */
   background?: Responsive<BackgroundVariant>;
   display?: Responsive<CSS['display']>;
 
@@ -83,14 +87,22 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<CSS['minHeight']>;
   maxHeight?: Responsive<CSS['maxHeight']>;
 
+  /**
+   * Border color on all sides. Renders a solid border at the `md` width (1px)
+   * unless `borderWidth` overrides it.
+   */
+  borderColor?: Responsive<BorderVariant>;
+  /**
+   * @deprecated Use `borderColor` instead.
+   */
   border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;
   borderBottom?: Responsive<BorderVariant>;
   borderLeft?: Responsive<BorderVariant>;
   borderRight?: Responsive<BorderVariant>;
   /**
-   * Border width token. Defaults to `md` (1px) via the `border*` props, so this
-   * only needs to be set to override it, and has no effect without one.
+   * Border width token. Defaults to `md` (1px), so this only needs to be set to
+   * override it, and has no effect without a border color prop.
    */
   borderWidth?: Responsive<BorderWidth>;
 
@@ -214,7 +226,9 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'area',
   'as',
   'background',
+  'backgroundColor',
   'border',
+  'borderColor',
   'borderTop',
   'borderBottom',
   'borderLeft',
@@ -349,7 +363,7 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.background, p.theme, getBackground)};
+  ${p => rc('background', p.backgroundColor ?? p.background, p.theme, getBackground)};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
@@ -374,7 +388,7 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.border, p.theme, getBorder)};
+  ${p => rc('border', p.borderColor ?? p.border, p.theme, getBorder)};
   ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};

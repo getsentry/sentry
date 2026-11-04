@@ -12,7 +12,7 @@ import {getBorder, getRadius, rc} from './styles';
 
 interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'backgroundColor' | 'border' | 'borderColor'
 > {
   elevation?: never;
   variant?: SurfaceVariant;
@@ -20,7 +20,7 @@ interface FlatSurfaceProps<T extends ContainerElement = 'div'> extends Omit<
 
 interface OverlaySurfaceProps<T extends ContainerElement = 'div'> extends Omit<
   ContainerProps<T>,
-  'background' | 'border'
+  'background' | 'backgroundColor' | 'border' | 'borderColor'
 > {
   variant: 'overlay';
   elevation?: 'low' | 'medium' | 'high';

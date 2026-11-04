@@ -259,7 +259,7 @@ export function getBorder(
 }
 
 /**
- * Resolves a border width token. Only meaningful alongside a `border*` prop,
+ * Resolves a border width token. Only meaningful alongside a border color prop,
  * which sets the style and color (and defaults the width to `md`).
  */
 export function getBorderWidth(
