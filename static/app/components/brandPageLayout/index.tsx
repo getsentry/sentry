@@ -48,7 +48,7 @@ function BrandPageLayoutRoot({
         minHeight="100dvh"
         overflow="hidden"
         position="relative"
-        backgroundColor="primary"
+        background="primary"
       >
         <Container
           as="aside"

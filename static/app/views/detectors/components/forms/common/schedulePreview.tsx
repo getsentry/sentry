@@ -243,7 +243,7 @@ function ContentWrapper({
       position="sticky"
       width="100%"
       height="138px"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius={isIntersecting ? 'md md 0 0' : 'md'}
       ref={stickyContainerRef}

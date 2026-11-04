@@ -24,7 +24,7 @@ export function TokenReference<T extends Record<string, string | number>>(
       gap="0"
       overflowY="hidden"
       overflowX="auto"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
     >
       {Object.entries(props.tokens).map(([token, value]) => (

@@ -234,7 +234,7 @@ export function SnapshotMainContent({
 
   if (viewMode === 'list') {
     return (
-      <Stack gap="0" padding="0" height="100%" width="100%" backgroundColor="secondary">
+      <Stack gap="0" padding="0" height="100%" width="100%" background="secondary">
         <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
@@ -552,7 +552,7 @@ function SingleViewLayout({
       padding="0"
       height="100%"
       width="100%"
-      backgroundColor="secondary"
+      background="secondary"
       onClick={e => e.stopPropagation()}
     >
       <ToolbarContainer

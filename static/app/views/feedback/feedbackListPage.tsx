@@ -65,13 +65,7 @@ function PageContent({
   return (
     <PageFiltersContainer>
       <ErrorBoundary>
-        <Stack
-          flex={1}
-          align="stretch"
-          gap="xl"
-          backgroundColor="primary"
-          overflow="hidden"
-        >
+        <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <Grid
             columns={{
               zero: '1fr',

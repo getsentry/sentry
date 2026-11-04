@@ -47,7 +47,7 @@ export function HypothesisCardPlaceholder() {
       padding="lg"
       radius="md"
       borderColor="primary"
-      backgroundColor="primary"
+      background="primary"
       aria-hidden
       data-test-id="investigation-hypothesis-placeholder"
     >

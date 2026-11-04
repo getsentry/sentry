@@ -31,7 +31,7 @@ function Item({marker, headline, children, variant = 'default'}: TimelineItemPro
           gap="lg"
           borderColor="primary"
           radius="md"
-          backgroundColor="primary"
+          background="primary"
         >
           <Grid columns="24px minmax(0, 1fr)" align="center" gap="sm">
             {marker}

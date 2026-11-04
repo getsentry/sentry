@@ -14,12 +14,7 @@ type Props = {
 
 export function WaitingActivity({onRefresh, disabled}: Props) {
   return (
-    <Container
-      backgroundColor="primary"
-      borderColor="primary"
-      radius="md"
-      position="relative"
-    >
+    <Container background="primary" borderColor="primary" radius="md" position="relative">
       <EmptyMessage
         title={t('Waiting on Activity!')}
         action={

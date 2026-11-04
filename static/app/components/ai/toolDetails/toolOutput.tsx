@@ -106,7 +106,7 @@ export function ToolOutput({value}: {value: unknown}) {
         />
       </Flex>
       <Container
-        backgroundColor="secondary"
+        background="secondary"
         radius="md"
         padding="md"
         minWidth="0"

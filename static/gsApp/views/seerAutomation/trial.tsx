@@ -84,7 +84,7 @@ export default function SeerAutomationTrial() {
         padding="2xl xl"
         borderColor="primary"
         radius="lg"
-        backgroundColor="secondary"
+        background="secondary"
         maxWidth="600px"
         margin="auto"
         position="relative"
@@ -131,7 +131,7 @@ export default function SeerAutomationTrial() {
                     as="li"
                     borderColor="primary"
                     radius="md"
-                    backgroundColor="tertiary"
+                    background="tertiary"
                     padding="md"
                     position="relative"
                   >

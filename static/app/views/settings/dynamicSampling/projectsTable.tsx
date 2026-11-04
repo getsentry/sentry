@@ -125,7 +125,7 @@ export function ProjectsTable({
 
   return (
     <Fragment>
-      <TableHeader backgroundColor="secondary" overflow="hidden">
+      <TableHeader background="secondary" overflow="hidden">
         <Cell direction="column" padding="xl">
           {t('Originating Project')}
         </Cell>

@@ -35,7 +35,7 @@ export function SeerConnectGitHubBanner() {
   return (
     <Container borderColor="primary" radius="lg" overflow="hidden">
       <ThemeProvider theme={theme}>
-        <Container backgroundColor="primary">
+        <Container background="primary">
           <Grid columns="5fr 2fr">
             <ImageContainer />
             <Stack gap="lg" padding="2xl">

@@ -27,7 +27,7 @@ export function ActivityAvatar({className, type, user, size = 38}: Props) {
         justify="center"
         width={`${size}px`}
         height={`${size}px`}
-        backgroundColor="primary"
+        background="primary"
         radius="full"
       >
         <StyledIconSentry size="md" />

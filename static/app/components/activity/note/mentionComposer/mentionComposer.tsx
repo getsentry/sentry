@@ -140,7 +140,7 @@ export function MentionComposer(props: MentionComposerProps) {
             </field.Base>
           ) : (
             <Container
-              backgroundColor="primary"
+              background="primary"
               borderColor="primary"
               radius="md"
               padding="lg"

@@ -96,7 +96,7 @@ export function SpanDetailCard({
   return (
     <Stack
       ref={ref}
-      backgroundColor="primary"
+      background="primary"
       borderColor={embedded ? undefined : 'primary'}
       radius={embedded ? undefined : 'md'}
       padding="xl"
@@ -132,7 +132,7 @@ export function ConversationContentLayout({
           flex="1"
           minHeight="0"
           width="100%"
-          backgroundColor="secondary"
+          background="secondary"
         >
           <Flex height="100%" width="100%" minHeight="0" minWidth="0">
             <MeasuredContentSplit
@@ -145,7 +145,7 @@ export function ConversationContentLayout({
                   minWidth="0"
                   minHeight="0"
                   padding={leftPadding}
-                  backgroundColor="primary"
+                  background="primary"
                   borderColor="primary"
                   radius="md"
                   overflowX="hidden"
@@ -217,7 +217,7 @@ export function ConversationDetailPanel({children}: {children: React.ReactNode})
     <Stack
       flex={1}
       minHeight="0"
-      backgroundColor="primary"
+      background="primary"
       overflowY="auto"
       overflowX="hidden"
     >

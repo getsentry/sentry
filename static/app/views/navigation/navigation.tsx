@@ -175,7 +175,7 @@ function NavigationImpl() {
           left={`${PRIMARY_SIDEBAR_WIDTH}px`}
           top={0}
           position="absolute"
-          backgroundColor="primary"
+          background="primary"
           {...sidebarAnimationProps}
         >
           <SecondaryNavigation.Sidebar>

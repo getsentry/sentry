@@ -99,7 +99,7 @@ export function CreditCardPanel({
       align="start"
       gap="3xl"
       padding="xl"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       maxWidth={maxPanelWidth}

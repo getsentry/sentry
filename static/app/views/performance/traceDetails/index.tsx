@@ -346,7 +346,7 @@ function TraceInnerLayout(props: FlexProps) {
   return (
     <Stack
       {...props}
-      backgroundColor="primary"
+      background="primary"
       gap="md"
       paddingLeft="xl"
       paddingRight="xl"

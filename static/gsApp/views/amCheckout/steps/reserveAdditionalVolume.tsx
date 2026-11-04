@@ -86,7 +86,7 @@ export function ReserveAdditionalVolume({
         align="center"
         justify="between"
         width="100%"
-        backgroundColor="secondary"
+        background="secondary"
         padding="xl xl"
       >
         <Stack gap="sm" align="start">

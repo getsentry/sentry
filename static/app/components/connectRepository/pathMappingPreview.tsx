@@ -38,7 +38,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
   return (
     <Container
       containerType="inline-size"
-      backgroundColor="secondary"
+      background="secondary"
       radius="md"
       padding="xl"
     >

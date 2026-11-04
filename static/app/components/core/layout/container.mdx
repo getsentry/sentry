@@ -36,7 +36,7 @@ You can specialize the `Container` component yourself and tailor it to your use 
 The simplest usage renders a `div` element with enhanced layout properties:
 
 ```jsx
-<Container padding="md" backgroundColor="primary">
+<Container padding="md" background="primary">
   Basic container content
 </Container>
 ```
@@ -46,7 +46,7 @@ The simplest usage renders a `div` element with enhanced layout properties:
 The `Container` implements composition via <a href="/scraps/layout/composition">render prop</a> pattern.
 
 ```tsx
-<Container padding="md" backgroundColor="primary">
+<Container padding="md" background="primary">
   {props => <div {...props}>Basic container content</div>}
 </Container>
 ```
@@ -56,7 +56,7 @@ The `Container` implements composition via <a href="/scraps/layout/composition">
 The `Container` component renders a `div` element by default, but you can specify the DOM node to render by passing a `as` prop.
 
 ```tsx
-<Container as="section" padding="md" backgroundColor="primary">
+<Container as="section" padding="md" background="primary">
   Basic container content
 </Container>
 ```
@@ -70,7 +70,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
     {SIZES.map(size => (
       <Container
         key={size}
-        backgroundColor="primary"
+        background="primary"
         padding={size}
         borderColor="primary"
         radius="md"
@@ -103,19 +103,19 @@ Apply rounded corners using theme radius values:
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container backgroundColor="primary" padding="md" radius="sm" borderColor="primary">
+    <Container background="primary" padding="md" radius="sm" borderColor="primary">
       Small radius
     </Container>
-    <Container backgroundColor="primary" padding="md" radius="md" borderColor="primary">
+    <Container background="primary" padding="md" radius="md" borderColor="primary">
       Medium radius
     </Container>
-    <Container backgroundColor="primary" padding="md" radius="lg" borderColor="primary">
+    <Container background="primary" padding="md" radius="lg" borderColor="primary">
       Large radius
     </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container backgroundColor="primary" padding="md" radius="md">
+<Container background="primary" padding="md" radius="md">
   Rounded corners
 </Container>
 ```
@@ -134,7 +134,7 @@ Use `translucent` for a see-through neutral border or background.
     <Container padding="md" radius="md" borderColor="primary" borderWidth="xl">
       2px border
     </Container>
-    <Container padding="md" radius="md" backgroundColor="translucent">
+    <Container padding="md" radius="md" background="translucent">
       Translucent background
     </Container>
   </Flex>
@@ -146,10 +146,10 @@ Use `translucent` for a see-through neutral border or background.
 <Container borderColor="primary" borderWidth="xl">
   2px border
 </Container>
-<Container backgroundColor="translucent">Translucent background</Container>
+<Container background="translucent">Translucent background</Container>
 ```
 
-`backgroundColor` accepts `primary`, `secondary`, `tertiary`, `accent`, `danger`, `warning`, `success`, `promotion` and `translucent`.
+`background` accepts `primary`, `secondary`, `tertiary`, `accent`, `danger`, `warning`, `success`, `promotion` and `translucent`.
 
 ### Position
 
@@ -159,13 +159,13 @@ Set positioning for absolute/relative layouts:
   <Container
     position="relative"
     height="100px"
-    backgroundColor="primary"
+    background="primary"
     borderColor="primary"
   >
     <Container
       position="absolute"
       padding="xs"
-      backgroundColor="primary"
+      background="primary"
       style={{top: '12px', right: '8px'}}
       borderColor="primary"
     >
@@ -175,11 +175,11 @@ Set positioning for absolute/relative layouts:
   </Container>
 </Storybook.Demo>
 ```jsx
-<Container position="relative" height="100px" backgroundColor="primary">
+<Container position="relative" height="100px" background="primary">
   <Container
     position="absolute"
     padding="xs"
-    backgroundColor="primary"
+    background="primary"
     style={{top: '12px', right: '8px'}}
   >
     Absolute positioned
@@ -193,7 +193,7 @@ Set positioning for absolute/relative layouts:
 <Storybook.Demo>
   <Flex
     padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
-    backgroundColor={{
+    background={{
       'screen:xs': 'primary',
       'screen:sm': 'secondary',
       'screen:lg': 'primary',
@@ -201,20 +201,10 @@ Set positioning for absolute/relative layouts:
     radius={{'screen:xs': '0', 'screen:sm': 'md'}}
     borderColor="primary"
   >
-    <Container
-      padding="sm"
-      backgroundColor="primary"
-      style={{flex: 1}}
-      borderColor="primary"
-    >
+    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
       Item 1
     </Container>
-    <Container
-      padding="sm"
-      backgroundColor="primary"
-      style={{flex: 1}}
-      borderColor="primary"
-    >
+    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
       Item 2
     </Container>
   </Flex>
@@ -224,7 +214,7 @@ Set positioning for absolute/relative layouts:
   // Padding increases at lg breakpoint
   padding={{'screen:xs': 'sm', 'screen:lg': 'xl'}}
   // Background changes at sm and lg breakpoints
-  backgroundColor={{
+  background={{
     'screen:xs': 'primary',
     'screen:sm': 'secondary',
     'screen:lg': 'primary',
@@ -277,10 +267,10 @@ An element can't query its own size — mark a parent with
 
 <Storybook.Demo resizable align="start">
   <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
-    <Container padding="sm" backgroundColor="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" borderColor="primary" radius="md">
       Stacked below `sm` (container narrower than 512px)...
     </Container>
-    <Container padding="sm" backgroundColor="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" borderColor="primary" radius="md">
       ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
       flip it — the viewport never changes.
     </Container>
@@ -367,7 +357,7 @@ The `area` prop supports CSS Grid integration:
   >
     <Container
       area="header"
-      backgroundColor="primary"
+      background="primary"
       padding="sm"
       borderColor="primary"
       radius="md"
@@ -376,7 +366,7 @@ The `area` prop supports CSS Grid integration:
     </Container>
     <Container
       area="sidebar"
-      backgroundColor="primary"
+      background="primary"
       padding="sm"
       borderColor="primary"
       radius="md"
@@ -385,7 +375,7 @@ The `area` prop supports CSS Grid integration:
     </Container>
     <Container
       area="content"
-      backgroundColor="primary"
+      background="primary"
       padding="sm"
       borderColor="primary"
       radius="md"
@@ -403,13 +393,13 @@ The `area` prop supports CSS Grid integration:
     gridTemplateRows: 'auto 1fr',
   }}
 >
-  <Container area="header" backgroundColor="primary" padding="sm" radius="md">
+  <Container area="header" background="primary" padding="sm" radius="md">
     Header
   </Container>
-  <Container area="sidebar" backgroundColor="primary" padding="sm" radius="md">
+  <Container area="sidebar" background="primary" padding="sm" radius="md">
     Sidebar
   </Container>
-  <Container area="content" backgroundColor="primary" padding="sm" radius="md">
+  <Container area="content" background="primary" padding="sm" radius="md">
     Content
   </Container>
 </Container>

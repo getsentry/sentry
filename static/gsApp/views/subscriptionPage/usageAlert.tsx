@@ -77,7 +77,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
 
   return (
     <Container
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       data-test-id="usage-exceeded-alert"
@@ -238,7 +238,7 @@ export function UsageAlert({subscription, usage}: Props) {
   const showProjected = !hasExceeded;
   const projectedInfo = (
     <Container
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       data-test-id="projected-overage-alert"

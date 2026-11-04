@@ -87,7 +87,7 @@ export function BillingDetailsPanel({
       align="start"
       gap="3xl"
       padding="xl"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       data-test-id="billing-details-panel"

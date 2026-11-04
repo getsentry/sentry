@@ -29,7 +29,7 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
             <Stack
               borderColor={blocks.length > 0 ? 'primary' : undefined}
               radius="md"
-              backgroundColor="primary"
+              background="primary"
             >
               {blocksToRender.map((block, index) => (
                 <DashboardChatBlock

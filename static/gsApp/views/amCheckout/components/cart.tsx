@@ -361,13 +361,7 @@ function SubtotalSummary({
   );
 
   return (
-    <Stack
-      borderTop="primary"
-      backgroundColor="primary"
-      width="100%"
-      padding="xl"
-      gap="md"
-    >
+    <Stack borderTop="primary" background="primary" width="100%" padding="xl" gap="md">
       <Flex data-test-id="summary-item-plan-total" justify="between" align="center">
         <Text size="lg" bold>
           {t('Plan Total')}
@@ -599,12 +593,7 @@ function TotalSummary({
       : t('Confirm');
 
   return (
-    <Stack
-      borderColor="primary"
-      radius="lg"
-      backgroundColor="secondary"
-      overflow="hidden"
-    >
+    <Stack borderColor="primary" radius="lg" background="secondary" overflow="hidden">
       <Stack padding="xl xl 0" gap="md">
         <Fragment>
           {!previewDataLoading && (
@@ -925,12 +914,7 @@ export function Cart({
         onToggle={setChangesIsOpen}
         organization={organization}
       />
-      <Stack
-        borderColor="primary"
-        radius="lg"
-        backgroundColor="primary"
-        overflow="hidden"
-      >
+      <Stack borderColor="primary" radius="lg" background="primary" overflow="hidden">
         <Stack align="start" width="100%" height="100%">
           <Stack
             direction="row"

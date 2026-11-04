@@ -89,7 +89,7 @@ function TopBarContent() {
       as="header"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       justify="between"
-      backgroundColor="secondary"
+      background="secondary"
       align="center"
       gap="sm"
       padding={{'screen:sm': '0 lg', 'screen:md': '0 xl'}}

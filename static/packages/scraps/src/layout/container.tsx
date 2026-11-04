@@ -29,7 +29,7 @@ type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
-  backgroundColor?: Responsive<BackgroundVariant>;
+  background?: Responsive<BackgroundVariant>;
   display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
@@ -217,7 +217,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
   'area',
   'as',
-  'backgroundColor',
+  'background',
   'borderColor',
   'borderTop',
   'borderBottom',
@@ -353,7 +353,7 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.backgroundColor, p.theme, getBackground)};
+  ${p => rc('background', p.background, p.theme, getBackground)};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 

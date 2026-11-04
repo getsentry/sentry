@@ -22,7 +22,7 @@ export function SettingsWrapper() {
   return (
     <AnalyticsArea name="settings">
       <SettingsBreadcrumbsProvider>
-        <StyledFlex flex="1" backgroundColor="primary">
+        <StyledFlex flex="1" background="primary">
           <SettingsCommandPaletteActions />
           <Outlet />
         </StyledFlex>

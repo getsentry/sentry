@@ -37,7 +37,7 @@ export function UserMessage({
       width={width}
       minWidth={0}
       padding="xs md"
-      backgroundColor="secondary"
+      background="secondary"
       borderColor="primary"
       radius="md"
       whiteSpace="pre-wrap"

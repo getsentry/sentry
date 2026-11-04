@@ -76,7 +76,7 @@ export function FrameContent({
     <Activity mode={isExpanded ? 'visible' : 'hidden'}>
       <Container
         id={frameContextId}
-        backgroundColor="primary"
+        background="primary"
         overflowX="hidden"
         data-test-id="core-stacktrace-frame-context"
       >

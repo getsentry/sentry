@@ -39,7 +39,7 @@ export function ColorReference({
       gap="lg"
       padding="xl"
       radius="md"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       wrap="wrap"
       overflowY="hidden"

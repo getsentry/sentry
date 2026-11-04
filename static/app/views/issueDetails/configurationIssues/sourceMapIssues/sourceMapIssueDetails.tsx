@@ -121,7 +121,7 @@ export function SourceMapIssueDetails({
       role="main"
       position="relative"
       borderColor="primary"
-      backgroundColor="primary"
+      background="primary"
       radius="md"
     >
       {event && (

@@ -201,7 +201,7 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
 
   return (
     <Container
-      backgroundColor="secondary"
+      background="secondary"
       borderRight="primary"
       position="relative"
       height="100%"
@@ -789,7 +789,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         as="li"
         radius="md"
         position="relative"
-        backgroundColor={isDragging ? 'secondary' : undefined}
+        background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         css={reorderableHandleCoordination}

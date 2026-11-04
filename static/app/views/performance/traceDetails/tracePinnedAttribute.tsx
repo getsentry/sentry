@@ -265,7 +265,7 @@ export function TracePinnedAttributeCell({node}: {node: BaseNode}) {
                 bottom="0"
                 align="center"
                 padding="0 2xs"
-                backgroundColor="primary"
+                background="primary"
               >
                 <Button
                   size="zero"

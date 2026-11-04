@@ -13,7 +13,7 @@ import {Tabs} from '@sentry/scraps/tabs';
  * Main container for a page.
  */
 export function Page(props: {children: React.ReactNode}) {
-  return <Stack as="main" flex="1" backgroundColor="primary" {...props} />;
+  return <Stack as="main" flex="1" background="primary" {...props} />;
 }
 
 /**
@@ -96,7 +96,7 @@ export function Body({noRowGap, ...props}: BodyProps) {
       columns={{zero: 'minmax(0, 1fr)', '4xl': 'minmax(100px, auto) 325px'}}
       alignContent="start"
       gap={noRowGap ? '0 2xl' : '2xl'}
-      backgroundColor="primary"
+      background="primary"
       padding={{xl: 'lg', '3xl': 'lg xl'}}
       {...props}
     />

@@ -340,7 +340,7 @@ export function LaunchpadAdminPage() {
         <Grid columns={{zero: '1fr', xl: '1fr 1fr'}} gap="xl">
           <form onSubmit={handleFetchInfoSubmit}>
             <Container
-              backgroundColor="secondary"
+              background="secondary"
               borderColor="primary"
               radius="md"
               padding="lg"
@@ -377,7 +377,7 @@ export function LaunchpadAdminPage() {
 
           <form onSubmit={handleDeleteSubmit}>
             <Container
-              backgroundColor="secondary"
+              background="secondary"
               borderColor="primary"
               radius="md"
               padding="lg"
@@ -413,7 +413,7 @@ export function LaunchpadAdminPage() {
 
           <form onSubmit={handleRerunSubmit}>
             <Container
-              backgroundColor="secondary"
+              background="secondary"
               borderColor="primary"
               radius="md"
               padding="lg"
@@ -450,7 +450,7 @@ export function LaunchpadAdminPage() {
 
           <form onSubmit={handleBatchDeleteSubmit}>
             <Container
-              backgroundColor="secondary"
+              background="secondary"
               borderColor="primary"
               radius="md"
               padding="lg"
@@ -486,7 +486,7 @@ export function LaunchpadAdminPage() {
 
           <form onSubmit={handleDownloadSubmit}>
             <Container
-              backgroundColor="secondary"
+              background="secondary"
               borderColor="primary"
               radius="md"
               padding="lg"
@@ -523,7 +523,7 @@ export function LaunchpadAdminPage() {
 
         {fetchedArtifactInfo && (
           <Container
-            backgroundColor="secondary"
+            background="secondary"
             borderColor="primary"
             radius="md"
             padding="lg"
@@ -533,7 +533,7 @@ export function LaunchpadAdminPage() {
                 fetchedArtifactInfo.artifact_info?.project?.slug &&
                 fetchedArtifactInfo.artifact_info?.id && (
                   <Container
-                    backgroundColor="tertiary"
+                    background="tertiary"
                     borderColor="primary"
                     radius="sm"
                     padding="md"
@@ -561,7 +561,7 @@ export function LaunchpadAdminPage() {
                 />
               </Flex>
               <Container
-                backgroundColor="primary"
+                background="primary"
                 borderColor="primary"
                 radius="md"
                 padding="md"

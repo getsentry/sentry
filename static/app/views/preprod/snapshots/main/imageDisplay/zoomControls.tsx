@@ -80,7 +80,7 @@ export function ZoomableArea({children}: {children: React.ReactNode}) {
       borderColor="primary"
       radius="md"
       overflow="hidden"
-      backgroundColor="secondary"
+      background="secondary"
     >
       {children}
     </Container>

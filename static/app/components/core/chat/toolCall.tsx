@@ -233,7 +233,7 @@ function FailureChip({label}: {label: ReactNode}) {
       borderColor="danger"
       radius="sm"
       padding="2xs sm"
-      backgroundColor="primary"
+      background="primary"
     >
       <Text size="sm" variant="danger" bold>
         {label}
@@ -246,7 +246,7 @@ function InputBox({input}: {input: ReactNode}) {
   const {t} = useTranslation();
   return (
     <Container
-      backgroundColor="secondary"
+      background="secondary"
       borderColor="primary"
       radius="md"
       padding="sm"
@@ -265,7 +265,7 @@ function InputBox({input}: {input: ReactNode}) {
 function OutputBox({output}: {output: ReactNode}) {
   const {t} = useTranslation();
   return (
-    <Container backgroundColor="secondary" radius="md" padding="sm" width="100%">
+    <Container background="secondary" radius="md" padding="sm" width="100%">
       <Flex align="center" gap="sm" wrap="wrap">
         <Text size="sm" variant="secondary" monospace bold>
           {t('Output:')}

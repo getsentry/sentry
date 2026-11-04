@@ -115,7 +115,7 @@ function AddGiftBudgetModal({
                         borderColor="primary"
                         radius="md"
                         cursor="pointer"
-                        backgroundColor={
+                        background={
                           budgetField.state.value === budget.id ? 'secondary' : undefined
                         }
                       >

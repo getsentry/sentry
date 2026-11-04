@@ -640,7 +640,7 @@ function AgentTags({
       <Container
         display={showToggle || showAll ? 'block' : 'none'}
         position="absolute"
-        backgroundColor="primary"
+        background="primary"
         padding="2xs xs 0 xl"
         style={{bottom: '0', right: '0'}}
       >

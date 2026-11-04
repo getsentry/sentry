@@ -129,7 +129,7 @@ function DeviceCodeBadge({userCode}: {userCode: string}) {
         tabIndex={0}
         align="center"
         gap="xs"
-        backgroundColor="secondary"
+        background="secondary"
         radius="md"
         padding="sm md"
       >

@@ -11,7 +11,7 @@ export function Card({
     <Container
       borderColor="primary"
       radius="md"
-      backgroundColor="primary"
+      background="primary"
       style={{boxShadow: theme.shadow.medium}}
       margin="xl 0"
       padding="xl"

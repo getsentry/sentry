@@ -178,7 +178,7 @@ function LoadingOverlay() {
       <Container
         position="absolute"
         inset="0"
-        backgroundColor="primary"
+        background="primary"
         style={{opacity: 0.5}}
       />
       <LoadingIndicator mini />

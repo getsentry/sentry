@@ -33,7 +33,7 @@ export function StartTourModal({
     <ThemeProvider theme={invertedTheme}>
       <Container
         radius="md"
-        backgroundColor="primary"
+        background="primary"
         overflow="hidden"
         css={theme => css`
           margin: -${theme.space['3xl']} -${theme.space['2xl']};

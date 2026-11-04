@@ -230,7 +230,7 @@ export function NewWelcomeUI(props: StepProps) {
                   width="100%"
                   {...ONBOARDING_ENTER}
                   borderColor="primary"
-                  backgroundColor="primary"
+                  background="primary"
                   radius="xl"
                   padding="xl"
                 >

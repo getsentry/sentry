@@ -39,7 +39,7 @@ export function ExploreContentSection(props: FlexProps) {
   return (
     <Stack
       {...props}
-      backgroundColor="primary"
+      background="primary"
       flex="1 1 auto"
       minHeight="0"
       minWidth="0"
@@ -88,7 +88,7 @@ export const ExploreBodySearch = styled(StuckAwareExploreBodySearch)`
 export function ExploreBodyContent(props: FlexProps) {
   return (
     <Flex
-      backgroundColor="primary"
+      background="primary"
       flexGrow={1}
       direction={{zero: 'column', xl: 'row'}}
       padding="0"

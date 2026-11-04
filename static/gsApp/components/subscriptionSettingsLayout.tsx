@@ -6,7 +6,7 @@ import {Container} from '@sentry/scraps/layout';
 export default function SubscriptionSettingsLayout() {
   return (
     <SettingsColumn>
-      <Container flex="1" minWidth="0" backgroundColor="primary">
+      <Container flex="1" minWidth="0" background="primary">
         <Outlet />
       </Container>
     </SettingsColumn>

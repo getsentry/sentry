@@ -306,7 +306,7 @@ export function StacktraceLinkModal({
                   align="start"
                   gap="sm"
                   padding="md"
-                  backgroundColor="secondary"
+                  background="secondary"
                   borderColor="primary"
                   radius="md"
                 >

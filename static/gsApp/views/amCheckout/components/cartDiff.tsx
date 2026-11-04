@@ -553,7 +553,7 @@ export function CartDiff({
       borderColor="primary"
       radius="lg"
       align="start"
-      backgroundColor="primary"
+      background="primary"
       overflow="hidden"
     >
       <Stack

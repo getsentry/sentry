@@ -316,7 +316,7 @@ export function SizeCompareMainContent() {
         )}
 
       {/* Items Changed Section */}
-      <Container backgroundColor="primary" radius="lg" padding="0" borderColor="primary">
+      <Container background="primary" radius="lg" padding="0" borderColor="primary">
         <Stack gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center">

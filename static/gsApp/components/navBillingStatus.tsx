@@ -200,7 +200,7 @@ function QuotaExceededContent({
   // If ONLY PAYG-ineligible categories are exceeded, show Contact Sales content
   if (paygIneligibleCategories.length > 0 && otherCategories.length === 0) {
     return (
-      <Container backgroundColor="primary">
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -244,7 +244,7 @@ function QuotaExceededContent({
   // If BOTH PAYG-ineligible and other categories are exceeded, show both sections
   if (paygIneligibleCategories.length > 0 && otherCategories.length > 0) {
     return (
-      <Container backgroundColor="primary">
+      <Container background="primary">
         <Header>
           <HeaderTitle>{t('Billing Status')}</HeaderTitle>
         </Header>
@@ -338,7 +338,7 @@ function QuotaExceededContent({
 
   // Standard content for PAYG-eligible categories only
   return (
-    <Container backgroundColor="primary">
+    <Container background="primary">
       <Header>
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>

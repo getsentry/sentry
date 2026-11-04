@@ -65,7 +65,7 @@ export function MergedItem({
         columns="minmax(0, 1fr) auto"
         align="center"
         gap="md"
-        backgroundColor="primary"
+        background="primary"
         padding="md"
       >
         <Flex align="center" gap="sm" minWidth={0}>
@@ -150,7 +150,7 @@ export function MergedItem({
           columns={`calc(${theme.space.xl} + ${theme.space.sm} - 2px) minmax(0, 1fr)`}
           align="center"
           gap="sm"
-          backgroundColor="secondary"
+          background="secondary"
           borderTop="secondary"
           padding="md"
         >

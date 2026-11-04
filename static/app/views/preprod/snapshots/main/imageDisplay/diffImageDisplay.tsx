@@ -271,7 +271,7 @@ function OnionView({
           borderColor="primary"
           radius="md"
           overflow="hidden"
-          backgroundColor="secondary"
+          background="secondary"
         >
           <OnionContainer>
             <ConstrainedImage

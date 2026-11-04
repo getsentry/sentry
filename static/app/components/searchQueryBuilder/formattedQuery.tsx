@@ -193,7 +193,7 @@ export function FilterWrapper(props: FlexProps) {
       {...props}
       align="center"
       gap="xs"
-      backgroundColor="primary"
+      background="primary"
       padding="2xs xs"
       borderColor="secondary"
       radius="md"

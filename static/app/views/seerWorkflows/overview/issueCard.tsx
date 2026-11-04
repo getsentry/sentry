@@ -740,7 +740,7 @@ function CardFrame({
   return (
     <Container
       ref={containerRef}
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       padding="xl"

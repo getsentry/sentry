@@ -58,7 +58,7 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
       borderRight="primary"
-      backgroundColor="primary"
+      background="primary"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}

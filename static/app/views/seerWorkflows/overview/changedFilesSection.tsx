@@ -111,7 +111,7 @@ function RepoGroup({
         );
       })}
       {hiddenCount > 0 ? (
-        <Flex justify="center" borderTop="primary" backgroundColor="primary" padding="xs">
+        <Flex justify="center" borderTop="primary" background="primary" padding="xs">
           <Button
             size="xs"
             variant="transparent"
@@ -154,7 +154,7 @@ export function ChangedFilesSection({
         borderColor="primary"
         radius="md"
         overflow="hidden"
-        backgroundColor="secondary"
+        background="secondary"
       >
         {groups.map((group, groupIndex) => (
           <RepoGroup

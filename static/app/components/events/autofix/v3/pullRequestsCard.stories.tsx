@@ -177,7 +177,7 @@ function FakeSeerDrawer({children}: {children: ReactNode}) {
     <Stack
       borderColor="primary"
       radius="md"
-      backgroundColor="secondary"
+      background="secondary"
       overflow="hidden"
       minWidth="0"
     >

@@ -38,7 +38,7 @@ export function DemoHeader() {
       align="center"
       paddingRight="xl"
       gap="md"
-      backgroundColor="primary"
+      background="primary"
       whiteSpace="nowrap"
       borderBottom="primary"
     >

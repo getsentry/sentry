@@ -18,7 +18,7 @@ export function OrgStatsProfilingBanner() {
       <Container
         column={{zero: 'span 1', '3xl': 'span 2', '4xl': 'span 1'}}
         padding="xl"
-        backgroundColor="secondary"
+        background="secondary"
         borderBottom={{zero: 'primary', '4xl': 'none'}}
       >
         <h6>{t('Profiling has a new billing model!')}</h6>

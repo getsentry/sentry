@@ -81,7 +81,7 @@ export function ManagedNote({subscription}: Props) {
   return (
     <Container
       data-test-id="managed-note"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
     >

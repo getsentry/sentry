@@ -26,7 +26,7 @@ export function MetricCard(props: MetricCardProps) {
 
   return (
     <Stack
-      backgroundColor="primary"
+      background="primary"
       radius="lg"
       padding="xl"
       gap="xs"

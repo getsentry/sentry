@@ -517,7 +517,7 @@ export function PlanFeatures({
   return (
     <Stack>
       <Stack
-        backgroundColor="secondary"
+        background="secondary"
         padding="xl"
         radius="lg"
         borderColor="primary"

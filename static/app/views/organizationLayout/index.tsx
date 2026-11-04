@@ -122,7 +122,7 @@ function AppLayout({organization}: LayoutProps) {
               tabIndex={-1}
               flex="1"
               minWidth="0"
-              backgroundColor="secondary"
+              background="secondary"
               containerType="inline-size"
             >
               <DemoHeader />

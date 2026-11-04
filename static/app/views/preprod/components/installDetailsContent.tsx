@@ -361,7 +361,7 @@ export function InstallDetailsContent({
               <Heading as="h3">{t('Install Groups')}</Heading>
               <Container
                 padding="xl"
-                backgroundColor="secondary"
+                background="secondary"
                 borderColor="primary"
                 radius="md"
                 width="100%"
@@ -381,7 +381,7 @@ export function InstallDetailsContent({
               <Heading as="h3">{t('Release Notes')}</Heading>
               <Container
                 padding="xl"
-                backgroundColor="secondary"
+                background="secondary"
                 borderColor="primary"
                 radius="md"
                 width="100%"
@@ -432,7 +432,7 @@ function CodeSignatureInfo({children}: {children: ReactNode}) {
   return (
     <Container
       padding="md"
-      backgroundColor="secondary"
+      background="secondary"
       borderColor="primary"
       radius="md"
       width="100%"

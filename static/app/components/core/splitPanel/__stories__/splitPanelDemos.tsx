@@ -27,12 +27,12 @@ export function PersistedSizeDemo() {
           fillMinSize={240}
           onResizeEnd={({endSize}) => setSize(endSize)}
           sized={
-            <Stack padding="md" backgroundColor="primary" height="100%">
+            <Stack padding="md" background="primary" height="100%">
               <Text bold>Sized pane</Text>
             </Stack>
           }
           fill={
-            <Stack padding="md" backgroundColor="primary" height="100%">
+            <Stack padding="md" background="primary" height="100%">
               <Text bold>Fill pane</Text>
             </Stack>
           }
@@ -59,13 +59,13 @@ export function SinglePaneDemo() {
           minSize={120}
           fillMinSize={240}
           sized={
-            <Stack padding="md" backgroundColor="primary" height="100%">
+            <Stack padding="md" background="primary" height="100%">
               <Text bold>Sized pane</Text>
             </Stack>
           }
           fill={
             collapsed ? undefined : (
-              <Stack padding="md" backgroundColor="primary" height="100%">
+              <Stack padding="md" background="primary" height="100%">
                 <Text bold>Fill pane</Text>
               </Stack>
             )

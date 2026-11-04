@@ -433,7 +433,7 @@ function ConnectedMonitorList({
 
   if (monitorIds.length === 0) {
     return (
-      <Stack padding="xl" gap="sm" align="center" backgroundColor="secondary" radius="md">
+      <Stack padding="xl" gap="sm" align="center" background="secondary" radius="md">
         <Text bold>{t('No monitors connected')}</Text>
         <Text variant="muted" align="center">
           {t('Connect a metric monitor above, or save now and choose monitors later.')}

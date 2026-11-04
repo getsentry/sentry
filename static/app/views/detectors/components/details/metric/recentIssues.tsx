@@ -324,14 +324,14 @@ function IssueOpenPeriodRow({openPeriod, now, onZoom}: IssueOpenPeriodRowProps) 
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch" />
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch">
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
         <Text>
           {t('Opened')} <DateTime date={openPeriodStart} />
         </Text>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch" />
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch">
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
         <Text>
           {openPeriodEnd ? (
             <Fragment>
@@ -342,11 +342,11 @@ function IssueOpenPeriodRow({openPeriod, now, onZoom}: IssueOpenPeriodRowProps) 
           )}
         </Text>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch">
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
         <Duration seconds={openPeriodDurationSeconds} abbreviation />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch" />
-      <SimpleTable.RowCell backgroundColor="secondary" alignSelf="stretch" justify="end">
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" justify="end">
         <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
           {t('Zoom')}
         </Button>

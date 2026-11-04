@@ -56,7 +56,7 @@ export class QueryCard extends PureComponent<Props> {
             </AvatarWrapper>
           </Flex>
           <Container
-            backgroundColor="secondary"
+            background="secondary"
             height="100%"
             maxHeight="150px"
             overflow="hidden"

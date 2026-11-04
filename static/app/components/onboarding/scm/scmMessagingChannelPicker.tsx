@@ -232,7 +232,7 @@ export function ScmMessagingChannelPicker({
         gap="lg"
         justify="end"
         padding="lg"
-        backgroundColor="secondary"
+        background="secondary"
         borderTop="primary"
         style={{borderRadius: `0 0 ${theme.radius.xl} ${theme.radius.xl}`}}
       >

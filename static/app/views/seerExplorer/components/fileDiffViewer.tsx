@@ -166,7 +166,7 @@ export function FileDiffViewer({
             <DiffContainer>
               {patch.hunks.map((hunk, hunkIndex) => (
                 <Fragment key={hunkIndex}>
-                  <Container backgroundColor="secondary" column="1 / 3" />
+                  <Container background="secondary" column="1 / 3" />
                   <HunkHeader
                     sourceStart={hunk.source_start}
                     sourceLength={hunk.source_length}

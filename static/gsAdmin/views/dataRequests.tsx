@@ -70,7 +70,7 @@ function DataRequestsResults({
                   padding="md"
                   borderColor="primary"
                   radius="md"
-                  backgroundColor="primary"
+                  background="primary"
                 >
                   <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
                   <Text size="sm" variant="muted">
@@ -89,7 +89,7 @@ function DataRequestsResults({
                   padding="md"
                   borderColor="primary"
                   radius="md"
-                  backgroundColor="primary"
+                  background="primary"
                 >
                   <ExternalLink
                     href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
@@ -167,7 +167,7 @@ export function DataRequests() {
             align="center"
             padding="xl"
             borderBottom="primary"
-            backgroundColor="secondary"
+            background="secondary"
             radius="md md 0 0"
           >
             <Text size="sm" bold uppercase density="compressed">

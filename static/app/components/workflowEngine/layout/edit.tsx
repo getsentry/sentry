@@ -114,7 +114,7 @@ function Body({children, maxWidth}: RequiredChildren & {maxWidth?: CSS['maxWidth
     <Stack
       flexGrow={1}
       gap="2xl"
-      backgroundColor="primary"
+      background="primary"
       padding="0"
       margin={{zero: 'xl', '3xl': '2xl 3xl'}}
       maxWidth={maxWidth}

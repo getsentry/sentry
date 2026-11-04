@@ -18,7 +18,7 @@ describe('TagDetailsTable', () => {
       () => (
         <MemoryRouter>
           <Text as="div">
-            <Container containerType="inline-size" backgroundColor="primary">
+            <Container containerType="inline-size" background="primary">
               {/* SSR does not run the container measurement effect. */}
               <ContainerQueryContext value={breakpoint}>
                 <TagDetailsTable sort="count" getSortLocation={() => '/tags/'}>

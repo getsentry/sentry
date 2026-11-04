@@ -5,7 +5,7 @@ export function Container(props: StackProps) {
     <Stack
       gap="xl"
       justify="start"
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       padding="lg"

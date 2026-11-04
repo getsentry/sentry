@@ -71,7 +71,7 @@ export function AuthPageLayout({
                 inset="0"
                 align="center"
                 justify="center"
-                backgroundColor="primary"
+                background="primary"
               >
                 <InitialLoadingIndicator
                   fallback={<LoadingIndicator style={{margin: 0}} />}

@@ -250,7 +250,7 @@ export function GuidedSteps({
 
   return (
     <GuidedStepsContext value={value}>
-      <Stack gap="xl" backgroundColor="primary" className={className}>
+      <Stack gap="xl" background="primary" className={className}>
         {children}
       </Stack>
     </GuidedStepsContext>

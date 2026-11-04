@@ -403,7 +403,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              backgroundColor="secondary"
+              background="secondary"
               onMouseDown={e => e.preventDefault()}
             >
               <Flex

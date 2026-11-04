@@ -76,7 +76,7 @@ export function Screenshot({
   return (
     <Container width="100%" maxWidth={{zero: '100%', xl: '175px'}} height="100%">
       <PanelProvider>
-        <Container height="100%" backgroundColor="primary" radius="md">
+        <Container height="100%" background="primary" radius="md">
           <Stack justify="center" align="center" height="100%">
             {totalScreenshots > 1 && (
               <Flex
@@ -87,7 +87,7 @@ export function Screenshot({
                 borderColor="primary"
                 borderBottom="none"
                 radius="md md 0 0"
-                backgroundColor="primary"
+                background="primary"
               >
                 <Button
                   disabled={screenshotInFocus === 0}

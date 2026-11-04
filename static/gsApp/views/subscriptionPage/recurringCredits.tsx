@@ -85,7 +85,7 @@ export function RecurringCredits({displayType, planDetails}: Props) {
 
   return (
     <Container
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="md"
       data-test-id="recurring-credits-panel"

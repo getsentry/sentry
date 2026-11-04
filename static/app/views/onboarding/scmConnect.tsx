@@ -132,7 +132,7 @@ export function ScmConnect({
           columns={{zero: '1fr', md: '1fr 1fr'}}
           gap="2xl"
           width="100%"
-          backgroundColor="secondary"
+          background="secondary"
           borderColor="primary"
           radius="xl"
           padding="xl"

@@ -94,7 +94,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
   return (
     <Container
       as="header"
-      backgroundColor="secondary"
+      background="secondary"
       padding="3xl 0 0 0"
       borderBottom="primary"
       area="story-head"

@@ -528,9 +528,9 @@ function InboxSection({
         top={0}
         width="100%"
         padding="xs xs 0 xs"
-        backgroundColor="primary"
+        background="primary"
       >
-        <Container width="100%" padding="sm" backgroundColor="secondary" radius="sm">
+        <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
             trailingItems={
               <Badge variant="muted">

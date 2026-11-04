@@ -63,7 +63,7 @@ export function CreateFromSeerPrompt() {
             <Stack
               borderColor="primary"
               radius="md"
-              backgroundColor="primary"
+              background="primary"
               padding="lg"
               gap="lg"
               align="end"

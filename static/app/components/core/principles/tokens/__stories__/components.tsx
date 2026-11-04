@@ -353,7 +353,7 @@ export function BorderColors() {
       renderToken={({value}) => (
         <Container
           as="div"
-          backgroundColor="primary"
+          background="primary"
           style={{
             boxSizing: 'border-box',
             width: '24px',

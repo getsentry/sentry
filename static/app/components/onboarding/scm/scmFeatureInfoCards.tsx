@@ -36,7 +36,7 @@ export function ScmFeatureInfoCards({
     <Grid
       gap="2xl"
       columns={{zero: '1fr', xl: '1fr 1fr'}}
-      backgroundColor="primary"
+      background="primary"
       borderColor="primary"
       radius="xl"
       padding="xl"
