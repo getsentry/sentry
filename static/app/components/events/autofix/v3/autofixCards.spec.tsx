@@ -893,6 +893,35 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('shows only the agent reply when a PR iteration makes no code change', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'Fix the failing check'}),
+              makeAssistantBlock('The failed check is unrelated to this PR.'),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('The failed check is unrelated to this PR.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
+      ).not.toBeInTheDocument();
+    });
+
     it('renders embeds in the agent explanation instead of raw tags', () => {
       render(
         <CodeChangesCard

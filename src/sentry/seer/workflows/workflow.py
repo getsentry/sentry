@@ -99,43 +99,40 @@ class SeerWorkflow:
             )
 
     @classmethod
-    @contextmanager
-    def _create_base(
+    def _create_config(
         cls,
         *,
+        database: str,
         organization_id: int,
         strategy: SeerWorkflowStrategy,
         enabled: bool,
         filters: SeerWorkflowFilters,
         name: str | None = None,
-    ) -> Iterator[tuple[SeerWorkflowConfig, str]]:
+    ) -> SeerWorkflowConfig:
         """
-        Create a config within the org's automation limit and yield it with its database
-        inside the transaction, so callers can make related writes atomically.
+        Create a config within the org's automation limit. Call inside a transaction on
+        ``database`` so the limit check and any related writes are atomic.
         """
-        database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
-            existing = (
-                SeerWorkflowConfig.objects.using(database)
-                .filter(
-                    organization_id=organization_id,
-                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-                )
-                .count()
-            )
-            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-                raise WorkflowUpdateError(
-                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-                )
-
-            config = SeerWorkflowConfig.objects.using(database).create(
+        existing = (
+            SeerWorkflowConfig.objects.using(database)
+            .filter(
                 organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                filters=filters.dict(),
-                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
-            yield config, database
+            .count()
+        )
+        if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+            raise WorkflowUpdateError(
+                f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+            )
+
+        return SeerWorkflowConfig.objects.using(database).create(
+            organization_id=organization_id,
+            strategy=strategy,
+            enabled=enabled,
+            filters=filters.dict(),
+            extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+        )
 
     @classmethod
     def create(
@@ -165,16 +162,19 @@ class SeerWorkflow:
             project_set = set()
         cls._validate_project_ids(organization_id, project_set)
 
-        with cls._create_base(
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            filters=SeerWorkflowFilters(
-                all_projects=all_projects,
-                environments=list(environments),
-            ),
-            name=name,
-        ) as (config, database):
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            config = cls._create_config(
+                database=database,
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                filters=SeerWorkflowFilters(
+                    all_projects=all_projects,
+                    environments=list(environments),
+                ),
+                name=name,
+            )
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
             if project_set:
@@ -293,6 +293,19 @@ class SeerWorkflow:
         )
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
+    def set_enabled(self, enabled: bool) -> None:
+        with self._lock_config() as config:
+            if config.enabled == enabled:
+                return
+            config.enabled = enabled
+            config.version += 1
+            config.save(update_fields=["enabled", "version", "date_updated"])
+
+    def delete(self) -> None:
+        """Delete the config along with its project links, runs, and trigger bindings."""
+        with self._lock_config() as config:
+            config.delete()
+
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
         with self._lock_config() as config:
@@ -332,13 +345,11 @@ class SeerWorkflow:
             raise ValueError("Service account is inactive")
         return replica
 
-    def set_project_selection(
-        self, selection: ProjectSelection, *, has_access_projects: Collection[int] | None = None
-    ) -> None:
-        """Set the selected projects, bumping the version only when the selection changes.
+    def set_project_selection(self, selection: ProjectSelection) -> None:
+        """Replace the selected projects, bumping the version only when the selection changes.
 
-        With ``has_access_projects``, only links to those projects can be removed, so
-        selected projects outside it are kept. Without it, the whole selection is replaced.
+        Callers must authorize the change; this only checks that the projects belong to the
+        workflow's organization.
         """
         match selection:
             case AllProjects():
@@ -362,11 +373,7 @@ class SeerWorkflow:
                     "project_id", flat=True
                 )
             )
-            removable = existing
-            if has_access_projects is not None:
-                # Keep selected projects the caller can't access.
-                removable = existing & set(has_access_projects)
-            removed = removable - project_ids
+            removed = existing - project_ids
             added = project_ids - existing
             filters = SeerWorkflowFilters.parse_obj(config.filters)
             if not removed and not added and filters.all_projects == all_projects:

@@ -39,7 +39,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.breached_metrics import (
     BreachedMetricWorkflow,
-    ConnectedMonitors,
+    ConnectedMonitor,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
@@ -83,11 +83,13 @@ class WorkflowConfigListErrorResponse(TypedDict):
 
 
 class SeerWorkflowConfigPermission(OrganizationPermission):
-    # POST and PUT are further limited to the projects the caller can access.
+    # POST and PUT are further limited to the projects the caller can access; DELETE
+    # requires global access.
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["project:read", "project:write", "project:admin"],
-        "PUT": ["project:read", "project:write", "project:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "seer:read"],
+        "POST": ["org:write", "org:admin", "seer:write"],
+        "PUT": ["org:write", "org:admin", "seer:write"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -141,6 +143,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField(required=False)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -159,8 +162,10 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if ("projectIds" in data) == ("monitorIds" in data):
-            raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
+        if not data:
+            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+        if "projectIds" in data and "monitorIds" in data:
+            raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
 
 
@@ -171,7 +176,7 @@ class WorkflowConfigLastRun:
     last_run_status: str | None
 
 
-def check_project_access(
+def _check_project_access(
     project_ids: Sequence[int],
     *,
     request: Request,
@@ -198,6 +203,53 @@ def check_project_access(
                 return f"You do not have access to project {project.id}"
 
     return None
+
+
+def _with_no_access_project_ids(
+    project_ids: Sequence[int],
+    curr_project_ids: Sequence[int],
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> list[int]:
+    """
+    Return the requested projects plus the current ones the caller can't read, so a
+    replace keeps projects outside the caller's access. Inputs must be pre-validated
+    as active projects in the organization.
+    """
+    if not curr_project_ids:
+        return sorted(set(project_ids))
+    readable = {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+    return sorted(set(project_ids) | (set(curr_project_ids) - readable))
+
+
+def _with_no_access_monitor_ids(
+    monitor_ids: Sequence[int],
+    curr_monitors: Sequence[ConnectedMonitor],
+    *,
+    request: Request,
+    organization: Organization,
+    endpoint: OrganizationEndpoint,
+) -> list[int]:
+    """
+    Return the requested monitors plus the current ones in projects the caller can't
+    read. ``curr_monitors`` are the active monitors currently connected.
+    """
+    if not curr_monitors:
+        return sorted(set(monitor_ids))
+    readable = {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+    return sorted(
+        set(monitor_ids) | {m.monitor_id for m in curr_monitors if m.project_id not in readable}
+    )
 
 
 @cell_silo_endpoint
@@ -319,14 +371,14 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
         if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            denied = check_project_access(
+            denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
                 organization=organization,
                 endpoint=self,
             )
         else:
-            denied = check_project_access(
+            denied = _check_project_access(
                 project_ids, request=request, organization=organization, endpoint=self
             )
         if denied is not None:
@@ -371,7 +423,11 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (SeerWorkflowConfigPermission,)
 
     def serialize(
@@ -433,6 +489,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           access.
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
+        - Enabling or pausing requires access to every project the config covers.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -454,11 +511,26 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
         workflow = get_seer_workflow(config)
 
+        enabled = serializer.validated_data.get("enabled")
+        if enabled is not None:
+            denied = _check_project_access(
+                (
+                    [ALL_ACCESS_PROJECT_ID]
+                    if workflow.filters.all_projects
+                    else workflow.get_project_ids()
+                ),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
+            if denied is not None:
+                raise PermissionDenied(denied)
+
         # Validate and update projects
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            denied = check_project_access(
+            denied = _check_project_access(
                 project_ids,
                 request=request,
                 organization=organization,
@@ -466,21 +538,31 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
             if denied is not None:
                 raise PermissionDenied(detail=denied)
+            # Narrowing an all-projects config drops future projects the caller may not
+            # see, so it needs the same global access as selecting all projects.
+            if (
+                not all_projects
+                and workflow.filters.all_projects
+                and not request.access.has_global_access
+            ):
+                raise PermissionDenied(
+                    detail="You do not have permission to narrow this config's project scope"
+                )
 
             try:
                 if all_projects:
                     workflow.set_project_selection(AllProjects())
                 else:
-                    has_access_projects = [
-                        project.id
-                        for project in self.get_projects(
-                            request, organization, include_all_accessible=True
-                        )
-                        if request.access.has_project_scope(project, "project:read")
-                    ]
+                    # Replace only what the caller can see; keep current projects they can't.
+                    merged_project_ids = _with_no_access_project_ids(
+                        project_ids,
+                        workflow.get_project_ids(),
+                        request=request,
+                        organization=organization,
+                        endpoint=self,
+                    )
                     workflow.set_project_selection(
-                        SelectedProjects(project_ids=tuple(project_ids)),
-                        has_access_projects=has_access_projects,
+                        SelectedProjects(project_ids=tuple(merged_project_ids))
                     )
             except ValueError as e:
                 logger.exception(
@@ -489,7 +571,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         # Validate and update monitors
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
@@ -498,7 +579,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 return Response(
                     {"detail": "Only metric automations support monitor selection."}, status=400
                 )
-            denied = check_project_access(
+            denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
                 organization=organization,
@@ -507,7 +588,16 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             if denied is not None:
                 raise PermissionDenied(detail=denied)
             try:
-                workflow.set_monitor_selection(monitor_ids)
+                # Replace only what the caller can see; keep monitors in projects they can't.
+                workflow.set_monitor_selection(
+                    _with_no_access_monitor_ids(
+                        monitor_ids,
+                        workflow.get_monitors(),
+                        request=request,
+                        organization=organization,
+                        endpoint=self,
+                    )
+                )
             except ValueError as e:
                 logger.exception(
                     "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
@@ -515,9 +605,39 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
-        return Response(self.serialize(request, organization, config))
+        if enabled is not None:
+            workflow.set_enabled(enabled)
+
+        return Response(self.serialize(request, organization, workflow.get_config()))
+
+    @extend_schema(
+        operation_id="Delete a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={204: None},
+    )
+    def delete(self, request: Request, organization: Organization, config_id: str) -> Response:
+        """Delete a saved Seer automation workflow.
+
+        Requires global access. The config's runs are deleted too.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        if not request.access.has_global_access:
+            raise PermissionDenied(detail="Deleting an automation requires global access")
+
+        try:
+            config = SeerWorkflowConfig.objects.get(
+                id=to_valid_int_id("config_id", config_id),
+                organization=organization,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            )
+        except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
+            raise NotFound from e
+
+        get_seer_workflow(config).delete()
+        return Response(status=204)
 
 
 def serialize_workflow_configs(
@@ -529,9 +649,7 @@ def serialize_workflow_configs(
     selected_projects = get_selected_project_ids(
         configs, accessible_project_ids=accessible_project_ids
     )
-    connected_monitors = get_config_monitors_bulk(
-        configs, accessible_project_ids=accessible_project_ids
-    )
+    connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
     last_runs = get_config_last_runs(
         configs,
         accessible_project_ids=accessible_project_ids,
@@ -543,7 +661,7 @@ def serialize_workflow_configs(
             serialize_workflow_config(
                 config,
                 selected_project_ids=selected_projects[config.id],
-                connected_monitors=connected_monitors.get(config.id),
+                connected_monitors=connected_monitors.get(config.id, []),
                 last_run=last_runs_by_config_id.get(config.id),
             )
             for config in configs
@@ -595,13 +713,14 @@ def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
     selected_project_ids: list[int],
-    connected_monitors: ConnectedMonitors | None,
+    connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
+    monitor_ids = [m.monitor_id for m in connected_monitors]
     if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
         # Metric automation projects come from their connected monitors.
-        project_ids = connected_monitors.project_ids if connected_monitors else []
+        project_ids = sorted({m.project_id for m in connected_monitors})
     elif filters.all_projects:
         project_ids = [ALL_ACCESS_PROJECT_ID]
     else:
@@ -613,7 +732,7 @@ def serialize_workflow_config(
         "schedule": config.schedule,
         "version": config.version,
         "projects": project_ids,
-        "monitorIds": connected_monitors.monitor_ids if connected_monitors else [],
+        "monitorIds": monitor_ids,
         "environments": filters.environments,
         "filters": convert_dict_key_case(
             {

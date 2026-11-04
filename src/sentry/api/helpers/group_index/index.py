@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,6 +14,7 @@ from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.environments import get_environment
 from sentry.api.serializers import serialize
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import convert_query_values, parse_search_query
@@ -25,7 +25,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.signals import advanced_search_feature_gated
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -51,7 +50,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment] | None,
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> Sequence[SearchFilter | AggregateFilter]:
     try:
         search_filters = convert_query_values(
@@ -129,7 +128,7 @@ def build_query_params_from_request(
 def validate_search_filter_permissions(
     organization: Organization,
     search_filters: Sequence[AggregateFilter | SearchFilter],
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> None:
     """
     Verifies that an organization is allowed to perform the query that they

@@ -1,10 +1,11 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -40,8 +41,8 @@ class TriggerSerializerResponse(TypedDict, total=False):
 
 
 class WorkflowSerializerResponse(TypedDict):
-    id: str
-    name: str
+    id: Annotated[str, ApiDescription("Alert ID")]
+    name: Annotated[str, ApiDescription("Alert name")]
     organizationId: str
     createdBy: str | None
     dateCreated: datetime

@@ -34,7 +34,6 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
     BreachedMetricWorkflow,
-    ConnectedMonitors,
     IgnoredMetricBreach,
     MetricBreachRunExtras,
     MetricBreachTrigger,
@@ -43,6 +42,7 @@ from sentry.seer.workflows.breached_metrics import (
 from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -51,6 +51,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
@@ -580,8 +581,12 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         )
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
-    def test_failed_investigation_dispatch_fails_the_run(self) -> None:
+    def test_inactive_service_account_fails_the_run(self) -> None:
         self.attach_service_account()
+        assert self.config.service_account_id is not None
+        ServiceAccountReplica.objects.filter(
+            organization_id=self.organization.id, service_account_id=self.config.service_account_id
+        ).update(is_active=False)
 
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
@@ -596,12 +601,21 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert not SeerWorkflowOutputLink.objects.exists()
 
     @with_feature(["organizations:investigations", "organizations:service-accounts"])
-    def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_breach_runs_an_investigation_to_completion(self, dispatch: mock.Mock) -> None:
         self.attach_service_account()
-        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.PROCESSING)
+        event = self.breach_event(detector_id=self.detector.id)
 
-        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+        self.process_breach_workflow(event)
+        # A redelivered breach must not start a second investigation or dispatch.
+        self.process_breach_workflow(event)
 
+        notebook = Notebook.objects.get()
+        assert notebook.creator_actor == ActorId(
+            ActorType.SERVICE_ACCOUNT, self.config.service_account_id
+        )
+        assert notebook.created_by_id is None
+        dispatch.assert_called_once_with(notebook.orchestration_run.id)
         run = SeerWorkflowRun.objects.get(workflow_config=self.config)
         assert run.status == SeerWorkflowRunStatus.RUNNING
         execution = SeerWorkflowRunExecution.objects.get(run=run)
@@ -609,7 +623,6 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert list(SeerWorkflowOutputLink.objects.values_list("execution_id", "notebook_id")) == [
             (execution.id, notebook.id)
         ]
-        assert Notebook.objects.get() == notebook
 
         notebook.orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
         finish_investigation_executions(investigation_id=notebook.id)
@@ -741,15 +754,10 @@ class GetConfigMonitorsBulkTest(TestCase):
 
         result = get_config_monitors_bulk(
             [connected, unconnected, triage],
-            accessible_project_ids=[first_project.id, second_project.id],
+            project_filter=[first_project.id, second_project.id],
         )
 
-        assert result == {
-            connected.id: ConnectedMonitors(
-                monitor_ids=sorted(m.id for m in monitors),
-                project_ids=sorted([first_project.id, second_project.id]),
-            )
-        }
+        assert result == {connected.id: sorted((m.id, m.project_id) for m in monitors)}
 
 
 @with_feature("organizations:seer-automations")

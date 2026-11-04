@@ -18,7 +18,6 @@ from mypy.plugin import (
     MethodContext,
     MethodSigContext,
     Plugin,
-    ReportConfigContext,
     SemanticAnalyzerPluginInterface,
 )
 from mypy.plugins.common import add_attribute_to_class, add_method_to_class
@@ -170,29 +169,16 @@ _REQUEST_USER_TPS = (
     "sentry.service_accounts.principal.ServiceAccountPrincipal",
 )
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-_REQUEST_USER_ALLOWLIST = os.path.join(os.path.dirname(__file__), "request_user_allowlist.txt")
 
 
-@functools.cache
-def _read_request_user_allowlist(mtime_ns: int) -> frozenset[str]:
-    with open(_REQUEST_USER_ALLOWLIST) as f:
-        return frozenset(line.strip() for line in f if line.strip())
-
-
-def _request_user_allowlist() -> frozenset[str]:
-    # keyed on mtime so a running dmypy daemon sees edits
-    return _read_request_user_allowlist(os.stat(_REQUEST_USER_ALLOWLIST).st_mtime_ns)
-
-
-def _is_request_user_allowlisted(path: str) -> bool:
-    rel = os.path.relpath(os.path.realpath(path), _REPO_ROOT)
+def _is_outside_sentry(path: str) -> bool:
     # getsentry runs this plugin through a tools symlink; its code keeps the old type
-    return rel.startswith(os.pardir) or rel in _request_user_allowlist()
+    return os.path.relpath(os.path.realpath(path), _REPO_ROOT).startswith(os.pardir)
 
 
 def _request_user_attribute(ctx: AttributeContext) -> Type:
     # sentry.auth.principal.set_request_principal can set a ServiceAccountPrincipal
-    if _is_request_user_allowlisted(ctx.api.path):
+    if _is_outside_sentry(ctx.api.path):
         return ctx.default_attr_type
     # named_generic_type walks parent packages, which don't always list these submodules
     modules = ctx.api.modules  # type: ignore[attr-defined]
@@ -598,10 +584,6 @@ class SentryMypyPlugin(Plugin):
             return _request_user_attribute
         else:
             return None
-
-    def report_config_data(self, ctx: ReportConfigContext) -> bool:
-        # recheck a cached module when it joins or leaves the request.user allowlist
-        return _is_request_user_allowlisted(ctx.path)
 
     def get_additional_deps(self, file: MypyFile) -> list[tuple[int, str, int]]:
         if file.fullname in {"django.http", "django.http.request"}:

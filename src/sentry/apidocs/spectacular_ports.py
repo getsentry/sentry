@@ -30,12 +30,22 @@
 
 import collections
 import inspect
+import os
 import typing
 from collections import defaultdict
 from collections.abc import Sequence
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Union, is_typeddict
+from typing import (
+    Annotated,
+    Any,
+    Literal,
+    NotRequired,
+    ReadOnly,
+    Required,
+    Union,
+    is_typeddict,
+)
 from typing import get_type_hints as _get_type_hints
 
 import drf_spectacular
@@ -50,19 +60,21 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
+from sentry.apidocs.response_coverage import FIELD_SOURCE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
 # https://github.com/tfranzel/drf-spectacular/blob/03d315ced245db71cef1e45fd05a082b7dedc7aa/drf_spectacular/plumbing.py#L1100
 # with modifications to support our use case:
 #   grabbing description from a TypedDict __doc__
+#   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
 # TODO:
-#   figure out solution for field descriptions
 #   support deprecated fields via extension
 #   map TypedDicts in schema registry
 
@@ -122,6 +134,41 @@ def build_array_type(
 
 # The TypedDicts whose fields are being resolved right now, outermost first.
 _typed_dicts_in_progress: list[Any] = []
+
+
+def _field_description(hint: TypeHint) -> str | None:
+    """The ApiDescription text on a TypedDict field hint read with `include_extras=True`."""
+    while True:
+        origin, args = _get_type_hint_origin(hint)
+        if origin in (Required, NotRequired, ReadOnly):
+            hint = args[0]
+        elif origin is Annotated:
+            for metadata in reversed(hint.__metadata__):
+                if isinstance(metadata, ApiDescription):
+                    return metadata.text
+            hint = hint.__origin__
+        else:
+            return None
+
+
+def _declaring_typed_dict(typed_dict: Any, field: str) -> Any:
+    """The base TypedDict that declares an inherited field, which is where to edit it."""
+    for base in getattr(typed_dict, "__orig_bases__", ()):
+        base = typing.get_origin(base) or base
+        if is_typeddict(base) and field in base.__annotations__:
+            return _declaring_typed_dict(base, field)
+    return typed_dict
+
+
+def _field_schema(schema: Any, typed_dict: Any, field: str, description: str | None) -> Any:
+    extra: dict[str, str] = {}
+    if description is not None:
+        extra["description"] = description
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        owner = _declaring_typed_dict(typed_dict, field)
+        extra[FIELD_SOURCE] = f"{owner.__module__}.{owner.__qualname__}.{field}"
+    return {**schema, **extra} if extra else schema
 
 
 def _cycle_placeholder(hint: Any) -> dict[str, Any]:
@@ -198,11 +245,19 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             return _cycle_placeholder(hint)
 
         excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
+        # Field types resolve from the stripped hints, as before; the hints with
+        # extras are read only for each field's ApiDescription.
+        hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
             return build_object_type(
                 properties={
-                    k: _resolve_at(v, "properties", k)
+                    k: _field_schema(
+                        _resolve_at(v, "properties", k),
+                        hint,
+                        k,
+                        _field_description(hints_with_extras[k]),
+                    )
                     for k, v in get_type_hints(hint).items()
                     if k not in excluded_fields
                 },
