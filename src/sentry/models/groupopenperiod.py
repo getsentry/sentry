@@ -116,6 +116,19 @@ class GroupOpenPeriod(DefaultFieldsModel):
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
 
+        if resolution_time < self.date_started:
+            logger.warning(
+                "open_period.resolution_time_before_start",
+                extra={
+                    "group_id": self.group_id,
+                    "open_period_id": self.id,
+                    "date_started": self.date_started.isoformat(),
+                    "resolution_time": resolution_time.isoformat(),
+                },
+            )
+
+            resolution_time = self.date_started
+
         self.update(date_ended=resolution_time)
 
         if should_record_open_period_activity(self.group.type):
