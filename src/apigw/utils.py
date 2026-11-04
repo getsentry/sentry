@@ -1,4 +1,4 @@
-from typing import Any, NoReturn, cast
+from typing import Any, NoReturn
 
 from emmett55 import response
 from emmett55.serializers import Serializers
@@ -10,5 +10,4 @@ json = Serializers.get_for("json")
 def abort_with_json(status: int, json_data: Any) -> NoReturn:
     response.status = status
     response.content_type = "application/json"
-    headers = cast("dict[str, str]", response.headers)
-    raise HTTPBytesResponse(status, body=json(json_data), headers=headers)
+    raise HTTPBytesResponse(status, body=json(json_data), headers=response.headers)  # type: ignore[arg-type]

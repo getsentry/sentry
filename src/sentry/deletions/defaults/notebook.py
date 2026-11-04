@@ -17,6 +17,7 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSeen,
 )
+from sentry.notifications.models.inboxitem import InboxItem
 
 
 class NotebookBlockExecutionDeletionTask(ModelDeletionTask[NotebookBlockExecution]):
@@ -45,6 +46,14 @@ class NotebookDeletionTask(ModelDeletionTask[Notebook]):
 
     def get_child_relations(self, instance: Notebook) -> list[BaseRelation]:
         return [
+            ModelRelation(
+                InboxItem,
+                {
+                    "organization_id": instance.organization_id,
+                    "subject_type": "notebook",
+                    "subject_id": str(instance.id),
+                },
+            ),
             ModelRelation(NotebookProject, {"notebook_id": instance.id}, BulkModelDeletionTask),
             ModelRelation(
                 NotebookFavoriteUser, {"notebook_id": instance.id}, BulkModelDeletionTask

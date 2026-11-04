@@ -15,6 +15,7 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
     ProjectCustomInboundFilterEndpoint,
 )
 from sentry.apidocs.response_types import DetailResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -108,6 +109,6 @@ class CustomInboundFilterValidateEndpoint(ProjectCustomInboundFilterEndpoint):
             serializer.validated_data["data_type"],
             serializer.validated_data["conditions"],
             organization,
-            user_id=request.user.id,
+            user_id=acting_user_id(request.user),
         )
         return Response({"errors": {}, "suggestedName": suggested_name})

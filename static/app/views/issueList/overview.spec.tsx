@@ -360,6 +360,7 @@ describe('IssueList', () => {
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -379,6 +380,7 @@ describe('IssueList', () => {
           page: '2',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -394,6 +396,7 @@ describe('IssueList', () => {
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -410,43 +413,24 @@ describe('IssueList', () => {
   });
 
   describe('sort persistence', () => {
-    it('does not persist sort to localStorage without the recommended-sort feature', async () => {
+    it('persists sort to localStorage', async () => {
       render(<IssueListOverview />, {organization, initialRouterConfig});
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
-
-      // Writing while the feature is off would leave a stale value that overrides
-      // the Recommended default once the flag is enabled.
-      expect(getStoredIssueSort(organization.slug)).toBeNull();
-    });
-
-    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
       await userEvent.click(screen.getByRole('option', {name: 'Events'}));
 
-      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
 
     it('does not read or write the stored sort on a view page', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      setStoredIssueSort(featureOrg.slug, IssueSortOptions.FREQ);
+      setStoredIssueSort(organization.slug, IssueSortOptions.FREQ);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture({querySort: IssueSortOptions.DATE}),
       });
 
       render(<IssueListOverview />, {
-        organization: featureOrg,
+        organization,
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -461,7 +445,7 @@ describe('IssueList', () => {
       await userEvent.click(screen.getByRole('option', {name: 'Users'}));
 
       // Changing the sort within a view does not overwrite the feed's stored sort
-      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
   });
 
@@ -489,6 +473,7 @@ describe('IssueList', () => {
           groupStatsPeriod: 'auto',
           project: project.id.toString(),
           query: 'is:ignored',
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -607,7 +592,7 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
           })
         );
       });
@@ -639,7 +624,7 @@ describe('IssueList', () => {
           2,
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
           })
         );
       });

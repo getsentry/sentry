@@ -2,7 +2,6 @@ __all__ = ("Http",)
 
 from collections.abc import Mapping
 from typing import Any, Self
-from urllib.parse import parse_qsl
 
 from django.utils.translation import gettext as _
 
@@ -10,57 +9,6 @@ from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path, safe_urlencode
 from sentry.web.helpers import render_to_string
-
-
-def format_headers(value: Any) -> tuple[list[tuple[str, str]], str | None] | tuple[()]:
-    if not value:
-        return ()
-
-    if isinstance(value, dict):
-        value = value.items()
-
-    result: list[tuple[str, str]] = []
-    cookie_header = None
-    for k, v in value:
-        # If a header value is a list of header,
-        # we want to normalize this into a comma separated list
-        # This is how most other libraries handle this.
-        # See: urllib3._collections:HTTPHeaderDict.itermerged
-        if isinstance(v, list):
-            v = ", ".join(v)
-
-        if k.lower() == "cookie":
-            cookie_header = v
-        else:
-            if not isinstance(v, str):
-                v = str(v)
-            result.append((k.title(), v))
-    return result, cookie_header
-
-
-def format_cookies(value: Any) -> list[tuple[str | bytes, str | bytes]] | tuple[()]:
-    if not value:
-        return ()
-
-    if isinstance(value, str):
-        value = parse_qsl(value, keep_blank_values=True)
-
-    if isinstance(value, dict):
-        value = value.items()
-
-    return [(fix_broken_encoding(k.strip()), fix_broken_encoding(v)) for k, v in value]
-
-
-def fix_broken_encoding(value: str | bytes) -> str | bytes:
-    """
-    Strips broken characters that can't be represented at all
-    in utf8. This prevents our parsers from breaking elsewhere.
-    """
-    if isinstance(value, str):
-        value = value.encode("utf8", errors="replace")
-    if isinstance(value, bytes):
-        value = value.decode("utf8", errors="replace")
-    return value
 
 
 class Http(Interface):

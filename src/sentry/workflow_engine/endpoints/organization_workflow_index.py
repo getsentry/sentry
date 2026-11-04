@@ -16,7 +16,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Coalesce
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -130,6 +130,11 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         enforce_workflow_access(kwargs["workflow"], kwargs["organization"], request)
 
         return args, kwargs
+
+
+class BulkUpdateAlertsSerializer(DetectorWorkflowMutationValidator):
+    # Redeclared for this endpoint's wording.
+    enabled = serializers.BooleanField(help_text="Whether to enable or disable the alerts")
 
 
 @cell_silo_endpoint
@@ -421,14 +426,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        request=inline_serializer(
-            name="BulkUpdateAlerts",
-            fields={
-                "enabled": serializers.BooleanField(
-                    help_text="Whether to enable or disable the alerts"
-                )
-            },
-        ),
+        request=BulkUpdateAlertsSerializer,
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
     def put(
@@ -451,7 +449,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        validator = DetectorWorkflowMutationValidator(data=request.data)
+        validator = BulkUpdateAlertsSerializer(data=request.data)
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
