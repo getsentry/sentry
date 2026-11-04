@@ -67,6 +67,19 @@ class InvalidSearchQuery(Exception):
     pass
 
 
+class InvalidFunctionArgumentQuery(InvalidSearchQuery):
+    """A query function rejected one of its arguments.
+
+    Carries the function and the argument as written so API clients can tell which
+    expression to fix without parsing the message.
+    """
+
+    def __init__(self, message: str, *, function: str, argument: str) -> None:
+        super().__init__(message)
+        self.function = function
+        self.argument = argument
+
+
 class IncompatibleMetricsQuery(Exception):
     # Tried to build a metrics enhanced performance query but it was incompatible
     pass

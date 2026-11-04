@@ -43,7 +43,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -1148,8 +1148,10 @@ class SearchResolverColumnTest(TestCase):
         )
 
     def test_max_string_field_raises(self) -> None:
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(InvalidFunctionArgumentQuery) as excinfo:
             self.resolver.resolve_column("max(span.description)")
+        assert excinfo.value.function == "max"
+        assert excinfo.value.argument == "span.description"
 
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])
