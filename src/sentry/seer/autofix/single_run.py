@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 SINGLE_RUN_ROOT_CAUSE_KEY = "single_run_root_cause"
+
+
+def is_single_run(state: SeerRunState) -> bool:
+    return (state.metadata or {}).get("feature_id") == SINGLE_RUN_FEATURE_ID
 
 
 def single_run_root_cause_payload(state: SeerRunState) -> dict[str, Any] | None:

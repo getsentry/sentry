@@ -240,9 +240,6 @@ def _handle_step_started_events(
     )
 
 
-SINGLE_RUN_STEP = "single_run"
-
-
 def get_current_step(
     state: SeerRunState,
 ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
