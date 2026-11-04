@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {
   KeyValueColumns,
@@ -12,7 +15,6 @@ import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 

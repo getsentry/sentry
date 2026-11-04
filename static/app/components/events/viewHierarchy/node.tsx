@@ -1,7 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 type NodeProps = {

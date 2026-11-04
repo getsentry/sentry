@@ -31,6 +31,7 @@ import {
   MetricAlertQuotaMessage,
 } from 'getsentry/components/metricAlertQuotaMessage';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerConfigReminder';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -59,7 +60,10 @@ import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/overrides/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/overrides/rootRoutes';
 import {ScmGithubMultiOrgInstall} from 'getsentry/overrides/scmGithubMultiOrgInstall';
-import {seerSettingsRoutes} from 'getsentry/overrides/seerSettingsRoutes';
+import {
+  seerSettingsRoutes,
+  seerProjectSettingsRoutes,
+} from 'getsentry/overrides/seerSettingsRoutes';
 import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
@@ -116,6 +120,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'routes:root': rootRoutes,
   'routes:org-settings': seerSettingsRoutes,
+  'routes:project-settings': seerProjectSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**
@@ -230,6 +235,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
+  'component:explore-quota-exceeded-alert': () => QuotaExceededAlert,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,

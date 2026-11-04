@@ -7,7 +7,7 @@ import {EntryType} from 'sentry/types/event';
 import {getFilterDraftFromEvent} from 'sentry/views/settings/project/projectFilters/customFilterModal';
 
 describe('getFilterDraftFromEvent', () => {
-  it('fills one condition per property the event carries', () => {
+  it('fills one literal condition per property the event carries', () => {
     const event = EventFixture({
       title: 'TypeError: x is undefined',
       release: ReleaseFixture({version: '2.41.0'}),
@@ -28,13 +28,8 @@ describe('getFilterDraftFromEvent', () => {
     expect(getFilterDraftFromEvent(event)).toEqual({
       name: 'TypeError: x is undefined',
       dataType: 'error',
-      conditions: [
-        {property: 'error_type', value: 'ValueError\nTypeError'},
-        {property: 'error_message', value: 'bad input\nx is undefined'},
-        {property: 'geo_country_code', value: 'US'},
-        {property: 'release', value: '2.41.0'},
-        {property: 'ip_address', value: '203.0.113.7'},
-      ],
+      conditions:
+        'error_type:[ValueError,TypeError] error_message:["bad input","x is undefined"] geo_country_code:US release:2.41.0 ip_address:203.0.113.7',
     });
   });
 
@@ -57,13 +52,12 @@ describe('getFilterDraftFromEvent', () => {
       ],
     });
 
-    expect(getFilterDraftFromEvent(event).conditions).toEqual([
-      {property: 'error_type', value: 'a.b.c'},
-      {property: 'error_message', value: 'f'},
-    ]);
+    expect(getFilterDraftFromEvent(event).conditions).toBe(
+      'error_type:a.b.c error_message:f'
+    );
   });
 
-  it('escapes glob characters and folds line breaks into a wildcard', () => {
+  it('turns a value with line breaks into a glob with a wildcard per break', () => {
     const event = EventFixture({
       entries: [
         EventEntryFixture({
@@ -80,13 +74,9 @@ describe('getFilterDraftFromEvent', () => {
       ],
     });
 
-    expect(getFilterDraftFromEvent(event).conditions).toEqual([
-      {property: 'error_type', value: 'Error'},
-      {
-        property: 'error_message',
-        value: 'Invalid value \\{a,b\\}: \\[\\*\\] \\?*at file.js',
-      },
-    ]);
+    expect(getFilterDraftFromEvent(event).conditions).toBe(
+      'error_type:Error error_message:"Invalid value \\{a,b\\}: \\[\\*\\] \\?*at file.js"'
+    );
   });
 
   it('matches the log message of an event without an exception', () => {
@@ -94,14 +84,12 @@ describe('getFilterDraftFromEvent', () => {
       entries: [{type: EntryType.MESSAGE, data: {formatted: 'Payment declined'}}],
     });
 
-    expect(getFilterDraftFromEvent(event).conditions).toEqual([
-      {property: 'error_message', value: 'Payment declined'},
-    ]);
+    expect(getFilterDraftFromEvent(event).conditions).toBe(
+      'error_message:"Payment declined"'
+    );
   });
 
-  it('starts with an empty condition when the event carries nothing to match', () => {
-    expect(getFilterDraftFromEvent(EventFixture()).conditions).toEqual([
-      {property: 'error_message', value: ''},
-    ]);
+  it('starts with no conditions when the event carries nothing to match', () => {
+    expect(getFilterDraftFromEvent(EventFixture()).conditions).toBe('');
   });
 });

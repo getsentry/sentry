@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -21,6 +21,7 @@ type TableOptions = Omit<
 function TestTable({
   fields,
   tableData,
+  // oxlint-disable-next-line react/todo
   renderCell = ({rendered, wrap}: RenderCellOptions) => wrap(rendered),
   ...options
 }: Partial<TableOptions> & {
@@ -38,7 +39,7 @@ function TestTable({
   });
 
   return (
-    <GridEditable
+    <DataGrid
       data={tableData.data}
       columnOrder={columnOrder}
       grid={getGrid(tableData.meta)}

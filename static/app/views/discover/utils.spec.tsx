@@ -6,9 +6,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -21,7 +23,6 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {
   canCreateAlerts,
   constructAddQueryToDashboardLink,
-  decodeColumnOrder,
   downloadAsCsv,
   eventViewToWidgetQuery,
   generateFieldOptions,
@@ -701,7 +702,23 @@ describe('downloadAsCsv', () => {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
     expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
-      encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
+      encodeURIComponent('message\r\n"\'=HYPERLINK(http://some-bad-website#)"')
+    );
+  });
+  it('quotes unsafe strings after leading whitespace and newlines', () => {
+    const result = {
+      data: [{message: '\t=1+1'}, {message: ' @SUM(A1)'}, {message: '-1+1\nfoo'}],
+    };
+    expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
+      encodeURIComponent('message\r\n"\'\t=1+1"\r\n"\' @SUM(A1)"\r\n"\'-1+1\nfoo"')
+    );
+  });
+  it('does not quote numbers', () => {
+    const result = {
+      data: [{count: -3}],
+    };
+    expect(downloadAsCsv(result, [countColumn], 'filename.csv')).toContain(
+      encodeURIComponent('count\r\n-3')
     );
   });
   it('handles the user column', () => {

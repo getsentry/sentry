@@ -1,7 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import pick from 'lodash/pick';
 
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -9,6 +12,7 @@ import {Link} from '@sentry/scraps/link';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -20,7 +24,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconEllipsis, IconIssues, IconSettings, IconSiren} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -150,8 +153,6 @@ export function ProjectDetail() {
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
 
-  const createMonitorQuery = new URLSearchParams({project: params.projectId}).toString();
-
   const projectActions: MenuItemProps[] = [
     {
       key: 'view-all-issues',
@@ -166,7 +167,10 @@ export function ProjectDetail() {
       key: 'create-monitor',
       label: t('Create Monitor'),
       leadingItems: <IconSiren size="md" />,
-      to: `${makeMonitorCreatePathname(organization.slug)}?${createMonitorQuery}`,
+      to: {
+        pathname: makeMonitorCreatePathname(organization.slug),
+        query: {project: projectId},
+      },
       disabled: !canCreateAlert,
       tooltip: canCreateAlert
         ? undefined
@@ -269,7 +273,6 @@ export function ProjectDetail() {
                       location={location}
                       projectId={selection.projects[0]!}
                       query={query}
-                      api={api}
                     />
                   </Fragment>
                 )}

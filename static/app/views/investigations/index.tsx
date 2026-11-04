@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStar} from '@sentry/icons/star';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
@@ -11,6 +13,7 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,17 +26,10 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconStar} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -45,6 +41,10 @@ import {
 } from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -67,12 +67,6 @@ const TableWrapper = styled('div')`
     grid-template-columns: max-content minmax(240px, 1fr) 160px 160px max-content !important;
   }
 `;
-
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
-}
 
 function InvestigationActions({
   investigation,
@@ -300,7 +294,7 @@ export function InvestigationsPage() {
                   />
                 </Grid>
                 <TableWrapper>
-                  <GridEditable
+                  <DataGrid
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{
@@ -381,6 +375,7 @@ export function InvestigationsPage() {
 
 export default function InvestigationsView() {
   const organization = useOrganization();
+  const investigationsEnabled = useInvestigationsEnabled();
 
   return (
     <AnalyticsArea name="investigations.list" overrideParent>
@@ -389,7 +384,7 @@ export default function InvestigationsView() {
         features="organizations:investigations"
         renderDisabled={() => <FeatureDisabledPage />}
       >
-        {organization.openMembership ? <InvestigationsPage /> : <ClosedMembershipPage />}
+        {investigationsEnabled ? <InvestigationsPage /> : <ClosedMembershipPage />}
       </Feature>
     </AnalyticsArea>
   );

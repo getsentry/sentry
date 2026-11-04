@@ -1,4 +1,5 @@
 import {memo} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -8,7 +9,6 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

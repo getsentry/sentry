@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -17,7 +17,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  getScalarAttributeValue,
+  type TraceItemAttributeScalarValue,
+  type TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   LogAttributesRendererMap,
   SpanIDRenderer,
@@ -41,7 +45,7 @@ import {
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
 import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
 import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,
@@ -128,12 +132,12 @@ export function MetricDetails({
     );
   }
 
-  const attributes: Record<string, TraceItemResponseAttribute['value']> = {
+  const attributes: Record<string, TraceItemAttributeScalarValue> = {
     [TraceMetricKnownFieldKey.TIMESTAMP]: dataRow[TraceMetricKnownFieldKey.TIMESTAMP],
   };
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
   for (const attr of traceDetailsData?.attributes ?? []) {
-    attributes[attr.name] = attr.value;
+    attributes[attr.name] = getScalarAttributeValue(attr);
     attributeTypes[attr.name] = attr.type;
   }
   const visibleAttributes =

@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Input} from '@sentry/scraps/input';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconEdit} from 'sentry/icons/iconEdit';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 type Props = {
   onChange: (value: string) => void;

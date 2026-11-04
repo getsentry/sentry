@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
+import {IconSearch} from '@sentry/icons/search';
+import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
@@ -12,13 +13,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AutomationsTableActions,
@@ -48,6 +46,8 @@ function LoadingSkeletons() {
   ));
 }
 
+const sortQueryParsers = {sort: parseAsSort, cursor: parseAsString};
+
 function HeaderCell({
   children,
   sortKey,
@@ -59,21 +59,15 @@ function HeaderCell({
   className?: string;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setSortQuery] = useQueryStates(sortQueryParsers);
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        sort: encodeSort(nextSort),
-        cursor: undefined,
-      },
-    });
+    setSortQuery(
+      {sort: getNextSort(sortKey, sort ?? undefined, 'asc'), cursor: null},
+      {history: 'push'}
+    );
   };
 
   return (

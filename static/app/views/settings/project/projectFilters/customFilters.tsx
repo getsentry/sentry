@@ -1,20 +1,26 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
@@ -24,7 +30,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -41,10 +46,13 @@ import type {
 import {
   customFiltersQueryOptions,
   getCondition,
+  getConditionOperator,
   getCustomFilterUrl,
   getDataTypeLabel,
   getErrorDetail,
+  NEGATED_OPERATORS,
   openCustomFilterModal,
+  OPERATOR_LABELS,
 } from 'sentry/views/settings/project/projectFilters/customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
@@ -60,21 +68,30 @@ function ValueTag({value}: {value: string}) {
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, its operator unless the values speak
+// for themselves, then its values. A match reads "a or b"; a negated one reads
+// "a and b", as the search bar does, since the data must match none of them.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = getConditionOperator(condition);
+  const joiner = NEGATED_OPERATORS.has(operator) ? t('and') : t('or');
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {OPERATOR_LABELS[operator] && (
+        <Text size="sm" variant="muted">
+          {OPERATOR_LABELS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
             <Text size="xs" variant="muted">
-              {t('or')}
+              {joiner}
             </Text>
           )}
           <ValueTag value={value} />
@@ -83,23 +100,24 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       {hidden.length > 0 && (
         <Fragment>
           <Text size="xs" variant="muted">
-            {t('or')}
+            {joiner}
           </Text>
-          <Tooltip
-            title={
-              <Stack align="start" gap="xs">
-                {hidden.map((value, index) => (
-                  <Text key={index} monospace size="sm">
-                    {value}
-                  </Text>
-                ))}
-              </Stack>
-            }
-          >
-            <Tag variant="muted">
-              <Text size="sm">{tn('%s more', '%s more', hidden.length)}</Text>
-            </Tag>
-          </Tooltip>
+          <Tag variant="muted">
+            <InfoText
+              size="sm"
+              title={
+                <Stack align="start" gap="xs">
+                  {hidden.map((value, index) => (
+                    <Text key={index} monospace size="sm">
+                      {value}
+                    </Text>
+                  ))}
+                </Stack>
+              }
+            >
+              {tn('%s more', '%s more', hidden.length)}
+            </InfoText>
+          </Tag>
         </Fragment>
       )}
     </Flex>
@@ -148,6 +166,11 @@ const STATS_CATEGORIES = [
 // A custom filter reports under this reason in ingest outcomes, followed by its id.
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
+
+// A row that holds a legacy list reports under the id of that list instead.
+function getOutcomesReason(filter: CustomInboundFilter): string {
+  return filter.legacyFilter ?? `${OUTCOMES_REASON_PREFIX}${filter.id}`;
+}
 
 // What one filter dropped, per data category. A filter drops errors, logs, or trace
 // metrics, and each of those counts under its own category in ingest outcomes.
@@ -292,7 +315,12 @@ function FilteredVolumeCells({
   return (
     <Fragment>
       <SimpleTable.RowCell>
-        <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
+        <Container
+          width={`${CHART_WIDTH}px`}
+          height={`${CHART_HEIGHT}px`}
+          role="img"
+          aria-label={t('Filtered volume trend, peak %s', formatAbbreviatedNumber(peak))}
+        >
           <MiniBarChart
             stacked
             animateBars
@@ -340,15 +368,59 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
   return haystack.some(field => field.toLowerCase().includes(needle));
 }
 
+// Says why the filters are not applied. On SaaS the getsentry override names the
+// plan that includes them and offers an upgrade; elsewhere the generic alert shows.
+// Renders nothing while the project has the plan feature.
+function PlanAlert({project}: {project: Project}) {
+  return (
+    <Feature
+      features="projects:custom-inbound-filters"
+      overrideName="feature-disabled:custom-inbound-filters"
+      project={project}
+      renderDisabled={({children, ...props}) => {
+        if (typeof children === 'function') {
+          return children({
+            ...props,
+            renderDisabled: p => (
+              <FeatureDisabled
+                alert
+                featureName={t('Custom Inbound Filters')}
+                features={p.features}
+                message={t(
+                  'Custom inbound filters are not enabled on your Sentry installation. Saved filters are kept but not applied.'
+                )}
+              />
+            ),
+          });
+        }
+        return null;
+      }}
+    >
+      {({hasFeature, renderDisabled, ...props}) =>
+        !hasFeature && typeof renderDisabled === 'function'
+          ? renderDisabled({...props, hasFeature, children: null})
+          : null
+      }
+    </Feature>
+  );
+}
+
 export function CustomFilters({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project,
-  });
+  // Relay applies the filters only with the plan feature, and the API refuses
+  // writes without it. The table still lists the filters, marked as not applied,
+  // so an organization that left the plan sees what comes back on upgrade.
+  const hasPlanFeature = project.features.includes('custom-inbound-filters');
+  let writeDisabledReason: string | undefined;
+  if (!hasPlanFeature) {
+    writeDisabledReason = t('Your plan does not include custom inbound filters.');
+  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
+    writeDisabledReason = t('You need project write access to add filters.');
+  }
+  const canWrite = writeDisabledReason === undefined;
   const queryOptions = customFiltersQueryOptions(organization, project);
   const {queryKey} = queryOptions;
 
@@ -415,8 +487,9 @@ export function CustomFilters({project}: {project: Project}) {
   return (
     <Stack gap="lg">
       <Heading as="h2" size="md">
-        {t('Filter Rules')}
+        {t('Custom Inbound Filters')}
       </Heading>
+      <PlanAlert project={project} />
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -425,8 +498,8 @@ export function CustomFilters({project}: {project: Project}) {
             </InputGroup.LeadingItems>
             <InputGroup.Input
               size="sm"
-              aria-label={t('Search rules')}
-              placeholder={t('Search rules')}
+              aria-label={t('Search filters')}
+              placeholder={t('Search filters')}
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
@@ -436,12 +509,8 @@ export function CustomFilters({project}: {project: Project}) {
           size="sm"
           variant="primary"
           icon={<IconAdd />}
-          disabled={!hasWriteAccess}
-          tooltipProps={
-            hasWriteAccess
-              ? undefined
-              : {title: t('You need project write access to add filters.')}
-          }
+          disabled={!canWrite}
+          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
           onClick={() => openCustomFilterModal({project})}
         >
           {t('Add Filter')}
@@ -490,14 +559,14 @@ export function CustomFilters({project}: {project: Project}) {
               {visibleFilters.length === 0 && (
                 <SimpleTable.Empty>
                   {filters.length === 0
-                    ? t('No inbound filters found')
-                    : t('No rules match your search')}
+                    ? t('No custom inbound filters yet')
+                    : t('No filters match your search')}
                 </SimpleTable.Empty>
               )}
               {visibleFilters.map(filter => (
                 <SimpleTable.Row
                   key={filter.id}
-                  variant={filter.active ? 'default' : 'faded'}
+                  variant={filter.active && hasPlanFeature ? 'default' : 'faded'}
                 >
                   <SimpleTable.RowCell>
                     <Switch
@@ -505,12 +574,14 @@ export function CustomFilters({project}: {project: Project}) {
                         filter.active ? t('Disable filter') : t('Enable filter')
                       }
                       checked={filter.active}
-                      disabled={!hasWriteAccess}
+                      disabled={!canWrite}
                       onChange={() => handleToggleActive(filter)}
                     />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Text ellipsis>{filter.name}</Text>
+                    <InfoText mode="overflowOnly" title={filter.name}>
+                      {filter.name}
+                    </InfoText>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Text ellipsis variant="muted">
@@ -527,7 +598,7 @@ export function CustomFilters({project}: {project: Project}) {
                   <FilteredVolumeCells
                     intervals={stats?.intervals ?? []}
                     seriesByCategory={stats?.seriesByReason.get(
-                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                      getOutcomesReason(filter)
                     )}
                     isPending={isStatsPending}
                     isError={isStatsError}
@@ -545,12 +616,12 @@ export function CustomFilters({project}: {project: Project}) {
                         variant="transparent"
                         icon={<IconEdit />}
                         aria-label={t('Edit filter')}
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         onClick={() => openCustomFilterModal({project, filter})}
                       />
                       <Confirm
                         priority="danger"
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         message={t('Are you sure you want to delete this filter?')}
                         onConfirm={() => handleDelete(filter.id)}
                       >

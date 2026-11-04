@@ -1,12 +1,16 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
@@ -16,12 +20,7 @@ import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {
-  COL_WIDTH_UNDEFINED,
-  GridEditable,
-  type GridColumnHeader,
-} from 'sentry/components/tables/gridEditable';
-import {IconPlay, IconProfiling} from 'sentry/icons';
+import {DataGrid, type GridColumnHeader} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -35,7 +34,6 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,7 +47,7 @@ import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spa
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateProfileLink} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -226,7 +224,7 @@ export function SampledEventsTable({
 
   return (
     <Fragment>
-      <GridEditable
+      <DataGrid
         isLoading={isLoading || isMaxDurationLoading}
         error={error}
         data={consolidatedData}
@@ -415,7 +413,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
   let otherPercentage = 1;
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
         if (!(field in row) || typeof row[field] !== 'number') {
           return null;
@@ -458,7 +456,7 @@ function renderOperationDurationCell(row: Record<string, any>, theme: Theme) {
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 }
 
@@ -466,11 +464,6 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
   top: 1px;
   left: 4px;
-`;
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
 `;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`

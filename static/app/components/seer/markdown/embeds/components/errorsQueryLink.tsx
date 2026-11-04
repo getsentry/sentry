@@ -1,8 +1,9 @@
+import {IconSearch} from '@sentry/icons/search';
+
 import {
   ResourceLink,
   type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

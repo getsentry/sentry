@@ -5,11 +5,12 @@ import random
 from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, cast, overload
 
 import sentry_sdk
 from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import traces
 from snuba_sdk import (
     Column,
     Condition,
@@ -40,7 +41,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 from sentry.utils.dates import deprecated_utcnow, outside_retention_with_modified_start
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -245,7 +245,10 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with start_span(op="eventstore.snuba.get_events", name="eventstore.snuba.get_events"):
+        with traces.start_span(
+            name="eventstore.snuba.get_events",
+            attributes={"sentry.op": "eventstore.snuba.get_events"},
+        ):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,
@@ -476,12 +479,12 @@ class SnubaEventStorage(EventStorage):
         event into a `GroupEvent`. Used as part of `post_process_group`.
         """
 
-        event_id = normalize_event_id(event_id)
+        normalized_event_id = normalize_event_id(event_id)
 
-        if not event_id:
+        if not normalized_event_id:
             return None
 
-        event = Event(project_id=project_id, event_id=event_id)
+        event = Event(project_id=project_id, event_id=normalized_event_id)
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
@@ -509,12 +512,12 @@ class SnubaEventStorage(EventStorage):
 
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
-            raw_query_kwargs = {}
+            conditions: list[tuple[str, str, object] | list[object]] | None = None
             if event.datetime > timezone.now() - timedelta(hours=1):
                 # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
                 # we cache an empty result, since this can result in us failing to fetch new events
                 # in some cases.
-                raw_query_kwargs["conditions"] = [
+                conditions = [
                     [
                         "timestamp",
                         ">",
@@ -528,7 +531,10 @@ class SnubaEventStorage(EventStorage):
             )
             try:
                 tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
-                filter_keys = {"project_id": [project_id], "event_id": [event_id]}
+                filter_keys: dict[str, Sequence[int]] = {
+                    "project_id": [project_id],
+                    "event_id": cast("Sequence[int]", [event_id]),
+                }
                 if group_id:
                     filter_keys["group_id"] = [group_id]
                 result = snuba.raw_query(
@@ -537,10 +543,10 @@ class SnubaEventStorage(EventStorage):
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys=filter_keys,
+                    conditions=conditions,
                     limit=1,
                     referrer=Referrer.EVENTSTORE_GET_EVENT_BY_ID_NODESTORE.value,
                     tenant_ids=tenant_ids,
-                    **raw_query_kwargs,
                 )
             except snuba.QueryOutsideRetentionError:
                 # this can happen due to races.  We silently want to hide
@@ -972,7 +978,7 @@ class SnubaEventStorage(EventStorage):
                             filter_keys=filter.filter_keys,
                             start=filter.start,
                             end=filter.end,
-                            orderby=filter.orderby,
+                            orderby=cast("list[str] | None", filter.orderby),
                             limit=1,
                             referrer="eventstore.get_next_or_prev_event_id",
                             dataset=dataset,
@@ -983,9 +989,12 @@ class SnubaEventStorage(EventStorage):
                 ],
                 referrer="eventstore.get_next_or_prev_event_id",
             )
-        except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
-            # This can happen when the date conditions for paging
-            # and the current event generate impossible conditions.
+        except (
+            snuba.QueryOutsideRetentionError,
+            snuba.QueryOutsideGroupActivityError,
+            snuba.EmptyGroupIdIntersectionError,
+        ):
+            # Date or group filters can make it impossible for any event to match.
             return [None for _ in filters]
 
         return [self.__get_event_id_from_result(result) for result in results]

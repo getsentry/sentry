@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -13,12 +14,12 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -44,6 +45,7 @@ interface SpansTableProps {
   spansTableResult: SpansTableResult;
   stringTags: TagCollection;
   validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+  emptyMessage?: React.ReactNode;
 }
 
 interface ResolvedSpanTable {
@@ -57,6 +59,7 @@ interface ResolvedSpanTable {
 
 export function SpansTable({
   booleanTags,
+  emptyMessage,
   numberTags,
   spansTableResult,
   stringTags,
@@ -245,10 +248,10 @@ export function SpansTable({
           </SimpleTable.HeaderRow>
         }
       >
-        {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
+        {result.isError && !isRetainedError ? (
+          <SimpleTable.Error message={getQueryErrorMessage(result.error)} />
+        ) : (result.isPending || isLoadingDifferentTable) && !displayedData ? (
           <SimpleTable.Loading />
-        ) : result.isError && !isRetainedError ? (
-          <SimpleTable.Error />
         ) : displayedData?.length ? (
           displayedData.map((row, i) => (
             <SpanSampleRow
@@ -262,12 +265,14 @@ export function SpansTable({
             />
           ))
         ) : (
-          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+          <SimpleTable.Empty>{emptyMessage ?? t('No spans found')}</SimpleTable.Empty>
         )}
       </SimpleTable>
       {isRetainedError && !isFieldAdditionError ? (
         <LoadingError
-          message={t('Failed to update span samples')}
+          message={
+            getQueryErrorMessage(result.error) ?? t('Failed to update span samples')
+          }
           onRetry={() => void result.refetch()}
         />
       ) : null}

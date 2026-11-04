@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
@@ -28,7 +29,6 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -67,7 +67,7 @@ import {
   investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/block';
 import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
@@ -76,6 +76,7 @@ import type {
   InvestigationOrchestration,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -667,7 +668,7 @@ function SeerInvestigationSection({
   const hasSummary = Boolean(
     existingInvestigation?.summary && existingInvestigation.summaryDescription
   );
-  const {data: orchestration} = useQuery({
+  const {data: orchestration, dataUpdatedAt: orchestrationReceivedAt} = useQuery({
     ...investigationOrchestrationQueryOptions(
       organization.slug,
       existingInvestigationId ?? 'disabled'
@@ -688,7 +689,11 @@ function SeerInvestigationSection({
         : false;
     },
   });
-  const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
+  const statusBlock = getInvestigationStatusBlock(
+    existingInvestigation,
+    orchestration,
+    orchestrationReceivedAt
+  );
 
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
@@ -701,20 +706,14 @@ function SeerInvestigationSection({
           .queryKey,
         {json: launchedInvestigation, headers: {}}
       );
-      navigate(
-        normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
-        )
-      );
+      navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
     onError: () => addErrorMessage(t('Unable to launch investigation.')),
   });
 
   const investigationPath =
     candidate?.status === 'view'
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
-        )
+      ? getInvestigationPath(organization.slug, candidate.investigationId)
       : null;
 
   if (
@@ -791,7 +790,8 @@ function SeerInvestigationSection({
  */
 function getInvestigationStatusBlock(
   investigation: InvestigationDetail | undefined,
-  orchestration: InvestigationOrchestration | undefined
+  orchestration: InvestigationOrchestration | undefined,
+  orchestrationReceivedAt: number
 ): ComponentProps<typeof SeerStatusBlock> | null {
   // The run's projection carries the summary too, so it shows even when the
   // detail query stopped polling before the summary was written.
@@ -816,7 +816,9 @@ function getInvestigationStatusBlock(
       ),
     };
   }
-  const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
+  const runStatus = orchestration
+    ? getSeerStatusBlock(orchestration, orchestrationReceivedAt)
+    : null;
   if (!runStatus) {
     return null;
   }
@@ -831,6 +833,8 @@ function getInvestigationStatusBlock(
     // automatically"), so only the stopped states, whose descriptions explain
     // what happened, carry it here.
     description: runStatus.variant === 'running' ? undefined : runStatus.description,
+    toolActivity: runStatus.toolActivity,
+    startTime: runStatus.startTime,
   };
 }
 

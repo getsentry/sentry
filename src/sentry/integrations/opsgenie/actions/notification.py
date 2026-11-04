@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Sequence
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 
@@ -32,7 +32,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.OPSGENIE.value
     integration_key = "account"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {
@@ -79,7 +79,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                 sentry_sdk.capture_exception(e)
                 return
             try:
-                rules = [f.rule for f in futures]
+                contexts = [future.context for future in futures]
+                rules = [context.origin for context in contexts]
                 payload = client.build_issue_alert_payload(
                     data=event,
                     rules=rules,
@@ -112,8 +113,8 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                     "team_id": team["id"],
                 },
             )
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, team["id"], rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, team["id"], context, notification_uuid)
 
         key = f"opsgenie:{integration.id}:{team['id']}:{priority}"
         yield self.future(send_notification, key=key)

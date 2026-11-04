@@ -52,6 +52,7 @@ function navigationContext({
 
 function setupMocks() {
   localStorage.clear();
+  sessionStorage.clear();
   MockApiClient.clearMockResponses();
 
   // MobileNavigation requires a #main element to manage inert/overflow attributes
@@ -96,6 +97,64 @@ describe('mobile navigation', () => {
 
   afterEach(() => {
     document.getElementById('main')?.remove();
+  });
+
+  describe('settings v3', () => {
+    const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
+
+    it('uses the settings scope rail', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+      expect(screen.getByRole('link', {name: 'Org'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      );
+      expect(screen.queryByRole('link', {name: 'Issues'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('link', {name: 'Account'}));
+      expect(router.location.pathname).toBe('/settings/account/');
+      expect(screen.getByRole('link', {name: 'Account'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      );
+      expect(screen.getByRole('link', {name: 'General'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+      expect(
+        screen.queryByRole('navigation', {name: 'Primary Navigation'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('returns to the page settings was entered from through the menu', async () => {
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
+      await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Settings'}));
+      // The Explore tap above must not leave its secondary navigation behind
+      expect(screen.getByText('Org Settings')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back to app'}));
+      expect(router.location.pathname).toMatch(/^\/organizations\/org-slug\/explore\//);
+      expect(screen.queryByText('Org Settings')).not.toBeInTheDocument();
+    });
   });
 
   it('navigates account settings without an organization', async () => {

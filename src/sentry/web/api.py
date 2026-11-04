@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.cache import patch_cache_control
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
@@ -74,7 +74,7 @@ class ClientConfigView(BaseView):
 
 @all_silo_view
 @cache_control(max_age=3600, public=True)
-def robots_txt(request):
+def robots_txt(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SAAS and not request.subdomain:
         return HttpResponse(ROBOTS_SENTRY_IO, content_type="text/plain")
 
@@ -83,7 +83,7 @@ def robots_txt(request):
 
 @all_silo_view
 @cache_control(max_age=3600, public=True)
-def security_txt(request):
+def security_txt(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
         return HttpResponse(status=404)
 
@@ -92,7 +92,7 @@ def security_txt(request):
 
 @control_silo_view
 @cache_control(max_age=3600, public=True)
-def mcp_json(request):
+def mcp_json(request: HttpRequest) -> HttpResponse:
     if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
         return HttpResponse(status=404)
 
@@ -144,7 +144,9 @@ MCP_SERVER_CARD = {
 AGENT_SKILLS_INDEX: dict[str, list[object]] = {"skills": []}
 
 
-def _saas_only_json_response(request, payload, content_type="application/json"):
+def _saas_only_json_response(
+    request: HttpRequest, payload: object, content_type: str = "application/json"
+) -> HttpResponse:
     if settings.SENTRY_MODE != SentryMode.SAAS or request.subdomain:
         response = HttpResponse(status=404)
         patch_cache_control(response, no_store=True)
@@ -156,12 +158,12 @@ def _saas_only_json_response(request, payload, content_type="application/json"):
 
 
 @control_silo_view
-def api_catalog(request):
+def api_catalog(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, API_CATALOG, "application/linkset+json")
 
 
 @control_silo_view
-def oauth_authorization_server(request):
+def oauth_authorization_server(request: HttpRequest) -> HttpResponse:
     payload = {
         **OAUTH_AUTHORIZATION_SERVER,
         "scopes_supported": sorted(settings.SENTRY_SCOPES),
@@ -170,7 +172,7 @@ def oauth_authorization_server(request):
 
 
 @control_silo_view
-def oauth_protected_resource(request):
+def oauth_protected_resource(request: HttpRequest) -> HttpResponse:
     payload = {
         **OAUTH_PROTECTED_RESOURCE,
         "scopes_supported": sorted(settings.SENTRY_SCOPES),
@@ -179,16 +181,16 @@ def oauth_protected_resource(request):
 
 
 @control_silo_view
-def mcp_server_card(request):
+def mcp_server_card(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, MCP_SERVER_CARD)
 
 
 @control_silo_view
-def agent_skills_index(request):
+def agent_skills_index(request: HttpRequest) -> HttpResponse:
     return _saas_only_json_response(request, AGENT_SKILLS_INDEX)
 
 
 @all_silo_view
 @cache_control(max_age=3600, public=True)
-def not_found(request):
+def not_found(request: HttpRequest) -> HttpResponse:
     return HttpResponse(status=404)

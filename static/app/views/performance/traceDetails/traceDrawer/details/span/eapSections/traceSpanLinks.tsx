@@ -2,6 +2,8 @@ import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
 import type {Location} from 'history';
 import countBy from 'lodash/countBy';
 
+import type {Theme} from '@sentry/scraps/theme';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -9,7 +11,6 @@ import {
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import type {Theme} from 'sentry/utils/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   AttributesTree,

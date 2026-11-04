@@ -10,6 +10,7 @@ import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/bill
 import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
 import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
+import {SeerWalletCard} from 'getsentry/views/subscriptionPage/headerCards/seerWalletCard';
 import {SeerAutomationAlert} from 'getsentry/views/subscriptionPage/seerAutomationAlert';
 
 interface HeaderCardsProps {
@@ -45,6 +46,10 @@ function getCards(organization: Organization, subscription: Subscription) {
     cards.push(
       <PaygCard key="payg" subscription={subscription} organization={organization} />
     );
+  }
+
+  if (hasBillingPerms && organization.features.includes('token-billed-seer-enabled')) {
+    cards.push(<SeerWalletCard key="seer-wallet" organization={organization} />);
   }
 
   if (

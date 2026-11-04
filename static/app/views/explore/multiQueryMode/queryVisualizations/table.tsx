@@ -1,13 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {
   fieldAlignment,

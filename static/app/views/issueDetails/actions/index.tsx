@@ -1,6 +1,13 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
+import {IconUpload} from '@sentry/icons/upload';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -26,15 +33,6 @@ import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  IconCheckmark,
-  IconClock,
-  IconCopy,
-  IconEllipsis,
-  IconSubscribed,
-  IconUnsubscribed,
-  IconUpload,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
@@ -66,6 +64,10 @@ import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/group
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -101,13 +103,13 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
 };
 
 interface GroupActionsProps {
-  disabled: boolean;
   event: Event | null;
   group: Group;
   project: Project;
 }
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
+  disabled: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   variant?: 'primary' | 'secondary';
 }
@@ -188,10 +190,17 @@ export function GroupResolutionActions({
   );
 }
 
+// The modal and its form live with the project settings, so the issue page only
+// loads them once the action runs.
+async function openCustomFilterModalFromEvent(project: Project, event: Event) {
+  const {getFilterDraftFromEvent, openCustomFilterModal} =
+    await import('sentry/views/settings/project/projectFilters/customFilterModal');
+  openCustomFilterModal({project, initialValues: getFilterDraftFromEvent(event)});
+}
+
 export function GroupActions({
   group,
   project,
-  disabled,
   event,
   onUpdateSuccess,
   resolveVariant = 'primary',
@@ -199,6 +208,10 @@ export function GroupActions({
   onUpdateSuccess?: () => void;
   resolveVariant?: 'primary' | 'secondary';
 }) {
+  const disabled = [
+    ReprocessingStatus.REPROCESSING,
+    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
+  ].includes(getGroupReprocessingStatus(group));
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -324,6 +337,7 @@ export function GroupActions({
       onUpdateSuccess?.();
     } catch {
       // GroupStore already shows the error
+      // oxlint-disable-next-line react/todo
     } finally {
       queryClient.invalidateQueries({
         queryKey: groupQueryKey({
@@ -358,14 +372,12 @@ export function GroupActions({
     addInboundFilterDisabledReason = t('You need project write access to add filters');
   }
 
-  const onAddInboundFilter = async () => {
+  const onAddInboundFilter = () => {
     if (!event) {
       return;
     }
     trackIssueAction('add_inbound_filter');
-    const {getFilterDraftFromEvent, openCustomFilterModal} =
-      await import('sentry/views/settings/project/projectFilters/customFilterModal');
-    openCustomFilterModal({project, draft: getFilterDraftFromEvent(event)});
+    openCustomFilterModalFromEvent(project, event);
   };
 
   const onTogglePublicShare = () => {

@@ -1,9 +1,12 @@
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
+from sentry.integrations.mixins.issues import where_should_sync
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.integrations.utils.sync import (
     AssigneeInboundSyncMethod,
@@ -47,7 +50,7 @@ class TestSyncAssigneeInbound(TestCase):
                 user=self.test_user, email="test@example.com", is_verified=True
             ).exists()
 
-    def assign_default_group_to_user(self, user: User, group: Group | None = None):
+    def assign_default_group_to_user(self, user: User, group: Group | None = None) -> None:
         group_to_update: Group = group or self.group
         GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))
         group_to_update.refresh_from_db()
@@ -104,7 +107,7 @@ class TestSyncAssigneeInbound(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -194,7 +197,7 @@ class TestSyncAssigneeInbound(TestCase):
     def test_assignment_fails(
         self, mock_group_assign: mock.MagicMock, mock_record_failure: mock.MagicMock
     ) -> None:
-        def raise_exception(*args, **kwargs):
+        def raise_exception(*args: object, **kwargs: object) -> None:
             raise Exception("oops, something went wrong")
 
         assert self.group.get_assignee() is None
@@ -408,7 +411,7 @@ class TestSyncAssigneeInbound(TestCase):
 @cell_silo_test
 class TestSyncAssigneeInboundByExternalActor(TestCase):
     @pytest.fixture(autouse=True)
-    def mock_where_should_sync(self):
+    def mock_where_should_sync(self) -> Iterator[mock.MagicMock]:
         with mock.patch(
             "sentry.integrations.utils.sync.where_should_sync"
         ) as mock_where_should_sync:
@@ -439,7 +442,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 user=self.test_user, email="test@example.com", is_verified=True
             ).exists()
 
-    def assign_default_group_to_user(self, user: User, group: Group | None = None):
+    def assign_default_group_to_user(self, user: User, group: Group | None = None) -> None:
         group_to_update: Group = group or self.group
         GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))
         group_to_update.refresh_from_db()
@@ -518,7 +521,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -553,7 +556,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -720,7 +723,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
     ) -> None:
         """Test handling when assignment operation fails."""
 
-        def raise_exception(*_args, **_kwargs):
+        def raise_exception(*_args: object, **_kwargs: object) -> None:
             raise Exception("oops, something went wrong during assignment")
 
         assert self.group.get_assignee() is None
@@ -882,12 +885,12 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
 
         # Both groups should be assigned to their respective users
         assignee1 = group1.get_assignee()
-        assert assignee1 is not None
+        assert isinstance(assignee1, RpcUser)
         assert assignee1.id == user1.id
         assert assignee1.email == "test@example.com"
 
         assignee2 = group2.get_assignee()
-        assert assignee2 is not None
+        assert isinstance(assignee2, RpcUser)
         assert assignee2.id == user2.id
         assert assignee2.email == "user2@example.com"
 
@@ -1005,6 +1008,35 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
 
         assert [group.id for group in groups_assigned] == [self.group.id]
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         mock_record_halt.assert_not_called()
+
+
+@cell_silo_test
+class TestWhereShouldSync(TestCase):
+    def test_reuses_fetched_org_integrations(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="jira:1",
+            provider="jira",
+            metadata={"base_url": "https://example.atlassian.net", "shared_secret": "secret"},
+            oi_params={"config": {"sync_status_reverse": True}},
+        )
+        other_org = self.create_organization()
+        self.create_organization_integration(
+            organization_id=other_org.id, integration=integration, config={}
+        )
+
+        with (
+            self.feature("organizations:integrations-issue-sync"),
+            mock.patch.object(
+                integration_service,
+                "get_organization_integration",
+                wraps=integration_service.get_organization_integration,
+            ) as mock_get,
+        ):
+            orgs = where_should_sync(integration, "inbound_status")
+
+        assert orgs == [self.organization]
+        assert mock_get.call_count == 0

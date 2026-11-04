@@ -1,6 +1,10 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconGraphCircle} from '@sentry/icons/graphCircle';
+import {IconGrid} from '@sentry/icons/grid';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSearch} from '@sentry/icons/search';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,8 +14,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
-import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -62,12 +64,10 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     isError: isAppSizeError,
     error: appSizeError,
   } = appSizeQuery;
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setInsights] = useQueryState('insights');
   const openInsightsSidebar = useCallback(() => {
-    const next = new URLSearchParams(searchParams);
-    next.set('insights', 'open');
-    setSearchParams(next);
-  }, [searchParams, setSearchParams]);
+    setInsights('open', {history: 'push'});
+  }, [setInsights]);
 
   // If the main data fetch fails, this component will not be rendered
   // so we don't handle 'isBuildDetailsError'.

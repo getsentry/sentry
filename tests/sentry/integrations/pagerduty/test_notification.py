@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -12,6 +13,7 @@ from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotifica
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -20,7 +22,10 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import (
+    TEST_ISSUE_OCCURRENCE,
+    create_notification_action_context,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -62,6 +67,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
         self.installation = self.integration.get_installation(self.organization.id)
 
+    def get_pagerduty_rule(self, **kwargs: Any) -> PagerDutyNotifyServiceAction:
+        rule = self.get_rule(**kwargs)
+        assert isinstance(rule, PagerDutyNotifyServiceAction)
+        return rule
+
     @responses.activate
     @patch("sentry.analytics.record")
     def test_applies_correctly(self, mock_record: MagicMock) -> None:
@@ -74,8 +84,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
+        group_event = event.for_group(event.group)
 
-        rule = self.get_rule(
+        rule = self.get_pagerduty_rule(
             data={
                 "account": self.integration.id,
                 "service": str(self.service["id"]),
@@ -87,7 +99,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         results = list(
             rule.after(
-                event=event,
+                event=group_event,
                 notification_uuid=notification_uuid,
             )
         )
@@ -102,8 +114,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
-        results[0].callback(event, futures=[rule_future])
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
+        results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
@@ -140,8 +155,12 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     @responses.activate
     def test_applies_correctly_performance_issue(self) -> None:
         event = self.create_performance_issue()
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=event))
+        assert event.group is not None
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
+        rule = self.get_pagerduty_rule(
+            data={"account": self.integration.id, "service": self.service["id"]}
+        )
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -153,8 +172,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
-        results[0].callback(event, futures=[rule_future])
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
+        results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         perf_issue_title = "N+1 Query"
@@ -176,7 +198,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         group_event = event.for_group(event.groups[0])
         group_event.occurrence = occurrence
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
+        rule = self.get_pagerduty_rule(
+            data={"account": self.integration.id, "service": self.service["id"]}
+        )
         results = list(rule.after(event=group_event))
         assert len(results) == 1
 
@@ -189,7 +213,10 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
@@ -210,7 +237,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
-        rule = self.get_rule(
+        assert event.group is not None
+        group_event = event.for_group(event.group)
+        rule = self.get_pagerduty_rule(
             data={
                 "account": self.integration.id,
                 "service": str(self.service["id"]),
@@ -218,7 +247,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             }
         )
 
-        results = list(rule.after(event=event))
+        results = list(rule.after(event=group_event))
 
         responses.add(
             method=responses.POST,
@@ -229,8 +258,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
-        results[0].callback(event, futures=[rule_future])
+        rule_future = RuleFuture(
+            context=create_notification_action_context(self.project_rule),
+            kwargs=results[0].kwargs,
+        )
+        results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert len(data["payload"]["summary"]) == PAGERDUTY_SUMMARY_MAX_LENGTH
@@ -241,7 +273,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "account": self.integration.id,
             "service": self.service["id"],
         }
-        rule = self.get_rule(data=rule_data)
+        rule = self.get_pagerduty_rule(data=rule_data)
 
         assert (
             rule.render_label()
@@ -254,7 +286,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service": self.service["id"],
             "severity": "warning",
         }
-        rule = self.get_rule(data=rule_data)
+        rule = self.get_pagerduty_rule(data=rule_data)
 
         assert (
             rule.render_label()
@@ -270,7 +302,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service": self.service["id"],
             "severity": "default",
         }
-        rule = self.get_rule(data=rule_data)
+        rule = self.get_pagerduty_rule(data=rule_data)
 
         assert (
             rule.render_label()
@@ -283,7 +315,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # need to create a new project and set it as self.project because rules are
         # project based and we want the project in this case to be associated with the
-        # new organization when we call `self.get_rule()`
+        # new organization when we call `self.get_pagerduty_rule()`
         new_project = self.create_project(name="new proj", organization=new_org)
         self.project = new_project
 
@@ -296,16 +328,20 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 integration_key="new_service_key",
             )
 
-        rule = self.get_rule(data={"account": self.integration.id})
+        rule = self.get_pagerduty_rule(data={"account": self.integration.id})
 
         service_options = rule.get_services()
         assert service_options == [(new_service["id"], new_service["service_name"])]
-        assert "choice" == rule.form_fields["service"]["type"]
-        assert service_options == rule.form_fields["service"]["choices"]
+        service_field = rule.form_fields["service"]
+        assert isinstance(service_field, dict)
+        assert "choice" == service_field["type"]
+        assert service_options == service_field["choices"]
 
     @responses.activate
     def test_valid_service_selected(self) -> None:
-        rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
+        rule = self.get_pagerduty_rule(
+            data={"account": self.integration.id, "service": self.service["id"]}
+        )
 
         form = PagerDutyNotifyServiceForm(
             rule.data,
@@ -341,9 +377,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
         self.installation = integration.get_installation(self.organization.id)
 
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(data={"account": integration.id, "service": service["id"]})
+        rule = self.get_pagerduty_rule(data={"account": integration.id, "service": service["id"]})
 
         results = list(rule.after(event=event))
         assert len(results) == 1
@@ -388,7 +424,9 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             )
         self.installation = integration.get_installation(self.organization.id)
 
-        rule = self.get_rule(data={"account": self.integration.id, "service": str(service["id"])})
+        rule = self.get_pagerduty_rule(
+            data={"account": self.integration.id, "service": str(service["id"])}
+        )
 
         form = PagerDutyNotifyServiceForm(
             rule.data,

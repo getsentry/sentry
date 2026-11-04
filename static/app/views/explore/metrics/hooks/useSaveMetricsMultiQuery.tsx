@@ -5,9 +5,8 @@ import {useMutation} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,7 +15,7 @@ import {
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   isVisualize,
   isVisualizeFunction,
@@ -47,36 +46,23 @@ export function useSaveMetricsMultiQuery() {
       dataset: METRICS_DATASET,
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,
       query: metricQueries
         .map(metricQuery => {
-          const groupBys = metricQuery.queryParams.aggregateFields
-            .filter(field => isGroupBy(field))
-            .map(field => ({groupBy: field.groupBy}));
-
-          const visualizes = metricQuery.queryParams.aggregateFields.filter(field =>
-            isVisualize(field)
-          );
-
-          const visualize = visualizes[0];
+          const visualize = metricQuery.queryParams.aggregateFields.find(isVisualize);
 
           if (!defined(visualize) || !visualize) {
             Sentry.captureException(new Error('No visualize found for metric query'));
             return null;
           }
 
-          // There can be multiple yAxes per metricQuery, with multi-aggregate support.
-          const yAxes = visualizes.map(v => v.yAxis);
-          const chartType = visualize.chartType;
-
           return {
-            aggregateField: [
-              ...groupBys,
-              ...(yAxes.length > 0 ? [{yAxes, chartType}] : []),
-            ],
+            aggregateField: serializeAggregateFields(
+              metricQuery.queryParams.aggregateFields
+            ),
             ...(isVisualizeFunction(visualize) ? {metric: metricQuery.metric} : {}),
             fields: metricQuery.queryParams.fields,
             orderby: metricQuery.queryParams.sortBys[0]

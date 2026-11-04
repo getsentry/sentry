@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -28,8 +29,8 @@ export type GranularPermissions = Partial<Record<string, GranularPermissionLevel
 
 /**
  * Expands the selected levels into scopes. A level grants every level before
- * it, so Dashboards at `write` becomes `dashboard:read`, `dashboard:create`, and
- * `dashboard:write`.
+ * it, so Projects at `write` becomes `project_v2:read`, `project_v2:create`, and
+ * `project_v2:write`.
  */
 export function granularPermissionsToScopes(permissions: GranularPermissions): string[] {
   return GRANULAR_SENTRY_APP_PERMISSIONS.flatMap(({label, resource, levels}) => {
@@ -58,15 +59,17 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
       </Flex>
       {GRANULAR_SENTRY_APP_PERMISSIONS.map(({label, help, levels}) => (
         <FieldGroup key={label} label={label} help={help}>
-          <Select
+          <Select<GranularPermissionLevel | typeof NO_ACCESS>
             aria-label={label}
             name={`${label}--granular-permission`}
             value={permissions[label] ?? NO_ACCESS}
-            options={[
-              {value: NO_ACCESS, label: t('No Access')},
-              ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
-            ]}
-            onChange={({value}: {value: GranularPermissionLevel | typeof NO_ACCESS}) =>
+            options={
+              [
+                {value: NO_ACCESS, label: t('No Access')},
+                ...levels.map(level => ({value: level, label: LEVEL_LABELS[level]})),
+              ] satisfies Array<SelectValue<GranularPermissionLevel | typeof NO_ACCESS>>
+            }
+            onChange={({value}) =>
               onChange({...permissions, [label]: value === NO_ACCESS ? undefined : value})
             }
           />

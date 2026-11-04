@@ -12,9 +12,11 @@ import dataclasses
 import logging
 import math
 from collections import defaultdict
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import orjson
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
@@ -27,15 +29,20 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.tracing import set_span_data, start_span
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.projects.services.project.model import RpcProject
 
 logger = logging.getLogger(__name__)
+
+JsonObject: TypeAlias = dict[str, Any]
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
 
 
-def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
+def _query_service_dependencies(snuba_params: SnubaParams) -> list[JsonObject]:
     """
     Query segment spans and their parent spans to find cross-project dependencies.
 
@@ -57,9 +64,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     seen: set[tuple[int, str | None]] = set()  # (child_project_id, parent_span_id)
     covered_project_ids: set[int] = set()
-    segments_by_parent: dict[str, list[dict]] = defaultdict(list)
+    segments_by_parent: dict[str, list[JsonObject]] = defaultdict(list)
 
-    def _process_rows(rows: list[dict]) -> None:
+    def _process_rows(rows: list[JsonObject]) -> None:
         for row in rows:
             child_project_id = row.get("project.id")
             child_project_slug = row.get("project.slug")
@@ -79,10 +86,13 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Broad scan: Org-wide — only segments WITH a parent (cross-project candidates).
     page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-    with start_span(
-        op="explorer.service_map.broad_scan", name="explorer.service_map.broad_scan"
+    with traces.start_span(
+        name="explorer.service_map.broad_scan",
+        attributes={
+            "sentry.op": "explorer.service_map.broad_scan",
+            "limit": page_limit,
+        },
     ) as span:
-        set_span_data(span, "limit", page_limit)
         result = Spans.run_table_query(
             params=snuba_params,
             query_string="is_transaction:true has:parent_span",
@@ -95,8 +105,8 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         )
         rows = result.get("data", [])
         _process_rows(rows)
-        set_span_data(span, "rows_returned", len(rows))
-        set_span_data(span, "covered_projects", len(covered_project_ids))
+        span.set_attribute("rows_returned", len(rows))
+        span.set_attribute("covered_projects", len(covered_project_ids))
 
     # Fallback scan: One scoped query for projects with no representation in the broad scan.
     # No has:parent_span filter — broad scan to give low-traffic projects a second chance.
@@ -108,11 +118,14 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         )
         uncovered_params = dataclasses.replace(snuba_params, projects=uncovered)
         page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-        with start_span(
-            op="explorer.service_map.fallback_scan", name="explorer.service_map.fallback_scan"
+        with traces.start_span(
+            name="explorer.service_map.fallback_scan",
+            attributes={
+                "sentry.op": "explorer.service_map.fallback_scan",
+                "uncovered_projects": len(uncovered),
+                "limit": page_limit,
+            },
         ) as span:
-            set_span_data(span, "uncovered_projects", len(uncovered))
-            set_span_data(span, "limit", page_limit)
             result = Spans.run_table_query(
                 params=uncovered_params,
                 query_string="is_transaction:true",
@@ -131,7 +144,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
             )
             rows = result.get("data", [])
             _process_rows(rows)
-            set_span_data(span, "rows_returned", len(rows))
+            span.set_attribute("rows_returned", len(rows))
 
     unique_parent_span_ids = list(segments_by_parent.keys())
     if not unique_parent_span_ids:
@@ -143,11 +156,14 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
     batch_size = options.get("explorer.service_map.parent_span_batch_size")
 
-    with start_span(
-        op="explorer.service_map.resolve_parents", name="explorer.service_map.resolve_parents"
+    with traces.start_span(
+        name="explorer.service_map.resolve_parents",
+        attributes={
+            "sentry.op": "explorer.service_map.resolve_parents",
+            "unique_parent_spans": len(unique_parent_span_ids),
+            "batch_count": math.ceil(len(unique_parent_span_ids) / batch_size),
+        },
     ) as span:
-        set_span_data(span, "unique_parent_spans", len(unique_parent_span_ids))
-        set_span_data(span, "batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
             span_ids = ",".join(batch)
@@ -179,7 +195,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                             segment["child_project_slug"],
                         )
                         edges_by_pair[edge_key] += 1
-        set_span_data(span, "edges_found", len(edges_by_pair))
+        span.set_attribute("edges_found", len(edges_by_pair))
 
     edges = [
         {
@@ -200,7 +216,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     return edges
 
 
-def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
+def _build_nodes(
+    edges: list[JsonObject], all_projects: Sequence[Project | RpcProject]
+) -> list[JsonObject]:
     """
     Build a node list from edges for the Seer payload in a single pass.
 
@@ -283,7 +301,7 @@ def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
     return nodes
 
 
-def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
+def _send_to_seer(org_id: int, nodes: list[JsonObject], edges: list[JsonObject]) -> None:
     """
     Send service map data to Seer.
 

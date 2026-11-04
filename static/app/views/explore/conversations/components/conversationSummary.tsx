@@ -3,6 +3,9 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconFire} from '@sentry/icons/fire';
+import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -17,7 +20,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -37,6 +39,7 @@ import type {
   ConversationStats,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -65,6 +68,7 @@ interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -91,6 +95,7 @@ export function ConversationSummary({
   conversationId,
   title,
   project,
+  hasMoreSpans,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -106,7 +111,7 @@ export function ConversationSummary({
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
-  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  const displayId = getConversationDisplayId(conversationId);
   // Prefer the human-readable title; fall back to the (possibly truncated) id.
   const headingText = title || displayId;
   const headingTooltip = title || conversationId;
@@ -236,7 +241,11 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
@@ -436,27 +445,16 @@ function getNumberAttrByConvention(
 function getTokenBreakdowns(
   usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
-  return usageByModel.map(usage => {
-    const breakdown = getTokenBreakdown({
-      inputTokens: usage.inputTokens,
-      cachedTokens: usage.cacheReadTokens,
-      cacheWriteTokens: usage.cacheWriteTokens,
-      outputTokens: usage.outputTokens,
-      reasoningTokens: usage.reasoningTokens,
-      totalTokens: usage.totalTokens,
-    });
-
-    return {
-      cacheRead: breakdown.cached,
-      cacheWrite: breakdown.cacheWrite,
-      input: breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite,
-      isComplete: true,
-      output: breakdown.output,
-      reasoning: usage.reasoningTokens,
-      total: usage.totalTokens,
-      model: usage.model ?? t('Unknown model'),
-    };
-  });
+  return usageByModel.map(usage => ({
+    cacheRead: usage.cacheReadTokens,
+    cacheWrite: usage.cacheWriteTokens,
+    input: usage.inputTokens,
+    isComplete: true,
+    output: usage.outputTokens,
+    reasoning: usage.reasoningTokens,
+    total: usage.totalTokens,
+    model: usage.model ?? t('Unknown model'),
+  }));
 }
 
 function calculateTraceAggregates(nodes: AITraceSpanNode[]): TraceAggregates {

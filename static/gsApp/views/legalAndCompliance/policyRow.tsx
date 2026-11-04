@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {Heading} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -200,9 +201,11 @@ export function PolicyRow({
   return (
     <PanelItemPolicy>
       <div>
-        <PolicyTitle style={{marginBottom: showUpdated ? theme.space.xs : 0}}>
-          {policy.slug === 'terms' ? 'Terms of Service' : policy.name}
-        </PolicyTitle>
+        <Container marginBottom={showUpdated ? 'xs' : '0'}>
+          <Heading as="h6" size={{zero: 'lg', xl: 'md'}}>
+            {policy.slug === 'terms' ? 'Terms of Service' : policy.name}
+          </Heading>
+        </Container>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
       </div>
       <PolicyStatusRow>
@@ -253,12 +256,6 @@ const PolicyFrame = styled('iframe')`
 const PolicySubtext = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const PolicyTitle = styled('h6')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.lg};
-  }
 `;
 
 const modalCss = (theme: Theme) => css`

@@ -1,3 +1,4 @@
+import {IconPlay} from '@sentry/icons/play';
 import {useQuery} from '@tanstack/react-query';
 
 import {Text} from '@sentry/scraps/text';
@@ -13,7 +14,6 @@ import {
   QueryEmbedTable,
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';

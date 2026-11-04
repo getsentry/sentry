@@ -8,14 +8,14 @@ import {
   getStoriesHmrVersion,
   storyImports,
   subscribeToStoriesHmr,
-} from 'sentry/stories/storyManifest.generated';
+} from 'sentry/stories/storyManifest';
 
 if (process.env.NODE_ENV === 'development' && import.meta.webpackHot) {
   // Adding or removing a story changes the manifest module itself. Reload so
   // every consumer (including React Aria's collection state) sees the new file
   // set. Edits to existing stories remain hot through the manifest's explicit
   // dependency accept handlers.
-  import.meta.webpackHot.accept('sentry/stories/storyManifest.generated', () => {
+  import.meta.webpackHot.accept('sentry/stories/storyManifest', () => {
     window.location.reload();
   });
 }

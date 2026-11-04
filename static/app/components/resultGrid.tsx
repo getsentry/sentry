@@ -1,14 +1,9 @@
-import {
-  cloneElement,
-  Fragment,
-  isValidElement,
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useEffect, useEffectEvent, useRef, useState} from 'react';
 import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconList} from '@sentry/icons/list';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -19,16 +14,16 @@ import {Input, type InputProps} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {ResultTable} from 'sentry/components/resultTable';
-import {IconList, IconSearch, IconWarning} from 'sentry/icons';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
@@ -44,23 +39,6 @@ type Option = [key: string, label: string];
  * Locality URLs are always full URLs, so this cannot collide with one.
  */
 const ALL_REGIONS = 'all';
-
-function extractColumnLabel(col: React.ReactNode): string {
-  if (!isValidElement(col)) {
-    return '';
-  }
-  const {children} = col.props as {children?: React.ReactNode};
-  if (typeof children === 'string') {
-    return children.trim();
-  }
-  if (Array.isArray(children)) {
-    return children
-      .filter((c: unknown): c is string => typeof c === 'string')
-      .join(' ')
-      .trim();
-  }
-  return '';
-}
 
 type FilterProps = {
   name: string;
@@ -133,11 +111,23 @@ type FilterDescriptor = {
   options: Option[];
 };
 
+export type ResultGridColumn = {
+  key: string;
+  label: string;
+  align?: ColumnAlign;
+  hideLabel?: boolean;
+  /**
+   * The column's minimum width in pixels. Columns with one only grow to fill
+   * the table when every column has one.
+   */
+  width?: number;
+};
+
 interface ResultGridProps {
   /**
-   * A list of table header column labels
+   * The table's columns, in the order their cells are rendered
    */
-  columns: React.ReactNode[];
+  columns: ResultGridColumn[];
   /**
    * The API path to get the grid data from
    */
@@ -172,7 +162,8 @@ interface ResultGridProps {
    */
   buttonGroup?: React.ReactNode;
   /**
-   * Maps the row result into columns
+   * Maps the row result into its `SimpleTable.RowCell`s. A row without any
+   * cells is not rendered.
    */
   columnsForRow?: (row: any, allRows: any[], state: State) => React.ReactNode[];
   /**
@@ -514,168 +505,81 @@ function buildRequest(query: Location['query'], defaultSort: string): Request {
 
 type ResultRowsProps = {
   allRegions: boolean;
-  clampedRegionIndex: number;
   columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
-  effectiveColumns: React.ReactNode[];
   keyForRow: (row: any) => string;
+  regionIndex: number;
   results: Results;
   state: State;
 };
 
 function ResultRows({
   allRegions,
-  clampedRegionIndex,
   columnsForRow,
-  effectiveColumns,
   keyForRow,
+  regionIndex,
   results,
   state,
 }: ResultRowsProps) {
-  const regionIndex = allRegions ? clampedRegionIndex : -1;
-  const columnLabels = effectiveColumns.map(extractColumnLabel);
-  // The Region column is contextual — keep the record's own first labeled
-  // column as the mobile-primary cell.
-  const firstPrimaryIndex = columnLabels.findIndex(
-    (label, index) => index !== regionIndex && (label ?? '') !== ''
-  );
-
-  // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
-  // via inheritance, which works even when cells are rendered inside wrapper components
-  // (where cloneElement can't reach the inner <td> elements).
-  const labelVars = Object.fromEntries(
-    columnLabels.map((label, j) => [
-      `--cl-${j + 1}`,
-      `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
-    ])
-  );
-
-  return results.rows.map((row, i) => {
+  const rows = results.rows.map((row, i) => {
     const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
     const rowCells = columnsForRow(row, results.rows, state);
+    if (rowCells.length === 0) {
+      return null;
+    }
     const cells = allRegions
-      ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
+      ? rowCells.toSpliced(
+          regionIndex,
+          0,
+          <SimpleTable.RowCell key="__region">{rowRegion?.name}</SimpleTable.RowCell>
+        )
       : rowCells;
-    const labeledCells = cells.map((gridCell, j) => {
-      if (!isValidElement(gridCell)) {
-        return gridCell;
-      }
-      const extraProps: Record<string, unknown> = {
-        'data-label': columnLabels[j] ?? '',
-      };
-      if (j === firstPrimaryIndex) {
-        extraProps['data-mobile-primary'] = 'true';
-      }
-      return cloneElement(
-        gridCell as React.ReactElement<Record<string, unknown>>,
-        extraProps
-      );
-    });
     const rowKey = keyForRow(row) ?? i;
     return (
       // Row ids can collide across regions, so scope the key by region.
-      <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
-        {labeledCells}
-      </tr>
+      <SimpleTable.Row key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey}>
+        {cells}
+      </SimpleTable.Row>
     );
   });
+
+  return rows.some(Boolean) ? (
+    rows
+  ) : (
+    <SimpleTable.Empty>{t('No results')}</SimpleTable.Empty>
+  );
 }
 
-type ResultBodyProps = {
-  allRegions: boolean;
-  clampedRegionIndex: number;
-  columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
-  effectiveColumns: React.ReactNode[];
-  keyForRow: (row: any) => string;
-  results: Results;
-  state: State;
-};
-
-function ResultBody({
-  allRegions,
-  clampedRegionIndex,
-  columnsForRow,
-  effectiveColumns,
-  keyForRow,
-  results,
-  state,
-}: ResultBodyProps) {
+function ResultBody({results, ...props}: ResultRowsProps) {
   if (results.error) {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <Container marginTop="xs" marginBottom="lg">
-            <Alert variant="danger" showIcon>
-              {t('Something bad happened :/')}
-            </Alert>
-          </Container>
-        </td>
-      </tr>
-    );
+    return <SimpleTable.Error message={t('Something bad happened :/')} />;
   }
+
+  const loading = (
+    <SimpleTable.Empty>
+      <LoadingIndicator>{t('Hold on to your butts!')}</LoadingIndicator>
+    </SimpleTable.Empty>
+  );
+  const empty = <SimpleTable.Empty>{t('No results')}</SimpleTable.Empty>;
 
   // Rows render as regions respond. The "still updating" signal lives outside
   // the body, so rows never shift while regions trickle in, and "No results"
   // only shows once every region has answered.
-  if (allRegions) {
+  if (props.allRegions) {
     if (results.rows.length > 0) {
-      return (
-        <ResultRows
-          allRegions={allRegions}
-          clampedRegionIndex={clampedRegionIndex}
-          columnsForRow={columnsForRow}
-          effectiveColumns={effectiveColumns}
-          keyForRow={keyForRow}
-          results={results}
-          state={state}
-        />
-      );
+      return <ResultRows results={results} {...props} />;
     }
     if (results.loading || results.pendingRegions.length > 0) {
-      return (
-        <tr>
-          <td colSpan={effectiveColumns.length}>
-            <LoadingIndicator>{t('Hold on to your butts!')}</LoadingIndicator>
-          </td>
-        </tr>
-      );
+      return loading;
     }
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>{t('No results')}</EmptyMessage>
-        </td>
-      </tr>
-    );
+    return empty;
   }
   if (results.loading) {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <LoadingIndicator>{t('Hold on to your butts!')}</LoadingIndicator>
-        </td>
-      </tr>
-    );
+    return loading;
   }
   if (results.rows.length === 0) {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>{t('No results')}</EmptyMessage>
-        </td>
-      </tr>
-    );
+    return empty;
   }
-  return (
-    <ResultRows
-      allRegions={allRegions}
-      clampedRegionIndex={clampedRegionIndex}
-      columnsForRow={columnsForRow}
-      effectiveColumns={effectiveColumns}
-      keyForRow={keyForRow}
-      results={results}
-      state={state}
-    />
-  );
+  return <ResultRows results={results} {...props} />;
 }
 
 export function ResultGrid({
@@ -686,6 +590,7 @@ export function ResultGrid({
   columns,
   filters = {},
   defaultSort = '',
+  // oxlint-disable-next-line react/todo
   keyForRow = (row: any) => row.id,
   columnsForRow = () => [],
   defaultParams = {per_page: 50},
@@ -773,7 +678,7 @@ export function ResultGrid({
    * which ones have matches for the current query. Runs only after the active
    * region returns no results, so there is no cost on the common path.
    */
-  const probeOtherRegions = (
+  const probeOtherRegions = async (
     baseParams: Record<string, any>,
     currentCell: Cell | undefined
   ) => {
@@ -791,34 +696,30 @@ export function ResultGrid({
     // how many. The admin customers endpoint doesn't return an X-Hits total, so
     // we deliberately surface presence only rather than an unreliable count.
     const probeParams = {...baseParams, cursor: '', per_page: 1};
-    const matches: Cell[] = [];
-    let remaining = otherCells.length;
 
-    const finalize = () => {
-      remaining -= 1;
-      // Ignore results from a probe that has since been superseded.
-      if (remaining > 0 || token !== probeTokenRef.current) {
-        return;
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
-    };
+    // A failed probe is treated as "no match" for that region.
+    const probeResults = await Promise.allSettled(
+      otherCells.map(async probedCell => {
+        const data = await api.requestPromise(cellEndpoint(probedCell), {
+          method,
+          host: probedCell.locality_url,
+          data: probeParams,
+        });
+        const rows = rowsFromData?.(data, probedCell) ?? data;
+        return Array.isArray(rows) && rows.length > 0 ? probedCell : null;
+      })
+    );
 
-    otherCells.forEach(probedCell => {
-      api.request(cellEndpoint(probedCell), {
-        method,
-        host: probedCell.locality_url,
-        data: probeParams,
-        success: data => {
-          const rows = rowsFromData?.(data, probedCell) ?? data;
-          if (Array.isArray(rows) && rows.length > 0) {
-            matches.push(probedCell);
-          }
-          finalize();
-        },
-        error: () => finalize(),
-      });
-    });
+    // Ignore results from a probe that has since been superseded.
+    if (token !== probeTokenRef.current) {
+      return;
+    }
+
+    const matches = probeResults
+      .map(result => (result.status === 'fulfilled' ? result.value : null))
+      .filter((matchedCell): matchedCell is Cell => matchedCell !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
   };
 
   // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
@@ -1015,11 +916,20 @@ export function ResultGrid({
     const activeCell = cell;
     const token = fetchTokenRef.current;
 
-    const activeRequest = api.request(cellEndpoint(activeCell), {
-      method,
-      host: activeCell ? activeCell.locality_url : undefined,
-      data: queryParams,
-      success: (data, _, resp) => {
+    const fetchActiveCell = async () => {
+      try {
+        const [data, , resp] = await api.requestPromise(cellEndpoint(activeCell), {
+          method,
+          host: activeCell ? activeCell.locality_url : undefined,
+          data: queryParams,
+          includeAllArgs: true,
+        });
+
+        // A newer fetch superseded this one while it was in flight.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+
         const rows = rowsFromData?.(data, activeCell) ?? data;
         const rowsArray = Array.isArray(rows) ? rows : [];
 
@@ -1064,25 +974,21 @@ export function ResultGrid({
         // when the active region has results or no search is active. This flags
         // that the same subject (e.g. a user) also has records elsewhere.
         if (missingExactMatch || probeAllRegions) {
-          probeOtherRegions({...queryParams, query}, activeCell);
+          void probeOtherRegions({...queryParams, query}, activeCell);
         }
-      },
-      error: res => {
+      } catch (err) {
+        // requestPromise rejects on error responses and on failed fetches (a
+        // blocked request, a network failure). Requests aborted by api.clear()
+        // never settle, and a superseded fetch is ignored via the token.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
         setResults(prev => ({...prev, loading: false, error: true}));
-        onError?.(res);
-      },
-    });
-
-    // The API client swallows a rejection of the fetch itself (a blocked
-    // request, a network failure) without running either callback, which would
-    // leave the grid stuck on its loading state. Surface it as an error here.
-    // An abort from api.clear() also lands here, but the fetch token was
-    // already bumped by then, so a superseded request is ignored.
-    activeRequest?.requestPromise?.catch(() => {
-      if (token === fetchTokenRef.current) {
-        setResults(prev => ({...prev, loading: false, error: true}));
+        onError?.(err);
       }
-    });
+    };
+
+    void fetchActiveCell();
   });
 
   // A fetch is driven by the URL when `useQueryString` is on, and by the local
@@ -1165,40 +1071,59 @@ export function ResultGrid({
     query: queryInput,
   };
 
-  const clampedRegionIndex = Math.min(Math.max(regionColumnIndex, 0), columns.length);
-  const effectiveColumns = allRegions
-    ? columns.toSpliced(
-        clampedRegionIndex,
-        0,
-        <th key="__region" style={{width: 70}}>
-          {t('Region')}
-        </th>
-      )
+  const regionIndex = Math.min(Math.max(regionColumnIndex, 0), columns.length);
+  const effectiveColumns: ResultGridColumn[] = allRegions
+    ? columns.toSpliced(regionIndex, 0, {key: '__region', label: t('Region'), width: 70})
     : columns;
+  const hasFlexibleColumn = effectiveColumns.some(column => column.width === undefined);
+  const tableColumns: TableColumnConfig[] = effectiveColumns.map(({key, width}) => ({
+    key,
+    width:
+      width === undefined || !hasFlexibleColumn
+        ? 'minmax(min-content, auto)'
+        : 'minmax(min-content, max-content)',
+  }));
+  const GridTable = inPanel
+    ? inPanel === true && !panelTitle
+      ? PanelTable
+      : PanelBodyTable
+    : FlushTable;
 
   const resultTable = (
-    <Container position="relative" overflowX={{zero: 'visible', xl: 'auto'}}>
+    <Container position="relative">
       {results.pendingRegions.length > 0 && (
         <TableProgressBar data-test-id="table-progress" aria-hidden>
           <TableProgressValue />
         </TableProgressBar>
       )}
-      <ResultTable>
-        <thead>
-          <tr>{effectiveColumns}</tr>
-        </thead>
-        <tbody>
-          <ResultBody
-            allRegions={allRegions}
-            clampedRegionIndex={clampedRegionIndex}
-            columnsForRow={columnsForRow}
-            effectiveColumns={effectiveColumns}
-            keyForRow={keyForRow}
-            results={results}
-            state={state}
-          />
-        </tbody>
-      </ResultTable>
+      <GridTable
+        aria-label={panelTitle}
+        columns={tableColumns}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            {effectiveColumns.map(column => (
+              <SimpleTable.HeaderCell
+                key={column.key}
+                align={column.align}
+                aria-label={column.hideLabel ? column.label : undefined}
+                style={column.width ? {minWidth: column.width} : undefined}
+              >
+                {column.hideLabel ? null : column.label}
+              </SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <ResultBody
+          allRegions={allRegions}
+          columnsForRow={columnsForRow}
+          keyForRow={keyForRow}
+          regionIndex={regionIndex}
+          results={results}
+          state={state}
+        />
+      </GridTable>
     </Container>
   );
 
@@ -1388,6 +1313,28 @@ export function ResultGrid({
     </Container>
   );
 }
+
+const PanelTable = styled(SimpleTable)`
+  border: none;
+  border-radius: calc(${p => p.theme.radius.md} - 1px);
+
+  > tbody > tr {
+    align-items: start;
+  }
+`;
+
+const PanelBodyTable = styled(PanelTable)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
+  > thead > tr {
+    border-radius: 0;
+  }
+`;
+
+const FlushTable = styled(PanelBodyTable)`
+  border-radius: 0;
+`;
 
 const indeterminateSlide = keyframes`
   0% {

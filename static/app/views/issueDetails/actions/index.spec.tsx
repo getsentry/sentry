@@ -134,12 +134,9 @@ describe('GroupActions', () => {
 
   describe('render()', () => {
     it('renders correctly', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
@@ -155,12 +152,9 @@ describe('GroupActions', () => {
     });
 
     it('can subscribe', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
       expect(issuesApi).toHaveBeenCalledWith(
@@ -184,12 +178,9 @@ describe('GroupActions', () => {
     });
 
     it('can bookmark', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -211,12 +202,9 @@ describe('GroupActions', () => {
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
 
@@ -229,12 +217,9 @@ describe('GroupActions', () => {
         platform: 'native',
       });
 
-      render(
-        <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {
-          organization,
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization,
+      });
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
 
@@ -289,7 +274,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={group}
             project={filterProject}
-            disabled={false}
+
             event={event}
           />
         </Fragment>,
@@ -306,19 +291,25 @@ describe('GroupActions', () => {
       expect(within(modal).getByRole('textbox', {name: 'Name'})).toHaveValue(
         'Error: an error occurred'
       );
-      const values = within(modal).getAllByRole('textbox', {name: 'Condition value'});
-      expect(values.map(value => (value as HTMLTextAreaElement).value)).toEqual([
-        'Error',
-        'an error occurred',
-        'US',
-        '2.41.0',
-        '203.0.113.7',
-      ]);
+      expect(
+        within(modal).getByRole('row', {name: 'error_type:Error'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'error_message:"an error occurred"'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'geo_country_code:US'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'release:2.41.0'})
+      ).toBeInTheDocument();
+      expect(
+        within(modal).getByRole('row', {name: 'ip_address:203.0.113.7'})
+      ).toBeInTheDocument();
 
-      const removeButtons = within(modal).getAllByRole('button', {
-        name: 'Remove condition',
-      });
-      await userEvent.click(removeButtons[4]!);
+      await userEvent.click(
+        within(modal).getByRole('button', {name: 'Remove filter: ip_address'})
+      );
       await userEvent.click(within(modal).getByRole('button', {name: 'Create Filter'}));
 
       await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
@@ -326,10 +317,10 @@ describe('GroupActions', () => {
         name: 'Error: an error occurred',
         dataType: 'error',
         conditions: [
-          {type: 'error_type', value: ['Error']},
-          {type: 'error_message', value: ['an error occurred']},
-          {type: 'geo_country_code', value: ['US']},
-          {type: 'release', value: ['2.41.0']},
+          {type: 'error_type', operator: 'equals', value: ['Error']},
+          {type: 'error_message', operator: 'equals', value: ['an error occurred']},
+          {type: 'geo_country_code', operator: 'equals', value: ['US']},
+          {type: 'release', operator: 'equals', value: ['2.41.0']},
         ],
       });
       expect(analyticsSpy).toHaveBeenCalledWith(
@@ -339,10 +330,9 @@ describe('GroupActions', () => {
     });
 
     it('disables the action when the plan lacks custom inbound filters', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={event} />,
-        {organization: filterOrg}
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization: filterOrg,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
       expect(
@@ -354,15 +344,12 @@ describe('GroupActions', () => {
     });
 
     it('hides the action without the in-product flows flag', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={event} />,
-        {
-          organization: OrganizationFixture({
-            ...filterOrg,
-            features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
-          }),
-        }
-      );
+      render(<GroupActions group={group} project={project} event={event} />, {
+        organization: OrganizationFixture({
+          ...filterOrg,
+          features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+        }),
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
       expect(
@@ -374,10 +361,9 @@ describe('GroupActions', () => {
     });
 
     it('hides the action while no event is shown', async () => {
-      render(
-        <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization: filterOrg}
-      );
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: filterOrg,
+      });
 
       await userEvent.click(screen.getByLabelText('More Actions'));
       expect(
@@ -414,7 +400,7 @@ describe('GroupActions', () => {
       const {router} = render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <GroupActions group={group} project={project} event={null} />
         </Fragment>,
         {
           organization: org,
@@ -455,7 +441,7 @@ describe('GroupActions', () => {
       const {router} = render(
         <Fragment>
           <GlobalModal />
-          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <GroupActions group={group} project={project} event={null} />
         </Fragment>,
         {
           organization: org,
@@ -506,7 +492,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={issuePlatformGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
         </Fragment>,
@@ -544,7 +530,7 @@ describe('GroupActions', () => {
     });
 
     const {rerender} = render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
+      <GroupActions group={group} project={project} event={null} />,
       {organization}
     );
 
@@ -567,7 +553,7 @@ describe('GroupActions', () => {
       <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-        disabled={false}
+
         event={null}
       />
     );
@@ -591,7 +577,7 @@ describe('GroupActions', () => {
 
     render(
       <Fragment>
-        <GroupActions group={group} project={project} disabled={false} event={null} />
+        <GroupActions group={group} project={project} event={null} />
       </Fragment>,
       {organization}
     );
@@ -623,9 +609,7 @@ describe('GroupActions', () => {
         return <div>Loading...</div>;
       }
 
-      return (
-        <GroupActions group={groupData} project={project} disabled={false} event={null} />
-      );
+      return <GroupActions group={groupData} project={project} event={null} />;
     }
 
     render(
@@ -650,12 +634,9 @@ describe('GroupActions', () => {
       body: {...group, status: 'resolved'},
     });
 
-    render(
-      <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {
-        organization,
-      }
-    );
+    render(<GroupActions group={group} project={project} event={null} />, {
+      organization,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
 
@@ -699,9 +680,7 @@ describe('GroupActions', () => {
         return <div>Loading...</div>;
       }
 
-      return (
-        <GroupActions group={groupData} project={project} disabled={false} event={null} />
-      );
+      return <GroupActions group={groupData} project={project} event={null} />;
     }
 
     render(<GroupActionsWrapper />, {organization});
@@ -750,7 +729,7 @@ describe('GroupActions', () => {
           <GroupActions
             group={commandGroup}
             project={project}
-            disabled={false}
+
             event={null}
           />
           <SlotOutlets />

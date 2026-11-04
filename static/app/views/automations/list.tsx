@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -10,7 +12,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -72,8 +73,7 @@ function formatAutomationRows(automations: Automation[]): string {
 
 function AutomationsListInner() {
   const getPaginationCaption = useGetPaginationCaption();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setCursor] = useQueryState('cursor', {history: 'push'});
 
   const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
   const {data, isLoading, isError, isSuccess} = useQuery({
@@ -150,10 +150,7 @@ function AutomationsListInner() {
             pageLinks={pageLinks}
             caption={paginationCaption}
             onCursor={newCursor => {
-              navigate({
-                pathname: location.pathname,
-                query: {...location.query, cursor: newCursor},
-              });
+              setCursor(newCursor ?? null);
             }}
           />
         </div>

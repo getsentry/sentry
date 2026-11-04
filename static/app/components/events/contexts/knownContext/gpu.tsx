@@ -1,4 +1,4 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';

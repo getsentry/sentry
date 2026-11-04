@@ -3,7 +3,11 @@ import {useEffect, useState} from 'react';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {formatInvestigationDuration} from 'sentry/utils/duration/formatInvestigationDuration';
+import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
+import {
+  getInvestigationActiveTime,
+  isOnlyNextStepPending,
+} from 'sentry/views/investigations/runState';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
 export function InvestigationRunTimer({
@@ -11,48 +15,40 @@ export function InvestigationRunTimer({
 }: {
   orchestration: InvestigationOrchestration;
 }) {
-  const {
-    startedAt,
-    finishedAt,
-    activeTimeElapsedSeconds,
-    activeSince,
-    serverTime,
-    status,
-  } = orchestration;
-  const terminal = ['completed', 'failed', 'cancelled'].includes(status);
-  const active = status === 'processing' || status === 'pending';
-  if (
-    !startedAt ||
-    !Number.isFinite(Date.parse(startedAt)) ||
-    activeTimeElapsedSeconds === null ||
-    activeTimeElapsedSeconds === undefined ||
-    !Number.isFinite(activeTimeElapsedSeconds) ||
-    activeTimeElapsedSeconds < 0 ||
-    (terminal && (!finishedAt || !Number.isFinite(Date.parse(finishedAt)))) ||
-    (active && finishedAt) ||
-    (!active && !terminal && status !== 'awaiting_input')
+  const [settledSeconds, setSettledSeconds] = useState<{
+    runKey: string;
+    seconds: number;
+  } | null>(null);
+  const runKey = `${orchestration.runId}:${orchestration.generation}`;
+  const settled = isOnlyNextStepPending(orchestration);
+  const activeTime = getInvestigationActiveTime(orchestration);
+  const active = activeTime?.active ?? false;
+  let seconds = activeTime?.seconds ?? null;
+
+  const frozenSeconds = settledSeconds?.runKey === runKey ? settledSeconds.seconds : null;
+  if (settled && seconds !== null) {
+    if (frozenSeconds === null) {
+      setSettledSeconds({runKey, seconds});
+    } else {
+      seconds = frozenSeconds;
+    }
+  } else if (
+    frozenSeconds !== null &&
+    seconds !== null &&
+    orchestration.status === 'completed'
   ) {
-    return null;
+    seconds = frozenSeconds;
+  } else if (settledSeconds !== null) {
+    setSettledSeconds(null);
   }
 
-  let seconds = activeTimeElapsedSeconds;
-  if (active) {
-    if (!activeSince || !serverTime) {
-      return null;
-    }
-    const interval = (Date.parse(serverTime) - Date.parse(activeSince)) / 1000;
-    if (!Number.isFinite(interval) || interval < 0) {
-      return null;
-    }
-    seconds += interval;
-  } else if (activeSince !== null) {
-    // A partial or stale projection cannot authoritatively freeze an active interval.
+  if (seconds === null) {
     return null;
   }
 
   return (
     <LiveDuration
-      key={`${orchestration.runId}:${orchestration.generation}:${serverTime}:${seconds}:${active}`}
+      key={`${runKey}:${orchestration.serverTime}:${seconds}:${active}`}
       seconds={seconds}
       active={active}
     />
@@ -86,7 +82,7 @@ function LiveDuration({seconds, active}: {active: boolean; seconds: number}) {
       role="timer"
       aria-label={t('Investigation active time')}
     >
-      {formatInvestigationDuration(seconds + localSeconds)}
+      {formatElapsedDuration((seconds + localSeconds) * 1000)}
     </Text>
   );
 }

@@ -27,9 +27,9 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryIntegration,
 )
+from sentry.integrations.types import HaltReason
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
@@ -518,6 +518,7 @@ def restore_repos_batch(
         integration_id=integration.id,
         providers=[provider],
     )
+    integration_repo_provider = get_integration_repository_provider(integration)
     restore_set = set(external_ids)
     for repo in all_repos:
         if repo.external_id in restore_set:
@@ -530,6 +531,19 @@ def restore_repos_batch(
                 source="automatic SCM syncing",
                 provider=provider_key,
             )
+            # the repo is already restored, so a failure here must not retry the batch
+            try:
+                integration_repo_provider.on_create_repository(repo, rpc_org)
+            except Exception:
+                logger.warning(
+                    "sync_repos.restore_repos_batch.on_create_failed",
+                    exc_info=True,
+                    extra={
+                        "organization_id": rpc_org.id,
+                        "integration_id": integration.id,
+                        "repository_id": repo.id,
+                    },
+                )
 
 
 @instrumented_task(

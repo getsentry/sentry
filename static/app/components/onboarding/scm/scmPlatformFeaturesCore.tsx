@@ -1,19 +1,22 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
+import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -32,7 +35,6 @@ import {
   trackScmPlatformSelected,
 } from './scmAnalyticsFlow';
 import {ScmPickerSection} from './scmPickerSection';
-import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
@@ -41,15 +43,14 @@ import {
   shouldSuggestFramework,
   toSelectedSdk,
 } from './scmPlatformHelpers';
-import {ScmSearchControl} from './scmSearchControl';
-import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {ScmSearchIcon} from './scmSearchIcon';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 type PlatformOption = (typeof platformOptions)[number];
 
 const matchesPlatformOption = createFilter({
-  stringify: (option: {data: PlatformOption; label: string; value: string}) =>
-    option.data.textValue ?? `${option.label} ${option.value}`,
+  stringify: (option: PlatformOption) =>
+    option.textValue ?? `${option.label} ${option.value}`,
 });
 
 const CHANGE_PLATFORM_CLICKED_EVENT = {
@@ -114,6 +115,7 @@ export function ScmPlatformFeaturesCore({
       ? focusRequest.target
       : null;
   const headingId = useId();
+  const platformGroupName = useId();
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
 
@@ -248,6 +250,7 @@ export function ScmPlatformFeaturesCore({
       const baseSdk = toSelectedSdk(platformInfo);
 
       const {FrameworkSuggestionModal, modalCss} =
+        // oxlint-disable-next-line react/todo
         await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(
@@ -359,12 +362,7 @@ export function ScmPlatformFeaturesCore({
 
   const manualPickerFilteredOptions = useMemo(
     () =>
-      platformOptions.filter(option =>
-        matchesPlatformOption(
-          {label: option.label, value: option.value, data: option},
-          manualPickerFilter
-        )
-      ),
+      platformOptions.filter(option => matchesPlatformOption(option, manualPickerFilter)),
     [manualPickerFilter]
   );
 
@@ -388,8 +386,8 @@ export function ScmPlatformFeaturesCore({
     }
   );
 
-  function handleManualPickerSearch(query: string, {action}: {action: string}) {
-    if (action !== 'input-change') {
+  function handleManualPickerSearch(query: string, reason: 'input' | 'reset') {
+    if (reason !== 'input') {
       return;
     }
     setManualPickerFilter(query);
@@ -514,16 +512,40 @@ export function ScmPlatformFeaturesCore({
             animate="animate"
           >
             {resolvedPlatforms.map(({platform, info}) => (
-              <ScmPlatformCard
+              <MotionToggleCard
                 key={platform}
-                platform={platform}
-                name={info.name}
-                isSelected={currentPlatformKey === platform}
-                onClick={() => handleSelectDetectedPlatform(platform)}
+                variant="radio"
+                name={platformGroupName}
+                value={platform}
+                checked={currentPlatformKey === platform}
+                onChange={() => handleSelectDetectedPlatform(platform)}
+                aria-label={info.name}
                 autoFocus={
                   focusTarget === 'selectedCard' && platform === focusedDetectedPlatform
                 }
-              />
+                {...ONBOARDING_ENTER}
+              >
+                <Flex gap="lg" align="center">
+                  <Flex flexShrink={0}>
+                    <PlatformIcon platform={platform} size={20} format="lg" alt="" />
+                  </Flex>
+                  <Flex flexGrow={1} minWidth={0}>
+                    <InfoText
+                      css={css`
+                        position: relative;
+                      `}
+                      title={info.name}
+                      mode="overflowOnly"
+                      bold
+                      size="md"
+                      textWrap="nowrap"
+                    >
+                      {info.name}
+                    </InfoText>
+                  </Flex>
+                  <ToggleCard.Indicator />
+                </Flex>
+              </MotionToggleCard>
             ))}
           </MotionGrid>
         )
@@ -544,7 +566,7 @@ export function ScmPlatformFeaturesCore({
               picker (and the feature panel) showing it while the committed selection
               is empty. "Back to what we found" covers reverting. */}
           {detectedPlatformKey ? (
-            <Select<(typeof platformOptions)[number]>
+            <Select<string, (typeof platformOptions)[number]>
               {...manualPickerLabel}
               autoFocus={focusTarget === 'manualPicker'}
               placeholder={t('Search')}
@@ -553,11 +575,12 @@ export function ScmPlatformFeaturesCore({
               onChange={handleManualPickerChange}
               onInputChange={handleManualPickerSearch}
               searchable
-              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              controlLeadingItems={<ScmSearchIcon />}
+              virtualized
               styles={manualPickerStyles}
             />
           ) : (
-            <Select<(typeof platformOptions)[number]>
+            <Select<string, (typeof platformOptions)[number]>
               {...manualPickerLabel}
               autoFocus={focusTarget === 'manualPicker'}
               placeholder={t('Search')}
@@ -567,7 +590,8 @@ export function ScmPlatformFeaturesCore({
               onInputChange={handleManualPickerSearch}
               clearable
               searchable
-              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              controlLeadingItems={<ScmSearchIcon />}
+              virtualized
               styles={manualPickerStyles}
             />
           )}
@@ -580,3 +604,5 @@ export function ScmPlatformFeaturesCore({
 const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);
 const MotionStack = motion.create(Stack);
+
+const MotionToggleCard = motion.create(ToggleCard);

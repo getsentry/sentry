@@ -1,8 +1,11 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCopy} from '@sentry/icons/copy';
 import moment from 'moment-timezone';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -14,7 +17,6 @@ import {
   NotificationProviderKey,
   type NotificationTemplateRegistration,
 } from 'sentry/debug/notifications/types';
-import {IconCheckmark, IconCopy} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -27,7 +29,7 @@ export function TeamsPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('h:mm A'));
   const card = registration.previews[NotificationProviderKey.TEAMS];
 
   const {copy} = useCopyToClipboard();

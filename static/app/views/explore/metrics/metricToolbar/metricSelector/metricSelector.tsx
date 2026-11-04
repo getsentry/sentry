@@ -1,4 +1,13 @@
-import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,27 +17,27 @@ import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {ListItem} from '@sentry/scraps/menu';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
@@ -69,16 +78,14 @@ function nextFrameCallback(cb: () => void) {
 function MetricOptionTrailingItems({
   metricType,
   metricUnit,
-  hasMetricUnitsUI,
 }: {
-  hasMetricUnitsUI: boolean;
   metricType: TraceMetricTypeValue;
   metricUnit?: string;
 }) {
   return (
     <Fragment>
       <MetricTypeBadge metricType={metricType} />
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metricUnit) ? (
+      {hasDisplayMetricUnit(metricUnit) ? (
         <Tag variant="promotion">{metricUnit}</Tag>
       ) : null}
     </Fragment>
@@ -113,8 +120,6 @@ export function MetricSelector({
 }) {
   const theme = useTheme();
   const triggerId = useId();
-
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const searchRef = useRef<HTMLInputElement>(null);
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -163,7 +168,6 @@ export function MetricSelector({
         <MetricOptionTrailingItems
           metricType={traceMetricType}
           metricUnit={traceMetricDisplayUnit}
-          hasMetricUnitsUI={hasMetricUnitsUI}
         />
       ),
     };
@@ -173,7 +177,6 @@ export function MetricSelector({
     traceMetricType,
     traceMetric.unit,
     traceMetricDisplayUnit,
-    hasMetricUnitsUI,
   ]);
 
   // Always show the selected metric at the top of the list so it's easy to
@@ -230,7 +233,6 @@ export function MetricSelector({
             lastSeen,
             trailingItems: () => (
               <MetricOptionTrailingItems
-                hasMetricUnitsUI={hasMetricUnitsUI}
                 metricType={metricType}
                 metricUnit={metricUnit}
               />
@@ -295,7 +297,6 @@ export function MetricSelector({
     traceMetric.type,
     traceMetric.unit,
     traceMetricSelectValue,
-    hasMetricUnitsUI,
   ]);
 
   // Auto-select the first selectable metric when no metric is currently
@@ -396,7 +397,6 @@ export function MetricSelector({
   function handleOverlayOpenChange(open: boolean) {
     if (open) {
       nextFrameCallback(() => {
-        updateOverlay?.();
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
@@ -474,7 +474,6 @@ export function MetricSelector({
     overlayProps,
     arrowProps: overlayArrowProps,
     triggerRef,
-    update: updateOverlay,
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',
@@ -545,49 +544,37 @@ export function MetricSelector({
     ? collectionItems.findIndex(item => item.key === focusedKey)
     : -1;
 
-  const updateSidePanelAnchorOffset = useCallback(
-    (activeOptionElement?: HTMLElement | null) => {
-      if (!isOpen || (!activeOptionElement && activeOptionIndex < 0)) {
-        setSidePanelAnchorOffset(null);
-        return;
-      }
+  const updateSidePanelAnchorOffset = useCallback(() => {
+    const optionElement = listElementRef.current?.querySelector<HTMLElement>(
+      `[data-index="${activeOptionIndex}"]`
+    );
+    const popoverElement = popoverRef.current;
 
-      const optionElement =
-        activeOptionElement ??
-        listElementRef.current?.querySelector<HTMLElement>(
-          `[data-index="${activeOptionIndex}"]`
-        );
-      const popoverElement = popoverRef.current;
+    if (!isOpen || !optionElement || !popoverElement) {
+      setSidePanelAnchorOffset(null);
+      return;
+    }
 
-      if (!optionElement || !popoverElement) {
-        setSidePanelAnchorOffset(null);
-        return;
-      }
+    const optionRect = optionElement.getBoundingClientRect();
+    const popoverRect = popoverElement.getBoundingClientRect();
+    const sidePanelRect = sidePanelRef.current?.getBoundingClientRect();
+    const optionCenter = optionRect.top + optionRect.height / 2;
+    const sidePanelHeight = sidePanelRect?.height ?? 0;
+    const offset = isOverlayAboveTrigger
+      ? popoverRect.bottom - optionCenter - sidePanelHeight / 2
+      : optionCenter - popoverRect.top - sidePanelHeight / 2;
+    const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
 
-      const optionRect = optionElement.getBoundingClientRect();
-      const popoverRect = popoverElement.getBoundingClientRect();
-      const sidePanelRect = sidePanelRef.current?.getBoundingClientRect();
-      const optionCenter = optionRect.top + optionRect.height / 2;
-      const sidePanelHeight = sidePanelRect?.height ?? 0;
-      const offset = isOverlayAboveTrigger
-        ? popoverRect.bottom - optionCenter - sidePanelHeight / 2
-        : optionCenter - popoverRect.top - sidePanelHeight / 2;
-      const maxOffset = Math.max(0, popoverRect.height - sidePanelHeight);
+    setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
+  }, [activeOptionIndex, isOpen, isOverlayAboveTrigger]);
 
-      setSidePanelAnchorOffset(Math.min(Math.max(0, offset), maxOffset));
-    },
-    [activeOptionIndex, isOpen, isOverlayAboveTrigger]
-  );
-
-  const setSidePanelRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      sidePanelRef.current = element;
-      if (element) {
-        updateSidePanelAnchorOffset();
-      }
-    },
-    [updateSidePanelAnchorOffset]
-  );
+  // Measure after commits that change the focused option, the open state, or the
+  // placement. That also covers the panel mounting, since it only needs an offset
+  // while an option is focused. The offset isn't an input here, so applying it
+  // can't trigger another measurement.
+  useLayoutEffect(() => {
+    updateSidePanelAnchorOffset();
+  }, [updateSidePanelAnchorOffset]);
 
   // Fall back to rendering all items when the virtualizer can't measure
   // the scroll container (e.g. in tests where the DOM has no layout).
@@ -700,7 +687,7 @@ export function MetricSelector({
                       flex="1"
                       minHeight="0"
                       padding="xs 0"
-                      onScroll={() => updateSidePanelAnchorOffset()}
+                      onScroll={updateSidePanelAnchorOffset}
                     >
                       {/* Hidden element that reserves width based on the longest option label */}
                       {longestOption ? (
@@ -710,7 +697,7 @@ export function MetricSelector({
                           height={0}
                           overflow="hidden"
                         >
-                          <MenuListItem
+                          <ListItem
                             as="div"
                             size="md"
                             label={longestOption.label}
@@ -768,9 +755,6 @@ export function MetricSelector({
                                     size="md"
                                     dataIndex={virtualRow.index}
                                     measureRef={virtualizer.measureElement}
-                                    updateSidePanelAnchorOffset={
-                                      updateSidePanelAnchorOffset
-                                    }
                                   />
                                 );
                               })}
@@ -782,7 +766,7 @@ export function MetricSelector({
                   </Stack>
                   {hasSelectedMetric ? (
                     <SidePanel
-                      ref={setSidePanelRef}
+                      ref={sidePanelRef}
                       top={
                         isOverlayAboveTrigger
                           ? undefined
@@ -799,7 +783,6 @@ export function MetricSelector({
                     >
                       <MetricDetailPanel
                         metric={highlightedOption ?? optionFromTraceMetric}
-                        hasMetricUnitsUI={hasMetricUnitsUI}
                       />
                     </SidePanel>
                   ) : null}

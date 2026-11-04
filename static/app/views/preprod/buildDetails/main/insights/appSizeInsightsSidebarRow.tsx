@@ -1,5 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFlag} from '@sentry/icons/flag';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -8,9 +11,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
-import {IconInfo} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconFlag} from 'sentry/icons/iconFlag';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';

@@ -3,12 +3,16 @@ import zipfile
 from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
+from typing import Literal, TypedDict
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundles import (
+    get_artifact_bundles_containing_debug_id,
     get_artifact_bundles_containing_url,
     get_bundles_indexing_state,
     get_cached_bundles_indexing_state,
@@ -28,14 +32,22 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
+class _ArtifactFile(TypedDict, total=False):
+    url: str
+    type: str
+    content: bytes
+    headers: dict[str, str]
+
+
+def make_compressed_zip_file(files: dict[str, _ArtifactFile]) -> bytes:
+    def remove_and_return(dictionary: _ArtifactFile, key: Literal["content"]) -> _ArtifactFile:
         dictionary.pop(key)
         return dictionary
 
@@ -61,7 +73,12 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None):
+def upload_bundle(
+    bundle_file: bytes,
+    project: Project,
+    release: str,
+    dist: str | None = None,
+) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
@@ -75,7 +92,9 @@ def upload_bundle(bundle_file, project, release=None, dist=None):
     )
 
 
-def get_artifact_bundles(project, release_name="", dist_name=""):
+def get_artifact_bundles(
+    project: Project, release_name: str = "", dist_name: str = ""
+) -> list[ArtifactBundle]:
     return list(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -86,7 +105,9 @@ def get_artifact_bundles(project, release_name="", dist_name=""):
     )
 
 
-def get_indexed_files(project, release_name="", dist_name="", distinct=False):
+def get_indexed_files(
+    project: Project, release_name: str = "", dist_name: str = "", distinct: bool = False
+) -> list[ArtifactBundleIndex]:
     query = ArtifactBundleIndex.objects.filter(
         organization_id=project.organization.id,
         artifact_bundle__projectartifactbundle__project_id=project.id,
@@ -99,9 +120,9 @@ def get_indexed_files(project, release_name="", dist_name="", distinct=False):
 
 
 class ArtifactLookupTest(TestCase):
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         redis_client = get_redis_cluster_for_artifact_bundles()
-        redis_client.flushall()
+        redis_client.flushdb()
 
     def test_indexing_artifacts(self) -> None:
         self.clear_cache()
@@ -211,7 +232,7 @@ class ArtifactLookupTest(TestCase):
 
 class GetCachedBundlesIndexingStateTest(TestCase):
     def setUp(self) -> None:
-        get_redis_cluster_for_artifact_bundles().flushall()
+        get_redis_cluster_for_artifact_bundles().flushdb()
 
     def create_bundles(self, count: int) -> None:
         for _ in range(count):
@@ -366,7 +387,7 @@ class IndexUrlsInBundleTest(TestCase):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
     def index(self) -> list[str]:
-        files = {
+        files: dict[str, _ArtifactFile] = {
             "files/_/_/generated.js": {
                 "url": f"~/{self.debug_id}-0.js",
                 "type": "minified_source",
@@ -433,7 +454,9 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
         self.release_name = "1.0.0"
         self.dist_name = "dist1"
 
-    def create_bundle(self, date_added=None, date_last_modified=None):
+    def create_bundle(
+        self, date_added: datetime | None = None, date_last_modified: datetime | None = None
+    ) -> ArtifactBundle:
         if date_added is None:
             date_added = timezone.now()
         if date_last_modified is None:
@@ -466,7 +489,9 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
         )
         return artifact_bundle
 
-    def assert_results(self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]):
+    def assert_results(
+        self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]
+    ) -> None:
         assert {bundle_id for bundle_id, _ in results} == expected_bundle_ids
 
     def test_get_artifact_bundles_containing_url_exact_match(self) -> None:
@@ -939,6 +964,173 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
         )
         logger.info.assert_not_called()
+
+
+class GetArtifactBundlesContainingDebugIdTest(TestCase):
+    def setUp(self) -> None:
+        self.debug_id = str(uuid.uuid4())
+
+    def create_bundle(
+        self,
+        debug_ids: tuple[str, ...],
+        project: Project | None = None,
+        date_last_modified: datetime | None = None,
+    ) -> ArtifactBundle:
+        project = project or self.project
+        date_added = timezone.now()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=project.organization_id,
+            bundle_id=uuid.uuid4(),
+            file=self.create_file(name="bundle.zip"),
+            artifact_count=2,
+            date_added=date_added,
+            date_uploaded=date_added,
+            date_last_modified=date_last_modified or date_added,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+            date_added=date_added,
+        )
+        for debug_id in debug_ids:
+            # A minified file and its source map share a debug ID.
+            for source_file_type in (SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP):
+                DebugIdArtifactBundle.objects.create(
+                    organization_id=project.organization_id,
+                    debug_id=debug_id,
+                    artifact_bundle=artifact_bundle,
+                    source_file_type=source_file_type.value,
+                    date_added=date_added,
+                )
+        return artifact_bundle
+
+    def lookup(self) -> tuple[set[int], list[set[str]]]:
+        """
+        Returns the ids of the bundles found, and the artifact bundle tables that each query read.
+        """
+        tables = (
+            "sentry_artifactbundle",
+            "sentry_debugidartifactbundle",
+            "sentry_projectartifactbundle",
+        )
+        with CaptureQueriesContext(
+            connections[router.db_for_read(ArtifactBundle)]
+        ) as captured_queries:
+            bundles = get_artifact_bundles_containing_debug_id(self.project, self.debug_id)
+
+        queries = [
+            {table for table in tables if f'"{table}"' in query["sql"]}
+            for query in captured_queries.captured_queries
+        ]
+        return {bundle_id for bundle_id, _date_added in bundles}, [q for q in queries if q]
+
+    def test_returns_most_recently_modified_bundle_of_project(self) -> None:
+        now = timezone.now()
+        modified_last = self.create_bundle(
+            (self.debug_id,), date_last_modified=now - timedelta(hours=1)
+        )
+        # Uploaded after `modified_last`, which was then uploaded again.
+        self.create_bundle((self.debug_id,), date_last_modified=now - timedelta(hours=2))
+        # Newer bundles without the debug ID, or of another project or organization.
+        self.create_bundle((str(uuid.uuid4()),))
+        self.create_bundle(
+            (self.debug_id,), project=self.create_project(organization=self.organization)
+        )
+        other_organization = self.create_organization()
+        self.create_bundle(
+            (self.debug_id,),
+            project=self.create_project(
+                organization=other_organization,
+                teams=[self.create_team(organization=other_organization)],
+            ),
+        )
+
+        for max_rows in (0, 1000):
+            with override_options(
+                {"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": max_rows}
+            ):
+                assert self.lookup()[0] == {modified_last.id}
+
+    def test_joins_all_tables_by_default(self) -> None:
+        bundle = self.create_bundle((self.debug_id,))
+
+        assert self.lookup() == (
+            {bundle.id},
+            [
+                {
+                    "sentry_artifactbundle",
+                    "sentry_debugidartifactbundle",
+                    "sentry_projectartifactbundle",
+                }
+            ],
+        )
+
+    @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1000})
+    def test_reads_debug_id_rows_first(self) -> None:
+        bundle = self.create_bundle((self.debug_id,))
+
+        with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
+            # No query joins the debug-ID rows with the project's bundles.
+            assert self.lookup() == (
+                {bundle.id},
+                [
+                    {"sentry_debugidartifactbundle"},
+                    {"sentry_projectartifactbundle"},
+                    {"sentry_artifactbundle"},
+                ],
+            )
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_debug_id_lookup.rows", tags={"truncated": "false"}
+        )
+
+    @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1000})
+    def test_debug_id_not_uploaded(self) -> None:
+        self.create_bundle((str(uuid.uuid4()),))
+
+        assert self.lookup() == (set(), [{"sentry_debugidartifactbundle"}])
+
+    @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1000})
+    def test_debug_id_of_another_project(self) -> None:
+        self.create_bundle(
+            (self.debug_id,), project=self.create_project(organization=self.organization)
+        )
+
+        assert self.lookup() == (
+            set(),
+            [{"sentry_debugidartifactbundle"}, {"sentry_projectartifactbundle"}],
+        )
+
+    @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1})
+    def test_debug_id_with_more_rows_joins_all_tables(self) -> None:
+        # The bundle has two rows for the debug ID, one more than we read.
+        bundle = self.create_bundle((self.debug_id,))
+
+        with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
+            assert self.lookup() == (
+                {bundle.id},
+                [
+                    {"sentry_debugidartifactbundle"},
+                    {
+                        "sentry_artifactbundle",
+                        "sentry_debugidartifactbundle",
+                        "sentry_projectartifactbundle",
+                    },
+                ],
+            )
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_debug_id_lookup.rows", tags={"truncated": "true"}
+        )
+
+    @override_options({"sourcemaps.artifact-bundles.debug-id-lookup.max-rows": 1000})
+    def test_query_artifact_bundles_containing_file(self) -> None:
+        bundle = self.create_bundle((self.debug_id,))
+
+        assert query_artifact_bundles_containing_file(
+            self.project, "1.0.0", "", "/path/to/app", self.debug_id
+        ) == [(bundle.id, "debug-id")]
 
 
 class RenewArtifactBundleTest(TestCase):

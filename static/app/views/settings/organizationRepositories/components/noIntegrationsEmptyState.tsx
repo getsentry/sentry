@@ -1,3 +1,6 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconSeer} from '@sentry/icons/seer';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
@@ -6,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconAdd, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';

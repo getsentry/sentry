@@ -97,8 +97,9 @@ interface CMDKActionProps {
 ### 1. Navigation link
 
 ```tsx
+import {IconIssues} from '@sentry/icons/issues';
+
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
-import {IconIssues} from 'sentry/icons';
 
 <CMDKAction
   display={{
@@ -166,9 +167,10 @@ Use `resource` + `cmdkQueryOptions` to load items from an API. The user types to
 Note: when the user drills into a resource node the palette clears the query. Your `resource` function will initially receive an empty string — design your query params accordingly.
 
 ```tsx
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 <CMDKAction
   display={{label: t('Switch Project')}}

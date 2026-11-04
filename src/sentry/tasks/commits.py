@@ -6,8 +6,7 @@ from typing import Any, NamedTuple
 
 import sentry_sdk
 from django.urls import reverse
-from sentry_sdk import set_tag
-from sentry_sdk.traces import StreamedSpan
+from sentry_sdk import set_tag, traces
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -37,7 +36,6 @@ from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder
 from sentry.utils.hashlib import hash_values
 from sentry.utils.http import absolute_uri
-from sentry.utils.tracing import get_current_span
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +128,8 @@ def fetch_recent_commits(
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
-    return provider.fetch_recent_commits(repo, end_sha, actor=user)
+    commits = provider.fetch_recent_commits(repo, end_sha, actor=user)
+    return commits
 
 
 def get_repo_for_ref(
@@ -171,8 +170,11 @@ def get_provider_for_repo(
         if repo.has_integration_provider()
         else "repository.provider"
     )
+    provider_name = repo.provider
+    if provider_name is None:
+        return None
     try:
-        provider_cls = bindings.get(binding_key).get(repo.provider)
+        provider_cls = bindings.get(binding_key).get(provider_name)
     except KeyError:
         return None
 
@@ -306,11 +308,9 @@ def fetch_commits_for_ref_with_lifecycle(
             except IntegrationResourceNotFoundError:
                 repo_commits = None
             except Exception as e:
-                span = get_current_span()
-                if isinstance(span, StreamedSpan):
+                span = traces.get_current_span()
+                if span is not None:
                     span.status = "error"
-                elif span:
-                    span.set_status("unknown_error")
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                     handle_invalid_identity(identity=e.identity)

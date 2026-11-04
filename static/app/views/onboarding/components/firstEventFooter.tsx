@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
@@ -6,7 +7,6 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
-import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Group} from 'sentry/types/group';

@@ -1,4 +1,5 @@
 import {useEffect, useEffectEvent} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -7,7 +8,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -182,7 +182,7 @@ export function SpansTabCrossEventSearchBars() {
         </Container>
         <Container
           area="delete"
-          justifySelf={{zero: 'stretch', md: 'end'}}
+          justifySelf={{zero: 'stretch', md: 'start'}}
           width={{zero: '100%', md: 'auto'}}
         >
           {props => (

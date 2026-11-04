@@ -150,6 +150,37 @@ describe('AskSeerPollingComboBox results', () => {
     });
   });
 
+  it('sends the search_bar referrer to the start endpoint', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(false);
+
+    await submitQuery();
+
+    await waitFor(() =>
+      expect(startRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/search-agent/start/',
+        expect.objectContaining({
+          data: expect.objectContaining({referrer: 'search_bar'}),
+        })
+      )
+    );
+  });
+
   it('shows result feedback in the footer', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',

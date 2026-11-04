@@ -1,6 +1,7 @@
 from collections.abc import Generator
 from functools import cached_property
-from unittest.mock import patch
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -25,7 +26,7 @@ from sentry.options.manager import (
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
-from sentry.utils.types import Int, String
+from sentry.utils.types import Int, String, Type
 
 
 @all_silo_test
@@ -42,13 +43,11 @@ class OptionsManagerTest(TestCase):
 
     @pytest.fixture(autouse=True)
     def register(self) -> Generator[None]:
-        default_options = settings.SENTRY_DEFAULT_OPTIONS.copy()
-        settings.SENTRY_DEFAULT_OPTIONS = {}
-        self.store.flush_local_cache()
-        self.manager.register("foo")
-        yield
-        self.manager.unregister("foo")
-        settings.SENTRY_DEFAULT_OPTIONS = default_options
+        with override_settings(SENTRY_DEFAULT_OPTIONS={}):
+            self.store.flush_local_cache()
+            self.manager.register("foo")
+            yield
+            self.manager.unregister("foo")
 
     def test_simple(self) -> None:
         assert self.manager.get("foo") == ""
@@ -100,7 +99,7 @@ class OptionsManagerTest(TestCase):
             self.manager.register("wrong-type", default=1, type=String)
 
         with pytest.raises(TypeError):
-            self.manager.register("none-type", default=None, type=type(None))
+            self.manager.register("none-type", default=None, type=cast(Type[object], type(None)))
 
         with pytest.raises(ValueError):
             self.manager.register("bad_flags", flags=FLAG_NOSTORE | FLAG_ADMIN_MODIFIABLE)
@@ -289,6 +288,7 @@ class OptionsManagerTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self) -> None:
+        assert self.store.cache is not None
         self.store.cache.clear()
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
@@ -392,7 +392,7 @@ class OptionsManagerTest(TestCase):
         assert not opt.has_any_flag({FLAG_REQUIRED})
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_store(self, mock_timer) -> None:
+    def test_get_metric_source_store(self, mock_timer: MagicMock) -> None:
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
         self.manager.get("foo")
@@ -406,7 +406,7 @@ class OptionsManagerTest(TestCase):
         ctx.__setitem__.assert_any_call("source", "store")
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_disk(self, mock_timer) -> None:
+    def test_get_metric_source_disk(self, mock_timer: MagicMock) -> None:
         self.manager.register("disk_opt", flags=FLAG_PRIORITIZE_DISK)
         with self.settings(SENTRY_OPTIONS={"disk_opt": "val"}):
             self.manager.get("disk_opt")
@@ -415,7 +415,7 @@ class OptionsManagerTest(TestCase):
         ctx.__setitem__.assert_any_call("source", "disk")
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_default(self, mock_timer) -> None:
+    def test_get_metric_source_default(self, mock_timer: MagicMock) -> None:
         self.manager.delete("foo")
         self.store.flush_local_cache()
         self.manager.get("foo")

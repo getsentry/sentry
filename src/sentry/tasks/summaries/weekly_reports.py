@@ -4,7 +4,7 @@ import heapq
 import logging
 import uuid
 import zoneinfo
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
@@ -16,6 +16,8 @@ from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -44,6 +46,7 @@ from sentry.tasks.summaries.utils import (
     PAST_ISSUES_LINK_BOOST,
     OrganizationReportContext,
     ProjectContext,
+    key_performance_issue_with_history,
 )
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
@@ -55,7 +58,6 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import set_span_tag, start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -192,13 +194,21 @@ def prepare_organization_report(
     dry_run: bool = False,
     target_user: int | None = None,
     email_override: str | None = None,
-):
-    with start_span(
-        name="weekly_reports.prepare_organization_report",
-        op="weekly_reports.prepare_organization_report",
-        transaction=True,
-        custom_sampling_context={"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING},
-    ) as span:
+) -> None:
+    traces.new_trace()
+    propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = propagation_context.custom_sampling_context
+    Scope.set_custom_sampling_context({"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING})
+    try:
+        span = traces.start_span(
+            name="weekly_reports.prepare_organization_report",
+            attributes={"sentry.op": "weekly_reports.prepare_organization_report"},
+            parent_span=None,
+        )
+    finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        propagation_context.custom_sampling_context = prev_sampling_context
+    with span:
         batch_id = str(batch_id)
         if email_override and not isinstance(target_user, int):
             logger.error(
@@ -212,9 +222,9 @@ def prepare_organization_report(
             )
             return
         organization = Organization.objects.get(id=organization_id)
-        set_span_tag(span, "org.slug", organization.slug)
+        span.set_attribute("org.slug", organization.slug)
         sentry_sdk.set_attribute("org.slug", organization.slug)
-        set_span_tag(span, "org.id", organization_id)
+        span.set_attribute("org.id", organization_id)
         sentry_sdk.set_attribute("org.id", organization_id)
         with WeeklyReportSLO(
             operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
@@ -231,12 +241,12 @@ def prepare_organization_report(
                 timestamp=timestamp, duration=duration, organization=organization
             ).create_context()
 
-            with start_span(
-                op="weekly_reports.check_if_ctx_is_empty",
+            with traces.start_span(
                 name="weekly_reports.check_if_ctx_is_empty",
+                attributes={"sentry.op": "weekly_reports.check_if_ctx_is_empty"},
             ):
                 report_is_available = not ctx.is_empty()
-            set_span_tag(span, "report.available", report_is_available)
+            span.set_attribute("report.available", report_is_available)
             sentry_sdk.set_attribute("report.available", report_is_available)
 
             if not report_is_available:
@@ -245,7 +255,10 @@ def prepare_organization_report(
 
         # Deliver the reports
         batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-        with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
+        with traces.start_span(
+            name="weekly_reports.deliver_reports",
+            attributes={"sentry.op": "weekly_reports.deliver_reports"},
+        ):
             logger.info(
                 "weekly_reports.deliver_reports",
                 extra={"batch_id": str(batch_id), "organization": organization_id},
@@ -650,7 +663,7 @@ def _top_spans_chart_url(
 
 
 def render_template_context(
-    ctx,
+    ctx: OrganizationReportContext,
     user_id: int | None,
     excluded_project_ids: set[int] | None = None,
     spans_chart_cache: dict[frozenset[str], str | None] | None = None,
@@ -686,7 +699,7 @@ def render_template_context(
 
     def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
         path = f"/organizations/{ctx.organization.slug}/issues/"
-        params = [
+        params: list[tuple[str, str | int]] = [
             ("referrer", "weekly_report"),
             ("notification_uuid", notification_uuid),
             ("query", query),
@@ -695,9 +708,9 @@ def render_template_context(
             params.append(("project", pc.project.id))
         return ctx.organization.absolute_url(path, query=urlencode(params))
 
-    def trends():
+    def trends() -> dict[str, Any]:
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
-        def sum_error_counts(project_ctxs):
+        def sum_error_counts(project_ctxs: Sequence[ProjectContext]) -> int:
             return sum(project_ctx.accepted_error_count for project_ctx in project_ctxs)
 
         # Highest volume projects go first
@@ -787,10 +800,10 @@ def render_template_context(
             )
 
         # Calculate series
-        series = []
+        series: list[tuple[datetime, list[dict[str, Any]]]] = []
         for i in range(0, 7):
             t = int(ctx.start.timestamp()) + ONE_DAY * i
-            project_series = [
+            project_series: list[dict[str, Any]] = [
                 {
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
@@ -835,8 +848,8 @@ def render_template_context(
             ),
         }
 
-    def top_issues():
-        def all_issues():
+    def top_issues() -> list[dict[str, Any]]:
+        def all_issues() -> Iterator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
@@ -858,7 +871,8 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-                for group, group_history, count in project_ctx.key_performance_issues:
+                for issue in project_ctx.key_performance_issues:
+                    group, group_history, count = key_performance_issue_with_history(issue)
                     display = get_group_display(group)
                     (
                         substatus,
@@ -885,8 +899,8 @@ def render_template_context(
 
         return heapq.nlargest(5, all_issues(), lambda d: d["count"])
 
-    def past_issues():
-        def all_past_issues():
+    def past_issues() -> list[dict[str, Any]]:
+        def all_past_issues() -> Iterator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for (
                     group,
@@ -908,7 +922,7 @@ def render_template_context(
 
         return heapq.nlargest(3, all_past_issues(), lambda d: d["_relevance"])
 
-    def issue_summary():
+    def issue_summary() -> dict[str, int]:
         new_substatus_count = 0
         escalating_substatus_count = 0
         ongoing_substatus_count = 0
@@ -928,7 +942,7 @@ def render_template_context(
             "total_substatus_count": total_substatus_count,
         }
 
-    def top_spans():
+    def top_spans() -> dict[str, Any]:
         user_total_spans_count = sum(
             count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
         )
@@ -988,8 +1002,6 @@ def render_template_context(
             "spans_pct_change": _pct_change(user_total_spans_count, prev_week_total_spans_count),
         }
 
-    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
-
     errors_discover_params: list[tuple[str, str | int]] = [
         ("field", "title"),
         ("field", "event.type"),
@@ -1015,8 +1027,7 @@ def render_template_context(
         "end": date_format(local_end),
         "trends": trends(),
         "top_issues": top_issues(),
-        "past_issues": past_issues() if show_past_issues else [],
-        "show_past_issues": show_past_issues,
+        "past_issues": past_issues(),
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
@@ -1030,7 +1041,7 @@ def render_template_context(
 
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
-) -> list[Mapping[str, Any]] | list:
+) -> list[dict[str, Any]]:
     exclusions_by_user: dict[int, set[int]] = {}
     valid_user_ids = [uid for uid in user_ids if uid is not None]
     if valid_user_ids:
@@ -1041,7 +1052,7 @@ def prepare_template_context(
             exclusions_by_user.setdefault(exc_user_id, set()).add(exc_project_id)
 
     spans_chart_cache: dict[frozenset[str], str | None] = {}
-    user_template_context_by_user_id_list = []
+    user_template_context_by_user_id_list: list[dict[str, Any]] = []
     for user_id in user_ids:
         excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None
         template_ctx = render_template_context(

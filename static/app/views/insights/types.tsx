@@ -583,7 +583,15 @@ type SpanResponseRaw = {
   } & CustomResponseFields & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
+    // EAP filter-first `_if` combinators: `count_if(\`span.op:db\`)`, `avg_if(\`span.op:db\`,span.duration)`.
+    [
+      Property in CounterConditionalAggregate as
+        | `${Property}(${string})`
+        | `${Property}(${string},${string})`
+    ]: number;
+  } & {
     // TODO: The middle arg represents the operator, however adding this creastes too large of a map and tsc fails
+    // Discover-style / deprecated equals arity — keep until saved queries and formulas are migrated.
     [
       Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string},${string})`
     ]: number;

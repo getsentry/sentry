@@ -1,10 +1,15 @@
 import logging
+from collections import defaultdict
+from collections.abc import Sequence
 
 from django.conf import settings
 from django.db import IntegrityError
 from taskbroker_client.retry import Retry
 
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.locks import locks
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import auth_tasks
@@ -16,16 +21,30 @@ audit_logger = logging.getLogger("sentry.audit.user")
 SUPERUSER_WRITE_PERMISSION = "superuser.write"
 
 
-def _resolve_privilege_attrs(team_slug: str, *, grant: bool) -> dict[str, bool]:
-    """Map a privileged team slug to the user attrs that should be set."""
+def _resolve_privilege_attrs(team_slug: str, member_team_slugs: set[str]) -> dict[str, bool]:
+    """Map a privileged team slug to the user attrs implied by the user's current teams."""
     if team_slug == settings.SENTRY_SCIM_STAFF_TEAM_SLUG:
-        return {"is_staff": grant}
-    if team_slug in (
+        return {"is_staff": team_slug in member_team_slugs}
+    superuser_slugs = {
         settings.SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG,
         settings.SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG,
-    ):
-        return {"is_superuser": grant}
+    }
+    if team_slug in superuser_slugs:
+        return {"is_superuser": bool(superuser_slugs & member_team_slugs)}
     return {}
+
+
+def _get_member_team_slugs(organization_id: int, user_ids: Sequence[int]) -> dict[int, set[str]]:
+    """Return the active team slugs each user currently belongs to in the organization."""
+    member_team_slugs: dict[int, set[str]] = defaultdict(set)
+    for user_id, team_slug in OrganizationMemberTeam.objects.filter(
+        organizationmember__organization_id=organization_id,
+        organizationmember__user_id__in=user_ids,
+        team__status=TeamStatus.ACTIVE,
+    ).values_list("organizationmember__user_id", "team__slug"):
+        if user_id is not None:
+            member_team_slugs[user_id].add(team_slug)
+    return member_team_slugs
 
 
 def _slug_to_permission() -> dict[str, str]:
@@ -131,48 +150,40 @@ def sync_scim_team_privileges(
     if not _is_privileged_slug(team_slug):
         return
 
+    user_ids = sorted(set(user_ids_to_grant) | set(user_ids_to_revoke))
+    if not user_ids:
+        return
+
     managed_permission = _resolve_managed_permission(team_slug)
 
-    # Revoke
-    revoke_attrs = _resolve_privilege_attrs(team_slug, grant=False)
-    for user_id in user_ids_to_revoke:
-        try:
-            update_privilege(
-                user_id, revoke_attrs, grant=False, managed_permission=managed_permission
-            )
+    # A single Okta group push sends several PATCH requests, each dispatching its own
+    # task. Apply the current team membership under a lock instead of the per-request
+    # grant/revoke lists, so the outcome doesn't depend on the order the tasks run in.
+    lock = locks.get(
+        f"scim:privilege-sync:{organization_id}", duration=600, name="scim_privilege_sync"
+    )
+    with lock.blocking_acquire(initial_delay=0.1, timeout=300):
+        member_team_slugs = _get_member_team_slugs(organization_id, user_ids)
+        for user_id in user_ids:
+            is_member = team_slug in member_team_slugs[user_id]
+            attrs = _resolve_privilege_attrs(team_slug, member_team_slugs[user_id])
+            try:
+                update_privilege(
+                    user_id, attrs, grant=is_member, managed_permission=managed_permission
+                )
+            except Exception:
+                logger.exception(
+                    "scim.task.privilege_grant_failed"
+                    if is_member
+                    else "scim.task.privilege_revocation_failed",
+                    extra={
+                        "organization_id": organization_id,
+                        "team_slug": team_slug,
+                        "user_id": user_id,
+                    },
+                )
+                raise
             logger.info(
-                "scim.privilege.revoked",
+                "scim.privilege.granted" if is_member else "scim.privilege.revoked",
                 extra={"user_id": user_id, "team_slug": team_slug},
             )
-        except Exception:
-            logger.exception(
-                "scim.task.privilege_revocation_failed",
-                extra={
-                    "organization_id": organization_id,
-                    "team_slug": team_slug,
-                    "user_id": user_id,
-                },
-            )
-            raise
-
-    # Grant
-    grant_attrs = _resolve_privilege_attrs(team_slug, grant=True)
-    for user_id in user_ids_to_grant:
-        try:
-            update_privilege(
-                user_id, grant_attrs, grant=True, managed_permission=managed_permission
-            )
-            logger.info(
-                "scim.privilege.granted",
-                extra={"user_id": user_id, "team_slug": team_slug},
-            )
-        except Exception:
-            logger.exception(
-                "scim.task.privilege_grant_failed",
-                extra={
-                    "organization_id": organization_id,
-                    "team_slug": team_slug,
-                    "user_id": user_id,
-                },
-            )
-            raise

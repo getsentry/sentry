@@ -1,4 +1,5 @@
 import type {KeyboardEvent, Ref} from 'react';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -7,7 +8,6 @@ import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderLayout,
 } from 'sentry/components/searchQueryBuilder/context';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

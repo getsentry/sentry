@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
+import type {Theme} from '@sentry/scraps/theme';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import type {Theme} from 'sentry/utils/theme';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff> {

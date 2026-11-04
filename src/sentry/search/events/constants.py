@@ -21,6 +21,7 @@ filter on the transaction field or tags.
 TIMEOUT_RPC_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
+INVALID_REGEX_ERROR_MESSAGE = "Invalid regular expression. Search patterns must use RE2 syntax."
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"

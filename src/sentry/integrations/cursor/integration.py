@@ -78,7 +78,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class CursorApiKeySerializer(CamelSnakeSerializer):
+class CursorApiKeySerializer(CamelSnakeSerializer[dict[str, str]]):
     api_key = CharField(required=True, max_length=255)
 
 
@@ -123,8 +123,8 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=webhook_secret)
             cursor_metadata = client.verify_api_key()
-            api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
-            user_email = cursor_metadata.userEmail if cursor_metadata else None
+            api_key_name = cursor_metadata.apiKeyName
+            user_email = cursor_metadata.userEmail
         except (HTTPError, ApiError) as e:
             self.get_logger().exception("cursor.build_integration.api_key_verification_failed")
             status_code: int | None = None
@@ -224,8 +224,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
             client = CursorAgentClient(api_key=api_key, webhook_secret=metadata.webhook_secret)
             cursor_metadata = client.verify_api_key()
             metadata.api_key = api_key
-            metadata.api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
-            metadata.user_email = cursor_metadata.userEmail if cursor_metadata else None
+            metadata.api_key_name = cursor_metadata.apiKeyName
+            metadata.user_email = cursor_metadata.userEmail
         except (HTTPError, ApiError) as e:
             status_code: int | None = None
             if isinstance(e, ApiError):
@@ -256,7 +256,7 @@ class CursorAgentIntegration(CodingAgentIntegration):
             )
         metadata.display_name = display_name or None
 
-    def get_client(self):
+    def get_client(self) -> CursorAgentClient:
         return CursorAgentClient(
             api_key=self.api_key,
             webhook_secret=self.webhook_secret,

@@ -12,13 +12,13 @@ import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingInte
 import * as analytics from 'sentry/utils/analytics';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
 import {
-  type IssueAlertNotificationProps,
-  MultipleCheckboxOptions,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ScmAlertFrequencySection} from './scmAlertFrequencySection';
 

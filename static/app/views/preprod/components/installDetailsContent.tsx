@@ -1,18 +1,21 @@
 import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconLink} from '@sentry/icons/link';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
-import {IconDownload, IconEllipsis, IconLink} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -289,16 +292,14 @@ export function InstallDetailsContent({
                             }),
                         },
                       ]}
-                      trigger={(triggerProps, _isOpen) => (
-                        <DropdownButton
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          icon={<IconEllipsis />}
                           {...triggerProps}
                           size="md"
                           aria-label={t('More install options')}
-                          showChevron={false}
                           style={{width: '100%'}}
-                        >
-                          <IconEllipsis />
-                        </DropdownButton>
+                        />
                       )}
                     />
                   </Flex>

@@ -74,9 +74,7 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data == {
-            "detail": "This conversation belongs to another user and is read-only."
-        }
+        assert response.data == {"detail": "You do not have access to this run."}
         mock_request.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
@@ -319,7 +317,7 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
             organization=self.organization, seer_run_state_id=123, user_id=self.user.id
         )
 
-    def _sent_payload(self, mock_request: MagicMock, payload_type: str) -> dict:
+    def _sent_payload(self, mock_request: MagicMock, payload_type: str) -> dict[str, object]:
         mock_request.return_value.status = 200
         mock_request.return_value.json.return_value = {}
         spoofed = {"name": "Someone Else", "email": "victim@example.com"}

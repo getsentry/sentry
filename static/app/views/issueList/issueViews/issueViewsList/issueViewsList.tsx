@@ -1,11 +1,14 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -16,14 +19,12 @@ import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
@@ -76,11 +77,13 @@ function getEndpointSort(
   }
 }
 
-function useIssueViewSort(): GroupSearchViewSort {
-  const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY;
+function useIssueViewSort() {
+  const [sort, setSort] = useQueryState('sort', {history: 'push'});
 
-  return sort as GroupSearchViewSort;
+  return [
+    (sort ?? GroupSearchViewSort.POPULARITY) as GroupSearchViewSort,
+    setSort,
+  ] as const;
 }
 
 function IssueViewSection({
@@ -90,14 +93,9 @@ function IssueViewSection({
   emptyState,
 }: IssueViewSectionProps) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const sort = useIssueViewSort();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
-  const cursor =
-    typeof location.query[cursorQueryParam] === 'string'
-      ? location.query[cursorQueryParam]
-      : undefined;
+  const [sort] = useIssueViewSort();
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
+  const [cursor, setCursor] = useQueryState(cursorQueryParam, {history: 'push'});
   const queryClient = useQueryClient();
   const endpointSort = getEndpointSort(sort);
 
@@ -105,7 +103,7 @@ function IssueViewSection({
     orgSlug: organization.slug,
     createdBy,
     limit,
-    cursor,
+    cursor: cursor ?? undefined,
     sort: endpointSort,
     query,
   });
@@ -203,18 +201,7 @@ function IssueViewSection({
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                [cursorQueryParam]: newCursor,
-              },
-            },
-            {
-              preventScrollReset: true,
-            }
-          );
+          setCursor(newCursor ?? null);
         }}
       />
     </Fragment>
@@ -284,9 +271,7 @@ function NoViewsBanner({
 
 function SortDropdown() {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const sort = useIssueViewSort();
+  const [sort, setSort] = useIssueViewSort();
 
   return (
     <CompactSelect
@@ -299,10 +284,7 @@ function SortDropdown() {
           organization,
           sort: newSort.value,
         });
-        navigate({
-          pathname: location.pathname,
-          query: {...location.query, sort: newSort.value},
-        });
+        setSort(newSort.value);
       }}
       options={[
         {
@@ -346,8 +328,7 @@ const issueViewsFeedbackOptions = {
 export default function IssueViewsList() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const location = useLocation();
-  const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const [query, setQuery] = useQueryState('query', {history: 'push'});
   const {mutate: createGroupSearchView, isPending: isCreatingView} =
     useCreateGroupSearchView();
 
@@ -397,14 +378,11 @@ export default function IssueViewsList() {
         </TopBar.Slot>
         <Layout.Body>
           <MainTableLayout>
-            <FilterSortBar>
+            <Grid align="center" gap="md" columns="1fr auto">
               <SearchBar
-                defaultQuery={query}
+                defaultQuery={query ?? ''}
                 onSearch={newQuery => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, query: newQuery},
-                  });
+                  setQuery(newQuery);
                   trackAnalytics('issue_views.table.search', {
                     organization,
                     query: newQuery,
@@ -451,7 +429,7 @@ export default function IssueViewsList() {
                   )}
                 </Feature>
               </Flex>
-            </FilterSortBar>
+            </Grid>
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
@@ -507,13 +485,6 @@ const BannerTitle = styled('div')`
 
 const BannerAddViewButton = styled(Button)`
   align-self: flex-start;
-`;
-
-const FilterSortBar = styled('div')`
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr auto;
-  gap: ${p => p.theme.space.md};
 `;
 
 const TableHeading = styled('h2')`

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCalendar} from '@sentry/icons/calendar';
+import {IconDelete} from '@sentry/icons/delete';
 import {useQueryClient} from '@tanstack/react-query';
 import invariant from 'invariant';
 import {useQueryState} from 'nuqs';
@@ -21,7 +23,6 @@ import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulk
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
@@ -36,6 +37,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const REPLAY_COLUMNS: TableColumnConfig[] = [
   {key: 'replay', width: '1fr'},
@@ -264,6 +267,7 @@ function ReplayPreviewTable({
 
 function Title({children, project}: {children: React.ReactNode; project: Project}) {
   const organization = useOrganization();
+  const settingsV3 = useSettingsV3();
   const settingsPath = `/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
   return (
     <Fragment>
@@ -275,7 +279,7 @@ function Title({children, project}: {children: React.ReactNode; project: Project
           link: (
             <LinkWithUnderline
               to={settingsPath}
-            >{`Settings > ${project.slug} > Replays`}</LinkWithUnderline>
+            >{`${settingsV3 ? getSettingsScopeTitle('project') : 'Settings'} > ${project.slug} > Replays`}</LinkWithUnderline>
           ),
         })}
       </p>

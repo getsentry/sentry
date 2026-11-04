@@ -1,8 +1,9 @@
+import {IconNext} from '@sentry/icons/next';
+
 import {Button} from '@sentry/scraps/button';
 
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
-import {IconNext} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';

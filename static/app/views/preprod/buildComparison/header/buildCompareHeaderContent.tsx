@@ -1,47 +1,36 @@
-import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
+import {Fragment} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {
-  IconCode,
-  IconDownload,
-  IconEllipsis,
-  IconJson,
-  IconMobile,
-  IconRefresh,
-} from 'sentry/icons';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {AppIcon} from 'sentry/views/preprod/components/appIcon';
+import {BuildEntityHeader} from 'sentry/views/preprod/components/buildEntityHeader';
 import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
+import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
-  getLabels,
-  getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
 interface BuildCompareHeaderContentProps {
-  buildDetails: BuildDetailsApiResponse;
   baseArtifactId?: string;
+  buildDetails?: BuildDetailsApiResponse;
   headArtifactId?: string;
+  isLoading?: boolean;
   isRerunning?: boolean;
   onRerunComparison?: () => void;
 }
@@ -52,160 +41,136 @@ const buildCompareFeedbackOptions = {
   },
 };
 
+function getInstallSizeStatLabels(platform: Platform | null) {
+  if (platform === 'android') {
+    return {label: t('Uncompressed Disk Size'), tooltip: t('Excluding AOT DEX')};
+  }
+
+  return {label: t('Install Size'), tooltip: t('Unencrypted install size')};
+}
+
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
-  const {buildDetails, headArtifactId, baseArtifactId, onRerunComparison, isRerunning} =
-    props;
+  const {
+    buildDetails,
+    headArtifactId,
+    baseArtifactId,
+    onRerunComparison,
+    isRerunning,
+    isLoading,
+  } = props;
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
-  const breadcrumbs: Crumb[] = [
+
+  const sizeInfo = buildDetails?.size_info;
+  const project = ProjectsStore.getBySlug(buildDetails?.project_slug);
+  const headBuildPath = headArtifactId
+    ? getSizeBuildPath({
+        organizationSlug: organization.slug,
+        baseArtifactId: headArtifactId,
+      })
+    : undefined;
+
+  const breadcrumbItems: BreadcrumbListProps['items'] = [
     {
-      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {}),
+      type: 'link',
       label: t('Releases'),
+      to: makeReleasesUrl(
+        organization.slug,
+        buildDetails ? String(buildDetails.project_id) : undefined,
+        {}
+      ),
     },
   ];
 
-  if (buildDetails.app_info.version) {
-    breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, String(buildDetails.project_id), {
-        query: buildDetails.app_info.version,
-      }),
-      label: buildDetails.app_info.version,
+  if (headArtifactId && headBuildPath) {
+    breadcrumbItems.push({
+      type: 'link',
+      label: headArtifactId,
+      to: headBuildPath,
+      leadingGraphic: project && (
+        <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+      ),
     });
   }
 
-  breadcrumbs.push({
-    label: t('Compare'),
-  });
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'admin-section',
+      label: t('Admin (Sentry Employees only)'),
+      children: [
+        {
+          key: 'rerun-comparison',
+          label: t('Rerun Comparison'),
+          leadingItems: <IconRefresh variant="muted" />,
+          onAction: onRerunComparison,
+          disabled: isRerunning,
+        },
+      ],
+    },
+  ];
+
+  const hasAdminMenu = isSentryEmployee && Boolean(headArtifactId && baseArtifactId);
+
+  const installStat = getInstallSizeStatLabels(buildDetails?.app_info?.platform ?? null);
+  // Declared while the request is in flight, not only once it settles: the row
+  // decides the header's grid template, so resolving it late reflows the title
+  // beside it and the page below.
+  const stats: EntityHeaderProps['stats'] =
+    isLoading || isSizeInfoCompleted(sizeInfo)
+      ? {
+          label: t('Build size'),
+          items: [
+            {
+              type: 'text',
+              label: installStat.label,
+              labelTooltip: installStat.tooltip,
+              value: formattedPrimaryMetricInstallSize(sizeInfo),
+              isLoading,
+            },
+            {
+              type: 'text',
+              label: t('Bytes Transferred'),
+              labelTooltip: t('Over the network'),
+              value: formattedPrimaryMetricDownloadSize(sizeInfo),
+              isLoading,
+            },
+          ],
+        }
+      : undefined;
 
   return (
-    <Flex justify="between" align="center" gap="lg">
-      <Stack gap="lg" padding="0 0 lg 0">
-        <Flex align="center" gap="sm">
-          <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="new" />
-        </Flex>
-        <Heading as="h1">Build comparison</Heading>
-        <Flex gap="lg" wrap="wrap" align="center">
-          {buildDetails.app_info.name && (
-            <Flex gap="sm" align="center">
-              <AppIcon
-                appName={buildDetails.app_info.name}
-                appIconId={buildDetails.app_info.app_icon_id}
-                projectId={buildDetails.project_slug}
-              />
-              <Text>{buildDetails.app_info.name}</Text>
-            </Flex>
-          )}
-          <Flex gap="sm" align="center">
-            <InfoIcon>
-              {buildDetails.app_info.platform ? (
-                <PlatformIcon platform={buildDetails.app_info.platform} alt="" />
-              ) : null}
-            </InfoIcon>
-            <Text>
-              {buildDetails.app_info.platform
-                ? getReadablePlatformLabel(buildDetails.app_info.platform)
-                : ''}
-            </Text>
-          </Flex>
-          <Tooltip title={t('Application ID')}>
-            <Flex gap="sm" align="center">
-              <InfoIcon>
-                <IconJson />
-              </InfoIcon>
-              <Text>{buildDetails.app_info.app_id}</Text>
-            </Flex>
-          </Tooltip>
-          {buildDetails.app_info.build_configuration && (
-            <Tooltip title={t('Build configuration')}>
-              <Flex gap="sm" align="center">
-                <IconMobile size="sm" variant="muted" />
-                <Text monospace>{buildDetails.app_info.build_configuration}</Text>
-              </Flex>
-            </Tooltip>
-          )}
-          {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={labels.installSizeDescription}>
-              <Flex gap="sm" align="center">
-                <IconCode size="sm" variant="muted" />
-                <Text underline="dotted">
-                  {formattedPrimaryMetricInstallSize(buildDetails.size_info)}
-                </Text>
-              </Flex>
-            </Tooltip>
-          )}
-          {isSizeInfoCompleted(buildDetails.size_info) && (
-            <Tooltip title={labels.downloadSizeDescription}>
-              <Flex gap="sm" align="center">
-                <IconDownload size="sm" variant="muted" />
-                <Text underline="dotted">
-                  {formattedPrimaryMetricDownloadSize(buildDetails.size_info)}
-                </Text>
-              </Flex>
-            </Tooltip>
-          )}
-        </Flex>
-      </Stack>
-      <Flex align="center" gap="sm">
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={buildCompareFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-        {isSentryEmployee &&
-          headArtifactId &&
-          baseArtifactId &&
-          (() => {
-            const menuItems: MenuItemProps[] = [
-              {
-                key: 'admin-section',
-                label: t('Admin (Sentry Employees only)'),
-                children: [
-                  {
-                    key: 'rerun-comparison',
-                    label: (
-                      <Flex align="center" gap="sm">
-                        <IconRefresh size="sm" />
-                        {t('Rerun Comparison')}
-                      </Flex>
-                    ),
-                    onAction: onRerunComparison,
-                    textValue: t('Rerun Comparison'),
-                  },
-                ],
-              },
-            ];
-            return (
-              <DropdownMenu
-                items={menuItems}
-                trigger={(triggerProps, _isOpen) => (
-                  <DropdownButton
-                    {...triggerProps}
-                    size="sm"
-                    aria-label="More actions"
-                    showChevron={false}
-                    disabled={isRerunning}
-                  >
-                    <IconEllipsis />
-                  </DropdownButton>
-                )}
-              />
-            );
-          })()}
-      </Flex>
-    </Flex>
+    <Fragment>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Compare Builds'),
+          trailingActions: hasAdminMenu
+            ? {
+                type: 'menu',
+                triggerLabel: t('Comparison Actions'),
+                triggerIcon: <IconEllipsis />,
+                items: menuItems,
+              }
+            : undefined,
+        }}
+        items={breadcrumbItems}
+      />
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          feedbackOptions={buildCompareFeedbackOptions}
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
+      <BuildEntityHeader
+        appInfo={buildDetails?.app_info}
+        projectSlug={buildDetails?.project_slug ?? ''}
+        isLoading={isLoading}
+        stats={stats}
+      />
+    </Fragment>
   );
 }
-
-const InfoIcon = styled('div')`
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;

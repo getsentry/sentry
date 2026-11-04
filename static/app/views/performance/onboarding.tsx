@@ -2,6 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {createSerializer, parseAsInteger, parseAsString, useQueryState} from 'nuqs';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -61,12 +62,10 @@ import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
@@ -79,7 +78,7 @@ const performanceSetupUrl =
 
 const AI_SETUP_PROMPT = 'Please enable Sentry tracing in my app.';
 
-const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
+const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
 
 const AGENT_PLUGIN_DOCS_URL = 'https://docs.sentry.io/ai/agent-plugin/';
 
@@ -312,12 +311,12 @@ function OnboardingPanel({
               >
                 <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Tracing in Sentry')}</Title>
-                  <SubTitle>
+                  <Container marginBottom="md">
                     {tct(
                       'Use [tracingLink:tracing] to understand how requests and operations flow through your services and agents, and where they slow down or fail.',
                       {tracingLink: <ExternalLink href={TRACING_DOCS_URL} />}
                     )}
-                  </SubTitle>
+                  </Container>
                   <BulletList>
                     <li>
                       {t(
@@ -358,24 +357,29 @@ function OnboardingPanel({
                         <FeatureBadge type="experimental" />
                       </Flex>
                     </BodyTitle>
-                    <SubTitle>
+                    <Container marginBottom="md">
                       {tct(
                         'First, run this command to install the [pluginLink:Sentry plugin]:',
                         {pluginLink: <ExternalLink href={AGENT_PLUGIN_DOCS_URL} />}
                       )}
-                    </SubTitle>
+                    </Container>
                     <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="bash"
+                        alwaysShowCopyButton
                         onCopy={() => trackPromptCopied('install_command')}
                       >
                         {INSTALL_PLUGIN_COMMAND}
                       </OnboardingCodeSnippet>
                     </Container>
-                    <SubTitle>{t('Then paste this in your agent of choice:')}</SubTitle>
+                    <Container marginBottom="md">
+                      {t('Then paste this in your agent of choice:')}
+                    </Container>
                     <Container marginTop="md" marginBottom="2xl">
                       <OnboardingCodeSnippet
                         language="text"
+                        alwaysShowCopyButton
+                        wrapMode="wrap"
                         onCopy={() => trackPromptCopied('prompt')}
                       >
                         {AI_SETUP_PROMPT}
@@ -388,7 +392,7 @@ function OnboardingPanel({
                     )}
                   </AiSetup>
                 )}
-                <Setup>{children}</Setup>
+                <Container padding="3xl">{children}</Container>
                 {noPerformanceSupport ? null : (
                   <OrDivider aria-hidden>{t('OR')}</OrDivider>
                 )}
@@ -407,11 +411,16 @@ const STEP_TITLES: Record<StepType, string> = {
   [StepType.VERIFY]: t('Verify Sentry'),
 };
 
+const serializeTraceRedirect = createSerializer({
+  table: parseAsString,
+  query: parseAsString,
+  guidedStep: parseAsInteger,
+});
+
 export function Onboarding({organization, project}: OnboardingProps) {
   const theme = useTheme();
   const api = useApi();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   const noPerformanceSupport = doesNotSupportPerformance(project);
@@ -560,15 +569,9 @@ export function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project} receivedFirstTrace={received}>
       <SetupTitle project={project} />
       <GuidedSteps
-        initialStep={decodeInteger(location.query.guidedStep)}
+        initialStep={guidedStep ?? undefined}
         onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
+          setGuidedStep(step, {history: 'push'});
         }}
       >
         {steps.map((step, index) => {
@@ -606,12 +609,15 @@ export function Onboarding({organization, project}: OnboardingProps) {
                           title: traceId ? undefined : t('Processing trace\u2026'),
                         }}
                         onClick={() => {
-                          const params = new URLSearchParams(window.location.search);
-                          params.set('table', Tab.TRACE);
-                          params.set('query', `trace:${traceId}`);
-                          params.delete('guidedStep');
                           testableWindowLocation.assign(
-                            `${window.location.pathname}?${params.toString()}`
+                            serializeTraceRedirect(
+                              `${window.location.pathname}${window.location.search}`,
+                              {
+                                table: Tab.TRACE,
+                                query: `trace:${traceId}`,
+                                guidedStep: null,
+                              }
+                            )
                           );
                         }}
                       >
@@ -670,10 +676,6 @@ const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) 
   color: ${p => p.theme.tokens.content.success};
 `;
 
-const SubTitle = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -700,10 +702,6 @@ const AiSetup = styled('div')`
     height: 95%;
     border-right: 1px ${p => p.theme.tokens.border.primary} solid;
   }
-`;
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const OrDivider = styled('div')`
@@ -734,7 +732,7 @@ const Body = styled('div')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

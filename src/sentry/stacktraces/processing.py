@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_crashing_thread
 from sentry.utils.safe import get_path, set_path, setdefault_path
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -44,10 +44,10 @@ class StacktraceInfo(NamedTuple):
         return _safe_get_frames(self.stacktrace)
 
 
-def _safe_get_frames(stacktrace) -> Sequence[dict[str, Any]]:
+def _safe_get_frames(stacktrace: Mapping[str, Any] | None) -> Sequence[dict[str, Any]]:
     frames = []
     if stacktrace and stacktrace.get("frames"):
-        frames = [frame for frame in stacktrace.get("frames") if frame]
+        frames = [frame for frame in stacktrace.get("frames") or () if frame]
     return frames
 
 
@@ -179,7 +179,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with start_span(op=op, name="iterate_frames"):
+    with traces.start_span(name="iterate_frames", attributes={"sentry.op": op}):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -266,7 +266,10 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        with start_span(op=op, name="apply_modifications_to_frame"):
+        with traces.start_span(
+            name="apply_modifications_to_frame",
+            attributes={"sentry.op": op},
+        ):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_category_and_updated_in_app_to_frames(
@@ -306,7 +309,9 @@ def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
         frame["function"] = trimmed_function
 
 
-def get_crash_frame_from_event_data(data, frame_filter=None):
+def get_crash_frame_from_event_data(
+    data: Mapping[str, Any], frame_filter: Callable[[dict[str, Any]], bool] | None = None
+) -> dict[str, Any] | None:
     """
     Return the highest (closest to the crash) in-app frame in the top stacktrace
     which doesn't fail the given filter test.
@@ -344,3 +349,4 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
 
     if default:
         return default
+    return None

@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFix} from '@sentry/icons/fix';
+import {IconRefresh} from '@sentry/icons/refresh';
 import classNames from 'classnames';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
@@ -17,8 +19,8 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {SentryAppSchemaStacktraceLink} from 'sentry/types/integrations';
@@ -26,7 +28,8 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 
 import {Context} from './context';
@@ -103,8 +106,13 @@ export function DeprecatedLine({
   onShowFramesToggle,
   registersMeta,
 }: DeprecatedLineProps) {
-  const components = useSentryAppComponentsStore<SentryAppSchemaStacktraceLink>({
+  const {projects} = useProjects();
+  // Projects aren't loaded on the shared issue page, which can't make
+  // authenticated requests
+  const hasProject = projects.some(p => p.id === event.projectID);
+  const components = useSentryAppComponents<SentryAppSchemaStacktraceLink>({
     componentType: 'stacktrace-link',
+    enabled: hasProject,
   });
   const {openModal} = useModal();
 

@@ -18,7 +18,7 @@ from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
         "foo_bar.bar",
     ],
 )
-def test_valid_public_name_regex(name) -> None:
+def test_valid_public_name_regex(name: str) -> None:
     matches = re.compile(rf"^{PUBLIC_NAME_REGEX}$").match(name)
     assert matches
     assert matches[0] == name
@@ -38,7 +38,7 @@ def test_valid_public_name_regex(name) -> None:
         "session.09_crashed",
     ],
 )
-def test_invalid_public_name_regex(name) -> None:
+def test_invalid_public_name_regex(name: str) -> None:
     assert re.compile(rf"^{PUBLIC_NAME_REGEX}$").match(name) is None
 
 
@@ -71,7 +71,7 @@ def test_invalid_public_name_regex(name) -> None:
         ),
     ],
 )
-def test_parse_mri_with_valid_mri(name, expected) -> None:
+def test_parse_mri_with_valid_mri(name: str, expected: ParsedMRI) -> None:
     parsed_mri = parse_mri(name)
     assert parsed_mri is not None
     assert parsed_mri == expected
@@ -90,7 +90,7 @@ def test_parse_mri_with_valid_mri(name, expected) -> None:
         ":/@",
     ],
 )
-def test_parse_mri_with_invalid_mri(name) -> None:
+def test_parse_mri_with_invalid_mri(name: str) -> None:
     parsed_mri = parse_mri(name)
     assert parsed_mri is None
 
@@ -116,5 +116,5 @@ def test_parse_mri_with_invalid_mri(name) -> None:
         ),
     ],
 )
-def test_is_custom_measurement(parsed_mri, expected) -> None:
+def test_is_custom_measurement(parsed_mri: ParsedMRI, expected: bool) -> None:
     assert is_custom_measurement(parsed_mri) == expected

@@ -1,7 +1,8 @@
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   isLeafOp,

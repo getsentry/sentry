@@ -60,10 +60,10 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
   });
 
-  it('shows Investigations when the feature is enabled', () => {
-    const {organization: investigationsOrganization} = initializeOrg({
+  function renderExploreNavigation(features: string[]) {
+    const {organization: seerOrganization} = initializeOrg({
       organization: {
-        features: ['performance-view', 'visibility-explore-view', 'investigations'],
+        features: ['performance-view', 'visibility-explore-view', ...features],
         openMembership: true,
       },
     });
@@ -76,83 +76,46 @@ describe('ExploreSecondaryNavigation', () => {
         </SecondaryNavigationContextProvider>
       </PrimaryNavigationContextProvider>,
       {
-        organization: investigationsOrganization,
+        organization: seerOrganization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/investigations/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
         },
       }
     );
+  }
 
-    expect(screen.getByRole('link', {name: /Investigations/})).toHaveAttribute(
+  it('shows Automations above Investigations without seer-primary-nav', () => {
+    renderExploreNavigation(['investigations', 'seer-automations']);
+
+    const automations = screen.getByRole('link', {name: /Automations/});
+    const investigations = screen.getByRole('link', {name: /Investigations/});
+    expect(automations).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/investigations/'
+      '/organizations/org-slug/seer/automations/'
     );
-    expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+    expect(investigations).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/'
+    );
+    expect(screen.getAllByLabelText('alpha')).toHaveLength(2);
+    expect(
+      automations.compareDocumentPosition(investigations) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
-  it('keeps Explore and Investigations active on investigation detail pages', () => {
-    const {organization: investigationsOrganization} = initializeOrg({
-      organization: {
-        features: ['performance-view', 'visibility-explore-view', 'investigations'],
-        openMembership: true,
-      },
-    });
+  it('hides the Seer tabs when seer-primary-nav is enabled', () => {
+    renderExploreNavigation(['investigations', 'seer-automations', 'seer-primary-nav']);
 
-    render(
-      <PrimaryNavigationContextProvider>
-        <SecondaryNavigationContextProvider>
-          <Navigation />
-          <div id="main" />
-        </SecondaryNavigationContextProvider>
-      </PrimaryNavigationContextProvider>,
-      {
-        organization: investigationsOrganization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
-          },
-        },
-      }
-    );
-
-    expect(screen.getByRole('link', {name: 'Explore'})).toHaveAttribute(
-      'aria-current',
-      'location'
-    );
-    expect(screen.getByRole('link', {name: /Investigations/})).toHaveAttribute(
-      'aria-current',
-      'page'
-    );
+    expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
   });
 
-  it('hides Investigations for a closed-membership organization', () => {
-    const {organization: closedMembershipOrganization} = initializeOrg({
-      organization: {
-        features: ['performance-view', 'visibility-explore-view', 'investigations'],
-        openMembership: false,
-      },
-    });
+  it('only shows Seer tabs whose features are enabled', () => {
+    renderExploreNavigation(['seer-automations']);
 
-    render(
-      <PrimaryNavigationContextProvider>
-        <SecondaryNavigationContextProvider>
-          <Navigation />
-          <div id="main" />
-        </SecondaryNavigationContextProvider>
-      </PrimaryNavigationContextProvider>,
-      {
-        organization: closedMembershipOrganization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-          },
-        },
-      }
-    );
-
-    expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Automations/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
   });
 
   it('marks Releases as active on preprod pages', () => {

@@ -7,6 +7,7 @@ from typing import Any, Union, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_sdk import traces
 from snuba_sdk import (
     AliasedExpression,
     And,
@@ -71,7 +72,6 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
-from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
@@ -93,13 +93,13 @@ class BaseQueryBuilder:
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
-    def get_middle(self):
+    def get_middle(self) -> datetime:
         """Get the middle for comparison functions"""
         if self.start is None or self.end is None:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
 
-    def first_half_condition(self):
+    def first_half_condition(self) -> Function:
         """Create the first half condition for percent_change functions"""
         return Function(
             "less",
@@ -109,7 +109,7 @@ class BaseQueryBuilder:
             ],
         )
 
-    def second_half_condition(self):
+    def second_half_condition(self) -> Function:
         """Create the second half condition for percent_change functions"""
         return Function(
             "greaterOrEquals",
@@ -164,7 +164,7 @@ class BaseQueryBuilder:
                 environments = []  # type: ignore[unreachable]
 
         user_id = params.get("user_id")
-        user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -331,20 +331,30 @@ class BaseQueryBuilder:
         equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
-        with start_span(op="QueryBuilder", name="resolve_query"):
-            with start_span(op="QueryBuilder", name="resolve_time_conditions"):
+        with traces.start_span(name="resolve_query", attributes={"sentry.op": "QueryBuilder"}):
+            with traces.start_span(
+                name="resolve_time_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 # Has to be done early, since other conditions depend on start and end
                 self.resolve_time_conditions()
-            with start_span(op="QueryBuilder", name="resolve_conditions"):
+            with traces.start_span(
+                name="resolve_conditions", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.where, self.having = self.resolve_conditions(query)
-            with start_span(op="QueryBuilder", name="resolve_params"):
+            with traces.start_span(name="resolve_params", attributes={"sentry.op": "QueryBuilder"}):
                 # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
                 self.where += self.resolve_params()
-            with start_span(op="QueryBuilder", name="resolve_columns"):
+            with traces.start_span(
+                name="resolve_columns", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.columns = self.resolve_select(selected_columns, equations)
-            with start_span(op="QueryBuilder", name="resolve_orderby"):
+            with traces.start_span(
+                name="resolve_orderby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.orderby = self.resolve_orderby(orderby)
-            with start_span(op="QueryBuilder", name="resolve_groupby"):
+            with traces.start_span(
+                name="resolve_groupby", attributes={"sentry.op": "QueryBuilder"}
+            ):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
@@ -1208,7 +1218,7 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
-    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 
@@ -1218,7 +1228,7 @@ class BaseQueryBuilder:
             if not value.is_event_id():
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
 
-    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 
@@ -1565,8 +1575,13 @@ class BaseQueryBuilder:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
-        with start_span(op="QueryBuilder", name="process_results") as span:
-            set_span_data(span, "result_count", len(results.get("data", [])))
+        with traces.start_span(
+            name="process_results",
+            attributes={
+                "sentry.op": "QueryBuilder",
+                "result_count": len(results.get("data", [])),
+            },
+        ):
             translated_columns = self.alias_to_typed_tag_map
             if self.builder_config.transform_alias_to_input_format:
                 translated_columns.update(

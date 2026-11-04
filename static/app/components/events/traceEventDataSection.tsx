@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSort} from '@sentry/icons/sort';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -10,7 +12,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -51,6 +52,7 @@ type Props = {
   title: React.ReactNode;
   type: string;
   activeThreadId?: number;
+  initialCollapse?: boolean;
   isNestedSection?: boolean;
 };
 
@@ -70,6 +72,7 @@ export function TraceEventDataSection({
   hasAbsoluteAddresses,
   isNestedSection = false,
   activeThreadId,
+  initialCollapse,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -563,6 +566,7 @@ export function TraceEventDataSection({
 
   return (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={type}
       title={title}
       disableCollapsePersistence

@@ -22,6 +22,8 @@ class Span(TypedDict, total=False):
     description: str
     hash: str
     parent_span_id: str
+    project_id: int
+    organization_id: int
     data: dict[str, Any] | None
     tags: dict[str, Any] | None
     sentry_tags: SentryTags

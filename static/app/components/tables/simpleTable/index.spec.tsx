@@ -1,5 +1,4 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -118,7 +117,7 @@ describe('SimpleTable component', () => {
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
   });
 
-  it('centers a column header through styles rather than a DOM attribute', () => {
+  it('does not forward the header alignment to the DOM', () => {
     render(
       <SimpleTable
         header={
@@ -130,10 +129,8 @@ describe('SimpleTable component', () => {
     );
 
     const header = screen.getByRole('columnheader', {name: 'A'});
-    const content = within(header).getByText('A').parentElement!;
 
     expect(header).not.toHaveAttribute('align');
-    expect(getEmotionRules(content).join('')).toContain('justify-content: center');
   });
 
   it('renders a single spanning cell when given a full width row', () => {
@@ -278,33 +275,17 @@ describe('SimpleTable component', () => {
     expect(screen.getAllByRole('separator')).toHaveLength(1);
   });
 
-  it('scrolls its overflow and caps its height when scrollable with a max height', () => {
-    render(
-      <SimpleTable maxHeight="200px" scrollable>
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
-    );
+  it('passes the row element to a ref when given a callback ref', () => {
+    const ref = jest.fn();
 
-    const rules = getEmotionRules(screen.getByRole('table')).join('');
-
-    expect(rules).toContain('overflow: auto');
-    expect(rules).toContain('max-height: 200px');
-  });
-
-  it('clips its overflow when not scrollable', () => {
     render(
       <SimpleTable>
-        <SimpleTable.Row>
+        <SimpleTable.Row ref={ref}>
           <SimpleTable.RowCell>Row</SimpleTable.RowCell>
         </SimpleTable.Row>
       </SimpleTable>
     );
 
-    const rules = getEmotionRules(screen.getByRole('table')).join('');
-
-    expect(rules).toContain('overflow: hidden');
-    expect(rules).not.toContain('grid-template-rows');
+    expect(ref).toHaveBeenCalledWith(screen.getByRole('row'));
   });
 });

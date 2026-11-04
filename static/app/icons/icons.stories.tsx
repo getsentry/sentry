@@ -1,5 +1,7 @@
 import React, {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
@@ -12,14 +14,21 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Sticky} from 'sentry/components/sticky';
-import * as Icons from 'sentry/icons';
 import {IdentityIcon, type IdentityIconProps} from 'sentry/icons/identityIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
-import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+
+const iconModules = import.meta.glob<Record<string, React.ComponentType<SVGIconProps>>>(
+  ['../../packages/icons/src/icon*.tsx', '!../../packages/icons/src/*.spec.tsx'],
+  {eager: true}
+);
+
+const Icons = Object.fromEntries(
+  Object.values(iconModules).flatMap(module => Object.entries(module))
+);
 
 type TIcon = {
   id: string;
@@ -1685,7 +1694,7 @@ export function IconsStories() {
       <Flex direction="row" gap="md" justify="between" width="100%">
         {variants.map(v => (
           <Stack key={v} align="center" gap="md">
-            <Icons.IconSentry size="md" variant={v} />
+            <IconSentry size="md" variant={v} />
             <InlineCode>
               <Text size="xs" monospace>
                 {v}
@@ -1843,7 +1852,6 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
 function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
   const renderIcon = (icon: TIcon) => {
     const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const Component = Icons[name];
 
     if (!Component) {
@@ -1857,7 +1865,7 @@ function CoreSection({section, searchTerm}: {searchTerm: string; section: TSecti
 
     const props = {...icon.defaultProps};
     return (
-      <IconCard icon={icon} importSource="sentry/icons">
+      <IconCard icon={icon} importSource={`@sentry/icons/${lowerFirst(name.slice(4))}`}>
         <Component {...props} />
         {name}
         {variant && (

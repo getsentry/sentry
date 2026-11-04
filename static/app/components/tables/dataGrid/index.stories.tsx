@@ -1,0 +1,288 @@
+import {Fragment, useState} from 'react';
+
+import {InlineCode} from '@sentry/scraps/code';
+import {Link} from '@sentry/scraps/link';
+
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
+import {backend, frontend} from 'sentry/data/platformCategories';
+import * as Storybook from 'sentry/stories';
+
+interface ExampleDataItem {
+  category: 'frontend' | 'backend';
+  name: string;
+}
+
+export default Storybook.story('DataGrid', story => {
+  const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
+    {key: 'category', name: 'Platform Category'},
+    {key: 'name', name: 'Platform Name'},
+  ];
+
+  const data: ExampleDataItem[] = [
+    ...frontend.slice(0, 3).map(name => ({name, category: 'frontend' as const})),
+    ...backend.slice(0, 3).map(name => ({name, category: 'backend' as const})),
+  ];
+
+  story('Minimal', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="DataGrid" /> builds a{' '}
+          <Link to="/scraps/product/components/tables/simpletable/simpletable/">
+            <Storybook.JSXNode name="SimpleTable" />
+          </Link>{' '}
+          from a list of columns and a few render functions, instead of you writing out
+          each row and cell. Reach for it when your columns come from data, like a saved
+          query, or need sorting and resizing. For a table you lay out by hand, use{' '}
+          <Storybook.JSXNode name="SimpleTable" /> directly.
+        </p>
+        <DataGrid data={[]} columnOrder={columns} grid={{}} />
+      </Fragment>
+    );
+  });
+
+  const columnsWithWidth: Array<GridColumnOrder<keyof ExampleDataItem | 'other'>> =
+    columns.map(col => {
+      col.width = 200;
+      return col;
+    });
+  columnsWithWidth.push({key: 'other', name: 'Other', width: 200});
+
+  const renderHeadCell = (column: GridColumnOrder, columnIndex: number) =>
+    `#${columnIndex} ${column.name}`;
+
+  const renderBodyCell = (
+    column: GridColumnOrder<keyof ExampleDataItem | 'other'>,
+    dataRow: ExampleDataItem,
+    rowIndex: number,
+    columnIndex: number
+  ) =>
+    column.key in dataRow
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        dataRow[column.key]
+      : JSON.stringify({column, dataRow, rowIndex, columnIndex});
+
+  story('Basic', () => {
+    return (
+      <Fragment>
+        <p>
+          By default the column widths are resizable, but will reset frequently unless you
+          persist them somehow.
+        </p>
+        <DataGrid
+          data={data}
+          columnOrder={columnsWithWidth}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Props', () => (
+    <Storybook.SideBySide>
+      <div>
+        <p>
+          <Storybook.JSXNode name="DataGrid" props={{error: String}} />
+        </p>
+        <DataGrid error="An error happened" data={data} columnOrder={columns} grid={{}} />
+      </div>
+      <div>
+        <p>
+          <Storybook.JSXNode name="DataGrid" props={{isLoading: true}} />
+        </p>
+        <DataGrid isLoading data={data} columnOrder={columns} grid={{}} />
+      </div>
+    </Storybook.SideBySide>
+  ));
+
+  story('Row Mouse Events', () => {
+    const [activeRowKey, setActiveRowKey] = useState<number | undefined>(undefined);
+    const activeRow = activeRowKey === undefined ? undefined : data[activeRowKey];
+
+    return (
+      <Fragment>
+        <p>
+          You can provide a{' '}
+          <Storybook.JSXProperty name="onRowMouseOver" value={Function} /> and a{' '}
+          <Storybook.JSXProperty name="onRowMouseOut" value={Function} /> callback. You
+          can also combine that with the{' '}
+          <Storybook.JSXProperty name="highlightedRowKey" value={Number} /> prop to
+          highlight a row.
+        </p>
+        <p>
+          Hovered Row: {activeRow?.category} {activeRow?.name}
+        </p>
+        <DataGrid
+          data={data}
+          columnOrder={columns}
+          grid={{}}
+          onRowMouseOver={(_dataRow, key) => {
+            setActiveRowKey(key);
+          }}
+          onRowMouseOut={() => {
+            setActiveRowKey(undefined);
+          }}
+          highlightedRowKey={activeRowKey}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Column Resize', () => {
+    const queryBasedColumnResize = useQueryBasedColumnResize({
+      columns: columnsWithWidth,
+    });
+
+    return (
+      <Fragment>
+        <p>
+          Columns are resizable by default. Implement the{' '}
+          <Storybook.JSXProperty name="onResizeColumn" value={Function} /> callback only
+          when the widths need to live somewhere the table cannot reach, such as the URL.
+        </p>
+        <Storybook.SideBySide>
+          <div>
+            <p>
+              In this example no callback is passed, so the table keeps the resized widths
+              itself.
+            </p>
+            <DataGrid
+              data={data}
+              columnOrder={columnsWithWidth}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+            />
+          </div>
+          <div>
+            <p>
+              In this example we are using{' '}
+              <InlineCode>useQueryBasedColumnResize</InlineCode>. Notice how the url
+              updates after you drag columns.
+            </p>
+            <DataGrid
+              data={data}
+              columnOrder={queryBasedColumnResize.columns}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+                onResizeColumn: queryBasedColumnResize.handleResizeColumn,
+              }}
+            />
+          </div>
+        </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Fixed Height', () => (
+    <DataGrid
+      data={data}
+      columnOrder={columns}
+      grid={{
+        renderHeadCell,
+        renderBodyCell,
+      }}
+      height="200px"
+      stickyHeader
+    />
+  ));
+
+  story('Sticky Headers and Scrolling', () => {
+    return (
+      <Fragment>
+        <p>
+          Passing <Storybook.JSXProperty name="stickyHeader" value={Boolean} /> keeps the
+          header in view while the table scrolls
+        </p>
+        <Storybook.SideBySide>
+          <div>
+            <div>No sticky headers</div>
+            <DataGrid
+              data={data}
+              columnOrder={columns}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              height="200px"
+            />
+          </div>
+          <div>
+            <div>With sticky headers</div>
+            <DataGrid
+              data={data}
+              columnOrder={columns}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              stickyHeader
+              height="200px"
+            />
+          </div>
+        </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Enforcing Cell to fit Content', () => {
+    const newData = [
+      ...data,
+      {
+        name: 'Something very long',
+        category:
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent fringilla ultricies turpis, quis lobortis leo varius ut. Maecenas venenatis purus a sodales facilisis.',
+      },
+    ] as ExampleDataItem[];
+    return (
+      <Fragment>
+        <p>
+          Passing
+          <Storybook.JSXProperty name="fit" value="max-content" /> will set the width of
+          the grid to fit around the content.
+        </p>
+        <p>
+          <Storybook.JSXNode name="DataGrid" /> will by default resize the columns to fit
+          within it's container. So columns of long width may take up multiple lines or be
+          cut off, which might not be desired (ex. when the table has many columns or is
+          placed into a small container). One way to control column width this is to
+          provide
+          <Storybook.JSXProperty name="minColumnWidth" value="number" />, which applies
+          the same width to all columns. However, this does not account for varying widths
+          between columns, unlike this prop does.
+        </p>
+        <Storybook.SideBySide>
+          <div style={{width: 400}}>
+            <div>Without fit content is forced in multiple lines or cut off</div>
+            <DataGrid
+              data={newData}
+              columnOrder={columns}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+            />
+          </div>
+          <div style={{width: 400}}>
+            <div>With fit the content forces the table to expand (scroll)</div>
+            <DataGrid
+              data={newData}
+              columnOrder={columns}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+              fit="max-content"
+            />
+          </div>
+        </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+});

@@ -6,13 +6,14 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, Never, Protocol, TypedDict, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
+from django.utils.module_loading import import_string
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -21,7 +22,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 
 # I don't know why, but unless we declare these loggers earlier, we run into
 # circular import errors.
@@ -29,20 +30,21 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
-from sentry import analytics, features, tsdb
+from sentry import analytics, tsdb
 from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.client_kind import FEATURE_FLAG as CLIENT_KIND_FEATURE_FLAG
 from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
     InsufficientScope,
     StaffRequired,
     SuperuserRequired,
+    UserRequired,
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user, set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -54,8 +56,9 @@ from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cursors import Cursor
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import (
     absolute_uri,
@@ -64,10 +67,11 @@ from sentry.utils.http import (
     origin_from_request,
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
-from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from rest_framework.views import AsView, GenericView
+
+    from sentry.models.auditlogentry import AuditLogEntry
 
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
@@ -108,11 +112,18 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
+# A reasonable `Endpoint.max_acceptable_duration` (in seconds) for endpoints with no known reason
+# to be slow. Endpoints have no budget unless they set one; use this when opting in without a
+# more specific value. This value may change, so use an explicit number when the budget was
+# chosen for that endpoint.
+DEFAULT_DURATION_BUDGET = 3.0
+
 CURSOR_LINK_HEADER = (
     '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 )
 
 DEFAULT_AUTHENTICATION = (
+    *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
@@ -139,7 +150,11 @@ def _with_endpoint_scope_declaration(
     return wrapper
 
 
-def allow_cors_options(func):
+class _CorsView(Protocol):
+    def _allowed_methods(self) -> list[str]: ...
+
+
+def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
 
@@ -152,7 +167,10 @@ def allow_cors_options(func):
     """
 
     @functools.wraps(func)
-    def allow_cors_options_wrapper(self, request: Request, *args, **kwargs):
+    def allow_cors_options_wrapper(
+        self: _CorsView, request: Request, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
+        response: HttpResponse
         if request.method == "OPTIONS":
             response = HttpResponse(status=200)
             response["Access-Control-Max-Age"] = "3600"  # don't ask for options again for 1 hour
@@ -230,8 +248,13 @@ class BaseEndpointMixin(abc.ABC):
 
     @abc.abstractmethod
     def create_audit_entry(
-        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
-    ):
+        self,
+        request: Request,
+        transaction_id: int | str | None = None,
+        *,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> AuditLogEntry:
         pass
 
     @abc.abstractmethod
@@ -241,18 +264,18 @@ class BaseEndpointMixin(abc.ABC):
     @abc.abstractmethod
     def paginate(
         self,
-        request,
-        on_results=None,
-        paginator=None,
-        paginator_cls=Paginator,
+        request: Request,
+        on_results: Callable[..., object] | None = None,
+        paginator: Any = None,
+        paginator_cls: type[Any] = Paginator,
         default_per_page: int | None = None,
         max_per_page: int | None = None,
-        cursor_cls=Cursor,
-        response_cls=Response,
-        response_kwargs=None,
-        count_hits=None,
-        **paginator_kwargs,
-    ):
+        cursor_cls: type[Cursor] = Cursor,
+        response_cls: type[Response] = Response,
+        response_kwargs: Mapping[str, Any] | None = None,
+        count_hits: bool | None = None,
+        **paginator_kwargs: Any,
+    ) -> Response:
         pass
 
 
@@ -267,10 +290,22 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     owner: ApiOwner = ApiOwner.UNOWNED
+    # Request duration budgets are expressed in seconds. A mapping applies budgets only to the
+    # listed HTTP methods; missing methods are not budgeted. See DEFAULT_DURATION_BUDGET.
+    max_acceptable_duration: dict[HTTP_METHOD_NAME, float] | float | None = None
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
+    # Non-safe methods that a client may resend after a timeout or 5xx without
+    # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
+    # None means undeclared, which the schema build rejects for published writes.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+    # For endpoints people may call with any credential, API tokens included, but a caller
+    # with no user (e.g. a service account) may not: it gets a 403 user-required, counted
+    # in api.user_required. Browser-only endpoints use SessionNoAuthTokenAuthentication,
+    # which refuses every token; for one user-only path, call require_user(request).
+    requires_user: bool = False
 
     @classmethod
     def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
@@ -306,10 +341,20 @@ class Endpoint(APIView):
             has_results="true" if bool(cursor) else "false",
         )
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        principal: RequestPrincipal = request.user
+        if self.requires_user and principal.is_authenticated and not has_user(principal):
+            raise UserRequired()
+
+    def convert_args(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def permission_denied(self, request, message=None, code=None):
+    def permission_denied(
+        self, request: Request, message: str | None = None, code: str | None = None
+    ) -> Never:
         """
         Raise a specific superuser exception if the user can become superuser
         and the only permission class is SuperuserPermission. Otherwise, raises
@@ -397,6 +442,9 @@ class Endpoint(APIView):
 
         :returns: A 500 response including the event id of the captured Sentry event.
         """
+        if isinstance(exc, UserRequired):
+            # Shows which endpoints callers with no user behind them still can't use.
+            metrics.incr("api.user_required", tags={"endpoint": type(self).__name__})
         try:
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
@@ -420,8 +468,13 @@ class Endpoint(APIView):
         return response
 
     def create_audit_entry(
-        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
-    ):
+        self,
+        request: Request,
+        transaction_id: int | str | None = None,
+        *,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> AuditLogEntry:
         return create_audit_entry(request, transaction_id, audit_logger, data=data, **kwargs)
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
@@ -436,10 +489,9 @@ class Endpoint(APIView):
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
-            if rv.auth is None:
-                rv.auth = orig_auth
-            if rv.user is None:
-                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
+            auth = orig_auth if rv.auth is None else rv.auth
+            user = orig_user if rv.user is None else rv.user
+            set_request_principal(rv, user, auth)
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -449,12 +501,14 @@ class Endpoint(APIView):
     @csrf_exempt
     @allow_cors_options
     @_with_endpoint_scope_declaration
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "base.dispatch.setup"}
+        ):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -480,7 +534,9 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with start_span(op="base.dispatch.request", name=type(self).__name__):
+            with traces.start_span(
+                name=type(self).__name__, attributes={"sentry.op": "base.dispatch.request"}
+            ):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -511,25 +567,23 @@ class Endpoint(APIView):
                     self.args = args
                     self.kwargs = kwargs
 
-                    # Resolved solely to check the opt-in; everything else is
-                    # derived from the request. Both sources are conventions rather
-                    # than contracts, so the result is type-checked before use.
+                    # Attribution is scoped to endpoints that resolve an organization;
+                    # everything else is derived from the request. Both sources are
+                    # conventions rather than contracts, so the result is type-checked.
                     organization = kwargs.get("organization") or getattr(
                         request, "organization", None
                     )
-                    if isinstance(organization, (Organization, RpcOrganization)) and features.has(
-                        CLIENT_KIND_FEATURE_FLAG, organization, actor=request.user
-                    ):
+                    if isinstance(organization, (Organization, RpcOrganization)):
                         set_client_kind_attributes(request)
                 else:
                     handler = self.http_method_not_allowed
 
-            with start_span(
-                op="base.dispatch.execute",
+            with traces.start_span(
                 name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
-            ) as span:
+                attributes={"sentry.op": "base.dispatch.execute"},
+            ):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
@@ -544,13 +598,13 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with start_span(
-                    op="base.dispatch.sleep",
+                with traces.start_span(
                     name=type(self).__name__,
-                ) as span:
-                    set_span_data(
-                        span, "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
-                    )
+                    attributes={
+                        "sentry.op": "base.dispatch.sleep",
+                        "SENTRY_API_RESPONSE_DELAY": settings.SENTRY_API_RESPONSE_DELAY,
+                    },
+                ):
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
@@ -574,11 +628,13 @@ class Endpoint(APIView):
                         raise MissingPaginationError(handler.__func__.__qualname__)
         return self.response
 
-    def add_cors_headers(self, request: Request, response):
+    def add_cors_headers(self, request: Request, response: Response) -> None:
         response["Access-Control-Allow-Origin"] = request.META["HTTP_ORIGIN"]
         response["Access-Control-Allow-Methods"] = ", ".join(self.http_method_names)
 
-    def add_cursor_headers(self, request: Request, response, cursor_result):
+    def add_cursor_headers(
+        self, request: Request, response: Response, cursor_result: CursorResult[Any]
+    ) -> None:
         if cursor_result.hits is not None:
             response["X-Hits"] = cursor_result.hits
         if cursor_result.max_hits is not None:
@@ -593,12 +649,12 @@ class Endpoint(APIView):
     def respond(self, context: object | None = None, **kwargs: Any) -> Response:
         return Response(context, **kwargs)
 
-    def respond_with_text(self, text):
+    def respond_with_text(self, text: str) -> Response:
         return self.respond({"text": text})
 
     def get_per_page(
         self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
-    ):
+    ) -> int:
         default_per_page = default_per_page or PAGINATION_DEFAULT_PER_PAGE
         max_per_page = max_per_page or 100
 
@@ -611,7 +667,9 @@ class Endpoint(APIView):
         except ValueError as e:
             raise ParseError(detail=str(e))
 
-    def get_cursor_from_request(self, request: Request, cursor_cls=Cursor):
+    def get_cursor_from_request(
+        self, request: Request, cursor_cls: type[Cursor] = Cursor
+    ) -> Cursor | None:
         try:
             return get_cursor(request.GET.get(self.cursor_name), cursor_cls)
         except ValueError as e:
@@ -619,24 +677,24 @@ class Endpoint(APIView):
 
     def paginate(
         self,
-        request,
-        on_results=None,
-        paginator=None,
-        paginator_cls=Paginator,
+        request: Request,
+        on_results: Callable[..., object] | None = None,
+        paginator: Any = None,
+        paginator_cls: type[Any] = Paginator,
         default_per_page: int | None = None,
         max_per_page: int | None = None,
-        cursor_cls=Cursor,
-        response_cls=Response,
-        response_kwargs=None,
-        count_hits=None,
-        **paginator_kwargs,
-    ):
+        cursor_cls: type[Cursor] = Cursor,
+        response_cls: type[Response] = Response,
+        response_kwargs: Mapping[str, Any] | None = None,
+        count_hits: bool | None = None,
+        **paginator_kwargs: Any,
+    ) -> Response:
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with start_span(
-                op="base.paginate.get_result",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.get_result"},
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -654,11 +712,15 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with start_span(
-                op="base.paginate.on_results",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
+            # Skip None items as that generally isn't comformant with API
+            # specs, and None often points to serialization failures.
+            if isinstance(results, list):
+                results = [item for item in results if item is not None]
         else:
             results = cursor_result.results
 
@@ -685,7 +747,10 @@ class StatsArgsDict(TypedDict):
 
 class StatsMixin:
     def _parse_args(
-        self, request: Request, environment_id=None, restrict_rollups=True
+        self,
+        request: Request,
+        environment_id: int | None = None,
+        restrict_rollups: bool = True,
     ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
@@ -699,6 +764,8 @@ class StatsMixin:
             resolution_s = request.GET.get("resolution")
             if resolution_s:
                 resolution = self._parse_resolution(resolution_s)
+                if resolution < 0:
+                    raise ValueError
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
             else:
@@ -734,7 +801,7 @@ class StatsMixin:
             "start": start,
             "end": end,
             "rollup": resolution,
-            "environment_ids": environment_id and [environment_id],
+            "environment_ids": cast("list[int]", environment_id and [environment_id]),
         }
 
     def _parse_resolution(self, value: str) -> int:
@@ -751,11 +818,13 @@ class StatsMixin:
 
 
 class ReleaseAnalyticsMixin:
-    def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
+    def track_set_commits_local(
+        self, request: Request, organization_id: int, project_ids: list[int] | None = None
+    ) -> None:
         try:
             analytics.record(
                 ReleaseSetCommitsLocalEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization_id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),

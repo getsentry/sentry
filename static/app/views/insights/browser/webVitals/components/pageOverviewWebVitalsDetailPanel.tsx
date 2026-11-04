@@ -2,18 +2,20 @@ import {useMemo} from 'react';
 import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -23,10 +25,15 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
+import {
+  parseAsScalar,
+  parseAsSingleScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -48,7 +55,7 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -124,15 +131,22 @@ export function PageOverviewWebVitalsDetailPanel({
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
 
-  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
-  const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
+  const [browserNames] = useQueryState(SpanFields.BROWSER_NAME, parseAsStringArray);
+  const [subregionCodes] = useQueryState(
+    SpanFields.USER_GEO_SUBREGION,
+    parseAsStringArray
+  );
+  const [projectId] = useQueryState('project', parseAsSingleScalar);
+  const [transactionParam] = useQueryState('transaction', parseAsScalar);
+  const browserTypes = decodeBrowserTypes(browserNames);
+  const subregions = subregionCodes as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
 
   const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
-    () => projects.find(p => p.id === String(location.query.project)),
-    [projects, location.query.project]
+    () => projects.find(p => p.id === projectId),
+    [projects, projectId]
   );
 
   const transactionFromDashboard = useMemo(() => {
@@ -151,13 +165,7 @@ export function PageOverviewWebVitalsDetailPanel({
   }, [dashboardFilters]);
 
   // Transaction filter can come from dashboard filters or URL (for insights module)
-  const transaction = transactionFromDashboard
-    ? transactionFromDashboard
-    : location.query.transaction
-      ? Array.isArray(location.query.transaction)
-        ? location.query.transaction[0]
-        : location.query.transaction
-      : undefined;
+  const transaction = transactionFromDashboard || transactionParam || undefined;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({
     transaction,
@@ -367,7 +375,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <GridEditable
+            <DataGrid
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

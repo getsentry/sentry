@@ -1,7 +1,3 @@
-import type {FuseResult} from 'fuse.js/basic';
-
-import type {SpanTreeModel} from './spanTreeModel';
-
 export type GapSpanType = {
   isOrphan: boolean;
   start_timestamp: number;
@@ -71,108 +67,15 @@ type BaseSpanType = RawSpanType & {
   type?: undefined;
 };
 
-export type OrphanSpanType = RawSpanType & {
+type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };
 
-export type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
+type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 
 // this type includes natural spans which are part of the transaction event payload,
 // and as well as pseudo-spans (e.g. gap spans)
 export type ProcessedSpanType = SpanType | GapSpanType;
-
-export type FetchEmbeddedChildrenState =
-  | 'idle'
-  | 'loading_embedded_transactions'
-  | 'error_fetching_embedded_transactions';
-
-type SpanGroupProps = {
-  isNestedSpanGroupExpanded: boolean;
-  spanNestedGrouping: EnhancedSpan[] | undefined;
-  toggleNestedSpanGroup: (() => void) | undefined;
-  toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
-};
-
-type SpanSiblingGroupProps = {
-  isLastSibling: boolean;
-  occurrence: number;
-  spanSiblingGrouping: EnhancedSpan[] | undefined;
-  toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
-};
-
-type CommonEnhancedProcessedSpanType = {
-  continuingTreeDepths: TreeDepthType[];
-  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
-  isEmbeddedTransactionTimeAdjusted: boolean;
-  isLastSibling: boolean;
-  numOfSpanChildren: number;
-  showEmbeddedChildren: boolean;
-  toggleEmbeddedChildren: ((orgSlug: string, eventSlugs: string[]) => void) | undefined;
-  treeDepth: number;
-  groupOccurrence?: number;
-  isFirstSiblingOfGroup?: boolean;
-};
-
-export type EnhancedSpan =
-  | ({
-      span: SpanType;
-      type: 'root_span';
-    } & CommonEnhancedProcessedSpanType)
-  | ({
-      span: SpanType;
-      toggleNestedSpanGroup: (() => void) | undefined;
-      toggleSiblingSpanGroup: ((span: SpanType, occurrence: number) => void) | undefined;
-      type: 'span';
-    } & CommonEnhancedProcessedSpanType);
-
-// ProcessedSpanType with additional information
-export type EnhancedProcessedSpanType =
-  | EnhancedSpan
-  | ({
-      span: GapSpanType;
-      type: 'gap';
-    } & CommonEnhancedProcessedSpanType)
-  | {
-      span: SpanType;
-      type: 'filtered_out';
-    }
-  | {
-      span: SpanType;
-      type: 'out_of_view';
-    }
-  | ({
-      continuingTreeDepths: TreeDepthType[];
-      span: SpanType;
-      treeDepth: number;
-      type: 'span_group_chain';
-    } & SpanGroupProps)
-  | ({
-      continuingTreeDepths: TreeDepthType[];
-      span: SpanType;
-      treeDepth: number;
-      type: 'span_group_siblings';
-    } & SpanSiblingGroupProps);
-
-// map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = Record<string, SpanType[]>;
-
-export type ParsedTraceType = {
-  childSpans: SpanChildrenLookupType;
-  op: string;
-  rootSpanID: string;
-  rootSpanStatus: string | undefined;
-  spans: SpanType[];
-  traceEndTimestamp: number;
-  traceID: string;
-  traceStartTimestamp: number;
-  count?: number;
-  description?: string;
-  exclusiveTime?: number;
-  frequency?: number;
-  hash?: string;
-  parentSpanID?: string;
-  total?: number;
-};
 
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
@@ -204,38 +107,4 @@ export type TraceContextType = {
 
 export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
-};
-
-type SpanTreeDepth = number;
-
-export type OrphanTreeDepth = {
-  depth: number;
-  type: 'orphan';
-};
-
-export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
-
-type IndexedFusedSpan = {
-  dataKeys: string[];
-  dataValues: string[];
-  indexed: string[];
-  span: RawSpanType;
-  tagKeys: string[];
-  tagValues: string[];
-};
-
-export type FilterSpans = {
-  results: Array<FuseResult<IndexedFusedSpan>>;
-  spanIDs: Set<string>;
-};
-
-export type TraceBound = {
-  spanId: string;
-  traceEndTimestamp: number;
-  traceStartTimestamp: number;
-};
-
-export type DescendantGroup = {
-  group: SpanTreeModel[];
-  occurrence?: number;
 };

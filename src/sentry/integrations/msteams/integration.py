@@ -90,7 +90,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
+class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient[AdaptiveCard]):
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
 
@@ -103,7 +103,7 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
         client = self.get_client()
         client.send_card(conversation_id=target.resource_id, card=payload)
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: AdaptiveCard,
@@ -124,7 +124,7 @@ class MsTeamsInstallParams(TypedDict):
     installation_type: str
 
 
-class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
+class MsTeamsInitialDataSerializer(CamelSnakeSerializer[MsTeamsInstallParams]):
     """Initial pipeline data for Microsoft Teams installs.
 
     The Sentry bot in Teams renders a card with a single `signed_params` blob
@@ -136,14 +136,15 @@ class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
 
     def validate(self, attrs: dict[str, Any]) -> MsTeamsInstallParams:
         try:
-            return unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            params = unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            return params
         except SignatureExpired:
             raise serializers.ValidationError("Installation link expired")
         except BadSignature:
             raise serializers.ValidationError("Invalid installation link")
 
 
-class MsTeamsAdvanceSerializer(CamelSnakeSerializer):
+class MsTeamsAdvanceSerializer(CamelSnakeSerializer[dict[str, object]]):
     state = CharField(required=True)
 
 

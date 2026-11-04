@@ -20,6 +20,7 @@ from sentry.api.serializers.models.seer_run import (
     SeerRunSerializer,
 )
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
@@ -62,7 +63,7 @@ def _fetch_run_outputs(
         return {}
 
     answers_by_state_id = get_run_questions(
-        [run.seer_run_state_id for run in qualifying],
+        [run.seer_run_state_id for run in qualifying if run.seer_run_state_id is not None],
         organization,
         questions=questions,
         user_id=user_id,
@@ -75,10 +76,12 @@ def _fetch_run_outputs(
             output["question"] = q["question"]
         return output
 
-    return {
-        run.id: [to_output(q) for q in answers_by_state_id.get(run.seer_run_state_id, [])]
-        for run in qualifying
-    }
+    output: dict[int, list[RunQuestionOutput]] = {}
+    for run in qualifying:
+        state_id = run.seer_run_state_id
+        assert state_id is not None
+        output[run.id] = [to_output(q) for q in answers_by_state_id.get(state_id, [])]
+    return output
 
 
 class OrganizationSeerRunsPermission(OrganizationPermission):
@@ -223,7 +226,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                     runs,
                     organization,
                     questions=run_questions,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                 )
                 for run, data in zip(runs, serialized):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])

@@ -39,7 +39,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   return {...initialData, router};
 }
 
-describe('Performance GridEditable Table', () => {
+describe('Performance events table', () => {
   const transactionsListTitles = [
     'event id',
     'user',

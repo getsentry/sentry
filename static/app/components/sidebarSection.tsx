@@ -1,18 +1,29 @@
 import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 export function Wrap(props: ContainerProps) {
   return <Container marginBottom="3xl" {...props} />;
 }
 
-export const Title = styled('h6')`
-  color: ${p => p.theme.tokens.content.secondary};
+interface TitleProps {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  variant?: React.ComponentProps<typeof Heading>['variant'];
+}
+
+export function Title(props: TitleProps) {
+  return <StyledHeading as="h6" size="md" variant="muted" {...props} />;
+}
+
+// Titles often carry a trailing InfoTip or icon that needs to sit centered next to the text
+const StyledHeading = styled(Heading)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.md};
-  margin: ${p => p.theme.space.md} 0 0;
+  margin-top: ${p => p.theme.space.md};
 `;
 
 export const IconWrapper = styled('div')`

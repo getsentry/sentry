@@ -24,8 +24,8 @@ export function getOutputType({
     return Output.SETUP;
   }
 
-  const request = item.data.request;
-  const response = item.data.response;
+  const request = item.data?.request;
+  const response = item.data?.response;
 
   const hasHeaders =
     Object.keys(request?.headers ?? {}).length ||

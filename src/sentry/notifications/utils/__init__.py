@@ -141,11 +141,10 @@ def process_serialized_committers(
         for commit in committer["commits"]:
             if commit["id"] not in commits:
                 commit_data = dict(commit)
-                commit_data["shortId"] = commit_data["id"][:7]
+                commit_data["shortId"] = cast(str, commit_data["id"])[:7]
                 commit_data["author"] = committer["author"]
-                commit_data["subject"] = (
-                    commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
-                )
+                commit_message = cast(str | None, commit_data["message"])
+                commit_data["subject"] = commit_message.split("\n", 1)[0] if commit_message else ""
                 if commit.get("pullRequest"):
                     commit_data["pull_request"] = commit["pullRequest"]
                 commits[commit["id"]] = commit_data
@@ -174,7 +173,7 @@ def get_suspect_commits_by_group_id(
     return list(commits.values())
 
 
-def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
+def get_commits(project: Project, event: Event | GroupEvent) -> Sequence[Mapping[str, Any]]:
     # let's identify possible suspect commits and owners
     commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:
@@ -320,7 +319,7 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
+    group: Group | None, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if isinstance(event, GroupEvent) and event.occurrence is not None:
         issue_title = event.occurrence.issue_title

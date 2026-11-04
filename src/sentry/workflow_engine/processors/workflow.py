@@ -1,18 +1,17 @@
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
 import sentry_sdk
-from django.db.models import Q
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
@@ -136,7 +135,7 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
-@trace
+@traces.trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
@@ -249,7 +248,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats, trigger_evals
 
 
-@trace
+@traces.trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
     triggered_workflows: dict[Workflow, DataConditionGroupEvaluation],
@@ -441,31 +440,6 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
 
     metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
     return environment
-
-
-def _get_associated_workflows(
-    detectors: Collection[Detector], environment: Environment | None
-) -> set[Workflow]:
-    """
-    Get workflows associated with detectors and environment via direct DB query.
-    Used as fallback when cache is disabled via feature flag.
-    """
-    detector_ids = [detector.id for detector in detectors]
-
-    environment_filter = (
-        (Q(environment_id=None) | Q(environment_id=environment.id))
-        if environment
-        else Q(environment_id=None)
-    )
-    return set(
-        Workflow.objects.filter(
-            environment_filter,
-            detectorworkflow__detector_id__in=detector_ids,
-            enabled=True,
-        )
-        .select_related("environment")
-        .distinct()
-    )
 
 
 def _build_workflow_evaluations(

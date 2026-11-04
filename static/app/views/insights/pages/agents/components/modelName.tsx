@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
-import type {SpaceSize} from 'sentry/utils/theme';
 
 interface ModelNameProps {
   modelId: string | null;
@@ -73,6 +73,7 @@ export function getModelPlatform(modelId: string | null) {
     {keywords: ['perplexity'], platform: 'perplexity'},
     {keywords: ['amazon.titan', 'amazon/titan'], platform: 'amazon'},
     {keywords: ['typesafe', 'jev-'], platform: 'typesafe-ai'},
+    {keywords: ['cloudflare', 'clef', 'clairic'], platform: 'cloudflare'},
   ];
 
   const matchedProvider = providerMap.find(({keywords}) =>

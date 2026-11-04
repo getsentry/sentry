@@ -67,8 +67,6 @@ type ActionNode = {
   defaultData?: Record<string, any>;
   details?: React.ComponentType<any>;
   label?: string;
-  link?: string;
-  ticketType?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
@@ -78,8 +76,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Azure DevOps'),
       action: AzureDevOpsNode,
       details: AzureDevOpsDetails,
-      ticketType: t('an Azure DevOps work item'),
-      link: 'https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync',
       validate: validateIntegrationId,
     },
   ],
@@ -108,7 +104,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub'),
       action: GithubNode,
       details: GithubDetails,
-      ticketType: t('a GitHub issue'),
       validate: validateIntegrationId,
     },
   ],
@@ -118,7 +113,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
-      ticketType: t('a GitHub Enterprise issue'),
       validate: validateIntegrationId,
     },
   ],
@@ -128,8 +122,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira'),
       action: JiraNode,
       details: JiraDetails,
-      ticketType: t('a Jira issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
       validate: validateIntegrationId,
     },
   ],
@@ -139,8 +131,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira Server'),
       action: JiraServerNode,
       details: JiraServerDetails,
-      ticketType: t('a Jira Server issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
       validate: validateIntegrationId,
     },
   ],

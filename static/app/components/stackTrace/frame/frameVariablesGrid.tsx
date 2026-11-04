@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -53,7 +54,7 @@ export function FrameVariablesGrid({
       {variables ? (
         <FrameVariablesTree variables={variables} platform={platform ?? 'other'} />
       ) : (
-        <VariablesGrid>
+        <Grid align="baseline" columns="150px minmax(0, 1fr)">
           {rows.map(rawKey => (
             <VariableRow key={rawKey}>
               <VariableKey>
@@ -74,7 +75,7 @@ export function FrameVariablesGrid({
               </VariablesValue>
             </VariableRow>
           ))}
-        </VariablesGrid>
+        </Grid>
       )}
     </StyledClippedBox>
   );
@@ -83,12 +84,6 @@ export function FrameVariablesGrid({
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const VariablesGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  align-items: baseline;
 `;
 
 const VariableRow = styled('div')`

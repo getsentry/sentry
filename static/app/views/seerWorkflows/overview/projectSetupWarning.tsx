@@ -1,8 +1,9 @@
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 

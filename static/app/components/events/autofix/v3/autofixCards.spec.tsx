@@ -31,8 +31,18 @@ jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
-  FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
-    <div data-expanded={defaultExpanded} data-test-id="file-diff-viewer" />
+  FileDiffViewer: ({
+    defaultExpanded,
+    fileUrl,
+  }: {
+    defaultExpanded?: boolean;
+    fileUrl?: string;
+  }) => (
+    <div
+      data-expanded={defaultExpanded}
+      data-file-url={fileUrl}
+      data-test-id="file-diff-viewer"
+    />
   ),
 }));
 
@@ -611,6 +621,28 @@ describe('ArtifactCard', () => {
       const diffViewers = screen.getAllByTestId('file-diff-viewer');
       expect(diffViewers[0]).toHaveAttribute('data-expanded', 'true');
       expect(diffViewers[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
+    it('passes each patch code_url to its diff viewer', () => {
+      const linkedPatch = makePatch('org/repo', 'src/app.py');
+      linkedPatch.code_url = 'https://github.com/org/repo/blob/abc123/src/app.py';
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [linkedPatch, makePatch('org/repo', 'src/new_file.py')],
+          ])}
+        />
+      );
+
+      const diffViewers = screen.getAllByTestId('file-diff-viewer');
+      expect(diffViewers[0]).toHaveAttribute(
+        'data-file-url',
+        'https://github.com/org/repo/blob/abc123/src/app.py'
+      );
+      expect(diffViewers[1]).not.toHaveAttribute('data-file-url');
     });
 
     it('collapses large changes by default', () => {
@@ -1857,10 +1889,64 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      // While processing, the row shows a spinner (there is also the card body
-      // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
       expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
+    it('keeps the latest iteration feedback in progress while its changes are pushed', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR({pr_creation_status: 'creating'})},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
+    it('shows a retried iteration feedback once, in progress during the retry', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'fix the CI failure'}),
+              makeAssistantBlock('Edited the handler.'),
+              {
+                ...makePrIterationBlock(0, {text: 'fix the CI failure'}),
+                id: 'block-pr-0-retry',
+              },
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getAllByText('fix the CI failure')).toHaveLength(1);
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 

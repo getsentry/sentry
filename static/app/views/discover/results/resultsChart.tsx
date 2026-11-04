@@ -8,6 +8,8 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {EventsChart} from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -19,6 +21,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   TOP_EVENT_MODES,
@@ -34,30 +37,56 @@ type ResultsChartProps = {
   api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
+  interval: string;
   location: Location;
   organization: Organization;
   yAxisValue: string[];
   customMeasurements?: CustomMeasurementCollection | undefined;
+  droppedData?: DroppedDataProps;
 };
+
+function isDailyDisplay(display: string) {
+  return display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
+}
+
+function getChartDateRange(eventView: EventView) {
+  const {datetime} = eventView.getPageFilters();
+  return {
+    start: datetime.start ? getUtcToLocalDateObject(datetime.start) : null,
+    end: datetime.end ? getUtcToLocalDateObject(datetime.end) : null,
+    period: datetime.period,
+  };
+}
+
+function getResultsChartInterval(eventView: EventView, location: Location): string {
+  const display = eventView.getDisplayMode();
+  if (isDailyDisplay(display)) {
+    return '1d';
+  }
+  if (eventView.interval) {
+    return eventView.interval;
+  }
+  const {utc} = normalizeDateTimeParams(location.query);
+  return getInterval(
+    {...getChartDateRange(eventView), utc: utc === 'true'},
+    display === DisplayModes.BAR ? 'low' : 'high'
+  );
+}
 
 const ResultsChart = memo(
   function ResultsChart({
     api,
     eventView,
+    interval,
     location,
     organization,
     confirmedQuery,
     yAxisValue,
     customMeasurements,
+    droppedData,
   }: ResultsChartProps) {
     const globalSelection = eventView.getPageFilters();
-    const start = globalSelection.datetime.start
-      ? getUtcToLocalDateObject(globalSelection.datetime.start)
-      : null;
-
-    const end = globalSelection.datetime.end
-      ? getUtcToLocalDateObject(globalSelection.datetime.end)
-      : null;
+    const {start, end} = getChartDateRange(eventView);
 
     const {utc} = normalizeDateTimeParams(location.query);
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -65,7 +94,7 @@ const ResultsChart = memo(
     const isTopEvents =
       display === DisplayModes.TOP5 || display === DisplayModes.DAILYTOP5;
     const isPeriod = display === DisplayModes.DEFAULT || display === DisplayModes.TOP5;
-    const isDaily = display === DisplayModes.DAILYTOP5 || display === DisplayModes.DAILY;
+    const isDaily = isDailyDisplay(display);
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
@@ -83,19 +112,6 @@ const ResultsChart = memo(
           : customPerformanceMetricFieldType === 'size' && isTopEvents
             ? AreaChart
             : undefined;
-    const interval =
-      eventView.interval ??
-      (display === DisplayModes.BAR
-        ? getInterval(
-            {
-              start,
-              end,
-              period: globalSelection.datetime.period,
-              utc: utc === 'true',
-            },
-            'low'
-          )
-        : undefined);
 
     const seriesLabels = yAxisValue.map(stripEquationPrefix);
     const disableableSeries = [
@@ -133,6 +149,7 @@ const ResultsChart = memo(
               referrer={referrer}
               fromDiscover
               disableableSeries={disableableSeries}
+              droppedData={droppedData}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -181,6 +198,13 @@ export const ResultsChartContainer = memo(
     const api = useApi();
     const {customMeasurements} = useContext(CustomMeasurementsContext);
 
+    const isErrorsDataset = eventView.dataset === DiscoverDatasets.ERRORS;
+    const chartInterval = getResultsChartInterval(eventView, location);
+    const droppedData = useDroppedDataLayer(
+      {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
+      {enabled: isErrorsDataset}
+    );
+
     const yAxisOptions = useMemo(() => eventView.getYAxisOptions(), [eventView]);
 
     const hasQueryFeature = organization.features.includes('discover-query');
@@ -221,14 +245,18 @@ export const ResultsChartContainer = memo(
           <ResultsChart
             api={api}
             eventView={eventView}
+            interval={chartInterval}
             location={location}
             organization={organization}
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxis}
             customMeasurements={customMeasurements}
+            droppedData={droppedData.band}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
+          droppedDataLayer={droppedData.layerControl}
+          droppedDataFilterNote={droppedData.filterNote}
           total={total}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}

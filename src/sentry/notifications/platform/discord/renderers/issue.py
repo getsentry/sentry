@@ -7,6 +7,7 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.service import NotificationRenderError
 from sentry.notifications.platform.templates.issue import IssueNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -20,7 +21,11 @@ from sentry.workflow_engine.tasks.utils import fetch_event
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> DiscordRenderable:
         if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueDiscordRenderer does not support {data.__class__.__name__}")
@@ -54,4 +59,5 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             event=group_event,
             tags=set(data.tags) if data.tags else None,
             rules=rules,
+            link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)

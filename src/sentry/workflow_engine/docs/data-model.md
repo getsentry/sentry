@@ -88,23 +88,44 @@ relationships and fields are:
 | Field or relationship      | Meaning                                                                                    |
 | -------------------------- | ------------------------------------------------------------------------------------------ |
 | `project`                  | Owning project for normal detectors; nullable for organization-wide issue-stream detectors |
-| `type`                     | Slug of an Issue Platform `GroupType`                                                      |
+| `type`                     | Stored `DetectorType` value selecting registered detector settings                         |
 | `workflow_condition_group` | Trigger conditions that map input to priority levels                                       |
 | `config`                   | Detector-type-specific settings validated against `DetectorSettings.config_schema`         |
 | `enabled`                  | User-controlled active/snoozed state                                                       |
 | `status`                   | Lifecycle state, including pending deletion and plan-level disabling                       |
 
-The detector type is registered outside this Django app, in two parts. A concrete
-[`GroupType`](../../issues/grouptype.py) defines the issue type. A
-[`DetectorSettings`](../types.py) subclass, registered in
-[`detector_settings_registry`](../registry.py) under the group type's slug, can define:
+[`DetectorType`](../types.py) defines the valid detector implementation identities. A
+[`DetectorSettings`](../types.py) subclass is registered in
+[`detector_settings_registry`](../registry.py) using an enum member and can define:
 
 - Runtime handler
 - API validator
 - Configuration JSON schema
 - Query filter for detector visibility
+- API operation availability
+- Type discovery visibility
 
-`GroupType.detector_settings` and `Detector.settings` read from the registry.
+`Detector.settings` reads directly from this registry. Its handler, schema, and query
+filters do not require a matching [`GroupType`](../../issues/grouptype.py). A group type
+classifies the output issue; handlers select it through `DetectorOccurrence.type`.
+
+The model field is a `CharField`, and database reads return strings. Settings lookup
+validates enum membership and registration; normal model saves call that lookup before
+validating configuration. Unknown stored types can still be loaded for inspection, but
+accessing their settings or saving them raises and logs an error for existing detectors.
+`config_schema=None` skips configuration validation for pipelines that
+validate their own configuration. It does not skip type validation.
+
+`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+validation choices. It defaults to `True`; set it to `False` for internal types or use
+a `FeatureGate` for a rollout. Discovery also requires a handler and `GET` availability;
+suggested choices require a validator. `DISCOVER` does not restrict access to detector
+rows or explicit creation requests. Row operations have their own availability gates.
+
+Default provisioning gets detector names from `DEFAULT_DETECTOR_NAMES`. API validation
+and discovery use detector settings; history lookup uses those settings and the
+associated issues. `Detector.group_type` and `GroupType.detector_settings` assume
+matching slugs; use the detector registry when implementing detector behavior.
 
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.
