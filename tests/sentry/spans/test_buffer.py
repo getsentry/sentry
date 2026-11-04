@@ -42,6 +42,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.max-flush-segments": 500,
     "spans.buffer.max-memory-percentage": 1.0,
     "spans.buffer.flusher.backpressure-seconds": 10,
+    "spans.buffer.flusher.backpressure-on-shard-limit": False,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
     "spans.buffer.flusher.flush-lock-ttl": 0,
@@ -2028,6 +2029,191 @@ def test_no_duplicate_flush_after_lock_expiry_and_new_spans(
 
         # Assert that the lock actually prevents double-flushing.
         assert not rv2
+
+
+@pytest.mark.parametrize(
+    "backpressure_on_shard_limit, expected_at_limit",
+    [
+        pytest.param(False, False, id="legacy-spans-per-segment"),
+        pytest.param(True, True, id="segments-per-shard"),
+    ],
+)
+def test_any_shard_at_limit_when_shard_returns_flush_limit(
+    buffer: SpansBuffer, backpressure_on_shard_limit: bool, expected_at_limit: bool
+) -> None:
+    """
+    A shard that returns the per-shard flush limit of due segments may have more
+    waiting behind them, so the flusher is not keeping up.
+    """
+    flusher_buffer = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    process_spans(
+        [
+            _span("a" * 16, None, trace_id="a" * 32, is_segment_span=True),
+            _span("b" * 16, None, trace_id="b" * 32, is_segment_span=True),
+            _span("c" * 16, None, trace_id="c" * 32, is_segment_span=True),
+        ],
+        flusher_buffer,
+        now=0,
+    )
+
+    with (
+        override_options(
+            {
+                # One assigned shard, so the per-shard limit is 2 segments.
+                "spans.buffer.max-flush-segments": 2,
+                "spans.buffer.flusher.backpressure-on-shard-limit": backpressure_on_shard_limit,
+            }
+        ),
+        mock.patch("sentry.spans.buffer.metrics.incr") as metrics_incr,
+    ):
+        rv = flusher_buffer.flush_segments(now=11)
+        assert len(rv) == 2
+        assert flusher_buffer.any_shard_at_limit is expected_at_limit
+        flusher_buffer.done_flush_segments(rv)
+
+        rv = flusher_buffer.flush_segments(now=11)
+        assert len(rv) == 1
+        assert flusher_buffer.any_shard_at_limit is False
+        flusher_buffer.done_flush_segments(rv)
+
+    # Emitted for the first cycle only, whatever the option value.
+    incr_names = [call.args[0] for call in metrics_incr.call_args_list]
+    assert incr_names.count("spans.buffer.flush_segments.shard_at_flush_limit") == 1
+    assert_clean(flusher_buffer.client)
+
+
+@pytest.mark.parametrize(
+    "partitions, expected_at_limit",
+    [
+        pytest.param((0, 1), False, id="one-segment-per-shard"),
+        pytest.param((0, 0), True, id="two-segments-in-one-shard"),
+    ],
+)
+def test_any_shard_at_limit_counts_each_shard_separately(
+    buffer: SpansBuffer, partitions: tuple[int, int], expected_at_limit: bool
+) -> None:
+    """
+    The limit applies to each shard. Due segments spread over several shards do
+    not add up to it, and one shard at its limit is enough.
+    """
+    flusher_buffer = SpansBuffer(assigned_shards=[0, 1], slice_id=buffer.slice_id)
+    process_spans(
+        [
+            _span("a" * 16, None, trace_id="a" * 32, is_segment_span=True, partition=partitions[0]),
+            _span("b" * 16, None, trace_id="b" * 32, is_segment_span=True, partition=partitions[1]),
+        ],
+        flusher_buffer,
+        now=0,
+    )
+
+    with override_options(
+        {
+            # Two assigned shards, so the per-shard limit is 2 segments.
+            "spans.buffer.max-flush-segments": 4,
+            "spans.buffer.flusher.backpressure-on-shard-limit": True,
+        }
+    ):
+        rv = flusher_buffer.flush_segments(now=11)
+        assert len(rv) == 2
+        assert flusher_buffer.any_shard_at_limit is expected_at_limit
+        flusher_buffer.done_flush_segments(rv)
+
+    assert_clean(flusher_buffer.client)
+
+
+@pytest.mark.parametrize(
+    "backpressure_on_shard_limit, expected_at_limit",
+    [
+        pytest.param(False, True, id="legacy-spans-per-segment"),
+        pytest.param(True, False, id="segments-per-shard"),
+    ],
+)
+def test_any_shard_at_limit_ignores_spans_per_segment(
+    buffer: SpansBuffer, backpressure_on_shard_limit: bool, expected_at_limit: bool
+) -> None:
+    """
+    A single segment with more spans than the per-shard segment limit does not
+    mean the shard is saturated. The legacy check compares the two and flags it.
+    """
+    flusher_buffer = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    process_spans(
+        [
+            _span("a" * 16, "b" * 16),
+            _span("c" * 16, "b" * 16),
+            _span("d" * 16, "b" * 16),
+            _span("b" * 16, None, is_segment_span=True),
+        ],
+        flusher_buffer,
+        now=0,
+    )
+
+    with override_options(
+        {
+            # One assigned shard, so the per-shard limit is 2 segments.
+            "spans.buffer.max-flush-segments": 2,
+            "spans.buffer.flusher.backpressure-on-shard-limit": backpressure_on_shard_limit,
+        }
+    ):
+        rv = flusher_buffer.flush_segments(now=11)
+        assert len(rv[_segment_id(1, "a" * 32, "b" * 16)].spans) == 4
+        assert flusher_buffer.any_shard_at_limit is expected_at_limit
+        flusher_buffer.done_flush_segments(rv)
+
+    assert_clean(flusher_buffer.client)
+
+
+def test_any_shard_at_limit_counts_segments_locked_by_another_flusher(
+    buffer: SpansBuffer,
+) -> None:
+    """
+    A segment queued in two shards is locked by the flusher of the other shard.
+    It still fills this shard's read window, so it counts toward the limit.
+    """
+    process_spans(
+        [_span("b" * 16, None, is_segment_span=True, partition=0)],
+        buffer,
+        now=0,
+    )
+    process_spans(
+        [_span("a" * 16, "b" * 16, partition=1)],
+        buffer,
+        now=0,
+    )
+
+    buffer_a = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    buffer_b = SpansBuffer(assigned_shards=[1], slice_id=buffer.slice_id)
+
+    with override_options(
+        {
+            # One assigned shard per buffer, so the per-shard limit is 1 segment.
+            "spans.buffer.max-flush-segments": 1,
+            "spans.buffer.flusher.backpressure-on-shard-limit": True,
+            "spans.buffer.flusher.flush-lock-ttl": 10,
+        }
+    ):
+        at_limit_per_cycle = []
+
+        rv_a = buffer_a.flush_segments(now=11)
+        rv_b = buffer_b.flush_segments(now=11)
+        at_limit_per_cycle.append(buffer_b.any_shard_at_limit)
+        assert len(rv_a) == 1
+        assert rv_b == {}
+
+        # Releasing the lock lets this flusher remove its stale queue entry. The
+        # segment was already produced, so the entry comes back without spans.
+        buffer_a.done_flush_segments(rv_a)
+        rv_b = buffer_b.flush_segments(now=11)
+        at_limit_per_cycle.append(buffer_b.any_shard_at_limit)
+        assert [segment.spans for segment in rv_b.values()] == [[]]
+        buffer_b.done_flush_segments(rv_b)
+
+        rv_b = buffer_b.flush_segments(now=11)
+        at_limit_per_cycle.append(buffer_b.any_shard_at_limit)
+        assert rv_b == {}
+
+    # The entry fills this shard's window until this flusher removes it.
+    assert at_limit_per_cycle == [True, True, False]
+    assert_clean(buffer.client)
 
 
 _LOAD_SEGMENT_REDIS_TTL = cast(int, DEFAULT_OPTIONS["spans.buffer.redis-ttl"])

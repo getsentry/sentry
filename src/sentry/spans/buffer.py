@@ -100,7 +100,7 @@ from __future__ import annotations
 import itertools
 import logging
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Generator, Sequence
 from hashlib import blake2b
 from typing import Any, cast
@@ -126,6 +126,7 @@ from sentry.spans.buffer_logger import (
 from sentry.spans.buffer_store import SpansBufferStore
 from sentry.spans.buffer_store import add_buffer_script as add_buffer_script
 from sentry.spans.buffer_types import (
+    FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
     LoadedSegment,
@@ -155,6 +156,17 @@ def _compute_salt(spans: Sequence[Span]) -> str:
         b"".join(s.span_id.encode("ascii") for s in spans),
         digest_size=16,
     ).hexdigest()
+
+
+def _any_shard_at_flush_limit(
+    flush_candidates: Sequence[FlushCandidate], max_segments_per_shard: int
+) -> bool:
+    """
+    Whether any shard returned the full per-shard limit of due segments, which
+    means more due segments may be waiting behind them in that shard's queue.
+    """
+    candidates_per_shard = Counter(candidate.shard for candidate in flush_candidates)
+    return any(count >= max_segments_per_shard for count in candidates_per_shard.values())
 
 
 class SpansBuffer:
@@ -441,6 +453,15 @@ class SpansBuffer:
             max_segments_per_shard,
         )
 
+        # Count before acquiring flush locks: segments locked by another
+        # flusher are still due and still fill this shard's read window.
+        shard_at_flush_limit = _any_shard_at_flush_limit(flush_candidates, max_segments_per_shard)
+        if shard_at_flush_limit:
+            # Emitted whatever the value of
+            # `spans.buffer.flusher.backpressure-on-shard-limit`, so a region can
+            # be judged before the option is turned on there.
+            metrics.incr("spans.buffer.flush_segments.shard_at_flush_limit")
+
         flush_candidates = self.store.acquire_flush_locks(flush_candidates)
 
         loaded_segments, load_data_latency_ms, decompress_latency_ms = self.store.load_segments(
@@ -450,10 +471,12 @@ class SpansBuffer:
 
         self._record_segment_loss_metrics(loaded_segments, now)
 
-        flushed_segments, num_has_root_spans, any_shard_at_limit = self._build_flushed_segments(
-            loaded_segments,
-            max_segments_per_shard,
-            now,
+        flushed_segments, num_has_root_spans, legacy_any_shard_at_limit = (
+            self._build_flushed_segments(
+                loaded_segments,
+                max_segments_per_shard,
+                now,
+            )
         )
 
         self._flusher_logger.log_loaded_segments(
@@ -466,7 +489,10 @@ class SpansBuffer:
         metrics.timing("spans.buffer.flush_segments.num_segments", len(flushed_segments))
         metrics.timing("spans.buffer.flush_segments.has_root_span", num_has_root_spans)
 
-        self.any_shard_at_limit = any_shard_at_limit
+        if options.get("spans.buffer.flusher.backpressure-on-shard-limit"):
+            self.any_shard_at_limit = shard_at_flush_limit
+        else:
+            self.any_shard_at_limit = legacy_any_shard_at_limit
         return flushed_segments
 
     def _build_flushed_segments(
@@ -488,6 +514,9 @@ class SpansBuffer:
             segment_span_id = segment_key_to_span_id(segment_key).decode("ascii")
             segment = loaded_segment.payloads
             project_id, _, _ = parse_segment_key(segment_key)
+            # Legacy check, used while `spans.buffer.flusher.backpressure-on-shard-limit`
+            # is off: it compares the span count of one segment with the
+            # per-shard segment limit.
             if len(segment) >= max_segments_per_shard:
                 any_shard_at_limit = True
 

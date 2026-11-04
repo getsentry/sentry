@@ -3612,6 +3612,19 @@ register(
     default=10,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, the flusher counts as saturated (see
+# `spans.buffer.flusher.backpressure-seconds`) while any of its shards returns
+# the full per-shard flush limit of due segments, i.e.
+# ceil(`spans.buffer.max-flush-segments` / number of assigned shards).
+# When disabled, the legacy check is used, which compares the span count of a
+# single segment with that per-shard segment limit. Turning this on changes when
+# the consumer rejects messages, so roll it out per region.
+register(
+    "spans.buffer.flusher.backpressure-on-shard-limit",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Timeout for flusher checkins before the process is killed and restarted
 register(
     "spans.buffer.flusher.max-unhealthy-seconds",
