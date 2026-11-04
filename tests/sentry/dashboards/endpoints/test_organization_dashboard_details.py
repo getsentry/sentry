@@ -150,6 +150,18 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.content
         assert response.data["createdBy"] is None
 
+    def test_get_with_widget_with_removed_display_type(self) -> None:
+        # 5 was the world_map display type. It was removed from
+        # DashboardWidgetDisplayTypes, but older widgets can still store it.
+        DashboardWidget.objects.filter(id=self.widget_1.id).update(display_type=5)
+
+        response = self.do_request("get", self.url(self.dashboard.id))
+
+        assert response.status_code == 200, response.content
+        widgets = {widget["id"]: widget for widget in response.data["widgets"]}
+        assert widgets[str(self.widget_1.id)]["displayType"] is None
+        assert widgets[str(self.widget_2.id)]["displayType"] is not None
+
     def test_dashboard_does_not_exist(self) -> None:
         response = self.do_request("get", self.url(1234567890))
         assert response.status_code == 404

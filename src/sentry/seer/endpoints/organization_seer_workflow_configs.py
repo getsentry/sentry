@@ -141,6 +141,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField(required=False)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -159,8 +160,10 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
-        if ("projectIds" in data) == ("monitorIds" in data):
-            raise serializers.ValidationError("Send exactly one of projectIds or monitorIds.")
+        if not data:
+            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+        if "projectIds" in data and "monitorIds" in data:
+            raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
 
 
@@ -480,6 +483,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           access.
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
+        - Enabling or pausing requires access to every project the config covers.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -500,6 +504,21 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
         workflow = get_seer_workflow(config)
+
+        enabled = serializer.validated_data.get("enabled")
+        if enabled is not None:
+            denied = _check_project_access(
+                (
+                    [ALL_ACCESS_PROJECT_ID]
+                    if workflow.filters.all_projects
+                    else workflow.get_project_ids()
+                ),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
+            if denied is not None:
+                raise PermissionDenied(denied)
 
         # Validate and update projects
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
@@ -546,7 +565,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
         # Validate and update monitors
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
@@ -581,9 +599,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if isinstance(e, WorkflowUpdateError):
                     return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
-            config = workflow.get_config()
 
-        return Response(self.serialize(request, organization, config))
+        if enabled is not None:
+            workflow.set_enabled(enabled)
+
+        return Response(self.serialize(request, organization, workflow.get_config()))
 
 
 def serialize_workflow_configs(
