@@ -37,7 +37,6 @@ __all__ = (
 
 # Matches the `name` serializer in the service account API.
 MAX_NAME_LENGTH = 64
-NAME_UNIQUE_CONSTRAINT = "service_accounts_serviceaccount_org_name_unique"
 
 # OIDC scopes describe a human login, so a service account can't hold them. Service
 # account scopes are withheld so an account can't create or widen other accounts.
@@ -100,7 +99,7 @@ class ServiceAccount(ReplicatedControlModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["organization_id", "name"],
-                name=NAME_UNIQUE_CONSTRAINT,
+                name="service_accounts_serviceaccount_org_name_unique",
             ),
         ]
 
