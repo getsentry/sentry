@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {
@@ -31,11 +31,9 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
     deliveryEmail: '',
     dryRun: false,
   });
-  const dataRef = useRef(data);
 
   const updateData = (update: Partial<WeeklyEmailData>) => {
-    dataRef.current = {...dataRef.current, ...update};
-    setData(dataRef.current);
+    setData(prev => ({...prev, ...update}));
   };
 
   // The modal unmounts before the request settles; only hook-level callbacks still run.
@@ -64,19 +62,15 @@ export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
 
   useEffect(() => {
     setConfirmCallback(() => {
-      const latest = dataRef.current;
-
-      if (!latest.dryRun && !latest.deliveryEmail) {
+      if (!data.dryRun && !data.deliveryEmail) {
         addErrorMessage('Delivery email address is required when dry run is disabled');
         return;
       }
 
       addLoadingMessage('Sending Email');
-      mutate(latest);
+      mutate(data);
     });
-    // setConfirmCallback changes every parent render and sets parent state, so depending on it loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setConfirmCallback, mutate, data]);
 
   return (
     <div>

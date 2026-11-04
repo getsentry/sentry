@@ -35,6 +35,10 @@ describe('MigrateLegacySeerAction', () => {
     jest.restoreAllMocks();
   });
 
+  afterEach(() => {
+    MockApiClient.asyncDelay = undefined;
+  });
+
   it('renders timing options with Immediately selected by default', () => {
     openModal();
 
@@ -180,6 +184,7 @@ describe('MigrateLegacySeerAction', () => {
   });
 
   it('shows error detail from API response on failure', async () => {
+    MockApiClient.asyncDelay = 1;
     const errorMessage = jest.spyOn(
       require('sentry/actionCreators/indicator'),
       'addErrorMessage'
@@ -199,6 +204,7 @@ describe('MigrateLegacySeerAction', () => {
         'This organization does not have legacy Seer configured.'
       );
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows loading message before the API call resolves', async () => {

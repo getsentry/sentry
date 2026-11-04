@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -38,11 +38,9 @@ export function MigrateLegacySeerAction({
     applyImmediately: true,
     addSeerTrial: true,
   });
-  const optionsRef = useRef(options);
 
   const updateOptions = (update: Partial<MigrationOptions>) => {
-    optionsRef.current = {...optionsRef.current, ...update};
-    setOptions(optionsRef.current);
+    setOptions(prev => ({...prev, ...update}));
   };
 
   // The modal unmounts before the request settles; only hook-level callbacks still run.
@@ -75,11 +73,9 @@ export function MigrateLegacySeerAction({
   useEffect(() => {
     setConfirmCallback(() => {
       addLoadingMessage('Running legacy Seer migration\u2026');
-      mutate(optionsRef.current);
+      mutate(options);
     });
-    // setConfirmCallback changes every parent render and sets parent state, so depending on it loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setConfirmCallback, mutate, options]);
 
   const {applyImmediately, addSeerTrial} = options;
   const periodEnd = moment(subscription.onDemandPeriodEnd).format('ll');

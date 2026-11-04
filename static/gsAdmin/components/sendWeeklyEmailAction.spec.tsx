@@ -31,6 +31,10 @@ describe('SendWeeklyEmailAction', () => {
     jest.restoreAllMocks();
   });
 
+  afterEach(() => {
+    MockApiClient.asyncDelay = undefined;
+  });
+
   it('shows a success message after the modal closes when the request succeeds', async () => {
     const successMessage = jest.spyOn(indicators, 'addSuccessMessage');
     const sendMock = MockApiClient.addMockResponse({
@@ -57,7 +61,8 @@ describe('SendWeeklyEmailAction', () => {
     );
   });
 
-  it('shows a membership error when the request returns 404', async () => {
+  it('shows a membership error after the modal closes when the request returns 404', async () => {
+    MockApiClient.asyncDelay = 1;
     const errorMessage = jest.spyOn(indicators, 'addErrorMessage');
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -75,6 +80,7 @@ describe('SendWeeklyEmailAction', () => {
         'User is not a member of the organization!'
       );
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows a validation error without sending when the delivery email is missing', async () => {
