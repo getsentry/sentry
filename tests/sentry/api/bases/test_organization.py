@@ -44,6 +44,9 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.dashboards.endpoints import organization_dashboards_starred
+from sentry.dashboards.endpoints.organization_dashboard_generate import (
+    OrganizationDashboardGeneratePermission,
+)
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.discover.endpoints import discover_saved_query_starred
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
@@ -592,6 +595,7 @@ class RejectsDeprecatedScopesTest(TestCase):
 # Every permission class that stops accepting deprecated scopes in orgs with granular scopes.
 OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     OrganizationDashboardsPermission,
+    OrganizationDashboardGeneratePermission,
     DiscoverSavedQueryPermission,
     ExploreSavedQueryPermission,
     ExploreSavedFormulaPermission,
