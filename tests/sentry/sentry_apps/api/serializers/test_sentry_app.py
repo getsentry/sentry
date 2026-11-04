@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import cast
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
@@ -24,7 +25,7 @@ class SentryAppSerializerTest(TestCase):
         result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
 
         assert result["name"] == "Tesla App"
-        assert result["featureData"] == [
+        assert cast("list[dict[str, object]]", result["featureData"]) == [
             {
                 "featureId": 0,
                 "description": "Tesla App can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course).",
@@ -90,7 +91,6 @@ class SentryAppSerializerTest(TestCase):
         sentry_app.redirect_url = None
         sentry_app.webhook_url = None
         sentry_app.date_published = None
-        sentry_app.owner = None
 
         sentry_app.save()
         result = serialize(sentry_app, None, SentryAppSerializer(), access=None)

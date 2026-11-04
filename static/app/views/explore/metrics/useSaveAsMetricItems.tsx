@@ -36,7 +36,10 @@ import {
   canUseMetricsEquationsInAlerts,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
-import {useMultiMetricsQueryParams} from './multiMetricsQueryParams';
+import {
+  useMetricsQueryParamsHasTransformations,
+  useMultiMetricsQueryParams,
+} from './multiMetricsQueryParams';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;
@@ -52,6 +55,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
   const {data: savedQuery} = useGetSavedQuery(id);
 
   const metricQueries = useMultiMetricsQueryParams();
+  const hasTransformations = useMetricsQueryParamsHasTransformations();
   const {addToDashboard} = useAddMetricToDashboard();
 
   const project =
@@ -159,8 +163,17 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
-  }, [metricQueries, organization, project, pageFilters, options.interval]);
+    return [
+      getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations}),
+    ];
+  }, [
+    metricQueries,
+    organization,
+    project,
+    pageFilters,
+    options.interval,
+    hasTransformations,
+  ]);
 
   const addToDashboardItems = useMemo(() => {
     return [

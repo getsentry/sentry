@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
@@ -7,6 +8,7 @@ import orjson
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry.hybridcloud.rpc.service import generate_request_signature
 from sentry.organizations.services.organization import RpcUserOrganizationContext
@@ -32,10 +34,12 @@ class RpcServiceEndpointTest(APITestCase):
             kwargs={"service_name": service_name, "method_name": method_name},
         )
 
-    def auth_header(self, path: str, data: dict | str) -> str:
-        if isinstance(data, dict):
-            data = orjson.dumps(data).decode()
-        signature = generate_request_signature(path, data.encode())
+    def auth_header(self, path: str, data: Mapping[str, object] | str) -> str:
+        if isinstance(data, str):
+            payload = data
+        else:
+            payload = orjson.dumps(data).decode()
+        signature = generate_request_signature(path, payload.encode())
 
         return f"rpcsignature {signature}"
 
@@ -44,8 +48,8 @@ class RpcServiceEndpointTest(APITestCase):
         response = self.client.post(path)
         assert response.status_code == 403
 
-    def _send_post_request(self, path, data):
-        response = self.client.post(
+    def _send_post_request(self, path: str, data: Mapping[str, object] | str) -> Response:
+        response: Response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         return response
@@ -175,7 +179,7 @@ class RpcServiceEndpointTest(APITestCase):
             "sentry.hybridcloud.rpc.service", fromlist=["dispatch_to_local_service"]
         ).dispatch_to_local_service
 
-        def capturing_dispatch(*args, **kwargs):
+        def capturing_dispatch(*args: object, **kwargs: object) -> object:
             captured_contexts.append(get_viewer_context())
             return original_dispatch(*args, **kwargs)
 
@@ -214,7 +218,7 @@ class RpcServiceEndpointTest(APITestCase):
             "sentry.hybridcloud.rpc.service", fromlist=["dispatch_to_local_service"]
         ).dispatch_to_local_service
 
-        def capturing_dispatch(*args, **kwargs):
+        def capturing_dispatch(*args: object, **kwargs: object) -> object:
             captured_contexts.append(get_viewer_context())
             return original_dispatch(*args, **kwargs)
 
@@ -244,7 +248,7 @@ class RpcServiceEndpointTest(APITestCase):
             "sentry.hybridcloud.rpc.service", fromlist=["dispatch_to_local_service"]
         ).dispatch_to_local_service
 
-        def capturing_dispatch(*args, **kwargs):
+        def capturing_dispatch(*args: object, **kwargs: object) -> object:
             captured_contexts.append(get_viewer_context())
             return original_dispatch(*args, **kwargs)
 

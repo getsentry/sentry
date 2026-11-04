@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
@@ -20,8 +21,7 @@ import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useEventQuery} from './hooks/useEventQuery';
@@ -57,8 +57,14 @@ export function EventDetailsHeader({
   showSidebarToggle = true,
 }: EventDetailsHeaderProps) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [{statsPeriod, start, end, utc}, setQueryParams] = useQueryStates({
+    cursor: parseAsString,
+    query: parseAsString,
+    statsPeriod: pageFilterParsers.statsPeriod,
+    start: pageFilterParsers.start,
+    end: pageFilterParsers.end,
+    utc: pageFilterParsers.utc,
+  });
   const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery();
@@ -66,16 +72,11 @@ export function EventDetailsHeader({
   const {dispatch} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
-  const hasSetStatsPeriod =
-    location.query.statsPeriod || location.query.start || location.query.end;
+  const hasSetStatsPeriod = statsPeriod || start || end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
   const shouldShowSinceFirstSeenOption = issueTypeConfig.defaultTimePeriod.sinceFirstSeen;
   const period = hasSetStatsPeriod
-    ? getPeriod({
-        start: location.query.start as string,
-        end: location.query.end as string,
-        period: location.query.statsPeriod as string,
-      })
+    ? getPeriod({start, end, period: statsPeriod})
     : defaultStatsPeriod;
 
   useEffect(() => {
@@ -154,7 +155,7 @@ export function EventDetailsHeader({
                           }
                           start={period?.start}
                           end={period?.end}
-                          utc={location.query.utc === 'true'}
+                          utc={utc === 'true'}
                           relative={period?.statsPeriod}
                           relativeOptions={props => {
                             return {
@@ -174,22 +175,23 @@ export function EventDetailsHeader({
                               ...props.defaultOptions,
                             };
                           }}
-                          onChange={({relative, start, end, utc}) => {
-                            navigate({
-                              ...location,
-                              query: {
-                                ...location.query,
-                                cursor: undefined,
+                          onChange={change => {
+                            setQueryParams(
+                              {
+                                cursor: null,
                                 // If selecting the issue open period, remove the stats period query param
                                 statsPeriod:
-                                  relative === defaultStatsPeriod?.statsPeriod
-                                    ? undefined
-                                    : relative,
-                                start: start ? getUtcDateString(start) : undefined,
-                                end: end ? getUtcDateString(end) : undefined,
-                                utc: utc ? 'true' : undefined,
+                                  change.relative === defaultStatsPeriod?.statsPeriod
+                                    ? null
+                                    : change.relative,
+                                start: change.start
+                                  ? getUtcDateString(change.start)
+                                  : null,
+                                end: change.end ? getUtcDateString(change.end) : null,
+                                utc: change.utc ? 'true' : null,
                               },
-                            });
+                              {history: 'push'}
+                            );
                           }}
                           trigger={triggerProps => (
                             <TimeRangeSelectTrigger
@@ -216,13 +218,7 @@ export function EventDetailsHeader({
                       <EventSearch
                         group={group}
                         handleSearch={query => {
-                          navigate(
-                            {
-                              ...location,
-                              query: {...location.query, query, cursor: undefined},
-                            },
-                            {replace: true}
-                          );
+                          setQueryParams({query, cursor: null});
                         }}
                         environments={environments}
                         query={searchQuery}

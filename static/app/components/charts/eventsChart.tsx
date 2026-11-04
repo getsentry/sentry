@@ -1,4 +1,4 @@
-import {isValidElement, memo, useCallback, useRef, useState} from 'react';
+import {isValidElement, memo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import {IconWarning} from '@sentry/icons/warning';
@@ -13,14 +13,12 @@ import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
-import {
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
+import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
-import type {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -135,23 +133,11 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
   const chartRef = useRef<ReactEchartsRef>(null);
-  const {droppedDataSeries, droppedDataYAxis, droppedDataBandHeight} = useDroppedDataBand(
-    {
-      chartRef,
-      droppedData,
-      utc: zoomRenderProps.utc,
-      yAxisIndex: 1,
-    }
-  );
-  const onDroppedDataClick = droppedData?.onClick;
-  const handleClick = useCallback<EChartClickHandler>(
-    event => {
-      if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-        onDroppedDataClick?.();
-      }
-    },
-    [onDroppedDataClick]
-  );
+  const droppedDataBand = useDroppedDataBand({
+    chartRef,
+    droppedData,
+    utc: zoomRenderProps.utc,
+  });
 
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
@@ -264,24 +250,26 @@ function Chart({
     },
   };
 
+  const band = mergeDroppedDataBand(
+    {
+      grid: {left: '24px', right: '24px', top: '32px', bottom: 12},
+      xAxis: timeframeXAxis,
+      yAxes: [chartOptionsProp?.yAxis ?? defaultYAxis],
+      series: additionalSeries,
+    },
+    droppedDataBand,
+    droppedData?.onClick
+  );
+
   const chartOptions = {
     colors: chartColors,
-    grid: {
-      left: '24px',
-      right: '24px',
-      top: '32px',
-      bottom: `${12 + droppedDataBandHeight}px`,
-    },
+    grid: band.grid,
     seriesOptions: {
       showSymbol: false,
     },
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,
-      filter: droppedDataSeries
-        ? (_value: number, seriesParam: any) =>
-            seriesParam?.seriesId !== DROPPED_DATA_SERIES_ID
-        : undefined,
       valueFormatter: (value: number, label?: string) => {
         const aggregateName = label
           ?.replace(/^previous /, '')
@@ -296,14 +284,10 @@ function Chart({
         return tooltipFormatter(value);
       },
     },
-    xAxis: droppedDataBandHeight
-      ? {...timeframeXAxis, offset: droppedDataBandHeight, axisLine: {onZero: false}}
-      : timeframeXAxis,
+    xAxis: band.xAxis,
     yAxis: defaultYAxis,
     ...chartOptionsProp,
-    ...(droppedDataYAxis
-      ? {yAxes: [chartOptionsProp?.yAxis ?? defaultYAxis, droppedDataYAxis]}
-      : {}),
+    yAxes: band.yAxes.length > 1 ? band.yAxes : undefined,
     animation: typeof ChartComponent === typeof BarChart ? false : undefined,
   };
 
@@ -315,15 +299,11 @@ function Chart({
       ref={chartRef}
       legend={legend}
       onLegendSelectChanged={handleLegendSelectChanged}
-      onClick={droppedDataSeries ? handleClick : undefined}
+      onClick={band.onClick}
       series={series}
       previousPeriod={previousSeries ? previousSeries : undefined}
       height={height}
-      additionalSeries={
-        droppedDataSeries
-          ? [...(additionalSeries ?? []), droppedDataSeries]
-          : additionalSeries
-      }
+      additionalSeries={band.series}
     />
   );
 }

@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -11,7 +12,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
@@ -21,7 +21,7 @@ import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const params = useParams<{groupId: string}>();
 
   const {
@@ -37,7 +37,7 @@ function GroupUserFeedback() {
     ...groupUserFeedbackApiOptions(organization, {
       groupId: params.groupId,
       query: {
-        cursor: location.query.cursor,
+        cursor: cursor ?? undefined,
       },
     }),
     select: selectJsonWithHeaders,

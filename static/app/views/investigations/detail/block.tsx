@@ -167,12 +167,6 @@ function InvestigationNotebookBlockInner({
 
   const actionItems: MenuItemProps[] = [
     {
-      key: 'comment',
-      label: t('Comment'),
-      hidden: !onComment,
-      onAction: () => onComment?.(block.id),
-    },
-    {
       key: 'ask-seer',
       label: t('Ask Seer'),
       hidden: !handleAskSeer,

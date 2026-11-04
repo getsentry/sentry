@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {useFormattedCode} from 'sentry/utils/useFormattedCode';

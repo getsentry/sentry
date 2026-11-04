@@ -1,19 +1,19 @@
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Container} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {InboxIssuePreview} from './inboxIssuePreview';
-import type {InboxItem} from './types';
+import {InboxNotebookPreview} from './inboxNotebookPreview';
+import type {InboxSubject} from './types';
 
 interface InboxItemPreviewProps {
-  item: InboxItem | null;
+  subject: InboxSubject | null;
 }
 
-export function InboxItemPreview({item}: InboxItemPreviewProps) {
-  if (!item) {
+function InboxItemPreviewContent({subject}: InboxItemPreviewProps) {
+  if (!subject) {
     return (
       <EmptyState
         padding="2xl"
@@ -23,26 +23,26 @@ export function InboxItemPreview({item}: InboxItemPreviewProps) {
     );
   }
 
-  switch (item.subjectType) {
+  switch (subject.subjectType) {
     case 'issue':
-      return <InboxIssuePreview key={item.subjectId} groupId={item.subjectId} />;
+      return <InboxIssuePreview key={subject.subjectId} groupId={subject.subjectId} />;
     case 'notebook':
-      return <InboxNotebookPreview item={item} />;
+      return (
+        <InboxNotebookPreview
+          key={subject.subjectId}
+          investigationId={subject.subjectId}
+        />
+      );
     default:
-      unreachable(item.subjectType);
+      unreachable(subject.subjectType);
       return null;
   }
 }
 
-interface InboxSubjectPreviewProps {
-  item: InboxItem;
-}
-
-// TODO: Render the investigation notebook
-function InboxNotebookPreview({item}: InboxSubjectPreviewProps) {
+export function InboxItemPreview({subject}: InboxItemPreviewProps) {
   return (
-    <Container padding="xl">
-      <Heading as="h2">{item.subject?.title ?? t('Unavailable')}</Heading>
-    </Container>
+    <AnalyticsArea name="inbox.preview" overrideParent>
+      <InboxItemPreviewContent subject={subject} />
+    </AnalyticsArea>
   );
 }

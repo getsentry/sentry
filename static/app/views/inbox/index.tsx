@@ -1,8 +1,11 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
+import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -17,10 +20,10 @@ import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {inboxItemsApiOptions} from './inboxApiOptions';
 import {InboxItemList} from './inboxItemList';
 import {InboxItemPreview} from './inboxItemPreview';
-import {useInboxItems} from './useInboxItems';
-import {INBOX_SUBJECT_CONFIG} from './utils';
+import {getInboxSubjectFromPath} from './utils';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
 const INBOX_LIST_DEFAULT_SIZE = 480;
@@ -28,7 +31,17 @@ const INBOX_LIST_MIN_SIZE = 320;
 const INBOX_LIST_MAX_SIZE = 640;
 
 function InboxContent() {
-  const {data: items, isPending, isError, refetch} = useInboxItems();
+  const organization = useOrganization();
+  const {
+    data,
+    isPending,
+    isError,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery(inboxItemsApiOptions(organization));
+  const items = data?.pages.flatMap(page => page.json) ?? [];
   const {id} = useParams<{id?: string}>();
   const location = useLocation();
   const listContainerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +61,7 @@ function InboxContent() {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError && items.length === 0) {
     return <LoadingError onRetry={refetch} />;
   }
 
@@ -62,14 +75,14 @@ function InboxContent() {
     );
   }
 
-  const selectedItem =
-    items.find(
-      item =>
-        item.subjectId === id &&
-        location.pathname.includes(
-          `/inbox/${INBOX_SUBJECT_CONFIG[item.subjectType].pathSegment}/`
-        )
-    ) ?? null;
+  const selectedSubject = getInboxSubjectFromPath(location.pathname, id);
+  const selectedItem = selectedSubject
+    ? items.find(
+        item =>
+          item.subjectType === selectedSubject.subjectType &&
+          item.subjectId === selectedSubject.subjectId
+      )
+    : undefined;
 
   return (
     <ListItemCheckboxProvider
@@ -89,6 +102,18 @@ function InboxContent() {
         >
           <Container flex={1} overflowY="auto" minHeight={0}>
             <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
+            {hasNextPage && (
+              <Flex justify="center" padding="md xl">
+                <Button
+                  size="sm"
+                  busy={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                  icon={<IconChevron direction="down" />}
+                >
+                  {t('Show more')}
+                </Button>
+              </Flex>
+            )}
           </Container>
           <Container top="0" right="0" bottom="0" width="8px" position="absolute">
             {props => (
@@ -103,7 +128,7 @@ function InboxContent() {
           </Container>
         </Stack>
         <Container overflowY="auto" minHeight={0}>
-          <InboxItemPreview item={selectedItem} />
+          <InboxItemPreview subject={selectedSubject} />
         </Container>
       </Grid>
     </ListItemCheckboxProvider>

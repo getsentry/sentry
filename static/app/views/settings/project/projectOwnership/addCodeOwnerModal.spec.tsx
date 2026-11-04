@@ -177,4 +177,66 @@ describe('AddCodeOwnerModal', () => {
 
     expect(handleCloseModal).toHaveBeenCalled();
   });
+
+  describe('without code mappings', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/code-mappings/`,
+        method: 'GET',
+        body: [],
+      });
+    });
+
+    it('shows Connected Repositories link when an integration exists', async () => {
+      render(
+        <AddCodeOwnerModal
+          Body={ModalBody}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          Header={makeClosableHeader(jest.fn())}
+          Footer={ModalFooter}
+          organization={org}
+          project={project}
+        />
+      );
+
+      const link = await screen.findByRole('button', {
+        name: 'Go to Connected Repositories',
+      });
+      expect(link).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/projects/${project.slug}/`
+      );
+    });
+
+    it('shows install integration fallback when no integrations exist', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/`,
+        method: 'GET',
+        body: [],
+      });
+
+      render(
+        <AddCodeOwnerModal
+          Body={ModalBody}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          Header={makeClosableHeader(jest.fn())}
+          Footer={ModalFooter}
+          organization={org}
+          project={project}
+        />
+      );
+
+      expect(
+        await screen.findByText(
+          'Install a GitHub or GitLab integration to use this feature.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Setup Integration'})).toHaveAttribute(
+        'href',
+        `/settings/${org.slug}/integrations/`
+      );
+    });
+  });
 });

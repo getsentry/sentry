@@ -14,6 +14,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -56,7 +57,7 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ReleaseSetupStepResponse]]:
         """
         Return release-setup progress based on issues with a first release, organization
         repositories, commits associated with project releases, and deploys of project releases.

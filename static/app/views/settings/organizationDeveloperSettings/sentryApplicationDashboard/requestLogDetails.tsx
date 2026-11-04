@@ -1,11 +1,11 @@
 import {Fragment, useCallback} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';

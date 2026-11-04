@@ -15,7 +15,7 @@ def test_norm_int() -> None:
 
 
 @pytest.mark.parametrize("cls", (BoundedBigIntegerField, BoundedPositiveIntegerField))
-def test_big_int(cls) -> None:
+def test_big_int(cls: type[BoundedIntegerField]) -> None:
     field = cls()
     with pytest.raises(AssertionError):
         field.get_prep_value(9223372036854775808)

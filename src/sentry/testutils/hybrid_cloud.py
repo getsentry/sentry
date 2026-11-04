@@ -5,9 +5,10 @@ import functools
 import ipaddress
 import os
 import threading
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from typing import Any, TypedDict
+from types import TracebackType
+from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
 from django.db import connections, transaction
@@ -30,7 +31,9 @@ class HybridCloudTestMixin:
         return get_cell_scheduled_deletion(SiloMode.get_current_mode())
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
+    def assert_org_member_mapping(
+        self, org_member: OrganizationMember, expected: Mapping[str, object] | None = None
+    ) -> None:
         org_member.refresh_from_db()
         org_member_mapping_query = OrganizationMemberMapping.objects.filter(
             organization_id=org_member.organization_id,
@@ -56,7 +59,7 @@ class HybridCloudTestMixin:
                 assert getattr(org_member_mapping, key) == expected_value
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_org_member_mapping_not_exists(self, org_member: OrganizationMember):
+    def assert_org_member_mapping_not_exists(self, org_member: OrganizationMember) -> None:
         email = org_member.email
         user_id = org_member.user_id
         # only either user_id or email should have a value, but not both.
@@ -134,7 +137,7 @@ class EnforceNoCrossTransactionWrapper:
 
 
 @contextlib.contextmanager
-def enforce_no_cross_transaction_interactions():
+def enforce_no_cross_transaction_interactions() -> Iterator[None]:
     with contextlib.ExitStack() as stack:
         for conn in connections.all():
             stack.enter_context(conn.execute_wrapper(EnforceNoCrossTransactionWrapper(conn.alias)))
@@ -185,7 +188,7 @@ def collect_transaction_queries() -> Iterator[list[TransactionDetails]]:
 
 
 @contextlib.contextmanager
-def simulate_on_commit(request: Any):
+def simulate_on_commit(request: Any) -> Iterator[None]:
     """
     Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
     correctly test on_commit hooks.  Allows the use of django_test_transaction_water_mark to create a 'simulated'
@@ -205,7 +208,7 @@ def simulate_on_commit(request: Any):
     _old_atomic_exit = transaction.Atomic.__exit__
     _old_transaction_on_commit = transaction.on_commit
 
-    def maybe_flush_commit_hooks(connection: BaseDatabaseWrapper):
+    def maybe_flush_commit_hooks(connection: BaseDatabaseWrapper) -> None:
         if connection.closed_in_transaction or connection.needs_rollback:
             return
 
@@ -221,16 +224,21 @@ def simulate_on_commit(request: Any):
         finally:
             connection.validate_no_atomic_block = old_validate  # type: ignore[method-assign]
 
-    def new_atomic_exit(self, exc_type, *args, **kwds):
-        _old_atomic_exit(self, exc_type, *args, **kwds)
+    def new_atomic_exit(
+        self: transaction.Atomic,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        _old_atomic_exit(self, exc_type, exc_value, traceback)
         if exc_type is not None:
             return
-        connection = transaction.get_connection(self.using)
+        connection = transaction.get_connection(cast(str, self.using))
         maybe_flush_commit_hooks(connection)
 
-    def new_atomic_on_commit(func, using=None):
+    def new_atomic_on_commit(func: Callable[[], object], using: str | None = None) -> None:
         _old_transaction_on_commit(func, using)
-        maybe_flush_commit_hooks(transaction.get_connection(using))
+        maybe_flush_commit_hooks(transaction.get_connection(cast(str, using)))
 
     for conn in connections.all():
         # This value happens to match the number of outer transactions in
@@ -266,7 +274,7 @@ def use_split_dbs() -> bool:
 
 
 @contextmanager
-def override_allowed_cell_silo_ip_addresses(*allowed_ip_addresses):
+def override_allowed_cell_silo_ip_addresses(*allowed_ip_addresses: str) -> Iterator[None]:
     with patch("sentry.silo.client.get_cell_ip_addresses") as mock_get_cell_ip_addresses:
         override_value = frozenset(ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses)
         mock_get_cell_ip_addresses.return_value = override_value

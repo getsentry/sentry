@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,8 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
-
-import {CopyToClipboardButton} from './copyToClipboardButton';
 
 type Props = {
   /**

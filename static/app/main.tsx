@@ -3,13 +3,13 @@ import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {CommandPaletteProvider} from './components/commandPalette/ui/cmdk';
 import {FrontendVersionProvider} from './components/frontendVersionContext';
 import {DocumentTitleManager} from './components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from './components/themeAndStyleProvider';
 import {SENTRY_RELEASE_VERSION} from './constants/sdk';
+import {NuqsAdapter} from './router/nuqsAdapter';
 import {preload} from './router/preload';
 import {RouteConfigProvider} from './router/routeConfigContext';
 import {routes} from './router/routes';

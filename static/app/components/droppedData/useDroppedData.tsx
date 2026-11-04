@@ -37,9 +37,10 @@ export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
   ] as const;
 }
 
-interface UseDroppedDataParams {
+export interface UseDroppedDataParams {
   dataset: DiscoverDatasets;
   interval: string;
+  projects?: number[];
 }
 
 interface UseDroppedDataQueryOptions {
@@ -47,10 +48,10 @@ interface UseDroppedDataQueryOptions {
 }
 
 /**
- * Dropped and accepted events for the current page filters.
+ * Dropped and accepted events for the current page filters
  */
 export function useDroppedData(
-  {dataset, interval}: UseDroppedDataParams,
+  {dataset, interval, projects}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataQueryOptions = {}
 ) {
   const organization = useOrganization();
@@ -82,7 +83,7 @@ export function useDroppedData(
           interval,
           referrer: REFERRER,
           ...normalizeDateTimeParams(selection.datetime),
-          project: selection.projects,
+          project: projects ?? selection.projects,
           environment: selection.environments,
         },
         staleTime,

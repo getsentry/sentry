@@ -14,9 +14,7 @@ import {AutofixDebugMenu} from './autofixDebugMenu';
 
 export interface SeerPanelActionsProps {
   autofixState?: ExplorerAutofixState | null;
-  enableBashMode?: boolean;
   onCopyMarkdown?: () => void;
-  onEnableBashModeChange?: (enabled: boolean) => void;
   onOpenSeerAgent?: () => void;
   onReset?: () => void;
 }
@@ -27,9 +25,7 @@ export interface SeerPanelActionsProps {
  */
 export function SeerPanelActions({
   autofixState,
-  enableBashMode,
   onCopyMarkdown,
-  onEnableBashModeChange,
   onOpenSeerAgent,
   onReset,
 }: SeerPanelActionsProps) {
@@ -39,11 +35,7 @@ export function SeerPanelActions({
 
   return (
     <Flex align="center" gap="xs">
-      <AutofixDebugMenu
-        autofixState={autofixState}
-        enableBashMode={enableBashMode}
-        onEnableBashModeChange={onEnableBashModeChange}
-      />
+      <AutofixDebugMenu autofixState={autofixState} />
       <Button
         size="xs"
         icon={<IconRefresh />}

@@ -23,11 +23,14 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
     return rule_type
 
 
+RuleCondition = Mapping[str, Any]
+
+
 def split_conditions_and_filters(
-    rule_condition_list,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    condition_list = []
-    filter_list = []
+    rule_condition_list: Sequence[RuleCondition],
+) -> tuple[list[RuleCondition], list[RuleCondition]]:
+    condition_list: list[RuleCondition] = []
+    filter_list: list[RuleCondition] = []
     for rule_cond in rule_condition_list:
         if get_rule_type(rule_cond) == "condition/event":
             condition_list.append(rule_cond)

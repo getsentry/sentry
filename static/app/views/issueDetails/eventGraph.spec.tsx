@@ -255,14 +255,16 @@ describe('EventGraph', () => {
     await userEvent.click(screen.getByRole('button', {name: '14D'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Last 7 days'}));
 
-    expect(mockEventStats).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockEventStats).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '7d',
+          }),
+        })
+      );
+    });
   });
 
   it('displays error messages from bad queries', async () => {

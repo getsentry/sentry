@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+
 import {t} from 'sentry/locale';
 
 import {RecursiveStructuredData} from './recursiveStructuredData';

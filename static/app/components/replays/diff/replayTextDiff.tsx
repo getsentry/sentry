@@ -1,7 +1,7 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {useExtractPageHtml} from 'sentry/utils/replays/hooks/useExtractPageHtml';

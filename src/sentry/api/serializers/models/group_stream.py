@@ -3,14 +3,15 @@ from __future__ import annotations
 import functools
 from abc import abstractmethod
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
+from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, release_health, tsdb
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
@@ -23,6 +24,7 @@ from sentry.api.serializers.models.group import (
     GroupStatusDetailsResponseOptional,
     GroupStatusStr,
     SeenStats,
+    _SeenStatsQueryResult,
     is_seen_stats,
     snuba_tsdb,
 )
@@ -61,6 +63,12 @@ class GroupStatsQueryArgs(NamedTuple):
     stats_period_end: datetime | None = None
 
 
+class _TSDBQueryParams(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+
+
 class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
@@ -83,21 +91,25 @@ class GroupStatsMixin:
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
-        **kwargs,
-    ):
-        pass
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
+        return None
 
     def get_stats(
         self,
         item_list: Sequence[Group],
-        user,
+        user: User | RpcUser | AnonymousUser,
         stats_query_args: GroupStatsQueryArgs,
-        **kwargs,
-    ):
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             if stats_query_args.stats_period == "auto":
@@ -126,7 +138,7 @@ class GroupStatsMixin:
                     delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
                     rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
 
-                query_params = {
+                query_params: _TSDBQueryParams = {
                     "start": stats_query_args.stats_period_start,
                     "end": stats_query_args.stats_period_end,
                     "rollup": max(int(rollup), 1),  # Zero is a bad thing to divide by
@@ -143,13 +155,18 @@ class GroupStatsMixin:
             return self.query_tsdb(
                 item_list,
                 query_params,
+                conditions=conditions,
+                environment_ids=environment_ids,
                 user=user,
+                aggregation_override=aggregation_override,
                 **kwargs,
             )
 
+        return None
+
 
 class _MaybeStats(TypedDict, total=False):
-    stats: dict[str, dict[int, list[tuple[int, int]]]]
+    stats: dict[str, list[tuple[int, int]]]
 
 
 class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
@@ -157,7 +174,11 @@ class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
-    def __init__(self, environment_func=None, stats_period=None):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        stats_period: str | None = None,
+    ) -> None:
         super().__init__(environment_func=environment_func)
 
         assert (
@@ -183,7 +204,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 GroupStatsQueryArgs(self.stats_period, None, None),
             )
             for item in item_list:
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
         return attrs
 
@@ -197,7 +218,9 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         base = super().serialize(obj, attrs, user)
 
         if self.stats_period:
-            extra: _MaybeStats = {"stats": {self.stats_period: attrs["stats"]}}
+            extra: _MaybeStats = {
+                "stats": {self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])}
+            }
         else:
             extra = {}
 
@@ -206,12 +229,13 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
-        **kwargs,
-    ):
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -232,12 +256,12 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 class _SeenStatsFunc(Protocol):
     def __call__(
         self,
-        item_list,
-        start=None,
-        end=None,
-        conditions=None,
-        environment_ids=None,
-    ) -> Mapping[str, Any]: ...
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> _SeenStatsQueryResult: ...
 
 
 class _Filtered(TypedDict):
@@ -252,7 +276,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
     shareId: NotRequired[str | None]
-    shortId: NotRequired[str]
+    shortId: NotRequired[str | None]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
     permalink: NotRequired[str]
@@ -308,17 +332,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
         environment_ids: list[int] | None = None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        start=None,
-        end=None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        stats_period: str | None = None,
+        stats_period_start: datetime | None = None,
+        stats_period_end: datetime | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(
             environment_ids,
             start,
@@ -385,7 +409,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 if filtered_stats:
                     attrs[item]["filtered_stats"] = filtered_stats[item.id]
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
             if self._expand("sessions"):
                 uniq_project_ids = list({item.project_id for item in item_list})
@@ -511,11 +535,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         **kwargs: Any,
     ) -> StreamGroupSerializerSnubaResponse:
         if not self._collapse("base"):
-            result: StreamGroupSerializerSnubaResponse = {**super().serialize(obj, attrs, user)}
+            result = cast(
+                "StreamGroupSerializerSnubaResponse", {**super().serialize(obj, attrs, user)}
+            )
         else:
             result = {"id": str(obj.id)}
             if is_seen_stats(attrs):
-                result.update(self._convert_seen_stats(attrs))
+                cast("dict[str, Any]", result).update(self._convert_seen_stats(attrs))
             if "is_unhandled" in attrs:
                 result["isUnhandled"] = attrs["is_unhandled"]
 
@@ -573,15 +599,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: Sequence[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         aggregation_override: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if not groups:
-            return
+            return None
 
         error_issue_ids, generic_issue_ids = [], []
         for group in groups:
@@ -599,12 +625,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids={"organization_id": cast(int, self.organization_id)},
             project_ids=self.project_ids,
             **query_params,
         )
 
-        results = {}
+        results: dict[int, list[tuple[int, int]]] = {}
 
         if error_issue_ids:
             results.update(
@@ -621,12 +647,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return results
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(generic_issue_list, self._execute_generic_seen_stats_query)
 
@@ -645,14 +671,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            cast(bool, self.start or self.end or self.conditions),
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                self.start or self.end or self.conditions,
+                cast(bool, self.start or self.end or self.conditions),
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
@@ -682,7 +708,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
         return time_range_result
 
-    def _build_session_cache_key(self, project_id):
+    def _build_session_cache_key(self, project_id: int) -> str:
         start_key_dt = end_key_dt = None
         env_key = ""
         if self.start:

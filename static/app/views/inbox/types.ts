@@ -4,16 +4,13 @@ export type InboxSubjectType = 'issue' | 'notebook';
 
 interface InboxEventDataByType {
   'issue.assigned': {
-    /**
-     * What caused the assignment, such as an ownership rule, a Seer suggestion or a user.
-     */
-    source: string;
+    assignmentSource: string | null;
   };
-  'issue.mentioned': {commentId: string};
   'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.team_mentioned': {commentId: string};
+  'issue.user_mentioned': {commentId: string};
   'notebook.completed': {seerRunId: string};
   'notebook.mentioned': {commentId: string};
-  // TODO: Shape is still to be decided in the tech spec
   'notebook.needs_attention': Record<string, unknown>;
   'notebook.participant_added': Record<string, never>;
 }
@@ -34,18 +31,14 @@ type InboxUserActor = {
   type: 'user';
 };
 
-export type InboxActor = InboxSystemActor | InboxUserActor;
-
-interface InboxSubjectSummary {
-  title: string;
-}
+type InboxActor = InboxSystemActor | InboxUserActor;
 
 interface BaseInboxItemEvent {
   actor: InboxActor;
   dateAdded: string;
   id: string;
-  preview: string | null;
-  title: string;
+  isUnread: boolean;
+  summary: string;
 }
 
 type InboxItemEvent = {
@@ -56,13 +49,18 @@ type InboxItemEvent = {
 }[InboxEventType];
 
 export interface InboxItem {
+  eventCount: number;
+  eventTypes: InboxEventType[];
   id: string;
   isUnread: boolean;
   lastActivityAt: string;
   lastReadAt: string | null;
   latestEvent: InboxItemEvent;
-  subject: InboxSubjectSummary | null;
   subjectId: string;
   subjectType: InboxSubjectType;
+  subtitle: string;
+  title: string | null;
   unreadEventCount: number;
 }
+
+export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;

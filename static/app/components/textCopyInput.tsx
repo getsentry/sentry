@@ -1,13 +1,12 @@
 import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
 
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
-
-import {CopyToClipboardButton} from './copyToClipboardButton';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
   /**

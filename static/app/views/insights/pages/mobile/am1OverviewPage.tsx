@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -21,7 +22,6 @@ import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSetting
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -72,6 +72,12 @@ const REACT_NATIVE_COLUMN_TITLES = [
   {title: 'User misery'},
 ];
 
+const searchParamsParsers = {
+  cursor: parseAsString,
+  query: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+};
+
 interface Am1MobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -85,7 +91,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   const {setPageDanger} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
+  const [, setSearchParams] = useQueryStates(searchParamsParsers);
   const {teams} = useUserTeams();
   const {selection} = usePageFilters();
 
@@ -170,15 +176,14 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.mobile.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
+    setSearchParams(
+      {
+        cursor: null,
+        query: String(searchQuery).trim() || null,
         isDefaultQuery: false,
       },
-    });
+      {history: 'push'}
+    );
   }
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);

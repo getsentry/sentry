@@ -283,7 +283,7 @@ describe('IssueListOverview (actions)', () => {
             environment: ['production'],
             statsPeriod: '24h',
             utc: true,
-            sort: IssueSortOptions.DATE,
+            sort: IssueSortOptions.RECOMMENDED,
           },
           data: {status: 'resolved', statusDetails: {}, substatus: null},
         })

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.conf import settings
@@ -1055,7 +1056,9 @@ class DisableUptimeDetectorTest(UptimeTestCase):
 
     @mock.patch("sentry.quotas.backend.disable_seat")
     @mock.patch("sentry.uptime.subscriptions.subscriptions.resolve_uptime_issue")
-    def test_disable_failed(self, mock_resolve_uptime_issue, mock_disable_seat) -> None:
+    def test_disable_failed(
+        self, mock_resolve_uptime_issue: MagicMock, mock_disable_seat: MagicMock
+    ) -> None:
         with (
             self.tasks(),
             self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()),
@@ -1394,7 +1397,7 @@ class CheckAndUpdateRegionsTest(UptimeTestCase):
         region_overrides: dict[str, UptimeSubscriptionRegion.RegionMode],
         expected_regions_before: dict[str, UptimeSubscriptionRegion.RegionMode],
         expected_regions_after: dict[str, UptimeSubscriptionRegion.RegionMode],
-    ):
+    ) -> None:
         region_configs = [
             UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
             for slug in regions

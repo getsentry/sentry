@@ -1,10 +1,11 @@
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
 
-def build_event(exceptions_values):
+def build_event(exceptions_values: Sequence[Mapping[str, object]]) -> dict[str, object]:
     return {"exception": {"values": exceptions_values}}
 
 
@@ -365,7 +366,7 @@ def test_deobfuscate_is_noop_when_no_classes_mapping() -> None:
 
     # Empty mapping
     excs = Exceptions(build_event([{"value": original}]))
-    exc = excs.get_processable_exceptions_with_values()[0][0]
+    processable_exc = excs.get_processable_exceptions_with_values()[0][0]
     excs.deobfuscate_and_save({}, mapped_exceptions=[])
-    assert exc["value"] == original
-    assert "raw_value" not in exc
+    assert processable_exc["value"] == original
+    assert "raw_value" not in processable_exc

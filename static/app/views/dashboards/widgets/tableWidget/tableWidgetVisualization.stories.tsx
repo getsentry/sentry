@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import * as Storybook from 'sentry/stories';
 import type {MetaType} from 'sentry/utils/discover/eventView';

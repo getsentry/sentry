@@ -6,7 +6,6 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   useExplorerAutofix,
-  type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -17,7 +16,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
-import {useForceBashMode} from './useForceBashMode';
 import {artifactToMarkdown} from './utils';
 
 /**
@@ -35,26 +33,10 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
-  const [enableBashMode, setEnableBashMode] = useForceBashMode();
 
-  const autofix = useMemo(
-    () => ({
-      ...aiAutofix,
-      startStep: (
-        step: AutofixExplorerStep,
-        options?: Parameters<ReturnType<typeof useExplorerAutofix>['startStep']>[1]
-      ) =>
-        aiAutofix.startStep(step, {
-          ...options,
-          enableBashMode: enableBashMode || undefined,
-        }),
-    }),
-    [aiAutofix, enableBashMode]
-  );
-
-  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
-  const handleRestart = useHandleRestart({aiAutofix: autofix});
-  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix: autofix});
+  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
+  const handleRestart = useHandleRestart({aiAutofix});
+  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix});
 
   const referrer = useMemo(
     () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
@@ -63,14 +45,12 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
 
   return {
     aiConfig,
-    autofix,
-    enableBashMode,
+    autofix: aiAutofix,
     handleCopyMarkdown,
     handleOpenSeerAgent,
     handleRestart,
     referrer,
     runState: aiAutofix.runState,
-    setEnableBashMode,
     warnings: aiAutofix.warnings,
   };
 }

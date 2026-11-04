@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -63,6 +63,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
@@ -679,7 +680,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
+      <SentryDocumentTitle
+        title={getSettingsScopeTitle('project')}
+        projectSlug={project.slug}
+      />
       <SettingsPageHeader title={settingsV3 ? t('General') : t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
 
@@ -725,9 +729,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm

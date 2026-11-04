@@ -37,10 +37,13 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
   /** Overrides dismissal. By default, dismissing retries the children. */
   onDismiss?: () => void;
+  /** Clears a caught error when changed, without remounting healthy children. */
+  resetKey?: React.Key;
 };
 
 type State = {
   error: Error | null;
+  resetKey: Props['resetKey'];
 };
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
@@ -56,7 +59,15 @@ export class ErrorBoundary extends Component<Props, State> {
 
   state: State = {
     error: null,
+    resetKey: this.props.resetKey,
   };
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    if (!Object.is(props.resetKey, state.resetKey)) {
+      return {error: null, resetKey: props.resetKey};
+    }
+    return null;
+  }
 
   componentDidMount(): void {
     // Reset error state on HMR (Hot Module Replacement) in development

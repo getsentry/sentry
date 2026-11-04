@@ -1,9 +1,11 @@
 from inspect import signature
+from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
 from scm.helpers import iter_all_pages
+from scm.types import BuildConclusion, CheckSuiteAction
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -54,7 +56,7 @@ PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 OWN_REPO_ID = 123
 
 
-def own_repo_pr(pr_id: int) -> dict:
+def own_repo_pr(pr_id: int) -> dict[str, Any]:
     """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
 
     GitHub always carries ``base.repo``, so a fixture without it is not a payload
@@ -70,10 +72,10 @@ INSPECT_PATH = f"{CHECK_SUITES_PATH}.inspect_check_suite_head"
 
 
 def check_suite_event(
-    raw: dict | None = None,
+    raw: dict[str, Any] | None = None,
     *,
-    action="completed",
-    conclusion="failure",
+    action: CheckSuiteAction = "completed",
+    conclusion: BuildConclusion = "failure",
     installation_id: int | None = None,
 ) -> CheckSuiteEvent:
     return CheckSuiteEvent(
@@ -103,11 +105,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
 
     def _event(
-        self, raw: dict | None = None, *, action="completed", conclusion="failure"
+        self,
+        raw: dict[str, Any] | None = None,
+        *,
+        action: CheckSuiteAction = "completed",
+        conclusion: BuildConclusion = "failure",
     ) -> CheckSuiteEvent:
         return check_suite_event(raw, action=action, conclusion=conclusion)
 
-    def _raw(self, *, pull_requests: list[dict] | None = None) -> dict:
+    def _raw(self, *, pull_requests: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         return {
             "check_suite": {
                 "id": 1,
@@ -1008,7 +1014,7 @@ class ShouldDeferPrIterationTest(TestCase):
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
 
-    def _resolved(self, *, blocks: list | None = None) -> ResolvedGreenCheckSuite:
+    def _resolved(self, *, blocks: list[MemoryBlock] | None = None) -> ResolvedGreenCheckSuite:
         run_state = SeerRunState(
             run_id=67890,
             blocks=blocks or [],
@@ -1104,7 +1110,7 @@ class ShouldDeferPrIterationTest(TestCase):
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
     def _event(
-        self, *, pull_requests: list[dict], repository_id: int | None = None
+        self, *, pull_requests: list[dict[str, Any]], repository_id: int | None = None
     ) -> GithubCheckSuiteEvent:
         return GithubCheckSuiteEvent.parse_obj(
             {
@@ -1456,7 +1462,7 @@ class CheckSuiteHardCapTest(TestCase):
 class SweepCheckRunsCostTest(TestCase):
     """The sweep's GitHub cost is the thing we budget for, so pin it down."""
 
-    def _page(self, runs: list[dict]) -> dict:
+    def _page(self, runs: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "data": runs,
             "type": "github",
@@ -1464,7 +1470,9 @@ class SweepCheckRunsCostTest(TestCase):
             "meta": {"next_cursor": "2"},
         }
 
-    def _run(self, *, status: str = "completed", conclusion: str | None = "success") -> dict:
+    def _run(
+        self, *, status: str = "completed", conclusion: str | None = "success"
+    ) -> dict[str, Any]:
         return {"id": 1, "name": "test", "status": status, "conclusion": conclusion}
 
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -1544,7 +1552,7 @@ class SweepCheckRunsCostTest(TestCase):
         )
 
 
-def _live_pr_result(head_sha: str = "abc") -> dict:
+def _live_pr_result(head_sha: str = "abc") -> dict[str, Any]:
     return {
         "data": {"state": "open", "merged": False, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": {}},

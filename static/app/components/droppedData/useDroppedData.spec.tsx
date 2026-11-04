@@ -114,6 +114,26 @@ describe('useDroppedData', () => {
     expect(result.current.droppedEvents).toEqual(droppedEvents);
   });
 
+  it('requests the chart projects over the page filter projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useDroppedData({dataset: DiscoverDatasets.SPANS, interval: '1h', projects: [2]}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(request).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events-dropped/`,
+      expect.objectContaining({query: expect.objectContaining({project: [2]})})
+    );
+  });
+
   it('does not request dropped events without the feature flag', () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,

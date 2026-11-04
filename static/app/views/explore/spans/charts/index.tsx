@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -11,12 +11,10 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -300,12 +298,7 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
-  const isDroppedDataLoaded = defined(droppedEvents);
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer({dataset, interval});
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -372,13 +365,8 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {isDroppedDataLoaded ? (
-        <DroppedDataLayerControl
-          dataset={dataset}
-          hasDroppedData={canShowDroppedData}
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
+      {droppedData.layerControl ? (
+        <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <Tooltip
         title={
@@ -463,16 +451,7 @@ function Chart({
               tooltipLimit={
                 hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
               }
-              droppedData={
-                showDroppedDataBand
-                  ? {
-                      dataset,
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
-                    }
-                  : undefined
-              }
+              droppedData={droppedData.band}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {
@@ -538,9 +517,9 @@ function Chart({
                     rawSpanCounts={rawSpanCounts}
                     userQuery={query.trim()}
                   />
-                  {showDroppedDataBand ? (
+                  {droppedData.filterNote ? (
                     <DroppedDataFilterNote
-                      dataset={dataset}
+                      {...droppedData.filterNote}
                       hasUserQuery={!!query.trim()}
                       showIcon={{zero: false, xl: true}}
                     />

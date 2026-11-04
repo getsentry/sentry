@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from unittest import mock
+from unittest.mock import MagicMock
 
 from sentry.seer.agent.context_engine_utils import (
     get_event_counts_for_org_projects,
@@ -208,11 +209,11 @@ class TestGetSdkNamesForOrgProjects(TestCase):
         assert get_sdk_names_for_org_projects([], self.start, self.end) == {}
 
     @mock.patch(MOCK_RUN_TABLE, return_value={"data": []})
-    def test_returns_empty_when_no_data(self, _mock):
+    def test_returns_empty_when_no_data(self, _mock: MagicMock) -> None:
         assert get_sdk_names_for_org_projects([self.project], self.start, self.end) == {}
 
     @mock.patch(MOCK_RUN_TABLE, side_effect=Exception("eap error"))
-    def test_returns_empty_on_query_exception(self, _mock):
+    def test_returns_empty_on_query_exception(self, _mock: MagicMock) -> None:
         assert get_sdk_names_for_org_projects([self.project], self.start, self.end) == {}
 
     def test_returns_sdk_name_by_project(self) -> None:

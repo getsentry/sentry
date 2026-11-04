@@ -125,15 +125,13 @@ describe('IssueViewsList', () => {
     await userEvent.click(screen.getByRole('option', {name: 'Recently Viewed'}));
 
     await waitFor(() => {
-      expect(mockViewsEndpoint).toHaveBeenCalledTimes(2);
+      expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
+        })
+      );
     });
-
-    expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
-      })
-    );
   });
 
   it('can unstar views', async () => {

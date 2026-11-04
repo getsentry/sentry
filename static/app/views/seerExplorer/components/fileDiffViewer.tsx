@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {getPrismLanguage} from '@sentry/scraps/code';
+import {getPrismLanguage} from '@sentry/scraps/codeBlock';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

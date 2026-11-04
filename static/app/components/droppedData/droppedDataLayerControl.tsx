@@ -30,7 +30,7 @@ function includesDroppedDataLayer(selected: Array<SelectOption<string>>): boolea
   return selected.some(option => option.value === DROPPED_DATA_LAYER);
 }
 
-interface DroppedDataLayerControlProps {
+export interface DroppedDataLayerControlProps {
   dataset: DiscoverDatasets;
   hasDroppedData: boolean;
   onChange: (showDroppedData: boolean) => void;

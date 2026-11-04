@@ -55,7 +55,6 @@ interface DroppedDataSeriesParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
   renderTooltip: (bucket: DroppedDataBucket) => string;
   theme: Theme;
-  yAxisIndex?: number;
 }
 
 type BandGroup = Extract<NonNullable<CustomSeriesRenderItemReturn>, {type: 'group'}>;
@@ -275,7 +274,6 @@ function createDroppedDataSeries({
   chartRef,
   renderTooltip,
   theme,
-  yAxisIndex,
 }: DroppedDataSeriesParams): CustomSeriesOption {
   const data: DroppedDataItem[] = buckets.map(bucket => ({
     value: [bucket.start, 0],
@@ -286,7 +284,6 @@ function createDroppedDataSeries({
   return {
     id: DROPPED_DATA_SERIES_ID,
     type: 'custom',
-    yAxisIndex,
     renderItem: droppedDataRenderItem(data, bandOffset, theme),
     name: DROPPED_DATA_SERIES_ID,
     data,
@@ -302,7 +299,6 @@ interface UseDroppedDataBandParams {
   bandOffset?: number;
   droppedData?: DroppedDataProps;
   utc?: boolean | null;
-  yAxisIndex?: number;
 }
 
 export function useDroppedDataBand({
@@ -310,7 +306,6 @@ export function useDroppedDataBand({
   droppedData,
   bandOffset = 0,
   utc,
-  yAxisIndex,
 }: UseDroppedDataBandParams) {
   const theme = useTheme();
   const renderToString = useRenderToString();
@@ -343,20 +338,9 @@ export function useDroppedDataBand({
                 />
               ),
             theme,
-            yAxisIndex,
           })
         : null,
-    [
-      bandOffset,
-      buckets,
-      chartRef,
-      dataset,
-      isVisible,
-      renderToString,
-      theme,
-      timezone,
-      yAxisIndex,
-    ]
+    [bandOffset, buckets, chartRef, dataset, isVisible, renderToString, theme, timezone]
   );
 
   return {

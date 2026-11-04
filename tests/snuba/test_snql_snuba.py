@@ -1,6 +1,7 @@
 import time
 import uuid
 from datetime import datetime, timedelta
+from typing import Any, cast
 from unittest import mock
 
 from django.utils import timezone
@@ -22,20 +23,23 @@ class SnQLTest(TestCase, SnubaTestCase):
     ) -> str:
         event_id = uuid.uuid4().hex
         self.snuba_insert(
-            (
-                2,
-                "insert",
-                {
-                    "event_id": event_id,
-                    "primary_hash": group_hash,
-                    "group_id": group_id if group_id else int(group_hash[:16], 16),
-                    "project_id": self.project.id,
-                    "message": "message",
-                    "platform": "python",
-                    "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "data": {"received": time.mktime(ts.timetuple())},
-                },
-                {},
+            cast(
+                "dict[str, Any]",
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": event_id,
+                        "primary_hash": group_hash,
+                        "group_id": group_id if group_id else int(group_hash[:16], 16),
+                        "project_id": self.project.id,
+                        "message": "message",
+                        "platform": "python",
+                        "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "data": {"received": time.mktime(ts.timetuple())},
+                    },
+                    {},
+                ),
             )
         )
         return event_id

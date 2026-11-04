@@ -1,9 +1,15 @@
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
 from sentry.monitors.endpoints.base_monitor_stats import MAX_STATS_BUCKETS
 from sentry.monitors.endpoints.organization_monitor_index_stats import MAX_STATS_MONITORS
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+)
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -12,7 +18,13 @@ from sentry.testutils.helpers.datetime import freeze_time
 class OrganizationMonitorIndexStatsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index-stats"
 
-    def add_checkin(self, monitor, offset, env=None, status=None):
+    def add_checkin(
+        self,
+        monitor: Monitor,
+        offset: Mapping[str, int],
+        env: MonitorEnvironment | None = None,
+        status: int | None = None,
+    ) -> None:
         if status is None:
             status = CheckInStatus.OK
         if env is None:

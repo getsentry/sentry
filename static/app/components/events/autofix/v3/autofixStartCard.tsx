@@ -14,8 +14,6 @@ import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplo
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
-import {useForceBashMode} from './useForceBashMode';
-
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
@@ -37,14 +35,12 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashMode] = useForceBashMode();
-
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
+      await startStep('root_cause');
     } catch {
       return;
       // oxlint-disable-next-line react/todo

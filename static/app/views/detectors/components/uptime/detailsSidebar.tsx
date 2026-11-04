@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
