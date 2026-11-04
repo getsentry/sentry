@@ -102,6 +102,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/builds/'
   | '/organizations/$organizationIdOrSlug/builtin-symbol-sources/'
   | '/organizations/$organizationIdOrSlug/chunk-upload/'
+  | '/organizations/$organizationIdOrSlug/classifiers/'
   | '/organizations/$organizationIdOrSlug/code-mapping-prefixes/repo/'
   | '/organizations/$organizationIdOrSlug/code-mappings/'
   | '/organizations/$organizationIdOrSlug/code-mappings/$configId/'
