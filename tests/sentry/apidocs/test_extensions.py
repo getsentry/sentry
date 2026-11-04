@@ -28,7 +28,7 @@ from sentry.apidocs.spectacular_ports import (
     resolve_type_hint,
     type_hint_policy,
 )
-from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.apidocs.utils import inline_sentry_response_schema, inline_sentry_response_serializer
 from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
 )
@@ -184,6 +184,39 @@ def test_sentry_inline_response_serializer_extension() -> None:
             "required": ["b", "c", "d", "e", "f", "g", "h", "i"],
         },
     }
+
+
+def test_sentry_inline_response_schema_extension() -> None:
+    source_schema = {"oneOf": [{"type": "object", "properties": {"url": {"type": "string"}}}]}
+    source = inline_sentry_response_schema("Source", source_schema)
+    sources = inline_sentry_response_schema("ListSources", {"type": "array", "items": source})
+
+    class ExampleEndpoint(Endpoint):
+        permission_classes = ()
+
+        @extend_schema(responses={200: sources})
+        def get(self, request: HttpRequest) -> None:
+            pass
+
+        @extend_schema(responses={201: source})
+        def post(self, request: HttpRequest) -> None:
+            pass
+
+    schema = generate_schema("sources/", view=ExampleEndpoint)
+
+    operations = schema["paths"]["/sources/"]
+    assert operations["get"]["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/ListSources"
+    }
+    assert operations["post"]["responses"]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/Source"
+    }
+    # A class the helper made stands for its component wherever the schema names it.
+    assert schema["components"]["schemas"]["ListSources"] == {
+        "type": "array",
+        "items": {"$ref": "#/components/schemas/Source"},
+    }
+    assert schema["components"]["schemas"]["Source"] == source_schema
 
 
 def test_enum_literal_schema() -> None:

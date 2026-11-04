@@ -25,6 +25,7 @@ from sentry.apidocs.hooks import (
     custom_postprocessing_hook,
     custom_preprocessing_hook,
 )
+from sentry.apidocs.internal.response_annotations import UNDOCUMENTED_EXTENSION
 from sentry.apidocs.internal.schema import internal_schema_class
 from sentry.apidocs.omission_guard import omissions_disabled
 from sentry.apidocs.spectacular_ports import TypeHintPolicy, type_hint_policy
@@ -191,14 +192,13 @@ def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> 
     build = _build()
     paths = result["paths"]
     # drf-spectacular appends `APPEND_PATHS` over whole path items, which drops the methods
-    # a view serves beyond the hand-written ones. Those win, except over the generated
-    # operation of a published method: the published build's `_fix_issue_paths` moves that
-    # one over them, as for issue tag values, so the published reference describes it.
+    # a view serves beyond the hand-written ones. Those stand in only for a generated
+    # operation that is no better; see `_generated_wins`.
     for path, operations in build.append_paths.items():
         generated = paths.setdefault(path, {})
         for method, operation in operations.items():
             admitted = build.admitted.get((path, method))
-            if method in generated and admitted is not None and admitted.status.is_published:
+            if method in generated and _generated_wins(generated[method], admitted):
                 continue
             generated[method] = copy.deepcopy(operation)
     # Before the published build's postprocessing, which can rewrite path keys.
@@ -221,6 +221,25 @@ def internal_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> 
                     if not (parameter.get("in") == "path" and parameter.get("name") in spelled_out)
                 ]
     return custom_postprocessing_hook(result, generator, in_reference=_in_reference, **kwargs)
+
+
+def _generated_wins(operation: Mapping[str, Any], admitted: _Admitted | None) -> bool:
+    """Whether a method's generated operation stands over its hand-written one.
+
+    A published method's does: the published build's `_fix_issue_paths` moves it over the
+    hand-written one, as for issue tag values, so the published reference describes it.
+    So does one that declares a success body, since it is read from the backend's own
+    types, and names them as components, where a hand-written body is inlined. The
+    hand-written one stands in for the rest, whose generated response is undocumented.
+    """
+    if admitted is not None and admitted.status.is_published:
+        return True
+    return any(
+        UNDOCUMENTED_EXTENSION not in media.get("schema", {UNDOCUMENTED_EXTENSION: True})
+        for code, response in operation.get("responses", {}).items()
+        if str(code).startswith("2")
+        for media in response.get("content", {}).values()
+    )
 
 
 def _variables(path: str) -> set[str]:

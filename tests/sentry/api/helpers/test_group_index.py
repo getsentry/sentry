@@ -1,3 +1,4 @@
+import inspect
 from datetime import UTC, datetime, timedelta
 from time import time
 from typing import Any
@@ -7,6 +8,7 @@ import pytest
 from django.http import QueryDict
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
@@ -18,6 +20,7 @@ from sentry.api.helpers.group_index import (
     validate_search_filter_permissions,
 )
 from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
+from sentry.api.helpers.group_index.index import track_slo_response
 from sentry.api.helpers.group_index.update import (
     get_current_release_version_of_group,
     get_semver_releases,
@@ -1986,3 +1989,16 @@ class TestHandleReleases(TestCase):
         )
         assert most_recent_release(self.project) == new_release
         assert greatest_semver_release(self.project) == new_release
+
+
+def test_track_slo_response_keeps_the_handler_visible() -> None:
+    def get(request: Request) -> Response[list[str]]:
+        """List things."""
+        return Response([])
+
+    wrapped = track_slo_response("workflow")(get)
+
+    # The internal API spec reads a handler's `Response[T]` annotation through it.
+    assert inspect.unwrap(wrapped) is get
+    assert wrapped.__name__ == "get"
+    assert wrapped.__doc__ == "List things."

@@ -20,9 +20,13 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups_with_search_fn,
 )
+from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializer,
+    StreamGroupSerializerResponse,
+)
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.parameters import (
     CursorQueryParam,
@@ -30,6 +34,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     VisibilityParams,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -86,6 +91,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             IssueParams.SHORT_ID_LOOKUP,
         ],
         responses={
+            200: inline_sentry_response_serializer(
+                "ProjectGroupIndexGetResponse", list[StreamGroupSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
@@ -235,7 +243,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         return response
 
     @track_slo_response("workflow")
-    def put(self, request: Request, project: Project) -> Response:
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[MutateIssueResponse] | Response[None]:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````

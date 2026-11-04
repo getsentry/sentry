@@ -29,6 +29,11 @@ from sentry.sentry_apps.api.serializers.servicehook import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 
+# The one component every service hook response is, list items aside.
+SERVICE_HOOK_RESPONSE = inline_sentry_response_serializer(
+    "ServiceHook", ServiceHookSerializerResponse
+)
+
 
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
@@ -98,7 +103,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=ServiceHookValidator,
         responses={
-            201: inline_sentry_response_serializer("ServiceHook", ServiceHookSerializerResponse),
+            201: SERVICE_HOOK_RESPONSE,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

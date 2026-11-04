@@ -20,9 +20,9 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.utils import inline_sentry_response_schema
 from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
-    REDACTED_SOURCES_SCHEMA,
     VALID_CASINGS,
     VALID_FILE_TYPES,
     VALID_LAYOUTS,
@@ -273,6 +273,13 @@ the source kind. Kept as `dict[str, Any]` rather than a closed TypedDict to
 preserve current wire flexibility."""
 
 
+# Components, so that every response naming a symbol source names one schema.
+SYMBOL_SOURCE_RESPONSE = inline_sentry_response_schema("SymbolSource", REDACTED_SOURCE_SCHEMA)
+SYMBOL_SOURCES_RESPONSE = inline_sentry_response_schema(
+    "ListSymbolSources", {"type": "array", "items": SYMBOL_SOURCE_RESPONSE}
+)
+
+
 class _SymbolSourceErrorResponse(TypedDict):
     """`{"error": "..."}` envelope used by symbol-source endpoints in place of
     the DRF-standard `{"detail": ...}`. Retained for backward compatibility
@@ -311,7 +318,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
             ),
         ],
         responses={
-            200: REDACTED_SOURCES_SCHEMA,
+            200: SYMBOL_SOURCES_RESPONSE,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -379,7 +386,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SourceSerializer,
         responses={
-            201: REDACTED_SOURCE_SCHEMA,
+            201: SYMBOL_SOURCE_RESPONSE,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
@@ -426,7 +433,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         ],
         request=SourceSerializer,
         responses={
-            200: REDACTED_SOURCE_SCHEMA,
+            200: SYMBOL_SOURCE_RESPONSE,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
