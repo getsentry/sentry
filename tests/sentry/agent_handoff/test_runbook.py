@@ -2,6 +2,8 @@ import shlex
 
 import pytest
 
+from sentry.agent_handoff.codes import AgentHandoff, HandoffFlow
+from sentry.agent_handoff.flows import get_flow_instructions
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 
 
@@ -14,6 +16,7 @@ def render(**overrides: str) -> str:
             "sentry_url": "https://sentry.example.com",
             "client_id": "example-client-id",
             "setup_code": "sntryc_example-setup-code",
+            "flow_instructions": "Now ask the user what they would like to do next.",
             **overrides,
         }
     )
@@ -108,3 +111,24 @@ def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
     assert "Fetching this page does not claim it" in guide
     assert "curl -sS -X POST https://sentry.example.com/agents/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
+
+
+def test_runbook_includes_flow_instructions_after_authentication() -> None:
+    guide = render(flow_instructions="Follow the tracing setup guide.")
+    assert guide.rstrip().endswith("Follow the tracing setup guide.")
+    assert guide.index("confirm the account context") < guide.index(
+        "Follow the tracing setup guide."
+    )
+
+
+@pytest.mark.parametrize("flow", list(HandoffFlow))
+def test_flow_guides_the_user_to_their_next_task(flow: HandoffFlow) -> None:
+    handoff = AgentHandoff(
+        flow=flow,
+        user_id=1,
+        organization_id=2,
+        application_id=3,
+        scope_list=("org:read",),
+    )
+    guide = render(flow_instructions=get_flow_instructions(handoff))
+    assert guide.rstrip().endswith("Now ask the user what they would like to do next.")

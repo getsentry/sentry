@@ -10,6 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -57,6 +59,7 @@ describe('TransactionThresholdButton', () => {
   const onChangeThreshold = jest.fn();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error');
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
   });
@@ -226,5 +229,42 @@ describe('TransactionThresholdButton', () => {
     await userEvent.click(button);
 
     expect(await screen.findByRole('spinbutton')).toHaveValue(200);
+  });
+
+  it('shows the API error when the reset cannot load the project default', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {threshold: '800', metric: 'lcp'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'DELETE',
+    });
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      statusCode: 400,
+      body: {threshold: 'Unable to load the threshold'},
+    });
+
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
+    renderGlobalModal();
+
+    const button = screen.getByRole('button', {name: 'Settings'});
+    await waitFor(() => expect(button).toBeEnabled());
+    await userEvent.click(button);
+    await userEvent.click(await screen.findByRole('button', {name: 'Reset All'}));
+
+    await waitFor(() => expect(getProjectThresholdMock).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Unable to load the threshold')
+    );
   });
 });

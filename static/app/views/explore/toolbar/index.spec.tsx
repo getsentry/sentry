@@ -58,9 +58,7 @@ function Wrapper({children}: {children: ReactNode}) {
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     const project = ProjectFixture({
@@ -1204,7 +1202,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';

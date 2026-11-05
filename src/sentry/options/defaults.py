@@ -474,6 +474,12 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "cleanup.inbox-events.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
 # default so deletion volume can be measured before anything is removed.
 register(
@@ -795,6 +801,20 @@ register(
 register(
     "gitlab.webhook-reconcile.rate-limit.retry-delay-seconds",
     default=73,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

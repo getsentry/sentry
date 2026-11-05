@@ -1,4 +1,4 @@
-import {act, render} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
@@ -57,6 +57,30 @@ describe('useChartInterval', () => {
       setChartInterval('5m');
     });
     expect(chartInterval).toBe('5m');
+  });
+
+  it('pushes a history entry and keeps other params when the interval changes', async () => {
+    let setChartInterval!: ReturnType<typeof useChartInterval>[1];
+    const onNuqsUrlUpdate = jest.fn();
+
+    function TestPage() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      [, setChartInterval] = useChartInterval();
+      return null;
+    }
+
+    const {router} = render(<TestPage />, {
+      initialRouterConfig: {location: {pathname: '/explore/', query: {query: 'foo'}}},
+      onNuqsUrlUpdate,
+    });
+
+    act(() => setChartInterval('3h'));
+
+    await waitFor(() => expect(router.location.query.interval).toBe('3h'));
+    expect(router.location.query.query).toBe('foo');
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
   });
 
   it('defaults to the smallest interval with USE_SMALLEST strategy', () => {

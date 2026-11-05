@@ -188,7 +188,6 @@ type ComponentOverrides = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
-  'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:data-consent-banner': () => React.ComponentType<{
     source: string;
@@ -254,9 +253,6 @@ export type FeatureDisabledOverrides = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledOverride;
   'feature-disabled:alerts-page': FeatureDisabledOverride;
   'feature-disabled:custom-inbound-filters': FeatureDisabledOverride;
-  'feature-disabled:dashboards-edit': FeatureDisabledOverride;
-  'feature-disabled:dashboards-page': FeatureDisabledOverride;
-  'feature-disabled:dashboards-sidebar-item': FeatureDisabledOverride;
   'feature-disabled:data-forwarding': FeatureDisabledOverride;
   'feature-disabled:discard-groups': FeatureDisabledOverride;
   'feature-disabled:discover-saved-query-create': FeatureDisabledOverride;

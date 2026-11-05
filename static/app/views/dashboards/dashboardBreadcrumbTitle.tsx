@@ -294,10 +294,7 @@ export function DashboardBreadcrumbTitle({
   // endpoint refuses, so offering it at all would only be something to explain.
   const canDelete =
     !isPrebuiltDashboard && isPersisted && hasEditAccess && defined(onDelete);
-  const canViewRevisions =
-    Boolean(dashboard.id) &&
-    !isPrebuiltDashboard &&
-    organization.features.includes('dashboards-edit');
+  const canViewRevisions = Boolean(dashboard.id) && !isPrebuiltDashboard;
   const handleToggleFavorite = async () => {
     const nextIsFavorited = !isFavorited;
     setIsFavorited(nextIsFavorited);

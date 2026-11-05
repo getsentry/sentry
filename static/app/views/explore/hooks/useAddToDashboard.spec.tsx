@@ -55,7 +55,7 @@ describe('AddToDashboardButton', () => {
         <ToolbarSaveAs />
       </Wrapper>,
       {
-        organization: OrganizationFixture({features: ['dashboards-edit']}),
+        organization: OrganizationFixture(),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',

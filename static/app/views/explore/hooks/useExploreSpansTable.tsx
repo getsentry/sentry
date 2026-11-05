@@ -248,7 +248,6 @@ function useExploreSpansTableImp({
     limit,
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
     queryExtras,
   });
 
