@@ -29,7 +29,7 @@ export type ContinuousTimeSeriesConfig = {
    */
   name?: string;
   /**
-   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['incomplete']`
+   * Which item properties get their own visual treatment (e.g., incomplete or low-confidence buckets). Defaults to `['completeness']`
    */
   segmentBy?: readonly TimeSeriesSegmentField[];
 };
@@ -144,4 +144,4 @@ export abstract class ContinuousTimeSeries<
   abstract toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): SeriesOption[];
 }
 
-const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['incomplete'];
+const DEFAULT_SEGMENT_BY: readonly TimeSeriesSegmentField[] = ['completeness'];

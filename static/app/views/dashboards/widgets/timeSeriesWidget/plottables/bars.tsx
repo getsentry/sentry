@@ -48,7 +48,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           color: params => {
             const datum = scaledTimeSeries.values[params.dataIndex]!;
 
-            return this.segmentBy.includes('incomplete') && datum.incomplete
+            return this.segmentBy.includes('completeness') && datum.incomplete
               ? colorObject.alpha(0.5).string()
               : colorValue;
           },

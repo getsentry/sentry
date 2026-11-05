@@ -17,17 +17,17 @@ describe('Line', () => {
     yAxisPosition: 'left' as const,
   };
 
-  it('ignores low confidence data when not enabled', () => {
-    const series = new Line(timeSeries).toSeries(plottingOptions);
+  it.each([
+    {segmentBy: [], lineStyles: [undefined]},
+    {segmentBy: ['completeness'], lineStyles: [undefined, 'dotted']},
+    {segmentBy: ['confidence'], lineStyles: [undefined, 'dashed']},
+    {
+      segmentBy: ['completeness', 'confidence'],
+      lineStyles: [undefined, 'dashed', 'dotted'],
+    },
+  ] as const)('segments by $segmentBy', ({segmentBy, lineStyles}) => {
+    const series = new Line(timeSeries, {segmentBy}).toSeries(plottingOptions);
 
-    expect(series.map(s => s.lineStyle?.type)).toEqual([undefined, 'dotted']);
-  });
-
-  it('draws low confidence segments dashed when enabled', () => {
-    const series = new Line(timeSeries, {
-      segmentBy: ['incomplete', 'confidence'],
-    }).toSeries(plottingOptions);
-
-    expect(series.map(s => s.lineStyle?.type)).toEqual([undefined, 'dashed', 'dotted']);
+    expect(series.map(s => s.lineStyle?.type)).toEqual(lineStyles);
   });
 });

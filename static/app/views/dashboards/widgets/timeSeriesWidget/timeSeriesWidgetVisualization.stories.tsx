@@ -839,10 +839,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Line(lowConfidenceDurationTimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                 }),
                 new Line(lowConfidenceDurationP50TimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                 }),
               ]}
             />
@@ -851,10 +851,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(lowConfidenceDurationTimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                 }),
                 new Area(lowConfidenceDurationP50TimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                 }),
               ]}
             />
@@ -863,11 +863,11 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(lowConfidenceDurationTimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                   stack: 'all',
                 }),
                 new Bars(lowConfidenceDurationP50TimeSeries, {
-                  segmentBy: SEGMENT_BY_CONFIDENCE,
+                  segmentBy: ['completeness', 'confidence'],
                   stack: 'all',
                 }),
               ]}
@@ -1359,8 +1359,6 @@ export default function DatabaseLandingDurationChartWidget(
     </div>
   ));
 });
-
-const SEGMENT_BY_CONFIDENCE = ['incomplete', 'confidence'] as const;
 
 const FillParent = styled('div')`
   width: 100%;

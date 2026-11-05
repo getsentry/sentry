@@ -13,5 +13,5 @@ export function useTimeSeriesSegmentBy(): readonly TimeSeriesSegmentField[] {
 }
 
 // Module-level so the hook returns a stable reference for memo dependencies
-const WITH_CONFIDENCE: readonly TimeSeriesSegmentField[] = ['incomplete', 'confidence'];
-const WITHOUT_CONFIDENCE: readonly TimeSeriesSegmentField[] = ['incomplete'];
+const WITH_CONFIDENCE: readonly TimeSeriesSegmentField[] = ['completeness', 'confidence'];
+const WITHOUT_CONFIDENCE: readonly TimeSeriesSegmentField[] = ['completeness'];

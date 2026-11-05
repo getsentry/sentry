@@ -9,7 +9,7 @@ export type TimeSeriesDisplayStyle = 'normal' | 'lowConfidence' | 'incomplete';
 /**
  * `TimeSeriesItem` properties that can split a series into differently-styled segments
  */
-export type TimeSeriesSegmentField = 'confidence' | 'incomplete';
+export type TimeSeriesSegmentField = 'completeness' | 'confidence';
 
 interface Options {
   /**
@@ -25,10 +25,8 @@ export function segmentTimeSeriesByDisplayStyle(
   timeSeries: TimeSeries,
   options: Options
 ): Array<[TimeSeries, TimeSeriesDisplayStyle]> {
-  const segmentBy = new Set(options.segmentBy);
-
   const segments = segmentSequentialBy(timeSeries.values, item =>
-    getDisplayStyle(item, segmentBy)
+    getDisplayStyle(item, options.segmentBy)
   );
 
   for (let i = 1; i < segments.length; i++) {
@@ -51,23 +49,30 @@ export function segmentTimeSeriesByDisplayStyle(
   ]);
 }
 
+/**
+ * When more than one field applies to an item, the highest-precedence style wins
+ */
 function getDisplayStyle(
   item: TimeSeriesItem,
-  segmentBy: ReadonlySet<TimeSeriesSegmentField>
+  segmentBy: readonly TimeSeriesSegmentField[]
 ): TimeSeriesDisplayStyle {
-  if (segmentBy.has('incomplete') && item.incomplete) {
-    return 'incomplete';
-  }
-
-  if (segmentBy.has('confidence') && item.confidence === 'low') {
-    return 'lowConfidence';
-  }
-
-  return 'normal';
+  return segmentBy
+    .map(field => SEGMENTERS[field](item))
+    .reduce(
+      (winner, style) =>
+        STYLE_PRECEDENCE[style] < STYLE_PRECEDENCE[winner] ? style : winner,
+      'normal'
+    );
 }
 
-// Lower number wins. An item that's both incomplete and low-confidence is drawn
-// as incomplete, and a shared boundary point goes to the higher-precedence segment
+const SEGMENTERS: Record<
+  TimeSeriesSegmentField,
+  (item: TimeSeriesItem) => TimeSeriesDisplayStyle
+> = {
+  completeness: item => (item.incomplete ? 'incomplete' : 'normal'),
+  confidence: item => (item.confidence === 'low' ? 'lowConfidence' : 'normal'),
+};
+
 const STYLE_PRECEDENCE: Record<TimeSeriesDisplayStyle, number> = {
   incomplete: 0,
   lowConfidence: 1,
