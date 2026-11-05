@@ -1,5 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
@@ -32,16 +33,11 @@ export function useMonitorsScheduleSampleWindow({
     schedule_type: scheduleType,
   };
 
-  return useApiQuery<ScheduleSampleWindowResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-window/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query},
-    ],
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<ScheduleSampleWindowResponse>()(
+      '/organizations/$organizationIdOrSlug/monitors-schedule-window/',
+      {path: {organizationIdOrSlug: organization.slug}, query, staleTime: 0}
+    ),
+    retry: false,
+  });
 }

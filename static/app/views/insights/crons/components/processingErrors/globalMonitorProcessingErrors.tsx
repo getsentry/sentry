@@ -1,15 +1,13 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {
-  CheckinProcessingError,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+import type {ProcessingErrorType} from 'sentry/views/insights/crons/types';
 
 import {MonitorProcessingErrors} from './monitorProcessingErrors';
-import {makeMonitorListErrorsQueryKey} from './utils';
+import {monitorListErrorsApiOptions} from './utils';
 
 interface GlobalMonitorProcessingErrorsProps {
   project?: string[];
@@ -21,12 +19,9 @@ export function GlobalMonitorProcessingErrors({
   const api = useApi();
   const organization = useOrganization();
 
-  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
-  const {data: processingErrors, refetch: refetchErrors} = useApiQuery<
-    CheckinProcessingError[]
-  >(processingErrorQueryKey, {
-    staleTime: 0,
-  });
+  const processingErrorOptions = monitorListErrorsApiOptions(organization, project);
+  const {data: processingErrors, refetch: refetchErrors} =
+    useQuery(processingErrorOptions);
 
   async function handleDismissError(errorType: ProcessingErrorType, projectId: string) {
     await deleteProjectProcessingErrorByType(

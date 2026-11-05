@@ -12,7 +12,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -34,11 +34,11 @@ interface MetricIssueChartProps {
 
 const CHART_HEIGHT = 180;
 
-function getDetectorErrorMessage(detectorError: RequestError): string {
-  if (detectorError.status === 404) {
+function getDetectorErrorMessage(detectorError: Error): string {
+  if (detectorError instanceof RequestError && detectorError.status === 404) {
     return t('The metric monitor which created this issue no longer exists.');
   }
-  if (detectorError.responseJSON?.detail) {
+  if (detectorError instanceof RequestError && detectorError.responseJSON?.detail) {
     return t(
       'The metric monitor could not be loaded: %s',
       detectorError.responseJSON.detail

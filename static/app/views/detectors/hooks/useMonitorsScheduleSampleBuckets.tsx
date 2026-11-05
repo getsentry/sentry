@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
@@ -56,17 +57,12 @@ export function useMonitorsScheduleSampleBuckets({
     interval,
   };
 
-  return useApiQuery<Array<CheckInBucket<SchedulePreviewStatus>>>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-buckets/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query},
-    ],
-    {
-      staleTime: 0,
-      enabled: !!(start && end && interval),
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<Array<CheckInBucket<SchedulePreviewStatus>>>()(
+      '/organizations/$organizationIdOrSlug/monitors-schedule-buckets/',
+      {path: {organizationIdOrSlug: organization.slug}, query, staleTime: 0}
+    ),
+    enabled: !!(start && end && interval),
+    retry: false,
+  });
 }
