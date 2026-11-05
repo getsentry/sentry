@@ -1,17 +1,15 @@
 import * as Sentry from '@sentry/react';
 
-import {RequestError} from './requestError/requestError';
+import type {RequestError} from './requestError/requestError';
 
-export function handleXhrErrorResponse(message: string, err: Error): void {
-  const requestError = err instanceof RequestError ? err : undefined;
+export function handleXhrErrorResponse(message: string, err: RequestError): void {
   // Sudo errors are handled separately elsewhere
   // @ts-expect-error TS(2339): Property 'code' does not exist on type 'string | {... Remove this comment to see the full error message
-  if (!err || requestError?.responseJSON?.detail?.code === 'sudo-required') {
+  if (!err || err.responseJSON?.detail?.code === 'sudo-required') {
     return;
   }
 
-  const {responseJSON, status} = requestError ?? {};
-  const {message: causeMessage} = err;
+  const {responseJSON, status, message: causeMessage} = err;
 
   Sentry.withScope(scope => {
     // Turn `GET /dogs/are/great 500` into just `GET /dogs/are/great`
